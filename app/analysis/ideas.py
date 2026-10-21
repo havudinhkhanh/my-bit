@@ -24,7 +24,9 @@ FEE = 0.0005
 SLIP = 0.0005
 NAMES = {"pullback_up": "Hồi về vùng Fibonacci trong xu hướng tăng", "pullback_dn": "Hồi lên vùng Fibonacci trong xu hướng giảm",
          "breakout_up": "Phá đỉnh 55 nến có khối lượng", "breakout_dn": "Thủng đáy 55 nến có khối lượng",
-         "oversold_up": "Bán quá mức trong xu hướng tăng (bật lại)", "overbought_dn": "Mua quá mức trong xu hướng giảm (quay đầu)"}
+         "oversold_up": "Bán quá mức trong xu hướng tăng (bật lại)", "overbought_dn": "Mua quá mức trong xu hướng giảm (quay đầu)",
+         "smc_sweep_up": "SMC: quét thanh khoản đáy + CHoCH/BOS tăng", "smc_sweep_dn": "SMC: quét thanh khoản đỉnh + CHoCH/BOS giảm",
+         "smc_ob_up": "SMC: hồi về Order Block mua", "smc_ob_dn": "SMC: hồi về Order Block bán"}
 
 
 def _f(x, nd=2):
@@ -112,6 +114,12 @@ def detect(df: pd.DataFrame, tf: str) -> list[dict]:
                 continue
             last[name] = i
             out.append({"i": i, "setup": name, "side": side, "e": float(e), "s": float(s), "t1": float(t1), "t2": float(t2), "mf": int(mf[i] * side)})
+    # thiết lập Smart Money (SMC)
+    from . import smc
+    for g in smc.signals(df, 3):
+        g["mf"] = int(mf[g["i"]] * g["side"])
+        out.append(g)
+    out.sort(key=lambda g: g["i"])
     return out
 
 
@@ -129,6 +137,10 @@ def simulate(df: pd.DataFrame, sigs: list[dict], horizon: int = 60) -> list[dict
         cost = 2 * (FEE + SLIP) * e / risk
         stop, hit1, d1, d2, R = s, False, None, None, None
         last_j = min(n - 1, i + horizon)
+        if g.get("fill") and ((sd == 1 and l[i] <= s) or (sd == -1 and h[i] >= s)):
+            # lệnh chờ khớp và chạm cắt lỗ ngay trong cùng nến → tính lỗ (không loại bỏ)
+            res.append({**g, "hit1": False, "d1": None, "d2": None, "R": -1.0 - cost, "r1": r1, "r2": r2, "t": df["date"].iloc[i]})
+            continue
         for j in range(i + 1, last_j + 1):
             lo_hit = l[j] <= stop if sd == 1 else h[j] >= stop
             if lo_hit:

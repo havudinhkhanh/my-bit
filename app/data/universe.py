@@ -16,7 +16,7 @@ STABLE = {"USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "USDS", "PYUSD", "USDD
           "USDO", "FRXUSD", "USDN", "SRUSD", "SYRUPUSDC", "YUSD", "USX", "DEUSD", "HONEY", "AVUSD", "USDZ", "USDH", "LISUSD", "MUSD", "RUSD", "PUSD"}
 GOLD = {"PAXG", "XAUT", "KAU", "XAUM", "CGO"}
 WRAP_NAME = re.compile(r"\b(wrapped|bridged|staked|liquid staked|restaked|binance-peg|coinbase wrapped|savings|bitcoin on|"
-                       r"mantle staked|jito staked|frax ether|midas|ondo us|backed|xstock|bstock|tokenized stock)\b", re.I)
+                       r"mantle staked|jito staked|frax ether|midas|ondo us|backed|xstock|bstock|tokenized stock|robinhood token|etf trust|tokenized equity)\b", re.I)
 WRAP_SYM = {"WBTC", "WETH", "STETH", "WSTETH", "WEETH", "EETH", "CBBTC", "CBETH", "RETH", "METH", "BETH", "WBETH", "JITOSOL", "MSOL", "BNSOL", "JUPSOL",
             "SOLVBTC", "LBTC", "TBTC", "BTCB", "FBTC", "EZETH", "RSETH", "OSETH", "SWETH", "ETHX", "SFRXETH", "WBNB", "WTRX", "WAVAX", "WMATIC",
             "WHYPE", "KHYPE", "STHYPE", "WSOL", "CLBTC", "UNIBTC", "PUMPBTC", "ENZOBTC", "XSOLVBTC", "BBTC", "OBTC", "STKAAVE", "WEMIX$", "SAVAX",

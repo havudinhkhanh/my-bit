@@ -88,7 +88,7 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
-function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
+function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -172,6 +172,8 @@ async function route() {
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
+    else if (r === "radar") { setTab("radar"); await viewRadar(); }
+    else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "plan") { setTab("plan"); await viewPlan(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "ideas") { setTab("ideas"); await viewIdeas(arg[0]); }
     else if (r === "futures") { setTab("futures"); await viewFutures(arg[0]); }
@@ -235,7 +237,7 @@ async function viewMarket() {
   const list = (keys, fn, n = 8) => (keys || []).slice(0, n).map((k) => coinMini(k, fn(BYK[k] || {}))).join("") || `<p class="muted">—</p>`;
   const sec = (X.sectors || []).map((s) => `<tr><td class="l">${esc(s.g)} <small class="faint">${s.n}</small></td><td class="${cls(s.r1)}">${pct(s.r1, 1)}</td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 0)}</td><td>${usd(s.mc)}</td><td>${nf(s.up / s.n * 100, 0)}%</td><td class="l">${coinLink(s.best)} <small class="${cls(s.best7)}">${pct(s.best7, 0)}</small></td></tr>`).join("");
   app().innerHTML = `
-  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString("vi-VN"))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/live">Binance trực tiếp →</a></span></div>
+  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString("vi-VN"))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/radar">⚡ Radar vào lệnh</a> · <a href="#/pairs">Cặp coin</a> · <a href="#/live">Binance trực tiếp →</a></span></div>
   <section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
   <div class="stgs">
     ${stGroup("Xu hướng", [
@@ -271,6 +273,7 @@ async function viewMarket() {
       ["Stablecoin lưu hành", usd(M.stable?.now), `30n ${pct(M.stable?.c30, 2)} · 90n ${pct(M.stable?.c90, 2)}`, sgn(M.stable?.c30), "Tiền chờ trong hệ sinh thái – tăng = tiền mới vào", spark((M.stable?.series || []).slice(-90).map((x) => x[1]))],
       ["Khối lượng 24h", usd(G.total_vol), `${nf(G.total_vol / Math.max(1, G.total_mcap) * 100, 1)}% vốn hoá`, 0]])}
   </div></section>
+  <section class="panel"><div class="ph"><h2>🗺️ Bản đồ nhiệt top 100 vốn hoá</h2><span class="meta"><span class="seg" id="hmS"><button data-k="r1" class="on">24h</button><button data-k="r7">7 ngày</button><button data-k="r30">30 ngày</button></span> ô càng to vốn hoá càng lớn · bấm để mở coin</span></div><div id="hm">${heatMap(COINS.rows, "r1")}</div></section>
   <div class="g g4">
     ${panel("Sợ hãi & Tham lam", lineSvg([{ color: css("--brand"), pts: (F.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, min: 0, max: 100, bands: [{ lo: 0, hi: 25, color: css("--up") }, { lo: 75, hi: 100, color: css("--down") }], dec: 0 }))}
     ${panel("MVRV Bitcoin", lineSvg([{ color: css("--brand"), pts: (cy.mvrv_series || []).slice(-900).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, dec: 1, hlines: [{ y: 1, color: css("--up") }, { y: 3, color: css("--down") }] }))}
@@ -300,6 +303,7 @@ async function viewMarket() {
   ${(M.news || []).length ? panel("📰 Tin có tác động (72 giờ)", `<div class="ntfs cols2">${M.news.map((n) => newsRow(n, true)).join("")}</div>`) : ""}
   ${(M.alerts || []).length ? panel("⚠️ Cảnh báo đòn bẩy", `<ul class="alerts">${M.alerts.map((a) => `<li>${coinLink(a.k, "/fut")} <b>${esc(a.t)}</b> – ${esc(a.d)}</li>`).join("")}</ul>`) : ""}
   <p class="faint disclaimer">Thông tin phân tích, không phải lời khuyên đầu tư. Crypto biến động mạnh; giao dịch đòn bẩy có thể mất toàn bộ ký quỹ.</p>`;
+  $$("#hmS button").forEach((b) => b.onclick = () => { $$("#hmS button").forEach((x) => x.classList.toggle("on", x === b)); $("#hm").innerHTML = heatMap(COINS.rows, b.dataset.k); });
 }
 
 // ================================================================ BẢNG COIN
@@ -383,11 +387,12 @@ async function viewCoins(view0) {
 }
 
 // ================================================================ CHI TIẾT COIN
-const SUBT = [["", "Tổng quan"], ["val", "Định giá"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
+const SUBT = [["", "Tổng quan"], ["smc", "SMC & vào lệnh"], ["val", "Định giá"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
 async function viewCoin(key, sub = "") {
   await coins();
   const D = await load(`data/c/${enc(key)}.json`);
   D._ij = await tryLoad("data/ideas.json");
+  if (D._ij?.names) IDEA_NAMES = { ...IDEA_NAMES, ...D._ij.names };
   if (!PF) await pfLoad().catch(() => null);
   const r = D.row;
   app().innerHTML = `<div class="ph stk"><h1>${esc(key)} <small class="muted">${esc(r.n || "")}</small></h1>
@@ -399,7 +404,7 @@ async function viewCoin(key, sub = "") {
     disposeCharts();
     $$(".subtabs button").forEach((b) => b.classList.toggle("on", b.dataset.st === s));
     history.replaceState(null, "", `#/c/${enc(key)}${s ? "/" + s : ""}`);
-    const f = { "": tabOverview, val: tabVal, lv: tabLevels, fut: tabFut, plan: tabPlan, tech: tabTech }[s] || tabOverview;
+    const f = { "": tabOverview, smc: tabSmc, val: tabVal, lv: tabLevels, fut: tabFut, plan: tabPlan, tech: tabTech }[s] || tabOverview;
     $("#sub").innerHTML = f(D);
     (BIND[s || ""] || (() => {}))(D);
   };
@@ -414,7 +419,8 @@ const OKXB = { "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H", "
 let CTF = lsGet("ctf2", "1d");
 const WSS = [];
 function closeWs() { while (WSS.length) { try { WSS.pop().close(); } catch (e) { /* đã đóng */ } } }
-const toO = (rows, m = 1) => ({ t: rows.map((x) => Math.floor(x[0] / 1000)), o: rows.map((x) => +x[1] / m), h: rows.map((x) => +x[2] / m), l: rows.map((x) => +x[3] / m), c: rows.map((x) => +x[4] / m), v: rows.map((x) => +(x[7] ?? x[5] * x[4])) });
+const toO = (rows, m = 1) => ({ t: rows.map((x) => Math.floor(x[0] / 1000)), o: rows.map((x) => +x[1] / m), h: rows.map((x) => +x[2] / m), l: rows.map((x) => +x[3] / m), c: rows.map((x) => +x[4] / m), v: rows.map((x) => +(x[7] ?? x[5] * x[4])),
+  tb: rows.length && rows[0][10] != null ? rows.map((x) => +x[10]) : undefined });
 function aggO(o, mode) {
   if (!mode || !o) return o;
   const key = (t) => { const d = new Date(t * 1000); if (typeof mode === "number") return Math.floor(t / mode) * mode;
@@ -423,17 +429,18 @@ function aggO(o, mode) {
     if (mode === "y") return Date.UTC(d.getUTCFullYear(), 0, 1) / 1000;
     if (mode === "w") { const wd = (d.getUTCDay() + 6) % 7; return Math.floor(t / 86400) * 86400 - wd * 86400; }
     if (mode === "M") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000; return t; };
-  const out = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  const out = { t: [], o: [], h: [], l: [], c: [], v: [] }, tb = o.tb ? [] : null;
   for (let i = 0; i < o.t.length; i++) {
     const k = key(o.t[i]), n = out.t.length;
-    if (n && out.t[n - 1] === k) { out.h[n - 1] = Math.max(out.h[n - 1], o.h[i]); out.l[n - 1] = Math.min(out.l[n - 1], o.l[i]); out.c[n - 1] = o.c[i]; out.v[n - 1] += o.v[i] || 0; }
-    else { out.t.push(k); out.o.push(o.o[i]); out.h.push(o.h[i]); out.l.push(o.l[i]); out.c.push(o.c[i]); out.v.push(o.v[i] || 0); }
+    if (n && out.t[n - 1] === k) { out.h[n - 1] = Math.max(out.h[n - 1], o.h[i]); out.l[n - 1] = Math.min(out.l[n - 1], o.l[i]); out.c[n - 1] = o.c[i]; out.v[n - 1] += o.v[i] || 0; if (tb) tb[n - 1] += o.tb[i] || 0; }
+    else { out.t.push(k); out.o.push(o.o[i]); out.h.push(o.h[i]); out.l.push(o.l[i]); out.c.push(o.c[i]); out.v.push(o.v[i] || 0); if (tb) tb.push(o.tb[i] || 0); }
   }
+  if (tb) out.tb = tb;
   return out;
 }
 async function fetchJ(url, ms = 7000) { const r = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined }); if (!r.ok) throw new Error(r.status); return r.json(); }
-async function liveKlines(r, iv, pages = 1) {
-  const lim = iv === "1M" ? 200 : iv === "1w" ? 600 : 1000;
+async function liveKlines(r, iv, pages = 1, lim0 = 0) {
+  const lim = lim0 || (iv === "1M" ? 200 : iv === "1w" ? 600 : 1000);
   const tries = [];
   if (iv === "1s") {      // nến 1 giây chỉ có ở Binance spot; ghép nhiều trang khi cần khung 15s/30s
     if (!r.sp) return null;
@@ -459,7 +466,7 @@ async function liveKlines(r, iv, pages = 1) {
   }
   if (OKXB[iv]) {
     for (const inst of [`${r.k}-USDT`, `${r.k}-USDT-SWAP`]) {
-      try { const j = await fetchJ(`https://www.okx.com/api/v5/market/candles?instId=${inst}&bar=${OKXB[iv]}&limit=300`); const d = (j.data || []).slice().reverse(); if (d.length) return { o: toO(d.map((x) => [+x[0], x[1], x[2], x[3], x[4], x[5], 0, x[7]])), src: "OKX", sym: inst, m: 1, kind: "okx" }; } catch (e) { /* thử nguồn khác */ }
+      try { const j = await fetchJ(`https://www.okx.com/api/v5/market/candles?instId=${inst}&bar=${OKXB[iv]}&limit=${Math.min(300, lim)}`); const d = (j.data || []).slice().reverse(); if (d.length) return { o: toO(d.map((x) => [+x[0], x[1], x[2], x[3], x[4], x[5], 0, x[7]])), src: "OKX", sym: inst, m: 1, kind: "okx" }; } catch (e) { /* thử nguồn khác */ }
     }
   }
   return null;
@@ -490,6 +497,7 @@ async function priceChart(D, el, tf) {
   if (L) {
     let raw = L.o, o = aggO(raw, ag);
     const ch = drawO(D, el, o, tf, `${L.src} ${L.sym} · trực tiếp`);
+    const tools = chartTools(D, el, ch, tf); tools.upd(o, true);
     if (L.kind !== "okx") {
       const url = (L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`;
       try {
@@ -497,12 +505,13 @@ async function priceChart(D, el, tf) {
         ws.onmessage = (ev) => {
           const k = JSON.parse(ev.data).k; if (!k) return;
           const t = Math.floor(k.t / 1000), m = L.m, i = raw.t.length - 1;
-          const bar = [+k.o / m, +k.h / m, +k.l / m, +k.c / m, +k.q];
-          if (raw.t[i] === t) { raw.o[i] = bar[0]; raw.h[i] = bar[1]; raw.l[i] = bar[2]; raw.c[i] = bar[3]; raw.v[i] = bar[4]; }
-          else if (t > raw.t[i]) { raw.t.push(t); raw.o.push(bar[0]); raw.h.push(bar[1]); raw.l.push(bar[2]); raw.c.push(bar[3]); raw.v.push(bar[4]); }
+          const bar = [+k.o / m, +k.h / m, +k.l / m, +k.c / m, +k.q, +k.Q];
+          if (raw.t[i] === t) { raw.o[i] = bar[0]; raw.h[i] = bar[1]; raw.l[i] = bar[2]; raw.c[i] = bar[3]; raw.v[i] = bar[4]; if (raw.tb) raw.tb[i] = bar[5]; }
+          else if (t > raw.t[i]) { raw.t.push(t); raw.o.push(bar[0]); raw.h.push(bar[1]); raw.l.push(bar[2]); raw.c.push(bar[3]); raw.v.push(bar[4]); if (raw.tb) raw.tb.push(bar[5]); }
           const a = ag ? aggO({ t: raw.t.slice(-40), o: raw.o.slice(-40), h: raw.h.slice(-40), l: raw.l.slice(-40), c: raw.c.slice(-40), v: raw.v.slice(-40) }, ag) : null;
           const j = a ? a.t.length - 1 : raw.t.length - 1, s2 = a || raw;
           try { ch.cs.update({ time: s2.t[j], open: s2.o[j], high: s2.h[j], low: s2.l[j], close: s2.c[j] }); } catch (e) { /* bỏ qua nến cũ */ }
+          tools.upd(ag ? aggO(raw, ag) : raw, k.x);
           livePx(r.k, bar[3]);
         };
       } catch (e) { /* trình duyệt chặn websocket */ }
@@ -511,7 +520,8 @@ async function priceChart(D, el, tf) {
   }
   const o = serverO(D, tf);
   if (!o || !o.t?.length) { el.innerHTML = `<p class="muted" style="padding:20px">${base === "1s" && !r.sp ? "Nến theo giây chỉ có cho coin niêm yết spot trên Binance. " : ""}Không lấy được nến ${esc(tf)} trực tiếp (trình duyệt không kết nối được Binance/OKX) và máy chủ chỉ có khung ngày / 4h / 1h.</p>`; return; }
-  drawO(D, el, o, tf, "dữ liệu máy chủ (cập nhật 15 phút – 4 giờ)");
+  const ch = drawO(D, el, o, tf, "dữ liệu máy chủ (cập nhật 15 phút – 4 giờ)");
+  chartTools(D, el, ch, tf).upd(o, true);
 }
 function livePx(k, p) {
   const el = $("#lp"); if (!el || el.dataset.k !== k) return;
@@ -524,15 +534,16 @@ function bindChart(D) {
   const el = $("#pchart"); if (!el) return;
   priceChart(D, el, CTF);
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
-  const z = $("#zt"); if (z) z.onchange = () => { lsSet("showZones", z.checked); disposeCharts(); priceChart(D, el, CTF); };
+  [["#zt", "showZones"], ["#smt", "showSmc"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> vùng hỗ trợ/kháng cự</label><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div>`;
+const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
   return `<div class="g g2w">
     ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.72rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
     <div>
+      ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
       ${panel("Tóm tắt", `${kpis([["Định giá", vdPill(V.verdict)], ["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
         ["Vốn hoá", usd(r.mc)], ["FDV", usd(r.fdv), "", "Vốn hoá nếu toàn bộ tổng cung lưu hành"], ["Lưu hành", isNum(V.float_pct) ? nf(V.float_pct, 0) + "%" : "—", V.float_pct < 35 ? "down" : ""],
         ["KL 24h", usd(r.vol)], ["Từ đỉnh", pct(r.ath, 0), "down", cg.ath_date ? `Đỉnh ${px(cg.ath)} ngày ${fmtD(cg.ath_date)}` : ""],
@@ -801,7 +812,7 @@ function finishTicket(D, t) {
     if (mode === "perp" && X.n >= GOV.maxPos) { q = 0; G.why.push(`Đã có ${X.n} vị thế futures (tối đa ${GOV.maxPos}) – đóng bớt trước khi mở lệnh mới`); }
   }
   const N = q * e, margin = N / lev, liq = mode === "perp" ? liqPrice(t.side, e, lev, mmr) : null;
-  const holdDays = (t.d1 || 3) * (t.tf === "d" ? 1 : 1 / 6);
+  const holdDays = (t.d1 || 3) * (t.tf_bd ?? (t.tf === "d" ? 1 : 1 / 6));
   const f8 = r.f8 || 0, fundUsd = mode === "perp" ? -sd * N * f8 / 100 * 3 * holdDays : 0;       // dương = được nhận
   const feeUsd = N * FEE1 * 2, riskReal = q * Math.abs(e - s);
   const costR = (feeUsd - fundUsd) / Math.max(1e-9, riskReal);
@@ -905,7 +916,7 @@ function ticketCard(t, opts = {}) {
   const [vt, vc] = VERD[t.verdict], L = t.side === "long";
   const modeTxt = t.mode === "spot" ? `<b>Mua spot</b> – không cần đòn bẩy` : t.mode === "perp" ? `<b>Perp ${L ? "Long" : "Short"} x${t.lev}</b> ` : "—";
   return `<div class="ticket ${t.side}">
-    <div class="tk-h"><span class="pill ${vc} big">${vt}</span> ${coinLink(t.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${L ? "LONG" : "SHORT"}</span> <span class="pill">${t.tf === "d" ? "Swing – khung ngày" : "Lướt – khung 4h"}</span> ${t.edge ? '<span class="pill brand">có lợi thế lịch sử</span>' : ""}
+    <div class="tk-h"><span class="pill ${vc} big">${vt}</span> ${coinLink(t.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${L ? "LONG" : "SHORT"}</span> <span class="pill">${t.tfLabel || (t.tf === "d" ? "Swing – khung ngày" : "Lướt – khung 4h")}</span> ${t.edge ? '<span class="pill brand">có lợi thế lịch sử</span>' : ""}
       <small class="muted">giá hiện tại ${px(t.price)}</small></div>
     <div class="tk-g">
       <div class="tk-b"><h4>① Giá vào</h4><p class="tk-v">${px(t.e)}</p><small>${t.order === "market" ? "Vào ngay (lệnh thị trường / giới hạn sát giá)" : `Đặt lệnh chờ ${L ? "mua" : "bán"} – cách giá hiện tại ${pct((t.e / t.price - 1) * 100, 1)}`}</small></div>
@@ -1122,6 +1133,393 @@ function tabTech(D) {
     ${panel("Chi tiết chỉ báo (khung ngày)", `<div class="tw"><table><thead><tr><th class="l">Nhóm</th><th class="l">Chỉ báo</th><th>Giá trị</th><th>Tín hiệu</th><th class="l">Ghi chú</th></tr></thead><tbody>${rows}</tbody></table></div>`)}`;
 }
 BIND.tech = bindChart;
+BIND.smc = bindChart;
+
+// ================================================================ BỘ MÁY KỸ THUẬT TRÊN TRÌNH DUYỆT (thời gian thực): SMC, chỉ báo, đánh giá vào lệnh
+const TA = {
+  ema(a, n) { const k = 2 / (n + 1), o = new Array(a.length).fill(null); let e = null; for (let i = 0; i < a.length; i++) { if (a[i] == null) continue; e = e == null ? a[i] : a[i] * k + e * (1 - k); o[i] = i >= n - 1 ? e : null; } return o; },
+  rsi(a, n = 14) { const o = new Array(a.length).fill(null); let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1], G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; if (i === n) o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } } return o; },
+  atr(o, n = 14) { const out = new Array(o.c.length).fill(null); let a = null; for (let i = 0; i < o.c.length; i++) { const tr = i ? Math.max(o.h[i] - o.l[i], Math.abs(o.h[i] - o.c[i - 1]), Math.abs(o.l[i] - o.c[i - 1])) : o.h[i] - o.l[i]; a = a == null ? tr : (a * (n - 1) + tr) / n; out[i] = a; } return out; },
+  macd(c) { const f = TA.ema(c, 12), s = TA.ema(c, 26), line = c.map((_, i) => (f[i] != null && s[i] != null ? f[i] - s[i] : null)); const sig = TA.ema(line.map((x) => x ?? 0), 9); return { line, sig, hist: line.map((x, i) => (x != null ? x - sig[i] : null)) }; },
+  cvd(o) { if (!o.tb) return null; let s = 0; return o.v.map((v, i) => (s += 2 * (o.tb[i] || 0) - (v || 0))); },
+  vwap(o, n = 96) { const out = []; let pv = 0, vv = 0; const q = []; for (let i = 0; i < o.c.length; i++) { const tp = (o.h[i] + o.l[i] + o.c[i]) / 3, v = o.v[i] || 0; q.push([tp * v, v]); pv += tp * v; vv += v; if (q.length > n) { const [a, b] = q.shift(); pv -= a; vv -= b; } out.push(vv > 0 ? pv / vv : null); } return out; },
+  fractals(o, n = 3) { const hs = [], ls = []; for (let i = n; i < o.c.length - n; i++) { let H = true, L = true; for (let j = i - n; j <= i + n; j++) { if (o.h[j] > o.h[i]) H = false; if (o.l[j] < o.l[i]) L = false; } if (H && o.h[i] > o.h[i - 1]) hs.push([i, o.h[i], i + n]); if (L && o.l[i] < o.l[i - 1]) ls.push([i, o.l[i], i + n]); } return { hs, ls }; },
+  smc(o, n = 3) {
+    const N = o.c.length; if (N < 40) return null;
+    const atr = TA.atr(o), { hs, ls } = TA.fractals(o, n);
+    let ih = 0, il = 0, sh = null, sl = null, trend = 0;
+    const events = [], obs = [], sweeps = [];
+    for (let i = 0; i < N; i++) {
+      while (ih < hs.length && hs[ih][2] <= i) { sh = { i: hs[ih][0], p: hs[ih][1], br: false }; ih++; }
+      while (il < ls.length && ls[il][2] <= i) { sl = { i: ls[il][0], p: ls[il][1], br: false }; il++; }
+      if (sl && !sl.br && o.l[i] < sl.p && o.c[i] > sl.p) sweeps.push({ i, dir: 1, level: sl.p, ext: o.l[i] });
+      if (sh && !sh.br && o.h[i] > sh.p && o.c[i] < sh.p) sweeps.push({ i, dir: -1, level: sh.p, ext: o.h[i] });
+      if (sh && !sh.br && o.c[i] > sh.p) {
+        events.push({ i, type: trend === 1 ? "BOS" : "CHoCH", dir: 1, level: sh.p, from: sh.i }); sh.br = true; trend = 1;
+        for (let j = i - 1; j >= Math.max(sl ? sl.i : 0, i - 15); j--) if (o.c[j] < o.o[j]) { obs.push({ i: j, lo: o.l[j], hi: o.h[j], dir: 1, born: i, mit: null, dead: null }); break; }
+      }
+      if (sl && !sl.br && o.c[i] < sl.p) {
+        events.push({ i, type: trend === -1 ? "BOS" : "CHoCH", dir: -1, level: sl.p, from: sl.i }); sl.br = true; trend = -1;
+        for (let j = i - 1; j >= Math.max(sh ? sh.i : 0, i - 15); j--) if (o.c[j] > o.o[j]) { obs.push({ i: j, lo: o.l[j], hi: o.h[j], dir: -1, born: i, mit: null, dead: null }); break; }
+      }
+      for (const b of obs) { if (b.dead != null || i <= b.born) continue; if (b.dir === 1) { if (b.mit == null && o.l[i] <= b.hi) b.mit = i; if (o.c[i] < b.lo) b.dead = i; } else { if (b.mit == null && o.h[i] >= b.lo) b.mit = i; if (o.c[i] > b.hi) b.dead = i; } }
+    }
+    const fvg = [];
+    for (let i = Math.max(2, N - 150); i < N; i++) {
+      if (o.l[i] > o.h[i - 2] && o.l[i] - o.h[i - 2] >= 0.25 * atr[i]) { const g = { i: i - 1, lo: o.h[i - 2], hi: o.l[i], dir: 1, fill: null }; for (let j = i + 1; j < N; j++) if (o.l[j] <= g.lo) { g.fill = j; break; } fvg.push(g); }
+      if (o.h[i] < o.l[i - 2] && o.l[i - 2] - o.h[i] >= 0.25 * atr[i]) { const g = { i: i - 1, lo: o.h[i], hi: o.l[i - 2], dir: -1, fill: null }; for (let j = i + 1; j < N; j++) if (o.h[j] >= g.hi) { g.fill = j; break; } fvg.push(g); }
+    }
+    const a = atr[N - 1], liq = [];
+    [[hs, "EQH", 1], [ls, "EQL", -1]].forEach(([arr, kind, sg]) => {
+      const P = arr.slice(-12), used = new Set();
+      for (let x = 0; x < P.length; x++) { if (used.has(x)) continue; const g = [P[x]]; for (let y = x + 1; y < P.length; y++) if (!used.has(y) && Math.abs(P[y][1] - P[x][1]) <= 0.15 * a) { g.push(P[y]); used.add(y); }
+        if (g.length >= 2) { const lvl = sg === 1 ? Math.max(...g.map((q) => q[1])) : Math.min(...g.map((q) => q[1])), li = Math.max(...g.map((q) => q[0])); let sw = false; for (let j = li + 1; j < N; j++) if (sg === 1 ? o.h[j] > lvl : o.l[j] < lvl) { sw = true; break; } if (!sw) liq.push({ kind, p: lvl, n: g.length, i: li }); } }
+    });
+    const hiR = hs.length ? Math.max(...hs.slice(-3).map((q) => q[1])) : null, loR = ls.length ? Math.min(...ls.slice(-3).map((q) => q[1])) : null, px0 = o.c[N - 1];
+    const pd = hiR && loR && hiR > loR ? { lo: loR, hi: hiR, eq: (hiR + loR) / 2, pos: (px0 - loR) / (hiR - loR) * 100 } : null;
+    return { trend, events, obs, fvg, liq, sweeps, pd, sh, sl, atr, hs, ls };
+  },
+};
+// ---- đánh giá vào lệnh thời gian thực: 1 khung vào lệnh (o) + 1–2 khung lớn (hi1, hi2)
+function rtEval(o, hi1, hi2, ctx = {}, S0 = null) {
+  const N = o?.c?.length || 0; if (N < 60) return null;
+  const S = S0 || TA.smc(o); if (!S) return null;
+  const c = o.c, p = c[N - 1], atr = S.atr[N - 1];
+  const e20 = TA.ema(c, 20), e50 = TA.ema(c, 50), rsi = TA.rsi(c), mac = TA.macd(c), cvd = TA.cvd(o), vw = TA.vwap(o);
+  const H1 = hi1 && hi1.c.length > 60 ? TA.smc(hi1) : null, H2 = hi2 && hi2.c.length > 60 ? TA.smc(hi2) : null;
+  const he = (h) => { if (!h) return 0; const a = TA.ema(h.c, 20), b = TA.ema(h.c, 50), n = h.c.length - 1; return a[n] > b[n] && h.c[n] > b[n] ? 1 : a[n] < b[n] && h.c[n] < b[n] ? -1 : 0; };
+  const vm = o.v.slice(-21, -1).reduce((x, y) => x + y, 0) / 20;
+  const res = {};
+  for (const sd of [1, -1]) {
+    const chk = [], add = (ok, w, t, half = false) => chk.push({ ok: ok ? 1 : half ? 0.5 : 0, w, t });
+    const hb1 = H1 ? H1.trend : he(hi1), hb2 = H2 ? H2.trend : he(hi2);
+    add(hb1 === sd, 16, `Khung lớn ${ctx.tf1 || ""}: cấu trúc ${hb1 === 1 ? "tăng" : hb1 === -1 ? "giảm" : "ngang"}`, hb1 === 0);
+    add(hb2 === sd || hb2 === 0, 8, `Khung lớn hơn ${ctx.tf2 || ""}: ${hb2 === 1 ? "tăng" : hb2 === -1 ? "giảm" : "ngang"}`);
+    const lastEv = S.events[S.events.length - 1];
+    const evOk = lastEv && lastEv.dir === sd && N - 1 - lastEv.i <= 20;
+    add(evOk, 14, lastEv ? `${lastEv.type} ${lastEv.dir === 1 ? "tăng" : "giảm"} cách ${N - 1 - lastEv.i} nến` : "Chưa có BOS/CHoCH");
+    const sw = S.sweeps.filter((x) => x.dir === sd && N - 1 - x.i <= 15).pop();
+    add(!!sw, 10, sw ? `Đã quét thanh khoản ${sd === 1 ? "đáy" : "đỉnh"} ${px(sw.level)}` : `Chưa quét thanh khoản ${sd === 1 ? "đáy" : "đỉnh"}`);
+    const pos = S.pd?.pos;
+    add(pos != null && (sd === 1 ? pos < 50 : pos > 50), 8, pos != null ? `Vị trí ${nf(pos, 0)}% biên swing – ${pos < 45 ? "Discount (rẻ)" : pos > 55 ? "Premium (đắt)" : "giữa"}` : "Chưa rõ biên swing", pos != null && Math.abs(pos - 50) < 8);
+    const ob = S.obs.filter((b) => b.dir === sd && b.dead == null && (sd === 1 ? p >= b.lo - 0.3 * atr && p <= b.hi + 0.5 * atr : p <= b.hi + 0.3 * atr && p >= b.lo - 0.5 * atr)).pop();
+    const fv = S.fvg.filter((g) => g.dir === sd && g.fill == null && p >= g.lo - 0.3 * atr && p <= g.hi + 0.3 * atr).pop();
+    add(!!(ob || fv), 12, ob ? `Giá đang ở Order Block ${sd === 1 ? "mua" : "bán"} ${px(ob.lo)}–${px(ob.hi)}` : fv ? `Giá đang ở FVG ${px(fv.lo)}–${px(fv.hi)}` : "Chưa ở OB/FVG cùng chiều");
+    const r = rsi[N - 1];
+    add(sd === 1 ? r < 68 && r > 40 : r > 32 && r < 60, 6, `RSI ${nf(r, 0)}${sd === 1 && r >= 68 ? " – quá mua" : sd === -1 && r <= 32 ? " – quá bán" : ""}`);
+    const mh = mac.hist[N - 1], mh1 = mac.hist[N - 2];
+    add(sd * (mh - mh1) > 0, 6, `MACD ${sd * (mh - mh1) > 0 ? "đang quay cùng chiều" : "chưa quay"}`);
+    if (cvd) { const d20 = cvd[N - 1] - cvd[N - 21]; add(sd * d20 > 0, 8, `Dòng tiền chủ động 20 nến ${d20 > 0 ? "mua" : "bán"} ròng ${usd(Math.abs(d20))}`); }
+    add(sd * (p - vw[N - 1]) > 0, 4, `Giá ${p > vw[N - 1] ? "trên" : "dưới"} VWAP (${px(vw[N - 1])})`);
+    const vr = o.v[N - 1] / Math.max(1e-9, vm);
+    add(vr >= 1.3, 4, `Khối lượng nến hiện tại x${nf(vr, 1)} trung bình`, vr >= 0.9);
+    const cr = ctx.cr || [];
+    add(!(sd === 1 && cr.includes("long_crowded")) && !(sd === -1 && cr.includes("short_crowded")), 4, sd === 1 && cr.includes("long_crowded") ? "Long đang quá đông (funding nóng)" : sd === -1 && cr.includes("short_crowded") ? "Short đang quá đông" : "Đám đông futures không ngược chiều");
+    const score = Math.round(chk.reduce((x, k) => x + k.ok * k.w, 0) / chk.reduce((x, k) => x + k.w, 0) * 100);
+    // kế hoạch: vào – cắt lỗ – mục tiêu theo cấu trúc SMC
+    let e = p, s, trig = null;
+    if (ob) { e = sd === 1 ? Math.min(p, ob.hi) : Math.max(p, ob.lo); s = sd === 1 ? ob.lo - 0.2 * atr : ob.hi + 0.2 * atr; }
+    else if (sw) s = sd === 1 ? sw.ext - 0.2 * atr : sw.ext + 0.2 * atr;
+    else s = sd === 1 ? p - 1.5 * atr : p + 1.5 * atr;
+    if (!evOk) { const lvl = sd === 1 ? S.sh?.p : S.sl?.p;
+      if (lvl && sd * (lvl - p) > 0) { trig = `Chưa phá cấu trúc: đặt lệnh chờ ${sd === 1 ? "mua khi nến đóng trên" : "bán khi nến đóng dưới"} ${px(lvl)} – vào ở đó, không vào trước`; e = lvl; if (sd * (e - s) > 3 * atr) s = e - sd * 1.5 * atr; }
+      else if (lvl) trig = `Chờ phá cấu trúc ${sd === 1 ? "tăng" : "giảm"} rõ ràng (BOS/CHoCH) trước khi vào`; }
+    if (sd * (e - s) < 0.5 * atr) s = e - sd * 0.8 * atr;
+    const R = Math.abs(e - s);
+    const tg = (sd === 1 ? S.hs.map((q) => q[1]).concat(S.liq.filter((x) => x.kind === "EQH").map((x) => x.p)).filter((x) => x > e + R) : S.ls.map((q) => q[1]).concat(S.liq.filter((x) => x.kind === "EQL").map((x) => x.p)).filter((x) => x < e - R)).sort((a, b) => sd * (a - b));
+    const t1 = tg[0] ?? e + sd * 2 * R, t2 = tg[1] && sd * (tg[1] - t1) > 0.5 * R ? tg[1] : t1 + sd * 1.5 * R;
+    res[sd === 1 ? "long" : "short"] = { score, chk, e, s, t1, t2, rr1: Math.abs(t1 - e) / R, rr2: Math.abs(t2 - e) / R, trig, setup: sw && evOk ? (sd === 1 ? "smc_sweep_up" : "smc_sweep_dn") : ob ? (sd === 1 ? "smc_ob_up" : "smc_ob_dn") : null };
+  }
+  const best = res.long.score >= res.short.score ? "long" : "short", B = res[best];
+  B.status = B.score >= 75 && !B.trig ? "go" : B.score >= 58 ? "ready" : "wait";
+  return { ...res, best, p, atr, S, H1, e20: e20[N - 1], e50: e50[N - 1], rsi: rsi[N - 1] };
+}
+const RTS = { go: ["VÀO ĐƯỢC", "buy"], ready: ["CHUẨN BỊ", "brand"], wait: ["CHỜ", ""] };
+function rtCard(E, ctx = {}) {
+  if (!E) return `<p class="muted">Chưa đủ nến để đánh giá.</p>`;
+  const sd = E.best, B = E[sd], O = E[sd === "long" ? "short" : "long"], [st, sc] = RTS[B.status];
+  const stat = ctx.stats && B.setup ? ctx.stats[B.setup] : null;
+  return `<div class="rt ${sd}"><div class="rt-h"><span class="pill ${sc} big">${st}</span> <b class="${sd === "long" ? "up" : "down"}">${sd === "long" ? "LONG" : "SHORT"}</b>
+      <span class="rt-score"><i style="width:${B.score}%"></i></span><b>${B.score}/100</b> <small class="muted">chiều ngược lại ${O.score}/100 · khung vào ${esc(ctx.tf || "")} · cập nhật ${new Date().toLocaleTimeString("vi-VN")}</small></div>
+    ${B.trig ? `<p class="ref">⏳ ${esc(B.trig)}</p>` : ""}
+    <div class="rt-g">${kpis([["Vào", px(B.e)], ["Cắt lỗ", px(B.s), "down", pct(-Math.abs(B.e - B.s) / B.e * 100, 2)], ["MT1", px(B.t1), "up", `R:R ${nf(B.rr1, 1)}`], ["MT2", px(B.t2), "up", `R:R ${nf(B.rr2, 1)}`],
+      stat ? ["Lịch sử thiết lập", `${nf(stat.win1, 0)}% · ${nf(stat.avgR, 2)}R`, cls(stat.avgR), `${IDEA_NAMES[B.setup]} – ${nf(stat.n, 0)} lần (khung ${ctx.statTf === "d" ? "ngày" : "4h"})`] : ["Lịch sử thiết lập", ctx.statTf ? "chưa có thiết lập SMC" : "chưa kiểm chứng", "", ctx.statTf ? "Chưa xuất hiện quét thanh khoản + phá cấu trúc hoặc hồi về OB" : "Khung dưới 4h chưa có thống kê lịch sử – đánh nhỏ"]])}</div>
+    <ul class="rtc">${B.chk.map((k) => `<li class="${k.ok === 1 ? "ok" : k.ok ? "half" : "no"}"><i>${k.ok === 1 ? "✓" : k.ok ? "◐" : "✗"}</i>${esc(k.t)} <small>${k.w}đ</small></li>`).join("")}</ul></div>`;
+}
+
+// ---- lớp vẽ SMC lên biểu đồ (hộp OB / FVG, đường BOS / CHoCH, thanh khoản, vùng premium/discount)
+function smcOverlay(el, ch, cs) {
+  const cv = document.createElement("canvas"); cv.className = "ov"; el.appendChild(cv);
+  let o = null, S = null, q = false;
+  const draw = () => {
+    q = false; if (!S || !o || !cv.isConnected) return;
+    const W = el.clientWidth, H = el.clientHeight, dpr = devicePixelRatio || 1;
+    if (cv.width !== W * dpr || cv.height !== H * dpr) { cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px"; }
+    const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+    const ts = ch.timeScale(), X = (i) => ts.logicalToCoordinate(i), Y = (v) => cs.priceToCoordinate(v);
+    const right = W - (ch.priceScale("right").width() || 60), N = o.c.length, bot = H - 26;
+    g.save(); g.beginPath(); g.rect(0, 0, right, bot); g.clip();
+    const up = css("--up"), dn = css("--down"), br = css("--brand"), rf = css("--ref"), i3 = css("--ink-3");
+    g.font = "10px Be Vietnam Pro, system-ui, sans-serif";
+    const box = (i0, lo, hi, col, label) => { let x0 = X(i0); const y0 = Y(hi), y1 = Y(lo); if (y0 == null || y1 == null) return; if (x0 == null || x0 < 0) x0 = 0; if (x0 > right) return;
+      g.fillStyle = col + "22"; g.strokeStyle = col + "99"; g.lineWidth = 1; g.fillRect(x0, y0, right - x0, Math.max(1, y1 - y0)); g.strokeRect(x0 + 0.5, y0 + 0.5, right - x0, Math.max(1, y1 - y0));
+      if (label && W >= 600) { g.fillStyle = col; g.fillText(label, x0 + 3, y0 + 11); } };
+    if (S.pd) { const y0 = Y(S.pd.hi), ym = Y(S.pd.eq), y1 = Y(S.pd.lo); if (y0 != null && y1 != null && ym != null) {
+      g.fillStyle = dn + "0c"; g.fillRect(0, y0, right, ym - y0); g.fillStyle = up + "0c"; g.fillRect(0, ym, right, y1 - ym);
+      g.setLineDash([2, 4]); g.strokeStyle = i3; g.beginPath(); g.moveTo(0, ym); g.lineTo(right, ym); g.stroke(); g.setLineDash([]);
+      g.fillStyle = i3; g.fillText("Premium ↑ · EQ 50% · ↓ Discount", 6, ym - 4); } }
+    S.obs.filter((b) => b.dead == null).slice(-6).forEach((b) => box(b.i, b.lo, b.hi, b.dir === 1 ? up : dn, `OB ${b.dir === 1 ? "mua" : "bán"}${b.mit != null ? " · đã chạm" : ""}`));
+    S.fvg.filter((f) => f.fill == null).slice(-6).forEach((f) => box(f.i, f.lo, f.hi, br, `FVG ${f.dir === 1 ? "↑" : "↓"}`));
+    S.events.slice(-10).forEach((e) => { const x0 = X(e.from), x1 = X(e.i), y = Y(e.level); if (x0 == null || x1 == null || y == null || x1 < 0) return;
+      g.strokeStyle = e.dir === 1 ? up : dn; g.setLineDash(e.type === "CHoCH" ? [5, 3] : []); g.lineWidth = 1.3; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.setLineDash([]);
+      g.fillStyle = e.dir === 1 ? up : dn; g.font = "bold 10px system-ui, sans-serif"; g.fillText(e.type, (x0 + x1) / 2 - 14, y + (e.dir === 1 ? -4 : 12)); g.font = "10px system-ui, sans-serif"; });
+    S.liq.forEach((q) => { let x0 = X(q.i); const y = Y(q.p); if (y == null) return; if (x0 == null || x0 < 0) x0 = 0;
+      g.strokeStyle = rf; g.setLineDash([1, 3]); g.beginPath(); g.moveTo(x0, y); g.lineTo(right, y); g.stroke(); g.setLineDash([]); g.fillStyle = rf; g.fillText(`$$$ ${q.kind} ×${q.n}`, right - 70, y - 3); });
+    S.sweeps.filter((s) => s.i > N - 80).forEach((s) => { const x = X(s.i), y = Y(s.ext); if (x == null || y == null) return; g.fillStyle = rf; g.beginPath(); g.arc(x, y + (s.dir === 1 ? 7 : -7), 3, 0, 7); g.fill(); });
+    g.restore();
+  };
+  const later = () => { if (!q) { q = true; requestAnimationFrame(draw); } };
+  ch.timeScale().subscribeVisibleLogicalRangeChange(later);
+  ch.subscribeCrosshairMove(later);
+  try { new ResizeObserver(later).observe(el); } catch (e) { /* trình duyệt cũ */ }
+  return { set(o2, S2) { o = o2; S = S2; later(); } };
+}
+// ---- khung phụ đồng bộ với biểu đồ chính: RSI, MACD, dòng tiền chủ động (CVD)
+function subPanes(host, main) {
+  host.innerHTML = "";
+  const panes = [];
+  const mk = (h, title, fmt) => { const d = document.createElement("div"); d.className = "pane"; d.style.height = h + "px"; d.innerHTML = `<span class="pane-t">${title}</span>`; host.appendChild(d);
+    const c = mkChart(d, { localization: { locale: "vi-VN", priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
+  const line = (c, col, w = 1.3) => c.addLineSeries({ color: col, lineWidth: w, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
+  const r = mk(92, "RSI 14 · 70 quá mua · 30 quá bán", (v) => nf(v, 0)), rs = line(r, css("--brand"));
+  [70, 50, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
+  const m = mk(92, "MACD 12-26-9", (v) => px(v)), mh = m.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false, priceFormat: { type: "price", precision: 6, minMove: 1e-6 } }), ml = line(m, css("--brand"), 1), msg = line(m, css("--ref"), 1);
+  ml.applyOptions({ priceFormat: { type: "price", precision: 6, minMove: 1e-6 } }); msg.applyOptions({ priceFormat: { type: "price", precision: 6, minMove: 1e-6 } });
+  let cc = null, cl = null;
+  const sync = () => { const rg = main.timeScale().getVisibleLogicalRange(); if (rg) panes.forEach((p) => { try { p.timeScale().setVisibleLogicalRange(rg); } catch (e) { /* chưa có dữ liệu */ } }); };
+  main.timeScale().subscribeVisibleLogicalRangeChange(sync);
+  return (o) => {
+    const T = o.t, D = (v) => T.map((t, i) => (v[i] == null || !isFinite(v[i]) ? { time: t } : { time: t, value: v[i] }));
+    rs.setData(D(TA.rsi(o.c)));
+    const M = TA.macd(o.c);
+    mh.setData(T.map((t, i) => (M.hist[i] == null ? { time: t } : { time: t, value: M.hist[i], color: M.hist[i] >= 0 ? css("--up") + "99" : css("--down") + "99" })));
+    ml.setData(D(M.line)); msg.setData(D(M.sig));
+    const cv = TA.cvd(o);
+    if (cv) { if (!cc) { cc = mk(92, "CVD – mua chủ động trừ bán chủ động (tích luỹ, USD)", (v) => usd(v)); cl = cc.addAreaSeries({ lineColor: css("--up"), topColor: css("--up") + "33", bottomColor: css("--up") + "00", lineWidth: 1.3, priceLineVisible: false, priceFormat: { type: "volume" } }); } cl.setData(D(cv)); }
+    sync();
+  };
+}
+// ---- công cụ gắn vào biểu đồ chính: SMC + khung phụ + đánh giá vào lệnh, chạy lại mỗi khi có nến mới
+const HTF = { "1s": ["1m", "5m"], "5s": ["1m", "15m"], "15s": ["5m", "15m"], "30s": ["5m", "1h"], "1m": ["15m", "1h"], "5m": ["1h", "4h"], "10m": ["1h", "4h"], "15m": ["1h", "4h"], "30m": ["4h", "1d"], "1h": ["4h", "1d"], "4h": ["1d", "1w"], "1d": ["1w", "1M"], "1w": ["1M", null], "15d": ["1M", null], "1M": [null, null], "3M": [null, null], "1y": [null, null] };
+const TF_SEC = { "1s": 1, "5s": 5, "15s": 15, "30s": 30, "1m": 60, "5m": 300, "10m": 600, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "15d": 1296000, "1M": 2592000, "3M": 7776000, "1y": 31536000 };
+const TFN = Object.fromEntries(TFS.concat([["3s", "3s"]]));
+const STAT_TF = { "1d": "d", "4h": "h4" };
+const SMC_SET = ["smc_sweep_up", "smc_sweep_dn", "smc_ob_up", "smc_ob_dn"];
+async function htfO(r, D, iv, lim) { if (!iv) return null; const L = await liveKlines(r, iv, 1, lim).catch(() => null); return L ? L.o : serverO(D, iv); }
+const RT = { prev: {} };
+function rtNotify(title, body, url) {
+  toast(`${title} – ${body}`);
+  try { if (lsGet("rtNtf", false) && "Notification" in window && Notification.permission === "granted") { const n = new Notification(title, { body, icon: "icon.svg", tag: title }); if (url) n.onclick = () => { window.focus(); location.hash = url; }; } } catch (e) { /* bỏ qua */ }
+}
+const RANK = { wait: 0, ready: 1, go: 2 };
+function rtFlip(k, tf, E) {
+  const key = k + "|" + tf, B = E[E.best], now = { st: B.status, side: E.best }, pv = RT.prev[key]; RT.prev[key] = now;
+  if (!pv) return false;
+  if (RANK[now.st] > RANK[pv.st] || (now.st !== "wait" && now.side !== pv.side)) {
+    rtNotify(`${k} ${TFN[tf] || tf}: ${RTS[now.st][0]} ${now.side === "long" ? "LONG" : "SHORT"}`, `điểm ${B.score}/100 · vào ${px(B.e)} · cắt lỗ ${px(B.s)} · MT1 ${px(B.t1)} (R:R ${nf(B.rr1, 1)})`, `#/c/${enc(k)}/smc`);
+    return true;
+  }
+  return false;
+}
+const rtBox = () => `<div id="rt"><div class="rt-body"><p class="muted">Đang tải nến khung lớn để đánh giá…</p></div>
+  <div class="rt-act"><button class="btn primary" id="rtTk">Lên lệnh theo đánh giá này →</button><label class="chk"><input type="checkbox" id="rtN" ${lsGet("rtNtf", false) ? "checked" : ""}> Báo trên trình duyệt khi trạng thái đổi</label></div><div class="rt-tk"></div></div>`;
+function rtStats(D, tf) {
+  const st = STAT_TF[tf]; if (!st) return null;
+  const up = COINS?.btc_up ?? D._ij?.btc_up ?? true;
+  return Object.fromEntries(SMC_SET.map((s) => [s, poolStat(D._ij, st, s, up)]));
+}
+function rtTicket(D, E, tf) {
+  const sd = E.best, B = E[sd], stats = rtStats(D, tf), st = stats && B.setup ? stats[B.setup] : null;
+  const bars = Math.max(2, Math.round((Math.abs(B.t1 - B.e) / E.atr) ** 2 * 0.8));
+  const t = { side: sd, tf: TF_SEC[tf] >= 86400 ? "d" : "h4", tf_bd: TF_SEC[tf] / 86400, e: B.e, s: B.s, t1: B.t1, t2: B.t2, p1: st?.win1 ?? 40, p2: st?.win2, d1: st?.d1 ?? bars, d1_hi: st?.d1_hi ?? bars * 2, d2: st?.d2 ?? bars * 2,
+    avgR: st?.avgR, n: st?.n, setup: B.setup ? IDEA_NAMES[B.setup] : null, edge: !!(st && st.avgR >= 0.05 && st.n >= 100 && (st.avgR_2y == null || st.avgR_2y > 0)),
+    order: Math.abs(E.p - B.e) > 0.25 * E.atr ? "limit" : "market", src: `đánh giá SMC thời gian thực khung ${TFN[tf]} – điểm ${B.score}/100${st ? `, thiết lập "${IDEA_NAMES[B.setup]}" ${nf(st.n, 0)} lần lịch sử` : ""}`, tfLabel: `Khung ${TFN[tf]}` };
+  finishTicket(D, t);
+  const warn = [], r = D.row, cr = r.cr || [];
+  if (B.trig) warn.push(B.trig);
+  if (!st) warn.push(`Khung ${TFN[tf]} chưa có thống kê lịch sử – xác suất ${nf(t.p1, 0)}% chỉ là giả định, nên đánh nhỏ`);
+  if (sd === "long" && cr.includes("long_crowded")) warn.push(`Phe Long đang quá đông (funding ${f8s(r.f8)})`);
+  if (sd === "short" && cr.includes("short_crowded")) warn.push("Phe Short đang quá đông – dễ bị ép tăng");
+  if (sd === "long" && COINS && !COINS.btc_up) warn.push("BTC đang dưới MA200 – Long altcoin rủi ro cao hơn");
+  if (t.r1 < 1) warn.push(`Mục tiêu 1 chỉ ${nf(t.r1, 2)}R`);
+  if (t.capped) warn.push("Khối lượng bị giới hạn để ký quỹ không vượt 25% vốn");
+  let v = t.evR <= 0 ? "no" : { go: "go", ready: "limit", wait: "watch" }[B.status];
+  if (!(t.q > 0)) { v = "no"; warn.unshift(t.gov?.halt ? "Hệ thống đang DỪNG giao dịch hôm nay (chạm lỗ ngày)" : "Danh mục đã chạm giới hạn rủi ro – không mở thêm lệnh"); }
+  const now = Date.now();
+  Object.assign(t, { verdict: v, warn, notes: B.chk.filter((k) => k.ok === 1).slice(0, 4).map((k) => k.t), price: E.p, k: r.k,
+    eta1: now + t.d1 * t.tf_bd * 86400e3, eta2: now + t.d2 * t.tf_bd * 86400e3, tstop: now + t.d1_hi * t.tf_bd * 86400e3 });
+  return t;
+}
+function chartTools(D, el, ch, tf) {
+  const r = D.row;
+  ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 } });
+  const ov = lsGet("showSmc", true) ? smcOverlay(el, ch.c, ch.cs) : null;
+  const ph = $("#panes"); if (ph) ph.innerHTML = "";
+  const pn = ph && lsGet("showPanes", true) ? subPanes(ph, ch.c) : null;
+  const rtEl = $("#rt"), body = rtEl && $(".rt-body", rtEl);
+  const [a1, a2] = HTF[tf] || [null, null];
+  const H = { h1: null, h2: null, t: 0, busy: false };
+  const loadH = async () => { if (H.busy || !rtEl) return; H.busy = true; try { const [x, y] = await Promise.all([htfO(r, D, a1, 500), htfO(r, D, a2, 300)]); H.h1 = x; H.h2 = y; H.t = Date.now(); } finally { H.busy = false; } };
+  let last = 0, pend = null, cur = null, E = null;
+  const run = () => {
+    const o = cur; if (!o || !el.isConnected) return; last = Date.now();
+    const S = TA.smc(o);
+    if (ov) ov.set(o, S);
+    if (pn) try { pn(o); } catch (e) { console.warn(e); }
+    if (body && body.isConnected) {
+      if (Date.now() - H.t > 120e3) loadH();
+      E = rtEval(o, H.h1, H.h2, { tf1: TFN[a1], tf2: TFN[a2], cr: r.cr || [] }, S);
+      body.innerHTML = rtCard(E, { tf: TFN[tf], stats: rtStats(D, tf), statTf: STAT_TF[tf] });
+      if (E && rtFlip(r.k, tf, E)) body.firstElementChild?.classList.add("flash");
+    }
+  };
+  if (rtEl) {
+    $("#rtTk", rtEl).onclick = () => { if (!E) return; const t = rtTicket(D, E, tf); $(".rt-tk", rtEl).innerHTML = ticketCard(t); bindTicketSave(rtEl); };
+    $("#rtN", rtEl).onchange = async (ev) => { lsSet("rtNtf", ev.target.checked); if (ev.target.checked && "Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* bỏ qua */ } } };
+  }
+  const upd = (o, force) => { cur = o; if (force || Date.now() - last > 1500) { clearTimeout(pend); pend = null; run(); } else if (!pend) pend = setTimeout(() => { pend = null; run(); }, 1500 - (Date.now() - last)); };
+  loadH().then(() => run());
+  return { upd };
+}
+
+// ================================================================ TAB SMC & VÀO LỆNH
+function smcSrv(s, nm) {
+  if (!s || s.bias === undefined) return "";
+  const pd = s.pd || {}, P = (a) => (a ? `${px(a[0])} – ${px(a[1])}` : "—");
+  const obs = (s.obs || []).slice(-4).reverse().map((o) => `<li><span class="pill ${o.dir === 1 ? "buy" : "sell"}">OB ${o.dir === 1 ? "mua" : "bán"}</span> ${px(o.lo)} – ${px(o.hi)} ${o.mit ? '<small class="faint">đã chạm</small>' : '<small class="up">chưa chạm</small>'}</li>`).join("");
+  const fv = (s.fvg || []).slice(-3).reverse().map((g) => `<li><span class="pill brand">FVG ${g.dir === 1 ? "↑" : "↓"}</span> ${px(g.lo)} – ${px(g.hi)}</li>`).join("");
+  const lq = (s.liq || []).map((q) => `<li><span class="pill warn">${q.kind}</span> ${px(q.p)} <small class="faint">${q.n} đỉnh/đáy bằng nhau – thanh khoản chờ bị quét</small></li>`).join("");
+  return `<div class="smcb"><h3>${nm} ${tsPill(s.bias)}</h3>
+    ${kpis([["Vị trí trong biên", pd.zone ? `${esc(pd.zone.split(" (")[0])}` : "—", pd.pos < 45 ? "up" : pd.pos > 55 ? "down" : "", isNum(pd.pos) ? `${nf(pd.pos, 0)}% từ đáy swing ${px(pd.lo)} tới đỉnh ${px(pd.hi)}` : ""], ["Đỉnh swing", px(s.sh)], ["Đáy swing", px(s.sl)], ["OTE Long (62–79%)", P(pd.ote_long), "up"], ["OTE Short", P(pd.ote_short), "down"]])}
+    ${(s.notes || []).length ? `<ul class="why">${s.notes.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <ul class="smcl">${obs}${fv}${lq}</ul></div>`;
+}
+function tabSmc(D) {
+  const X = D.smc || {}, IJ = D._ij || {}, up = COINS?.btc_up ?? IJ.btc_up;
+  const st = ["d", "h4"].flatMap((tf) => SMC_SET.map((s) => { const x = IJ.stats?.[tf]?.[s]; const a = x && (x[up ? "up" : "down"] || x.all); if (!a) return ""; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[s] || s)}</td><td>${nf(a.n, 0)}</td><td>${nf(a.win1, 0)}%</td><td class="${cls(a.avgR)}">${nf(a.avgR, 2)}R</td><td class="${cls(a.avgR_2y)}">${isNum(a.avgR_2y) ? nf(a.avgR_2y, 2) + "R" : "—"}</td><td>${durTxt(a.d1, tf === "d" ? 1 : 1 / 6)}</td></tr>`; })).join("");
+  return `<div class="g g2w">
+    ${panel("Biểu đồ Smart Money – vẽ lại theo từng nến", `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
+    <div>${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
+      ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
+    ${st ? panel(`Thiết lập SMC có thật sự hiệu quả? (kiểm chứng trên toàn bộ coin, BTC ${up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${st}</tbody></table></div>
+      <p class="faint" style="font-size:.74rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
+}
+
+// ================================================================ RADAR – quét thời gian thực nhiều coin theo khung chọn
+const RD = { timer: null, res: new Map(), busy: false, gen: 0 };
+function rdClose() { clearInterval(RD.timer); RD.timer = null; RD.gen++; }
+async function viewRadar() {
+  await coins(); if (!PF) await pfLoad().catch(() => null);
+  const IJ = await tryLoad("data/ideas.json");
+  const O = { tf: lsGet("rdtf", "15m"), n: lsGet("rdn", 30), side: lsGet("rdside", ""), st: lsGet("rdst", "") };
+  const TFR = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
+  app().innerHTML = `<div class="ph"><h1>Radar vào lệnh</h1><span class="meta">quét trực tiếp từ Binance trên trình duyệt · SMC + chỉ báo + khung lớn · <span id="rdS">…</span></span></div>
+    <div class="note"><p>Mỗi coin được chấm điểm 0–100 cho cả Long và Short theo cùng bảng kiểm tra ở tab <b>SMC & vào lệnh</b>: cấu trúc khung lớn, BOS/CHoCH, quét thanh khoản, vị trí Premium/Discount, giá đang ở Order Block/FVG, RSI, MACD, dòng tiền chủ động (CVD), VWAP, khối lượng, đám đông futures. <b>VÀO ĐƯỢC</b> ≥ 75 điểm và đã phá cấu trúc · <b>CHUẨN BỊ</b> ≥ 58 (đặt cảnh báo/lệnh chờ) · còn lại <b>CHỜ</b>.</p></div>
+    <div class="filters"><div class="field"><label>Khung vào lệnh</label><select id="rdT">${TFR.map((t) => `<option value="${t}" ${t === O.tf ? "selected" : ""}>${TFN[t]}</option>`).join("")}</select></div>
+      <div class="field"><label>Số coin</label><select id="rdN">${[20, 30, 50, 80].map((n) => `<option ${n === O.n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
+      <div class="field"><label>Chiều</label><select id="rdD"><option value="">Cả hai</option><option value="long" ${O.side === "long" ? "selected" : ""}>Long</option><option value="short" ${O.side === "short" ? "selected" : ""}>Short</option></select></div>
+      <div class="field"><label>Trạng thái</label><select id="rdF"><option value="">Tất cả</option><option value="ready" ${O.st === "ready" ? "selected" : ""}>Chuẩn bị trở lên</option><option value="go" ${O.st === "go" ? "selected" : ""}>Chỉ VÀO ĐƯỢC</option></select></div>
+      <label class="chk"><input type="checkbox" id="rdNt" ${lsGet("rtNtf", false) ? "checked" : ""}> Báo trên trình duyệt khi có coin chuyển trạng thái</label>
+      <button class="btn" id="rdGo">Quét lại ngay</button></div>
+    <div class="tw"><table class="rdt"><thead><tr><th class="l">Coin</th><th>Giá</th><th>24h</th><th class="l">Trạng thái</th><th>Điểm</th><th>Vào</th><th>Cắt lỗ</th><th>MT1</th><th>R:R</th><th class="l">Lý do chính</th></tr></thead><tbody id="rdB"><tr><td colspan="10" class="muted">Đang quét…</td></tr></tbody></table></div>
+    <p class="faint disclaimer">Radar chấm điểm theo quy tắc cố định, không phải lời khuyên đầu tư. Điểm cao = nhiều yếu tố kỹ thuật cùng chiều, không đảm bảo giá chạy. Bấm vào coin để xem biểu đồ SMC và tạo phiếu lệnh (đòn bẩy do hệ thống kiểm soát).</p>`;
+  await WL.load().catch(() => {});
+  const mine = new Set([...WL.set, ...(PF?.holdings || []).map((h) => h.symbol), ...(PF?.futures || []).map((f) => f.symbol)]);
+  const pick = () => { const liq = COINS.rows.filter((r) => (r.sp || r.bf)).sort((a, b) => (b.vol || 0) - (a.vol || 0)).slice(0, O.n); const ks = new Set(liq.map((r) => r.k)); mine.forEach((k) => { if (BYK[k] && (BYK[k].sp || BYK[k].bf)) ks.add(k); }); return [...ks]; };
+  const draw = () => {
+    let xs = [...RD.res.values()].filter((x) => x.tf === O.tf);
+    xs = xs.map((x) => { const sd = O.side || x.E.best, B = x.E[sd]; return { ...x, sd, B, stt: sd === x.E.best ? B.status : (B.score >= 75 && !B.trig ? "go" : B.score >= 58 ? "ready" : "wait") }; })
+      .filter((x) => !O.st || RANK[x.stt] >= RANK[O.st]).sort((a, b) => RANK[b.stt] - RANK[a.stt] || b.B.score - a.B.score);
+    $("#rdB").innerHTML = xs.map((x) => { const B = x.B, [st, sc] = RTS[x.stt], R = BYK[x.k] || {};
+      return `<tr class="${x.flip ? "flash" : ""}" data-k="${esc(x.k)}"><td class="l">${coinLink(x.k, "/smc")}${mine.has(x.k) ? ' <small class="faint">★</small>' : ""}</td><td>${px(x.E.p)}</td><td class="${cls(R.r1)}">${pct(R.r1, 1)}</td>
+        <td class="l"><span class="pill ${sc}">${st}</span> <b class="${x.sd === "long" ? "up" : "down"}">${x.sd === "long" ? "LONG" : "SHORT"}</b></td><td><span class="rt-score sm"><i style="width:${B.score}%"></i></span> ${B.score}</td>
+        <td>${px(B.e)}</td><td class="down">${px(B.s)} <small>${pct(-Math.abs(B.e - B.s) / B.e * 100, 1)}</small></td><td class="up">${px(B.t1)}</td><td>${nf(B.rr1, 1)}</td>
+        <td class="l"><small>${esc(B.trig ? "⏳ " + B.trig : B.chk.filter((k) => k.ok === 1).sort((a, b) => b.w - a.w).slice(0, 3).map((k) => k.t).join(" · "))}</small></td></tr>`; }).join("") || `<tr><td colspan="10" class="muted">Không có coin nào khớp bộ lọc lúc này.</td></tr>`;
+  };
+  const scan = async () => {
+    if (RD.busy) return; RD.busy = true; const g = RD.gen, tf = O.tf, [a1, a2] = HTF[tf], ks = pick(); let done = 0, fail = 0;
+    const st = $("#rdS"); if (st) st.textContent = `đang quét ${ks.length} coin khung ${TFN[tf]}…`;
+    const one = async (k) => {
+      const r = BYK[k]; if (!r) return;
+      try {
+        const [L, h1, h2] = await Promise.all([liveKlines(r, TFB[tf][0], 1, 400), htfO(r, {}, a1, 300), a2 ? htfO(r, {}, a2, 200) : null]);
+        if (g !== RD.gen) return;
+        if (!L) { fail++; return; }
+        const E = rtEval(L.o, h1, h2, { tf1: TFN[a1], tf2: TFN[a2], cr: r.cr || [] }); if (!E) return;
+        const flip = rtFlip(k, tf, E);
+        RD.res.set(k + tf, { k, tf, E, flip });
+      } catch (e) { fail++; }
+      done++; if (st && g === RD.gen) st.textContent = `quét ${done}/${ks.length} coin khung ${TFN[tf]}${fail ? ` · ${fail} lỗi` : ""}`;
+    };
+    for (let i = 0; i < ks.length; i += 6) { if (g !== RD.gen) break; await Promise.all(ks.slice(i, i + 6).map(one)); if ($("#rdB")) draw(); }
+    if (g === RD.gen) RD.busy = false;
+    if (st && g === RD.gen) st.textContent = `${done} coin · khung ${TFN[tf]} · quét lúc ${new Date().toLocaleTimeString("vi-VN")} · tự quét lại mỗi ${TF_SEC[tf] >= 3600 ? 3 : 1} phút`;
+  };
+  const restart = () => { rdClose(); RD.busy = false; const g = RD.gen; scan(); RD.timer = setInterval(() => { if (g === RD.gen && $("#rdB")) scan(); }, (TF_SEC[O.tf] >= 3600 ? 180 : 60) * 1000); };
+  $("#rdT").onchange = (e) => { O.tf = e.target.value; lsSet("rdtf", O.tf); draw(); restart(); };
+  $("#rdN").onchange = (e) => { O.n = +e.target.value; lsSet("rdn", O.n); restart(); };
+  $("#rdD").onchange = (e) => { O.side = e.target.value; lsSet("rdside", O.side); draw(); };
+  $("#rdF").onchange = (e) => { O.st = e.target.value; lsSet("rdst", O.st); draw(); };
+  $("#rdGo").onclick = restart;
+  $("#rdNt").onchange = async (ev) => { lsSet("rtNtf", ev.target.checked); if (ev.target.checked && "Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* bỏ qua */ } } };
+  if (RD.res.size) draw();
+  restart();
+}
+
+// ================================================================ CẶP COIN – chạy cùng nhau, chạy trễ, giao dịch cặp, sức mạnh so với BTC
+const corrCol = (v) => (!isNum(v) ? "transparent" : v >= 0 ? `color-mix(in srgb, var(--up) ${Math.round(Math.max(0, (v - 0.2) / 0.8) * 90)}%, var(--surface))` : `color-mix(in srgb, var(--down) ${Math.round(Math.min(1, -v) * 85)}%, var(--surface))`);
+async function viewPairs() {
+  const [P] = await Promise.all([load("data/pairs.json"), coins()]);
+  const C = P.corr || {}, ks = C.keys || [];
+  const heat = ks.length ? `<div class="hmx"><table class="corr"><thead><tr><th></th>${ks.map((k) => `<th><span>${esc(k)}</span></th>`).join("")}</tr></thead><tbody>${ks.map((a, i) => `<tr><th>${esc(a)}</th>${C.m[i].map((v, j) => `<td style="background:${corrCol(v)}" title="${esc(a)} – ${esc(ks[j])}: ${nf(v, 2)}">${i === j ? "" : Math.round((v ?? 0) * 100)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<p class="muted">Chưa có dữ liệu.</p>`;
+  const sl = (k) => `<a href="#/c/${enc(k)}"><b>${esc(k)}</b></a>`;
+  const pl = (arr) => `<div class="tw"><table><tbody>${(arr || []).map(([a, b, v]) => `<tr><td class="l">${sl(a)} ↔ ${sl(b)}</td><td><span class="rt-score sm"><i style="width:${Math.max(0, v) * 100}%"></i></span></td><td><b class="${v >= 0.8 ? "up" : v < 0.3 ? "down" : ""}">${nf(v, 2)}</b></td></tr>`).join("")}</tbody></table></div>`;
+  const lb = {}; (P.lead || []).filter((x) => x.c0 >= 0.5 && BYK[x.k]).forEach((x) => { if (!lb[x.k] || x.c0 > lb[x.k].c0) lb[x.k] = x; });
+  const lead = Object.values(lb).sort((a, b) => Math.abs(b.gap) - Math.abs(a.gap)).slice(0, 30);
+  const llTxt = (x) => { const big = Math.abs(x.mv_lead3h) >= 0.5, L = x.lead;
+    if (x.gap > 1) return `<b class="down">yếu hơn dự kiến ${pct(x.gap, 1)}</b> – ${big && x.mv_lead3h > 0 ? `chưa bắt kịp đà tăng của ${L}` : `giảm mạnh/riêng so với ${L} (tin hoặc dòng tiền riêng)`}`;
+    if (x.gap < -1) return `<b class="up">mạnh hơn dự kiến ${pct(-x.gap, 1)}</b> – ${big && x.mv_lead3h < 0 ? `chưa giảm theo ${L} (giữ giá tốt)` : `chạy riêng so với ${L} (tin hoặc dòng tiền riêng)`}`;
+    return "đi đúng nhịp"; };
+  const maxLag = Math.max(0, ...(P.lead || []).map((x) => x.clag || 0));
+  const pairs = P.pairs || [];
+  const rs = (P.rs || []).filter((x) => BYK[x.k]);
+  const rsT = (arr) => `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>Giá / BTC 90 ngày</th></tr></thead><tbody>${arr.map((x) => `<tr><td class="l">${coinLink(x.k)}</td><td class="${cls(x.rs7)}">${pct(x.rs7, 1)}</td><td class="${cls(x.rs30)}"><b>${pct(x.rs30, 1)}</b></td><td class="${cls(x.rs90)}">${pct(x.rs90, 0)}</td><td>${spark(x.sp, { w: 110, h: 22 })}</td></tr>`).join("")}</tbody></table></div>`;
+  const rsS = rs.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999));
+  app().innerHTML = `<div class="ph"><h1>Cặp coin – coin nào chạy cùng nhau</h1><span class="meta">cập nhật ${esc(new Date(P.at).toLocaleString("vi-VN"))} · ${ks.length} coin thanh khoản lớn · tương quan lợi nhuận ngày ${C.days || 90} ngày</span></div>
+    <div class="g g2w">
+      ${panel("🧩 Bản đồ tương quan (số = tương quan × 100)", heat + `<p class="faint" style="font-size:.72rem">Xếp theo mức tương quan với BTC. Xanh đậm = chạy gần như cùng nhau (đa dạng hoá kém, hedge tốt); đỏ = ngược chiều; nhạt = ít liên quan. Altcoin lớn thường tương quan 0,7–0,9 với BTC – khi thị trường sập, gần như mọi thứ giảm cùng lúc.</p>`)}
+      <div>${panel("Chạy cùng nhau nhiều nhất", pl(C.top))}${panel("Ít liên quan nhất (đa dạng hoá)", pl(C.low))}</div></div>
+    ${panel("⏱️ Coin chạy theo BTC/ETH – đã bắt kịp chưa? (nến 1 giờ, 20 ngày)", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Theo</th><th>Tương quan cùng giờ</th><th>Beta</th><th>Trễ tốt nhất</th><th>BTC/ETH 3 giờ qua</th><th>Coin 3 giờ qua</th><th>Lẽ ra (theo beta)</th><th class="l">Nhận xét</th></tr></thead><tbody>${lead.map((x) => `<tr><td class="l">${sl(x.k)}</td><td>${esc(x.lead)}</td><td>${nf(x.c0, 2)}</td><td>${nf(x.beta, 2)}</td><td>${x.lag}h <small class="faint">(${nf(x.clag, 2)})</small></td><td class="${cls(x.mv_lead3h)}">${pct(x.mv_lead3h, 2)}</td><td class="${cls(x.mv3h)}">${pct(x.mv3h, 2)}</td><td class="${cls(x.beta * x.mv_lead3h)}">${pct(x.beta * x.mv_lead3h, 2)}</td><td class="l"><small>${llTxt(x)}</small></td></tr>`).join("")}</tbody></table></div>
+      <p class="faint" style="font-size:.74rem">Kết quả nghiên cứu thật: tương quan trễ 1–6 giờ cao nhất chỉ ${nf(maxLag, 2)} (gần 0) – altcoin phản ứng với BTC <b>trong cùng giờ</b>, gần như không có độ trễ khai thác được ở khung 1h. Cột nhận xét so sánh biến động 3 giờ của coin với mức "lẽ ra" theo beta – chỉ cho thấy coin đang lệch nhịp (thường do tin riêng hoặc dòng tiền riêng) – không phải tín hiệu đã kiểm chứng.</p>`)}
+    ${panel("⚖️ Giao dịch cặp – chênh lệch giá quay về trung bình", `<div class="tw"><table class="prt"><thead><tr><th class="l">Cặp</th><th>Tương quan</th><th>Beta</th><th>Z-score hiện tại</th><th class="l">Nếu vào</th><th>Số lần (2 năm)</th><th>Quay về</th><th>Lãi TB/lần</th><th>Giữ</th><th>Bán rã</th><th></th></tr></thead><tbody>${pairs.map((x, i) => `<tr data-i="${i}" class="${i === 0 ? "on" : ""}"><td class="l">${sl(x.a)} / ${sl(x.b)}</td><td>${nf(x.corr, 2)}</td><td>${nf(x.beta, 2)}</td><td class="${Math.abs(x.z) >= 2 ? "ref" : ""}"><b>${nf(x.z, 2)}</b></td><td class="l"><small>${Math.abs(x.z) >= 2 ? esc(x.side) : "chưa lệch đủ (|z| < 2)"}</small></td><td>${x.n}</td><td>${nf(x.win, 0)}%</td><td class="${cls(x.avg)}">${pct(x.avg, 2)}</td><td>${nf(x.days, 0)} ngày</td><td>${isNum(x.hl) ? nf(x.hl, 0) + " ngày" : "—"}</td><td>${x.ok ? '<span class="pill brand">đạt</span>' : ""}</td></tr>`).join("")}</tbody></table></div><div id="pz"></div>
+      <p class="faint" style="font-size:.74rem">Chênh lệch = log(giá A) − beta × log(giá B). Z-score = chênh lệch hiện tại so với trung bình 60 ngày, đo bằng độ lệch chuẩn. |z| ≥ 2 → Short coin đắt / Long coin rẻ cùng giá trị × beta, thoát khi |z| ≤ 0,5, cắt khi |z| ≥ 3,5 hoặc sau 30 ngày; đã trừ phí 4 chân. "Đạt" = đang lệch ≥ 2, quay về ≥ 60% số lần, lãi TB dương, bán rã ≤ 30 ngày. <b>Kết quả nghiên cứu: phần lớn cặp crypto có lãi trung bình gần 0 hoặc âm</b> – các cặp tương quan cao vẫn có thể "lệch luôn" khi một coin có câu chuyện riêng. Số lần ít (thường < 20) nên chỉ dùng tham khảo, khối lượng nhỏ.</p>`)}
+    <div class="g g2">${panel("💪 Mạnh hơn BTC (30 ngày)", rsT(rsS.slice(0, 20)))}${panel("🐢 Yếu hơn BTC (30 ngày)", rsT(rsS.slice(-20).reverse()))}</div>
+    <p class="faint disclaimer">Tương quan và quan hệ dẫn – theo thay đổi theo thời gian; không phải lời khuyên đầu tư.</p>`;
+  const zc = (i) => { const x = pairs[i]; if (!x) { $("#pz").innerHTML = ""; return; }
+    $("#pz").innerHTML = `<h3 style="margin:10px 0 4px">${esc(x.a)} / ${esc(x.b)} – z-score 180 ngày</h3>` + lineSvg([{ color: css("--brand"), pts: (x.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 170, dec: 1, hlines: [{ y: 2, color: css("--down"), label: "+2: Short " + x.a }, { y: -2, color: css("--up"), label: "−2: Long " + x.a }, { y: 0, color: css("--ink-3") }], bands: [{ lo: 2, hi: 9, color: css("--down") }, { lo: -9, hi: -2, color: css("--up") }] });
+    $$(".prt tbody tr").forEach((tr) => tr.classList.toggle("on", +tr.dataset.i === i)); };
+  $$(".prt tbody tr").forEach((tr) => tr.onclick = (ev) => { if (ev.target.closest("a")) return; zc(+tr.dataset.i); });
+  zc(0);
+}
+
+// ================================================================ bản đồ nhiệt thị trường
+function heatMap(rows, key = "r1") {
+  const xs = rows.filter((r) => r.mc && isNum(r[key])).sort((a, b) => b.mc - a.mc).slice(0, 100);
+  if (!xs.length) return "";
+  const mx = Math.sqrt(xs[0].mc);
+  return `<div class="hmap">${xs.map((r) => { const v = r[key], a = Math.min(88, 12 + Math.abs(v) * (key === "r1" ? 9 : 3)), w = Math.max(1, Math.sqrt(r.mc) / mx * 14);
+    return `<a href="#/c/${enc(r.k)}" style="flex:${w.toFixed(2)} 1 ${(46 + w * 9).toFixed(0)}px;background:color-mix(in srgb,var(${v >= 0 ? "--up" : "--down"}) ${a.toFixed(0)}%,var(--surface))" title="${esc(r.n || r.k)} · ${usd(r.mc)}"><b>${esc(r.k)}</b><small>${pct(v, 1)}</small></a>`; }).join("")}</div>`;
+}
 
 // ================================================================ FUTURES
 async function viewFutures(sub) {
@@ -1439,8 +1837,8 @@ function planTable() {
 
 
 // ---- chuông thông báo
-const NK = { liq: "🚨", stop: "🛑", trend: "🔀", crowd: "👥", unlock: "🔓", alert: "🔔", light: "🚦", carry: "💱", system: "ℹ️", admin: "🛠️" };
-const NKIND = { liq: "Vị thế futures gần giá thanh lý", stop: "Giá chạm mức cắt lỗ của vị thế", trend: "Xu hướng coin đang giữ đảo chiều", crowd: "Đám đông futures cực đoan ở coin đang giữ",
+const NK = { idea: "🎯", liq: "🚨", stop: "🛑", trend: "🔀", crowd: "👥", unlock: "🔓", alert: "🔔", light: "🚦", carry: "💱", system: "ℹ️", admin: "🛠️" };
+const NKIND = { idea: "Cơ hội có lợi thế mới (coin đang giữ/theo dõi + mạnh nhất)", liq: "Vị thế futures gần giá thanh lý / vượt đòn bẩy", stop: "Giá chạm mức cắt lỗ của vị thế", trend: "Xu hướng coin đang giữ đảo chiều", crowd: "Đám đông futures cực đoan ở coin đang giữ",
   unlock: "Mở khoá token lớn ở coin đang giữ", alert: "Cảnh báo giá", light: "Đèn thị trường đổi màu", carry: "Cơ hội chênh lệch funding mới" };
 const agoShort = (iso) => { const m = (Date.now() - new Date(iso)) / 60000; return m < 1 ? "vừa xong" : m < 60 ? `${Math.round(m)} phút` : m < 1440 ? `${Math.round(m / 60)} giờ` : new Date(iso).toLocaleDateString("vi-VN"); };
 function ntfRow(n) {

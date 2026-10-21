@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import cval, derivs, ideas, levels, regime, strategy, technical
+from .analysis import cval, derivs, ideas, levels, pairs, regime, smc, strategy, technical
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
 from .data import store, universe
@@ -164,6 +164,7 @@ def run(notify: bool = False) -> dict:
     btc_down = bool(btc_reg is not None and btc_reg.iloc[-1] < 0)
     rows, details, pxs, alerts = [], {}, {}, []
     book, fresh = ideas.Book(), {}
+    h1s = {}
     tr_bt = []
     for r in uni.to_dict("records"):
         if not _ok(r):
@@ -260,6 +261,9 @@ def run(notify: bool = False) -> dict:
                "sp": r.get("spot_pair"), "sm": float(r.get("spot_mult") or 1), "bf": bn_pair.get(key),
                "bfm": universe.split_mult(bn_pair[key][:-4])[1] if bn_pair.get(key) else None, "new": bool(df is not None and len(df) < int(config.get("universe.min_history_days", 60)))}
         rows.append(row)
+        smc_x = {tf: smc.analyze(dd, 3) for tf, dd in (("d", df), ("h4", h4), ("h1", h1)) if dd is not None and len(dd) >= 60}
+        if h1 is not None:
+            h1s[key] = h1
         lvd = levels.analyze(df, 1.0) if df is not None else {}
         lvh = levels.analyze(h4, 4 / 24) if h4 is not None else {}
         flow_d = levels.money_flow(df, oi7, f8) if df is not None else {}
@@ -279,7 +283,7 @@ def run(notify: bool = False) -> dict:
             nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
         cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
         row["nw"] = sum(1 for n in nl if n["t"] >= cut and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3) or None
-        details[key] = {"row": row, "val": val, "news": nl, "lv": {"d": lvd, "h4": lvh}, "flow": {"d": flow_d, "h4": flow_h}, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
+        details[key] = {"row": row, "val": val, "news": nl, "lv": {"d": lvd, "h4": lvh}, "smc": smc_x, "flow": {"d": flow_d, "h4": flow_h}, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
                                                         if k in ("name", "category", "fees_total30d", "rev_total30d", "hrev_total30d", "fees_total1y",
                                                                  "rev_total1y", "hrev_total1y", "fees_total30DaysAgo", "rev_total30DaysAgo", "n_parts")},
                         "unl": {"series": [p for p in (em or {}).get("series", []) if p[0] > time.time() - 3 * 365 * 86400][::2] if em else [],
@@ -330,6 +334,15 @@ def run(notify: bool = False) -> dict:
             d["row"]["vd"] = d["val"]["verdict"]
     # ----- thị trường
     market = build_market(rows, details, pxs, btc, peers, alerts)
+    # ----- cặp coin chạy cùng nhau
+    try:
+        liq = [r["k"] for r in sorted([r for r in rows if r["k"] in pxs], key=lambda r: -((r.get("vol") or 0) + (r.get("oi") or 0)))]
+        P = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "corr": pairs.corr_matrix(pxs, liq[:40], 90),
+             "lead": pairs.lead_lag(h1s), "pairs": pairs.pair_trades(pxs, liq[:70], corr_min=0.75),
+             "rs": pairs.rel_strength(pxs, liq[:150], btc) if btc is not None else []}
+        _w("pairs.json", P)
+    except Exception as e:  # noqa: BLE001
+        log.warning("pairs: %s", e)
     # ----- xuất
     for key, d in details.items():
         df, h4, h1 = d.pop("df"), d.pop("h4"), d.pop("h1")

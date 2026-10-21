@@ -132,6 +132,15 @@ def run(notify: bool = False) -> dict:
                     pf = (u.get("data") or {}).get("portfolio") or {}
                     rst = nt.track(be, u, pf, lambda k: (rows.get(k) or {}).get("p"))
                     it = nt.items_for(pf, rows, {}, None, rst)
+                    # cơ hội có lợi thế mới: coin đang giữ / theo dõi + 3 cơ hội mạnh nhất toàn thị trường
+                    wl = set(((u.get("data") or {}).get("watchlist") or {}).get("symbols") or [])
+                    mine = wl | {h.get("symbol") for h in pf.get("holdings") or []} | {f.get("symbol") for f in pf.get("futures") or []}
+                    edge = [x for x in items if x.get("edge") and x.get("conf") != "Thấp"]
+                    pick = [x for x in edge if x["k"] in mine] + [x for x in edge[:3] if x["k"] not in mine]
+                    for x in pick[:6]:
+                        it.append({"key": f"idea:{x['k']}:{x['setup']}:{x['at']}", "kind": "idea", "sev": 2 if x["k"] in mine else 1, "sym": x["k"], "url": f"#/plan/{x['k']}",
+                                   "title": f"{x['k']}: {'LONG' if x['side'] == 'long' else 'SHORT'} – {x['name']} ({'4h' if x['tf'] == 'h4' else 'ngày'})",
+                                   "body": f"Vào ~{levels.sig(x['e'])}, cắt lỗ {levels.sig(x['s'])}, MT1 {levels.sig(x['t1'])} ({x.get('t1_pct')}%), xác suất {x.get('win1')}% · lãi TB {x.get('avgR')}R"})
                     users.deliver(be, cfg, u, it, "MyBit – cảnh báo")
         except Exception as e:  # noqa: BLE001
             log.warning("notify live: %s", e)

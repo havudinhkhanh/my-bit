@@ -1454,7 +1454,7 @@ table.dgsec tr.gap td{padding:4px 8px;background:var(--sunk);text-align:center}t
 table.dgpull tr.sp td{height:6px;padding:0;border:0}
 .dgw{display:grid;gap:2px;padding:6px 0;border-top:1px solid var(--line-2);font-size:.82rem}.dgw:first-of-type{border-top:0}
 /* thanh điều hướng điện thoại: thêm "Bản tin" */
-@media (max-width:979px){.tabs{grid-template-columns:repeat(9,1fr)}.tabs a{font-size:.6rem;padding-left:0;padding-right:0;text-align:center;line-height:1.15}}
+@media (max-width:979px){.tabs{grid-template-columns:repeat(10,1fr)}.tabs a{font-size:.6rem;padding-left:0;padding-right:0;text-align:center;line-height:1.15}}
 
 /* ================= MyBit – bổ sung cho crypto ================= */
 .g2w{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);align-items:start}
@@ -1557,3 +1557,51 @@ table.sortable th.on{color:var(--brand)}
 .tk-plan{margin:8px 0 4px;padding:7px 10px;border-radius:6px;background:var(--brand-2);font-size:.82rem}
 .tk-w{margin:6px 0 0;padding-left:18px;color:var(--ref);font-size:.78rem}
 .tk-a{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* ===== SMC, đánh giá thời gian thực, radar, cặp coin, bản đồ nhiệt ===== */
+.chart{position:relative}
+.chart canvas.ov{position:absolute;left:0;top:0;pointer-events:none;z-index:3}
+.cbar{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-bottom:6px}
+.cops{display:flex;gap:10px;flex-wrap:wrap}
+.cops .chk{padding:0;align-self:center}
+.panes{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+.pane{position:relative;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.pane-t{position:absolute;left:8px;top:4px;z-index:4;font-size:.68rem;color:var(--ink-3);pointer-events:none}
+.rt{border-radius:8px;padding:2px 0}
+.rt-h{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.rt-h b{font-size:1.05rem}
+.rt-score{display:inline-block;width:120px;height:8px;border-radius:4px;background:var(--sunk-2);overflow:hidden;vertical-align:middle}
+.rt-score i{display:block;height:100%;background:linear-gradient(90deg,var(--down),var(--ref) 50%,var(--up))}
+.rt-score.sm{width:56px;height:6px}
+.rt.long .rt-h .pill.buy,.rt.short .rt-h .pill.buy{font-size:.95rem}
+.rt-g .kpis{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+ul.rtc{list-style:none;margin:8px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:3px 12px;font-size:.8rem}
+ul.rtc li{display:flex;gap:6px;align-items:baseline;padding:3px 0;border-bottom:1px dashed var(--line-2)}
+ul.rtc li i{font-style:normal;font-weight:700;width:14px;flex:none;text-align:center}
+ul.rtc li small{margin-left:auto;color:var(--ink-3);font-size:.68rem}
+ul.rtc li.ok i{color:var(--up)} ul.rtc li.no{color:var(--ink-3)} ul.rtc li.no i{color:var(--down)} ul.rtc li.half i{color:var(--ref)}
+.rt-act{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.rt-act .chk{padding:0}
+.flash{animation:fl 1.6s ease-out}
+.smcb{padding:8px 0;border-bottom:1px solid var(--line-2)}
+.smcb:last-child{border-bottom:0}
+.smcb h3{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+ul.smcl{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:3px;font-size:.8rem}
+.rdt td,.rdt th{white-space:nowrap}
+.rdt td.l small{white-space:normal;display:inline-block;max-width:460px;line-height:1.35}
+.rdt tr.flash td{animation:fl 2.5s ease-out}
+.hmx{overflow:auto;max-height:640px}
+table.corr{border-collapse:collapse;font-size:.62rem}
+table.corr th{position:sticky;background:var(--surface);font-weight:600;color:var(--ink-2);padding:1px 3px;z-index:1}
+table.corr thead th{top:0;height:46px;vertical-align:bottom}
+table.corr thead th span{display:inline-block;writing-mode:vertical-rl;transform:rotate(180deg)}
+table.corr tbody th{left:0;text-align:right}
+table.corr td{width:22px;min-width:22px;height:20px;text-align:center;color:var(--ink);padding:0;border:1px solid var(--surface)}
+.prt tbody tr{cursor:pointer}
+.prt tbody tr.on td{background:var(--brand-2)}
+.hmap{display:flex;flex-wrap:wrap;gap:3px}
+.hmap a{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:46px;padding:4px 2px;border-radius:5px;color:var(--ink);text-decoration:none;overflow:hidden}
+.hmap a:hover{outline:2px solid var(--brand);text-decoration:none}
+.hmap a b{font-size:.78rem;line-height:1.1}
+.hmap a small{font-size:.68rem;color:var(--ink);opacity:.85}
+.seg button{cursor:pointer}
