@@ -92,6 +92,7 @@ jobs:
         run: |
           ARGS=""
           if [ -n "$TELEGRAM_BOT_TOKEN" ] || [ -n "$D1_DATABASE_ID" ]; then ARGS="--notify"; fi
+          set -o pipefail
           python run.py live $ARGS 2>&1 | tee data/live.log
 
       - name: Tải dữ liệu (đầy đủ)
@@ -109,6 +110,7 @@ jobs:
         run: |
           ARGS=""
           if [ -n "$TELEGRAM_BOT_TOKEN" ] || [ -n "$D1_DATABASE_ID" ]; then ARGS="--notify"; fi
+          set -o pipefail
           python run.py build $ARGS 2>&1 | tee data/build.log
 
       - name: Lưu dữ liệu cho lần chạy sau
@@ -134,8 +136,9 @@ jobs:
           [ -n "$GH_DISPATCH_TOKEN" ] || { echo "Chưa có GH_DISPATCH_TOKEN – dùng lịch GitHub (hay trễ vài phút)" | tee data/scheduler.txt; exit 0; }
           h=$(cat worker/scheduler.js worker/wrangler.toml | sha1sum | cut -c1-12)
           if [ "$(cat data/scheduler_hash 2>/dev/null)" = "$h" ]; then echo "Worker hẹn giờ đã cài (bản $h)" | tee data/scheduler.txt; exit 0; fi
+          set -o pipefail
           cd worker
-          npx --yes wrangler@3 deploy --var GH_REPO:${{ github.repository }} 2>&1 | tail -15 | tee ../data/scheduler.txt
+          npx --yes wrangler@3 deploy --var GH_REPO:${{ github.repository }} 2>&1 | tail -60 | tee ../data/scheduler.txt
           echo "$GH_DISPATCH_TOKEN" | npx --yes wrangler@3 secret put GH_TOKEN 2>&1 | tail -3 | tee -a ../data/scheduler.txt
           cd .. && echo "$h" > data/scheduler_hash
 

@@ -133,7 +133,7 @@ def run(notify: bool = False) -> dict:
     uni = store.read("universe")
     uni = uni.astype(object).where(uni.notna(), None)
     cg = store.read("cg_markets")
-    cgi = cg.set_index("id") if not cg.empty else pd.DataFrame()
+    cgi = cg.drop_duplicates("id").set_index("id") if not cg.empty else pd.DataFrame()
     now = store.read("fut_now")
     hist = store.read("fut_hist")
     if not hist.empty:

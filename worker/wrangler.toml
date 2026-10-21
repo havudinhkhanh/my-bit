@@ -1,0 +1,7 @@
+name = "my-bit-scheduler"
+main = "scheduler.js"
+compatibility_date = "2024-09-23"
+workers_dev = false
+
+[triggers]
+crons = ["*/15 * * * *"]
