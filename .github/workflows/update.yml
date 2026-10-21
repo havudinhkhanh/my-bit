@@ -1,0 +1,116 @@
+name: Cập nhật
+run-name: "${{ github.event_name == 'schedule' && 'Lịch 4 giờ' || 'Chạy tay' }}${{ inputs.dev_snapshot && ' · gửi dữ liệu mẫu' || '' }}"
+
+on:
+  schedule:
+    - cron: "7 */4 * * *"     # mỗi 4 giờ (crypto chạy 24/7)
+  workflow_dispatch:
+    inputs:
+      quick:
+        description: "Lượt nhanh (bỏ phần nặng: lịch sử cung, mở khoá, phí/doanh thu)"
+        type: boolean
+        default: false
+      dev_snapshot:
+        description: "Đẩy bản sao dữ liệu lên nhánh status (để phát triển)"
+        type: boolean
+        default: false
+      build:
+        description: "Phân tích & đăng web"
+        type: boolean
+        default: true
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Lấy dữ liệu đã lưu từ lần chạy trước
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: data-${{ github.run_id }}
+          restore-keys: data-
+
+      - name: Tải dữ liệu
+        run: |
+          mkdir -p data
+          ARGS=""
+          if [ "${{ inputs.quick }}" = "true" ]; then ARGS="--quick"; fi
+          ( while sleep 300; do bash scripts/publish_status.sh update data/update.log data/update_report.json >/dev/null 2>&1; done ) &
+          python run.py update $ARGS 2>&1 | tee data/update.log
+          kill %1 2>/dev/null || true
+
+      - name: Lưu dữ liệu cho lần chạy sau
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: data-${{ github.run_id }}
+
+      - name: Kết nối Cloudflare
+        if: env.CF_API_TOKEN != '' && (github.event_name == 'schedule' || inputs.build)
+        run: |
+          python scripts/cloudflare.py kv >> "$GITHUB_ENV"
+          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" || true
+
+      - name: Phân tích
+        if: (github.event_name == 'schedule' || inputs.build) && hashFiles('app/build.py') != ''
+        run: |
+          ARGS=""
+          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then ARGS="--notify"; fi
+          python run.py build $ARGS 2>&1 | tee data/build.log
+
+      - name: Đăng web lên Cloudflare Pages
+        if: env.CF_API_TOKEN != '' && (github.event_name == 'schedule' || inputs.build) && hashFiles('site/index.html') != ''
+        env:
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+          GH_REPO: ${{ github.repository }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+        run: |
+          python scripts/cloudflare.py wrangler-toml > wrangler.toml
+          python scripts/optimize_site.py site 2>&1 | grep -v "npm notice" | tee data/optimize.txt || true
+          npx --yes wrangler@3 pages project create my-bit --production-branch main || true
+          if [ -n "$GH_DISPATCH_TOKEN" ]; then
+            echo "$GH_DISPATCH_TOKEN" | npx --yes wrangler@3 pages secret put GH_TOKEN --project-name my-bit || true
+          fi
+          npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true
+          curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
+          curl -s -o /dev/null -w "data %{http_code}\n" https://my-bit.pages.dev/data/market.json >> data/site_check.txt || true
+          cat data/optimize.txt >> data/site_check.txt 2>/dev/null || true
+
+      - name: Bản sao dữ liệu để phát triển
+        if: inputs.dev_snapshot
+        run: |
+          mkdir -p snap
+          tar czf snap/data.tgz --exclude='data/debug' --exclude='*.log' data
+          split -b 40m snap/data.tgz snap/data.tgz.part-
+          rm snap/data.tgz
+          ls -la snap
+          bash scripts/publish_status.sh snap snap
+
+      - name: Đẩy log lên nhánh status
+        if: always()
+        run: |
+          bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/debug

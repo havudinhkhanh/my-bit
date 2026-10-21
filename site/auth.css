@@ -1,0 +1,40 @@
+/* Trang đăng nhập */
+body.authpage{background:var(--bg);min-height:100vh;padding:0}
+.auth{max-width:1040px;margin:0 auto;min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:32px 20px}
+.auth-side h1{font-size:1.9rem;line-height:1.25;margin:18px 0 18px;letter-spacing:-.01em}
+.auth-side ul{margin:0;padding:0;list-style:none;display:grid;gap:10px;color:var(--ink-2);font-size:.95rem}
+.auth-side li{padding-left:22px;position:relative;line-height:1.45}
+.auth-side li::before{content:"";position:absolute;left:2px;top:.5em;width:9px;height:9px;border-radius:50%;background:var(--up)}
+.auth-side .fine{color:var(--ink-3);font-size:.75rem;margin-top:22px}
+.auth-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:1.25rem}
+.auth-brand .dots{display:inline-flex;gap:4px;padding:6px 8px;background:#15202B;border-radius:8px}
+.auth-brand .dots i{width:9px;height:9px;border-radius:50%;background:#F0444B;opacity:.45}
+.auth-brand .dots i:nth-child(2){background:#F4C32F}.auth-brand .dots i:nth-child(3){background:#2FD08F;opacity:1}
+.auth-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,.08)}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--sunk);border-radius:9px;padding:3px;margin-bottom:16px}
+.auth-tabs button{border:0;background:none;padding:8px;border-radius:7px;font:inherit;font-weight:600;color:var(--ink-2);cursor:pointer}
+.auth-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.auth-card form{display:grid;gap:12px}
+.auth-card label{display:grid;gap:5px;font-size:.84rem;font-weight:600;color:var(--ink-2)}
+.auth-card label small{font-weight:400;color:var(--ink-3)}
+.auth-card input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-weight:400}
+.auth-card input:focus{outline:2px solid color-mix(in srgb,var(--brand) 40%,transparent);border-color:var(--brand)}
+.btn.wide{width:100%;justify-content:center;padding:9px}
+.auth-card .links{margin:0;text-align:center;font-size:.84rem}
+.gbox{display:grid;gap:12px;justify-items:center;margin-bottom:12px}
+.gbox[hidden]{display:none}
+.or{width:100%;display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:center;color:var(--ink-3);font-size:.78rem}
+.or::before,.or::after{content:"";height:1px;background:var(--line)}
+.msg{margin-top:12px;font-size:.86rem;min-height:1.2em}
+.msg.bad{color:var(--down)}.msg.ok{color:var(--up)}
+@media (max-width:820px){.auth{grid-template-columns:1fr;gap:20px;align-items:start;padding-top:24px}.auth-side h1{font-size:1.35rem}.auth-side ul{font-size:.88rem}}
+/* tông bàn giao dịch đêm */
+.auth-side h1{font-family:var(--serif);font-weight:600;font-size:2.2rem;line-height:1.18;letter-spacing:-.015em}
+.auth-brand{font:600 1.35rem/1 var(--serif)}
+.auth-brand .dots{background:#05080D;border:1px solid var(--brass-line)}
+.auth-side li::before{background:var(--brass);border-radius:1px;width:7px;height:7px;transform:rotate(45deg)}
+.auth-card{border-color:var(--line-2);border-radius:10px;box-shadow:none;border-top:2px solid var(--brass)}
+.auth-tabs button.on{box-shadow:none;border:1px solid var(--line)}
+.auth-card input:focus{outline:0;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 18%,transparent)}
+
+.blogl{margin:18px 0 0;font-size:.85rem;text-align:center}.blogl a{color:var(--brass,#CBA765)}

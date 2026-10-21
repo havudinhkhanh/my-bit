@@ -1,0 +1,31 @@
+# =====================================================================
+#  CÀI ĐẶT HỆ THỐNG MY-BIT (crypto spot + futures – chỉ phân tích & cảnh báo, KHÔNG đặt lệnh)
+#  Anh sửa file này ngay trên web GitHub (bấm biểu tượng cây bút ✏️), sửa số rồi "Commit changes".
+# =====================================================================
+
+universe:
+  cg_pages: 4                 # số trang CoinGecko (250 coin/trang) dùng để khớp mã
+  top_mcap: 300               # luôn phân tích top 300 vốn hoá
+  binance_spot_rank_max: 1000 # coin có cặp USDT trên Binance spot và nằm trong top 1000 → phân tích
+  fut_min_vol_usd: 1000000    # coin có hợp đồng tương lai với khối lượng 24h ≥ 1 triệu USD → phân tích
+  min_history_days: 60        # coin mới niêm yết dưới 60 ngày: chỉ theo dõi, không chấm điểm xu hướng
+
+prices:
+  intraday_top: 150           # số coin (theo OI/khối lượng futures) tải nến 4h và 1h
+  binance_metrics_top: 120    # số hợp đồng Binance lấy lịch sử OI / long-short (kho lưu trữ, trễ ~1 ngày)
+  binance_metrics_backfill: 45
+
+fundamentals:
+  supply_refresh_per_run: 40  # số coin tải lịch sử nguồn cung (CoinGecko giới hạn ~10 lượt/phút)
+  unlock_refresh_per_run: 80  # số dự án tải lịch mở khoá token (DefiLlama)
+
+risk:
+  account_usd: 10000          # vốn mặc định cho máy tính khối lượng lệnh (anh đổi được trên web)
+  risk_per_trade: 1.0         # % vốn chấp nhận lỗ mỗi lệnh
+  max_leverage: 3             # đòn bẩy tối đa hệ thống gợi ý cho lệnh theo xu hướng
+  intraday_max_leverage: 5    # đòn bẩy tối đa cho lệnh lướt trong ngày
+
+alerts:
+  funding_hot_8h: 0.05        # % / 8 giờ – funding dương quá mức (đám đông long quá đông)
+  funding_cold_8h: -0.03      # % / 8 giờ – funding âm sâu (đám đông short)
+  oi_jump_24h: 25             # % – OI tăng mạnh trong 24h

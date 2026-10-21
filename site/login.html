@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B1119">
+<meta name="robots" content="noindex,nofollow">
+<title>Đăng nhập · MyBit</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2315202B'/><circle cx='9' cy='16' r='4' fill='%23F0444B' opacity='.4'/><circle cx='16' cy='16' r='4' fill='%23F4C32F' opacity='.4'/><circle cx='23' cy='16' r='4' fill='%232FD08F'/></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="auth.css">
+</head>
+<body class="authpage">
+<main class="auth">
+  <section class="auth-side" aria-hidden="true">
+    <div class="auth-brand"><span class="dots"><i></i><i></i><i></i></span>MyBit</div>
+    <h1>Phân tích crypto spot &amp; futures<br>có số liệu thật, không theo cảm xúc.</h1>
+    <ul>
+      <li><b>Bản tin thị trường</b> mỗi phiên: chỉ số, độ rộng, ngành, dòng tiền lớn, tâm lý.</li>
+      <li><b>Danh mục của riêng anh/chị</b>: mức cắt lỗ, chốt lời, cảnh báo khi giá chạm.</li>
+      <li><b>Thông báo</b> trên web, điện thoại và email sau các lượt 11:35 · 14:35 · 15:35.</li>
+      <li>Mọi phương pháp đều <b>kiểm chứng trên dữ liệu VN</b> trước khi đưa ra khuyến nghị.</li>
+    </ul>
+    <p class="fine">Thông tin tham khảo từ hệ thống phân tích tự động, không phải lời khuyên đầu tư. Crypto và đòn bẩy có thể mất toàn bộ vốn.</p>
+  </section>
+  <section class="auth-card">
+    <div class="auth-tabs" role="tablist">
+      <button role="tab" data-tab="login" class="on">Đăng nhập</button>
+      <button role="tab" data-tab="signup">Đăng ký</button>
+    </div>
+    <div id="gbox" class="gbox" hidden><div id="gbtn"></div><div class="or"><span>hoặc</span></div></div>
+
+    <form id="f-login" data-pane="login" autocomplete="on">
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn primary wide" type="submit">Đăng nhập</button>
+      <p class="links"><a href="#" data-go="forgot">Quên mật khẩu?</a></p>
+    </form>
+
+    <form id="f-signup" data-pane="signup" hidden autocomplete="on">
+      <label>Họ tên<input name="name" autocomplete="name" maxlength="80"></label>
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Mật khẩu <small>(tối thiểu 8 ký tự)</small><input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <label>Mã mời <small id="invHint">(để trống nếu chưa có – yêu cầu sẽ chờ duyệt)</small><input name="invite" autocomplete="off" style="text-transform:uppercase"></label>
+      <button class="btn primary wide" type="submit">Tạo tài khoản</button>
+    </form>
+
+    <form id="f-forgot" data-pane="forgot" hidden>
+      <p class="muted">Nhập email đã đăng ký. Hệ thống gửi liên kết đặt lại mật khẩu (hoặc báo quản trị viên gửi cho anh/chị).</p>
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <button class="btn primary wide" type="submit">Gửi yêu cầu</button>
+      <p class="links"><a href="#" data-go="login">← Quay lại đăng nhập</a></p>
+    </form>
+
+    <form id="f-reset" data-pane="reset" hidden>
+      <p class="muted">Đặt mật khẩu mới cho tài khoản.</p>
+      <label>Mật khẩu mới <small>(tối thiểu 8 ký tự)</small><input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn primary wide" type="submit">Lưu mật khẩu mới</button>
+    </form>
+
+    <div id="msg" class="msg" role="status" aria-live="polite"></div>
+  </section>
+</main>
+<script src="login.js"></script>
+</body>
+</html>

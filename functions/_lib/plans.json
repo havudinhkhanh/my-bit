@@ -1,0 +1,22 @@
+{
+  "order": ["free", "pro"],
+  "plans": {
+    "free": {
+      "name": "Miễn phí",
+      "features": ["market", "coins", "portfolio", "watch", "notify_web"],
+      "limits": {"holdings": 15, "watch": 30, "alerts": 10}
+    },
+    "pro": {
+      "name": "Pro",
+      "features": ["market", "coins", "portfolio", "watch", "notify_web", "coin_full", "futures", "backtest", "notify_push", "notify_email"],
+      "limits": {"holdings": 200, "watch": 500, "alerts": 300}
+    }
+  },
+  "feature_names": {
+    "market": "Toàn cảnh thị trường crypto", "coins": "Bảng coin & bộ lọc", "portfolio": "Danh mục spot & futures", "watch": "Theo dõi & cảnh báo giá",
+    "notify_web": "Thông báo trên web", "coin_full": "Định giá & phân tích đầy đủ từng coin", "futures": "Futures: funding, OI, basis, phòng hộ",
+    "backtest": "Kiểm chứng chiến lược", "notify_push": "Thông báo đẩy", "notify_email": "Thông báo qua email"
+  },
+  "paths": [],
+  "strip": []
+}
