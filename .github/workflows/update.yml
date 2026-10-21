@@ -99,6 +99,7 @@ jobs:
           fi
           grep -A3 d1_databases wrangler.toml | grep -v database_id >> data/cf.txt || echo "wrangler.toml: không có D1" >> data/cf.txt
           npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true 2>&1 | tail -25 | tee data/deploy.txt
+          sleep 30   # chờ bản mới lên địa chỉ chính
           curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
           curl -s -o /dev/null -w "data %{http_code}\n" https://my-bit.pages.dev/data/market.json >> data/site_check.txt || true
           cat data/optimize.txt >> data/site_check.txt 2>/dev/null || true
