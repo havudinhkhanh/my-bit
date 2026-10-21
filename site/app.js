@@ -733,7 +733,7 @@ const GOV = {
   marginMax: 0.5, maxPos: 5, riskMax: 2,
 };
 function govLight() { return COINS?.light || "yellow"; }
-function govDD() { const eq = PF?.eq, pk = PF?.peak; return isNum(eq) && isNum(pk) && pk > 0 ? Math.max(0, (1 - eq / pk) * 100) : 0; }
+function govDD() { if (RISK && isNum(RISK.dd)) return RISK.dd; const eq = PF?.eq, pk = PF?.peak; return isNum(eq) && isNum(pk) && pk > 0 ? Math.max(0, (1 - eq / pk) * 100) : 0; }
 function levGov(r, side, tf, stopPct, opts = {}) {
   const light = govLight(), why = [];
   const tfk = tf === "d" ? "d" : "h4";
@@ -753,8 +753,11 @@ function levGov(r, side, tf, stopPct, opts = {}) {
   if (dd >= 20) { cap = 1; riskMul = 0.25; why.push(`Tài khoản đang sụt ${nf(dd, 0)}% so với đỉnh → khoá đòn bẩy (chỉ x1), rủi ro còn 1/4`); }
   else if (dd >= 10) { cap = Math.min(cap, 2); riskMul = 0.5; why.push(`Tài khoản đang sụt ${nf(dd, 0)}% so với đỉnh → tối đa x2, rủi ro giảm 1/2`); }
   if (light === "red" && side === "long") riskMul *= 0.5; else if (light === "yellow") riskMul *= 0.75;
+  (RISK?.half || []).forEach((h) => { riskMul *= 0.5; why.push(`Rủi ro giảm 1/2 vì ${h}`); });
+  let halt = false;
+  if (RISK?.halt) { halt = true; riskMul = 0; why.push(`Đã lỗ ${nf(RISK.day_pct, 1)}% hôm nay (mức dừng −3%) → KHÔNG mở lệnh mới tới hết ngày`); }
   const risk = Math.min(GOV.riskMax, setting("risk", 1)) * riskMul;
-  return { cap: Math.max(1, Math.floor(cap)), why, risk, dd, light };
+  return { cap: Math.max(1, Math.floor(cap)), why, risk, dd, light, halt };
 }
 // vị thế hiện có: tổng đòn bẩy ròng, ký quỹ, số lệnh
 function pfExposure() {
@@ -889,7 +892,7 @@ function makeTicket(D, IJ, opt = {}) {
   else if (t.edge || (t.evR > 0.05 && warn.length <= 3)) v = t.order === "limit" || !t.edge ? "limit" : "go";
   else v = "watch";
   if (warn.some((w) => w.startsWith("Có tin xấu")) && v === "go") v = "watch";
-  if (!(t.q > 0)) { v = "no"; warn.unshift("Danh mục đã chạm giới hạn rủi ro của hệ thống – không mở thêm lệnh"); }
+  if (!(t.q > 0)) { v = "no"; warn.unshift(t.gov?.halt ? `Hệ thống đang DỪNG giao dịch: đã lỗ ${nf(RISK?.day_pct, 1)}% hôm nay – nghỉ tới mai` : "Danh mục đã chạm giới hạn rủi ro của hệ thống – không mở thêm lệnh"); }
   t.verdict = v; t.warn = warn; t.notes = notes; t.price = price; t.k = r.k;
   const now = Date.now();
   t.eta1 = now + (t.d1 || 0) * t.tf_bd * 86400e3; t.eta2 = now + (t.d2 || 0) * t.tf_bd * 86400e3; t.tstop = now + (t.d1_hi || t.d1 * 2 || 0) * t.tf_bd * 86400e3;
@@ -1152,7 +1155,8 @@ const WL = {
 
 // ================================================================ DANH MỤC (spot + futures)
 let PF = null;
-async function pfLoad() { const r = await Store.get("portfolio"); PF = r.data && typeof r.data === "object" ? r.data : {}; PF.holdings = PF.holdings || []; PF.futures = PF.futures || []; return PF; }
+let RISK = null;
+async function pfLoad() { const [r, k] = await Promise.all([Store.get("portfolio"), Store.get("risk").catch(() => ({ data: null }))]); PF = r.data && typeof r.data === "object" ? r.data : {}; PF.holdings = PF.holdings || []; PF.futures = PF.futures || []; PF.journal = PF.journal || []; RISK = k && k.data && k.data.at ? k.data : null; return PF; }
 async function pfSave() { PF.updated = new Date().toISOString(); await Store.put("portfolio", PF); }
 async function viewPortfolio() {
   const C = await coins(); await pfLoad(); await WL.load();
@@ -1165,7 +1169,7 @@ async function viewPortfolio() {
     if (r.ts === -1) flags.push([h.symbol, `xu hướng ngày đã chuyển GIẢM – cân nhắc giảm tỷ trọng hoặc phòng hộ`]);
     if (isNum(r.u90) && r.u90 >= 3) flags.push([h.symbol, `mở khoá ${nf(r.u90, 1)}% lượng lưu hành trong 90 ngày tới`]);
     if ((r.cr || []).includes("long_crowded")) flags.push([h.symbol, `phe Long quá đông trên futures (funding ${f8s(r.f8)}) – rủi ro điều chỉnh`]);
-    return `<tr><td class="l">${coinLink(h.symbol)}</td><td>${qty(h.qty)}</td><td>${px(h.cost)}</td><td>${px(p)}</td><td>${usd(v)}</td><td class="${cls(pnl)}">${usd(pnl)}<br><small>${h.cost ? pct((p / h.cost - 1) * 100) : ""}</small></td><td>${tsPill(r.ts, r.td)}</td><td>${vdPill(r.vd)}</td><td><button class="chip" data-dh="${i}">Xoá</button></td></tr>`;
+    return `<tr><td class="l">${coinLink(h.symbol)}</td><td>${qty(h.qty)}</td><td>${px(h.cost)}</td><td>${px(p)}</td><td>${usd(v)}</td><td class="${cls(pnl)}">${usd(pnl)}<br><small>${h.cost ? pct((p / h.cost - 1) * 100) : ""}</small></td><td>${tsPill(r.ts, r.td)}</td><td>${vdPill(r.vd)}</td><td><button class="chip" data-ch="${i}">Bán hết</button> <button class="chip" data-dh="${i}" title="Xoá dòng (nhập nhầm)">Xoá</button></td></tr>`;
   }).join("");
   const fu = PF.futures.map((f, i) => {
     const r = BYK[f.symbol] || {}, p = r.p, s = f.side === "short" ? -1 : 1, n = isNum(p) ? f.qty * p : null;
@@ -1186,7 +1190,7 @@ async function viewPortfolio() {
     if (s < 0 && r.ts === 1) flags.push([f.symbol, `đang Short ngược xu hướng tăng ngày`]);
     if (s > 0 && (r.cr || []).includes("long_crowded")) flags.push([f.symbol, `Long trong lúc Long quá đông – funding ${f8s(r.f8)} ăn mòn lãi`]);
     return `<tr><td class="l">${coinLink(f.symbol, "/fut")}</td><td>${f.side === "short" ? '<b class="down">Short</b>' : '<b class="up">Long</b>'} x${nf(f.lev, 0)}${(f.lev || 1) > (f._cap || 99) ? ` <span class="pill sell" title="Vượt mức hệ thống cho phép">tối đa x${f._cap}</span>` : ""}</td><td>${qty(f.qty)}</td><td>${px(f.entry)}</td><td>${px(p)}</td><td>${usd(n)}</td>
-      <td class="${cls(pnl)}">${usd(pnl)}<br><small>${pct(roe, 0)} ký quỹ</small></td><td>${px(liq)}<br><small class="${dist < 15 ? "down" : "muted"}">${isNum(dist) ? "cách " + nf(dist, 1) + "%" : ""}</small></td><td>${f.stop ? px(f.stop) : "—"}</td><td class="${cls(fd)}">${fd != null ? usd(fd) + "/ngày" : "—"}</td><td><button class="chip" data-df="${i}">Xoá</button></td></tr>`;
+      <td class="${cls(pnl)}">${usd(pnl)}<br><small>${pct(roe, 0)} ký quỹ</small></td><td>${px(liq)}<br><small class="${dist < 15 ? "down" : "muted"}">${isNum(dist) ? "cách " + nf(dist, 1) + "%" : ""}</small></td><td>${f.stop ? px(f.stop) : "—"}</td><td class="${cls(fd)}">${fd != null ? usd(fd) + "/ngày" : "—"}</td><td><button class="chip" data-cf="${i}">Đóng</button> <button class="chip" data-df="${i}" title="Xoá dòng (nhập nhầm)">Xoá</button></td></tr>`;
   }).join("");
   const cash = Number(PF.cash || 0), eq = spotV + cash + futMargin + futPnl;
   const wl = [...WL.set].filter((k) => BYK[k]);
@@ -1201,6 +1205,10 @@ async function viewPortfolio() {
       ["Rủi ro mỗi lệnh", nf(gS.risk, 2) + "% vốn", "", `Anh đặt ${nf(setting("risk", 1), 1)}% (trần 2%); hệ thống giảm khi đèn vàng/đỏ hoặc tài khoản sụt`],
       ["Tổng vị thế ròng", `x${nf(eff, 2)} / tối đa x${nf(pcap, 1)}`, eff > pcap ? "down" : "up"], ["Tổng ký quỹ", `${nf(eq > 0 ? futMargin / eq * 100 : 0, 0)}% / tối đa 50%`, futMargin > GOV.marginMax * eq ? "down" : "up"],
       ["Số vị thế futures", `${PF.futures.length} / tối đa ${GOV.maxPos}`, PF.futures.length > GOV.maxPos ? "down" : "up"], ["Sụt so với đỉnh tài sản", pct(-dd, 1), dd >= 10 ? "down" : "", dd >= 20 ? "≥ 20%: khoá đòn bẩy, rủi ro còn 1/4" : dd >= 10 ? "≥ 10%: tối đa x2, rủi ro giảm 1/2" : "Sụt ≥ 10% sẽ tự giảm đòn bẩy & rủi ro"]])}
+      ${kpis([["Lãi/lỗ hôm nay", RISK ? pct(RISK.day_pct, 2) : "—", RISK?.day_pct <= -3 ? "down" : cls(RISK?.day_pct), "Mức dừng: −3%/ngày → không mở lệnh mới tới hết ngày (giờ Việt Nam)"],
+        ["Lãi/lỗ tuần này", RISK ? pct(RISK.week_pct, 2) : "—", RISK?.week_pct <= -6 ? "down" : cls(RISK?.week_pct), "−6%/tuần → rủi ro mỗi lệnh giảm 1/2 tới hết tuần"],
+        ["Chuỗi thua", RISK ? `${RISK.streak} lệnh` : "—", RISK?.streak >= 3 ? "down" : "", "Thua 3 lệnh liên tiếp → rủi ro giảm 1/2 trong 24 giờ"],
+        ["Trạng thái", RISK?.halt ? "⛔ DỪNG" : (RISK?.half || []).length ? "⚠️ GIẢM RỦI RO" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString("vi-VN")}` : "máy chủ chưa kiểm tra lần nào – sau lượt 15 phút tới"]])}
       <p class="faint" style="font-size:.74rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
   app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
     <section class="panel hero">${kpis([["Tổng tài sản (ước)", usd(eq)], ["Spot", usd(spotV), "", `Giá vốn ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC)], ["Tiền mặt / stablecoin", usd(cash)],
@@ -1218,6 +1226,10 @@ async function viewPortfolio() {
     ${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
       const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
       return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
+    ${panel("📒 Sổ lệnh đã đóng", (PF.journal || []).length ? (() => { const J = PF.journal.slice().reverse(), w = J.filter((j) => j.pnl > 0).length, tot = J.reduce((a, j) => a + (j.pnl || 0), 0);
+      return `${kpis([["Số lệnh", nf(J.length, 0)], ["Thắng", nf(w / J.length * 100, 0) + "%"], ["Tổng lãi/lỗ", usd(tot), cls(tot)], ["TB mỗi lệnh (R)", (() => { const R = J.filter((j) => isNum(j.r)); return R.length ? nf(R.reduce((a, j) => a + j.r, 0) / R.length, 2) + "R" : "—"; })()]])}
+      <div class="tw" style="max-height:320px"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString("vi-VN")}</small></td></tr>`).join("")}</tbody></table></div>`; })()
+      : `<p class="muted">Bấm "Đóng" / "Bán hết" ở vị thế để ghi lãi/lỗ thực – hệ thống dùng sổ này để tính lỗ trong ngày và chuỗi thua.</p>`)}
     ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`)}
     <datalist id="coinlist">${C.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>`;
   const num = (id) => Number($(id).value);
@@ -1240,6 +1252,22 @@ async function viewPortfolio() {
   $$("[data-dh]").forEach((b) => b.onclick = async () => { PF.holdings.splice(Number(b.dataset.dh), 1); await pfSave(); viewPortfolio(); });
   $$("[data-df]").forEach((b) => b.onclick = async () => { PF.futures.splice(Number(b.dataset.df), 1); await pfSave(); viewPortfolio(); });
   $$("[data-dp]").forEach((b) => b.onclick = async () => { PF.plans.splice(Number(b.dataset.dp), 1); await pfSave(); viewPortfolio(); });
+  // đóng vị thế → ghi sổ lệnh (lãi/lỗ thực), tiền về tiền mặt – để hệ thống tính lỗ ngày/tuần & chuỗi thua
+  const askExit = (k, def) => { const v = prompt(`Giá thoát ${k} (để trống = giá hiện tại ${px(def)}):`, ""); if (v === null) return null; const x = Number(String(v).replace(",", ".")); return x > 0 ? x : def; };
+  $$("[data-cf]").forEach((b) => b.onclick = async () => {
+    const f = PF.futures[Number(b.dataset.cf)], cur = BYK[f.symbol]?.p, x = askExit(f.symbol, cur); if (!x) return;
+    const sd = f.side === "short" ? -1 : 1, pnl = sd * f.qty * (x - f.entry) - f.qty * (f.entry + x) * FEE1;
+    PF.journal.push({ k: f.symbol, side: f.side, qty: f.qty, entry: f.entry, exit: x, lev: f.lev, stop: f.stop, pnl, r: f.stop ? pnl / (f.qty * Math.abs(f.entry - f.stop)) : null, opened: f.opened, closed: new Date().toISOString() });
+    PF.cash = Number(PF.cash || 0) + f.qty * f.entry / (f.lev || 1) + pnl;
+    PF.futures.splice(Number(b.dataset.cf), 1); await pfSave(); toast(`Đã đóng ${f.symbol}: ${pnl >= 0 ? "lãi" : "lỗ"} ${usd(Math.abs(pnl))}`); viewPortfolio();
+  });
+  $$("[data-ch]").forEach((b) => b.onclick = async () => {
+    const h = PF.holdings[Number(b.dataset.ch)], cur = BYK[h.symbol]?.p, x = askExit(h.symbol, cur); if (!x) return;
+    const pnl = h.qty * (x - (h.cost || x)) - h.qty * x * FEE1 * 2;
+    PF.journal.push({ k: h.symbol, side: "spot", qty: h.qty, entry: h.cost, exit: x, lev: 1, pnl, closed: new Date().toISOString() });
+    PF.cash = Number(PF.cash || 0) + h.qty * (h.cost || x) + pnl;
+    PF.holdings.splice(Number(b.dataset.ch), 1); await pfSave(); toast(`Đã bán ${h.symbol}: ${pnl >= 0 ? "lãi" : "lỗ"} ${usd(Math.abs(pnl))}`); viewPortfolio();
+  });
 }
 
 // ================================================================ CÔNG CỤ
@@ -1269,6 +1297,8 @@ async function viewTools(sub) {
       h += kpis([["Chiều", z.side === "long" ? '<b class="up">Long</b>' : '<b class="down">Short</b>'], ["Khối lượng", qty(z.q)], ["Giá trị lệnh", usd(z.notional)], ["Ký quỹ", usd(z.margin), z.marginPct > 50 ? "down" : "", `${nf(z.marginPct, 0)}% vốn`], ["Lỗ tối đa", usd(z.riskUsd), "down"], ["Khoảng cắt lỗ", nf(Math.abs(e - s) / e * 100, 2) + "%"]]);
       if (bad) h += `<p class="down">⚠️ Giá thanh lý ${px(liq)} nằm trước cắt lỗ – giảm đòn bẩy xuống ≤ x${nf(Math.floor(1 / (Math.abs(e - s) / e + m + 0.003)), 0)}.</p>`;
       if (z.marginPct > 100) h += `<p class="down">Ký quỹ vượt vốn – cắt lỗ quá gần hoặc rủi ro quá lớn so với vốn.</p>`;
+      const rr = BYK[$("#cS").value.trim().toUpperCase()];
+      if (rr) { const G = levGov(rr, z.side, "d", Math.abs(e - s) / e * 100); if (l > G.cap) h += `<p class="down">🚫 Hệ thống chỉ cho tối đa <b>x${G.cap}</b> với ${esc(rr.k)} lúc này (${esc(G.why[G.why.length - 1] || "")}). Đòn bẩy x${nf(l, 0)} sẽ bị đánh dấu vi phạm trong Danh mục.</p>`; else h += `<p class="up">✓ Trong mức hệ thống cho phép (tối đa x${G.cap}).</p>`; }
     }
     $("#cOut").innerHTML = h;
   };
@@ -1635,6 +1665,7 @@ function initAccountUI() {
     $("#brandDot").style.background = "var(--brand)";
   } catch (e) { /* chưa có dữ liệu */ }
   loadSettings().catch(() => {});
+  pfLoad().catch(() => {});
   drawTicker().then(() => liveData()).catch(() => {});
   setInterval(() => liveData(true), 120000);
   WL.load().catch(() => {});

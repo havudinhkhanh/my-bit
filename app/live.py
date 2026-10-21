@@ -129,7 +129,9 @@ def run(notify: bool = False) -> dict:
                     rows[k] = {**(cj.get(k) or {}), "p": p}
                 rows["_light"] = cj.get("_light")
                 for u in us:
-                    it = nt.items_for((u.get("data") or {}).get("portfolio") or {}, rows, {})
+                    pf = (u.get("data") or {}).get("portfolio") or {}
+                    rst = nt.track(be, u, pf, lambda k: (rows.get(k) or {}).get("p"))
+                    it = nt.items_for(pf, rows, {}, None, rst)
                     users.deliver(be, cfg, u, it, "MyBit – cảnh báo")
         except Exception as e:  # noqa: BLE001
             log.warning("notify live: %s", e)

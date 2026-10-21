@@ -27,12 +27,22 @@ def _p(x):
     return f"{x:,.2f}" if x >= 1 else f"{x:.6g}"
 
 
-def items_for(pf: dict, rows: dict, details: dict, light: str | None = None) -> list[dict]:
+def items_for(pf: dict, rows: dict, details: dict, light: str | None = None, rst: dict | None = None) -> list[dict]:
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     out = []
     light = light or rows.get("_light") or "yellow"
-    peak, eq0 = pf.get("peak"), pf.get("eq")
-    dd = max(0.0, (1 - eq0 / peak) * 100) if peak and eq0 else 0.0
+    rst = rst or {}
+    dd = float(rst.get("dd") or 0)
+    if rst.get("halt"):
+        out.append({"key": f"halt:{rst.get('day')}", "kind": "liq", "sev": 3, "url": "#/portfolio",
+                    "title": f"Đã lỗ {vn(rst.get('day_pct'), '.1f')}% hôm nay – hệ thống DỪNG mở lệnh mới tới hết ngày",
+                    "body": "Không vào thêm lệnh. Giữ cắt lỗ các vị thế đang có, nghỉ tới mai để tránh 'gỡ' bằng đòn bẩy."})
+    for why in rst.get("half") or []:
+        out.append({"key": f"half:{rst.get('week')}:{why}", "kind": "liq", "sev": 2, "url": "#/portfolio",
+                    "title": f"Rủi ro mỗi lệnh giảm 1/2 vì {why}", "body": "Hệ thống tự giảm khối lượng & đòn bẩy các lệnh mới."})
+    if dd >= 10:
+        out.append({"key": f"dd:{int(dd // 5)}:{rst.get('week')}", "kind": "liq", "sev": 3 if dd >= 20 else 2, "url": "#/portfolio",
+                    "title": f"Tài khoản đang sụt {vn(dd, '.0f')}% so với đỉnh", "body": "≥ 20%: khoá đòn bẩy (chỉ x1), rủi ro còn 1/4. ≥ 10%: tối đa x2, rủi ro giảm 1/2."})
     # tổng vị thế ròng / ký quỹ / số lệnh so với mức hệ thống
     net = margin = 0.0
     eq = float(pf.get("cash") or 0)
@@ -132,6 +142,18 @@ def items_for(pf: dict, rows: dict, details: dict, light: str | None = None) -> 
     return out
 
 
+def track(be, u: dict, pf: dict, price) -> dict:
+    """Cập nhật & lưu trạng thái tài khoản (đỉnh, lỗ ngày/tuần, chuỗi thua) vào dữ liệu riêng 'risk'."""
+    try:
+        st = risk.update_state((u.get("data") or {}).get("risk"), pf, lambda k: (float(price(k)) if price(k) else None), datetime.now(timezone.utc).replace(tzinfo=None))
+        if (pf.get("holdings") or pf.get("futures") or pf.get("cash")):
+            users.save(be, u["id"], "risk", st)
+        return st
+    except Exception as e:  # noqa: BLE001
+        log.warning("risk %s: %s", u.get("email"), e)
+        return {}
+
+
 def telegram(text: str) -> bool:
     tok, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
     if not tok or not chat:
@@ -160,7 +182,9 @@ def run(market: dict, rows: list[dict], details: dict) -> dict:
     if us:
         cfg = users.config(be)
         for u in us:
-            items = common + items_for((u.get("data") or {}).get("portfolio") or {}, by, details, light)
+            pf = (u.get("data") or {}).get("portfolio") or {}
+            rst = track(be, u, pf, lambda k: (by.get(k) or {}).get("p"))
+            items = common + items_for(pf, by, details, light, rst)
             try:
                 res = users.deliver(be, cfg, u, items, "MyBit – cảnh báo")
                 out["users"] += 1
