@@ -113,4 +113,5 @@ jobs:
       - name: Đẩy log lên nhánh status
         if: always()
         run: |
+          mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/c/BTC.json site/data/c/HYPE.json data/debug/ 2>/dev/null || true
           bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/debug

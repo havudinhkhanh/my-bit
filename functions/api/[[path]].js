@@ -17,7 +17,7 @@ function legacyAuthorized(request, env) {
 }
 async function ghRun(env) {
   if (!env.GH_TOKEN || !env.GH_REPO) return err("Chưa cài GH_TOKEN / GH_REPO");
-  const r = await fetch(`https://api.github.com/repos/${env.GH_REPO}/actions/workflows/daily.yml/dispatches`, {
+  const r = await fetch(`https://api.github.com/repos/${env.GH_REPO}/actions/workflows/update.yml/dispatches`, {
     method: "POST",
     headers: { authorization: `Bearer ${env.GH_TOKEN}`, accept: "application/vnd.github+json", "user-agent": "my-bit" },
     body: JSON.stringify({ ref: "main" }),

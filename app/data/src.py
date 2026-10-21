@@ -24,7 +24,7 @@ _S = requests.Session()
 _S.headers.update(UA)
 _lock = threading.Lock()
 _last: dict[str, float] = {}
-GAP = {"coingecko": 6.5, "okx": 0.12, "llama": 0.2, "bv": 0.03, "bitget": 0.1}   # giây tối thiểu giữa 2 lần gọi cùng nguồn
+GAP = {"coingecko": 13.0, "okx": 0.12, "llama": 0.2, "bv": 0.03, "bitget": 0.1}   # giây tối thiểu giữa 2 lần gọi cùng nguồn
 
 
 class FetchError(Exception):

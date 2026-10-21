@@ -14,7 +14,9 @@ def _sig(x: float) -> str:
 def _f(x, nd=2):
     try:
         x = float(x)
-        return None if np.isnan(x) or np.isinf(x) else round(x, nd)
+        if np.isnan(x) or np.isinf(x):
+            return None
+        return float(f"{x:.5g}") if abs(x) < 100 and nd == 2 else round(x, nd)
     except (TypeError, ValueError):
         return None
 
@@ -69,7 +71,7 @@ def summarize(df: pd.DataFrame, ti: pd.DataFrame, bench: pd.Series | None = None
         prev_lo = ti["dc_lo"].iloc[-2]
         s = 1 if last >= prev_up else (-1 if last <= prev_lo else 0)
         add("Xu hướng", "Donchian (20)", f"{_f(L['dc_lo'])}–{_f(L['dc_up'])}", s,
-            "phá đỉnh 20 phiên" if s > 0 else ("thủng đáy 20 phiên" if s < 0 else "trong kênh"))
+            "phá đỉnh 20 ngày" if s > 0 else ("thủng đáy 20 ngày" if s < 0 else "trong kênh"))
 
     # --- Động lượng
     r = L["rsi"]
@@ -95,7 +97,7 @@ def summarize(df: pd.DataFrame, ti: pd.DataFrame, bench: pd.Series | None = None
         add("Động lượng", "CCI (20)", _f(cc, 0), 1 if cc < -100 else (-1 if cc > 200 else (0.4 if cc > 0 else -0.4)), "")
     ro = L["roc"]
     if ro == ro:
-        add("Động lượng", "ROC (12)", _f(ro, 1), np.clip(ro / 10, -1, 1), f"{_f(ro, 1)}% sau 12 phiên")
+        add("Động lượng", "ROC (12)", _f(ro, 1), np.clip(ro / 10, -1, 1), f"{_f(ro, 1)}% sau 12 ngày")
     m = L["mfi"]
     if m == m:
         add("Động lượng", "MFI (14)", _f(m, 1), 1 if m < 20 else (-1 if m > 80 else 0),
@@ -111,13 +113,13 @@ def summarize(df: pd.DataFrame, ti: pd.DataFrame, bench: pd.Series | None = None
     if L["kc_up"] == L["kc_up"]:
         add("Biến động", "Keltner (20,2)", f"{_f(L['kc_lo'])}–{_f(L['kc_up'])}",
             1 if last > L["kc_up"] else (-1 if last < L["kc_lo"] else 0), "")
-    add("Biến động", "ATR (14)", _f(L["atr"]), 0, f"{_f(100 * L['atr'] / last, 1)}% giá / phiên")
+    add("Biến động", "ATR (14)", _f(L["atr"]), 0, f"{_f(100 * L['atr'] / last, 1)}% giá / ngày")
 
     # --- Khối lượng & dòng tiền
     ob = ti["obv"]
     if len(ob) > 25:
         sl = (ob.iloc[-1] - ob.iloc[-21]) / (df["volume"].iloc[-21:].sum() or 1)
-        add("Dòng tiền", "OBV (xu hướng 20 phiên)", _f(sl, 2), np.clip(sl * 3, -1, 1),
+        add("Dòng tiền", "OBV (xu hướng 20 ngày)", _f(sl, 2), np.clip(sl * 3, -1, 1),
             "tiền vào" if sl > 0 else "tiền ra")
     cm = L["cmf"]
     if cm == cm:
@@ -129,13 +131,13 @@ def summarize(df: pd.DataFrame, ti: pd.DataFrame, bench: pd.Series | None = None
         up = c.iloc[-1] >= c.iloc[-2]
         s = (1 if up else -1) * (1 if vr > 1.5 else (0.3 if vr > 1 else 0))
         add("Dòng tiền", "Khối lượng / TB20", _f(vr, 2), s,
-            f"khối lượng {'đột biến' if vr > 1.5 else 'bình thường'} phiên {'tăng' if up else 'giảm'}")
+            f"khối lượng {'đột biến' if vr > 1.5 else 'bình thường'} ngày {'tăng' if up else 'giảm'}")
     rs_line = None
     if bench is not None and len(bench) > 70:
         b = bench.reindex(c.index).ffill()
         rs3 = (c.iloc[-1] / c.iloc[-63]) / (b.iloc[-1] / b.iloc[-63]) - 1 if len(c) > 63 else np.nan
         if rs3 == rs3:
-            add("Sức mạnh", "So với VN-Index (3 tháng)", f"{_f(rs3 * 100, 1)}%", np.clip(rs3 * 5, -1, 1),
+            add("Sức mạnh", "So với BTC (3 tháng)", f"{_f(rs3 * 100, 1)}%", np.clip(rs3 * 5, -1, 1),
                 "mạnh hơn thị trường" if rs3 > 0 else "yếu hơn thị trường")
         rs_line = ind.relative_strength(c.iloc[-250:], b.iloc[-250:])
 

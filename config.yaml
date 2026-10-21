@@ -16,7 +16,7 @@ prices:
   binance_metrics_backfill: 45
 
 fundamentals:
-  supply_refresh_per_run: 40  # số coin tải lịch sử nguồn cung (CoinGecko giới hạn ~10 lượt/phút)
+  supply_refresh_per_run: 25  # số coin tải lịch sử nguồn cung (CoinGecko giới hạn ~10 lượt/phút)
   unlock_refresh_per_run: 80  # số dự án tải lịch mở khoá token (DefiLlama)
 
 risk:

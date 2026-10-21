@@ -39,6 +39,12 @@ def _step(name):
     return deco
 
 
+def _uni() -> pd.DataFrame:
+    """Bảng coin; NaN → None để kiểm tra `if r.get(...)` đúng nghĩa."""
+    u = store.read("universe")
+    return u.astype(object).where(u.notna(), None) if not u.empty else u
+
+
 def _ok(r: dict) -> bool:
     """Coin không bị loại (stablecoin/token bọc…)."""
     e = r.get("excl")
@@ -192,6 +198,11 @@ def _fetch_px(r: dict, iv: str) -> int:
     if r.get("spot_pair"):
         new = src.bv_klines_all(r["spot_pair"], iv, start, max_pages=4 if iv == "1d" else 1)
         srcname = "binance"
+        sm = float(r.get("spot_mult") or 1)
+        if sm != 1 and not new.empty:              # cặp 1000SATS, 1MBABYDOGE… → quy về giá 1 token
+            for c in ("open", "high", "low", "close"):
+                new[c] = new[c] / sm
+            new["volume"] = new["volume"] * sm
     if not r.get("spot_pair") or (new.empty and old.empty):
         fut = json.loads(r.get("fut") or "{}")
         for fn, arg in ((src.gate_spot_candles, r["sym"]), (src.gate_fut_candles, (fut.get("gate") or {}).get("inst")),
@@ -213,6 +224,27 @@ def _fetch_px(r: dict, iv: str) -> int:
     if new.empty:
         return 0
     df = _merge_px(old, new)
+    # Binance mới niêm yết (vd. HYPE 09/2026) → bổ sung lịch sử cũ hơn từ Gate / Hyperliquid (một lần)
+    if iv == "1d" and srcname == "binance" and len(df) < 900 and not r.get("_bf"):
+        fut = json.loads(r.get("fut") or "{}")
+        first = df["date"].iloc[0]
+        for fn, arg, m in ((src.gate_spot_candles, r["sym"], 1), (src.hl_candles, (fut.get("hl") or {}).get("inst"), (fut.get("hl") or {}).get("mult", 1)),
+                           (src.gate_fut_candles, (fut.get("gate") or {}).get("inst"), (fut.get("gate") or {}).get("mult", 1))):
+            if not arg:
+                continue
+            try:
+                ext = fn(arg, "1d") if fn is not src.hl_candles else fn(arg, "1d", 1500)
+            except src.FetchError:
+                continue
+            if ext.empty:
+                continue
+            if m and m != 1:
+                for c in ("open", "high", "low", "close"):
+                    ext[c] = ext[c] / m
+            ext = ext[ext["date"] < first]
+            if len(ext):
+                df = pd.concat([ext, df], ignore_index=True).drop_duplicates("date", keep="last").sort_values("date").reset_index(drop=True)
+            break
     if iv != "1d":
         df = df.tail(1500)
     df.to_parquet(p, index=False)
@@ -221,16 +253,34 @@ def _fetch_px(r: dict, iv: str) -> int:
 
 @_step("prices_daily")
 def prices_daily() -> dict:
-    uni = store.read("universe")
+    uni = _uni()
     rows = [r for r in uni.to_dict("records") if _ok(r)]
+    # dữ liệu cũ của cặp có hệ số (1000SATS…) từng lưu theo giá 1000 token → xoá để tải lại đúng
+    meta = store.meta()
+    fixed = set(meta.get("mult_fixed", []))
+    for r in rows:
+        if float(r.get("spot_mult") or 1) != 1 and r["key"] not in fixed:
+            for tf in ("d", "h4", "h1"):
+                f = _px_path(tf, r["key"])
+                if f.exists():
+                    f.unlink()
+            fixed.add(r["key"])
+    meta["mult_fixed"] = sorted(fixed)
+    store.save_meta(meta)
+    bf = set(meta.get("backfilled", []))
+    for r in rows:
+        r["_bf"] = r["key"] in bf
     res, errs = _pmap(lambda key: _fetch_px(next(x for x in rows if x["key"] == key), "1d"), [r["key"] for r in rows], workers=8)
+    meta = store.meta()
+    meta["backfilled"] = sorted(bf | {k for k, v in res.items() if v is not None})
+    store.save_meta(meta)
     got = sum(1 for v in res.values() if v)
     return {"coins": len(rows), "updated": got, "errors": errs}
 
 
 @_step("prices_intraday")
 def prices_intraday() -> dict:
-    uni = store.read("universe")
+    uni = _uni()
     snap = store.read("fut_now")
     n = int(config.get("prices.intraday_top", 150))
     rows = [r for r in uni.to_dict("records") if _ok(r)]
@@ -260,7 +310,7 @@ def _oi_by_key(uni: pd.DataFrame, snap: pd.DataFrame) -> dict:
 @_step("funding_hist")
 def funding_hist() -> dict:
     """Lịch sử funding (Bitget – phủ nhiều hợp đồng nhất; thiếu thì Hyperliquid)."""
-    uni = store.read("universe")
+    uni = _uni()
     m = store.meta().get("funding_at", {})
     now = time.time()
     todo = []
@@ -309,7 +359,7 @@ def funding_hist() -> dict:
 @_step("binance_metrics")
 def binance_metrics() -> dict:
     """OI, tỉ lệ long/short, taker buy/sell của Binance USDT-M theo ngày (kho lưu trữ – trễ 1 ngày)."""
-    uni = store.read("universe")
+    uni = _uni()
     try:
         um = set(src.bv_um_symbols())
     except Exception as e:  # noqa: BLE001
@@ -499,7 +549,7 @@ def summarize_emission(j: dict) -> dict:
 @_step("supply_hist")
 def supply_hist() -> dict:
     """Lịch sử vốn hoá / nguồn cung lưu hành 1 năm (CoinGecko) → lạm phát cung thực tế. Xoay vòng vì giới hạn tần suất."""
-    uni = store.read("universe")
+    uni = _uni()
     ids = [r["id"] for r in uni.sort_values("rank").to_dict("records") if not r["id"].startswith("x-") and _ok(r) and (r.get("rank") or 9999) <= 400]
     m = store.meta().get("supply_at", {})
     ids.sort(key=lambda i: m.get(i, 0))

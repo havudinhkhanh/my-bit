@@ -85,7 +85,7 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
         r = rows.get(c["id"])
         if r is None:
             r = rows[c["id"]] = {"id": c["id"], "sym": c["sym"], "name": c["name"], "rank": c.get("market_cap_rank"), "excl": c.get("excl"),
-                                 "spot_pair": None, "fut": {}, "why": set()}
+                                 "spot_pair": None, "spot_mult": 1.0, "fut": {}, "why": set()}
         return r
 
     top = int(cfg.get("top_mcap", 300))
@@ -97,7 +97,10 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
         c = match(base, s.get("price"))
         if c and (c.get("market_cap_rank") or 99999) <= int(cfg.get("binance_spot_rank_max", 1000)):
             r = row(c)
+            if r["spot_pair"] and c["_mult"] != 1:      # đã có cặp không hệ số (BONKUSDT) – ưu tiên giữ
+                continue
             r["spot_pair"] = s["pair"]
+            r["spot_mult"] = c["_mult"]
             r["why"].add("binance")
     vmin = float(cfg.get("fut_min_vol_usd", 1e6))
     orphans: dict[str, dict] = {}
@@ -115,7 +118,7 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
                 b, m = split_mult(f["base"])
                 if b in STOCKS or f["base"] in (nonc or set()) or b in (nonc or set()) or re.search(r"\d[LS]$", b):
                     continue
-                o = orphans.setdefault(b, {"id": "x-" + b.lower(), "sym": b, "name": b, "rank": None, "excl": is_excluded(b, b), "spot_pair": None,
+                o = orphans.setdefault(b, {"id": "x-" + b.lower(), "sym": b, "name": b, "rank": None, "excl": is_excluded(b, b), "spot_pair": None, "spot_mult": 1.0,
                                            "fut": {}, "why": {"fut"}})
                 o["fut"][ex] = {"base": f["base"], "mult": m, "inst": f.get("inst")}
     for b, o in orphans.items():

@@ -24,7 +24,9 @@ TF = {
 def _r(x, nd=2):
     try:
         x = float(x)
-        return None if np.isnan(x) or np.isinf(x) else round(x, nd)
+        if np.isnan(x) or np.isinf(x):
+            return None
+        return float(f"{x:.5g}") if abs(x) < 100 and nd == 2 else round(x, nd)
     except (TypeError, ValueError):
         return None
 

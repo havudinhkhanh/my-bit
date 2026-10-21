@@ -1,0 +1,110 @@
+"""Cảnh báo sau mỗi lượt phân tích: vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, đám đông futures cực đoan,
+mở khoá token lớn, đèn thị trường đổi màu. Ghi vào chuông web (D1) + đẩy/email theo cài đặt; Telegram cho chủ sở hữu nếu có."""
+from __future__ import annotations
+
+import logging
+import os
+import time
+from datetime import datetime, timezone
+
+import requests
+
+from . import users
+from .data import store
+
+log = logging.getLogger("notify")
+MMR = 0.005
+
+
+def _liq(side, entry, lev):
+    return entry * (1 - 1 / lev + MMR) if side == "long" else entry * (1 + 1 / lev - MMR)
+
+
+def _p(x):
+    x = float(x)
+    return f"{x:,.2f}" if x >= 1 else f"{x:.6g}"
+
+
+def items_for(pf: dict, rows: dict, details: dict) -> list[dict]:
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    out = []
+    held = {}
+    for h in pf.get("holdings") or []:
+        held.setdefault(h.get("symbol"), []).append(("spot", h))
+    for f in pf.get("futures") or []:
+        held.setdefault(f.get("symbol"), []).append((f.get("side", "long"), f))
+    for k, pos in held.items():
+        r = rows.get(k)
+        if not r or not r.get("p"):
+            continue
+        p = float(r["p"])
+        url = f"#/c/{k}"
+        for side, x in pos:
+            if side in ("long", "short"):
+                lev = float(x.get("lev") or 1)
+                e = float(x.get("entry") or 0)
+                if e > 0 and lev > 1:
+                    lq = _liq(side, e, lev)
+                    dist = (p - lq) / p * 100 if side == "long" else (lq - p) / p * 100
+                    if dist < 12:
+                        out.append({"key": f"liq:{k}:{side}:{e}:{int(dist // 3)}", "kind": "liq", "sev": 3, "sym": k, "url": url + "/fut",
+                                    "title": f"{k}: vị thế {side} cách giá thanh lý {dist:.1f}%", "body": f"Giá {_p(p)}, thanh lý ước tính {_p(lq)} (x{lev:g}). Bổ sung ký quỹ hoặc giảm vị thế."})
+                st = x.get("stop")
+                if st and ((side == "long" and p <= float(st)) or (side == "short" and p >= float(st))):
+                    out.append({"key": f"stop:{k}:{side}:{e}:{st}", "kind": "stop", "sev": 3, "sym": k, "url": url + "/plan",
+                                "title": f"{k}: giá chạm mức cắt lỗ {_p(st)}", "body": f"Giá hiện tại {_p(p)} – vị thế {side}."})
+            ts = r.get("ts")
+            if (side in ("spot", "long") and ts == -1) or (side == "short" and ts == 1):
+                out.append({"key": f"trend:{k}:{side}:{ts}:{r.get('td', 0) <= 1 and day or 'run'}", "kind": "trend", "sev": 2, "sym": k, "url": url + "/plan",
+                            "title": f"{k}: xu hướng ngày {'chuyển giảm' if ts == -1 else 'chuyển tăng'} – ngược vị thế {side}",
+                            "body": "Quy tắc theo xu hướng đã thoát lệnh. Cân nhắc giảm tỷ trọng, dời cắt lỗ hoặc phòng hộ bằng perp."})
+        for c in (details.get(k) or {}).get("crowd") or []:
+            if c.get("sev", 0) >= 2:
+                out.append({"key": f"crowd:{k}:{c['k']}:{day}", "kind": "crowd", "sev": 1, "sym": k, "url": url + "/fut", "title": f"{k}: {c['t']}", "body": c["d"]})
+        for e in ((details.get(k) or {}).get("val") or {}).get("unlock_next") or []:
+            if time.time() <= e["t"] <= time.time() + 7 * 86400 and (e.get("pct") or 0) >= 1:
+                d = datetime.fromtimestamp(e["t"], tz=timezone.utc).strftime("%d/%m")
+                out.append({"key": f"unlock:{k}:{e['t']}", "kind": "unlock", "sev": 2, "sym": k, "url": url + "/val",
+                            "title": f"{k}: mở khoá {e['pct']:.1f}% lượng lưu hành ngày {d}", "body": f"{e.get('cat') or ''} {e.get('desc') or ''}".strip()})
+    return out
+
+
+def telegram(text: str) -> bool:
+    tok, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+    if not tok or not chat:
+        return False
+    try:
+        r = requests.post(f"https://api.telegram.org/bot{tok}/sendMessage", json={"chat_id": chat, "text": text[:3900], "disable_web_page_preview": True}, timeout=20)
+        return r.ok
+    except requests.RequestException:
+        return False
+
+
+def run(market: dict, rows: list[dict], details: dict) -> dict:
+    by = {r["k"]: r for r in rows}
+    meta = store.meta()
+    light = (market.get("light") or {}).get("color")
+    prev = meta.get("light_last")
+    common = []
+    if light and prev and light != prev:
+        common.append({"key": f"light:{light}:{datetime.now(timezone.utc):%Y%m%d%H}", "kind": "light", "sev": 2, "url": "#/",
+                       "title": f"Đèn thị trường crypto đổi sang {dict(green='XANH', yellow='VÀNG', red='ĐỎ')[light]}", "body": (market.get("light") or {}).get("text", "")})
+    meta["light_last"] = light
+    store.save_meta(meta)
+    out = {"users": 0, "new": 0}
+    be = users.backend()
+    us = users.load(be) if be else None
+    if us:
+        cfg = users.config(be)
+        for u in us:
+            items = common + items_for((u.get("data") or {}).get("portfolio") or {}, by, details)
+            try:
+                res = users.deliver(be, cfg, u, items, "MyBit – cảnh báo")
+                out["users"] += 1
+                out["new"] += res.get("new", 0)
+            except Exception as e:  # noqa: BLE001
+                log.warning("deliver %s: %s", u.get("email"), e)
+    elif common:
+        telegram("\n".join(f"{x['title']}\n{x['body']}" for x in common))
+    log.info("Thông báo: %s", out)
+    return out

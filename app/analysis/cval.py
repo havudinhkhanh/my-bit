@@ -14,10 +14,12 @@ import math
 import time
 
 import numpy as np
+
+from .fmt import vn
 import pandas as pd
 
-DISC = 0.30       # chiết khấu/năm cho tài sản crypto
-TERM_PHR = 15.0   # bội số P/HR khi "trưởng thành"
+DISC = 0.20       # chiết khấu/năm cho tài sản crypto (cổ phiếu tăng trưởng ~10–12%; crypto rủi ro hơn)
+TERM_PHR = 15.0   # bội số P/HR khi "trưởng thành" (sau 5 năm)
 YEARS = 5
 MIN_REV = 1e6     # doanh thu năm tối thiểu (USD) để tính bội số
 
@@ -82,11 +84,10 @@ def cashflows(prot: pd.DataFrame, parents: pd.DataFrame, fees: pd.DataFrame, cha
     for c in num:
         f[c] = pd.to_numeric(f[c], errors="coerce")
     agg = {c: "sum" for c in num if "change" not in c}
-    out = f.groupby("gecko_id").agg({**agg, "category": "first", "name": "first"})
+    f = f.sort_values("fees_total30d", ascending=False, na_position="last") if "fees_total30d" in f else f
+    out = f.groupby("gecko_id", sort=False).agg({**agg, "category": "first", "name": "first"})
     # tốc độ tăng: tính lại từ tổng (không cộng % thay đổi)
     for col in ("fees", "rev", "hrev"):
-        if f"{col}_total30d" in out and f"{col}_total30DaysAgo" in out:
-            out[f"{col}_g30"] = out[f"{col}_total30d"] / out[f"{col}_total30DaysAgo"].replace(0, np.nan) - 1
         if f"{col}_total30d" in out and f"{col}_total1y" in out:
             out[f"{col}_vs1y"] = (out[f"{col}_total30d"] * 365 / 30) / out[f"{col}_total1y"].replace(0, np.nan) - 1
     out["n_parts"] = f.groupby("gecko_id").size()
@@ -107,11 +108,26 @@ def _ann(r: dict, col: str) -> float | None:
     return vals[0] * 0.6 + vals[1] * 0.4 if len(vals) == 2 else vals[0]
 
 
+def pv(cf: float, g: float, disc: float = DISC, term: float = TERM_PHR, years: int = YEARS) -> float:
+    """Giá trị hiện tại: dòng tiền 5 năm tăng g/năm + giá trị cuối kỳ (bội số term × dòng tiền năm thứ 5)."""
+    v = sum(cf * (1 + g) ** t / (1 + disc) ** t for t in range(1, years + 1))
+    return v + cf * (1 + g) ** years * term / (1 + disc) ** years
+
+
 def implied_growth(mcap: float, hr: float, disc: float = DISC, term: float = TERM_PHR, years: int = YEARS) -> float | None:
-    """Tăng trưởng/năm cần có của dòng tiền về tay người giữ token để giá hiện tại là hợp lý."""
+    """Tăng trưởng/năm (5 năm) mà dòng tiền về tay người giữ token cần đạt để giá hiện tại là hợp lý (giải ngược bằng chia đôi)."""
     if not mcap or not hr or hr <= 0:
         return None
-    return (mcap * (1 + disc) ** years / (hr * term)) ** (1 / years) - 1
+    lo, hi = -0.9, 5.0
+    if pv(hr, hi, disc, term, years) < mcap:
+        return hi
+    for _ in range(80):
+        mid = (lo + hi) / 2
+        if pv(hr, mid, disc, term, years) < mcap:
+            lo = mid
+        else:
+            hi = mid
+    return (lo + hi) / 2
 
 
 # ------------------------------------------------------------------ nguồn cung
@@ -257,14 +273,18 @@ def value_coin(c: dict, cf: dict | None, unl: dict, infl: dict, peers: dict) -> 
             out["dil_1y"] = _f((dil - 1) * 100, 1)
             ig = implied_growth(mcap * dil, base_cf)
             out["implied_g"] = _f(ig * 100 if ig is not None else None, 1)
-            # giá trị hợp lý theo dòng tiền hiện tại: không tăng trưởng → mcap = CF × (bội số trưởng thành) chiết khấu
-            fair_mcap_0 = base_cf * TERM_PHR
+            # giá trị nếu dòng tiền đứng yên (không tăng trưởng): 5 năm dòng tiền + giá trị cuối kỳ, chiết khấu 20%/năm
+            fair_mcap_0 = pv(base_cf, 0.0)
             # theo trung vị nhóm (P/S)
             grp = peers.get(out.get("group")) or peers.get("_all") or {}
-            if grp.get("ps_med"):
-                out["ps_grp"] = _f(grp["ps_med"], 2)
-                out["vs_grp"] = _f((mcap / rev) / grp["ps_med"] * 100 - 100, 1)
-                out["fair_grp"] = _f(price * grp["ps_med"] / (mcap / rev), 8) if price else None
+            l1 = out.get("group") == "Blockchain L1/L2"
+            k_own, k_med = ("pf", "pf_med") if l1 else ("ps", "ps_med")
+            own = (mcap / fees) if (l1 and fees) else (mcap / rev)
+            out["rel_basis"] = "P/F" if l1 else "P/S"
+            if grp.get(k_med):
+                out["ps_grp"] = _f(grp[k_med], 2)
+                out["vs_grp"] = _f(own / grp[k_med] * 100 - 100, 1)
+                out["fair_grp"] = _f(price * grp[k_med] / own, 8) if price else None
             if price and mcap:
                 out["fair_cf"] = _f(price * fair_mcap_0 / (mcap * dil), 8)
     out["has_cf"] = has_cf
@@ -293,14 +313,27 @@ def verdict(v: dict, c: dict) -> tuple[str, list[str]]:
     g_act = v.get("rev_vs1y")
     vs = v.get("vs_grp")
     pts = 0
+    if v.get("group") == "Blockchain L1/L2":
+        why.insert(0, "Blockchain nền tảng: giá chủ yếu là phần bù 'tiền tệ / nền tảng' (giữ giá trị, thế chấp, trả phí gas) – phí giao dịch chỉ giải thích một phần, nên chỉ so P/F với các chuỗi khác")
+        if vs is not None:
+            why.append(f"P/F {'thấp hơn' if vs < 0 else 'cao hơn'} {abs(vs):.0f}% so với trung vị các blockchain" if abs(vs) < 100 else f"P/F gấp {vn(vs / 100 + 1, '.1f')} lần trung vị các blockchain")
+            pts = 2 if vs <= -60 else 1 if vs <= -25 else 0 if vs <= 50 else -1 if vs <= 200 else -2
+        if g_act is not None and abs(g_act) >= 0.3:
+            why.append(f"Phí 30 ngày gần nhất {'cao' if g_act > 0 else 'thấp'} hơn {abs(g_act) * 100:.0f}% nhịp trung bình 12 tháng")
+            pts += 0.5 if g_act > 0 else -0.5
+        lab = "L1 rẻ tương đối" if pts >= 1 else "L1 ngang nhóm" if pts >= -0.5 else "L1 đắt tương đối"
+        return lab, why
     if ig is not None:
         if ig <= 5:
             pts += 2
             why.append(f"Giá hiện tại chỉ cần dòng tiền tăng {ig:.0f}%/năm trong 5 năm – kỳ vọng thấp")
-        elif ig <= 25:
+        elif ig <= 20:
             pts += 1
             why.append(f"Giá đang ngầm định dòng tiền tăng {ig:.0f}%/năm trong 5 năm – vừa phải với crypto")
-        elif ig <= 50:
+        elif ig <= 40:
+            pts -= 0.5
+            why.append(f"Giá đang ngầm định dòng tiền tăng {ig:.0f}%/năm trong 5 năm – khá cao, cần tăng trưởng mạnh và bền")
+        elif ig <= 70:
             pts -= 1
             why.append(f"Giá đang ngầm định dòng tiền tăng {ig:.0f}%/năm trong 5 năm – cao")
         else:
@@ -312,7 +345,7 @@ def verdict(v: dict, c: dict) -> tuple[str, list[str]]:
             why.append(f"P/S thấp hơn {abs(vs):.0f}% so với trung vị nhóm {v.get('group') or ''}")
         elif vs >= 100:
             pts -= 1
-            why.append(f"P/S cao gấp {vs / 100 + 1:.1f} lần trung vị nhóm {v.get('group') or ''}")
+            why.append(f"P/S cao gấp {vn(vs / 100 + 1, '.1f')} lần trung vị nhóm {v.get('group') or ''}")
     if g_act is not None:
         if g_act <= -0.3:
             pts -= 1
@@ -331,12 +364,13 @@ def verdict(v: dict, c: dict) -> tuple[str, list[str]]:
 
 def peer_stats(rows: list[dict]) -> dict:
     """Trung vị P/S, P/HR theo nhóm (chỉ coin có doanh thu ≥ 1 triệu USD/năm)."""
-    df = pd.DataFrame([{"group": r.get("group"), "ps": r.get("ps"), "phr": r.get("phr")} for r in rows if r.get("ps")])
+    df = pd.DataFrame([{"group": r.get("group"), "ps": r.get("ps"), "phr": r.get("phr"), "pf": r.get("pf")} for r in rows if r.get("ps")])
     out = {}
     if df.empty:
         return out
     for g, d in list(df.groupby("group")) + [("_all", df)]:
         if len(d) >= 3:
             out[g] = {"n": int(len(d)), "ps_med": float(d["ps"].median()), "ps_q25": float(d["ps"].quantile(0.25)), "ps_q75": float(d["ps"].quantile(0.75)),
-                      "phr_med": float(d["phr"].median()) if d["phr"].notna().sum() >= 3 else None}
+                      "phr_med": float(d["phr"].median()) if d["phr"].notna().sum() >= 3 else None,
+                      "pf_med": float(d["pf"].median()) if d["pf"].notna().sum() >= 3 else None}
     return out
