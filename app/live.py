@@ -105,6 +105,9 @@ def run(notify: bool = False) -> dict:
                 st = (table.get(tf, {}).get(x["setup"], {}).get("up" if btc_up else "down")) or {}
                 x["avgR_2y"] = st.get("avgR_2y")
                 x["edge"] = bool((x.get("avgR") or 0) >= 0.05 and (x.get("n") or 0) >= 100 and (st.get("avgR_2y") is None or st["avgR_2y"] > 0))
+                # khung lớn: nếu thiết lập này ở đúng trạng thái khung lớn hiện tại (cùng/ngược chiều) có kỳ vọng âm trên ≥ 100 lần → không tính là có lợi thế
+                if (x.get("htf_n") or 0) >= 100 and (x.get("htf_avgR") or 0) <= 0:
+                    x["edge"] = False
                 items.append(x)
     items.sort(key=lambda x: (x["edge"], x["score"] or -99), reverse=True)
     out = {"ok": True, "at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "btc_up": btc_up, "prices": prices, "fut": fut, "ideas": items[:150],

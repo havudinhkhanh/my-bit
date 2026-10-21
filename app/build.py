@@ -309,6 +309,9 @@ def run(notify: bool = False) -> dict:
             x["avgR_2y"] = st_.get("avgR_2y")
             # có lợi thế: kỳ vọng dương, đủ mẫu, và còn dương ở 2 năm gần nhất (tránh lợi thế chỉ có trong quá khứ)
             x["edge"] = bool((x.get("avgR") or 0) >= 0.05 and (x.get("n") or 0) >= 100 and (st_.get("avgR_2y") is None or st_["avgR_2y"] > 0))
+            # khung lớn: nếu thiết lập này ở đúng trạng thái khung lớn hiện tại (cùng/ngược chiều) có kỳ vọng âm trên ≥ 100 lần → không tính là có lợi thế
+            if (x.get("htf_n") or 0) >= 100 and (x.get("htf_avgR") or 0) <= 0:
+                x["edge"] = False
             x["vd"] = d["row"].get("vd")
             x["mc"] = d["row"].get("mc")
         d.setdefault("ideas", []).extend(cur)

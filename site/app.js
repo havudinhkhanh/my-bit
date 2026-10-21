@@ -726,7 +726,8 @@ function ideaCards(list) {
   return `<div class="ideas">${list.map((x) => `<div class="idea ${x.side} ${x.edge ? "edge" : "noedge"}">
     <div class="ih">${coinLink(x.k)} <span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? "LONG" : "SHORT"}</span> <span class="pill">${x.tf === "d" ? "Ngày" : "4 giờ"}</span>
       ${x.edge ? `<span class="pill brand" title="Kỳ vọng dương trên ${nf(x.n, 0)} lần lịch sử và vẫn dương trong 2 năm gần nhất">có lợi thế lịch sử</span>` : `<span class="pill" title="Lịch sử không cho thấy lợi thế sau phí">không có lợi thế</span>`}</div>
-    <div class="in"><b>${esc(x.name)}</b>${x.mfb ? ` <small class="muted">· thống kê khi dòng tiền ${esc(x.mfb)}</small>` : ""}</div>
+    <div class="in"><b>${esc(x.name)}</b>${x.mfb ? ` <small class="muted">· thống kê khi dòng tiền ${esc(x.mfb)}</small>` : ""}
+      ${x.htf ? ` <span class="pill ${x.htf === "h+" ? "buy" : x.htf === "h-" ? "sell" : ""}" title="Khung ${x.tf === "d" ? "tuần + tháng" : "ngày + tuần"} so với chiều lệnh${isNum(x.htf_avgR) ? ` – lịch sử ở trạng thái này: ${nf(x.htf_n, 0)} lần, chạm MT1 ${nf(x.htf_win1, 0)}%, lãi TB ${nf(x.htf_avgR, 2)}R` : ""}">${x.htf === "h+" ? "khung lớn cùng chiều" : x.htf === "h-" ? "khung lớn ngược chiều" : "khung lớn lẫn lộn"}${isNum(x.htf_avgR) ? ` · ${nf(x.htf_avgR, 2)}R` : ""}</span>` : ""}</div>
     ${kpis([["Vào", px(x.e)], ["Cắt lỗ", px(x.s), "down", `${nf(x.risk_pct, 2)}%`], ["Mục tiêu 1", `${px(x.t1)} <small>(${pct(x.t1_pct, 1)} · ${nf(x.r1, 1)}R)</small>`, "up"], ["Mục tiêu 2", `${px(x.t2)} <small>(${pct(x.t2_pct, 1)} · ${nf(x.r2, 1)}R)</small>`, "up"],
       ["Xác suất MT1", isNum(x.win1) ? nf(x.win1, 0) + "%" : "—", "", `MT2: ${nf(x.win2, 0)}% · trên ${nf(x.n, 0)} lần lịch sử`], ["Thời gian tới MT1", isNum(x.d1) ? `${durTxt(x.d1, x.bd)}` : "—", "", isNum(x.d1_lo) ? `50% số lần chạm MT1 trong ${durTxt(x.d1_lo, x.bd)} – ${durTxt(x.d1_hi, x.bd)}; MT2 ~${durTxt(x.d2, x.bd)}` : ""],
       ["Dự kiến", etaTxt(x.eta1), "", "Theo thời gian trung vị lịch sử"], ["Lãi TB/lệnh", isNum(x.avgR) ? `${nf(x.avgR, 2)}R` : "—", cls(x.avgR), `R = khoảng cắt lỗ. 2 năm gần nhất: ${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}`]])}
@@ -984,7 +985,7 @@ async function viewIdeas(f0) {
   const F = { side: "", tf: "", edge: true, ...lsGet("ifilter", {}) };
   const st = I.stats || {};
   const reg = I.btc_up ? "up" : "down";
-  const sTab = ["d", "h4"].map((tf) => Object.entries(st[tf] || {}).map(([k, v]) => { const x = v[reg] || v.all || {}; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[k] || k)}</td><td>${nf(x.n, 0)}</td><td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</td><td>${isNum(x.win2) ? nf(x.win2, 0) + "%" : "—"}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</td><td class="${cls(x.avgR_2y)}">${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(x.d1) ? durTxt(x.d1, tf === "d" ? 1 : 1 / 6) : "—"}</td><td>${isNum(x.d2) ? durTxt(x.d2, tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`; }).join("")).join("");
+  const sTab = ["d", "h4"].map((tf) => Object.entries(st[tf] || {}).filter(([k]) => k !== "_all").map(([k, v]) => { const x = v[reg] || v.all || {}; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[k] || k)}</td><td>${nf(x.n, 0)}</td><td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</td><td>${isNum(x.win2) ? nf(x.win2, 0) + "%" : "—"}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</td><td class="${cls(x.avgR_2y)}">${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(x.d1) ? durTxt(x.d1, tf === "d" ? 1 : 1 / 6) : "—"}</td><td>${isNum(x.d2) ? durTxt(x.d2, tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`; }).join("")).join("");
   app().innerHTML = `<div class="ph"><h1>Cơ hội – nếu vào bây giờ</h1><span class="meta">${fromLive ? "cập nhật " + etaTxt(L.at.slice(0, 16)) + " (lượt 15 phút)" : "cập nhật " + etaTxt(I.at.slice(0, 16))} · BTC ${I.btc_up ? "trên" : "dưới"} MA200</span></div>
     <div class="note"><p>Mỗi gợi ý = một <b>thiết lập kỹ thuật</b> vừa xuất hiện (hồi về vùng Fibonacci, phá đỉnh có khối lượng, quá bán…) kèm <b>số liệu thật từ lịch sử</b> của chính thiết lập đó trên ~${nf(COINS.rows.length, 0)} coin: xác suất chạm mục tiêu, thời gian trung vị để chạm, lãi trung bình sau phí. "Có lợi thế" = kỳ vọng dương trên ≥ 100 lần và vẫn dương ở 2 năm gần nhất.</p></div>
     <div class="filters"><div class="field"><label>Chiều</label><select id="iS"><option value="">Cả hai</option><option value="long" ${F.side === "long" ? "selected" : ""}>Long</option><option value="short" ${F.side === "short" ? "selected" : ""}>Short</option></select></div>
@@ -1133,7 +1134,7 @@ function tabTech(D) {
     ${panel("Chi tiết chỉ báo (khung ngày)", `<div class="tw"><table><thead><tr><th class="l">Nhóm</th><th class="l">Chỉ báo</th><th>Giá trị</th><th>Tín hiệu</th><th class="l">Ghi chú</th></tr></thead><tbody>${rows}</tbody></table></div>`)}`;
 }
 BIND.tech = bindChart;
-BIND.smc = bindChart;
+BIND.smc = (D) => { bindChart(D); mtfMount(D); };
 
 // ================================================================ BỘ MÁY KỸ THUẬT TRÊN TRÌNH DUYỆT (thời gian thực): SMC, chỉ báo, đánh giá vào lệnh
 const TA = {
@@ -1215,7 +1216,6 @@ function rtEval(o, hi1, hi2, ctx = {}, S0 = null) {
     add(vr >= 1.3, 4, `Khối lượng nến hiện tại x${nf(vr, 1)} trung bình`, vr >= 0.9);
     const cr = ctx.cr || [];
     add(!(sd === 1 && cr.includes("long_crowded")) && !(sd === -1 && cr.includes("short_crowded")), 4, sd === 1 && cr.includes("long_crowded") ? "Long đang quá đông (funding nóng)" : sd === -1 && cr.includes("short_crowded") ? "Short đang quá đông" : "Đám đông futures không ngược chiều");
-    const score = Math.round(chk.reduce((x, k) => x + k.ok * k.w, 0) / chk.reduce((x, k) => x + k.w, 0) * 100);
     // kế hoạch: vào – cắt lỗ – mục tiêu theo cấu trúc SMC
     let e = p, s, trig = null;
     if (ob) { e = sd === 1 ? Math.min(p, ob.hi) : Math.max(p, ob.lo); s = sd === 1 ? ob.lo - 0.2 * atr : ob.hi + 0.2 * atr; }
@@ -1227,8 +1227,21 @@ function rtEval(o, hi1, hi2, ctx = {}, S0 = null) {
     if (sd * (e - s) < 0.5 * atr) s = e - sd * 0.8 * atr;
     const R = Math.abs(e - s);
     const tg = (sd === 1 ? S.hs.map((q) => q[1]).concat(S.liq.filter((x) => x.kind === "EQH").map((x) => x.p)).filter((x) => x > e + R) : S.ls.map((q) => q[1]).concat(S.liq.filter((x) => x.kind === "EQL").map((x) => x.p)).filter((x) => x < e - R)).sort((a, b) => sd * (a - b));
-    const t1 = tg[0] ?? e + sd * 2 * R, t2 = tg[1] && sd * (tg[1] - t1) > 0.5 * R ? tg[1] : t1 + sd * 1.5 * R;
-    res[sd === 1 ? "long" : "short"] = { score, chk, e, s, t1, t2, rr1: Math.abs(t1 - e) / R, rr2: Math.abs(t2 - e) / R, trig, setup: sw && evOk ? (sd === 1 ? "smc_sweep_up" : "smc_sweep_dn") : ob ? (sd === 1 ? "smc_ob_up" : "smc_ob_dn") : null };
+    let t1 = tg[0] ?? e + sd * 2 * R, t2 = tg[1] && sd * (tg[1] - t1) > 0.5 * R ? tg[1] : t1 + sd * 1.5 * R;
+    // cản của khung lớn (đỉnh/đáy swing, Order Block ngược chiều, thanh khoản EQH/EQL) trên đường tới mục tiêu
+    let obst = null;
+    [[H1, ctx.tf1], [H2, ctx.tf2]].forEach(([H, nm]) => {
+      if (!H) return;
+      const lv = sd === 1 ? H.hs.slice(-10).map((q) => q[1]).concat(H.obs.filter((b) => b.dir === -1 && b.dead == null).map((b) => b.lo), H.liq.filter((q) => q.kind === "EQH").map((q) => q.p))
+        : H.ls.slice(-10).map((q) => q[1]).concat(H.obs.filter((b) => b.dir === 1 && b.dead == null).map((b) => b.hi), H.liq.filter((q) => q.kind === "EQL").map((q) => q.p));
+      const nx = lv.filter((x) => sd * (x - e) > 0.15 * R).sort((x, y) => sd * (x - y))[0];
+      if (nx != null && (!obst || sd * (nx - obst.p) < 0)) obst = { p: nx, tf: nm };
+    });
+    if (obst && sd * (obst.p - e) < 0.8 * R) add(false, 8, `${sd === 1 ? "Kháng cự" : "Hỗ trợ"} khung ${obst.tf} ở ${px(obst.p)} – quá gần (< 0,8R), lời ít hơn lỗ`);
+    else if (obst && sd * (t1 - obst.p) > 0) { t1 = obst.p; if (sd * (t2 - t1) < 0.5 * R) t2 = t1 + sd * R; add(false, 8, `MT1 hạ về cản khung ${obst.tf} (${px(obst.p)}) – đường lên ${sd === 1 ? "có người bán" : "có người mua"} khung lớn chờ`, true); }
+    else add(true, 8, obst ? `Đường tới MT1 thông – cản khung ${obst.tf} ở ${px(obst.p)} xa hơn MT1` : "Không thấy cản khung lớn trước MT1");
+    const score = Math.round(chk.reduce((x, k) => x + k.ok * k.w, 0) / chk.reduce((x, k) => x + k.w, 0) * 100);
+    res[sd === 1 ? "long" : "short"] = { score, obst, chk, e, s, t1, t2, rr1: Math.abs(t1 - e) / R, rr2: Math.abs(t2 - e) / R, trig, setup: sw && evOk ? (sd === 1 ? "smc_sweep_up" : "smc_sweep_dn") : ob ? (sd === 1 ? "smc_ob_up" : "smc_ob_dn") : null };
   }
   const best = res.long.score >= res.short.score ? "long" : "short", B = res[best];
   B.status = B.score >= 75 && !B.trig ? "go" : B.score >= 58 ? "ready" : "wait";
@@ -1407,7 +1420,8 @@ function smcSrv(s, nm) {
 function tabSmc(D) {
   const X = D.smc || {}, IJ = D._ij || {}, up = COINS?.btc_up ?? IJ.btc_up;
   const st = ["d", "h4"].flatMap((tf) => SMC_SET.map((s) => { const x = IJ.stats?.[tf]?.[s]; const a = x && (x[up ? "up" : "down"] || x.all); if (!a) return ""; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[s] || s)}</td><td>${nf(a.n, 0)}</td><td>${nf(a.win1, 0)}%</td><td class="${cls(a.avgR)}">${nf(a.avgR, 2)}R</td><td class="${cls(a.avgR_2y)}">${isNum(a.avgR_2y) ? nf(a.avgR_2y, 2) + "R" : "—"}</td><td>${durTxt(a.d1, tf === "d" ? 1 : 1 / 6)}</td></tr>`; })).join("");
-  return `<div class="g g2w">
+  return `${panel("🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không?", `<div id="mtf"><p class="muted">Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
+  <div class="g g2w">
     ${panel("Biểu đồ Smart Money – vẽ lại theo từng nến", `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
     <div>${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
       ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
@@ -1519,6 +1533,103 @@ function heatMap(rows, key = "r1") {
   const mx = Math.sqrt(xs[0].mc);
   return `<div class="hmap">${xs.map((r) => { const v = r[key], a = Math.min(88, 12 + Math.abs(v) * (key === "r1" ? 9 : 3)), w = Math.max(1, Math.sqrt(r.mc) / mx * 14);
     return `<a href="#/c/${enc(r.k)}" style="flex:${w.toFixed(2)} 1 ${(46 + w * 9).toFixed(0)}px;background:color-mix(in srgb,var(${v >= 0 ? "--up" : "--down"}) ${a.toFixed(0)}%,var(--surface))" title="${esc(r.n || r.k)} · ${usd(r.mc)}"><b>${esc(r.k)}</b><small>${pct(v, 1)}</small></a>`; }).join("")}</div>`;
+}
+
+// ================================================================ ĐA KHUNG THỜI GIAN – khung nhỏ có bị khung lớn (tuần / tháng / quý) chặn không?
+const MTF_L = ["1m", "5m", "15m", "1h", "4h", "1d", "1w", "1M", "3M"];
+const HZ = [
+  { k: "scalp", n: "Lướt giây – phút", tfs: "1s – 5p", own: ["1m", "5m"], p1: "15m", p2: "1h", hold: "vài phút – 1 giờ" },
+  { k: "intra", n: "Trong ngày", tfs: "15p – 1h", own: ["15m", "1h"], p1: "4h", p2: "1d", hold: "vài giờ – 1 ngày" },
+  { k: "swing", n: "Swing", tfs: "4h – ngày", own: ["4h", "1d"], p1: "1w", p2: "1M", hold: "vài ngày – vài tuần" },
+  { k: "pos", n: "Trung hạn", tfs: "tuần – quý", own: ["1w"], p1: "1M", p2: "3M", hold: "vài tuần – vài tháng" },
+];
+function mtfRow(o) {
+  const N = o.c.length, p = o.c[N - 1], c = o.c;
+  const e20 = TA.ema(c, 20), e50 = TA.ema(c, Math.min(50, Math.max(5, N - 2))), a = e20[N - 1], b = e50[N - 1];
+  let ema = 0;
+  if (a != null && b != null) ema = a > b && p > b ? 1 : a < b && p < b ? -1 : 0;
+  else if (a != null) ema = p > a ? 1 : -1;
+  const S = N >= 40 ? TA.smc(o) : null, st = S ? S.trend : 0;
+  const atr = TA.atr(o)[N - 1], rsi = TA.rsi(c)[N - 1];
+  let res = null, sup = null;
+  if (S) {
+    const up = S.hs.slice(-8).map((q) => [q[1], "đỉnh swing"]).concat(S.obs.filter((x) => x.dir === -1 && x.dead == null).map((x) => [x.lo, "OB bán"]), S.liq.filter((q) => q.kind === "EQH").map((q) => [q.p, "EQH"])).filter((x) => x[0] > p).sort((x, y) => x[0] - y[0]);
+    const dn = S.ls.slice(-8).map((q) => [q[1], "đáy swing"]).concat(S.obs.filter((x) => x.dir === 1 && x.dead == null).map((x) => [x.hi, "OB mua"]), S.liq.filter((q) => q.kind === "EQL").map((q) => [q.p, "EQL"])).filter((x) => x[0] < p).sort((x, y) => y[0] - x[0]);
+    res = up[0] || null; sup = dn[0] || null;
+  }
+  const ev = S?.events?.[S.events.length - 1];
+  return { p, ema, smc: st, bias: ema + st, rsi, pos: S?.pd?.pos, res, sup, ev: ev ? `${ev.type} ${ev.dir === 1 ? "↑" : "↓"}` : null, evAgo: ev ? N - 1 - ev.i : null, atrp: atr / p * 100, n: N };
+}
+async function mtfLoad(r, D) {
+  const M = {};
+  await Promise.all(MTF_L.map(async (tf) => {
+    let o = null;
+    try {
+      if (tf === "3M") { const L = await liveKlines(r, "1M", 1, 200); o = L ? aggO(L.o, "q") : serverO(D, "3M"); }
+      else { const L = await liveKlines(r, tf, 1, tf === "1M" ? 200 : 500); o = L ? L.o : serverO(D, tf); }
+    } catch (e) { o = serverO(D, tf); }
+    if (o && o.c?.length >= 12) M[tf] = mtfRow(o);
+  }));
+  return M;
+}
+const sg1 = (x) => (x > 0 ? 1 : x < 0 ? -1 : 0);
+function mtfHz(M, h) {
+  const own = h.own.map((t) => M[t]?.bias || 0).reduce((x, y) => x + y, 0), b1 = M[h.p1]?.bias ?? 0, b2 = M[h.p2]?.bias ?? 0;
+  const side = (sd) => {
+    const ao = sg1(own) * sd, a1 = sg1(b1) * sd, a2 = sg1(b2) * sd;
+    let size, lbl, txt, c;
+    if (a1 > 0 && a2 >= 0) { size = ao > 0 ? 100 : 75; c = "buy"; lbl = "THUẬN"; txt = ao > 0 ? "Khung vào và 2 khung lớn cùng chiều – đánh đủ khối lượng, giữ tới mục tiêu" : "Khung lớn thuận nhưng khung vào chưa quay – chờ khung vào phá cấu trúc (BOS/CHoCH) rồi vào"; }
+    else if (a1 > 0 && a2 < 0) { size = 50; c = "brand"; lbl = "THUẬN GẦN – NGƯỢC XA"; txt = `Khung ${TFN[h.p1]} cùng chiều nhưng ${TFN[h.p2]} ngược – chỉ 50% khối lượng, chốt sớm ở cản khung ${TFN[h.p2]}, không gồng`; }
+    else if (a1 === 0 && a2 > 0) { size = 50; c = "brand"; lbl = "ĐI NGANG TRONG XU HƯỚNG THUẬN"; txt = `Khung ${TFN[h.p1]} đi ngang, ${TFN[h.p2]} thuận – vào ở biên ${sd === 1 ? "dưới" : "trên"} vùng đi ngang, 50%`; }
+    else if (a1 === 0) { size = a2 < 0 ? 0 : 25; c = a2 < 0 ? "sell" : ""; lbl = a2 < 0 ? "NGƯỢC KHUNG XA" : "MỌI KHUNG ĐI NGANG"; txt = a2 < 0 ? `Khung ${TFN[h.p2]} ngược chiều, ${TFN[h.p1]} chưa ủng hộ – không đánh chiều này` : "Chỉ đánh 2 biên vùng giá, khối lượng 25%, chốt nhanh"; }
+    else if (a1 < 0 && a2 > 0) { size = 25; c = "warn"; lbl = "ĐIỀU CHỈNH NGƯỢC TRONG XU HƯỚNG LỚN"; txt = `Khung ${TFN[h.p1]} đang ngược nhưng ${TFN[h.p2]} thuận – CHỜ: chỉ vào khi khung vào CHoCH ${sd === 1 ? "tăng" : "giảm"} tại vùng ${sd === 1 ? "Discount / OB mua" : "Premium / OB bán"} của khung lớn; trước đó 0–25%`; }
+    else { size = 0; c = "sell"; lbl = "NGƯỢC"; txt = `Cả ${TFN[h.p1]} và ${TFN[h.p2]} ngược chiều – không đánh chiều này (nếu khung vào có tín hiệu thì đó chỉ là nhịp hồi)`; }
+    const caps = [h.p1, h.p2].map((t) => (sd === 1 ? M[t]?.res : M[t]?.sup) && { tf: t, p: (sd === 1 ? M[t].res : M[t].sup)[0], k: (sd === 1 ? M[t].res : M[t].sup)[1] }).filter(Boolean).sort((x, y) => sd * (x.p - y.p));
+    return { size, lbl, txt, c, cap: caps[0] || null };
+  };
+  const L = side(1), S = side(-1), best = L.size > S.size ? "long" : S.size > L.size ? "short" : null;
+  return { L, S, best };
+}
+function mtfConflict(M) {
+  const ks = MTF_L.filter((t) => M[t]);
+  const ar = ks.map((t) => [t, sg1(M[t].bias)]);
+  const out = [];
+  for (let i = ar.length - 1; i > 0; i--) {
+    const [hi, bh] = ar[i]; if (!bh) continue;
+    const lo = ar.slice(0, i).reverse().find(([, b]) => b && b !== bh);
+    if (lo) { out.push(`Khung <b>${TFN[hi]}</b> ${bh > 0 ? "tăng" : "giảm"} nhưng <b>${TFN[lo[0]]}</b> ${lo[1] > 0 ? "tăng" : "giảm"} → ${bh > 0 ? `nhịp giảm ở ${TFN[lo[0]]} là điều chỉnh trong xu hướng tăng lớn: ưu tiên chờ mua lại ở hỗ trợ khung lớn, Short chỉ lướt ngắn` : `nhịp tăng ở ${TFN[lo[0]]} là hồi trong xu hướng giảm lớn: Long chỉ lướt tới kháng cự khung lớn, ưu tiên Short khi khung nhỏ đảo chiều ở vùng Premium`}`); break; }
+  }
+  const up = ar.filter(([, b]) => b > 0).length, dn = ar.filter(([, b]) => b < 0).length;
+  return { txt: out, up, dn, n: ar.length };
+}
+const biasTxt = (b) => (b >= 2 ? ["Tăng mạnh", "up"] : b === 1 ? ["Nghiêng tăng", "up"] : b <= -2 ? ["Giảm mạnh", "down"] : b === -1 ? ["Nghiêng giảm", "down"] : ["Ngang / xung đột", "ref"]);
+function mtfHtml(M, IJ) {
+  const ks = MTF_L.filter((t) => M[t]);
+  if (!ks.length) return `<p class="muted">Không tải được nến các khung (trình duyệt không kết nối được Binance/OKX).</p>`;
+  const C = mtfConflict(M), p = M[ks[0]].p;
+  const strip = `<div class="mtfs">${ks.map((t) => { const b = M[t].bias; return `<div class="mtf-c ${b > 0 ? "u" : b < 0 ? "d" : "n"} ${Math.abs(b) >= 2 ? "s" : ""}"><b>${TFN[t]}</b><small>${biasTxt(b)[0]}</small></div>`; }).join("")}</div>`;
+  const lvl = (x) => (x ? `${px(x[0])} <small class="faint">${esc(x[1])} · ${pct((x[0] / p - 1) * 100, 1)}</small>` : "—");
+  const tbl = `<div class="tw"><table class="mtft"><thead><tr><th class="l">Khung</th><th class="l">Tổng hợp</th><th>EMA 20/50</th><th>Cấu trúc SMC</th><th>Sự kiện gần nhất</th><th>RSI</th><th>Vị trí biên</th><th>Biến động/nến</th><th class="l">Kháng cự gần</th><th class="l">Hỗ trợ gần</th></tr></thead><tbody>${ks.map((t) => { const x = M[t], [bt, bc] = biasTxt(x.bias);
+    return `<tr><td class="l"><b>${TFN[t]}</b></td><td class="l"><b class="${bc}">${bt}</b></td><td>${x.ema > 0 ? '<span class="up">▲</span>' : x.ema < 0 ? '<span class="down">▼</span>' : "–"}</td><td>${x.smc > 0 ? '<span class="up">▲</span>' : x.smc < 0 ? '<span class="down">▼</span>' : "–"}</td><td>${x.ev ? `${esc(x.ev)} <small class="faint">${x.evAgo} nến</small>` : "—"}</td><td class="${x.rsi >= 70 ? "down" : x.rsi <= 30 ? "up" : ""}">${nf(x.rsi, 0)}</td><td class="${x.pos > 55 ? "down" : x.pos < 45 ? "up" : ""}">${!isNum(x.pos) ? "—" : x.pos > 100 ? "vượt đỉnh" : x.pos < 0 ? "thủng đáy" : nf(x.pos, 0) + "%"}</td><td>${nf(x.atrp, 2)}%</td><td class="l">${lvl(x.res)}</td><td class="l">${lvl(x.sup)}</td></tr>`; }).join("")}</tbody></table></div>`;
+  const hz = `<div class="hzs">${HZ.map((h) => { const V = mtfHz(M, h), B = V.best ? V[V.best === "long" ? "L" : "S"] : null;
+    const one = (sd, X) => `<div class="hz-s"><span class="pill ${X.c}">${sd === 1 ? "LONG" : "SHORT"} · ${X.lbl}</span> <b>${X.size}%</b> khối lượng<p>${esc(X.txt)}</p>${X.cap ? `<small>Trần mục tiêu: ${sd === 1 ? "kháng cự" : "hỗ trợ"} khung ${TFN[X.cap.tf]} ${px(X.cap.p)} (${esc(X.cap.k)}, ${pct((X.cap.p / p - 1) * 100, 1)})</small>` : ""}</div>`;
+    return `<div class="hz ${V.best || "none"}"><h4>${esc(h.n)} <small>${esc(h.tfs)} · xét khung ${TFN[h.p1]} + ${TFN[h.p2]} · giữ ${esc(h.hold)}</small></h4>
+      <p class="hz-v">${B ? `Nên ưu tiên <b class="${V.best === "long" ? "up" : "down"}">${V.best === "long" ? "LONG" : "SHORT"}</b>` : "<b>Không có chiều nào được khung lớn ủng hộ rõ – đứng ngoài hoặc đánh rất nhỏ</b>"}</p>${one(1, V.L)}${one(-1, V.S)}</div>`; }).join("")}</div>`;
+  // nghiên cứu: thiết lập cùng / ngược khung lớn (máy chủ, toàn bộ coin)
+  const st = IJ?.stats || {}, reg = IJ?.btc_up ? "up" : "down";
+  const cell = (x) => (x && x.n && x.n < 30 ? `<small class="faint">ít mẫu (${x.n})</small>` : x && x.n ? `<span class="${cls(x.avgR)}">${nf(x.avgR, 2)}R</span> <small class="faint">${nf(x.win1, 0)}% · ${nf(x.n, 0)}</small>` : "—");
+  const rows = ["d", "h4"].flatMap((tf) => ["_all", ...Object.keys(st[tf] || {}).filter((k) => k !== "_all")].map((s) => { const x = st[tf]?.[s]; if (!x || !(x["h+"] || x["h-"])) return "";
+    return `<tr class="${s === "_all" ? "hl" : ""}"><td class="l">${TFV[tf]}</td><td class="l">${s === "_all" ? "<b>Tất cả thiết lập</b>" : esc(IDEA_NAMES[s] || s)}</td><td>${cell(x["h+"])}</td><td>${cell(x["h0"])}</td><td>${cell(x["h-"])}</td><td>${cell(x[reg + "_h+"])}</td><td>${cell(x[reg + "_h-"])}</td></tr>`; })).join("");
+  const res = rows ? `<h3 style="margin:14px 0 4px">Kiểm chứng: đánh cùng chiều hay ngược chiều khung lớn thì tốt hơn?</h3>
+    <div class="tw"><table><thead><tr><th class="l">Khung vào</th><th class="l">Thiết lập</th><th>Khung lớn cùng chiều</th><th>Lẫn lộn</th><th>Khung lớn ngược</th><th>Cùng chiều · BTC ${IJ.btc_up ? "trên" : "dưới"} MA200</th><th>Ngược · BTC ${IJ.btc_up ? "trên" : "dưới"} MA200</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="faint" style="font-size:.74rem">Khung lớn của khung ngày = tuần + tháng; của khung 4h = ngày + tuần. "Cùng chiều" = cả 2 khung lớn cùng hướng lệnh tại thời điểm tín hiệu (giá so với EMA của các kỳ đã đóng, không nhìn trước). Mỗi ô: lãi TB/lệnh sau phí · tỉ lệ chạm MT1 · số lần. Điều thú vị: thiết lập <b>thuận xu hướng</b> (hồi về Fibonacci, phá đỉnh) cần khung lớn cùng chiều, còn thiết lập <b>đảo chiều</b> (quét thanh khoản đáy) lại tốt nhất khi khung lớn đang giảm – vì đó chính là lúc phe bán bị quét. Vì vậy hệ thống chấm theo số liệu của đúng thiết lập + đúng trạng thái khung lớn, không áp một quy tắc chung.</p>` : "";
+  return `${strip}<div class="mtf-sum"><p>${C.up} / ${C.n} khung tăng · ${C.dn} / ${C.n} khung giảm</p>${C.txt.map((t) => `<p>⚠️ ${t}</p>`).join("") || "<p>Các khung không xung đột lớn.</p>"}</div>${hz}${tbl}${res}`;
+}
+async function mtfMount(D) {
+  const el = $("#mtf"); if (!el) return;
+  const go = async () => { if (!el.isConnected) return; const M = await mtfLoad(D.row, D); if (!el.isConnected) return; el.innerHTML = mtfHtml(M, D._ij) + `<p class="faint" style="font-size:.7rem">Cập nhật ${new Date().toLocaleTimeString("vi-VN")} · tự làm mới mỗi 60 giây · khung Quý gộp từ nến tháng.</p>`; };
+  await go();
+  const tm = setInterval(() => { if (!el.isConnected) { clearInterval(tm); return; } go(); }, 60e3);
 }
 
 // ================================================================ FUTURES

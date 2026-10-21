@@ -115,10 +115,14 @@ def detect(df: pd.DataFrame, tf: str) -> list[dict]:
             last[name] = i
             out.append({"i": i, "setup": name, "side": side, "e": float(e), "s": float(s), "t1": float(t1), "t2": float(t2), "mf": int(mf[i] * side)})
     # thiết lập Smart Money (SMC)
-    from . import smc
+    from . import htf, smc
     for g in smc.signals(df, 3):
         g["mf"] = int(mf[g["i"]] * g["side"])
         out.append(g)
+    # khung lớn cùng / ngược chiều lệnh tại thời điểm tín hiệu
+    tr = htf.trends(df, tf)
+    for g in out:
+        g["htf"] = htf.bucket(tr, tf, g["i"], g["side"])
     out.sort(key=lambda g: g["i"])
     return out
 
@@ -207,6 +211,13 @@ class Book:
             self.pool.setdefault((tf, r["setup"], "all"), []).append(r)
             if r.get("mf"):
                 self.pool.setdefault((tf, r["setup"], rg + ("_mf+" if r["mf"] > 0 else "_mf-")), []).append(r)
+            if r.get("htf"):
+                self.pool.setdefault((tf, r["setup"], rg + "_" + r["htf"]), []).append(r)
+                self.pool.setdefault((tf, r["setup"], r["htf"]), []).append(r)
+                self.pool.setdefault((tf, "_all", r["htf"]), []).append(r)
+                self.pool.setdefault((tf, "_all", rg + "_" + r["htf"]), []).append(r)
+            self.pool.setdefault((tf, "_all", rg), []).append(r)
+            self.pool.setdefault((tf, "_all", "all"), []).append(r)
             self.coin.setdefault((key, tf, r["setup"]), []).append(r)
 
     def table(self) -> dict:
@@ -240,6 +251,8 @@ def current(key: str, tf: str, df: pd.DataFrame, book: Book, btc_up: bool, ctx: 
             Pm = tbl.get(st, {}).get(rg + ("_mf+" if g["mf"] > 0 else "_mf-")) or {}
             if Pm.get("n", 0) >= 100:
                 P = {**Pm, "mf_bucket": "cùng chiều" if g["mf"] > 0 else "ngược chiều"}
+        hb = g.get("htf")
+        Ph = (tbl.get(st, {}).get(rg + "_" + hb) or {}) if hb else {}
         C = stats(book.coin.get((key, tf, st), []))
         # giá đã chạy khỏi điểm vào? dùng giá hiện tại làm điểm vào thực tế
         e = price
@@ -281,6 +294,13 @@ def current(key: str, tf: str, df: pd.DataFrame, book: Book, btc_up: bool, ctx: 
             continue                                  # không có perp → không Short được
         if (sd == 1 and not btc_up) or (sd == -1 and btc_up):
             notes.append("Ngược xu hướng BTC (MA200)")
+        HB = {"h+": "khung lớn cùng chiều", "h-": "khung lớn NGƯỢC chiều", "h0": "khung lớn lẫn lộn"}
+        if hb:
+            if Ph.get("n", 0) >= 60:
+                notes.append(f"{HB[hb]}: lịch sử {Ph['n']} lần, chạm MT1 {Ph.get('win1')}%, lãi TB {Ph.get('avgR')}R")
+                score += ((Ph.get("avgR") or 0) - (P.get("avgR") or 0)) * 100
+            else:
+                notes.append(HB[hb])
         conf = "Cao" if (P.get("n", 0) >= 150 and (P.get("win1") or 0) >= 55 and (P.get("avgR") or 0) >= 0.15) else \
             ("Trung bình" if (P.get("n", 0) >= 60 and (P.get("avgR") or 0) > 0.03) else "Thấp")
         out.append({"k": key, "tf": tf, "setup": st, "name": NAMES[st], "side": "long" if sd == 1 else "short", "e": lv.sig(e), "s": lv.sig(s),
@@ -289,5 +309,5 @@ def current(key: str, tf: str, df: pd.DataFrame, book: Book, btc_up: bool, ctx: 
                     "eta1": exp_t1.strftime("%Y-%m-%dT%H:%M") if exp_t1 is not None else None, "eta2": exp_t2.strftime("%Y-%m-%dT%H:%M") if exp_t2 is not None else None,
                     "d1": P.get("d1"), "d1_lo": P.get("d1_lo"), "d1_hi": P.get("d1_hi"), "d2": P.get("d2"), "bd": bd,
                     "win1": P.get("win1"), "win2": P.get("win2"), "avgR": P.get("avgR"), "n": P.get("n"), "coin": {k: C.get(k) for k in ("n", "win1", "avgR", "d1")},
-                    "conf": conf, "score": _f(score, 1), "notes": notes, "at": last.strftime("%Y-%m-%dT%H:%M"), "mfb": P.get("mf_bucket")})
+                    "conf": conf, "score": _f(score, 1), "notes": notes, "htf": hb, "htf_avgR": Ph.get("avgR"), "htf_n": Ph.get("n"), "htf_win1": Ph.get("win1"), "at": last.strftime("%Y-%m-%dT%H:%M"), "mfb": P.get("mf_bucket")})
     return out
