@@ -66,6 +66,31 @@ def items_for(pf: dict, rows: dict, details: dict) -> list[dict]:
                 d = datetime.fromtimestamp(e["t"], tz=timezone.utc).strftime("%d/%m")
                 out.append({"key": f"unlock:{k}:{e['t']}", "kind": "unlock", "sev": 2, "sym": k, "url": url + "/val",
                             "title": f"{k}: mở khoá {e['pct']:.1f}% lượng lưu hành ngày {d}", "body": f"{e.get('cat') or ''} {e.get('desc') or ''}".strip()})
+    # kế hoạch đã lưu: tới điểm vào / mục tiêu / cắt lỗ / hết thời gian
+    now_ms = time.time() * 1000
+    for pl in pf.get("plans") or []:
+        k = pl.get("k")
+        r = rows.get(k)
+        if not r or not r.get("p"):
+            continue
+        p, L = float(r["p"]), pl.get("side") == "long"
+        e, s, t1, t2 = (float(pl.get(x) or 0) for x in ("e", "s", "t1", "t2"))
+        pid = pl.get("id") or f"{k}{e}"
+        url = f"#/c/{k}/plan"
+        side = "Long" if L else "Short"
+        ev = None
+        if (L and p <= s) or (not L and p >= s):
+            ev = ("stop", 3, f"{k}: kế hoạch {side} chạm cắt lỗ {_p(s)}", f"Giá {_p(p)}. Thoát lệnh theo kế hoạch.")
+        elif (L and p >= t2) or (not L and p <= t2):
+            ev = ("t2", 2, f"{k}: chạm mục tiêu 2 {_p(t2)}", f"Giá {_p(p)} – chốt phần còn lại.")
+        elif (L and p >= t1) or (not L and p <= t1):
+            ev = ("t1", 2, f"{k}: chạm mục tiêu 1 {_p(t1)}", f"Giá {_p(p)} – chốt 50%, dời cắt lỗ về {_p(e)}.")
+        elif pl.get("tstop") and now_ms > float(pl["tstop"]):
+            ev = ("time", 2, f"{k}: hết thời gian kỳ vọng của kế hoạch {side}", f"Chưa chạm mục tiêu 1 ({_p(t1)}) đúng hạn – cân nhắc thoát. Giá {_p(p)}.")
+        elif pl.get("order") == "limit" and ((L and p <= e * 1.003) or (not L and p >= e * 0.997)):
+            ev = ("entry", 2, f"{k}: giá tới điểm vào {_p(e)} ({side})", f"Giá {_p(p)}. Cắt lỗ {_p(s)}, mục tiêu {_p(t1)} / {_p(t2)}.")
+        if ev:
+            out.append({"key": f"plan:{pid}:{ev[0]}", "kind": "stop" if ev[0] == "stop" else "alert", "sev": ev[1], "sym": k, "url": url, "title": ev[2], "body": ev[3]})
     return out
 
 

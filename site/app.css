@@ -1540,3 +1540,20 @@ table.sortable th.on{color:var(--brand)}
 @keyframes fl{from{background:color-mix(in srgb,var(--brand) 25%,transparent)}to{background:transparent}}
 .rngb{display:inline-block;position:relative;width:60px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--down),var(--ref),var(--up));vertical-align:middle}
 .rngb i{position:absolute;top:-3px;width:2px;height:12px;background:var(--ink);transform:translateX(-1px)}
+/* phiếu lệnh */
+.ticket{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:10px 0;background:var(--surface)}
+.ticket.long{box-shadow:inset 4px 0 0 var(--up)}
+.ticket.short{box-shadow:inset 4px 0 0 var(--down)}
+.tk-h{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.pill.big{font-size:.86rem;padding:3px 10px;font-weight:700}
+.tk-g{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+@media (min-width:640px){.tk-g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1000px){.tk-g{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tk-b{background:var(--sunk);border:1px solid var(--line-2);border-radius:6px;padding:7px 10px}
+.tk-b h4{margin:0 0 2px;font-size:.72rem;color:var(--ink-3);font-weight:600}
+.tk-v{margin:0;font:600 1.15rem/1.3 "Barlow Condensed","Be Vietnam Pro",sans-serif}
+.tk-v small{font-size:.75rem}
+.tk-b>small{display:block;color:var(--ink-2);font-size:.74rem;line-height:1.4}
+.tk-plan{margin:8px 0 4px;padding:7px 10px;border-radius:6px;background:var(--brand-2);font-size:.82rem}
+.tk-w{margin:6px 0 0;padding-left:18px;color:var(--ref);font-size:.78rem}
+.tk-a{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
