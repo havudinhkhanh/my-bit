@@ -362,6 +362,8 @@ def build_market(rows, details, pxs, btc, peers, alerts) -> dict:
     if not mvrv.empty:
         mvrv["date"] = pd.to_datetime(mvrv["date"])
     tr = regime.btc_trend(btc) if btc is not None else {}
+    if btc is not None:
+        tr["sp"] = [sig6(x) for x in btc["close"].tail(120)]
     rank = {r["k"]: r["rk"] for r in rows if r.get("rk")}
     br = regime.breadth({k: v for k, v in pxs.items() if (rank.get(k) or 9999) <= 300})
     alt = regime.alt_season(pxs, rank, btc) if btc is not None else {}
@@ -378,6 +380,59 @@ def build_market(rows, details, pxs, btc, peers, alerts) -> dict:
                                                             "study": study},
                 "cycle": cyc, "light": regime.light(tr, br, fng_now), "agg": {"f8": _f(agg_f8, 4), "oi": _f(tot_oi, 0), "oi_mc": _f(tot_oi / tot_mc * 100, 2) if tot_mc else None}})
     out["play"] = regime.playbook(tr, fng_now, study, cyc, agg_f8)
+    # ---- bảng số liệu tổng hợp
+    ex = {}
+    if not fng.empty:
+        fv = fng.set_index("date")["fng"]
+        ex["fng_1d"], ex["fng_7d"], ex["fng_30d"] = (int(fv.iloc[-2]) if len(fv) > 1 else None, int(fv.iloc[-8]) if len(fv) > 8 else None,
+                                                     int(fv.iloc[-31]) if len(fv) > 31 else None)
+    eth = pxs.get("ETH")
+    if eth is not None and btc is not None:
+        j = pd.concat([eth.set_index("date")["close"], btc.set_index("date")["close"]], axis=1, keys=["e", "b"]).dropna()
+        rr = j["e"] / j["b"]
+        ex["eth"] = {"p": _f(j["e"].iloc[-1], 2), "r7": _f((j["e"].iloc[-1] / j["e"].iloc[-8] - 1) * 100, 1), "r30": _f((j["e"].iloc[-1] / j["e"].iloc[-31] - 1) * 100, 1),
+                     "ethbtc": _f(rr.iloc[-1], 5), "ethbtc30": _f((rr.iloc[-1] / rr.iloc[-31] - 1) * 100, 1),
+                     "ethbtc_vs200": _f((rr.iloc[-1] / rr.tail(200).mean() - 1) * 100, 1), "ethbtc_pctl": _f((rr.tail(1460) < rr.iloc[-1]).mean() * 100, 0)}
+    liq = [r for r in rows if (r.get("vol") or 0) >= 1e6]
+    up = sum(1 for r in liq if (r.get("r1") or 0) > 0)
+    ex["adv"] = {"up": up, "down": sum(1 for r in liq if (r.get("r1") or 0) < 0), "n": len(liq),
+                 "up7": sum(1 for r in liq if (r.get("r7") or 0) > 0)}
+    hi = lo = 0
+    for k, d in pxs.items():
+        if len(d) >= 200 and any(r["k"] == k for r in liq[:400]):
+            c = d["close"].tail(365)
+            if c.iloc[-1] >= c.max() * 0.98:
+                hi += 1
+            elif c.iloc[-1] <= c.min() * 1.02:
+                lo += 1
+    ex["hl52"] = {"hi": hi, "lo": lo}
+    oiw = [(r.get("oi24"), r.get("oi")) for r in rows if r.get("oi24") is not None and r.get("oi")]
+    ex["oi24"] = _f(sum(a * b for a, b in oiw) / sum(b for _, b in oiw), 2) if oiw else None
+    fs = [r["f8"] for r in rows if r.get("f8") is not None and (r.get("oi") or 0) > 5e6]
+    ex["f_pos"] = _f(sum(1 for x in fs if x > 0) / len(fs) * 100, 0) if fs else None
+    ex["f_med"] = _f(float(np.median(fs)), 4) if fs else None
+    ex["f_hot_n"] = sum(1 for x in fs if x >= 0.05)
+    ex["f_neg_n"] = sum(1 for x in fs if x < 0)
+    bd = (details.get("BTC") or {}).get("bnm") or {}
+    ex["btc_lsr"], ex["btc_top"], ex["btc_taker"] = bd.get("lsr_acct"), bd.get("lsr_top_pos"), bd.get("taker")
+    ex["btc_f8"] = (details.get("BTC") or {}).get("row", {}).get("f8")
+    ex["btc_oi"] = (details.get("BTC") or {}).get("row", {}).get("oi")
+    ex["btc_oi7"] = (details.get("BTC") or {}).get("row", {}).get("oi7")
+    ex["btc_mf"] = ((details.get("BTC") or {}).get("flow") or {}).get("d", {}).get("score")
+    # nhóm ngành
+    grp = {}
+    for r in liq:
+        if r.get("g"):
+            grp.setdefault(r["g"], []).append(r)
+    sec = []
+    for gname, L in grp.items():
+        if len(L) >= 3:
+            med = lambda k: _f(float(np.median([x[k] for x in L if x.get(k) is not None])), 1) if any(x.get(k) is not None for x in L) else None  # noqa: E731
+            best = max(L, key=lambda x: x.get("r7") or -999)
+            sec.append({"g": gname, "n": len(L), "r1": med("r1"), "r7": med("r7"), "r30": med("r30"), "mc": _f(sum(x.get("mc") or 0 for x in L), 0),
+                        "best": best["k"], "best7": best.get("r7"), "up": sum(1 for x in L if x.get("ts") == 1)})
+    ex["sectors"] = sorted(sec, key=lambda x: -(x["r7"] or -999))
+    out["ex"] = ex
     st = store.read("stable")
     if not st.empty:
         st["date"] = pd.to_datetime(st["date"])
@@ -404,7 +459,7 @@ def build_market(rows, details, pxs, btc, peers, alerts) -> dict:
 
     out["lists"] = {"gain7": top("r7"), "lose7": top("r7", rev=False), "f_hot": top("f8", cond=lambda r: (r.get("oi") or 0) > 5e6 and r["f8"] > 0.02),
                     "f_cold": top("f8", rev=False, cond=lambda r: (r.get("oi") or 0) > 5e6 and r["f8"] < 0), "oi_up": top("oi7", cond=lambda r: (r.get("oi") or 0) > 5e6),
-                    "carry": top("car", cond=lambda r: (r.get("oi") or 0) > 3e6),
+                    "carry": top("car", cond=lambda r: (r.get("oi") or 0) > 3e6 and (r.get("car") or 0) >= 15),
                     "cheap": [r["k"] for r in sorted([r for r in rows if r.get("vd") == "Rẻ" and (r.get("mc") or 0) > 5e7], key=lambda r: -(r.get("mc") or 0))[:12]],
                     "trend_new": [r["k"] for r in sorted([r for r in live if r.get("ts") == 1 and (r.get("td") or 99) <= 5], key=lambda r: -(r.get("mc") or 0))[:12]]}
     # mở khoá lớn sắp tới (14 ngày)

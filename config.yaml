@@ -6,7 +6,8 @@
 universe:
   cg_pages: 4                 # số trang CoinGecko (250 coin/trang) dùng để khớp mã
   top_mcap: 300               # luôn phân tích top 300 vốn hoá
-  binance_spot_rank_max: 1000 # coin có cặp USDT trên Binance spot và nằm trong top 1000 → phân tích
+  binance_spot_rank_max: 100000 # mọi cặp USDT trên Binance spot đều được phân tích
+  binance_spot_min_vol_usd: 200000 # cặp Binance không có trên CoinGecko top 1000: cần khối lượng 24h ≥ 200 nghìn USD
   fut_min_vol_usd: 1000000    # coin có hợp đồng tương lai với khối lượng 24h ≥ 1 triệu USD → phân tích
   min_history_days: 60        # coin mới niêm yết dưới 60 ngày: chỉ theo dõi, không chấm điểm xu hướng
 

@@ -24,6 +24,11 @@ WRAP_SYM = {"WBTC", "WETH", "STETH", "WSTETH", "WEETH", "EETH", "CBBTC", "CBETH"
 PREFIX = [("1000000", 1e6), ("100000", 1e5), ("10000", 1e4), ("1000", 1e3), ("1M", 1e6), ("k", 1e3)]
 
 
+FIAT = {"EUR", "TRY", "BRL", "GBP", "AUD", "JPY", "RUB", "UAH", "NGN", "ZAR", "ARS", "MXN", "PLN", "RON", "CZK", "IDR", "VAI", "AEUR", "EURI", "USDP", "XUSD"}
+BSTOCK = {"BABA", "HOOD", "MRVL", "TSM", "LITE", "META", "MSFT", "PLTR", "QCOM", "WDC", "AAOI", "ARM", "NVDA", "TSLA", "AAPL", "GOOGL", "AMZN", "COIN", "MSTR",
+          "CRCL", "AMD", "INTC", "ORCL", "NFLX", "AVGO", "MU", "SPY", "QQQ", "IBM", "UBER", "SHOP", "SNOW", "DELL", "SMCI", "GLW", "COHR", "SNDK", "NBIS"}
+
+
 def is_excluded(sym: str, name: str, price: float | None = None) -> str | None:
     s = (sym or "").upper()
     if s in STABLE or (price and 0.97 < price < 1.03 and re.search(r"usd|dollar|stable", name or "", re.I)):
@@ -93,8 +98,20 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
         if c.get("market_cap_rank") and c["market_cap_rank"] <= top:
             row(c)["why"].add("top")
     sp = spot.set_index("base")
+    orphans: dict[str, dict] = {}
     for base, s in sp.iterrows():
         c = match(base, s.get("price"))
+        if not c and (s.get("qvol") or 0) >= float(cfg.get("binance_spot_min_vol_usd", 2e5)):
+            # cặp Binance không khớp CoinGecko top 1000 → vẫn theo dõi (giá, kỹ thuật, futures), không có định giá
+            b, m = split_mult(base)
+            if b in STOCKS or is_excluded(b, b) or b in FIAT or (b.endswith("B") and b[:-1] in STOCKS | BSTOCK) \
+                    or (b.endswith("B") and 4 <= len(b) <= 6 and b[:-1].isalpha()) or "USD" in b:   # bStocks của Binance (AMATB, MRNAB…) – cổ phiếu token hoá
+                continue
+            o = orphans.setdefault(b, {"id": "x-" + b.lower(), "sym": b, "name": b, "rank": None, "excl": None, "spot_pair": None, "spot_mult": 1.0,
+                                       "fut": {}, "why": set()})
+            o["spot_pair"], o["spot_mult"] = s["pair"], m
+            o["why"].add("binance")
+            continue
         if c and (c.get("market_cap_rank") or 99999) <= int(cfg.get("binance_spot_rank_max", 1000)):
             r = row(c)
             if r["spot_pair"] and c["_mult"] != 1:      # đã có cặp không hệ số (BONKUSDT) – ưu tiên giữ
@@ -103,7 +120,6 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
             r["spot_mult"] = c["_mult"]
             r["why"].add("binance")
     vmin = float(cfg.get("fut_min_vol_usd", 1e6))
-    orphans: dict[str, dict] = {}
     for ex, df in futs.items():
         if df is None or df.empty:
             continue
@@ -119,7 +135,8 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
                 if b in STOCKS or f["base"] in (nonc or set()) or b in (nonc or set()) or re.search(r"\d[LS]$", b):
                     continue
                 o = orphans.setdefault(b, {"id": "x-" + b.lower(), "sym": b, "name": b, "rank": None, "excl": is_excluded(b, b), "spot_pair": None, "spot_mult": 1.0,
-                                           "fut": {}, "why": {"fut"}})
+                                           "fut": {}, "why": set()})
+                o["why"].add("fut")
                 o["fut"][ex] = {"base": f["base"], "mult": m, "inst": f.get("inst")}
     for b, o in orphans.items():
         if not any(r["sym"] == b for r in rows.values()):

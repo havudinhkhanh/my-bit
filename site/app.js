@@ -87,7 +87,7 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
-function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); }
+function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -170,6 +170,7 @@ async function route() {
     if (!r) { setTab("market"); await viewMarket(); }
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
+    else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "ideas") { setTab("ideas"); await viewIdeas(arg[0]); }
     else if (r === "futures") { setTab("futures"); await viewFutures(arg[0]); }
     else if (r === "portfolio") { setTab("portfolio"); await viewPortfolio(); }
@@ -201,77 +202,100 @@ function coinMini(k, extra = "") {
 
 // ================================================================ THỊ TRƯỜNG
 const LIGHT_VI = { green: "Xanh", yellow: "Vàng", red: "Đỏ" };
+function spark(vals, o = {}) {
+  const v = (vals || []).filter(isNum).map(Number); if (v.length < 3) return "";
+  const W = o.w || 120, H = o.h || 26, mn = Math.min(...v), mx = Math.max(...v), d = mx - mn || 1;
+  const pts = v.map((y, i) => `${(i / (v.length - 1) * W).toFixed(1)},${(H - 2 - (y - mn) / d * (H - 4)).toFixed(1)}`).join(" ");
+  const col = o.color || (v[v.length - 1] >= v[0] ? css("--up") : css("--down"));
+  return `<svg class="spk" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polyline fill="none" stroke="${col}" stroke-width="1.5" points="${pts}"/></svg>`;
+}
+// thẻ số liệu: [nhãn, giá trị, dòng phụ, tín hiệu (+1 tốt / -1 xấu / 0), chú thích, sparkline, id]
+const stc = ([k, v, sub, sg, tip, sp, id], grp) => `<div class="st ${sg > 0 ? "g" : sg < 0 ? "b" : ""}" ${tip ? `title="${esc(tip)}"` : ""}><dt>${grp ? `<i class="sgp">${esc(grp)}</i>` : ""}${k}</dt><dd ${id ? `id="${id}"` : ""}>${v ?? "—"}</dd>${sub ? `<small>${sub}</small>` : ""}${sp || ""}</div>`;
+const STG_TAG = { "Xu hướng": "Xu hướng", "Độ rộng thị trường": "Độ rộng", "Định giá Bitcoin (on-chain)": "On-chain", "Tâm lý & đòn bẩy": "Đòn bẩy", "Thanh khoản": "Thanh khoản" };
+const stGroup = (title, items) => `<div class="stg"><h3>${title}</h3><dl class="stats">${items.filter(Boolean).map((x) => stc(x, STG_TAG[title])).join("")}</dl></div>`;
+const sgn = (x, good = 1, th = 0) => (!isNum(x) ? 0 : x > th ? good : x < -th ? -good : 0);
 async function viewMarket() {
   const [M, IJ] = await Promise.all([load("data/market.json"), tryLoad("data/ideas.json"), coins()]);
   const L0 = await liveData();
-  const IDS = ((L0 && L0.ideas && IJ && new Date(L0.at) > new Date(IJ.at)) ? L0.ideas : (IJ?.items || [])).filter((x) => x.edge).slice(0, 6);
-  const b = M.btc || {}, cy = M.cycle || {}, F = M.fng || {}, P = M.play || {}, L = M.light || {}, A = M.agg || {}, G = M.global || {};
-  const lst = M.lists || {};
-  const dom = G.dom || {};
-  const mvrvS = (cy.mvrv_series || []).filter((_, i, a) => i > a.length - 900);
-  const pl = cy.pl;
-  const zoneTbl = (cy.mvrv_fwd || []).map((z) => `<tr class="${z.zone === cy.mvrv_zone ? "hl" : ""}"><td class="l">${esc(z.zone)}</td><td>${nf(z.n, 0)}</td><td class="${cls(z.med1y)}">${pct(z.med1y, 0)}</td><td>${nf(z.win, 0)}%</td></tr>`).join("");
+  const IDS = ((L0 && L0.ideas && IJ && new Date(L0.at) > new Date(IJ.at)) ? L0.ideas : (IJ?.items || [])).filter((x) => x.edge).slice(0, 8);
+  const b = M.btc || {}, cy = M.cycle || {}, F = M.fng || {}, P = M.play || {}, L = M.light || {}, A = M.agg || {}, G = M.global || {}, X = M.ex || {}, br = M.breadth || {};
+  const lst = M.lists || {}, dom = G.dom || {}, pl = cy.pl, E = X.eth || {}, adv = X.adv || {};
+  const BT = BYK.BTC || {};
+  const mz = (cy.mvrv_fwd || []).find((z) => z.zone === cy.mvrv_zone) || {};
+  const trendUp = COINS.rows.filter((r) => r.ts === 1 && (r.vol || 0) >= 1e6).length, liqN = COINS.rows.filter((r) => (r.vol || 0) >= 1e6).length;
   const st = F.study || {};
   const fngRows = (st.rows || []).filter((r) => r.reg !== "all");
   const fngTbl = ["Sợ hãi tột độ", "Sợ hãi", "Trung lập", "Tham lam", "Tham lam tột độ"].map((z) => {
     const u = fngRows.find((r) => r.zone === z && r.reg === "up") || {}, d = fngRows.find((r) => r.zone === z && r.reg === "down") || {};
-    const cur = z === F.zone;
-    return `<tr class="${cur ? "hl" : ""}"><td class="l">${esc(z)}${cur ? " ◀" : ""}</td><td class="${cls(u.med90)}">${pct(u.med90, 0)}</td><td>${isNum(u.win90) ? nf(u.win90, 0) + "%" : "—"}</td><td class="${cls(d.med90)}">${pct(d.med90, 0)}</td><td>${isNum(d.win90) ? nf(d.win90, 0) + "%" : "—"}</td><td class="faint">${nf((u.days || 0) + (d.days || 0), 0)}</td></tr>`;
+    return `<tr class="${z === F.zone ? "hl" : ""}"><td class="l">${esc(z)}</td><td class="${cls(u.med90)}">${pct(u.med90, 0)}</td><td>${isNum(u.win90) ? nf(u.win90, 0) + "%" : "—"}</td><td class="${cls(d.med90)}">${pct(d.med90, 0)}</td><td>${isNum(d.win90) ? nf(d.win90, 0) + "%" : "—"}</td></tr>`;
   }).join("");
-  const br = M.breadth || {};
-  const brS = (br.series || []);
-  const list = (keys, fn) => (keys || []).map((k) => coinMini(k, fn(BYK[k] || {}))).join("") || `<p class="muted">—</p>`;
+  const zoneTbl = (cy.mvrv_fwd || []).map((z) => `<tr class="${z.zone === cy.mvrv_zone ? "hl" : ""}"><td class="l">${esc(z.zone)}</td><td>${nf(z.n, 0)}</td><td class="${cls(z.med1y)}">${pct(z.med1y, 0)}</td><td>${nf(z.win, 0)}%</td></tr>`).join("");
+  const list = (keys, fn, n = 8) => (keys || []).slice(0, n).map((k) => coinMini(k, fn(BYK[k] || {}))).join("") || `<p class="muted">—</p>`;
+  const sec = (X.sectors || []).map((s) => `<tr><td class="l">${esc(s.g)} <small class="faint">${s.n}</small></td><td class="${cls(s.r1)}">${pct(s.r1, 1)}</td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 0)}</td><td>${usd(s.mc)}</td><td>${nf(s.up / s.n * 100, 0)}%</td><td class="l">${coinLink(s.best)} <small class="${cls(s.best7)}">${pct(s.best7, 0)}</small></td></tr>`).join("");
   app().innerHTML = `
-  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString("vi-VN"))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures)</span></div>
-  <section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"}</h2><span class="meta">${esc(L.text || "")}</span></div>
-    ${kpis([["BTC", `$${nf(b.price, 0)}`, "", ""], ["So với MA200", pct(b.dist200), cls(b.dist200), `MA200 = $${nf(b.ma200, 0)}`], ["Xu hướng", b.state === "up" ? "Tăng" : b.state === "down" ? "Giảm" : "Chuyển tiếp", b.state === "up" ? "up" : b.state === "down" ? "down" : "ref", `${b.above200 ? "Trên" : "Dưới"} MA200 ${b.run_days} ngày`],
-      ["7 / 30 / 90 ngày", `<span class="${cls(b.r7)}">${pct(b.r7, 0)}</span> / <span class="${cls(b.r30)}">${pct(b.r30, 0)}</span> / <span class="${cls(b.r90)}">${pct(b.r90, 0)}</span>`], ["Cách đỉnh", pct(b.from_ath), "down", `Đỉnh $${nf(b.ath, 0)}`],
-      ["Coin trên MA200", isNum(br.above200) ? nf(br.above200, 0) + "%" : "—", br.above200 >= 50 ? "up" : br.above200 < 30 ? "down" : "ref", "Độ rộng thị trường – top 300"], ["Mùa altcoin", isNum(M.alt?.idx) ? nf(M.alt.idx, 0) + "/100" : "—", "", `% top 50 tăng tốt hơn BTC trong 90 ngày (BTC ${pct(M.alt?.btc_r, 0)})`],
-      ["BTC dominance", isNum(dom.btc) ? nf(dom.btc, 1) + "%" : "—"]], true)}
-  </section>
-  <div class="g g2">
-    ${panel(`😨 Tâm lý: ${esc(F.zone || "—")} (${isNum(F.now) ? F.now : "—"}/100)`, `
-      ${gauge(F.now, 0, 100)}<p class="faint" style="font-size:.72rem;margin-top:-4px">0 = sợ hãi tột độ · 100 = tham lam tột độ (alternative.me)</p>
-      <div class="play"><h3>${esc(P.head || "")}</h3><ul>${(P.lines || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
-      <h3 style="margin-top:10px">BTC 90 ngày sau, theo vùng tâm lý <small class="muted">(dữ liệu từ ${esc((st.since || "").slice(0, 4))})</small></h3>
-      <div class="tw"><table><thead><tr><th class="l">Vùng</th><th colspan="2">BTC trên MA200<br><small>trung vị · xác suất tăng</small></th><th colspan="2">BTC dưới MA200<br><small>trung vị · xác suất tăng</small></th><th>Số ngày</th></tr></thead><tbody>${fngTbl}</tbody></table></div>
-      ${lineSvg([{ name: "Sợ hãi & Tham lam", color: css("--brand"), pts: (F.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 140, min: 0, max: 100, bands: [{ lo: 0, hi: 25, color: css("--up") }, { lo: 75, hi: 100, color: css("--down") }], dec: 0 })}`,
-      "nên làm gì khi sợ hãi / hưng phấn")}
-    ${panel("₿ Chu kỳ Bitcoin – định giá on-chain", `
-      ${kpis([["MVRV", nf(cy.mvrv, 2), cy.mvrv < 1 ? "up" : cy.mvrv > 3 ? "down" : "", "Vốn hoá thị trường / vốn hoá thực (giá vốn trung bình của mọi BTC đang lưu hành)"],
-        ["Giá vốn toàn mạng", `$${nf(cy.realized_price, 0)}`, "", "Realized price – giá trung bình mà từng BTC được giao dịch lần cuối"],
-        ["MVRV cao hơn", isNum(cy.mvrv_pctl) ? `${nf(cy.mvrv_pctl, 0)}% lịch sử` : "—", "", "Phân vị MVRV hiện tại trong toàn bộ lịch sử từ 2014"],
-        ["Mayer (giá/MA200)", nf(cy.mayer, 2), cy.mayer < 0.8 ? "up" : cy.mayer > 2.4 ? "down" : "", "< 0,8 lịch sử là vùng rẻ; > 2,4 là vùng quá nóng"],
-        pl ? ["Mô hình luỹ thừa", `$${nf(pl.fair, 0)}`, "", `Giá trị xu hướng dài hạn (power-law). Dải 5–95%: $${nf(pl.lo, 0)} – $${nf(pl.hi, 0)}. Sau 1 năm: $${nf(pl.fair_1y, 0)}`] : null,
-        pl ? ["Vị trí trong dải", nf(pl.pos, 0) + "/100", pl.pos < 25 ? "up" : pl.pos > 75 ? "down" : "", "0 = sát đáy lịch sử của mô hình, 100 = sát đỉnh"] : null])}
-      ${lineSvg([{ name: "MVRV", color: css("--brand"), pts: mvrvS.map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 150, dec: 1, hlines: [{ y: 1, label: "1 = vùng đáy", color: css("--up") }, { y: 3, label: "3 = vùng đỉnh", color: css("--down") }] })}
-      <h3>BTC 1 năm sau theo vùng MVRV <small class="muted">(từ 2014)</small></h3>
-      <div class="tw"><table><thead><tr><th class="l">MVRV</th><th>Số ngày</th><th>Trung vị 1 năm</th><th>Xác suất tăng</th></tr></thead><tbody>${zoneTbl}</tbody></table></div>
-      <p class="faint" style="font-size:.74rem">Bitcoin không có dòng tiền như cổ phiếu → định giá bằng hành vi người nắm giữ: khi giá cao gấp 3 lần giá vốn trung bình, người có lãi chốt lời ồ ạt (đỉnh); khi giá dưới giá vốn, người bán đã kiệt sức (đáy).</p>`,
-      "MVRV · giá vốn · power-law")}
-  </div>
-  <div class="g g3">
-    ${panel("💧 Thanh khoản & đòn bẩy", `${kpis([["Stablecoin lưu hành", usd(M.stable?.now), "", "Tổng cung stablecoin (USD) – 'tiền chờ' trong hệ sinh thái"], ["30 ngày", pct(M.stable?.c30, 2), cls(M.stable?.c30), "Stablecoin tăng = tiền mới vào thị trường"], ["90 ngày", pct(M.stable?.c90, 2), cls(M.stable?.c90)],
-      ["Funding TB (theo OI)", f8s(A.f8), f8c(A.f8), "Mức funding trung bình 8 giờ, gia quyền theo OI các coin"], ["Tổng OI futures", usd(A.oi), "", "Bitget + OKX + Gate + Hyperliquid (chưa gồm Binance/Bybit)"], ["OI / vốn hoá", isNum(A.oi_mc) ? nf(A.oi_mc, 2) + "%" : "—", "", "Đòn bẩy so với quy mô thị trường"],
-      ["Biến động kỳ vọng BTC (DVOL)", nf(M.dvol_btc?.now, 1), "", `Cao hơn ${nf(M.dvol_btc?.pctl, 0)}% thời gian 1 năm qua`]])}
-      ${lineSvg([{ name: "Stablecoin (tỷ USD)", color: css("--up"), pts: (M.stable?.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 120, dec: 0 })}`)}
-    ${panel("📊 Độ rộng thị trường", `${lineSvg([{ name: "% trên MA50", color: css("--brand"), pts: brS.map(([d, a]) => ({ x: fmtD(d), y: a })) }, { name: "% trên MA200", color: css("--ref"), pts: brS.map(([d, , c]) => ({ x: fmtD(d), y: c })) }], { h: 170, min: 0, max: 100, dec: 0 })}
-      <p class="faint" style="font-size:.74rem">Tỷ lệ coin (top 300 vốn hoá) đang trên đường trung bình. Dưới 20% thường là vùng đáy rộng; trên 80% là hưng phấn diện rộng.</p>`)}
-    ${panel("🔓 Mở khoá token lớn 14 ngày tới", (M.unlocks || []).length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Ngày</th><th>% lưu hành</th><th>Giá trị</th></tr></thead><tbody>${(M.unlocks || []).map((e) => `<tr><td class="l">${coinLink(e.k)}</td><td>${fmtT(e.t)}</td><td class="${e.pct >= 2 ? "down" : ""}">${nf(e.pct, 2)}%</td><td>${usd(e.usd)}<br><small class="faint">${esc((e.cats || []).join(", "))}</small></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Không có đợt mở khoá ≥ 0,5% lượng lưu hành trong 14 ngày tới (trong các dự án DefiLlama theo dõi).</p>`, "áp lực bán từ quỹ/đội ngũ")}
-  </div>
-  ${panel("🎯 Cơ hội có lợi thế lịch sử lúc này", IDS.length ? `<div class="rows">${IDS.map((x) => coinMini(x.k, `<span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? "LONG" : "SHORT"}</span> <small>${x.tf === "d" ? "ngày" : "4h"} · MT1 ${pct(x.t1_pct, 1)} · ${isNum(x.win1) ? nf(x.win1, 0) + "%" : ""} · ${isNum(x.d1) ? durTxt(x.d1, x.bd) : ""}</small>`)).join("")}</div>` : `<p class="muted">Hiện chưa có thiết lập nào có lợi thế lịch sử – đứng ngoài hoặc chờ.</p>`, `<a href="#/ideas">xem tất cả</a>`)}
+  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString("vi-VN"))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/live">Binance trực tiếp →</a></span></div>
+  <section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
+  <div class="stgs">
+    ${stGroup("Xu hướng", [
+      ["BTC", `$${nf(BT.p ?? b.price, 0)}`, `<span class="${cls(BT.r1)}">${pct(BT.r1, 2)} 24h</span>`, sgn(BT.r1), "Giá trực tiếp (Binance)", spark(b.sp), "mkBtc"],
+      ["BTC so với MA200", pct(b.dist200), `MA200 $${nf(b.ma200, 0)} · ${b.above200 ? "trên" : "dưới"} ${b.run_days} ngày`, sgn(b.dist200)],
+      ["BTC 7 / 30 / 90 ngày", `<span class="${cls(b.r7)}">${pct(b.r7, 0)}</span> <span class="${cls(b.r30)}">${pct(b.r30, 0)}</span> <span class="${cls(b.r90)}">${pct(b.r90, 0)}</span>`, `xu hướng ${b.state === "up" ? "tăng" : b.state === "down" ? "giảm" : "chuyển tiếp"} · MA50 ${b.golden ? ">" : "<"} MA200`, b.state === "up" ? 1 : b.state === "down" ? -1 : 0],
+      ["Cách đỉnh lịch sử", pct(b.from_ath), `đỉnh $${nf(b.ath, 0)}`, -1],
+      ["ETH", `$${nf((BYK.ETH || {}).p ?? E.p, 0)}`, `7n ${pct(E.r7, 0)} · 30n ${pct(E.r30, 0)}`, sgn(E.r30)],
+      ["ETH / BTC", nf(E.ethbtc, 4), `30n ${pct(E.ethbtc30, 1)} · cao hơn ${nf(E.ethbtc_pctl, 0)}% thời gian 4 năm`, sgn(E.ethbtc30), "Tỷ giá ETH so với BTC – tăng là dấu hiệu tiền chảy sang altcoin"],
+      ["Tổng vốn hoá", usd(G.total_mcap), `<span class="${cls(G.mcap_chg_24h)}">${pct(G.mcap_chg_24h, 2)} 24h</span>`, sgn(G.mcap_chg_24h)],
+      ["BTC dominance", isNum(dom.btc) ? nf(dom.btc, 1) + "%" : "—", `ETH ${nf(dom.eth, 1)}% · altcoin ${nf(100 - (dom.btc || 0) - (dom.eth || 0), 1)}%`, 0, "Tỷ trọng vốn hoá BTC – giảm thường là mùa altcoin"],
+      ["Mùa altcoin", isNum(M.alt?.idx) ? nf(M.alt.idx, 0) + "/100" : "—", M.alt?.idx >= 75 ? "mùa altcoin" : M.alt?.idx <= 25 ? "mùa Bitcoin" : `trung tính · BTC 90n ${pct(M.alt?.btc_r, 0)}`, 0, "% top 50 tăng tốt hơn BTC trong 90 ngày"]])}
+    ${stGroup("Độ rộng thị trường", [
+      ["Coin tăng 24h", `${nf(adv.up, 0)} / ${nf(adv.n, 0)}`, `${nf(adv.up / Math.max(1, adv.n) * 100, 0)}% · 7 ngày: ${nf(adv.up7 / Math.max(1, adv.n) * 100, 0)}%`, sgn(adv.up / Math.max(1, adv.n) - 0.5)],
+      ["Trên MA50 / MA200", `${nf(br.above50, 0)}% / ${nf(br.above200, 0)}%`, br.above200 < 20 ? "vùng đáy diện rộng" : br.above200 > 80 ? "hưng phấn diện rộng" : "top 300 vốn hoá", sgn(br.above200 - 50)],
+      ["Đỉnh / đáy 52 tuần", `<span class="up">${nf(X.hl52?.hi, 0)}</span> / <span class="down">${nf(X.hl52?.lo, 0)}</span>`, "số coin sát đỉnh / đáy 1 năm", sgn((X.hl52?.hi || 0) - (X.hl52?.lo || 0))],
+      ["Coin đang xu hướng tăng", `${nf(trendUp, 0)} / ${nf(liqN, 0)}`, `${nf(trendUp / Math.max(1, liqN) * 100, 0)}% có tín hiệu Long khung ngày`, sgn(trendUp / Math.max(1, liqN) - 0.4)]])}
+    ${stGroup("Định giá Bitcoin (on-chain)", [
+      ["MVRV", nf(cy.mvrv, 2), `vùng ${esc(cy.mvrv_zone || "")} · cao hơn ${nf(cy.mvrv_pctl, 0)}% lịch sử`, cy.mvrv < 1.5 ? 1 : cy.mvrv > 3 ? -1 : 0, "Vốn hoá / vốn hoá thực. <1 đáy chu kỳ, >3 đỉnh chu kỳ"],
+      ["Giá vốn toàn mạng", `$${nf(cy.realized_price, 0)}`, `giá đang cao hơn ${pct(((BT.p ?? b.price) / cy.realized_price - 1) * 100, 0)}`, 0, "Realized price – giá trung bình mà mỗi BTC được giao dịch lần cuối"],
+      ["Mayer multiple", nf(cy.mayer, 2), `giá / MA200 · cao hơn ${nf(cy.mayer_pctl, 0)}% lịch sử`, cy.mayer < 0.8 ? 1 : cy.mayer > 2.4 ? -1 : 0],
+      pl ? ["Mô hình luỹ thừa", `$${nf(pl.fair, 0)}`, `vị trí ${nf(pl.pos, 0)}/100 · 1 năm nữa $${nf(pl.fair_1y, 0)}`, pl.pos < 30 ? 1 : pl.pos > 75 ? -1 : 0, `Dải 5–95%: $${nf(pl.lo, 0)} – $${nf(pl.hi, 0)}`] : null,
+      ["Lịch sử vùng MVRV này", pct(mz.med1y, 0), `BTC 1 năm sau (trung vị) · tăng ${nf(mz.win, 0)}% số lần`, sgn(mz.med1y)]])}
+    ${stGroup("Tâm lý & đòn bẩy", [
+      ["Sợ hãi & Tham lam", `${isNum(F.now) ? F.now : "—"} · ${esc(F.zone || "")}`, `hôm qua ${X.fng_1d ?? "—"} · 7n ${X.fng_7d ?? "—"} · 30n ${X.fng_30d ?? "—"}`, F.now <= 25 ? 1 : F.now >= 75 ? -1 : 0, "", spark((F.series || []).slice(-60).map((x) => x[1]), { color: css("--brand") })],
+      ["Funding TB (theo OI)", f8s(A.f8), `${nf(X.f_pos, 0)}% coin dương · ${nf(X.f_hot_n, 0)} nóng · ${nf(X.f_neg_n, 0)} âm`, A.f8 > 0.03 ? -1 : A.f8 < 0 ? 1 : 0, "Funding 8 giờ trung bình theo OI"],
+      ["Tổng OI futures", usd(A.oi), `24h ${pct(X.oi24, 1)} · OI/vốn hoá ${nf(A.oi_mc, 2)}%`, 0, "Bitget + OKX + Gate + Hyperliquid"],
+      ["BTC funding · OI 7n", f8s(X.btc_f8), `OI ${usd(X.btc_oi)} · 7n ${pct(X.btc_oi7, 0)}`, X.btc_f8 > 0.03 ? -1 : X.btc_f8 < 0 ? 1 : 0],
+      ["BTC Long/Short (Binance)", nf(X.btc_lsr, 2), `top trader ${nf(X.btc_top, 2)} · taker mua/bán ${nf(X.btc_taker, 2)}`, X.btc_lsr > 2.5 ? -1 : X.btc_lsr < 0.9 ? 1 : 0, "Tỉ lệ tài khoản – chỉ báo ngược khi cực đoan"],
+      ["Biến động kỳ vọng (DVOL)", `BTC ${nf(M.dvol_btc?.now, 0)} · ETH ${nf(M.dvol_eth?.now, 0)}`, `BTC cao hơn ${nf(M.dvol_btc?.pctl, 0)}% thời gian 1 năm`, 0, "Deribit DVOL – kỳ vọng biến động năm hoá từ quyền chọn"],
+      ["Dòng tiền BTC (ngày)", isNum(X.btc_mf) ? `${X.btc_mf > 0 ? "+" : ""}${X.btc_mf}/100` : "—", "mua/bán chủ động, OBV, CMF", sgn(X.btc_mf, 1, 10)]])}
+    ${stGroup("Thanh khoản", [
+      ["Stablecoin lưu hành", usd(M.stable?.now), `30n ${pct(M.stable?.c30, 2)} · 90n ${pct(M.stable?.c90, 2)}`, sgn(M.stable?.c30), "Tiền chờ trong hệ sinh thái – tăng = tiền mới vào", spark((M.stable?.series || []).slice(-90).map((x) => x[1]))],
+      ["Khối lượng 24h", usd(G.total_vol), `${nf(G.total_vol / Math.max(1, G.total_mcap) * 100, 1)}% vốn hoá`, 0]])}
+  </div></section>
   <div class="g g4">
-    ${panel("🚀 Tăng mạnh 7 ngày", list(lst.gain7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
-    ${panel("🩸 Giảm mạnh 7 ngày", list(lst.lose7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
-    ${panel("🔥 Funding nóng (Long đông)", list(lst.f_hot, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`), `<a href="#/futures">xem futures</a>`)}
-    ${panel("🧊 Funding âm (Short đông)", list(lst.f_cold, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`))}
+    ${panel("Sợ hãi & Tham lam", lineSvg([{ color: css("--brand"), pts: (F.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, min: 0, max: 100, bands: [{ lo: 0, hi: 25, color: css("--up") }, { lo: 75, hi: 100, color: css("--down") }], dec: 0 }))}
+    ${panel("MVRV Bitcoin", lineSvg([{ color: css("--brand"), pts: (cy.mvrv_series || []).slice(-900).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, dec: 1, hlines: [{ y: 1, color: css("--up") }, { y: 3, color: css("--down") }] }))}
+    ${panel("Độ rộng (% trên MA50 / MA200)", lineSvg([{ color: css("--brand"), pts: (br.series || []).map(([d, a]) => ({ x: fmtD(d), y: a })) }, { color: css("--ref"), pts: (br.series || []).map(([d, , c]) => ({ x: fmtD(d), y: c })) }], { h: 130, min: 0, max: 100, dec: 0 }))}
+    ${panel("Stablecoin (tỷ USD)", lineSvg([{ color: css("--up"), pts: (M.stable?.series || []).map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, dec: 0 }))}
   </div>
   <div class="g g3">
-    ${panel("✅ Vừa vào xu hướng tăng", list(lst.trend_new, (r) => `<small>${r.td} ngày</small>`), "tín hiệu theo xu hướng – khung ngày")}
-    ${panel("💰 Định giá rẻ (có dòng tiền thật)", list(lst.cheap, (r) => `<small>P/S ${nf(r.ps, 1)}</small>`), `<a href="#/coins/cf">bảng định giá</a>`)}
-    ${panel("📈 OI tăng mạnh 7 ngày", list(lst.oi_up, (r) => `<small class="${cls(r.oi7)}">${pct(r.oi7, 0)}</small>`))}
+    ${panel(`😨 Nên làm gì lúc này (${esc(F.zone || "")})`, `<div class="play"><ul>${(P.lines || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`)}
+    ${panel(`BTC 90 ngày sau theo vùng tâm lý <small class="muted">từ ${esc((st.since || "").slice(0, 4))}</small>`, `<div class="tw"><table><thead><tr><th class="l">Vùng</th><th colspan="2">BTC trên MA200</th><th colspan="2">BTC dưới MA200</th></tr></thead><tbody>${fngTbl}</tbody></table></div><p class="faint" style="font-size:.7rem">Trung vị lợi nhuận · xác suất tăng</p>`)}
+    ${panel("BTC 1 năm sau theo vùng MVRV <small class='muted'>từ 2014</small>", `<div class="tw"><table><thead><tr><th class="l">MVRV</th><th>Số ngày</th><th>Trung vị</th><th>Tăng</th></tr></thead><tbody>${zoneTbl}</tbody></table></div>`)}
   </div>
-  ${(M.news || []).length ? panel("📰 Tin có tác động (72 giờ)", `<div class="ntfs">${M.news.map((n) => newsRow(n, true)).join("")}</div>`, "hack, huỷ niêm yết, pháp lý, niêm yết mới, ETF…") : ""}
+  <div class="g g2w">
+    ${panel("🧭 Nhóm ngành (coin có khối lượng ≥ $1 tr)", `<div class="tw"><table><thead><tr><th class="l">Nhóm</th><th>24h</th><th>7 ngày</th><th>30 ngày</th><th>Vốn hoá</th><th>Đang tăng</th><th class="l">Mạnh nhất 7n</th></tr></thead><tbody>${sec}</tbody></table></div>`, "trung vị biến động")}
+    <div>${panel("🎯 Cơ hội có lợi thế lịch sử", IDS.length ? `<div class="rows">${IDS.map((x) => coinMini(x.k, `<span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? "L" : "S"}</span> <small>${x.tf === "d" ? "ngày" : "4h"} · MT1 ${pct(x.t1_pct, 1)} · ${isNum(x.win1) ? nf(x.win1, 0) + "%" : ""} · ${isNum(x.d1) ? durTxt(x.d1, x.bd) : ""}</small>`)).join("")}</div>` : `<p class="muted">Chưa có thiết lập có lợi thế – đứng ngoài hoặc chờ.</p>`, `<a href="#/ideas">tất cả</a>`)}
+    ${panel("🔓 Mở khoá lớn 14 ngày", (M.unlocks || []).length ? `<div class="tw"><table><tbody>${(M.unlocks || []).slice(0, 10).map((e) => `<tr><td class="l">${coinLink(e.k)}</td><td>${fmtT(e.t).slice(0, 5)}</td><td class="${e.pct >= 2 ? "down" : ""}">${nf(e.pct, 2)}%</td><td>${usd(e.usd)}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Không có đợt ≥ 0,5% lưu hành.</p>`)}</div>
+  </div>
+  <div class="g g5">
+    ${panel("🚀 Tăng 7 ngày", list(lst.gain7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
+    ${panel("🩸 Giảm 7 ngày", list(lst.lose7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
+    ${panel("🔥 Funding nóng", list(lst.f_hot, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`))}
+    ${panel("🧊 Funding âm", list(lst.f_cold, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`))}
+    ${panel("📈 OI tăng 7 ngày", list(lst.oi_up, (r) => `<small class="${cls(r.oi7)}">${pct(r.oi7, 0)}</small>`))}
+    ${panel("✅ Vừa vào xu hướng tăng", list(lst.trend_new, (r) => `<small>${r.td} ngày</small>`))}
+    ${panel("💰 Định giá rẻ (dòng tiền thật)", list(lst.cheap, (r) => `<small>P/S ${nf(r.ps, 1)}</small>`))}
+    ${panel("💱 Carry funding cao", list(lst.carry, (r) => `<small class="up">${nf(r.car, 0)}%/năm</small>`))}
+  </div>
+  ${(M.news || []).length ? panel("📰 Tin có tác động (72 giờ)", `<div class="ntfs cols2">${M.news.map((n) => newsRow(n, true)).join("")}</div>`) : ""}
   ${(M.alerts || []).length ? panel("⚠️ Cảnh báo đòn bẩy", `<ul class="alerts">${M.alerts.map((a) => `<li>${coinLink(a.k, "/fut")} <b>${esc(a.t)}</b> – ${esc(a.d)}</li>`).join("")}</ul>`) : ""}
   <p class="faint disclaimer">Thông tin phân tích, không phải lời khuyên đầu tư. Crypto biến động mạnh; giao dịch đòn bẩy có thể mất toàn bộ ký quỹ.</p>`;
 }
@@ -380,8 +404,8 @@ async function viewCoin(key, sub = "") {
 }
 const BIND = {};
 // ---- biểu đồ nhiều khung: 1 phút → năm. Giá trực tiếp lấy thẳng từ Binance trên trình duyệt (Việt Nam truy cập được), dự phòng dữ liệu máy chủ
-const TFS = [["1m", "1p"], ["5m", "5p"], ["10m", "10p"], ["15m", "15p"], ["30m", "30p"], ["1h", "1h"], ["4h", "4h"], ["1d", "Ngày"], ["1w", "Tuần"], ["15d", "15 ngày"], ["1M", "Tháng"], ["3M", "Quý"], ["1y", "Năm"]];
-const TFB = { "1m": ["1m"], "5m": ["5m"], "10m": ["5m", 600], "15m": ["15m"], "30m": ["30m"], "1h": ["1h"], "4h": ["4h"], "1d": ["1d"], "1w": ["1w"], "15d": ["1d", "15d"], "1M": ["1M"], "3M": ["1M", "q"], "1y": ["1M", "y"] };
+const TFS = [["1s", "1s"], ["5s", "5s"], ["15s", "15s"], ["30s", "30s"], ["1m", "1p"], ["5m", "5p"], ["10m", "10p"], ["15m", "15p"], ["30m", "30p"], ["1h", "1h"], ["4h", "4h"], ["1d", "Ngày"], ["1w", "Tuần"], ["15d", "15 ngày"], ["1M", "Tháng"], ["3M", "Quý"], ["1y", "Năm"]];
+const TFB = { "1s": ["1s"], "3s": ["1s", 3], "5s": ["1s", 5], "15s": ["1s", 15], "30s": ["1s", 30], "1m": ["1m"], "5m": ["5m"], "10m": ["5m", 600], "15m": ["15m"], "30m": ["30m"], "1h": ["1h"], "4h": ["4h"], "1d": ["1d"], "1w": ["1w"], "15d": ["1d", "15d"], "1M": ["1M"], "3M": ["1M", "q"], "1y": ["1M", "y"] };
 const OKXB = { "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H", "4h": "4H", "1d": "1Dutc", "1w": "1Wutc", "1M": "1Mutc" };
 let CTF = lsGet("ctf2", "1d");
 const WSS = [];
@@ -404,9 +428,26 @@ function aggO(o, mode) {
   return out;
 }
 async function fetchJ(url, ms = 7000) { const r = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined }); if (!r.ok) throw new Error(r.status); return r.json(); }
-async function liveKlines(r, iv) {
+async function liveKlines(r, iv, pages = 1) {
   const lim = iv === "1M" ? 200 : iv === "1w" ? 600 : 1000;
   const tries = [];
+  if (iv === "1s") {      // nến 1 giây chỉ có ở Binance spot; ghép nhiều trang khi cần khung 15s/30s
+    if (!r.sp) return null;
+    for (const u of ["https://api.binance.com/api/v3/klines", "https://data-api.binance.vision/api/v3/klines"]) {
+      try {
+        let rows = [], end = "";
+        for (let pg = 0; pg < pages; pg++) {
+          const j = await fetchJ(`${u}?symbol=${r.sp}&interval=1s&limit=1000${end}`);
+          if (!Array.isArray(j) || !j.length) break;
+          rows = j.concat(rows); end = `&endTime=${j[0][0] - 1}`;
+          if (j.length < 1000) break;
+        }
+        const seen = new Set(); rows = rows.filter((x) => (seen.has(x[0]) ? false : seen.add(x[0]))).sort((a, b) => a[0] - b[0]);
+        if (rows.length) return { o: toO(rows, r.sm || 1), src: "Binance spot", sym: r.sp, m: r.sm || 1, kind: "spot" };
+      } catch (e) { /* thử nguồn khác */ }
+    }
+    return null;
+  }
   if (r.sp) { tries.push(["https://api.binance.com/api/v3/klines", r.sp, r.sm || 1, "spot"]); tries.push(["https://data-api.binance.vision/api/v3/klines", r.sp, r.sm || 1, "spot"]); }
   if (r.bf) tries.push(["https://fapi.binance.com/fapi/v1/klines", r.bf, r.bfm || 1, "fut"]);
   for (const [u, sym, m, kind] of tries) {
@@ -426,13 +467,13 @@ function serverO(D, tf) {
 }
 function drawO(D, el, o, tf, src) {
   el.innerHTML = "";
-  const intra = ["1m", "5m", "10m", "15m", "30m", "1h", "4h"].includes(tf);
+  const intra = ["1s", "5s", "15s", "30s", "1m", "5m", "10m", "15m", "30m", "1h", "4h"].includes(tf);
   const T = D.trend || {}, I = D.intra?.plan || {}, LV = (D.lv || {})[tf === "4h" || tf === "1h" ? "h4" : "d"] || {};
   const lines = [];
   if (!intra && T.stop) lines.push({ price: T.stop, color: css("--down"), title: "cắt lỗ xu hướng" });
   if (intra && I.entry) { lines.push({ price: I.entry, color: css("--brand"), title: "vào (lướt)" }, { price: I.stop, color: css("--down"), title: "cắt lỗ" }, { price: I.t1, color: css("--up"), title: "chốt 1" }); }
   if (lsGet("showZones", true)) (LV.sup || []).slice(0, 2).concat((LV.res || []).slice(0, 2)).forEach((z) => lines.push({ price: z.p, color: z.n >= 3 ? css("--ref") : css("--ink-3"), title: `${z.side} (${z.n})`, style: 1 }));
-  const n = o.t.length, show = { "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
+  const n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
   const ch = candleChart(el, o, { ma: ["1d", "1w"].includes(tf) ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)] });
   $("#csrc") && ($("#csrc").textContent = src);
   return ch;
@@ -441,7 +482,7 @@ async function priceChart(D, el, tf) {
   closeWs();
   const r = D.row, [base, ag] = TFB[tf] || ["1d"];
   el.innerHTML = `<p class="muted" style="padding:20px">Đang tải nến ${esc(tf)}…</p>`;
-  const L = await liveKlines(r, base);
+  const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
   if (L) {
     let raw = L.o, o = aggO(raw, ag);
     const ch = drawO(D, el, o, tf, `${L.src} ${L.sym} · trực tiếp`);
@@ -465,7 +506,7 @@ async function priceChart(D, el, tf) {
     return;
   }
   const o = serverO(D, tf);
-  if (!o || !o.t?.length) { el.innerHTML = `<p class="muted" style="padding:20px">Không lấy được nến ${esc(tf)} trực tiếp (trình duyệt không kết nối được Binance/OKX) và máy chủ chỉ có khung ngày / 4h / 1h.</p>`; return; }
+  if (!o || !o.t?.length) { el.innerHTML = `<p class="muted" style="padding:20px">${base === "1s" && !r.sp ? "Nến theo giây chỉ có cho coin niêm yết spot trên Binance. " : ""}Không lấy được nến ${esc(tf)} trực tiếp (trình duyệt không kết nối được Binance/OKX) và máy chủ chỉ có khung ngày / 4h / 1h.</p>`; return; }
   drawO(D, el, o, tf, "dữ liệu máy chủ (cập nhật 15 phút – 4 giờ)");
 }
 function livePx(k, p) {
@@ -696,6 +737,102 @@ async function viewIdeas(f0) {
   [["#iS", "side"], ["#iT", "tf"]].forEach(([id, k]) => $(id).onchange = (e) => { F[k] = e.target.value; lsSet("ifilter", F); draw(); });
   $("#iE").onchange = (e) => { F.edge = e.target.checked; lsSet("ifilter", F); draw(); };
   draw();
+}
+
+// ================================================================ BINANCE TRỰC TIẾP – toàn bộ cặp spot + perp, cập nhật mỗi giây
+const LV = { rows: new Map(), ws: [], timer: null, sort: lsGet("lvsort", { k: "qv", d: -1 }), q: "", all: false, both: false, st: { spot: "…", fut: "…" } };
+function lvRow(base) { let r = LV.rows.get(base); if (!r) { r = { base, hist: [] }; LV.rows.set(base, r); } return r; }
+function lvChg(r, sec) { const h = r.hist; if (!h.length || r.p == null) return null; const t0 = Date.now() / 1000 - sec; if (h[0][0] > t0 + 5) return null; let p0 = h[0][1]; for (const [t, p] of h) { if (t <= t0) p0 = p; else break; } return (r.p / p0 - 1) * 100; }
+function lvPush(r, p) { const t = Date.now() / 1000; r.p = p; const h = r.hist; if (!h.length || t - h[h.length - 1][0] >= 1) h.push([t, p]); while (h.length && h[0][0] < t - 960) h.shift(); }
+function lvClose() { LV.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); LV.ws = []; clearInterval(LV.timer); LV.timer = null; }
+const keyOfBase = (() => { let m = null; return (base, kind) => { if (!m) { m = { spot: {}, fut: {} }; (COINS?.rows || []).forEach((r) => { if (r.sp) m.spot[r.sp.replace(/USDT$/, "")] = r.k; if (r.bf) m.fut[r.bf.replace(/USDT$/, "")] = r.k; }); } return m[kind][base]; }; })();
+async function viewLive() {
+  await coins();
+  lvClose();
+  app().innerHTML = `<div class="ph"><h1>Binance trực tiếp</h1><span class="meta">mọi cặp USDT spot + hợp đồng vĩnh cửu USDT-M · giá từng giây, lấy thẳng từ Binance trên trình duyệt của anh
+    · spot <b id="lvS">${LV.st.spot}</b> · futures <b id="lvF">${LV.st.fut}</b></span></div>
+    <div class="g g3" id="lvMov"></div>
+    <div class="filters"><div class="field"><label>Tìm</label><input id="lvQ" placeholder="BTC, SOL…"></div>
+      <label class="chk"><input type="checkbox" id="lvB"> Chỉ cặp có cả spot và perp</label><label class="chk"><input type="checkbox" id="lvA"> Hiện tất cả (mặc định 250 cặp khối lượng lớn nhất)</label>
+      <small class="faint" id="lvN"></small></div>
+    <div class="tw sticky" id="lvT"></div>
+    <p class="faint" style="font-size:.72rem">1p / 5p / 15p = biến động trong 1, 5, 15 phút gần nhất – tính từ lúc anh mở trang (cần mở đủ lâu). Basis = giá mark perp so với giá chỉ số spot. Funding = mức kỳ tới (đa số kỳ 8 giờ). Bấm tên coin để mở phân tích (coin có trong hệ thống).</p>`;
+  const set = (id, v) => { LV.st[id === "lvS" ? "spot" : "fut"] = v; const e = $("#" + id); if (e) e.innerHTML = v; };
+  const ok = '<span class="up">● đang chạy</span>', bad = '<span class="down">● không kết nối được</span>';
+  // ảnh chụp ban đầu
+  try {
+    const t = await fetchJ("https://api.binance.com/api/v3/ticker/24hr", 12000).catch(() => fetchJ("https://data-api.binance.vision/api/v3/ticker/24hr", 12000));
+    t.filter((x) => x.symbol.endsWith("USDT") && +x.quoteVolume > 0).forEach((x) => { const r = lvRow(x.symbol.slice(0, -4)); r.sp = x.symbol; r.r24 = +x.priceChangePercent; r.qv = +x.quoteVolume; r.hi = +x.highPrice; r.lo = +x.lowPrice; r.o24 = +x.openPrice; lvPush(r, +x.lastPrice); });
+    set("lvS", ok);
+  } catch (e) { set("lvS", bad); }
+  try {
+    const [t, pi] = await Promise.all([fetchJ("https://fapi.binance.com/fapi/v1/ticker/24hr", 12000), fetchJ("https://fapi.binance.com/fapi/v1/premiumIndex", 12000)]);
+    t.filter((x) => x.symbol.endsWith("USDT")).forEach((x) => { const r = lvRow(x.symbol.slice(0, -4)); r.fs = x.symbol; r.fp = +x.lastPrice; r.fqv = +x.quoteVolume; r.fr24 = +x.priceChangePercent; if (!r.sp) lvPush(r, +x.lastPrice); });
+    pi.filter((x) => x.symbol.endsWith("USDT")).forEach((x) => { const r = lvRow(x.symbol.slice(0, -4)); r.fr = +x.lastFundingRate * 100; r.mk = +x.markPrice; r.ix = +x.indexPrice; r.nf = +x.nextFundingTime; });
+    set("lvF", ok);
+  } catch (e) { set("lvF", bad); }
+  // nạp sẵn 15 phút gần nhất (nến 1 phút) cho ~100 cặp lớn nhất → cột 1p/5p/15p có số ngay
+  (async () => {
+    const top = [...LV.rows.values()].filter((r) => r.sp).sort((a, b) => (b.qv || 0) - (a.qv || 0)).slice(0, 100);
+    for (let i = 0; i < top.length; i += 10) {
+      if (!location.hash.startsWith("#/live")) return;
+      await Promise.all(top.slice(i, i + 10).map(async (r) => {
+        try { const j = await fetchJ(`https://api.binance.com/api/v3/klines?symbol=${r.sp}&interval=1m&limit=16`, 6000);
+          const seed = j.map((x) => [x[0] / 1000, +x[1]]); r.hist = seed.concat(r.hist.filter((h) => h[0] > (seed[seed.length - 1]?.[0] || 0))); } catch (e) { /* bỏ qua */ }
+      }));
+    }
+  })();
+  // websocket
+  const open = (url, on, id) => { try { const w = new WebSocket(url); w.onmessage = on; w.onopen = () => set(id, ok); w.onerror = () => set(id, bad); w.onclose = () => { if (location.hash.startsWith("#/live")) setTimeout(() => { if (location.hash.startsWith("#/live")) open(url, on, id); }, 5000); }; LV.ws.push(w); } catch (e) { set(id, bad); } };
+  open("wss://stream.binance.com:9443/ws/!miniTicker@arr", (ev) => { const a = JSON.parse(ev.data); a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.sp = x.s; r.o24 = +x.o; r.hi = +x.h; r.lo = +x.l; r.qv = +x.q; lvPush(r, +x.c); r.r24 = (+x.c / +x.o - 1) * 100; r.tk = Date.now(); }); }, "lvS");
+  open("wss://fstream.binance.com/stream?streams=!miniTicker@arr/!markPrice@arr@1s", (ev) => { const m = JSON.parse(ev.data); const a = m.data || [];
+    if ((m.stream || "").startsWith("!markPrice")) a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.mk = +x.p; r.ix = +x.i; r.fr = +x.r * 100; r.nf = +x.T; });
+    else a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.fs = x.s; r.fp = +x.c; r.fqv = +x.q; r.fr24 = (+x.c / +x.o - 1) * 100; if (!r.sp) { lvPush(r, +x.c); r.tk = Date.now(); } }); }, "lvF");
+  $("#lvQ").oninput = (e) => { LV.q = e.target.value.trim().toUpperCase(); drawLive(true); };
+  $("#lvB").onchange = (e) => { LV.both = e.target.checked; drawLive(true); };
+  $("#lvA").onchange = (e) => { LV.all = e.target.checked; drawLive(true); };
+  drawLive(true);
+  let n = 0;
+  LV.timer = setInterval(() => { if (!location.hash.startsWith("#/live")) { lvClose(); return; } n++; drawLive(n % 5 === 0); }, 1000);
+}
+const LVC = [["base", "Coin", "l"], ["p", "Giá"], ["c1", "1p"], ["c5", "5p"], ["c15", "15p"], ["r24", "24h"], ["rng", "Vị trí 24h"], ["qv", "KL spot 24h"], ["fqv", "KL perp 24h"], ["basis", "Basis"], ["fr", "Funding"], ["nf", "Kỳ tới"]];
+function lvVals(r) {
+  return { base: r.base, p: r.p, c1: lvChg(r, 60), c5: lvChg(r, 300), c15: lvChg(r, 900), r24: r.r24 ?? r.fr24, rng: r.hi > r.lo ? (r.p - r.lo) / (r.hi - r.lo) * 100 : null, qv: r.qv, fqv: r.fqv,
+    basis: r.mk && r.ix ? (r.mk / r.ix - 1) * 100 : null, fr: r.fr, nf: r.nf };
+}
+function drawLive(resort) {
+  const T = $("#lvT"); if (!T) return;
+  let rows = [...LV.rows.values()].filter((r) => r.p && (!LV.q || r.base.includes(LV.q)) && (!LV.both || (r.sp && r.fs)));
+  const vals = new Map(rows.map((r) => [r.base, lvVals(r)]));
+  if (resort || !T.firstChild) {
+    const { k, d } = LV.sort;
+    rows.sort((a, b) => { const x = vals.get(a.base)[k], y = vals.get(b.base)[k]; if (k === "base") return String(x).localeCompare(String(y)) * d; if (!isNum(x) && !isNum(y)) return 0; if (!isNum(x)) return 1; if (!isNum(y)) return -1; return (x - y) * d; });
+    if (!LV.all && !LV.q) rows = rows.filter((r) => ((r.qv || 0) + (r.fqv || 0)) > 0).sort((a, b) => ((b.qv || 0) + (b.fqv || 0)) - ((a.qv || 0) + (a.fqv || 0))).slice(0, 250).sort((a, b) => rows.indexOf(a) - rows.indexOf(b));
+    LV.order = rows.map((r) => r.base);
+    T.innerHTML = `<table class="sortable lvt"><thead><tr>${LVC.map(([c, n, l]) => `<th data-s="${c}" class="${l || ""} ${LV.sort.k === c ? "on" : ""}">${n}${LV.sort.k === c ? (LV.sort.d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${LV.order.map((b) => `<tr data-b="${b}">${LVC.map(([c, , l]) => `<td class="${l || ""}" data-c="${c}"></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+    $$("th[data-s]", T).forEach((th) => th.onclick = () => { const c = th.dataset.s; LV.sort = { k: c, d: LV.sort.k === c ? -LV.sort.d : (c === "base" ? 1 : -1) }; lsSet("lvsort", LV.sort); drawLive(true); });
+    $("#lvN").textContent = `${nf(LV.rows.size, 0)} cặp đang theo dõi`;
+  }
+  const now = Date.now();
+  $$("tbody tr", T).forEach((tr) => {
+    const r = LV.rows.get(tr.dataset.b), v = vals.get(tr.dataset.b) || lvVals(r);
+    const td = tr.children, k = keyOfBase(r.base, r.sp ? "spot" : "fut");
+    const fresh = r.tk && now - r.tk < 1500;
+    td[0].innerHTML = k ? `<a href="#/c/${enc(k)}"><b>${esc(r.base)}</b></a>${r.fs ? ' <small class="faint">perp</small>' : ""}` : `<b>${esc(r.base)}</b>${r.fs ? ' <small class="faint">perp</small>' : ""}${!r.sp ? ' <small class="faint">chỉ perp</small>' : ""}`;
+    td[1].textContent = px(v.p); td[1].className = fresh ? "flash" : "";
+    [[2, "c1", 2], [3, "c5", 2], [4, "c15", 2], [5, "r24", 1]].forEach(([i, c, dd]) => { td[i].textContent = isNum(v[c]) ? pct(v[c], dd) : "—"; td[i].className = cls(v[c]) + (Math.abs(v[c] || 0) >= (c === "c1" ? 1 : c === "c5" ? 2 : 4) ? " big" : ""); });
+    td[6].innerHTML = isNum(v.rng) ? `<span class="rngb"><i style="left:${Math.max(0, Math.min(100, v.rng))}%"></i></span>` : "—";
+    td[7].textContent = usd(v.qv); td[8].textContent = usd(v.fqv);
+    td[9].textContent = isNum(v.basis) ? pct(v.basis, 3) : "—"; td[9].className = cls(v.basis);
+    td[10].textContent = isNum(v.fr) ? f8s(v.fr) : "—"; td[10].className = f8c(v.fr);
+    td[11].textContent = v.nf ? (() => { const m = Math.max(0, Math.round((v.nf - now) / 60000)); return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`; })() : "—";
+  });
+  // biến động mạnh
+  const all = [...LV.rows.values()].filter((r) => r.p && ((r.qv || 0) + (r.fqv || 0)) > 3e6);
+  const top = (fn, n = 8) => all.map((r) => [r, fn(r)]).filter(([, x]) => isNum(x)).sort((a, b) => b[1] - a[1]).slice(0, n);
+  const box = (title, L, dd = 2) => panel(title, L.length ? `<div class="rows">${L.map(([r, x]) => { const k = keyOfBase(r.base, r.sp ? "spot" : "fut"); return `<a class="row" ${k ? `href="#/c/${enc(k)}"` : ""}><div class="rm"><b>${esc(r.base)}</b></div><div class="rv"><span>${px(r.p)}</span></div><div class="rx ${cls(x)}">${pct(x, dd)}</div></a>`; }).join("")}</div>` : `<p class="muted">Đang tích luỹ dữ liệu…</p>`);
+  const mv = $("#lvMov");
+  if (mv && (resort || !mv.firstChild)) mv.innerHTML = box("⚡ Tăng mạnh 5 phút", top((r) => lvChg(r, 300))) + box("⚡ Giảm mạnh 5 phút", top((r) => { const x = lvChg(r, 300); return x == null ? null : -x; }).map(([r, x]) => [r, -x])) + box("🔥 Funding cao nhất / thấp nhất", top((r) => r.fr, 4).concat(top((r) => (r.fr == null ? null : -r.fr), 4).map(([r, x]) => [r, -x])), 4);
 }
 
 // ---- dữ liệu lượt nhanh (15 phút) qua /api/intraday
