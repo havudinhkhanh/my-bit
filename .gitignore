@@ -1,5 +1,6 @@
-data/
+/data/
+/site/data/
+/snap/
 __pycache__/
 *.pyc
 wrangler.toml
-snap/
