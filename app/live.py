@@ -127,6 +127,7 @@ def run(notify: bool = False) -> dict:
                     cj = {}
                 for k, (p, _) in prices.items():
                     rows[k] = {**(cj.get(k) or {}), "p": p}
+                rows["_light"] = cj.get("_light")
                 for u in us:
                     it = nt.items_for((u.get("data") or {}).get("portfolio") or {}, rows, {})
                     users.deliver(be, cfg, u, it, "MyBit – cảnh báo")

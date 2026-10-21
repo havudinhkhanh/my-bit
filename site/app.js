@@ -14,7 +14,8 @@ const cls = (x) => (!isNum(x) ? "" : x > 0 ? "up" : x < 0 ? "down" : "ref");
 const pdec = (x) => { const a = Math.abs(Number(x)); return a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 5 : a > 0 ? Math.min(10, Math.ceil(-Math.log10(a)) + 3) : 2; };
 const px = (x) => (isNum(x) ? nf(x, pdec(x)) : "—");
 const usd = (x, d = 1) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return a >= 1e12 ? `${s}$${nf(a / 1e12, 2)} nghìn tỷ` : a >= 1e9 ? `${s}$${nf(a / 1e9, d + 1)} tỷ` : a >= 1e6 ? `${s}$${nf(a / 1e6, d)} tr` : a >= 1e3 ? `${s}$${nf(a / 1e3, d)} k` : `${s}$${nf(a, 0)}`; };
-const qty = (x) => (isNum(x) ? (Math.abs(x) >= 1000 ? nf(x, 0) : Math.abs(x) >= 1 ? nf(x, 3) : nf(x, 6)) : "—");
+const QF = {};
+const qty = (x) => { if (!isNum(x)) return "—"; const a = Math.abs(x), d = a >= 1000 ? 0 : a >= 1 ? 3 : 6; return (QF[d] || (QF[d] = new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: d }))).format(Number(x)); };
 const CSSV = {};
 const css = (v) => { const k = (document.documentElement.dataset.theme || "") + v; return k in CSSV ? CSSV[k] : (CSSV[k] = getComputedStyle(document.documentElement).getPropertyValue(v).trim()); };
 const enc = encodeURIComponent;
@@ -387,6 +388,7 @@ async function viewCoin(key, sub = "") {
   await coins();
   const D = await load(`data/c/${enc(key)}.json`);
   D._ij = await tryLoad("data/ideas.json");
+  if (!PF) await pfLoad().catch(() => null);
   const r = D.row;
   app().innerHTML = `<div class="ph stk"><h1>${esc(key)} <small class="muted">${esc(r.n || "")}</small></h1>
     <span class="meta"><b id="lp" data-k="${esc(key)}" class="lp">${px(r.p)}</b> <b class="${cls(r.r1)}">${pct(r.r1)}</b> · ${r.rk ? `hạng #${r.rk}` : "ngoài top CoinGecko"} · ${esc(r.g || "")} ${r.spot ? pill("Spot Binance", "brand") : ""} ${r.fx ? pill("Futures: " + esc(r.fx), "") : ""}
@@ -634,7 +636,7 @@ function sizeBox(entry, stop, lev, id) {
 }
 function tabPlan(D) {
   const T = D.trend || {}, I = D.intra || {}, P = I.plan, H = D.hedge || {}, B = D.bt || {}, r = D.row;
-  const maxL = Number(setting("maxlev", 3)), maxI = Number(setting("maxlevi", 5));
+  const maxL = levGov({ ...r, atr: r.atr ?? T.atr_pct }, T.side === "short" ? "short" : "long", "d", T.stop_pct).cap, maxI = levGov({ ...r, atr: r.atr ?? T.atr_pct }, P?.side || "long", "h4", P?.risk_pct).cap;
   const btRow = (b, n) => b && b.cagr != null ? `<tr><td class="l">${n}</td><td class="${cls(b.cagr)}">${pct(b.cagr, 0)}</td><td class="down">${pct(b.mdd, 0)}</td><td>${nf(b.trades, 0)}</td><td>${isNum(b.win) ? nf(b.win, 0) + "%" : "—"}</td><td>${nf(b.expo, 0)}%</td><td class="${cls(b.r1y)}">${pct(b.r1y, 0)}</td></tr>` : "";
   const trendBox = T.state == null ? `<p class="muted">Chưa đủ lịch sử giá.</p>` : `
     <p>${T.state === 1 ? `<b class="up">Đang có tín hiệu Long</b> (${T.days} ngày)` : T.state === -1 ? (T.side === "short" ? `<b class="down">Đang có tín hiệu Short</b> (${T.days} ngày)` : `<b class="down">Xu hướng giảm</b> – Short bị chặn vì BTC còn trên MA200`) : "<b>Không có tín hiệu</b> – đứng ngoài"}.
@@ -722,25 +724,65 @@ function ideaCards(list) {
     <a class="btn" href="#/plan/${enc(x.k)}">Lên lệnh: khối lượng & đòn bẩy →</a></div>`).join("")}</div>`;
 }
 
+// ================================================================ KIỂM SOÁT ĐÒN BẨY (hệ thống quyết định – anh không tự nâng được)
+// Quy tắc giống hệt app/analysis/risk.py (dùng cho cảnh báo gửi về điện thoại)
+const GOV = {
+  base: { d: { green: 3, yellow: 2, red: 1 }, h4: { green: 5, yellow: 3, red: 2 } },
+  shortRed: { d: 2, h4: 3 },
+  portLev: { green: 1.5, yellow: 1.0, red: 0.6 },     // tổng giá trị vị thế ròng / tài sản
+  marginMax: 0.5, maxPos: 5, riskMax: 2,
+};
+function govLight() { return COINS?.light || "yellow"; }
+function govDD() { const eq = PF?.eq, pk = PF?.peak; return isNum(eq) && isNum(pk) && pk > 0 ? Math.max(0, (1 - eq / pk) * 100) : 0; }
+function levGov(r, side, tf, stopPct, opts = {}) {
+  const light = govLight(), why = [];
+  const tfk = tf === "d" ? "d" : "h4";
+  let cap = side === "short" && light === "red" ? GOV.shortRed[tfk] : GOV.base[tfk][light];
+  why.push(`Thị trường đèn ${LIGHT_VI[light] || light}, kiểu ${tfk === "d" ? "swing" : "lướt"} ${side === "long" ? "Long" : "Short"}: tối đa x${cap}`);
+  const atr = r.atr ?? opts.atr;
+  if (isNum(atr)) { const v = atr <= 3 ? 10 : atr <= 5 ? 5 : atr <= 8 ? 3 : atr <= 12 ? 2 : 1; if (v < cap) { cap = v; why.push(`Biến động ngày ${nf(atr, 1)}% → tối đa x${v}`); } }
+  const mc = r.mc || 0, big = r.k === "BTC" || r.k === "ETH";
+  const tier = big ? 10 : mc >= 1e10 ? 5 : mc >= 1e9 ? 3 : mc >= 2e8 ? 2 : 1;
+  if (tier < cap) { cap = tier; why.push(mc ? `Vốn hoá ${usd(mc)} → tối đa x${tier}` : `Coin không có dữ liệu vốn hoá → chỉ x1`); }
+  const cr = r.cr || [];
+  if ((side === "long" && cr.includes("long_crowded")) || (side === "short" && cr.includes("short_crowded"))) { cap = Math.max(1, cap - 1); why.push(`Phe ${side === "long" ? "Long" : "Short"} đang quá đông → giảm 1 bậc`); }
+  if (isNum(stopPct) && stopPct > 0) { const mmr = mc < 1e9 ? 0.01 : 0.005, l = Math.max(1, Math.floor(1 / (2.2 * stopPct / 100 + mmr + 0.002))); if (l < cap) { cap = l; why.push(`Cắt lỗ ${nf(stopPct, 1)}% → giá thanh lý phải xa gấp 2,2 lần → tối đa x${l}`); } }
+  if (isNum(r.ml) && r.ml < cap) { cap = r.ml; why.push(`Sàn chỉ cho tối đa x${r.ml}`); }
+  const dd = govDD();
+  let riskMul = 1;
+  if (dd >= 20) { cap = 1; riskMul = 0.25; why.push(`Tài khoản đang sụt ${nf(dd, 0)}% so với đỉnh → khoá đòn bẩy (chỉ x1), rủi ro còn 1/4`); }
+  else if (dd >= 10) { cap = Math.min(cap, 2); riskMul = 0.5; why.push(`Tài khoản đang sụt ${nf(dd, 0)}% so với đỉnh → tối đa x2, rủi ro giảm 1/2`); }
+  if (light === "red" && side === "long") riskMul *= 0.5; else if (light === "yellow") riskMul *= 0.75;
+  const risk = Math.min(GOV.riskMax, setting("risk", 1)) * riskMul;
+  return { cap: Math.max(1, Math.floor(cap)), why, risk, dd, light };
+}
+// vị thế hiện có: tổng đòn bẩy ròng, ký quỹ, số lệnh
+function pfExposure() {
+  if (!PF) return null;
+  let spot = 0, cash = Number(PF.cash || 0), net = 0, margin = 0, pnl = 0, n = 0;
+  (PF.holdings || []).forEach((h) => { const p = BYK?.[h.symbol]?.p; if (isNum(p)) { spot += h.qty * p; net += h.qty * p; } });
+  (PF.futures || []).forEach((f) => { const p = BYK?.[f.symbol]?.p; if (!isNum(p)) return; const sd = f.side === "short" ? -1 : 1; net += sd * f.qty * p; margin += f.qty * f.entry / (f.lev || 1); pnl += sd * f.qty * (p - f.entry); n++; });
+  const eq = spot + cash + margin + pnl;
+  return { eq, net, margin, n, eff: eq > 0 ? Math.abs(net) / eq : 0, cap: GOV.portLev[govLight()] };
+}
+
 // ================================================================ LÊN LỆNH: quyết định – giá vào – cắt lỗ – mục tiêu – khối lượng – đòn bẩy – thời gian thoát
 const FEE1 = 0.0005;
 const VERD = { go: ["VÀO NGAY", "buy"], limit: ["ĐẶT LỆNH CHỜ", "brand"], watch: ["CHỈ THEO DÕI", "warn"], no: ["KHÔNG VÀO", "sell"] };
 function poolStat(IJ, tf, setup, btcUp) { const x = IJ?.stats?.[tf]?.[setup]; return x ? (x[btcUp ? "up" : "down"] || x.all || null) : null; }
 // t: { side, tf, e, s, t1, t2, p1, p2, d1, d1_hi, d2, src, setup, edge }  → tính khối lượng, đòn bẩy, chi phí, kỳ vọng
 function finishTicket(D, t) {
-  const r = D.row, acct = setting("acct", 10000), rk = setting("risk", 1);
+  const r = D.row, X = pfExposure(), acct = X && X.eq > 0 && (PF.holdings?.length || PF.futures?.length || PF.cash) ? X.eq : setting("acct", 10000);
   const sd = t.side === "long" ? 1 : -1, e = t.e, s = t.s;
   const stopPct = Math.abs(e - s) / e;
   t.r1 = Math.abs(t.t1 - e) / Math.abs(e - s); t.r2 = Math.abs(t.t2 - e) / Math.abs(e - s);
   t.rrBlend = 0.5 * t.r1 + 0.5 * t.r2;
+  const G = levGov({ ...r, atr: r.atr ?? D.trend?.atr_pct }, t.side, t.tf, stopPct * 100);
+  const rk = G.risk;
   const riskUsd = acct * rk / 100, qtyC = riskUsd / Math.abs(e - s), notional = qtyC * e;
   const smallCap = (r.mc || 0) < 1e9, mmr = smallCap ? 0.01 : 0.005;
-  const atrD = (D.trend?.atr_pct || 5) / 100;
-  const Lliq = Math.max(1, Math.floor(1 / (2.2 * stopPct + mmr + 0.002)));          // thanh lý phải xa gấp ≥ 2,2 lần khoảng cắt lỗ
-  const Lstyle = t.tf === "d" ? setting("maxlev", 3) : setting("maxlevi", 5);
-  const Lvol = atrD > 0.10 ? 2 : atrD > 0.06 ? 3 : 10;
-  const Lex = r.ml || 20;
-  const Lmax = Math.max(1, Math.min(Lliq, Lstyle, Lvol, Lex));
+  const Lmax = G.cap;
+  t.gov = G;
   const marginCap = 0.25 * acct;                                                    // ký quỹ 1 lệnh ≤ 25% vốn
   const Lneed = notional / marginCap;
   const canSpot = sd === 1 && r.spot;
@@ -748,6 +790,13 @@ function finishTicket(D, t) {
   if (canSpot && notional <= marginCap * 1.2) { mode = "spot"; lev = 1; }
   else if (!r.fx) { mode = canSpot ? "spot" : "none"; lev = 1; if (canSpot && notional > marginCap) { q = marginCap / e; capped = true; } }
   else { mode = "perp"; lev = Math.min(Lmax, Math.max(1, Math.ceil(Lneed * 10) / 10)); lev = Math.max(1, Math.round(lev)); if (notional / lev > marginCap) { q = marginCap * lev / e; capped = true; } }
+  const XX = X && X.eq > 0 ? X : { eq: acct, net: 0, margin: 0, n: 0, cap: GOV.portLev[govLight()] };
+  { const X = XX;                            // giới hạn tổng: đòn bẩy ròng danh mục & ký quỹ & số lệnh
+    const room = Math.max(0, X.cap * X.eq - sd * X.net);
+    if (q * e > room) { q = room / e; capped = true; G.why.push(`Tổng vị thế ròng tối đa ${nf(X.cap, 1)} lần tài sản (đèn ${LIGHT_VI[G.light]}) → chỉ còn chỗ ${usd(room)}`); }
+    if (mode === "perp") { const mroom = Math.max(0, GOV.marginMax * X.eq - X.margin); if (q * e / lev > mroom) { q = mroom * lev / e; capped = true; G.why.push(`Tổng ký quỹ tối đa 50% tài sản → còn ${usd(mroom)}`); } }
+    if (mode === "perp" && X.n >= GOV.maxPos) { q = 0; G.why.push(`Đã có ${X.n} vị thế futures (tối đa ${GOV.maxPos}) – đóng bớt trước khi mở lệnh mới`); }
+  }
   const N = q * e, margin = N / lev, liq = mode === "perp" ? liqPrice(t.side, e, lev, mmr) : null;
   const holdDays = (t.d1 || 3) * (t.tf === "d" ? 1 : 1 / 6);
   const f8 = r.f8 || 0, fundUsd = mode === "perp" ? -sd * N * f8 / 100 * 3 * holdDays : 0;       // dương = được nhận
@@ -755,7 +804,7 @@ function finishTicket(D, t) {
   const costR = (feeUsd - fundUsd) / Math.max(1e-9, riskReal);
   const p1 = (t.p1 ?? 40) / 100, p2 = Math.min(p1, (t.p2 ?? (t.p1 ?? 40) * 0.45) / 100);
   const evR = isNum(t.avgR) ? t.avgR : p2 * (0.5 * t.r1 + 0.5 * t.r2) + (p1 - p2) * (0.5 * t.r1) - (1 - p1) - costR;
-  Object.assign(t, { acct, rk, stopPct: stopPct * 100, q, N, margin, marginPct: margin / acct * 100, lev, Lmax, Lliq, mode, liq, liqDist: liq ? Math.abs(liq / e - 1) * 100 : null,
+  Object.assign(t, { acct, rk, govRisk: G.risk, stopPct: stopPct * 100, q, N, margin, marginPct: margin / acct * 100, lev, Lmax, mode, liq, liqDist: liq ? Math.abs(liq / e - 1) * 100 : null,
     riskUsd: riskReal, riskPct: riskReal / acct * 100, feeUsd, fundUsd, costR, evR, evUsd: evR * riskReal, capped, mmr, holdDays,
     win1Usd: q * Math.abs(t.t1 - e) * 0.5 + 0, win2Usd: q * Math.abs(t.t2 - e) * 0.5,
     ex: r.bf ? "Binance" : (D.venues || [])[0]?.ex || "—" });
@@ -840,6 +889,7 @@ function makeTicket(D, IJ, opt = {}) {
   else if (t.edge || (t.evR > 0.05 && warn.length <= 3)) v = t.order === "limit" || !t.edge ? "limit" : "go";
   else v = "watch";
   if (warn.some((w) => w.startsWith("Có tin xấu")) && v === "go") v = "watch";
+  if (!(t.q > 0)) { v = "no"; warn.unshift("Danh mục đã chạm giới hạn rủi ro của hệ thống – không mở thêm lệnh"); }
   t.verdict = v; t.warn = warn; t.notes = notes; t.price = price; t.k = r.k;
   const now = Date.now();
   t.eta1 = now + (t.d1 || 0) * t.tf_bd * 86400e3; t.eta2 = now + (t.d2 || 0) * t.tf_bd * 86400e3; t.tstop = now + (t.d1_hi || t.d1 * 2 || 0) * t.tf_bd * 86400e3;
@@ -850,7 +900,7 @@ const dt = (ms) => new Date(ms).toLocaleString("vi-VN", { weekday: "short", day:
 function ticketCard(t, opts = {}) {
   if (!t || t.none) return `<div class="ticket"><div class="tk-h"><span class="pill sell">KHÔNG VÀO</span> <b>${esc(t?.k || "")}</b></div><p>${esc(t?.reason || "Không đủ dữ liệu.")}</p></div>`;
   const [vt, vc] = VERD[t.verdict], L = t.side === "long";
-  const modeTxt = t.mode === "spot" ? `<b>Mua spot</b> – không cần đòn bẩy` : t.mode === "perp" ? `<b>Perp ${L ? "Long" : "Short"} x${t.lev}</b> <small>(tối đa an toàn x${t.Lmax})</small>` : "—";
+  const modeTxt = t.mode === "spot" ? `<b>Mua spot</b> – không cần đòn bẩy` : t.mode === "perp" ? `<b>Perp ${L ? "Long" : "Short"} x${t.lev}</b> ` : "—";
   return `<div class="ticket ${t.side}">
     <div class="tk-h"><span class="pill ${vc} big">${vt}</span> ${coinLink(t.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${L ? "LONG" : "SHORT"}</span> <span class="pill">${t.tf === "d" ? "Swing – khung ngày" : "Lướt – khung 4h"}</span> ${t.edge ? '<span class="pill brand">có lợi thế lịch sử</span>' : ""}
       <small class="muted">giá hiện tại ${px(t.price)}</small></div>
@@ -858,10 +908,11 @@ function ticketCard(t, opts = {}) {
       <div class="tk-b"><h4>① Giá vào</h4><p class="tk-v">${px(t.e)}</p><small>${t.order === "market" ? "Vào ngay (lệnh thị trường / giới hạn sát giá)" : `Đặt lệnh chờ ${L ? "mua" : "bán"} – cách giá hiện tại ${pct((t.e / t.price - 1) * 100, 1)}`}</small></div>
       <div class="tk-b"><h4>② Cắt lỗ</h4><p class="tk-v down">${px(t.s)}</p><small>−${nf(t.stopPct, 2)}% · lỗ tối đa ${usd(t.riskUsd)} (${nf(t.riskPct, 2)}% vốn)</small></div>
       <div class="tk-b"><h4>③ Chốt lời</h4><p class="tk-v up">${px(t.t1)} <small>→</small> ${px(t.t2)}</p><small>MT1 ${pct((t.t1 / t.e - 1) * 100, 1)} · <b>R:R ${nf(t.r1, 1)}</b> | MT2 ${pct((t.t2 / t.e - 1) * 100, 1)} · <b>R:R ${nf(t.r2, 1)}</b></small></div>
-      <div class="tk-b"><h4>④ Khối lượng & đòn bẩy</h4><p class="tk-v">${modeTxt}</p><small>${qty(t.q)} ${esc(t.k)} · giá trị ${usd(t.N)} · ký quỹ ${usd(t.margin)} (${nf(t.marginPct, 0)}% vốn)${t.liq ? ` · thanh lý ${px(t.liq)} (cách ${nf(t.liqDist, 1)}%, xa gấp ${nf(t.liqDist / t.stopPct, 1)} lần cắt lỗ)` : ""} · sàn gợi ý: ${esc(t.ex)}${t.mode === "spot" && D_FX(t) ? ` · <i>hoặc perp x${t.Lmax} nếu muốn giữ tiền: ký quỹ ${usd(t.N / t.Lmax)}, thanh lý ${px(liqPrice(t.side, t.e, t.Lmax, t.mmr))}</i>` : ""}</small></div>
+      <div class="tk-b"><h4>④ Khối lượng & đòn bẩy <span class="pill brand" title="Do hệ thống kiểm soát">hệ thống cho tối đa x${t.Lmax}</span></h4><p class="tk-v">${modeTxt}</p><small>${qty(t.q)} ${esc(t.k)} · giá trị ${usd(t.N)} · ký quỹ ${usd(t.margin)} (${nf(t.marginPct, 0)}% vốn)${t.liq ? ` · thanh lý ${px(t.liq)} (cách ${nf(t.liqDist, 1)}%, xa gấp ${nf(t.liqDist / t.stopPct, 1)} lần cắt lỗ)` : ""} · sàn gợi ý: ${esc(t.ex)}${t.mode === "spot" && D_FX(t) ? ` · <i>hoặc perp x${t.Lmax} nếu muốn giữ tiền: ký quỹ ${usd(t.N / t.Lmax)}, thanh lý ${px(liqPrice(t.side, t.e, t.Lmax, t.mmr))}</i>` : ""}</small></div>
       <div class="tk-b"><h4>⑤ Khi nào ra</h4><p class="tk-v">MT1 ${durTxt(t.d1, t.tf_bd)}</p><small>dự kiến ${dt(t.eta1)} · MT2 ${durTxt(t.d2, t.tf_bd)} (${dt(t.eta2)}) · <b>quá ${dt(t.tstop)} chưa chạm MT1 → thoát</b> (hết thời gian kỳ vọng)</small></div>
       <div class="tk-b"><h4>⑥ Kỳ vọng</h4><p class="tk-v ${cls(t.evR)}">${t.evR > 0 ? "+" : ""}${nf(t.evR, 2)}R <small>≈ ${usd(t.evUsd)}/lệnh</small></p><small>xác suất chạm MT1 ${nf(t.p1, 0)}%${isNum(t.n) ? ` (trên ${nf(t.n, 0)} lần lịch sử)` : ""} · phí ~${usd(t.feeUsd)}${t.mode === "perp" ? ` · funding ${t.fundUsd >= 0 ? "nhận" : "trả"} ~${usd(Math.abs(t.fundUsd))} trong thời gian giữ` : ""}</small></div>
     </div>
+    <details class="tk-gov"><summary>Vì sao hệ thống cho đòn bẩy tối đa x${t.Lmax} và rủi ro ${nf(t.govRisk, 2)}%/lệnh?</summary><ul>${(t.gov?.why || []).map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>
     <div class="tk-plan"><b>Cách đánh:</b> ${t.order === "market" ? "Vào" : "Đặt lệnh chờ"} ${qty(t.q)} ${esc(t.k)} ở ${px(t.e)}, đặt sẵn cắt lỗ ${px(t.s)} trên sàn. Chạm ${px(t.t1)} → chốt 50% và dời cắt lỗ về ${px(t.e)} (hoà vốn). Phần còn lại chốt ở ${px(t.t2)}${t.tf === "d" ? " hoặc khi đóng cửa ngày dưới EMA20" : " hoặc khi nến 4h đóng ngược EMA20"}. ${t.order === "limit" ? `Huỷ lệnh chờ nếu giá chạy tới ${px(t.t1)} trước khi khớp.` : ""}</div>
     <small class="muted">Cơ sở: ${esc(t.src)}${t.notes.length ? " · " + t.notes.map(esc).join(" · ") : ""}</small>
     ${t.warn.length ? `<ul class="tk-w">${t.warn.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
@@ -878,11 +929,11 @@ function bindTicketSave(root = document) {
   });
 }
 async function viewPlan(k0) {
-  const [IJ] = await Promise.all([load("data/ideas.json"), coins(), loadSettings()]);
+  const [IJ] = await Promise.all([load("data/ideas.json"), coins(), loadSettings(), pfLoad().catch(() => null)]);
   const L = await liveData();
   const items = ((L && L.ideas && new Date(L.at) > new Date(IJ.at)) ? L.ideas : IJ.items).filter((x) => x.edge).slice(0, 6);
   const O = { k: k0 || lsGet("plk", ""), tf: lsGet("pltf", "auto"), side: lsGet("plside", "auto") };
-  app().innerHTML = `<div class="ph"><h1>Lên lệnh</h1><span class="meta">vốn ${usd(setting("acct", 10000))} · rủi ro ${nf(setting("risk", 1), 1)}%/lệnh · đòn bẩy tối đa swing x${setting("maxlev", 3)} / lướt x${setting("maxlevi", 5)} · <a href="#/tools">đổi thông số</a></span></div>
+  app().innerHTML = `<div class="ph"><h1>Lên lệnh</h1><span class="meta">đèn ${LIGHT_VI[govLight()] || ""} · đòn bẩy do hệ thống kiểm soát (swing ≤ x${GOV.base.d[govLight()]}, lướt ≤ x${GOV.base.h4[govLight()]}) · rủi ro ${nf(levGov({ k: "BTC", mc: 2e12 }, "long", "d").risk, 2)}%/lệnh · <a href="#/portfolio">xem kiểm soát rủi ro</a></span></div>
     <section class="panel"><div class="ph"><h2>🧾 Tạo kế hoạch cho một coin</h2></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="plK" list="plList" value="${esc(O.k)}" placeholder="VD: SOL"></div>
         <div class="field"><label>Kiểu chơi</label><select id="plTf"><option value="auto">Tự chọn</option><option value="h4" ${O.tf === "h4" ? "selected" : ""}>Lướt (4h, vài giờ – vài ngày)</option><option value="d" ${O.tf === "d" ? "selected" : ""}>Swing (ngày, vài ngày – vài tuần)</option></select></div>
@@ -1123,20 +1174,40 @@ async function viewPortfolio() {
     const fd = isNum(r.f8) && n ? -s * n * r.f8 / 100 * 3 : null;
     if (isNum(n)) { futN += n; netDelta += s * n; } if (isNum(pnl)) futPnl += pnl; futMargin += margin; if (fd) fundDay += fd;
     if (isNum(dist) && dist < 15) flags.push([f.symbol, `vị thế ${f.side} chỉ cách giá thanh lý ${nf(dist, 1)}% – bổ sung ký quỹ hoặc giảm vị thế`]);
+    const stopP = f.stop ? Math.abs(f.entry - f.stop) / f.entry * 100 : null;
+    const G = levGov(r, f.side, f.tf || "d", stopP);
+    f._cap = G.cap;
+    if ((f.lev || 1) > G.cap) {
+      const needMargin = f.qty * f.entry / G.cap - margin;
+      flags.unshift([f.symbol, `🚫 đòn bẩy x${nf(f.lev, 0)} VƯỢT mức hệ thống cho phép x${G.cap} (${G.why[G.why.length - 1] || ""}). Làm 1 trong 2: nạp thêm ${usd(needMargin)} ký quỹ để về x${G.cap}, hoặc giảm vị thế còn ${qty(f.qty * G.cap / f.lev)} ${f.symbol}.`]);
+    }
     if (f.stop && isNum(p) && ((s > 0 && p <= f.stop) || (s < 0 && p >= f.stop))) flags.push([f.symbol, `giá đã chạm mức cắt lỗ ${px(f.stop)}`]);
     if (s > 0 && r.ts === -1) flags.push([f.symbol, `đang Long nhưng xu hướng ngày đã giảm`]);
     if (s < 0 && r.ts === 1) flags.push([f.symbol, `đang Short ngược xu hướng tăng ngày`]);
     if (s > 0 && (r.cr || []).includes("long_crowded")) flags.push([f.symbol, `Long trong lúc Long quá đông – funding ${f8s(r.f8)} ăn mòn lãi`]);
-    return `<tr><td class="l">${coinLink(f.symbol, "/fut")}</td><td>${f.side === "short" ? '<b class="down">Short</b>' : '<b class="up">Long</b>'} x${nf(f.lev, 0)}</td><td>${qty(f.qty)}</td><td>${px(f.entry)}</td><td>${px(p)}</td><td>${usd(n)}</td>
+    return `<tr><td class="l">${coinLink(f.symbol, "/fut")}</td><td>${f.side === "short" ? '<b class="down">Short</b>' : '<b class="up">Long</b>'} x${nf(f.lev, 0)}${(f.lev || 1) > (f._cap || 99) ? ` <span class="pill sell" title="Vượt mức hệ thống cho phép">tối đa x${f._cap}</span>` : ""}</td><td>${qty(f.qty)}</td><td>${px(f.entry)}</td><td>${px(p)}</td><td>${usd(n)}</td>
       <td class="${cls(pnl)}">${usd(pnl)}<br><small>${pct(roe, 0)} ký quỹ</small></td><td>${px(liq)}<br><small class="${dist < 15 ? "down" : "muted"}">${isNum(dist) ? "cách " + nf(dist, 1) + "%" : ""}</small></td><td>${f.stop ? px(f.stop) : "—"}</td><td class="${cls(fd)}">${fd != null ? usd(fd) + "/ngày" : "—"}</td><td><button class="chip" data-df="${i}">Xoá</button></td></tr>`;
   }).join("");
   const cash = Number(PF.cash || 0), eq = spotV + cash + futMargin + futPnl;
   const wl = [...WL.set].filter((k) => BYK[k]);
+  if (eq > 0) { const pk = Math.max(PF.peak || 0, eq); if (pk !== PF.peak || Math.abs((PF.eq || 0) - eq) / eq > 0.01) { PF.peak = pk; PF.eq = eq; pfSave(); } }
+  const light = govLight(), pcap = GOV.portLev[light], eff = eq > 0 ? Math.abs(netDelta) / eq : 0, dd = govDD();
+  if (eq > 0 && eff > pcap) flags.unshift(["", `🚫 Tổng vị thế ròng x${nf(eff, 2)} tài sản VƯỢT mức hệ thống x${nf(pcap, 1)} (đèn ${LIGHT_VI[light]}). Giảm khoảng ${usd(Math.abs(netDelta) - pcap * eq)} vị thế (bán bớt spot/đóng bớt Long, hoặc mở Short phòng hộ).`]);
+  if (eq > 0 && futMargin > GOV.marginMax * eq) flags.unshift(["", `🚫 Tổng ký quỹ ${usd(futMargin)} (${nf(futMargin / eq * 100, 0)}% tài sản) vượt mức 50% – đóng bớt vị thế futures.`]);
+  if (PF.futures.length > GOV.maxPos) flags.unshift(["", `🚫 Đang có ${PF.futures.length} vị thế futures, hệ thống chỉ cho tối đa ${GOV.maxPos}.`]);
+  const gS = levGov({ k: "BTC", mc: 2e12, atr: BYK.BTC?.atr }, "long", "d", null), gI = levGov({ k: "BTC", mc: 2e12, atr: BYK.BTC?.atr }, "long", "h4", null);
+  const govBox = panel("🛡️ Hệ thống đang kiểm soát rủi ro của anh", `${kpis([["Đèn thị trường", LIGHT_VI[light] || "—", light === "green" ? "up" : light === "red" ? "down" : "ref"],
+      ["Đòn bẩy tối đa – swing", "x" + gS.cap, "", "Mức trần cho coin lớn nhất; coin nhỏ / biến động mạnh thấp hơn"], ["Đòn bẩy tối đa – lướt", "x" + gI.cap],
+      ["Rủi ro mỗi lệnh", nf(gS.risk, 2) + "% vốn", "", `Anh đặt ${nf(setting("risk", 1), 1)}% (trần 2%); hệ thống giảm khi đèn vàng/đỏ hoặc tài khoản sụt`],
+      ["Tổng vị thế ròng", `x${nf(eff, 2)} / tối đa x${nf(pcap, 1)}`, eff > pcap ? "down" : "up"], ["Tổng ký quỹ", `${nf(eq > 0 ? futMargin / eq * 100 : 0, 0)}% / tối đa 50%`, futMargin > GOV.marginMax * eq ? "down" : "up"],
+      ["Số vị thế futures", `${PF.futures.length} / tối đa ${GOV.maxPos}`, PF.futures.length > GOV.maxPos ? "down" : "up"], ["Sụt so với đỉnh tài sản", pct(-dd, 1), dd >= 10 ? "down" : "", dd >= 20 ? "≥ 20%: khoá đòn bẩy, rủi ro còn 1/4" : dd >= 10 ? "≥ 10%: tối đa x2, rủi ro giảm 1/2" : "Sụt ≥ 10% sẽ tự giảm đòn bẩy & rủi ro"]])}
+      <p class="faint" style="font-size:.74rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
   app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
     <section class="panel hero">${kpis([["Tổng tài sản (ước)", usd(eq)], ["Spot", usd(spotV), "", `Giá vốn ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC)], ["Tiền mặt / stablecoin", usd(cash)],
       ["Futures: giá trị vị thế", usd(futN)], ["Lãi/lỗ futures", usd(futPnl), cls(futPnl)], ["Ký quỹ đang dùng", usd(futMargin)], ["Funding mỗi ngày", usd(fundDay), cls(fundDay), "Dương = nhận, âm = trả (ước theo funding hiện tại)"],
       ["Độ phơi nhiễm ròng", usd(netDelta), "", "Spot + Long − Short (USD). Gần 0 = đã phòng hộ"], ["Đòn bẩy ròng", eq > 0 ? "x" + nf(Math.abs(netDelta) / eq, 2) : "—"]], true)}</section>
-    ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${coinLink(k)} ${esc(t)}</li>`).join("")}</ul>`) : ""}
+    ${govBox}
+    ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${k ? coinLink(k) : ""} ${esc(t)}</li>`).join("")}</ul>`) : ""}
     ${panel("Spot", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="9" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="hS" list="coinlist" placeholder="BTC"></div><div class="field"><label>Số lượng</label><input id="hQ" type="number" step="any"></div><div class="field"><label>Giá vốn (USD)</label><input id="hC" type="number" step="any"></div><button class="btn primary" id="hAdd">Thêm / cộng dồn</button>
       <div class="field"><label>Tiền mặt / stablecoin (USD)</label><input id="pCash" type="number" step="any" value="${cash || ""}"></div><button class="btn" id="cSave">Lưu tiền mặt</button></div>`)}
@@ -1161,6 +1232,8 @@ async function viewPortfolio() {
   $("#fAdd").onclick = async () => {
     const s = $("#fS").value.trim().toUpperCase(), q = num("#fQ"), e = num("#fE") || BYK[s]?.p, l = num("#fL") || 1, sl = num("#fSL") || null;
     if (!BYK[s] || !(q > 0) || !(e > 0)) return toast("Nhập mã coin, số lượng và giá vào");
+    const G = levGov(BYK[s], $("#fSide").value, "d", sl ? Math.abs(e - sl) / e * 100 : null);
+    if (l > G.cap && !confirm(`Đòn bẩy x${l} vượt mức hệ thống cho phép x${G.cap} cho ${s}.\n\n${G.why.join("\n")}\n\nVẫn ghi lại vị thế này (hệ thống sẽ nhắc giảm)?`)) return;
     PF.futures.push({ symbol: s, side: $("#fSide").value, qty: q, entry: e, lev: l, stop: sl, opened: new Date().toISOString().slice(0, 10) });
     await pfSave(); viewPortfolio();
   };
@@ -1176,15 +1249,15 @@ async function viewTools(sub) {
   app().innerHTML = `<div class="ph"><h1>Công cụ</h1></div>
   <div class="g g2">
     ${panel("⚙️ Thông số của anh", `<div class="filters"><div class="field"><label>Vốn giao dịch (USD)</label><input id="tA" type="number" value="${acct}"></div><div class="field"><label>Rủi ro mỗi lệnh (% vốn)</label><input id="tR" type="number" step="0.1" value="${rk}"></div>
-      <div class="field"><label>Đòn bẩy tối đa – theo xu hướng</label><input id="tML" type="number" value="${ml}"></div><div class="field"><label>Đòn bẩy tối đa – lướt</label><input id="tMLI" type="number" value="${mli}"></div><button class="btn primary" id="tSave">Lưu</button></div>
-      <p class="faint" style="font-size:.74rem">Dùng cho phần "khối lượng gợi ý" ở trang từng coin. Quy tắc an toàn: rủi ro 0,5–2%/lệnh; không để tổng ký quỹ > 30% vốn.</p>`)}
+      <button class="btn primary" id="tSave">Lưu</button></div>
+      <p class="faint" style="font-size:.74rem">Rủi ro tối đa 2%/lệnh. <b>Đòn bẩy do hệ thống kiểm soát</b> – xem chi tiết ở <a href="#/portfolio">Danh mục</a>. Khi đã nhập danh mục, hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</p>`)}
     ${panel("🧮 Khối lượng lệnh & giá thanh lý", `<div class="filters"><div class="field"><label>Coin (tự điền giá)</label><input id="cS" list="coinlist2" placeholder="SOL"></div><div class="field"><label>Giá vào</label><input id="cE" type="number" step="any"></div><div class="field"><label>Cắt lỗ</label><input id="cSL" type="number" step="any"></div>
       <div class="field"><label>Đòn bẩy</label><input id="cL" type="number" step="any" value="${ml}"></div><div class="field"><label>Tỉ lệ ký quỹ duy trì (%)</label><input id="cM" type="number" step="0.1" value="0.5"></div></div><div id="cOut"></div>`)}
     ${panel("🛡️ Phòng hộ spot bằng perp", `<div class="filters"><div class="field"><label>Coin đang giữ</label><input id="hS2" list="coinlist2" placeholder="SOL"></div><div class="field"><label>Giá trị đang giữ (USD)</label><input id="hV" type="number" step="any" value="10000"></div>
       <div class="field"><label>Tỉ lệ phòng hộ (%)</label><input id="hP" type="number" value="50"></div><div class="field"><label>Phòng hộ bằng</label><select id="hW"><option value="self">Chính coin đó</option><option value="btc">BTC perp (theo beta)</option></select></div></div><div id="hOut"></div>`)}
     ${panel("📐 Chốt lời / R:R", `<div class="filters"><div class="field"><label>Giá vào</label><input id="rE" type="number" step="any"></div><div class="field"><label>Cắt lỗ</label><input id="rS" type="number" step="any"></div><div class="field"><label>Chốt lời</label><input id="rT" type="number" step="any"></div><div class="field"><label>Phí 1 chiều (%)</label><input id="rF" type="number" step="0.01" value="0.05"></div></div><div id="rOut"></div>`)}
   </div><datalist id="coinlist2">${COINS.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">`).join("")}</datalist>`;
-  $("#tSave").onclick = async () => { await saveSettings({ acct: Number($("#tA").value) || 10000, risk: Number($("#tR").value) || 1, maxlev: Number($("#tML").value) || 3, maxlevi: Number($("#tMLI").value) || 5 }); toast("Đã lưu thông số (đồng bộ mọi thiết bị)"); };
+  $("#tSave").onclick = async () => { const rk = Math.min(2, Math.max(0.1, Number($("#tR").value) || 1)); await saveSettings({ acct: Number($("#tA").value) || 10000, risk: rk }); toast(rk < Number($("#tR").value) ? "Rủi ro tối đa 2%/lệnh – đã giới hạn" : "Đã lưu thông số"); viewTools(); };
   const calc = () => {
     const e = Number($("#cE").value), s = Number($("#cSL").value), l = Number($("#cL").value) || 1, m = (Number($("#cM").value) || 0.5) / 100;
     if (!(e > 0)) { $("#cOut").innerHTML = ""; return; }

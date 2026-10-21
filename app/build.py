@@ -256,7 +256,7 @@ def run(notify: bool = False) -> dict:
                "ath": _f((price / ath - 1) * 100, 1) if ath else None,
                "oi": _f(oi_tot, 0), "oi24": _f(oi24, 1), "oi7": _f(oi7, 1), "f8": _f(f8, 4), "fp": fst.get("pctl90"),
                "f7": fst.get("avg7d"), "lsr": bnm.get("lsr_acct"), "cr": [x["k"] for x in crowd], "car": car.get("ann7") if car else None,
-               "beta": hedge.get("beta"), "ml": max_lev,
+               "beta": hedge.get("beta"), "ml": max_lev, "atr": trend.get("atr_pct"),
                "sp": r.get("spot_pair"), "sm": float(r.get("spot_mult") or 1), "bf": bn_pair.get(key),
                "bfm": universe.split_mult(bn_pair[key][:-4])[1] if bn_pair.get(key) else None, "new": bool(df is not None and len(df) < int(config.get("universe.min_history_days", 60)))}
         rows.append(row)
@@ -336,8 +336,11 @@ def run(notify: bool = False) -> dict:
         d["ohlc"] = {"d": _ohlc(df, 1500, True) if df is not None else None, "h4": _ohlc(h4, 600, False) if h4 is not None else None,
                      "h1": _ohlc(h1, 500, False) if h1 is not None else None}
         _w(f"c/{key}.json", d)
-    store.path("last_rows.json").write_text(json.dumps({r["k"]: {"ts": r.get("ts"), "td": r.get("td")} for r in rows}), encoding="utf-8")
-    _w("coins.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "rows": rows, "peers": peers})
+    store.path("last_rows.json").write_text(json.dumps({"_light": (market.get("light") or {}).get("color"),
+                                                       **{r["k"]: {"ts": r.get("ts"), "td": r.get("td"), "atr": r.get("atr"), "mc": r.get("mc"), "cr": r.get("cr"), "id": r.get("id"),
+                                                                   "ml": r.get("ml")} for r in rows}}), encoding="utf-8")
+    _w("coins.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "rows": rows, "peers": peers,
+                      "light": (market.get("light") or {}).get("color"), "btc_up": not btc_down})
     _w("market.json", market)
     _w("backtest.json", backtest_summary(tr_bt, market))
     meta = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "coins": len(rows), "sec": round(time.time() - t0, 1),

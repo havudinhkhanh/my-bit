@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 import requests
 
 from . import users
+from .analysis import risk
+from .analysis.fmt import vn
 from .data import store
 
 log = logging.getLogger("notify")
@@ -25,9 +27,45 @@ def _p(x):
     return f"{x:,.2f}" if x >= 1 else f"{x:.6g}"
 
 
-def items_for(pf: dict, rows: dict, details: dict) -> list[dict]:
+def items_for(pf: dict, rows: dict, details: dict, light: str | None = None) -> list[dict]:
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     out = []
+    light = light or rows.get("_light") or "yellow"
+    peak, eq0 = pf.get("peak"), pf.get("eq")
+    dd = max(0.0, (1 - eq0 / peak) * 100) if peak and eq0 else 0.0
+    # tổng vị thế ròng / ký quỹ / số lệnh so với mức hệ thống
+    net = margin = 0.0
+    eq = float(pf.get("cash") or 0)
+    for h in pf.get("holdings") or []:
+        r = rows.get(h.get("symbol")) or {}
+        if r.get("p"):
+            v = float(h.get("qty") or 0) * float(r["p"])
+            net += v
+            eq += v
+    for f in pf.get("futures") or []:
+        r = rows.get(f.get("symbol")) or {}
+        if not r.get("p"):
+            continue
+        sd = -1 if f.get("side") == "short" else 1
+        q, e, lev = float(f.get("qty") or 0), float(f.get("entry") or 0), float(f.get("lev") or 1)
+        net += sd * q * float(r["p"])
+        m = q * e / max(1.0, lev)
+        margin += m
+        eq += m + sd * q * (float(r["p"]) - e)
+        stop = f.get("stop")
+        cap = risk.lev_cap({**r, "k": f.get("symbol")}, f.get("side", "long"), f.get("tf") or "d", abs(e - float(stop)) / e * 100 if stop and e else None, light, dd)
+        if lev > cap:
+            out.append({"key": f"lev:{f.get('symbol')}:{f.get('side')}:{e}:{lev}:{cap}:{day}", "kind": "liq", "sev": 3, "sym": f.get("symbol"), "url": "#/portfolio",
+                        "title": f"{f.get('symbol')}: đòn bẩy x{lev:g} vượt mức hệ thống cho phép x{cap}",
+                        "body": f"Nạp thêm {vn(q * e / cap - m, ',.0f')} USD ký quỹ hoặc giảm vị thế còn {vn(q * cap / lev, ',.4f')} {f.get('symbol')}."})
+    pcap = risk.PORT_LEV.get(light, 1.0)
+    if eq > 0 and abs(net) / eq > pcap:
+        out.append({"key": f"portlev:{light}:{day}:{int(abs(net) / eq * 10)}", "kind": "liq", "sev": 3, "url": "#/portfolio",
+                    "title": f"Tổng vị thế ròng x{vn(abs(net) / eq, '.2f')} tài sản – vượt mức x{vn(pcap, '.1f')} (đèn {dict(green='xanh', yellow='vàng', red='đỏ').get(light, light)})",
+                    "body": f"Giảm khoảng {vn(abs(net) - pcap * eq, ',.0f')} USD vị thế hoặc mở Short phòng hộ."})
+    if eq > 0 and margin > risk.MARGIN_MAX * eq:
+        out.append({"key": f"margin:{day}", "kind": "liq", "sev": 3, "url": "#/portfolio", "title": f"Tổng ký quỹ {margin / eq * 100:.0f}% tài sản – vượt mức 50%",
+                    "body": "Đóng bớt vị thế futures."})
     held = {}
     for h in pf.get("holdings") or []:
         held.setdefault(h.get("symbol"), []).append(("spot", h))
@@ -122,7 +160,7 @@ def run(market: dict, rows: list[dict], details: dict) -> dict:
     if us:
         cfg = users.config(be)
         for u in us:
-            items = common + items_for((u.get("data") or {}).get("portfolio") or {}, by, details)
+            items = common + items_for((u.get("data") or {}).get("portfolio") or {}, by, details, light)
             try:
                 res = users.deliver(be, cfg, u, items, "MyBit – cảnh báo")
                 out["users"] += 1
