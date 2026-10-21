@@ -1535,7 +1535,7 @@ table.sortable th.on{color:var(--brand)}
 .ntfs.cols2 .nwr{break-inside:avoid}
 .sgp{display:block;font-style:normal;font-size:.56rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);line-height:1.2}
 .lvt td{padding-top:3px;padding-bottom:3px}
-.lvt td.big{font-weight:700}
+.lvt td.lvbig{font-weight:700;background:color-mix(in srgb,currentColor 9%,transparent)}
 .lvt td.flash{animation:fl .8s ease-out}
 @keyframes fl{from{background:color-mix(in srgb,var(--brand) 25%,transparent)}to{background:transparent}}
 .rngb{display:inline-block;position:relative;width:60px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--down),var(--ref),var(--up));vertical-align:middle}
@@ -1621,3 +1621,63 @@ table.corr td{width:22px;min-width:22px;height:20px;text-align:center;color:var(
 .hz-v{margin:2px 0 6px;font-size:.84rem}
 .hz-s{padding:5px 0;border-top:1px dashed var(--line-2);font-size:.78rem}.hz-s p{margin:3px 0 2px;color:var(--ink-2)}.hz-s small{color:var(--ink-3)}
 .mtft td,.mtft th{white-space:nowrap}
+
+/* ===================================================================== CHỮ DỄ ĐỌC (ghi đè lớp cũ)
+   Một họ chữ duy nhất Be Vietnam Pro (dấu tiếng Việt chuẩn), số cùng độ rộng, không dùng chữ hẹp / chữ có chân */
+:root{--num:"Be Vietnam Pro",system-ui,sans-serif;--serif:"Be Vietnam Pro",system-ui,sans-serif}
+:root[data-theme="dark"]{--ink:#E8EDF3;--ink-2:#B4BDC9;--ink-3:#8793A4}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--ink:#E8EDF3;--ink-2:#B4BDC9;--ink-3:#8793A4}}
+:root[data-theme="light"]{--ink-2:#465163;--ink-3:#6E7889}
+body{font:400 14px/1.55 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:0;font-variant-numeric:tabular-nums lining-nums;-webkit-font-smoothing:antialiased}
+h1,.ph h1{font:700 1.6rem/1.2 "Be Vietnam Pro",system-ui,sans-serif!important;letter-spacing:-.015em}
+h1 small{font-weight:500;font-size:.62em;color:var(--ink-2)}
+.ph h2,.ph h3,.panel>h2,details.panel>summary{font:600 1rem/1.35 "Be Vietnam Pro",system-ui,sans-serif!important;letter-spacing:-.005em}
+a.brand,.rail-brand b{font:700 1.15rem/1 "Be Vietnam Pro",system-ui,sans-serif!important;letter-spacing:-.01em}
+td,td.l,td.wrap,td.name{font-family:"Be Vietnam Pro",system-ui,sans-serif;font-size:.86rem;font-weight:400}
+td b,td.l b{font-weight:600}
+th{font-size:.74rem;font-weight:600;letter-spacing:.01em}
+.kpis dt{font-size:.72rem}
+.kpis dd,.tk-v,.stats dd,.st dd{font-family:"Be Vietnam Pro",system-ui,sans-serif!important;font-weight:600;letter-spacing:-.01em}
+.pill{font:600 .74rem/1.5 "Be Vietnam Pro",system-ui,sans-serif!important;letter-spacing:0;padding:1px 8px;border-radius:999px}
+.pill.big{font-size:.84rem!important;padding:3px 11px}
+.tabs a{font-family:"Be Vietnam Pro",system-ui,sans-serif!important;letter-spacing:0}
+.tfseg button,.seg button{font-family:"Be Vietnam Pro",system-ui,sans-serif!important;font-weight:500}
+small,.faint,.muted{line-height:1.45}
+small{font-size:.8em}
+.panel{padding:14px 16px}
+.note{line-height:1.6}
+.disclaimer{font-size:.76rem}
+@media (max-width:700px){body{font-size:14.5px}h1,.ph h1{font-size:1.35rem!important}td{font-size:.84rem}}
+
+/* ===== phiếu lệnh trực tiếp */
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--up);margin-left:4px;vertical-align:middle;animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--up) 60%,transparent)}70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.ltk{border:1px solid var(--line);border-radius:10px;margin:12px 0;overflow:hidden;background:var(--surface)}
+.ltk .ticket{border:0;margin:0;border-radius:0}
+.ltk-h{padding:12px 14px 10px;background:var(--sunk);border-bottom:1px solid var(--line-2)}
+.ltk-r{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ltk-r>b{font-size:1.15rem}
+.ltk-p{font-size:1.3rem;font-weight:700;margin-left:auto;transition:color .3s}
+.ltk-t{margin:6px 0 4px;font-size:.92rem;font-weight:500}
+.ltk-c{padding:8px 14px;border-top:1px solid var(--line-2);font-size:.84rem}
+.ltk-cf.ok b{color:var(--up)}
+.rail{position:relative;height:34px;margin:6px 4px 2px}
+.rail::before{content:"";position:absolute;left:0;right:0;top:9px;height:4px;border-radius:2px;background:var(--sunk-2)}
+.rail i{position:absolute;top:4px;width:2px;height:14px;transform:translateX(-1px);background:var(--ink-3)}
+.rail i b{position:absolute;top:15px;left:50%;transform:translateX(-50%);font:500 .66rem/1 "Be Vietnam Pro",sans-serif;color:var(--ink-2);white-space:nowrap}
+.rail i.s{background:var(--down)}.rail i.s b{color:var(--down)}
+.rail i.e{background:var(--brand)}.rail i.t{background:var(--up)}.rail i.t b{color:var(--up)}
+.rail i.p{top:1px;width:12px;height:20px;transform:translateX(-6px);border-radius:4px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transition:left .4s}
+.sf{padding:10px 14px 12px;border-top:1px solid var(--line-2)}
+.sf>summary{cursor:pointer;font-size:.9rem;margin-bottom:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sf-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.sf-c{border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;background:var(--sunk);opacity:.8}
+.sf-c.on{opacity:1;border-color:color-mix(in srgb,var(--up) 50%,var(--line));box-shadow:inset 3px 0 0 var(--up)}
+.sf-c h5{margin:0 0 6px;font-size:.84rem;display:flex;gap:6px;align-items:center}
+.sf-c dl{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin:0;font-size:.82rem}
+.sf-c dt{color:var(--ink-3)}.sf-c dd{margin:0;text-align:right;font-weight:600}
+.sf-w{margin:8px 0 6px;padding-left:18px;font-size:.84rem;line-height:1.55}
+.bsteps{margin-top:6px;border:1px solid var(--line-2);border-radius:8px;padding:6px 12px;background:var(--brand-2)}
+.bsteps summary{cursor:pointer;font-weight:600;font-size:.86rem}
+.bsteps ol{margin:6px 0 4px;padding-left:20px;font-size:.84rem;line-height:1.6}
+.bsteps li{margin:3px 0}

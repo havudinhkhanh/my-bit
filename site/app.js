@@ -88,7 +88,7 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
-function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
+function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof plClose === "function") plClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -917,7 +917,7 @@ function ticketCard(t, opts = {}) {
   const [vt, vc] = VERD[t.verdict], L = t.side === "long";
   const modeTxt = t.mode === "spot" ? `<b>Mua spot</b> – không cần đòn bẩy` : t.mode === "perp" ? `<b>Perp ${L ? "Long" : "Short"} x${t.lev}</b> ` : "—";
   return `<div class="ticket ${t.side}">
-    <div class="tk-h"><span class="pill ${vc} big">${vt}</span> ${coinLink(t.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${L ? "LONG" : "SHORT"}</span> <span class="pill">${t.tfLabel || (t.tf === "d" ? "Swing – khung ngày" : "Lướt – khung 4h")}</span> ${t.edge ? '<span class="pill brand">có lợi thế lịch sử</span>' : ""}
+    <div class="tk-h">${opts.live ? "" : `<span class="pill ${vc} big">${vt}</span>`} ${coinLink(t.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${L ? "LONG" : "SHORT"}</span> <span class="pill">${t.tfLabel || (t.tf === "d" ? "Swing – khung ngày" : "Lướt – khung 4h")}</span> ${t.edge ? '<span class="pill brand">có lợi thế lịch sử</span>' : ""}
       <small class="muted">giá hiện tại ${px(t.price)}</small></div>
     <div class="tk-g">
       <div class="tk-b"><h4>① Giá vào</h4><p class="tk-v">${px(t.e)}</p><small>${t.order === "market" ? "Vào ngay (lệnh thị trường / giới hạn sát giá)" : `Đặt lệnh chờ ${L ? "mua" : "bán"} – cách giá hiện tại ${pct((t.e / t.price - 1) * 100, 1)}`}</small></div>
@@ -956,7 +956,7 @@ async function viewPlan(k0) {
         <button class="btn primary" id="plGo">Tạo kế hoạch</button></div>
       <datalist id="plList">${COINS.rows.map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>
       <div id="plOut"></div></section>
-    <section class="panel"><div class="ph"><h2>🎯 Lệnh đáng làm nhất lúc này</h2><span class="meta">từ các thiết lập có lợi thế lịch sử – đã tính khối lượng & đòn bẩy theo vốn của anh</span></div><div id="plTop"><p class="muted">Đang tính…</p></div></section>
+    <section class="panel"><div class="ph"><h2>🎯 Lệnh đáng làm nhất lúc này <span class="live-dot"></span></h2><span class="meta">giá & trạng thái cập nhật từng giây · xác nhận khung 15 phút mỗi phút · danh sách làm mới mỗi 5 phút · đã tính khối lượng, spot hay futures, đòn bẩy theo vốn của anh</span></div><div id="plTop"><p class="muted">Đang tính…</p></div></section>
     <p class="faint disclaimer">Kế hoạch được tính tự động từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư và không đảm bảo kết quả. Đòn bẩy chỉ làm giảm tiền ký quỹ; mức lỗ do khối lượng và điểm cắt lỗ quyết định – luôn đặt cắt lỗ trên sàn.</p>`;
   const go = async () => {
     const k = $("#plK").value.trim().toUpperCase(); if (!BYK[k]) { $("#plOut").innerHTML = `<p class="muted">Chọn coin có trong danh sách.</p>`; return; }
@@ -964,15 +964,137 @@ async function viewPlan(k0) {
     $("#plOut").innerHTML = `<p class="muted">Đang tính ${esc(k)}…</p>`;
     const D = await load(`data/c/${enc(k)}.json`);
     const t = makeTicket(D, IJ, { tf: $("#plTf").value, side: $("#plSide").value }); if (t.none) t.k = k;
-    $("#plOut").innerHTML = ticketCard(t); bindTicketSave($("#plOut"));
+    if (t.none) { $("#plOut").innerHTML = ticketCard(t); return; }
+    liveTickets($("#plOut"), [{ t, D }]);
   };
   $("#plGo").onclick = go; $("#plK").addEventListener("change", go);
   if (O.k && BYK[O.k]) go();
-  const seen = new Set(), tops = [];
-  for (const x of items) { if (seen.has(x.k)) continue; seen.add(x.k); try { const D = await load(`data/c/${enc(x.k)}.json`); D.ideas = [x, ...(D.ideas || []).filter((y) => y.setup !== x.setup)]; const t = makeTicket(D, IJ, { tf: x.tf, side: x.side }); if (!t.none) tops.push(t); } catch (e) { /* thiếu dữ liệu */ } }
-  tops.sort((a, b) => (["go", "limit", "watch", "no"].indexOf(a.verdict) - ["go", "limit", "watch", "no"].indexOf(b.verdict)) || b.evR - a.evR);
-  $("#plTop").innerHTML = tops.length ? tops.map((t) => ticketCard(t)).join("") : `<div class="empty">Hiện không có thiết lập có lợi thế lịch sử. Không vào lệnh cũng là một quyết định tốt – hoặc tự tạo kế hoạch cho coin anh quan tâm ở trên.</div>`;
-  bindTicketSave($("#plTop"));
+  const build = async (fresh) => {
+    let src = items;
+    if (fresh) { const L2 = await liveData(true); src = ((L2 && L2.ideas && new Date(L2.at) > new Date(IJ.at)) ? L2.ideas : IJ.items).filter((x) => x.edge).slice(0, 8); }
+    const seen = new Set(), tops = [];
+    for (const x of src) { if (seen.has(x.k)) continue; seen.add(x.k); try { const D = await load(`data/c/${enc(x.k)}.json`); D._ij = IJ; D.ideas = [x, ...(D.ideas || []).filter((y) => y.setup !== x.setup)]; const t = makeTicket(D, IJ, { tf: x.tf, side: x.side }); if (!t.none && t.verdict !== "no") tops.push({ t, D }); } catch (e) { /* thiếu dữ liệu */ } }
+    const host = $("#plTop"); if (!host) return;
+    const sig = tops.map((x) => x.t.k + x.t.side + x.t.e).join("|");
+    if (fresh && sig === host.dataset.sig) return;
+    host.dataset.sig = sig;
+    if (!tops.length) { host.innerHTML = `<div class="empty">Hiện không có thiết lập có lợi thế lịch sử. Không vào lệnh cũng là một quyết định tốt – hoặc tự tạo kế hoạch cho coin anh quan tâm ở trên, hoặc xem <a href="#/radar">Radar</a> cho khung ngắn.</div>`; return; }
+    liveTickets(host, tops, { refresh: () => build(true) });
+  };
+  await build(false);
+}
+
+// ================================================================ PHIẾU LỆNH TRỰC TIẾP – giá từng giây, trạng thái vào lệnh đổi theo giá
+const FEE_SPOT = 0.001, FEE_FUT_T = 0.0005, FEE_FUT_M = 0.0002;
+const usd2 = (x) => (isNum(x) && Math.abs(x) < 100 ? `${x < 0 ? "-" : ""}$${nf(Math.abs(x), 2)}` : usd(x));
+function spotFutBox(t, open = true) {
+  const r = BYK?.[t.k] || {}, L = t.side === "long", sd = L ? 1 : -1, N = t.N, f8 = r.f8 || 0, hold = t.holdDays || 1;
+  const canSpot = L && !!r.spot, canFut = !!r.fx;
+  const fl = t.mode === "perp" ? t.lev : Math.max(1, Math.min(t.Lmax || 1, 3));
+  const fund = -sd * N * f8 / 100 * 3 * hold, liq = canFut ? liqPrice(t.side, t.e, fl, t.mmr || MMR) : null;
+  const spotCost = N * FEE_SPOT * 2, futCost = N * FEE_FUT_T * 2 - fund;
+  const why = [];
+  if (t.mode === "spot") {
+    why.push("Lệnh Long và coin có trên Binance spot – mua thật, <b>không thể bị thanh lý</b>, không trả funding");
+    if (canFut && f8 > 0) why.push(`Funding đang dương ${f8s(f8)}/8h: giữ perp ${durTxt(t.d1 || 3, t.tf_bd || 1)} sẽ tốn ~${usd2(Math.abs(fund))}`);
+    why.push(`Giá trị lệnh ${usd2(N)} = ${nf(N / Math.max(1, t.acct) * 100, 0)}% tài sản – vừa sức mua bằng tiền thật, không cần vay`);
+  } else if (t.mode === "perp") {
+    if (!L) why.push("Lệnh <b>Short</b> – spot không bán khống được, phải dùng hợp đồng vĩnh cửu (perp)");
+    else if (!r.spot) why.push("Coin không có cặp spot trên Binance – dùng perp");
+    else why.push(`Giá trị lệnh ${usd2(N)} lớn hơn 25% tài sản – dùng perp x${t.lev} để chỉ khoá ${usd2(t.margin)} ký quỹ (phần tiền còn lại vẫn rảnh)`);
+    if (fund > 0) why.push(`Funding đang ${f8s(f8)}/8h – phe ${L ? "Long" : "Short"} được <b>nhận</b> ~${usd2(fund)} trong thời gian giữ`);
+    else if (fund < 0) why.push(`Funding ${f8s(f8)}/8h – tốn ~${usd2(-fund)} trong thời gian giữ (đã tính vào chi phí)`);
+    why.push(`Đòn bẩy x${t.lev} do hệ thống chọn: giá thanh lý ${px(t.liq)} xa gấp ${nf(t.liqDist / t.stopPct, 1)} lần điểm cắt lỗ – cắt lỗ luôn chạy trước thanh lý`);
+  } else why.push("Không có cách vào phù hợp (không có perp để Short / không có spot)");
+  const col = (on, title, rows) => `<div class="sf-c ${on ? "on" : ""}"><h5>${title}${on ? ' <span class="pill buy">nên dùng</span>' : ""}</h5><dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></div>`;
+  const spotCol = canSpot ? col(t.mode === "spot", "Spot (mua coin thật)", [["Tiền cần bỏ ra", usd2(N)], ["Phí 2 chiều (0,1%)", usd2(spotCost)], ["Funding", "không có"], ["Thanh lý", "không bao giờ"], ["Short được?", "không"]]) : col(false, "Spot", [["", L ? "Coin không có trên Binance spot" : "Spot không Short được"]]);
+  const futCol = canFut ? col(t.mode === "perp", `Futures perp x${fl}`, [["Ký quỹ khoá", usd2(N / fl)], ["Phí 2 chiều (0,05%)", usd2(N * FEE_FUT_T * 2)], ["Funding thời gian giữ", `${fund >= 0 ? "nhận" : "trả"} ${usd2(Math.abs(fund))}`], ["Thanh lý", `${px(liq)} (${pct((liq / t.e - 1) * 100, 1)})`], ["Tổng chi phí", usd2(futCost)]]) : col(false, "Futures", [["", "Coin không có hợp đồng perp"]]);
+  return `<details class="sf" ${open ? "open" : ""}><summary><b>Đánh spot hay futures?</b> → <span class="pill ${t.mode === "spot" ? "buy" : t.mode === "perp" ? "brand" : "sell"}">${t.mode === "spot" ? "Spot – mua coin thật" : t.mode === "perp" ? `Futures perp x${t.lev}` : "Không có cách vào"}</span> <small class="faint">bấm để xem so sánh & cách đặt lệnh từng bước</small></summary><div class="sf-g">${spotCol}${futCol}</div><ul class="sf-w">${why.map((w) => `<li>${w}</li>`).join("")}</ul>${binanceSteps(t)}</details>`;
+}
+function binanceSteps(t) {
+  const r = BYK?.[t.k] || {}, L = t.side === "long", half = t.q / 2, lim = t.order !== "market";
+  const onB = t.mode === "spot" ? !!r.sp : !!r.bf;
+  const ex = onB ? "Binance" : (t.ex || "sàn có hợp đồng");
+  let st = [];
+  if (t.mode === "spot") st = [
+    `Mở ${ex} → <b>Giao dịch → Spot</b> → tìm cặp <b>${esc(r.sp || t.k + "USDT")}</b>.`,
+    lim ? `Chọn <b>Giới hạn (Limit)</b>: Giá <b>${px(t.e)}</b>, Số lượng <b>${qty(t.q)} ${esc(t.k)}</b> (≈ ${usd(t.N)}) → Mua. Lệnh nằm chờ tới khi giá về.` : `Chọn <b>Giới hạn</b> với giá = giá bán tốt nhất hiện tại (hoặc <b>Thị trường</b>), Số lượng <b>${qty(t.q)} ${esc(t.k)}</b> → Mua.`,
+    `Khớp xong → đặt ngay lệnh <b>OCO</b> bán ${qty(half)} ${esc(t.k)}: Giá chốt lời (Limit) <b>${px(t.t1)}</b> · Giá kích hoạt Stop <b>${px(t.s)}</b> · Giá Limit của Stop <b>${px(t.s * 0.995)}</b>.`,
+    `Đặt OCO thứ hai cho ${qty(half)} ${esc(t.k)} còn lại: chốt lời <b>${px(t.t2)}</b> · Stop <b>${px(t.s)}</b> · Limit <b>${px(t.s * 0.995)}</b>.`,
+    `Khi MT1 khớp → huỷ OCO còn lại, đặt lại OCO: chốt lời <b>${px(t.t2)}</b>, Stop = <b>${px(t.e)}</b> (giá vào – hoà vốn).`,
+    `Nếu tới <b>${dt(t.tstop)}</b> chưa chạm MT1 → huỷ OCO, bán thị trường (hết thời gian kỳ vọng).`];
+  else if (t.mode === "perp") st = [
+    `Mở ${ex} → <b>Futures → USDⓈ-M</b> → <b>${esc(r.bf || t.k + "USDT")} Vĩnh cửu</b>.`,
+    `Bấm chế độ ký quỹ → chọn <b>Isolated (Cô lập)</b> (lỗ không lan sang tiền khác). Bấm số đòn bẩy → kéo về <b>x${t.lev}</b> → Xác nhận.`,
+    `${lim ? `Chọn <b>Limit</b>, Giá <b>${px(t.e)}</b>` : "Chọn <b>Market</b> (hoặc Limit sát giá)"}, Số lượng <b>${qty(t.q)} ${esc(t.k)}</b> (≈ ${usd(t.N)}, ký quỹ ${usd(t.margin)}). Tick <b>TP/SL</b>: TP <b>${px(t.t1)}</b>, SL <b>${px(t.s)}</b>, kích hoạt theo <b>Mark price</b>. → <b>${L ? "Mua/Long" : "Bán/Short"}</b>.`,
+    `Khớp xong → tab <b>Vị thế → TP/SL</b>: sửa TP thành 2 phần – <b>${qty(half)}</b> ở ${px(t.t1)} và <b>${qty(half)}</b> ở ${px(t.t2)} (Reduce-only); SL toàn bộ ở <b>${px(t.s)}</b>.`,
+    `Kiểm tra <b>Giá thanh lý</b> sàn hiển thị ≈ ${px(t.liq)} – phải nằm xa hơn SL ${px(t.s)}. Nếu gần hơn → giảm đòn bẩy.`,
+    `Khi MT1 khớp → sửa SL về <b>${px(t.e)}</b> (hoà vốn). Funding trừ/cộng mỗi 8 giờ (00:00, 08:00, 16:00 UTC).`,
+    `Nếu tới <b>${dt(t.tstop)}</b> chưa chạm MT1 → đóng vị thế bằng Market.`];
+  if (!st.length) return "";
+  return `<details class="bsteps" open><summary>Cách đặt lệnh trên ${esc(ex)} – từng bước</summary><ol>${st.map((s) => `<li>${s}</li>`).join("")}</ol></details>`;
+}
+// trạng thái theo giá hiện tại
+function liveSt(t, p) {
+  const sd = t.side === "long" ? 1 : -1;
+  if (!isNum(p)) return { k: "na", rank: 9, c: "", lbl: "…", txt: "Đang chờ giá" };
+  if (sd * (p - t.s) <= 0) return { k: "dead", rank: 6, c: "sell", lbl: "HUỶ", txt: `Giá đã chạm cắt lỗ ${px(t.s)} – kế hoạch không còn hiệu lực` };
+  if (sd * (p - t.t1) >= 0) return { k: "missed", rank: 5, c: "", lbl: "LỠ NHỊP", txt: `Giá đã tới MT1 ${px(t.t1)} – không đuổi theo, chờ cơ hội mới` };
+  const rr = Math.abs(t.t1 - p) / Math.abs(p - t.s), gap = (p / t.e - 1) * 100;
+  if (t.order === "limit" && sd * (p - t.e) > Math.abs(t.e) * 0.0015) return { k: "wait", rank: 2, c: "brand", lbl: "ĐẶT LỆNH CHỜ", rr, txt: `Đặt sẵn lệnh ${sd === 1 ? "mua" : "bán"} ở ${px(t.e)} – giá còn cách ${pct(Math.abs(gap), 2, false)}. Khớp được thì R:R ${nf(t.r1, 1)}` };
+  if (rr >= 1.2) return { k: "go", rank: 0, c: "buy", lbl: "VÀO ĐƯỢC NGAY", rr, txt: `Vào ở giá hiện tại ${px(p)}: R:R tới MT1 ${nf(rr, 1)}${sd * (p - t.e) < 0 ? " (giá đang tốt hơn kế hoạch)" : ""}` };
+  return { k: "chase", rank: 3, c: "warn", lbl: "ĐỪNG ĐUỔI", rr, txt: `Giá đã chạy – vào bây giờ R:R chỉ còn ${nf(rr, 1)}. Đặt chờ ở ${px(t.e)} hoặc bỏ qua` };
+}
+function rail(t, p) {
+  const xs = [t.s, t.e, t.t1, t.t2, p].filter(isNum), lo = Math.min(...xs), hi = Math.max(...xs), W = (x) => ((x - lo) / (hi - lo || 1)) * 100;
+  const m = (x, c, l) => `<i class="${c}" style="left:${W(x).toFixed(1)}%"><b>${l}</b></i>`;
+  return `<div class="rail">${m(t.s, "s", "Cắt lỗ")}${m(t.e, "e", "Vào")}${m(t.t1, "t", "MT1")}${m(t.t2, "t", "MT2")}<i class="p" style="left:${W(p).toFixed(1)}%"></i></div>`;
+}
+const PLS = new Set();
+function plStop(P) { P.dead = true; P.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); clearInterval(P.timer); PLS.delete(P); }
+function plClose() { [...PLS].forEach(plStop); }
+function liveTickets(host, items, opt = {}) {
+  // items: [{t, D}] → mỗi phiếu có dải trạng thái trực tiếp ở đầu, cập nhật từng giây
+  if (host._pl) plStop(host._pl);
+  const PL = { ws: [], timer: null, dead: false, src: {} }; host._pl = PL; PLS.add(PL);
+  const px0 = {};
+  host.innerHTML = items.map(({ t }, i) => `<div class="ltk" data-i="${i}"><div class="ltk-h" id="lh${i}"></div>${ticketCard(t, { live: true })}${spotFutBox(t, i === 0)}<div class="ltk-c" id="lc${i}"><small class="faint">Đang kiểm tra xác nhận khung 15 phút…</small></div></div>`).join("");
+  bindTicketSave(host);
+  const head = (i) => {
+    const { t } = items[i], p = px0[t.k] ?? t.price, S = liveSt(t, p), el = $("#lh" + i, host); if (!el) return;
+    if (S.k === "go" && items[i].cf === false) S.txt += ". Khung 15 phút chưa xác nhận → có thể vào 1/2 khối lượng bây giờ, 1/2 còn lại khi 15 phút phá cấu trúc cùng chiều";
+    if (S.k === "go" && items[i].cf === true) S.txt += ". Khung 15 phút đã xác nhận ✓";
+    items[i].S = S;
+    const pv = +el.dataset.p || p; el.dataset.p = p;
+    el.innerHTML = `<div class="ltk-r"><span class="pill ${S.c} big">${S.lbl}</span> <b>${esc(t.k)}</b> <span class="pill ${t.side === "long" ? "buy" : "sell"}">${t.side === "long" ? "LONG" : "SHORT"}</span>
+      <span class="ltk-p ${p > pv ? "up" : p < pv ? "down" : ""}">${px(p)}</span> <small class="faint">${PL.src?.[t.k] || ""}</small></div><p class="ltk-t">${esc(S.txt)}</p>${rail(t, p)}`;
+  };
+  const order = () => { const nodes = items.map((x, i) => [x.S?.rank ?? 9, -(x.t.evR || 0), host.querySelector(`.ltk[data-i="${i}"]`)]).sort((a, b) => a[0] - b[0] || a[1] - b[1]); nodes.forEach(([, , n]) => n && host.appendChild(n)); };
+  items.forEach((_, i) => head(i));
+  // giá trực tiếp: spot miniTicker, coin chỉ có perp → mark price
+  const sp = items.map(({ t }) => BYK[t.k]).filter((r) => r?.sp), fu = items.map(({ t }) => BYK[t.k]).filter((r) => r && !r.sp && r.bf);
+  const tick = (k, p) => { px0[k] = p; };
+  if (sp.length) { try { const w = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = sp.find((x) => x.sp === d.s); if (r) { tick(r.k, +d.c / (r.sm || 1)); PL.src[r.k] = "spot · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
+  if (fu.length) { try { const w = new WebSocket(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = fu.find((x) => x.bf === d.s); if (r) { tick(r.k, +d.p / (r.bfm || 1)); PL.src[r.k] = "mark perp · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
+  // xác nhận khung nhỏ (15 phút) mỗi 60 giây: cấu trúc có đang cùng chiều phiếu không
+  const confirm = async () => {
+    for (let i = 0; i < items.length; i++) {
+      if (PL.dead) return;
+      const { t, D } = items[i], r = BYK[t.k], el = $("#lc" + i, host); if (!el || !r) continue;
+      try {
+        const [L, H] = await Promise.all([liveKlines(r, "15m", 1, 300), htfO(r, D, "1h", 300)]);
+        if (!L) { el.innerHTML = `<small class="faint">Không lấy được nến 15 phút.</small>`; continue; }
+        const E = rtEval(L.o, H, null, { tf1: "1h", cr: r.cr || [] }); if (!E) continue;
+        const B = E[t.side], ok = E.best === t.side && B.status !== "wait";
+        items[i].cf = ok;
+        el.innerHTML = `<div class="ltk-cf ${ok ? "ok" : ""}"><b>${ok ? "✓ Khung 15 phút xác nhận" : "⏳ Khung 15 phút chưa xác nhận"}</b> – ${t.side === "long" ? "Long" : "Short"} ${B.score}/100 (${RTS[B.status][0]})${B.trig ? ` · ${esc(B.trig)}` : ""}${!ok && E.best !== t.side ? ` · khung nhỏ đang nghiêng ${E.best === "long" ? "Long" : "Short"} ${E[E.best].score}/100 – nên chờ` : ""}
+          <small class="faint"> · ${B.chk.filter((k) => k.ok === 1).sort((a, b) => b.w - a.w).slice(0, 3).map((k) => esc(k.t)).join(" · ")}</small></div>`;
+      } catch (e) { /* bỏ qua */ }
+    }
+  };
+  confirm();
+  let n = 0;
+  PL.timer = setInterval(() => { if (PL.dead || !host.isConnected) { plStop(PL); return; } if (document.hidden) return; n++; items.forEach((_, i) => head(i)); if (n % 5 === 0) order(); if (n % 60 === 0) confirm(); if (opt.refresh && n % 300 === 0) opt.refresh(); }, 1000);
 }
 
 // ================================================================ CƠ HỘI GIAO DỊCH
@@ -1005,10 +1127,11 @@ async function viewIdeas(f0) {
 }
 
 // ================================================================ BINANCE TRỰC TIẾP – toàn bộ cặp spot + perp, cập nhật mỗi giây
-const LV = { rows: new Map(), ws: [], timer: null, sort: lsGet("lvsort", { k: "qv", d: -1 }), q: "", all: false, both: false, st: { spot: "…", fut: "…" } };
+const LV = { rows: new Map(), ws: [], timer: null, sort: lsGet("lvsort", { k: "qv", d: -1 }), q: "", lim: lsGet("lvlim", 60), both: false, st: { spot: "…", fut: "…" } };
 function lvRow(base) { let r = LV.rows.get(base); if (!r) { r = { base, hist: [] }; LV.rows.set(base, r); } return r; }
-function lvChg(r, sec) { const h = r.hist; if (!h.length || r.p == null) return null; const t0 = Date.now() / 1000 - sec; if (h[0][0] > t0 + 5) return null; let p0 = h[0][1]; for (const [t, p] of h) { if (t <= t0) p0 = p; else break; } return (r.p / p0 - 1) * 100; }
-function lvPush(r, p) { const t = Date.now() / 1000; r.p = p; const h = r.hist; if (!h.length || t - h[h.length - 1][0] >= 1) h.push([t, p]); while (h.length && h[0][0] < t - 960) h.shift(); }
+function lvChg(r, sec) { const h = r.hist; if (!h.length || r.p == null) return null; const t0 = Date.now() / 1000 - sec; if (h[0][0] > t0 + 5) return null;
+  let lo = 0, hi = h.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (h[m][0] <= t0) lo = m; else hi = m - 1; } return (r.p / h[lo][1] - 1) * 100; }
+function lvPush(r, p) { const t = Date.now() / 1000; r.p = p; const h = r.hist; if (!h.length || t - h[h.length - 1][0] >= 5) { h.push([t, p]); if (h.length > 200 && h[0][0] < t - 960) h.splice(0, h.findIndex((x) => x[0] >= t - 960)); } }
 function lvClose() { LV.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); LV.ws = []; clearInterval(LV.timer); LV.timer = null; }
 const keyOfBase = (() => { let m = null; return (base, kind) => { if (!m) { m = { spot: {}, fut: {} }; (COINS?.rows || []).forEach((r) => { if (r.sp) m.spot[r.sp.replace(/USDT$/, "")] = r.k; if (r.bf) m.fut[r.bf.replace(/USDT$/, "")] = r.k; }); } return m[kind][base]; }; })();
 async function viewLive() {
@@ -1018,7 +1141,7 @@ async function viewLive() {
     · spot <b id="lvS">${LV.st.spot}</b> · futures <b id="lvF">${LV.st.fut}</b></span></div>
     <div class="g g3" id="lvMov"></div>
     <div class="filters"><div class="field"><label>Tìm</label><input id="lvQ" placeholder="BTC, SOL…"></div>
-      <label class="chk"><input type="checkbox" id="lvB"> Chỉ cặp có cả spot và perp</label><label class="chk"><input type="checkbox" id="lvA"> Hiện tất cả (mặc định 250 cặp khối lượng lớn nhất)</label>
+      <label class="chk"><input type="checkbox" id="lvB"> Chỉ cặp có cả spot và perp</label><div class="field"><label>Số cặp</label><select id="lvA"><option value="60">60 lớn nhất</option><option value="120">120</option><option value="250">250</option><option value="0">Tất cả</option></select></div>
       <small class="faint" id="lvN"></small></div>
     <div class="tw sticky" id="lvT"></div>
     <p class="faint" style="font-size:.72rem">1p / 5p / 15p = biến động trong 1, 5, 15 phút gần nhất – tính từ lúc anh mở trang (cần mở đủ lâu). Basis = giá mark perp so với giá chỉ số spot. Funding = mức kỳ tới (đa số kỳ 8 giờ). Bấm tên coin để mở phân tích (coin có trong hệ thống).</p>`;
@@ -1050,54 +1173,67 @@ async function viewLive() {
   // websocket
   const open = (url, on, id) => { try { const w = new WebSocket(url); w.onmessage = on; w.onopen = () => set(id, ok); w.onerror = () => set(id, bad); w.onclose = () => { if (location.hash.startsWith("#/live")) setTimeout(() => { if (location.hash.startsWith("#/live")) open(url, on, id); }, 5000); }; LV.ws.push(w); } catch (e) { set(id, bad); } };
   open("wss://stream.binance.com:9443/ws/!miniTicker@arr", (ev) => { const a = JSON.parse(ev.data); a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.sp = x.s; r.o24 = +x.o; r.hi = +x.h; r.lo = +x.l; r.qv = +x.q; lvPush(r, +x.c); r.r24 = (+x.c / +x.o - 1) * 100; r.tk = Date.now(); }); }, "lvS");
-  open("wss://fstream.binance.com/stream?streams=!miniTicker@arr/!markPrice@arr@1s", (ev) => { const m = JSON.parse(ev.data); const a = m.data || [];
+  open("wss://fstream.binance.com/stream?streams=!miniTicker@arr/!markPrice@arr", (ev) => { const m = JSON.parse(ev.data); const a = m.data || [];
     if ((m.stream || "").startsWith("!markPrice")) a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.mk = +x.p; r.ix = +x.i; r.fr = +x.r * 100; r.nf = +x.T; });
     else a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.fs = x.s; r.fp = +x.c; r.fqv = +x.q; r.fr24 = (+x.c / +x.o - 1) * 100; if (!r.sp) { lvPush(r, +x.c); r.tk = Date.now(); } }); }, "lvF");
   $("#lvQ").oninput = (e) => { LV.q = e.target.value.trim().toUpperCase(); drawLive(true); };
   $("#lvB").onchange = (e) => { LV.both = e.target.checked; drawLive(true); };
-  $("#lvA").onchange = (e) => { LV.all = e.target.checked; drawLive(true); };
+  $("#lvA").value = String(LV.lim); $("#lvA").onchange = (e) => { LV.lim = +e.target.value; lsSet("lvlim", LV.lim); drawLive(true); };
   drawLive(true);
   let n = 0;
-  LV.timer = setInterval(() => { if (!location.hash.startsWith("#/live")) { lvClose(); return; } n++; drawLive(n % 5 === 0); }, 1000);
+  LV.timer = setInterval(() => { if (!location.hash.startsWith("#/live")) { lvClose(); return; } if (document.hidden) return; n++; drawLive(n % 10 === 0); }, 1000);
 }
 const LVC = [["base", "Coin", "l"], ["p", "Giá"], ["c1", "1p"], ["c5", "5p"], ["c15", "15p"], ["r24", "24h"], ["rng", "Vị trí 24h"], ["qv", "KL spot 24h"], ["fqv", "KL perp 24h"], ["basis", "Basis"], ["fr", "Funding"], ["nf", "Kỳ tới"]];
 function lvVals(r) {
   return { base: r.base, p: r.p, c1: lvChg(r, 60), c5: lvChg(r, 300), c15: lvChg(r, 900), r24: r.r24 ?? r.fr24, rng: r.hi > r.lo ? (r.p - r.lo) / (r.hi - r.lo) * 100 : null, qv: r.qv, fqv: r.fqv,
     basis: r.mk && r.ix ? (r.mk / r.ix - 1) * 100 : null, fr: r.fr, nf: r.nf };
 }
+const setc = (td, txt, c) => { if (td._t !== txt) { td.textContent = txt; td._t = txt; } if (c !== undefined && td._c !== c) { td.className = c; td._c = c; } };
 function drawLive(resort) {
   const T = $("#lvT"); if (!T) return;
-  let rows = [...LV.rows.values()].filter((r) => r.p && (!LV.q || r.base.includes(LV.q)) && (!LV.both || (r.sp && r.fs)));
-  const vals = new Map(rows.map((r) => [r.base, lvVals(r)]));
-  if (resort || !T.firstChild) {
-    const { k, d } = LV.sort;
-    rows.sort((a, b) => { const x = vals.get(a.base)[k], y = vals.get(b.base)[k]; if (k === "base") return String(x).localeCompare(String(y)) * d; if (!isNum(x) && !isNum(y)) return 0; if (!isNum(x)) return 1; if (!isNum(y)) return -1; return (x - y) * d; });
-    if (!LV.all && !LV.q) rows = rows.filter((r) => ((r.qv || 0) + (r.fqv || 0)) > 0).sort((a, b) => ((b.qv || 0) + (b.fqv || 0)) - ((a.qv || 0) + (a.fqv || 0))).slice(0, 250).sort((a, b) => rows.indexOf(a) - rows.indexOf(b));
-    LV.order = rows.map((r) => r.base);
-    T.innerHTML = `<table class="sortable lvt"><thead><tr>${LVC.map(([c, n, l]) => `<th data-s="${c}" class="${l || ""} ${LV.sort.k === c ? "on" : ""}">${n}${LV.sort.k === c ? (LV.sort.d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody>${LV.order.map((b) => `<tr data-b="${b}">${LVC.map(([c, , l]) => `<td class="${l || ""}" data-c="${c}"></td>`).join("")}</tr>`).join("")}</tbody></table>`;
-    $$("th[data-s]", T).forEach((th) => th.onclick = () => { const c = th.dataset.s; LV.sort = { k: c, d: LV.sort.k === c ? -LV.sort.d : (c === "base" ? 1 : -1) }; lsSet("lvsort", LV.sort); drawLive(true); });
-    $("#lvN").textContent = `${nf(LV.rows.size, 0)} cặp đang theo dõi`;
-  }
   const now = Date.now();
-  $$("tbody tr", T).forEach((tr) => {
-    const r = LV.rows.get(tr.dataset.b), v = vals.get(tr.dataset.b) || lvVals(r);
-    const td = tr.children, k = keyOfBase(r.base, r.sp ? "spot" : "fut");
-    const fresh = r.tk && now - r.tk < 1500;
-    td[0].innerHTML = k ? `<a href="#/c/${enc(k)}"><b>${esc(r.base)}</b></a>${r.fs ? ' <small class="faint">perp</small>' : ""}` : `<b>${esc(r.base)}</b>${r.fs ? ' <small class="faint">perp</small>' : ""}${!r.sp ? ' <small class="faint">chỉ perp</small>' : ""}`;
-    td[1].textContent = px(v.p); td[1].className = fresh ? "flash" : "";
-    [[2, "c1", 2], [3, "c5", 2], [4, "c15", 2], [5, "r24", 1]].forEach(([i, c, dd]) => { td[i].textContent = isNum(v[c]) ? pct(v[c], dd) : "—"; td[i].className = cls(v[c]) + (Math.abs(v[c] || 0) >= (c === "c1" ? 1 : c === "c5" ? 2 : 4) ? " big" : ""); });
-    td[6].innerHTML = isNum(v.rng) ? `<span class="rngb"><i style="left:${Math.max(0, Math.min(100, v.rng))}%"></i></span>` : "—";
-    td[7].textContent = usd(v.qv); td[8].textContent = usd(v.fqv);
-    td[9].textContent = isNum(v.basis) ? pct(v.basis, 3) : "—"; td[9].className = cls(v.basis);
-    td[10].textContent = isNum(v.fr) ? f8s(v.fr) : "—"; td[10].className = f8c(v.fr);
-    td[11].textContent = v.nf ? (() => { const m = Math.max(0, Math.round((v.nf - now) / 60000)); return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`; })() : "—";
-  });
-  // biến động mạnh
-  const all = [...LV.rows.values()].filter((r) => r.p && ((r.qv || 0) + (r.fqv || 0)) > 3e6);
-  const top = (fn, n = 8) => all.map((r) => [r, fn(r)]).filter(([, x]) => isNum(x)).sort((a, b) => b[1] - a[1]).slice(0, n);
-  const box = (title, L, dd = 2) => panel(title, L.length ? `<div class="rows">${L.map(([r, x]) => { const k = keyOfBase(r.base, r.sp ? "spot" : "fut"); return `<a class="row" ${k ? `href="#/c/${enc(k)}"` : ""}><div class="rm"><b>${esc(r.base)}</b></div><div class="rv"><span>${px(r.p)}</span></div><div class="rx ${cls(x)}">${pct(x, dd)}</div></a>`; }).join("")}</div>` : `<p class="muted">Đang tích luỹ dữ liệu…</p>`);
+  if (resort || !T.firstChild) {
+    let rows = [...LV.rows.values()].filter((r) => r.p && (!LV.q || r.base.includes(LV.q)) && (!LV.both || (r.sp && r.fs)));
+    if (LV.lim && !LV.q) rows = rows.sort((a, b) => ((b.qv || 0) + (b.fqv || 0)) - ((a.qv || 0) + (a.fqv || 0))).slice(0, LV.lim);
+    const { k, d } = LV.sort, val = new Map(rows.map((r) => [r.base, lvVals(r)[k]]));
+    rows.sort((a, b) => { const x = val.get(a.base), y = val.get(b.base); if (k === "base") return String(x).localeCompare(String(y)) * d; if (!isNum(x) && !isNum(y)) return 0; if (!isNum(x)) return 1; if (!isNum(y)) return -1; return (x - y) * d; });
+    LV.order = rows.map((r) => r.base);
+    if (!T.firstChild || T._sort !== `${k}${d}`) {
+      T.innerHTML = `<table class="sortable lvt"><thead><tr>${LVC.map(([c, n, l]) => `<th data-s="${c}" class="${l || ""} ${LV.sort.k === c ? "on" : ""}">${n}${LV.sort.k === c ? (LV.sort.d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead><tbody></tbody></table>`;
+      T._sort = `${k}${d}`; LV.tr = new Map();
+      $$("th[data-s]", T).forEach((th) => th.onclick = () => { const c = th.dataset.s; LV.sort = { k: c, d: LV.sort.k === c ? -LV.sort.d : (c === "base" ? 1 : -1) }; lsSet("lvsort", LV.sort); drawLive(true); });
+    }
+    const tb = $("tbody", T), keep = new Set(LV.order);
+    for (const [b, tr] of LV.tr) if (!keep.has(b)) { tr.remove(); LV.tr.delete(b); }
+    LV.order.forEach((b) => {
+      let tr = LV.tr.get(b);
+      if (!tr) { const r = LV.rows.get(b), kk = keyOfBase(r.base, r.sp ? "spot" : "fut"); tr = document.createElement("tr"); tr.innerHTML = LVC.map(([, , l]) => `<td class="${l || ""}"></td>`).join("");
+        tr.children[0].innerHTML = kk ? `<a href="#/c/${enc(kk)}"><b>${esc(r.base)}</b></a>${r.fs ? ' <small class="faint">perp</small>' : ""}` : `<b>${esc(r.base)}</b>${r.fs ? ' <small class="faint">perp</small>' : ""}${!r.sp ? ' <small class="faint">chỉ perp</small>' : ""}`;
+        tr.children[6].innerHTML = `<span class="rngb"><i></i></span>`; LV.tr.set(b, tr); }
+      tb.appendChild(tr);
+    });
+    $("#lvN").textContent = `${nf(LV.rows.size, 0)} cặp đang theo dõi · hiện ${LV.order.length}`;
+  }
+  for (const b of LV.order || []) {
+    const tr = LV.tr.get(b), r = LV.rows.get(b); if (!tr || !r) continue;
+    const v = lvVals(r), td = tr.children;
+    setc(td[1], px(v.p), r.tk && now - r.tk < 1200 ? "flash" : "");
+    [[2, "c1", 2], [3, "c5", 2], [4, "c15", 2], [5, "r24", 1]].forEach(([i, c, dd]) => setc(td[i], isNum(v[c]) ? pct(v[c], dd) : "—", cls(v[c]) + (Math.abs(v[c] || 0) >= (c === "c1" ? 1 : c === "c5" ? 2 : 4) ? " lvbig" : "")));
+    const ri = td[6].firstChild?.firstChild; if (ri && isNum(v.rng)) { const l = Math.max(0, Math.min(100, v.rng)).toFixed(0) + "%"; if (ri.style.left !== l) ri.style.left = l; }
+    setc(td[7], usd(v.qv)); setc(td[8], usd(v.fqv));
+    setc(td[9], isNum(v.basis) ? pct(v.basis, 3) : "—", cls(v.basis));
+    setc(td[10], isNum(v.fr) ? f8s(v.fr) : "—", f8c(v.fr));
+    setc(td[11], v.nf ? (() => { const m = Math.max(0, Math.round((v.nf - now) / 60000)); return `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}`; })() : "—");
+  }
+  // biến động mạnh (10 giây/lần)
   const mv = $("#lvMov");
-  if (mv && (resort || !mv.firstChild)) mv.innerHTML = box("⚡ Tăng mạnh 5 phút", top((r) => lvChg(r, 300))) + box("⚡ Giảm mạnh 5 phút", top((r) => { const x = lvChg(r, 300); return x == null ? null : -x; }).map(([r, x]) => [r, -x])) + box("🔥 Funding cao nhất / thấp nhất", top((r) => r.fr, 4).concat(top((r) => (r.fr == null ? null : -r.fr), 4).map(([r, x]) => [r, -x])), 4);
+  if (mv && (resort || !mv.firstChild)) {
+    const all = [...LV.rows.values()].filter((r) => r.p && ((r.qv || 0) + (r.fqv || 0)) > 3e6).map((r) => [r, lvChg(r, 300)]);
+    const top = (arr, n = 8) => arr.filter(([, x]) => isNum(x)).sort((a, b) => b[1] - a[1]).slice(0, n);
+    const box = (title, L, dd = 2) => panel(title, L.length ? `<div class="rows">${L.map(([r, x]) => { const k = keyOfBase(r.base, r.sp ? "spot" : "fut"); return `<a class="row" ${k ? `href="#/c/${enc(k)}"` : ""}><div class="rm"><b>${esc(r.base)}</b></div><div class="rv"><span>${px(r.p)}</span></div><div class="rx ${cls(x)}">${pct(x, dd)}</div></a>`; }).join("")}</div>` : `<p class="muted">Đang tích luỹ dữ liệu…</p>`);
+    const fr = [...LV.rows.values()].filter((r) => isNum(r.fr) && (r.fqv || 0) > 3e6).map((r) => [r, r.fr]);
+    mv.innerHTML = box("⚡ Tăng mạnh 5 phút", top(all)) + box("⚡ Giảm mạnh 5 phút", top(all.map(([r, x]) => [r, x == null ? null : -x])).map(([r, x]) => [r, -x])) + box("🔥 Funding cao nhất / thấp nhất", top(fr, 4).concat(top(fr.map(([r, x]) => [r, -x]), 4).map(([r, x]) => [r, -x])), 4);
+  }
 }
 
 // ---- dữ liệu lượt nhanh (15 phút) qua /api/intraday
@@ -1195,7 +1331,7 @@ function rtEval(o, hi1, hi2, ctx = {}, S0 = null) {
     const chk = [], add = (ok, w, t, half = false) => chk.push({ ok: ok ? 1 : half ? 0.5 : 0, w, t });
     const hb1 = H1 ? H1.trend : he(hi1), hb2 = H2 ? H2.trend : he(hi2);
     add(hb1 === sd, 16, `Khung lớn ${ctx.tf1 || ""}: cấu trúc ${hb1 === 1 ? "tăng" : hb1 === -1 ? "giảm" : "ngang"}`, hb1 === 0);
-    add(hb2 === sd || hb2 === 0, 8, `Khung lớn hơn ${ctx.tf2 || ""}: ${hb2 === 1 ? "tăng" : hb2 === -1 ? "giảm" : "ngang"}`);
+    add(hb2 === sd || hb2 === 0, 8, hi2 ? `Khung lớn hơn ${ctx.tf2 || ""}: ${hb2 === 1 ? "tăng" : hb2 === -1 ? "giảm" : "ngang"}` : "Khung lớn hơn: không xét");
     const lastEv = S.events[S.events.length - 1];
     const evOk = lastEv && lastEv.dir === sd && N - 1 - lastEv.i <= 20;
     add(evOk, 14, lastEv ? `${lastEv.type} ${lastEv.dir === 1 ? "tăng" : "giảm"} cách ${N - 1 - lastEv.i} nến` : "Chưa có BOS/CHoCH");
@@ -1244,7 +1380,7 @@ function rtEval(o, hi1, hi2, ctx = {}, S0 = null) {
     res[sd === 1 ? "long" : "short"] = { score, obst, chk, e, s, t1, t2, rr1: Math.abs(t1 - e) / R, rr2: Math.abs(t2 - e) / R, trig, setup: sw && evOk ? (sd === 1 ? "smc_sweep_up" : "smc_sweep_dn") : ob ? (sd === 1 ? "smc_ob_up" : "smc_ob_dn") : null };
   }
   const best = res.long.score >= res.short.score ? "long" : "short", B = res[best];
-  B.status = B.score >= 75 && !B.trig ? "go" : B.score >= 58 ? "ready" : "wait";
+  [res.long, res.short].forEach((X) => { X.status = X.score >= 75 && !X.trig ? "go" : X.score >= 58 ? "ready" : "wait"; });
   return { ...res, best, p, atr, S, H1, e20: e20[N - 1], e50: e50[N - 1], rsi: rsi[N - 1] };
 }
 const RTS = { go: ["VÀO ĐƯỢC", "buy"], ready: ["CHUẨN BỊ", "brand"], wait: ["CHỜ", ""] };
@@ -1397,7 +1533,7 @@ function chartTools(D, el, ch, tf) {
     }
   };
   if (rtEl) {
-    $("#rtTk", rtEl).onclick = () => { if (!E) return; const t = rtTicket(D, E, tf); $(".rt-tk", rtEl).innerHTML = ticketCard(t); bindTicketSave(rtEl); };
+    $("#rtTk", rtEl).onclick = () => { if (!E) return; const t = rtTicket(D, E, tf); $(".rt-tk", rtEl).innerHTML = ticketCard(t) + spotFutBox(t); bindTicketSave(rtEl); };
     $("#rtN", rtEl).onchange = async (ev) => { lsSet("rtNtf", ev.target.checked); if (ev.target.checked && "Notification" in window && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* bỏ qua */ } } };
   }
   const upd = (o, force) => { cur = o; if (force || Date.now() - last > 1500) { clearTimeout(pend); pend = null; run(); } else if (!pend) pend = setTimeout(() => { pend = null; run(); }, 1500 - (Date.now() - last)); };
