@@ -150,6 +150,13 @@ def run(notify: bool = False) -> dict:
     cf = cval.cashflows(store.read("ll_protocols"), store.read("ll_parents"), store.read("ll_fees"), store.read("ll_chains"))
     cfmap = {r["gecko_id"]: r for r in cf.to_dict("records")} if not cf.empty else {}
     unl_files = _unlock_files()
+    news = store.read("news")
+    nby = {}
+    if not news.empty:
+        news["time"] = pd.to_datetime(news["time"])
+        news = news.sort_values("time", ascending=False)
+        for k, g in news.groupby("key", sort=False):
+            nby[k] = g.head(20).to_dict("records")
     btc = _px("d", "BTC")
     btc_reg = regime.regime_series(btc) if btc is not None else None
     btc_down = bool(btc_reg is not None and btc_reg.iloc[-1] < 0)
@@ -248,7 +255,15 @@ def run(notify: bool = False) -> dict:
                "f7": fst.get("avg7d"), "lsr": bnm.get("lsr_acct"), "cr": [x["k"] for x in crowd], "car": car.get("ann7") if car else None,
                "beta": hedge.get("beta"), "ml": max_lev, "new": bool(df is not None and len(df) < int(config.get("universe.min_history_days", 60)))}
         rows.append(row)
-        details[key] = {"row": row, "val": val, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
+        nl = []
+        for n in nby.get(key, []):
+            n = {**n, "t": n["time"].strftime("%Y-%m-%dT%H:%M"), "time": None}
+            if grp == "Blockchain L1/L2" and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3 and key not in ("BTC",):
+                n["sev"], n["tag"] = 1, "Sự cố trong hệ sinh thái"      # dự án trên chuỗi bị hack ≠ chuỗi bị hack
+            nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
+        cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
+        row["nw"] = sum(1 for n in nl if n["t"] >= cut and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3) or None
+        details[key] = {"row": row, "val": val, "news": nl, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
                                                         if k in ("name", "category", "fees_total30d", "rev_total30d", "hrev_total30d", "fees_total1y",
                                                                  "rev_total1y", "hrev_total1y", "fees_total30DaysAgo", "rev_total30DaysAgo", "n_parts")},
                         "unl": {"series": [p for p in (em or {}).get("series", []) if p[0] > time.time() - 3 * 365 * 86400][::2] if em else [],
@@ -371,6 +386,15 @@ def build_market(rows, details, pxs, btc, peers, alerts) -> dict:
             a["cats"].append(e["cat"])
     out["unlocks"] = sorted(agg.values(), key=lambda e: e["t"])[:30]
     out["alerts"] = alerts[:40]
+    hl = []
+    seen = set()
+    for k, d in details.items():
+        for n in d.get("news") or []:
+            if n.get("sev", 0) >= 2 and n["t"] >= (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M") and n["title"] not in seen:
+                seen.add(n["title"])
+                hl.append({"k": k, **n})
+    out["news"] = sorted(hl, key=lambda n: ((n.get("sev") or 0), n["t"]), reverse=True)[:30]
+    out["news"].sort(key=lambda n: n["t"], reverse=True)
     out["counts"] = {"coins": len(rows), "fut": sum(1 for r in rows if r["fx"]), "spot": sum(1 for r in rows if r["spot"]),
                      "cf": sum(1 for d in details.values() if d["val"].get("has_cf"))}
     return out

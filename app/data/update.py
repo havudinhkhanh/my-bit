@@ -630,6 +630,20 @@ def macro() -> dict:
     return out
 
 
+@_step("news")
+def news() -> dict:
+    from . import cnews
+    uni = _uni()
+    rows = [r for r in uni.sort_values("rank", na_position="last").to_dict("records") if _ok(r)]
+    coins = [{"key": r["key"], "sym": r["sym"], "name": r["name"]} for r in rows[:400]]
+    snap = store.read("fut_now")
+    oi = _oi_by_key(uni, snap)
+    focus = sorted(coins, key=lambda c: -(oi.get(c["key"], 0) or 0))[:45]
+    df, stats = cnews.fetch(coins, focus)
+    all_ = cnews.save(df)
+    return {"new": len(df), "total": len(all_), "src": stats}
+
+
 def run(full: bool = True) -> dict:
     REPORT["at"] = _now().isoformat()
     futures_snapshot()
@@ -640,6 +654,7 @@ def run(full: bool = True) -> dict:
     prices_intraday()
     funding_hist()
     binance_metrics()
+    news()
     if full:
         defillama()
         cg_groups()

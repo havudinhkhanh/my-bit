@@ -70,8 +70,10 @@ jobs:
       - name: Kết nối Cloudflare
         if: env.CF_API_TOKEN != '' && (github.event_name == 'schedule' || inputs.build)
         run: |
-          python scripts/cloudflare.py kv >> "$GITHUB_ENV"
-          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" || true
+          mkdir -p data
+          python scripts/cloudflare.py kv >> "$GITHUB_ENV" 2> data/cf.txt
+          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" 2>> data/cf.txt || true
+          grep -q D1_DATABASE_ID "$GITHUB_ENV" && echo "D1: OK" >> data/cf.txt || echo "D1: chưa có" >> data/cf.txt
 
       - name: Phân tích
         if: (github.event_name == 'schedule' || inputs.build) && hashFiles('app/build.py') != ''
@@ -95,7 +97,8 @@ jobs:
           if [ -n "$GH_DISPATCH_TOKEN" ]; then
             echo "$GH_DISPATCH_TOKEN" | npx --yes wrangler@3 pages secret put GH_TOKEN --project-name my-bit || true
           fi
-          npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true
+          grep -A3 d1_databases wrangler.toml | grep -v database_id >> data/cf.txt || echo "wrangler.toml: không có D1" >> data/cf.txt
+          npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true 2>&1 | tail -25 | tee data/deploy.txt
           curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
           curl -s -o /dev/null -w "data %{http_code}\n" https://my-bit.pages.dev/data/market.json >> data/site_check.txt || true
           cat data/optimize.txt >> data/site_check.txt 2>/dev/null || true
@@ -114,4 +117,4 @@ jobs:
         if: always()
         run: |
           mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/c/BTC.json site/data/c/HYPE.json data/debug/ 2>/dev/null || true
-          bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/debug
+          bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/cf.txt data/deploy.txt data/debug

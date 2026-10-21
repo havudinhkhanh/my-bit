@@ -1490,3 +1490,9 @@ ul.alerts li{margin:4px 0}
 .seg button{cursor:pointer}
 table.sortable th[data-s]{cursor:pointer;user-select:none}
 table.sortable th.on{color:var(--brand)}
+.nwr{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-2);align-items:flex-start}
+.nwr:last-child{border-bottom:0}
+.nwr>div{display:flex;flex-direction:column;min-width:0}
+.nwr a{color:var(--ink)}
+.nwr.sev3{box-shadow:inset 3px 0 0 var(--down);padding-left:6px}
+.nwr .ck{min-width:64px}

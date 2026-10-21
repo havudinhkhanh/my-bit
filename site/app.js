@@ -267,13 +267,14 @@ async function viewMarket() {
     ${panel("💰 Định giá rẻ (có dòng tiền thật)", list(lst.cheap, (r) => `<small>P/S ${nf(r.ps, 1)}</small>`), `<a href="#/coins/cf">bảng định giá</a>`)}
     ${panel("📈 OI tăng mạnh 7 ngày", list(lst.oi_up, (r) => `<small class="${cls(r.oi7)}">${pct(r.oi7, 0)}</small>`))}
   </div>
+  ${(M.news || []).length ? panel("📰 Tin có tác động (72 giờ)", `<div class="ntfs">${M.news.map((n) => newsRow(n, true)).join("")}</div>`, "hack, huỷ niêm yết, pháp lý, niêm yết mới, ETF…") : ""}
   ${(M.alerts || []).length ? panel("⚠️ Cảnh báo đòn bẩy", `<ul class="alerts">${M.alerts.map((a) => `<li>${coinLink(a.k, "/fut")} <b>${esc(a.t)}</b> – ${esc(a.d)}</li>`).join("")}</ul>`) : ""}
   <p class="faint disclaimer">Thông tin phân tích, không phải lời khuyên đầu tư. Crypto biến động mạnh; giao dịch đòn bẩy có thể mất toàn bộ ký quỹ.</p>`;
 }
 
 // ================================================================ BẢNG COIN
 const COLS = {
-  k: ["Coin", (r) => coinLink(r.k), "l"],
+  k: ["Coin", (r) => coinLink(r.k) + (r.nw ? ` <span class="pill sell" title="Có tin xấu nghiêm trọng 3 ngày qua">⚠ tin</span>` : ""), "l"],
   p: ["Giá", (r) => px(r.p)],
   r1: ["24h", (r) => `<span class="${cls(r.r1)}">${pct(r.r1)}</span>`],
   r7: ["7 ngày", (r) => `<span class="${cls(r.r7)}">${pct(r.r7, 0)}</span>`],
@@ -404,9 +405,15 @@ function tabOverview(D) {
         ${why.length ? `<ul class="why">${why.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
         ${(D.crowd || []).length ? `<div class="note">${D.crowd.map((c) => `<p><b>${esc(c.t)}</b>: ${esc(c.d)}</p>`).join("")}</div>` : ""}`)}
       ${planSummary(D)}
+      ${(D.news || []).length ? panel("Tin tức", `<div class="ntfs">${D.news.slice(0, 12).map((n) => newsRow(n)).join("")}</div>`) : ""}
     </div></div>`;
 }
 BIND[""] = bindChart;
+function newsRow(n, withK = false) {
+  const c = n.sign < 0 ? "down" : n.sign > 0 ? "up" : "";
+  return `<div class="nwr sev${n.sev || 0}">${withK ? coinLink(n.k) : ""}<div><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+    <small class="muted">${esc(n.src)} · ${esc(fmtD(n.t))} ${esc((n.t || "").slice(11, 16))}${n.tag ? ` · <b class="${c}">${esc(n.tag)}</b>` : ""}</small></div></div>`;
+}
 function planSummary(D) {
   const T = D.trend || {}, I = D.intra || {}, P = I.plan;
   const tl = T.state === 1 ? `<b class="up">Long theo xu hướng</b> – đang trong xu hướng tăng ${T.days} ngày. Cắt lỗ ${px(T.stop)} (−${nf(T.stop_pct, 1)}%); thoát khi ${esc(T.exit_rule || "")} (${px(T.exit_level)}).${T.ext > 15 ? ` <span class="ref">Giá đã cách EMA20 ${nf(T.ext, 0)}% – chờ hồi để vào.</span>` : ""}`
