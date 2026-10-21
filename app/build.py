@@ -11,10 +11,10 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import cval, derivs, regime, strategy, technical
+from .analysis import cval, derivs, ideas, levels, regime, strategy, technical
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
-from .data import store
+from .data import store, universe
 
 log = logging.getLogger("build")
 OUT = config.OUT_DIR
@@ -157,10 +157,13 @@ def run(notify: bool = False) -> dict:
         news = news.sort_values("time", ascending=False)
         for k, g in news.groupby("key", sort=False):
             nby[k] = g.head(20).to_dict("records")
+    bnu = store.read("bn_um")
+    bn_pair = dict(zip(bnu["key"], bnu["pair"])) if not bnu.empty else {}
     btc = _px("d", "BTC")
     btc_reg = regime.regime_series(btc) if btc is not None else None
     btc_down = bool(btc_reg is not None and btc_reg.iloc[-1] < 0)
     rows, details, pxs, alerts = [], {}, {}, []
+    book, fresh = ideas.Book(), {}
     tr_bt = []
     for r in uni.to_dict("records"):
         if not _ok(r):
@@ -253,8 +256,21 @@ def run(notify: bool = False) -> dict:
                "ath": _f((price / ath - 1) * 100, 1) if ath else None,
                "oi": _f(oi_tot, 0), "oi24": _f(oi24, 1), "oi7": _f(oi7, 1), "f8": _f(f8, 4), "fp": fst.get("pctl90"),
                "f7": fst.get("avg7d"), "lsr": bnm.get("lsr_acct"), "cr": [x["k"] for x in crowd], "car": car.get("ann7") if car else None,
-               "beta": hedge.get("beta"), "ml": max_lev, "new": bool(df is not None and len(df) < int(config.get("universe.min_history_days", 60)))}
+               "beta": hedge.get("beta"), "ml": max_lev,
+               "sp": r.get("spot_pair"), "sm": float(r.get("spot_mult") or 1), "bf": bn_pair.get(key),
+               "bfm": universe.split_mult(bn_pair[key][:-4])[1] if bn_pair.get(key) else None, "new": bool(df is not None and len(df) < int(config.get("universe.min_history_days", 60)))}
         rows.append(row)
+        lvd = levels.analyze(df, 1.0) if df is not None else {}
+        lvh = levels.analyze(h4, 4 / 24) if h4 is not None else {}
+        flow_d = levels.money_flow(df, oi7, f8) if df is not None else {}
+        flow_h = levels.money_flow(h4, oi24, f8) if h4 is not None else {}
+        for tf, dd in (("d", df), ("h4", h4)):
+            if dd is not None and len(dd) >= 150 and ((row.get("vol") or 0) >= 2e6 or (oi_tot or 0) >= 2e6):
+                dd2 = dd.reset_index(drop=True)
+                sg = ideas.detect(dd2, tf)
+                book.add(key, tf, dd2, ideas.simulate(dd2, sg, 60), ideas.regime_of(dd2, btc_reg))
+                fresh[(key, tf)] = (dd2, sg)
+        row["mf"] = flow_d.get("score")
         nl = []
         for n in nby.get(key, []):
             n = {**n, "t": n["time"].strftime("%Y-%m-%dT%H:%M"), "time": None}
@@ -263,7 +279,7 @@ def run(notify: bool = False) -> dict:
             nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
         cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
         row["nw"] = sum(1 for n in nl if n["t"] >= cut and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3) or None
-        details[key] = {"row": row, "val": val, "news": nl, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
+        details[key] = {"row": row, "val": val, "news": nl, "lv": {"d": lvd, "h4": lvh}, "flow": {"d": flow_d, "h4": flow_h}, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
                                                         if k in ("name", "category", "fees_total30d", "rev_total30d", "hrev_total30d", "fees_total1y",
                                                                  "rev_total1y", "hrev_total1y", "fees_total30DaysAgo", "rev_total30DaysAgo", "n_parts")},
                         "unl": {"series": [p for p in (em or {}).get("series", []) if p[0] > time.time() - 3 * 365 * 86400][::2] if em else [],
@@ -276,6 +292,27 @@ def run(notify: bool = False) -> dict:
         for x in crowd:
             if x.get("sev", 0) >= 2 and (oi_tot or 0) > 5e6:
                 alerts.append({"k": key, "t": x["t"], "d": x["d"], "kind": x["k"]})
+    # ----- cơ hội giao dịch (cần thống kê lịch sử của toàn bộ coin trước)
+    T = book.table()
+    btc_up = not btc_down
+    idea_list = []
+    for (key, tf), (dd2, sg) in fresh.items():
+        d = details[key]
+        ctx = {"flow": d["flow"].get("d" if tf == "d" else "h4"), "zones": (d["lv"].get(tf) or {}).get("zones"), "crowd": d["row"].get("cr"), "perp": bool(d["row"].get("fx"))}
+        cur = ideas.current(key, tf, dd2, book, btc_up, ctx, sg)
+        for x in cur:
+            st_ = (T.get(tf, {}).get(x["setup"], {}).get("up" if btc_up else "down")) or {}
+            x["avgR_2y"] = st_.get("avgR_2y")
+            # có lợi thế: kỳ vọng dương, đủ mẫu, và còn dương ở 2 năm gần nhất (tránh lợi thế chỉ có trong quá khứ)
+            x["edge"] = bool((x.get("avgR") or 0) >= 0.05 and (x.get("n") or 0) >= 100 and (st_.get("avgR_2y") is None or st_["avgR_2y"] > 0))
+            x["vd"] = d["row"].get("vd")
+            x["mc"] = d["row"].get("mc")
+        d.setdefault("ideas", []).extend(cur)
+        idea_list += cur
+        d.setdefault("setup_stats", {})[tf] = {st: ideas.stats(book.coin.get((key, tf, st), [])) for st in ideas.NAMES if book.coin.get((key, tf, st))}
+    idea_list.sort(key=lambda x: (x["edge"], x["score"] or -99), reverse=True)
+    _w("ideas.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "btc_up": btc_up, "stats": T, "names": ideas.NAMES, "items": idea_list[:200]})
+    store.path("ideas_stats.json").write_text(json.dumps(_clean(T)), encoding="utf-8")
     # ----- định giá: so với nhóm (lượt 2)
     peers = cval.peer_stats([{**d["val"], "group": d["row"]["g"]} for d in details.values()])
     for key, d in details.items():
@@ -299,6 +336,7 @@ def run(notify: bool = False) -> dict:
         d["ohlc"] = {"d": _ohlc(df, 1500, True) if df is not None else None, "h4": _ohlc(h4, 600, False) if h4 is not None else None,
                      "h1": _ohlc(h1, 500, False) if h1 is not None else None}
         _w(f"c/{key}.json", d)
+    store.path("last_rows.json").write_text(json.dumps({r["k"]: {"ts": r.get("ts"), "td": r.get("td")} for r in rows}), encoding="utf-8")
     _w("coins.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "rows": rows, "peers": peers})
     _w("market.json", market)
     _w("backtest.json", backtest_summary(tr_bt, market))

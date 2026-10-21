@@ -14,9 +14,10 @@ import logging
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="My-Bit")
-    ap.add_argument("cmd", choices=["all", "update", "build", "serve", "probe"])
+    ap.add_argument("cmd", choices=["all", "update", "build", "serve", "probe", "live"])
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--notify", action="store_true")
+    ap.add_argument("--kv-only", action="store_true", help="live: không tải lại, chỉ quét cơ hội & ghi KV")
     ap.add_argument("--port", type=int, default=8000)
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s", datefmt="%H:%M:%S")
@@ -25,6 +26,14 @@ def main() -> None:
     if a.cmd == "probe":
         from app.data import probe
         probe.run()
+        return
+    if a.cmd == "live":
+        from app import live
+        if a.kv_only:
+            from app.data import update as u
+            for n in ("futures_snapshot", "prices_daily", "prices_intraday", "news"):
+                setattr(u, n, lambda: None)
+        live.run(notify=a.notify)
         return
     if a.cmd in ("all", "update"):
         from app.data import update

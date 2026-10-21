@@ -1,13 +1,25 @@
 name: Cập nhật
-run-name: "${{ github.event_name == 'schedule' && 'Lịch 4 giờ' || 'Chạy tay' }}${{ inputs.dev_snapshot && ' · gửi dữ liệu mẫu' || '' }}"
+run-name: "${{ (inputs.mode == 'fast' || (github.event_name == 'schedule' && github.event.schedule != '7 */4 * * *')) && 'Nhanh 15 phút' || 'Đầy đủ' }}${{ inputs.auto && ' · hẹn giờ' || '' }}${{ inputs.dev_snapshot && ' · gửi dữ liệu mẫu' || '' }}"
 
+# Lượt NHANH (15 phút): giá + futures + tin + quét cơ hội 4h/ngày → ghi Cloudflare KV, trang đọc qua /api/intraday (không đăng lại web).
+# Lượt ĐẦY ĐỦ (4 giờ): thêm định giá, mở khoá, nguồn cung, kiểm chứng lịch sử → đăng lại web.
+# Giờ chạy chính do Cloudflare Worker (worker/) kích hoạt đúng giờ; lịch GitHub dưới đây là dự phòng.
 on:
   schedule:
-    - cron: "7 */4 * * *"     # mỗi 4 giờ (crypto chạy 24/7)
+    - cron: "7 */4 * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
+      mode:
+        description: "fast = lượt nhanh; để trống = đầy đủ"
+        type: string
+        default: ""
+      auto:
+        description: "Lượt hẹn giờ tự động"
+        type: boolean
+        default: false
       quick:
-        description: "Lượt nhanh (bỏ phần nặng: lịch sử cung, mở khoá, phí/doanh thu)"
+        description: "Đầy đủ nhưng bỏ phần nặng (cung, mở khoá, phí)"
         type: boolean
         default: false
       dev_snapshot:
@@ -15,7 +27,7 @@ on:
         type: boolean
         default: false
       build:
-        description: "Phân tích & đăng web"
+        description: "Phân tích & đăng web (lượt đầy đủ)"
         type: boolean
         default: true
 
@@ -44,6 +56,22 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
 
+      - name: Chọn kiểu lượt
+        id: m
+        env:
+          EV: ${{ github.event_name }}
+          SCHED: ${{ github.event.schedule }}
+          IN_MODE: ${{ inputs.mode }}
+          IN_BUILD: ${{ inputs.build }}
+        run: |
+          mode=full
+          if [ "$IN_MODE" = "fast" ]; then mode=fast; fi
+          if [ "$EV" = "schedule" ] && [ "$SCHED" != "7 */4 * * *" ]; then mode=fast; fi
+          build=true
+          if [ "$EV" = "workflow_dispatch" ] && [ "$IN_BUILD" = "false" ]; then build=false; fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"; echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "Kiểu lượt: $mode (đăng web: $build)"
+
       - name: Lấy dữ liệu đã lưu từ lần chạy trước
         uses: actions/cache/restore@v4
         with:
@@ -51,7 +79,23 @@ jobs:
           key: data-${{ github.run_id }}
           restore-keys: data-
 
-      - name: Tải dữ liệu
+      - name: Kết nối Cloudflare
+        if: env.CF_API_TOKEN != ''
+        run: |
+          mkdir -p data
+          python scripts/cloudflare.py kv >> "$GITHUB_ENV" 2> data/cf.txt
+          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" 2>> data/cf.txt || true
+          grep -q D1_DATABASE_ID "$GITHUB_ENV" && echo "D1: OK" >> data/cf.txt || echo "D1: chưa có" >> data/cf.txt
+
+      - name: Lượt nhanh – giá, futures, cơ hội → KV
+        if: steps.m.outputs.mode == 'fast'
+        run: |
+          ARGS=""
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] || [ -n "$D1_DATABASE_ID" ]; then ARGS="--notify"; fi
+          python run.py live $ARGS 2>&1 | tee data/live.log
+
+      - name: Tải dữ liệu (đầy đủ)
+        if: steps.m.outputs.mode == 'full'
         run: |
           mkdir -p data
           ARGS=""
@@ -60,6 +104,13 @@ jobs:
           python run.py update $ARGS 2>&1 | tee data/update.log
           kill %1 2>/dev/null || true
 
+      - name: Phân tích
+        if: steps.m.outputs.mode == 'full' && steps.m.outputs.build == 'true'
+        run: |
+          ARGS=""
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] || [ -n "$D1_DATABASE_ID" ]; then ARGS="--notify"; fi
+          python run.py build $ARGS 2>&1 | tee data/build.log
+
       - name: Lưu dữ liệu cho lần chạy sau
         if: always()
         uses: actions/cache/save@v4
@@ -67,23 +118,29 @@ jobs:
           path: data
           key: data-${{ github.run_id }}
 
-      - name: Kết nối Cloudflare
-        if: env.CF_API_TOKEN != '' && (github.event_name == 'schedule' || inputs.build)
-        run: |
-          mkdir -p data
-          python scripts/cloudflare.py kv >> "$GITHUB_ENV" 2> data/cf.txt
-          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" 2>> data/cf.txt || true
-          grep -q D1_DATABASE_ID "$GITHUB_ENV" && echo "D1: OK" >> data/cf.txt || echo "D1: chưa có" >> data/cf.txt
+      - name: Sau lượt đầy đủ – đẩy luôn bản nhanh lên KV
+        if: steps.m.outputs.mode == 'full' && steps.m.outputs.build == 'true' && env.CF_API_TOKEN != ''
+        continue-on-error: true
+        run: python run.py live --kv-only
 
-      - name: Phân tích
-        if: (github.event_name == 'schedule' || inputs.build) && hashFiles('app/build.py') != ''
+      - name: Cài / cập nhật hẹn giờ đúng giờ (Cloudflare Worker)
+        if: env.CF_API_TOKEN != '' && steps.m.outputs.mode == 'full'
+        continue-on-error: true
+        env:
+          GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          ARGS=""
-          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then ARGS="--notify"; fi
-          python run.py build $ARGS 2>&1 | tee data/build.log
+          [ -n "$GH_DISPATCH_TOKEN" ] || { echo "Chưa có GH_DISPATCH_TOKEN – dùng lịch GitHub (hay trễ vài phút)" | tee data/scheduler.txt; exit 0; }
+          h=$(cat worker/scheduler.js worker/wrangler.toml | sha1sum | cut -c1-12)
+          if [ "$(cat data/scheduler_hash 2>/dev/null)" = "$h" ]; then echo "Worker hẹn giờ đã cài (bản $h)" | tee data/scheduler.txt; exit 0; fi
+          cd worker
+          npx --yes wrangler@3 deploy --var GH_REPO:${{ github.repository }} 2>&1 | tail -15 | tee ../data/scheduler.txt
+          echo "$GH_DISPATCH_TOKEN" | npx --yes wrangler@3 secret put GH_TOKEN 2>&1 | tail -3 | tee -a ../data/scheduler.txt
+          cd .. && echo "$h" > data/scheduler_hash
 
       - name: Đăng web lên Cloudflare Pages
-        if: env.CF_API_TOKEN != '' && (github.event_name == 'schedule' || inputs.build) && hashFiles('site/index.html') != ''
+        if: env.CF_API_TOKEN != '' && steps.m.outputs.mode == 'full' && steps.m.outputs.build == 'true' && hashFiles('site/index.html') != ''
         env:
           OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
           GH_REPO: ${{ github.repository }}
@@ -99,9 +156,10 @@ jobs:
           fi
           grep -A3 d1_databases wrangler.toml | grep -v database_id >> data/cf.txt || echo "wrangler.toml: không có D1" >> data/cf.txt
           npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true 2>&1 | tail -25 | tee data/deploy.txt
-          sleep 30   # chờ bản mới lên địa chỉ chính
+          sleep 30
           curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
           curl -s -o /dev/null -w "data %{http_code}\n" https://my-bit.pages.dev/data/market.json >> data/site_check.txt || true
+          curl -s -o /dev/null -w "api %{http_code}\n" https://my-bit.pages.dev/api/intraday >> data/site_check.txt || true
           cat data/optimize.txt >> data/site_check.txt 2>/dev/null || true
 
       - name: Bản sao dữ liệu để phát triển
@@ -111,11 +169,14 @@ jobs:
           tar czf snap/data.tgz --exclude='data/debug' --exclude='*.log' data
           split -b 40m snap/data.tgz snap/data.tgz.part-
           rm snap/data.tgz
-          ls -la snap
           bash scripts/publish_status.sh snap snap
 
       - name: Đẩy log lên nhánh status
         if: always()
         run: |
-          mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/c/BTC.json site/data/c/HYPE.json data/debug/ 2>/dev/null || true
-          bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/cf.txt data/deploy.txt data/debug
+          if [ "${{ steps.m.outputs.mode }}" = "fast" ]; then
+            bash scripts/publish_status.sh live data/live.log data/live_last.json data/cf.txt
+          else
+            mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/ideas.json site/data/c/BTC.json data/debug/ 2>/dev/null || true
+            bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/cf.txt data/deploy.txt data/scheduler.txt data/debug
+          fi

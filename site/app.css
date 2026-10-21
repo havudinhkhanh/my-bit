@@ -1496,3 +1496,20 @@ table.sortable th.on{color:var(--brand)}
 .nwr a{color:var(--ink)}
 .nwr.sev3{box-shadow:inset 3px 0 0 var(--down);padding-left:6px}
 .nwr .ck{min-width:64px}
+.cbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.tfseg{display:flex;flex-wrap:wrap;gap:2px}
+.tfseg button{padding:3px 7px;font-size:.76rem}
+.cbar .chk{padding:0;align-self:center}
+.lp{font-size:1rem;transition:color .3s}
+.ideas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))}
+.idea{border:1px solid var(--line);border-radius:var(--r);padding:10px;background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.idea.long.edge{box-shadow:inset 3px 0 0 var(--up)}
+.idea.short.edge{box-shadow:inset 3px 0 0 var(--down)}
+.idea.noedge{opacity:.82}
+.idea .ih{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.idea .kpis{margin:2px 0}
+.idea .kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.idea .kpis dd{white-space:normal}
+.idea .kpis dd small{display:block;font-weight:500;font-size:.7rem;color:var(--ink-2)}
+@media (max-width:520px){.idea .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpis dd{overflow-wrap:anywhere}

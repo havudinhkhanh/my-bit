@@ -87,7 +87,7 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
-function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } }
+function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); }
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -170,6 +170,7 @@ async function route() {
     if (!r) { setTab("market"); await viewMarket(); }
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
+    else if (r === "ideas") { setTab("ideas"); await viewIdeas(arg[0]); }
     else if (r === "futures") { setTab("futures"); await viewFutures(arg[0]); }
     else if (r === "portfolio") { setTab("portfolio"); await viewPortfolio(); }
     else if (r === "tools") { setTab("tools"); await viewTools(arg[0]); }
@@ -189,7 +190,7 @@ async function route() {
 // ================================================================ dữ liệu chung
 let COINS = null, BYK = null;
 async function coins() {
-  if (!COINS) { COINS = await load("data/coins.json"); BYK = Object.fromEntries(COINS.rows.map((r) => [r.k, r])); }
+  if (!COINS) { COINS = await load("data/coins.json"); BYK = Object.fromEntries(COINS.rows.map((r) => [r.k, r])); await liveData(); }
   return COINS;
 }
 const coinLink = (k, sub = "") => { const r = BYK?.[k]; return `<a href="#/c/${enc(k)}${sub}" class="ck"><b>${esc(k)}</b>${r && r.n && r.n.toUpperCase() !== k ? `<small>${esc(r.n)}</small>` : ""}</a>`; };
@@ -201,7 +202,9 @@ function coinMini(k, extra = "") {
 // ================================================================ THỊ TRƯỜNG
 const LIGHT_VI = { green: "Xanh", yellow: "Vàng", red: "Đỏ" };
 async function viewMarket() {
-  const [M] = await Promise.all([load("data/market.json"), coins()]);
+  const [M, IJ] = await Promise.all([load("data/market.json"), tryLoad("data/ideas.json"), coins()]);
+  const L0 = await liveData();
+  const IDS = ((L0 && L0.ideas && IJ && new Date(L0.at) > new Date(IJ.at)) ? L0.ideas : (IJ?.items || [])).filter((x) => x.edge).slice(0, 6);
   const b = M.btc || {}, cy = M.cycle || {}, F = M.fng || {}, P = M.play || {}, L = M.light || {}, A = M.agg || {}, G = M.global || {};
   const lst = M.lists || {};
   const dom = G.dom || {};
@@ -256,6 +259,7 @@ async function viewMarket() {
       <p class="faint" style="font-size:.74rem">Tỷ lệ coin (top 300 vốn hoá) đang trên đường trung bình. Dưới 20% thường là vùng đáy rộng; trên 80% là hưng phấn diện rộng.</p>`)}
     ${panel("🔓 Mở khoá token lớn 14 ngày tới", (M.unlocks || []).length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Ngày</th><th>% lưu hành</th><th>Giá trị</th></tr></thead><tbody>${(M.unlocks || []).map((e) => `<tr><td class="l">${coinLink(e.k)}</td><td>${fmtT(e.t)}</td><td class="${e.pct >= 2 ? "down" : ""}">${nf(e.pct, 2)}%</td><td>${usd(e.usd)}<br><small class="faint">${esc((e.cats || []).join(", "))}</small></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Không có đợt mở khoá ≥ 0,5% lượng lưu hành trong 14 ngày tới (trong các dự án DefiLlama theo dõi).</p>`, "áp lực bán từ quỹ/đội ngũ")}
   </div>
+  ${panel("🎯 Cơ hội có lợi thế lịch sử lúc này", IDS.length ? `<div class="rows">${IDS.map((x) => coinMini(x.k, `<span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? "LONG" : "SHORT"}</span> <small>${x.tf === "d" ? "ngày" : "4h"} · MT1 ${pct(x.t1_pct, 1)} · ${isNum(x.win1) ? nf(x.win1, 0) + "%" : ""} · ${isNum(x.d1) ? durTxt(x.d1, x.bd) : ""}</small>`)).join("")}</div>` : `<p class="muted">Hiện chưa có thiết lập nào có lợi thế lịch sử – đứng ngoài hoặc chờ.</p>`, `<a href="#/ideas">xem tất cả</a>`)}
   <div class="g g4">
     ${panel("🚀 Tăng mạnh 7 ngày", list(lst.gain7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
     ${panel("🩸 Giảm mạnh 7 ngày", list(lst.lose7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
@@ -353,14 +357,13 @@ async function viewCoins(view0) {
 }
 
 // ================================================================ CHI TIẾT COIN
-const SUBT = [["", "Tổng quan"], ["val", "Định giá"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
-let CTF = lsGet("ctf", "d");
+const SUBT = [["", "Tổng quan"], ["val", "Định giá"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
 async function viewCoin(key, sub = "") {
   await coins();
   const D = await load(`data/c/${enc(key)}.json`);
   const r = D.row;
   app().innerHTML = `<div class="ph stk"><h1>${esc(key)} <small class="muted">${esc(r.n || "")}</small></h1>
-    <span class="meta">${px(r.p)} <b class="${cls(r.r1)}">${pct(r.r1)}</b> · ${r.rk ? `hạng #${r.rk}` : "ngoài top CoinGecko"} · ${esc(r.g || "")} ${r.spot ? pill("Spot Binance", "brand") : ""} ${r.fx ? pill("Futures: " + esc(r.fx), "") : ""}
+    <span class="meta"><b id="lp" data-k="${esc(key)}" class="lp">${px(r.p)}</b> <b class="${cls(r.r1)}">${pct(r.r1)}</b> · ${r.rk ? `hạng #${r.rk}` : "ngoài top CoinGecko"} · ${esc(r.g || "")} ${r.spot ? pill("Spot Binance", "brand") : ""} ${r.fx ? pill("Futures: " + esc(r.fx), "") : ""}
     <button class="star ${WL.has(key) ? "on" : ""}" id="wlb" title="Theo dõi">★</button></span></div>
     <div class="subtabs">${SUBT.map(([k, n]) => `<button data-st="${k}" class="${k === sub ? "on" : ""}">${n}</button>`).join("")}</div><div id="sub"></div>`;
   $("#wlb").onclick = async () => { await WL.toggle(key); $("#wlb").classList.toggle("on", WL.has(key)); };
@@ -368,7 +371,7 @@ async function viewCoin(key, sub = "") {
     disposeCharts();
     $$(".subtabs button").forEach((b) => b.classList.toggle("on", b.dataset.st === s));
     history.replaceState(null, "", `#/c/${enc(key)}${s ? "/" + s : ""}`);
-    const f = { "": tabOverview, val: tabVal, fut: tabFut, plan: tabPlan, tech: tabTech }[s] || tabOverview;
+    const f = { "": tabOverview, val: tabVal, lv: tabLevels, fut: tabFut, plan: tabPlan, tech: tabTech }[s] || tabOverview;
     $("#sub").innerHTML = f(D);
     (BIND[s || ""] || (() => {}))(D);
   };
@@ -376,26 +379,114 @@ async function viewCoin(key, sub = "") {
   show(SUBT.some(([k]) => k === sub) ? sub : "");
 }
 const BIND = {};
-function priceChart(D, el, tf) {
-  const o = D.ohlc?.[tf] || D.ohlc?.d;
-  if (!o || !o.t?.length) { el.innerHTML = `<p class="muted">Chưa có dữ liệu giá khung này.</p>`; return; }
-  const T = D.trend || {}, I = D.intra?.plan || {};
-  const lines = tf === "d" ? [T.stop && { price: T.stop, color: css("--down"), title: "cắt lỗ xu hướng" }, T.exit_level && { price: T.exit_level, color: css("--ref"), title: "EMA50" }]
-    : [I.entry && { price: I.entry, color: css("--brand"), title: "vào" }, I.stop && { price: I.stop, color: css("--down"), title: "cắt lỗ" }, I.t1 && { price: I.t1, color: css("--up"), title: "chốt 1" }, I.t2 && { price: I.t2, color: css("--up"), title: "chốt 2" }];
-  const n = o.t.length, from = o.t[Math.max(0, n - (tf === "d" ? 365 : tf === "h4" ? 240 : 200))];
-  candleChart(el, o, { ma: tf === "d" ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines: lines.filter(Boolean), from });
+// ---- biểu đồ nhiều khung: 1 phút → năm. Giá trực tiếp lấy thẳng từ Binance trên trình duyệt (Việt Nam truy cập được), dự phòng dữ liệu máy chủ
+const TFS = [["1m", "1p"], ["5m", "5p"], ["10m", "10p"], ["15m", "15p"], ["30m", "30p"], ["1h", "1h"], ["4h", "4h"], ["1d", "Ngày"], ["1w", "Tuần"], ["15d", "15 ngày"], ["1M", "Tháng"], ["3M", "Quý"], ["1y", "Năm"]];
+const TFB = { "1m": ["1m"], "5m": ["5m"], "10m": ["5m", 600], "15m": ["15m"], "30m": ["30m"], "1h": ["1h"], "4h": ["4h"], "1d": ["1d"], "1w": ["1w"], "15d": ["1d", "15d"], "1M": ["1M"], "3M": ["1M", "q"], "1y": ["1M", "y"] };
+const OKXB = { "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m", "1h": "1H", "4h": "4H", "1d": "1Dutc", "1w": "1Wutc", "1M": "1Mutc" };
+let CTF = lsGet("ctf2", "1d");
+const WSS = [];
+function closeWs() { while (WSS.length) { try { WSS.pop().close(); } catch (e) { /* đã đóng */ } } }
+const toO = (rows, m = 1) => ({ t: rows.map((x) => Math.floor(x[0] / 1000)), o: rows.map((x) => +x[1] / m), h: rows.map((x) => +x[2] / m), l: rows.map((x) => +x[3] / m), c: rows.map((x) => +x[4] / m), v: rows.map((x) => +(x[7] ?? x[5] * x[4])) });
+function aggO(o, mode) {
+  if (!mode || !o) return o;
+  const key = (t) => { const d = new Date(t * 1000); if (typeof mode === "number") return Math.floor(t / mode) * mode;
+    if (mode === "15d") return Math.floor(t / (15 * 86400)) * 15 * 86400;
+    if (mode === "q") return Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth() / 3) * 3, 1) / 1000;
+    if (mode === "y") return Date.UTC(d.getUTCFullYear(), 0, 1) / 1000;
+    if (mode === "w") { const wd = (d.getUTCDay() + 6) % 7; return Math.floor(t / 86400) * 86400 - wd * 86400; }
+    if (mode === "M") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000; return t; };
+  const out = { t: [], o: [], h: [], l: [], c: [], v: [] };
+  for (let i = 0; i < o.t.length; i++) {
+    const k = key(o.t[i]), n = out.t.length;
+    if (n && out.t[n - 1] === k) { out.h[n - 1] = Math.max(out.h[n - 1], o.h[i]); out.l[n - 1] = Math.min(out.l[n - 1], o.l[i]); out.c[n - 1] = o.c[i]; out.v[n - 1] += o.v[i] || 0; }
+    else { out.t.push(k); out.o.push(o.o[i]); out.h.push(o.h[i]); out.l.push(o.l[i]); out.c.push(o.c[i]); out.v.push(o.v[i] || 0); }
+  }
+  return out;
 }
-const tfSeg = (cur) => `<span class="seg" id="tfs">${[["d", "Ngày"], ["h4", "4 giờ"], ["h1", "1 giờ"]].map(([k, n]) => `<button data-tf="${k}" class="${cur === k ? "on" : ""}">${n}</button>`).join("")}</span>`;
+async function fetchJ(url, ms = 7000) { const r = await fetch(url, { signal: AbortSignal.timeout ? AbortSignal.timeout(ms) : undefined }); if (!r.ok) throw new Error(r.status); return r.json(); }
+async function liveKlines(r, iv) {
+  const lim = iv === "1M" ? 200 : iv === "1w" ? 600 : 1000;
+  const tries = [];
+  if (r.sp) { tries.push(["https://api.binance.com/api/v3/klines", r.sp, r.sm || 1, "spot"]); tries.push(["https://data-api.binance.vision/api/v3/klines", r.sp, r.sm || 1, "spot"]); }
+  if (r.bf) tries.push(["https://fapi.binance.com/fapi/v1/klines", r.bf, r.bfm || 1, "fut"]);
+  for (const [u, sym, m, kind] of tries) {
+    try { const j = await fetchJ(`${u}?symbol=${sym}&interval=${iv}&limit=${lim}`); if (Array.isArray(j) && j.length) return { o: toO(j, m), src: kind === "spot" ? "Binance spot" : "Binance futures", sym, m, kind }; } catch (e) { /* thử nguồn khác */ }
+  }
+  if (OKXB[iv]) {
+    for (const inst of [`${r.k}-USDT`, `${r.k}-USDT-SWAP`]) {
+      try { const j = await fetchJ(`https://www.okx.com/api/v5/market/candles?instId=${inst}&bar=${OKXB[iv]}&limit=300`); const d = (j.data || []).slice().reverse(); if (d.length) return { o: toO(d.map((x) => [+x[0], x[1], x[2], x[3], x[4], x[5], 0, x[7]])), src: "OKX", sym: inst, m: 1, kind: "okx" }; } catch (e) { /* thử nguồn khác */ }
+    }
+  }
+  return null;
+}
+function serverO(D, tf) {
+  const d = D.ohlc?.d;
+  const m = { "1d": d, "4h": D.ohlc?.h4, "1h": D.ohlc?.h1, "1w": aggO(d, "w"), "15d": aggO(d, "15d"), "1M": aggO(d, "M"), "3M": aggO(d, "q"), "1y": aggO(d, "y") };
+  return m[tf] || null;
+}
+function drawO(D, el, o, tf, src) {
+  el.innerHTML = "";
+  const intra = ["1m", "5m", "10m", "15m", "30m", "1h", "4h"].includes(tf);
+  const T = D.trend || {}, I = D.intra?.plan || {}, LV = (D.lv || {})[tf === "4h" || tf === "1h" ? "h4" : "d"] || {};
+  const lines = [];
+  if (!intra && T.stop) lines.push({ price: T.stop, color: css("--down"), title: "cắt lỗ xu hướng" });
+  if (intra && I.entry) { lines.push({ price: I.entry, color: css("--brand"), title: "vào (lướt)" }, { price: I.stop, color: css("--down"), title: "cắt lỗ" }, { price: I.t1, color: css("--up"), title: "chốt 1" }); }
+  if (lsGet("showZones", true)) (LV.sup || []).slice(0, 2).concat((LV.res || []).slice(0, 2)).forEach((z) => lines.push({ price: z.p, color: z.n >= 3 ? css("--ref") : css("--ink-3"), title: `${z.side} (${z.n})`, style: 1 }));
+  const n = o.t.length, show = { "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
+  const ch = candleChart(el, o, { ma: ["1d", "1w"].includes(tf) ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)] });
+  $("#csrc") && ($("#csrc").textContent = src);
+  return ch;
+}
+async function priceChart(D, el, tf) {
+  closeWs();
+  const r = D.row, [base, ag] = TFB[tf] || ["1d"];
+  el.innerHTML = `<p class="muted" style="padding:20px">Đang tải nến ${esc(tf)}…</p>`;
+  const L = await liveKlines(r, base);
+  if (L) {
+    let raw = L.o, o = aggO(raw, ag);
+    const ch = drawO(D, el, o, tf, `${L.src} ${L.sym} · trực tiếp`);
+    if (L.kind !== "okx") {
+      const url = (L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`;
+      try {
+        const ws = new WebSocket(url); WSS.push(ws);
+        ws.onmessage = (ev) => {
+          const k = JSON.parse(ev.data).k; if (!k) return;
+          const t = Math.floor(k.t / 1000), m = L.m, i = raw.t.length - 1;
+          const bar = [+k.o / m, +k.h / m, +k.l / m, +k.c / m, +k.q];
+          if (raw.t[i] === t) { raw.o[i] = bar[0]; raw.h[i] = bar[1]; raw.l[i] = bar[2]; raw.c[i] = bar[3]; raw.v[i] = bar[4]; }
+          else if (t > raw.t[i]) { raw.t.push(t); raw.o.push(bar[0]); raw.h.push(bar[1]); raw.l.push(bar[2]); raw.c.push(bar[3]); raw.v.push(bar[4]); }
+          const a = ag ? aggO({ t: raw.t.slice(-40), o: raw.o.slice(-40), h: raw.h.slice(-40), l: raw.l.slice(-40), c: raw.c.slice(-40), v: raw.v.slice(-40) }, ag) : null;
+          const j = a ? a.t.length - 1 : raw.t.length - 1, s2 = a || raw;
+          try { ch.cs.update({ time: s2.t[j], open: s2.o[j], high: s2.h[j], low: s2.l[j], close: s2.c[j] }); } catch (e) { /* bỏ qua nến cũ */ }
+          livePx(r.k, bar[3]);
+        };
+      } catch (e) { /* trình duyệt chặn websocket */ }
+    }
+    return;
+  }
+  const o = serverO(D, tf);
+  if (!o || !o.t?.length) { el.innerHTML = `<p class="muted" style="padding:20px">Không lấy được nến ${esc(tf)} trực tiếp (trình duyệt không kết nối được Binance/OKX) và máy chủ chỉ có khung ngày / 4h / 1h.</p>`; return; }
+  drawO(D, el, o, tf, "dữ liệu máy chủ (cập nhật 15 phút – 4 giờ)");
+}
+function livePx(k, p) {
+  const el = $("#lp"); if (!el || el.dataset.k !== k) return;
+  const prev = Number(el.dataset.p || p); el.dataset.p = p;
+  el.textContent = px(p); el.classList.toggle("up", p > prev); el.classList.toggle("down", p < prev);
+  const r = BYK?.[k]; if (r) r.p = p;
+}
+const tfSeg = (cur) => `<span class="seg tfseg" id="tfs">${TFS.map(([k, n]) => `<button data-tf="${k}" class="${cur === k ? "on" : ""}">${n}</button>`).join("")}</span>`;
 function bindChart(D) {
   const el = $("#pchart"); if (!el) return;
   priceChart(D, el, CTF);
-  $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf", CTF); disposeCharts(); el.innerHTML = ""; $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
+  $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
+  const z = $("#zt"); if (z) z.onchange = () => { lsSet("showZones", z.checked); disposeCharts(); priceChart(D, el, CTF); };
 }
+const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> vùng hỗ trợ/kháng cự</label><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
   return `<div class="g g2w">
-    ${panel(`Biểu đồ ${tfSeg(CTF)}`, `<div class="chart" id="pchart" style="height:420px"></div><p class="faint" style="font-size:.72rem">Ngày: EMA20 (xanh) · EMA50 (vàng) · MA200 (xám). 4h/1h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt).</p>`)}
+    ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.72rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
     <div>
       ${panel("Tóm tắt", `${kpis([["Định giá", vdPill(V.verdict)], ["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
         ["Vốn hoá", usd(r.mc)], ["FDV", usd(r.fdv), "", "Vốn hoá nếu toàn bộ tổng cung lưu hành"], ["Lưu hành", isNum(V.float_pct) ? nf(V.float_pct, 0) + "%" : "—", V.float_pct < 35 ? "down" : ""],
@@ -525,12 +616,118 @@ BIND.plan = (D) => {
   $("#eqc").innerHTML = lineSvg([{ name: "Theo xu hướng (Long)", color: css("--brand"), pts: e.map(([d, a]) => ({ x: fmtD(d), y: a })) }, ...(ls ? [{ name: "Long + Short", color: css("--ref"), pts: ls.map(([d, a]) => ({ x: fmtD(d), y: a })) }] : []),
     { name: "Mua & giữ", color: css("--ink-3"), pts: e.map(([d, , b]) => ({ x: fmtD(d), y: b })) }], { h: 170, log: true, fmt: (v) => "x" + nf(v, v < 10 ? 1 : 0) });
 };
+// ---- mức giá & thời gian (Fibonacci, Gann, hồ sơ khối lượng, dòng tiền)
+const TFV = { d: "Ngày", h4: "4 giờ" };
+function zoneRows(L, cur) {
+  return (L || []).map((z) => `<tr><td class="l">${px(z.p)}${z.lo !== z.hi ? `<br><small class="faint">${px(z.lo)} – ${px(z.hi)}</small>` : ""}</td><td class="${z.dist > 0 ? "down" : "up"}">${pct(z.dist, 1)}</td><td>${"●".repeat(Math.min(5, z.n))}</td><td class="l"><small>${esc(z.src.join(" · "))}</small></td></tr>`).join("");
+}
+function lvBlock(L, tf) {
+  if (!L || !L.price) return `<p class="muted">Chưa đủ dữ liệu khung ${TFV[tf]}.</p>`;
+  const f = L.fib || {}, sw = L.swing || {};
+  const fibT = Object.entries(f.ret || {}).map(([k, v]) => `<tr class="${Math.abs(v / L.price - 1) < 0.01 ? "hl" : ""}"><td class="l">Thoái lui ${nf(Number(k) * 100, 1)}%</td><td>${px(v)}</td><td class="${cls(v - L.price)}">${pct((v / L.price - 1) * 100, 1)}</td></tr>`).join("")
+    + Object.entries(f.ext || {}).map(([k, v]) => `<tr><td class="l">Mở rộng ${nf(Number(k) * 100, 1)}%</td><td>${px(v)}</td><td class="${cls(v - L.price)}">${pct((v / L.price - 1) * 100, 1)}</td></tr>`).join("");
+  return `${kpis([["Sóng gần nhất", sw.dir === 1 ? `<b class="up">Tăng</b>` : sw.dir === -1 ? `<b class="down">Giảm</b>` : "—", "", sw.t0 ? `${fmtD(sw.t0)} → ${fmtD(sw.t1)}` : ""], ["Đáy / đỉnh sóng", `${px(sw.lo)} / ${px(sw.hi)}`], ["Đã thoái lui", !isNum(L.retr_now) ? "—" : L.retr_now > 1 ? (sw.dir === 1 ? "thủng đáy sóng" : "vượt đỉnh sóng") : L.retr_now < 0 ? (sw.dir === 1 ? "vượt đỉnh sóng" : "thủng đáy sóng") : nf(L.retr_now * 100, 0) + "%", "", "Giá hiện tại đã hồi lại bao nhiêu % của sóng gần nhất"],
+      ["POC khối lượng", px(L.vp?.poc), "", "Mức giá có khối lượng giao dịch lớn nhất (120 nến) – thường là nam châm hút giá"], ["Vùng giá trị", L.vp ? `${px(L.vp.val)} – ${px(L.vp.vah)}` : "—", "", "70% khối lượng giao dịch nằm trong vùng này"],
+      ["Gann Sq9 trên", (L.sq9?.up || []).slice(0, 2).map(px).join(" · ")], ["Gann Sq9 dưới", (L.sq9?.dn || []).slice(0, 2).map(px).join(" · ")]])}
+    <div><div><h3>Kháng cự phía trên</h3><div class="tw"><table><thead><tr><th class="l">Vùng</th><th>Cách</th><th>Độ mạnh</th><th class="l">Gồm</th></tr></thead><tbody>${zoneRows(L.res) || '<tr><td colspan="4" class="muted">—</td></tr>'}</tbody></table></div></div>
+      <div><h3>Hỗ trợ phía dưới</h3><div class="tw"><table><thead><tr><th class="l">Vùng</th><th>Cách</th><th>Độ mạnh</th><th class="l">Gồm</th></tr></thead><tbody>${zoneRows(L.sup) || '<tr><td colspan="4" class="muted">—</td></tr>'}</tbody></table></div></div></div>
+    <details><summary>Bảng Fibonacci của sóng gần nhất</summary><div class="tw"><table><tbody>${fibT}</tbody></table></div></details>
+    ${(L.time || []).length ? `<h3>Mốc thời gian đáng chú ý (Fibonacci / Gann)</h3><div class="tw"><table><thead><tr><th class="l">Ngày</th><th>Trùng</th><th class="l">Nguồn</th></tr></thead><tbody>${L.time.slice(0, 8).map((t) => `<tr class="${t.n >= 2 ? "hl" : ""}"><td class="l">${fmtD(t.t)}</td><td>${"●".repeat(t.n)}</td><td class="l"><small>${esc(t.src)}</small></td></tr>`).join("")}</tbody></table></div>` : ""}`;
+}
+function flowBlock(F, tf) {
+  if (!F || F.score == null) return "";
+  return `<h3>Dòng tiền khung ${TFV[tf]}: <span class="${cls(F.score)}">${F.score > 0 ? "+" : ""}${F.score}/100</span></h3>
+    ${kpis([["Mua − bán chủ động (7 nến)", isNum(F.cvd7) ? pct(F.cvd7, 2) : "—", cls(F.cvd7), "CVD: lệnh khớp chủ động phía mua trừ phía bán, chia tổng khối lượng (nến Binance)"], ["30 nến", isNum(F.cvd30) ? pct(F.cvd30, 2) : "—", cls(F.cvd30)],
+      ["OBV 20 nến", nf(F.obv20, 2), cls(F.obv20)], ["Chaikin Money Flow", nf(F.cmf, 3), cls(F.cmf)], ["Khối lượng 5/30 nến", "x" + nf(F.vol5_30, 2)]])}
+    ${(F.why || []).length ? `<ul class="why">${F.why.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${(F.cvd || []).length > 10 ? lineSvg([{ name: "CVD tích luỹ (USD)", color: css("--brand"), pts: F.cvd.map((v, i) => ({ x: String(i - F.cvd.length + 1), y: v })) }], { h: 110, fmt: (v) => usd(v) }) : ""}`;
+}
+function tabLevels(D) {
+  const LV = D.lv || {}, FL = D.flow || {};
+  const ideasHere = (D.ideas || []);
+  const ss = D.setup_stats || {};
+  const stT = Object.entries(ss).flatMap(([tf, o]) => Object.entries(o).map(([st, x]) => `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[st] || st)}</td><td>${nf(x.n, 0)}</td><td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</td><td>${isNum(x.d1) ? durTxt(x.d1, tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`)).join("");
+  return `${ideasHere.length ? panel("🎯 Thiết lập đang xuất hiện", ideaCards(ideasHere)) : ""}
+    <div class="g g2">${panel("Khung ngày – Fibonacci, Gann, khối lượng", lvBlock(LV.d, "d") + flowBlock(FL.d, "d"))}${panel("Khung 4 giờ", lvBlock(LV.h4, "h4") + flowBlock(FL.h4, "h4"))}</div>
+    ${stT ? panel(`Các thiết lập từng xuất hiện ở ${esc(D.row.k)} (lịch sử)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>Thời gian tới MT1</th></tr></thead><tbody>${stT}</tbody></table></div>`) : ""}
+    <p class="faint disclaimer">Fibonacci, Gann (Square of 9, chu kỳ thời gian) là quy ước nhiều người giao dịch cùng dùng nên đôi khi thành vùng phản ứng – không phải quy luật. Hệ thống ghép chúng với đỉnh/đáy cũ, khối lượng, MA để tìm vùng có nhiều mức trùng nhau ("hợp lưu"). Mốc thời gian chỉ để chú ý biến động, không dự báo chiều.</p>`;
+}
+BIND.lv = () => {};
+const durTxt = (bars, perDay) => { const d = bars * perDay; return d < 1 ? `~${nf(d * 24, 0)} giờ` : `~${nf(d, d < 3 ? 1 : 0)} ngày`; };
+const etaTxt = (iso) => (iso ? new Date(iso + "Z").toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
+let IDEA_NAMES = { pullback_up: "Hồi về vùng Fibonacci trong xu hướng tăng", pullback_dn: "Hồi lên vùng Fibonacci trong xu hướng giảm", breakout_up: "Phá đỉnh 55 nến có khối lượng",
+  breakout_dn: "Thủng đáy 55 nến có khối lượng", oversold_up: "Bán quá mức trong xu hướng tăng (bật lại)", overbought_dn: "Mua quá mức trong xu hướng giảm (quay đầu)" };
+function ideaCards(list) {
+  return `<div class="ideas">${list.map((x) => `<div class="idea ${x.side} ${x.edge ? "edge" : "noedge"}">
+    <div class="ih">${coinLink(x.k)} <span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? "LONG" : "SHORT"}</span> <span class="pill">${x.tf === "d" ? "Ngày" : "4 giờ"}</span>
+      ${x.edge ? `<span class="pill brand" title="Kỳ vọng dương trên ${nf(x.n, 0)} lần lịch sử và vẫn dương trong 2 năm gần nhất">có lợi thế lịch sử</span>` : `<span class="pill" title="Lịch sử không cho thấy lợi thế sau phí">không có lợi thế</span>`}</div>
+    <div class="in"><b>${esc(x.name)}</b>${x.mfb ? ` <small class="muted">· thống kê khi dòng tiền ${esc(x.mfb)}</small>` : ""}</div>
+    ${kpis([["Vào", px(x.e)], ["Cắt lỗ", px(x.s), "down", `${nf(x.risk_pct, 2)}%`], ["Mục tiêu 1", `${px(x.t1)} <small>(${pct(x.t1_pct, 1)} · ${nf(x.r1, 1)}R)</small>`, "up"], ["Mục tiêu 2", `${px(x.t2)} <small>(${pct(x.t2_pct, 1)} · ${nf(x.r2, 1)}R)</small>`, "up"],
+      ["Xác suất MT1", isNum(x.win1) ? nf(x.win1, 0) + "%" : "—", "", `MT2: ${nf(x.win2, 0)}% · trên ${nf(x.n, 0)} lần lịch sử`], ["Thời gian tới MT1", isNum(x.d1) ? `${durTxt(x.d1, x.bd)}` : "—", "", isNum(x.d1_lo) ? `50% số lần chạm MT1 trong ${durTxt(x.d1_lo, x.bd)} – ${durTxt(x.d1_hi, x.bd)}; MT2 ~${durTxt(x.d2, x.bd)}` : ""],
+      ["Dự kiến", etaTxt(x.eta1), "", "Theo thời gian trung vị lịch sử"], ["Lãi TB/lệnh", isNum(x.avgR) ? `${nf(x.avgR, 2)}R` : "—", cls(x.avgR), `R = khoảng cắt lỗ. 2 năm gần nhất: ${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}`]])}
+    ${(x.notes || []).length ? `<small class="muted">${x.notes.map(esc).join(" · ")}</small>` : ""}
+    <small class="faint">Độ tin cậy: ${esc(x.conf)} · tín hiệu nến ${etaTxt(x.at)} · cách đánh: chốt 50% ở MT1, dời cắt lỗ về giá vào, phần còn lại chờ MT2</small></div>`).join("")}</div>`;
+}
+
+// ================================================================ CƠ HỘI GIAO DỊCH
+async function viewIdeas(f0) {
+  const [I] = await Promise.all([load("data/ideas.json"), coins()]);
+  IDEA_NAMES = { ...IDEA_NAMES, ...(I.names || {}) };
+  const L = await liveData();
+  const fromLive = L && L.ideas && new Date(L.at) > new Date(I.at);
+  const items = fromLive ? L.ideas : I.items;
+  const F = { side: "", tf: "", edge: true, ...lsGet("ifilter", {}) };
+  const st = I.stats || {};
+  const reg = I.btc_up ? "up" : "down";
+  const sTab = ["d", "h4"].map((tf) => Object.entries(st[tf] || {}).map(([k, v]) => { const x = v[reg] || v.all || {}; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[k] || k)}</td><td>${nf(x.n, 0)}</td><td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</td><td>${isNum(x.win2) ? nf(x.win2, 0) + "%" : "—"}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</td><td class="${cls(x.avgR_2y)}">${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(x.d1) ? durTxt(x.d1, tf === "d" ? 1 : 1 / 6) : "—"}</td><td>${isNum(x.d2) ? durTxt(x.d2, tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`; }).join("")).join("");
+  app().innerHTML = `<div class="ph"><h1>Cơ hội – nếu vào bây giờ</h1><span class="meta">${fromLive ? "cập nhật " + etaTxt(L.at.slice(0, 16)) + " (lượt 15 phút)" : "cập nhật " + etaTxt(I.at.slice(0, 16))} · BTC ${I.btc_up ? "trên" : "dưới"} MA200</span></div>
+    <div class="note"><p>Mỗi gợi ý = một <b>thiết lập kỹ thuật</b> vừa xuất hiện (hồi về vùng Fibonacci, phá đỉnh có khối lượng, quá bán…) kèm <b>số liệu thật từ lịch sử</b> của chính thiết lập đó trên ~${nf(COINS.rows.length, 0)} coin: xác suất chạm mục tiêu, thời gian trung vị để chạm, lãi trung bình sau phí. "Có lợi thế" = kỳ vọng dương trên ≥ 100 lần và vẫn dương ở 2 năm gần nhất.</p></div>
+    <div class="filters"><div class="field"><label>Chiều</label><select id="iS"><option value="">Cả hai</option><option value="long" ${F.side === "long" ? "selected" : ""}>Long</option><option value="short" ${F.side === "short" ? "selected" : ""}>Short</option></select></div>
+      <div class="field"><label>Khung</label><select id="iT"><option value="">Cả hai</option><option value="h4" ${F.tf === "h4" ? "selected" : ""}>Ngắn (4 giờ – vài ngày)</option><option value="d" ${F.tf === "d" ? "selected" : ""}>Swing (ngày – vài tuần)</option></select></div>
+      <label class="chk"><input type="checkbox" id="iE" ${F.edge ? "checked" : ""}> Chỉ thiết lập có lợi thế lịch sử</label></div>
+    <div id="ilist"></div>
+    ${panel(`Thiết lập nào thực sự có lợi thế? (khi BTC ${I.btc_up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Chạm MT2</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th><th>Tới MT2</th></tr></thead><tbody>${sTab}</tbody></table></div>
+      <p class="faint" style="font-size:.74rem">1R = khoảng từ điểm vào tới cắt lỗ. Lãi TB 0,2R nghĩa là mỗi lần rủi ro $100 thì trung bình lãi $20 sau phí. Phần lớn "mẹo" kỹ thuật cho kết quả quanh 0 sau phí – vì vậy hệ thống chỉ khuyến khích thiết lập có số dương ổn định.</p>`)}
+    <p class="faint disclaimer">Thống kê quá khứ không đảm bảo tương lai. Luôn đặt cắt lỗ, rủi ro mỗi lệnh 0,5–2% vốn; đòn bẩy sao cho giá thanh lý xa hơn cắt lỗ.</p>`;
+  const draw = () => {
+    const xs = items.filter((x) => (!F.side || x.side === F.side) && (!F.tf || x.tf === F.tf) && (!F.edge || x.edge));
+    $("#ilist").innerHTML = xs.length ? ideaCards(xs.slice(0, 40)) : `<div class="empty">Hiện không có thiết lập ${F.edge ? "có lợi thế lịch sử " : ""}phù hợp bộ lọc. ${F.edge ? "Bỏ tick “chỉ có lợi thế” để xem các thiết lập còn lại (chỉ tham khảo)." : ""} Đứng ngoài cũng là một vị thế.</div>`;
+  };
+  [["#iS", "side"], ["#iT", "tf"]].forEach(([id, k]) => $(id).onchange = (e) => { F[k] = e.target.value; lsSet("ifilter", F); draw(); });
+  $("#iE").onchange = (e) => { F.edge = e.target.checked; lsSet("ifilter", F); draw(); };
+  draw();
+}
+
+// ---- dữ liệu lượt nhanh (15 phút) qua /api/intraday
+let LIVE = null, LIVE_AT = 0;
+async function liveData(force = false) {
+  if (!force && LIVE && Date.now() - LIVE_AT < 60000) return LIVE;
+  try { const r = await fetch("api/intraday", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { LIVE = await r.json(); LIVE_AT = Date.now(); } } catch (e) { /* chạy trên máy */ }
+  if (LIVE && LIVE.ok && BYK) {
+    for (const [k, [p, r24]] of Object.entries(LIVE.prices || {})) { const r = BYK[k]; if (r && p) { r.p = p; if (isNum(r24)) r.r1 = r24; } }
+    for (const [k, [f8, oi, oi24]] of Object.entries(LIVE.fut || {})) { const r = BYK[k]; if (r) { if (isNum(f8)) r.f8 = f8; if (isNum(oi)) r.oi = oi; if (isNum(oi24)) r.oi24 = oi24; } }
+  }
+  return LIVE;
+}
+// dải giá đầu trang: websocket Binance (giá từng giây)
+function tickerWs() {
+  const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"].filter((k) => BYK?.[k]?.sp);
+  if (!ks.length) return;
+  try {
+    const ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
+    const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
+    ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1, p = +d.c / m, o = +d.o / m; r.p = p; r.r1 = (p / o - 1) * 100;
+      const el = $(`#ticker [data-tk="${k}"]`); if (el) el.innerHTML = `<b>${k}</b>${px(p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`; livePx(k, p); };
+    ws.onclose = () => setTimeout(tickerWs, 15000);
+  } catch (e) { /* không có websocket */ }
+}
+
 function tabTech(D) {
   const T = D.tech || {};
   if (!T.ok) return `<div class="empty">Chưa đủ dữ liệu kỹ thuật.</div>`;
   const g = Object.entries(T.groups || {}).map(([k, v]) => `<div class="tg"><b>${esc(k)}</b> ${scoreCell(v.score)} <small>${v.buy} mua · ${v.neutral} trung tính · ${v.sell} bán</small></div>`).join("");
   const rows = (T.table || []).map((x) => `<tr><td class="l">${esc(x.group)}</td><td class="l">${esc(x.name)}</td><td>${esc(x.value ?? "")}</td><td><span class="pill ${x.signal === "Mua" ? "buy" : x.signal === "Bán" ? "sell" : ""}">${esc(x.signal)}</span></td><td class="l"><small>${esc(x.note || "")}</small></td></tr>`).join("");
-  return `<div class="g g2w">${panel(`Đồ thị ${tfSeg(CTF)}`, `<div class="chart" id="pchart" style="height:380px"></div>`)}
+  return `<div class="g g2w">${panel("Đồ thị", chartBox(D, 380))}
     ${panel(`Tổng hợp: ${esc(T.label)} ${scoreCell(T.score)}`, `${kpis([["Xu hướng", esc(T.trend_vi)], ["ATR", `${nf(T.atr_pct, 1)}%/ngày`], ["Đỉnh 1 năm", px(T.hi52)], ["Cách đỉnh 1 năm", pct(T.from_hi52_pct, 0), "down"], ["Phân kỳ RSI", T.divergence?.rsi === "bullish" ? '<b class="up">dương</b>' : T.divergence?.rsi === "bearish" ? '<b class="down">âm</b>' : "—"]])}<div class="tgs">${g}</div>`)}</div>
     ${panel("Chi tiết chỉ báo (khung ngày)", `<div class="tw"><table><thead><tr><th class="l">Nhóm</th><th class="l">Chỉ báo</th><th>Giá trị</th><th>Tín hiệu</th><th class="l">Ghi chú</th></tr></thead><tbody>${rows}</tbody></table></div>`)}`;
 }
@@ -748,7 +945,8 @@ async function drawTicker() {
   const C = await tryLoad("data/coins.json"); if (!C) return;
   COINS = COINS || C; BYK = BYK || Object.fromEntries(C.rows.map((r) => [r.k, r]));
   const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"];
-  $("#ticker").innerHTML = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}"><span><b>${k}</b>${px(BYK[k].p)} <i class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></span></a>`).join("");
+  $("#ticker").innerHTML = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}"><span data-tk="${k}"><b>${k}</b>${px(BYK[k].p)} <i class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></span></a>`).join("");
+  tickerWs();
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;
   $("#upd").title = "Dữ liệu cập nhật lúc " + new Date(C.at).toLocaleString("vi-VN");
@@ -1023,7 +1221,8 @@ function initAccountUI() {
     window.__ver = meta.ver || "";
     $("#brandDot").style.background = "var(--brand)";
   } catch (e) { /* chưa có dữ liệu */ }
-  drawTicker().catch(() => {});
+  drawTicker().then(() => liveData()).catch(() => {});
+  setInterval(() => liveData(true), 120000);
   WL.load().catch(() => {});
   window.addEventListener("hashchange", route);
   route();
