@@ -1,0 +1,23 @@
+name: Dò nguồn dữ liệu
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Thử từng nguồn
+        run: mkdir -p probe_out && (python -m app.data.probe 2>&1 | tee probe_out/probe.log) || true
+      - name: Đẩy báo cáo lên nhánh status
+        if: always()
+        run: bash scripts/publish_status.sh probe probe_out/report.json probe_out/probe.log
