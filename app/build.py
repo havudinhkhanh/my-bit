@@ -258,7 +258,7 @@ def run(notify: bool = False) -> dict:
         nl = []
         for n in nby.get(key, []):
             n = {**n, "t": n["time"].strftime("%Y-%m-%dT%H:%M"), "time": None}
-            if grp == "Blockchain L1/L2" and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3 and key not in ("BTC",):
+            if grp == "Blockchain L1/L2" and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3:
                 n["sev"], n["tag"] = 1, "Sự cố trong hệ sinh thái"      # dự án trên chuỗi bị hack ≠ chuỗi bị hack
             nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
         cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")

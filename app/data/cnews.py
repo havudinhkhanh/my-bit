@@ -34,7 +34,7 @@ AMBIG = {"ONE", "S", "IT", "ME", "MOVE", "SUN", "GAS", "ID", "ACE", "AI", "ALL",
          "PUMP", "QUICK", "RARE", "RED", "REAL", "SAFE", "SAND", "SIGN", "SKY", "SPELL", "STORY", "SUPER", "TRUMP", "TURBO", "UNI", "USUAL", "VANA",
          "WAVES", "WIN", "WOO", "X", "XAI", "ZRO", "BIO", "BANK", "BOME", "COW", "DEGEN", "DRIFT", "FORM", "GRASS", "HOME", "KAITO", "LAYER",
          "MEW", "MORPHO", "NIL", "PLUME", "RAY", "RED", "SAGA", "SONIC", "TAO", "TON", "TRUTH", "VIRTUAL", "WAL", "WET", "ZK", "A", "B", "C", "U",
-         "BR", "Q", "W", "H", "M", "F", "G", "T", "P", "CT", "OL", "CP", "BB", "AT", "AVA", "MON", "IP", "EGLD", "HYPER", "SOL", "LINK", "DOT", "ATOM"}
+         "BR", "CASH", "JST", "LISTA", "NEWS", "MAJOR", "ZERO", "LUNA", "GLM", "BEAM", "FLOW", "ROSE", "SUI", "Q", "W", "H", "M", "F", "G", "T", "P", "CT", "OL", "CP", "BB", "AT", "AVA", "MON", "IP", "EGLD", "HYPER", "SOL", "LINK", "DOT", "ATOM"}
 GENERIC_NAMES = {"bitcoin cash", "sky", "story", "movement", "sonic", "plasma", "aster", "monad", "berachain", "pump.fun", "sei", "the graph",
                  "internet computer", "near protocol", "official trump", "world liberty financial", "ethena usde"}
 RULES = [  # (regex, nhãn, dấu, mức)
@@ -47,7 +47,7 @@ RULES = [  # (regex, nhãn, dấu, mức)
     (r"\b(token )?unlock\w*\b", "Mở khoá token", -1, 1),
     (r"\b(outflows?|sell-?off|dump\w*|liquidat\w+|plunge\w*|crash\w*|slump\w*)\b", "Giảm mạnh / dòng tiền ra", -1, 1),
     (r"\b(investigat\w+|probe|subpoena|fine[ds]?|ban(s|ned)?)\b", "Điều tra / phạt", -1, 2),
-    (r"\bwill (list|add)\b|\blists?\b|\blisting\b|\blaunchpool\b|\bhodler airdrop", "Niêm yết mới", 1, 2),
+    (r"\bwill (list|add)\b|\blists\b(?! of)|\blisted on\b|\blisting\b|\blaunchpool\b|\bhodler airdrop", "Niêm yết mới", 1, 2),
     (r"\betf\b.*\b(approv\w*|launch\w*|filing|files)\b|\b(approv\w*)\b.*\betf\b", "ETF", 1, 2),
     (r"\b(buyback|burn\w*)\b", "Mua lại / đốt token", 1, 1),
     (r"\b(partner\w*|integrat\w*|acquir\w*|mainnet|upgrade)\b", "Hợp tác / nâng cấp", 1, 1),
@@ -61,6 +61,11 @@ def classify(title: str) -> tuple[str | None, int, int]:
         if rx.search(title or ""):
             return tag, sign, sev
     return None, 0, 0
+
+
+SPAM_SRC = re.compile(r"openpr|globenewswire|prnewswire|accesswire|captain ?altcoin|blockonomi|crypto ?daily|bitcoinist|coinpedia|analytics insight|"
+                      r"techbullion|newsbtc|zycrypto|crypto-economy|u\.today|benzinga", re.I)
+SPAM_TITLE = re.compile(r"price prediction|best crypto|to buy now|presale|pre-sale|\b100x\b|\b1000x\b|could explode|millionaire|next (big|crypto)", re.I)
 
 
 def _parse(content: bytes, src_name: str) -> list[dict]:
@@ -78,6 +83,8 @@ def _parse(content: bytes, src_name: str) -> list[dict]:
             ts = pd.Timestamp.utcnow().tz_localize(None)
         if s2 != src_name and title.endswith(" - " + s2):
             title = title[: -len(s2) - 3]
+        if SPAM_SRC.search(s2) or SPAM_TITLE.search(title):     # thông cáo trả tiền / quảng cáo presale
+            continue
         out.append({"title": title, "desc": desc[:300], "link": link, "src": s2, "time": ts})
     return out
 
@@ -163,6 +170,7 @@ def save(df: pd.DataFrame) -> pd.DataFrame:
     if all_.empty:
         return all_
     all_["time"] = pd.to_datetime(all_["time"])
+    all_ = all_[~all_["src"].astype(str).str.contains(SPAM_SRC) & ~all_["title"].astype(str).str.contains(SPAM_TITLE)]
     all_ = all_[all_["time"] >= pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=30)]
     all_ = all_.drop_duplicates(["key", "title"], keep="first").sort_values("time")
     store.write("news", all_)
