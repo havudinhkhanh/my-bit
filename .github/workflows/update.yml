@@ -180,6 +180,6 @@ jobs:
           if [ "${{ steps.m.outputs.mode }}" = "fast" ]; then
             bash scripts/publish_status.sh live data/live.log data/live_last.json data/cf.txt
           else
-            mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/ideas.json site/data/c/BTC.json data/debug/ 2>/dev/null || true
+            mkdir -p data/debug && cp site/data/market.json site/data/meta.json site/data/ideas.json site/data/sectors.json site/data/c/BTC.json data/debug/ 2>/dev/null || true
             bash scripts/publish_status.sh update data/update.log data/update_report.json data/meta.json data/build.log data/site_check.txt data/cf.txt data/deploy.txt data/scheduler.txt data/debug
           fi

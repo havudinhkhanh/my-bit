@@ -33,7 +33,7 @@ LL_GROUP = {"Dexs": "DEX", "DEX Aggregator": "DEX", "Derivatives": "Phái sinh",
 
 CG_GROUP = [("meme-token", "Meme"), ("ai-agents", "AI"), ("artificial-intelligence", "AI"), ("depin", "DePIN"), ("storage", "DePIN"), ("gaming", "Game"),
             ("real-world-assets-rwa", "RWA"), ("privacy-coins", "Riêng tư"), ("oracle", "Oracle"), ("exchange-based-tokens", "Sàn tập trung"),
-            ("perpetuals", "Phái sinh"), ("decentralized-exchange", "DEX"), ("lending-borrowing", "Cho vay"), ("liquid-staking-governance-tokens", "Staking"),
+            ("decentralized-derivatives", "Phái sinh"), ("decentralized-exchange", "DEX"), ("lending-borrowing", "Cho vay"), ("liquid-staking-governance-tokens", "Staking"),
             ("prediction-markets", "Dự đoán"), ("layer-2", "Layer 2"), ("zero-knowledge-zk", "Layer 2"), ("bitcoin-ecosystem", "Hệ Bitcoin"),
             ("payment-solutions", "Thanh toán"), ("layer-1", "Layer 1"), ("decentralized-finance-defi", "DeFi khác"), ("infrastructure", "Hạ tầng")]
 CAT2LAB = dict(CG_GROUP)
