@@ -39,6 +39,12 @@ def _step(name):
     return deco
 
 
+def _ok(r: dict) -> bool:
+    """Coin không bị loại (stablecoin/token bọc…)."""
+    e = r.get("excl")
+    return e is None or (isinstance(e, float) and e != e) or e == ""
+
+
 def _now():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -69,6 +75,32 @@ def futures_snapshot() -> dict:
             REPORT["errors"].append(f"{name}: {e}"[:300])
             parts[name] = pd.DataFrame()
     fr = universe.fut_frames(parts["bitget"], parts["okx"], parts["gate"], parts["hl"], parts["bitget_c"], parts["gate_c"])
+    # hợp đồng tương lai trên cổ phiếu / hàng hoá (TSLA, NVDA, vàng…) – không phải crypto: đánh dấu để loại
+    nonc = set()
+    try:
+        oi = src.get("https://www.okx.com/api/v5/public/instruments", "okx", params={"instType": "SWAP"}).get("data") or []
+        for x in oi:
+            if str(x.get("instCategory") or x.get("category") or "1") not in ("1", "") and x.get("instId", "").endswith("-USDT-SWAP"):
+                nonc.add(x["instId"].split("-")[0])
+        store.path("debug").mkdir(exist_ok=True)
+        store.path("debug/okx_inst_sample.json").write_text(json.dumps(oi[:3] + [x for x in oi if x.get("instId", "").startswith(("TSLA", "XAU"))][:3]), encoding="utf-8")
+    except Exception as e:  # noqa: BLE001
+        REPORT["errors"].append(f"okx inst: {e}"[:200])
+    for name in ("bitget_c", "gate_c"):
+        d = parts.get(name)
+        if d is not None and not d.empty:
+            store.path(f"debug/{name}_sample.json").write_text(d.head(2).to_json(orient="records") + "\n" + json.dumps(list(d.columns)), encoding="utf-8")
+    bc = parts.get("bitget_c")
+    if bc is not None and not bc.empty:
+        for col in ("isRwa", "symbolType"):
+            if col in bc:
+                nonc |= set(bc.loc[bc[col].astype(str).str.upper().isin(["YES", "TRUE", "RWA", "STOCK"]), "baseCoin"].astype(str))
+    gc = parts.get("gate_c")
+    if gc is not None and not gc.empty:
+        for col in ("market_type", "type"):
+            if col in gc:
+                nonc |= set(gc.loc[gc[col].astype(str).str.lower().isin(["stock", "stocks", "tradfi", "index", "commodity"]), "name"].astype(str).str.replace("_USDT", ""))
+    store.path("nonc.json").write_text(json.dumps(sorted(nonc)), encoding="utf-8")
     ts = _now().replace(second=0, microsecond=0)
     rows = []
     for ex, df in fr.items():
@@ -102,7 +134,17 @@ def build_universe() -> dict:
     store.write("bv_spot", spot)
     snap = store.read("fut_now")
     futs = {ex: g for ex, g in snap.groupby("ex")} if not snap.empty else {}
-    uni = universe.build(cg, spot, futs, ucfg)
+    try:
+        nonc = set(json.loads(store.path("nonc.json").read_text()))
+    except (OSError, ValueError):
+        nonc = set()
+    try:
+        gp = src.get("https://api.gateio.ws/api/v4/spot/currency_pairs", "gate", timeout=60)
+        gate_spot = {x["base"].upper() for x in gp if x.get("quote") == "USDT" and x.get("trade_status") == "tradable"}
+    except Exception as e:  # noqa: BLE001
+        REPORT["errors"].append(f"gate pairs: {e}"[:200])
+        gate_spot = None
+    uni = universe.build(cg, spot, futs, ucfg, nonc, gate_spot)
     uni["fut"] = uni["fut"].map(lambda d: json.dumps(d))
     store.write("universe", uni)
     return {"coins": len(uni), "spot": int(uni["spot_pair"].notna().sum()), "fut": int((uni["fut_ex"] != "").sum()),
@@ -180,7 +222,7 @@ def _fetch_px(r: dict, iv: str) -> int:
 @_step("prices_daily")
 def prices_daily() -> dict:
     uni = store.read("universe")
-    rows = [r for r in uni.to_dict("records") if not r.get("excl")]
+    rows = [r for r in uni.to_dict("records") if _ok(r)]
     res, errs = _pmap(lambda key: _fetch_px(next(x for x in rows if x["key"] == key), "1d"), [r["key"] for r in rows], workers=8)
     got = sum(1 for v in res.values() if v)
     return {"coins": len(rows), "updated": got, "errors": errs}
@@ -191,7 +233,7 @@ def prices_intraday() -> dict:
     uni = store.read("universe")
     snap = store.read("fut_now")
     n = int(config.get("prices.intraday_top", 150))
-    rows = [r for r in uni.to_dict("records") if not r.get("excl")]
+    rows = [r for r in uni.to_dict("records") if _ok(r)]
     oi = _oi_by_key(uni, snap)
     rows.sort(key=lambda r: -(oi.get(r["key"], 0) or 0) - (1e15 if r["key"] in ("BTC", "ETH") else 0))
     pick = rows[:n]
@@ -223,7 +265,7 @@ def funding_hist() -> dict:
     now = time.time()
     todo = []
     for r in uni.to_dict("records"):
-        if r.get("excl"):
+        if not _ok(r):
             continue
         fut = json.loads(r.get("fut") or "{}")
         if not fut:
@@ -277,7 +319,7 @@ def binance_metrics() -> dict:
     oi = _oi_by_key(uni, snap)
     cands = []
     for r in uni.to_dict("records"):
-        if r.get("excl"):
+        if not _ok(r):
             continue
         for pre in ("", "1000", "1000000", "10000"):
             pair = f"{pre}{r['sym']}USDT"
@@ -335,8 +377,13 @@ def defillama() -> dict:
     if store.age_days("defillama") < 0.9:
         return "skip (đã cập nhật trong ngày)"
     prot, par = src.ll_protocols()
-    keep = [c for c in ("id", "name", "symbol", "category", "chains", "tvl", "gecko_id", "parentProtocol", "mcap", "slug") if c in prot]
+    keep = [c for c in ("defillamaId", "id", "name", "symbol", "category", "chains", "tvl", "geckoId", "gecko_id", "parentProtocol", "mcap", "slug",
+                        "listedAt", "change_7d") if c in prot]
     p = prot[keep].copy()
+    if "geckoId" in p and "gecko_id" not in p:
+        p = p.rename(columns={"geckoId": "gecko_id"})
+    store.path("debug").mkdir(exist_ok=True)
+    store.path("debug/ll_protocol_cols.json").write_text(json.dumps({"prot": list(prot.columns), "par": list(par.columns)}), encoding="utf-8")
     p["chains"] = p["chains"].map(lambda x: ",".join(x) if isinstance(x, list) else x) if "chains" in p else None
     store.write("ll_protocols", _clean(p))
     if not par.empty:
@@ -453,7 +500,7 @@ def summarize_emission(j: dict) -> dict:
 def supply_hist() -> dict:
     """Lịch sử vốn hoá / nguồn cung lưu hành 1 năm (CoinGecko) → lạm phát cung thực tế. Xoay vòng vì giới hạn tần suất."""
     uni = store.read("universe")
-    ids = [r["id"] for r in uni.sort_values("rank").to_dict("records") if not r["id"].startswith("x-") and not r.get("excl") and (r.get("rank") or 9999) <= 400]
+    ids = [r["id"] for r in uni.sort_values("rank").to_dict("records") if not r["id"].startswith("x-") and _ok(r) and (r.get("rank") or 9999) <= 400]
     m = store.meta().get("supply_at", {})
     ids.sort(key=lambda i: m.get(i, 0))
     todo = [i for i in ids if time.time() - m.get(i, 0) > 5 * 86400][: int(config.get("fundamentals.supply_refresh_per_run", 40))]
@@ -478,6 +525,39 @@ def supply_hist() -> dict:
     meta["supply_at"] = m
     store.save_meta(meta)
     return {"todo": len(todo), "ok": ok, "have": len(list(d.glob("*.parquet")))}
+
+
+@_step("cg_groups")
+def cg_groups() -> dict:
+    """Coin thuộc nhóm nào (Meme, AI, L1…): CoinGecko lọc theo danh mục, 1 lượt/danh mục/ngày."""
+    if store.age_days("cg_groups") < 0.95 and store.path("cg_groups.parquet").exists():
+        return "skip"
+    from ..analysis.cval import CG_GROUP
+    rows = []
+    for cat, lab in CG_GROUP:
+        try:
+            j = src.get(src.CG + "coins/markets", "coingecko", params={"vs_currency": "usd", "category": cat, "order": "market_cap_desc", "per_page": 250, "page": 1})
+            rows += [{"id": x["id"], "cat": cat, "group": lab} for x in j]
+        except src.FetchError as e:
+            REPORT["errors"].append(f"cg cat {cat}: {e}"[:200])
+    if rows:
+        store.write("cg_groups", pd.DataFrame(rows))
+        store.touch("cg_groups")
+    return {"rows": len(rows)}
+
+
+@_step("cg_global")
+def cg_global() -> dict:
+    j = src.get(src.CG + "global", "coingecko").get("data") or {}
+    keep = {"total_mcap": (j.get("total_market_cap") or {}).get("usd"), "total_vol": (j.get("total_volume") or {}).get("usd"),
+            "dom": j.get("market_cap_percentage"), "mcap_chg_24h": j.get("market_cap_change_percentage_24h_usd"), "at": _now().isoformat()}
+    hist = store.read("cg_global")
+    row = pd.DataFrame([{"ts": _now(), "total_mcap": keep["total_mcap"], "total_vol": keep["total_vol"],
+                         "btc_dom": (keep["dom"] or {}).get("btc"), "eth_dom": (keep["dom"] or {}).get("eth")}])
+    hist = pd.concat([hist, row], ignore_index=True) if not hist.empty else row
+    store.write("cg_global", hist.tail(3000))
+    store.path("cg_global.json").write_text(json.dumps(keep, default=str), encoding="utf-8")
+    return {"dom_btc": (keep["dom"] or {}).get("btc")}
 
 
 @_step("macro")
@@ -505,12 +585,14 @@ def run(full: bool = True) -> dict:
     futures_snapshot()
     build_universe()
     macro()
+    cg_global()
     prices_daily()
     prices_intraday()
     funding_hist()
     binance_metrics()
     if full:
         defillama()
+        cg_groups()
         unlocks()
         supply_hist()
     store.path("debug").mkdir(exist_ok=True)

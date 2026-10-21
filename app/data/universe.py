@@ -15,8 +15,8 @@ STABLE = {"USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "USDS", "PYUSD", "USDD
           "FXUSD", "USDL", "EUSD", "SDAI", "SFRAX", "BUIDL", "USTB", "OUSG", "USYC", "USDM", "USDA", "AEUR", "EURI", "XSGD", "BRZ", "TRYB", "USDQ",
           "USDO", "FRXUSD", "USDN", "SRUSD", "SYRUPUSDC", "YUSD", "USX", "DEUSD", "HONEY", "AVUSD", "USDZ", "USDH", "LISUSD", "MUSD", "RUSD", "PUSD"}
 GOLD = {"PAXG", "XAUT", "KAU", "XAUM", "CGO"}
-WRAP_NAME = re.compile(r"\b(wrapped|bridged|staked|liquid staked|restaked|binance-peg|stake|lido|coinbase wrapped|savings|vault|tokenized|bitcoin on|"
-                       r"ether\.fi|rocket pool eth|mantle staked|jito staked|marinade|kelp|renzo|swell|stader|frax ether|midas|ondo us|backed|xstock|bstock)\b", re.I)
+WRAP_NAME = re.compile(r"\b(wrapped|bridged|staked|liquid staked|restaked|binance-peg|coinbase wrapped|savings|bitcoin on|"
+                       r"mantle staked|jito staked|frax ether|midas|ondo us|backed|xstock|bstock|tokenized stock)\b", re.I)
 WRAP_SYM = {"WBTC", "WETH", "STETH", "WSTETH", "WEETH", "EETH", "CBBTC", "CBETH", "RETH", "METH", "BETH", "WBETH", "JITOSOL", "MSOL", "BNSOL", "JUPSOL",
             "SOLVBTC", "LBTC", "TBTC", "BTCB", "FBTC", "EZETH", "RSETH", "OSETH", "SWETH", "ETHX", "SFRXETH", "WBNB", "WTRX", "WAVAX", "WMATIC",
             "WHYPE", "KHYPE", "STHYPE", "WSOL", "CLBTC", "UNIBTC", "PUMPBTC", "ENZOBTC", "XSOLVBTC", "BBTC", "OBTC", "STKAAVE", "WEMIX$", "SAVAX",
@@ -42,7 +42,16 @@ def split_mult(base: str) -> tuple[str, float]:
     return base, 1.0
 
 
-def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], cfg: dict) -> pd.DataFrame:
+STOCKS = {"TSLA", "NVDA", "AAPL", "GOOGL", "GOOG", "MSFT", "AMZN", "META", "NFLX", "AMD", "INTC", "ORCL", "PLTR", "MRVL", "CRCL", "COIN", "MSTR",
+          "HOOD", "QQQ", "SPY", "IWM", "DIA", "LLY", "XIAOMI", "BABA", "TSM", "AVGO", "MU", "CRDO", "SKHYNIX", "SAMSUNG", "UBER", "SHOP", "SNOW",
+          "ARM", "SMCI", "IBM", "JPM", "GS", "V", "MA", "DIS", "NKE", "KO", "PEP", "WMT", "COST", "BA", "CVX", "XOM", "UNH", "JNJ", "PFE", "MRK",
+          "ABNB", "PYPL", "SQ", "RIVN", "LCID", "NIO", "BIDU", "JD", "PDD", "SOFI", "RDDT", "APP", "CRWV", "CIRCLE", "GME", "AMC", "XAU", "XAG",
+          "XPT", "XPD", "WTI", "BRENT", "NATGAS", "COPPER", "GOLD", "SILVER", "OIL", "EWY", "EWJ", "SPX", "NDX", "H100", "SKDD", "TQQQ", "SQQQ",
+          "CSOPSKHYNIX2L", "SPYX", "AAPLX", "NVDAX", "TSLAX", "IREN", "CORZ", "RGTI", "IONQ", "QBTS", "OKLO", "SMR", "BMNR", "SBET", "GLXY"}
+
+
+def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], cfg: dict, nonc: set | None = None,
+          gate_spot: set | None = None) -> pd.DataFrame:
     """cg: coins/markets; spot: Binance USDT pairs (base, pair) + giá; futs: {sàn: DataFrame(base, price, vol_usd, oi_usd, ...)}"""
     cg = cg.copy()
     cg["sym"] = cg["symbol"].str.upper()
@@ -70,6 +79,7 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
         return {**best, "_mult": m} if best and not price else None
 
     rows: dict[str, dict] = {}
+    cg_vol = dict(zip(cg["id"], cg["total_volume"]))
 
     def row(c: dict) -> dict:
         r = rows.get(c["id"])
@@ -103,6 +113,8 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
                     r["why"].add("fut")
             elif (f.get("vol_usd") or 0) >= vmin:
                 b, m = split_mult(f["base"])
+                if b in STOCKS or f["base"] in (nonc or set()) or b in (nonc or set()) or re.search(r"\d[LS]$", b):
+                    continue
                 o = orphans.setdefault(b, {"id": "x-" + b.lower(), "sym": b, "name": b, "rank": None, "excl": is_excluded(b, b), "spot_pair": None,
                                            "fut": {}, "why": {"fut"}})
                 o["fut"][ex] = {"base": f["base"], "mult": m, "inst": f.get("inst")}
@@ -114,6 +126,10 @@ def build(cg: pd.DataFrame, spot: pd.DataFrame, futs: dict[str, pd.DataFrame], c
         if not r["why"]:
             continue
         r["why"] = ",".join(sorted(r["why"]))
+        if not r.get("excl") and r["why"] == "top" and not r["spot_pair"] and not r["fut"]:
+            v = (cg_vol.get(r["id"]) or 0)
+            if v < 300000 or (gate_spot is not None and r["sym"] not in gate_spot):
+                r["excl"] = "illiquid"           # top vốn hoá nhưng không có nơi giao dịch phổ biến (RWA, token sàn khép kín…)
         r["fut_ex"] = ",".join(sorted(r["fut"]))
         r["fut"] = {k: v for k, v in r["fut"].items()}
         out.append(r)

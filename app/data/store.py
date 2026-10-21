@@ -25,7 +25,14 @@ def read(name: str) -> pd.DataFrame:
 def write(name: str, df: pd.DataFrame) -> None:
     p = path(f"{name}.parquet")
     tmp = p.with_suffix(".tmp")
-    df.to_parquet(tmp, index=False)
+    try:
+        df.to_parquet(tmp, index=False)
+    except Exception:  # noqa: BLE001 – cột lẫn kiểu (số + chữ) → ghi dạng chữ
+        df = df.copy()
+        for c in df.columns:
+            if df[c].dtype == object:
+                df[c] = df[c].map(lambda x: None if x is None or (isinstance(x, float) and x != x) else str(x)).astype("string")
+        df.to_parquet(tmp, index=False)
     tmp.replace(p)
 
 
