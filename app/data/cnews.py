@@ -164,8 +164,14 @@ def fetch(coins: list[dict], focus: list[dict], budget: float = 120) -> tuple[pd
     return df, stats
 
 
+NEWS_VER = 2   # tăng khi đổi luật gắn coin/phân loại → bỏ kho tin cũ
+
+
 def save(df: pd.DataFrame) -> pd.DataFrame:
-    old = store.read("news")
+    m = store.meta()
+    old = store.read("news") if m.get("news_ver") == NEWS_VER else pd.DataFrame()
+    m["news_ver"] = NEWS_VER
+    store.save_meta(m)
     all_ = pd.concat([old, df], ignore_index=True) if not old.empty else df
     if all_.empty:
         return all_
