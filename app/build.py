@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import cval, derivs, ideas, levels, pairs, regime, smc, strategy, technical
+from .analysis import cval, derivs, ideas, levels, pairs, regime, smc, strategy, technical, sectors
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
 from .data import store, universe
@@ -144,9 +144,10 @@ def run(notify: bool = False) -> dict:
     groups = store.read("cg_groups")
     gmap = {}
     if not groups.empty:
-        order = {lab: i for i, (_, lab) in enumerate(cval.CG_GROUP)}
-        for r in groups.sort_values("group", key=lambda s: s.map(order)).to_dict("records"):
-            gmap.setdefault(r["id"], r["group"])
+        order = {cat: i for i, (cat, _) in enumerate(cval.CG_GROUP)}
+        for r in groups.assign(_o=groups["cat"].map(order).fillna(99)).sort_values("_o").to_dict("records"):
+            gmap.setdefault(r["id"], cval.CAT2LAB.get(r["cat"], r["group"]))
+    gmap.update(cval.GROUP_FIX)
     cf = cval.cashflows(store.read("ll_protocols"), store.read("ll_parents"), store.read("ll_fees"), store.read("ll_chains"))
     cfmap = {r["gecko_id"]: r for r in cf.to_dict("records")} if not cf.empty else {}
     unl_files = _unlock_files()
@@ -194,9 +195,10 @@ def run(notify: bool = False) -> dict:
         fdv = ((mx or tot) * price) if (mx or tot) else g("fully_diluted_valuation")
         grp = gmap.get(r["id"])
         cfr = cfmap.get(r["id"])
-        if cfr and cfr.get("category"):          # có dòng tiền DefiLlama → nhóm theo hoạt động tạo doanh thu chính
+        if cfr and cfr.get("category") and r["id"] not in cval.GROUP_FIX:   # có dòng tiền DefiLlama → nhóm theo hoạt động tạo doanh thu chính
             cat = cfr.get("main_cat") or cfr["category"]
             grp = cval.LL_GROUP.get(cat, grp or cat)
+        grp = sectors.norm(grp)
         em = unl_files.get(r["id"])
         unl = cval.unlock_stats(em, circ, price) if em else {}
         if unl.get("next"):
@@ -278,7 +280,7 @@ def run(notify: bool = False) -> dict:
         nl = []
         for n in nby.get(key, []):
             n = {**n, "t": n["time"].strftime("%Y-%m-%dT%H:%M"), "time": None}
-            if grp == "Blockchain L1/L2" and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3:
+            if grp in ("Layer 1", "Layer 2") and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3:
                 n["sev"], n["tag"] = 1, "Sự cố trong hệ sinh thái"      # dự án trên chuỗi bị hack ≠ chuỗi bị hack
             nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
         cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
@@ -346,6 +348,13 @@ def run(notify: bool = False) -> dict:
         _w("pairs.json", P)
     except Exception as e:  # noqa: BLE001
         log.warning("pairs: %s", e)
+    # ----- nhóm ngành
+    try:
+        S = sectors.build(rows, pxs, btc, idea_list, details)
+        S["at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        _w("sectors.json", S)
+    except Exception as e:  # noqa: BLE001
+        log.warning("sectors: %s", e)
     # ----- xuất
     for key, d in details.items():
         df, h4, h1 = d.pop("df"), d.pop("h4"), d.pop("h1")

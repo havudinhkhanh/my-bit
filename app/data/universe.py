@@ -16,7 +16,7 @@ STABLE = {"USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "USDS", "PYUSD", "USDD
           "USDO", "FRXUSD", "USDN", "SRUSD", "SYRUPUSDC", "YUSD", "USX", "DEUSD", "HONEY", "AVUSD", "USDZ", "USDH", "LISUSD", "MUSD", "RUSD", "PUSD"}
 GOLD = {"PAXG", "XAUT", "KAU", "XAUM", "CGO"}
 WRAP_NAME = re.compile(r"\b(wrapped|bridged|staked|liquid staked|restaked|binance-peg|coinbase wrapped|savings|bitcoin on|"
-                       r"mantle staked|jito staked|frax ether|midas|ondo us|backed|xstock|bstock|tokenized stock|robinhood token|etf trust|tokenized equity)\b", re.I)
+                       r"mantle staked|jito staked|frax ether|midas|ondo us|backed|xstock|bstock|tokenized stock|robinhood token|etf trust|tokenized equity|direxion|proshares|ishares|leveraged etf|daily [23]x|etf)\b", re.I)
 WRAP_SYM = {"WBTC", "WETH", "STETH", "WSTETH", "WEETH", "EETH", "CBBTC", "CBETH", "RETH", "METH", "BETH", "WBETH", "JITOSOL", "MSOL", "BNSOL", "JUPSOL",
             "SOLVBTC", "LBTC", "TBTC", "BTCB", "FBTC", "EZETH", "RSETH", "OSETH", "SWETH", "ETHX", "SFRXETH", "WBNB", "WTRX", "WAVAX", "WMATIC",
             "WHYPE", "KHYPE", "STHYPE", "WSOL", "CLBTC", "UNIBTC", "PUMPBTC", "ENZOBTC", "XSOLVBTC", "BBTC", "OBTC", "STKAAVE", "WEMIX$", "SAVAX",
@@ -26,7 +26,8 @@ PREFIX = [("1000000", 1e6), ("100000", 1e5), ("10000", 1e4), ("1000", 1e3), ("1M
 
 FIAT = {"EUR", "TRY", "BRL", "GBP", "AUD", "JPY", "RUB", "UAH", "NGN", "ZAR", "ARS", "MXN", "PLN", "RON", "CZK", "IDR", "VAI", "AEUR", "EURI", "USDP", "XUSD"}
 BSTOCK = {"BABA", "HOOD", "MRVL", "TSM", "LITE", "META", "MSFT", "PLTR", "QCOM", "WDC", "AAOI", "ARM", "NVDA", "TSLA", "AAPL", "GOOGL", "AMZN", "COIN", "MSTR",
-          "CRCL", "AMD", "INTC", "ORCL", "NFLX", "AVGO", "MU", "SPY", "QQQ", "IBM", "UBER", "SHOP", "SNOW", "DELL", "SMCI", "GLW", "COHR", "SNDK", "NBIS"}
+          "CRCL", "AMD", "INTC", "ORCL", "NFLX", "AVGO", "MU", "SPY", "QQQ", "IBM", "UBER", "SHOP", "SNOW", "DELL", "SMCI", "GLW", "COHR", "SNDK", "NBIS",
+          "SOXL", "KORU", "DRAM", "TQQQ", "SQQQ", "ARKK", "GLD", "SLV", "TLT", "MSTU", "TSLL", "NVDL", "CONL", "SOXS", "UVXY", "IWM", "EWY", "EWJ", "FXI", "KWEB"}
 
 
 def is_excluded(sym: str, name: str, price: float | None = None) -> str | None:
@@ -37,6 +38,10 @@ def is_excluded(sym: str, name: str, price: float | None = None) -> str | None:
         return "gold"
     if s in WRAP_SYM or WRAP_NAME.search(name or ""):
         return "wrapped"
+    if s in ("DIA", "MU", "META", "ARM", "COIN") and not re.search(r"stock|etf|share|tokeni", name or "", re.I):
+        return None
+    if s in STOCKS or s in BSTOCK or (s.endswith("B") and s[:-1] in STOCKS | BSTOCK) or (s.endswith("X") and s[:-1] in STOCKS | BSTOCK):
+        return "stock"
     return None
 
 

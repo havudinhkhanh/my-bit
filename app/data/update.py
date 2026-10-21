@@ -580,16 +580,20 @@ def supply_hist() -> dict:
 @_step("cg_groups")
 def cg_groups() -> dict:
     """Coin thuộc nhóm nào (Meme, AI, L1…): CoinGecko lọc theo danh mục, 1 lượt/danh mục/ngày."""
-    if store.age_days("cg_groups") < 0.95 and store.path("cg_groups.parquet").exists():
-        return "skip"
     from ..analysis.cval import CG_GROUP
-    rows = []
+    if store.age_days("cg_groups") < 0.95 and store.path("cg_groups.parquet").exists():
+        have = set(store.read("cg_groups").get("cat", pd.Series(dtype=str)).unique())
+        if {c for c, _ in CG_GROUP} <= have | set(json.loads(store.path("cg_groups_bad.json").read_text()) if store.path("cg_groups_bad.json").exists() else []):
+            return "skip"
+    rows, bad = [], []
     for cat, lab in CG_GROUP:
         try:
             j = src.get(src.CG + "coins/markets", "coingecko", params={"vs_currency": "usd", "category": cat, "order": "market_cap_desc", "per_page": 250, "page": 1})
             rows += [{"id": x["id"], "cat": cat, "group": lab} for x in j]
         except src.FetchError as e:
             REPORT["errors"].append(f"cg cat {cat}: {e}"[:200])
+            bad.append(cat)
+    store.path("cg_groups_bad.json").write_text(json.dumps(bad))
     if rows:
         store.write("cg_groups", pd.DataFrame(rows))
         store.touch("cg_groups")

@@ -26,15 +26,25 @@ MIN_REV = 1e6     # doanh thu năm tối thiểu (USD) để tính bội số
 LL_GROUP = {"Dexs": "DEX", "DEX Aggregator": "DEX", "Derivatives": "Phái sinh", "Perps": "Phái sinh", "Options": "Phái sinh",
             "Lending": "Cho vay", "CDP": "Stablecoin/CDP", "Stablecoin Issuer": "Stablecoin/CDP", "Liquid Staking": "Staking",
             "Liquid Restaking": "Staking", "Restaking": "Staking", "Yield": "Lợi suất", "Yield Aggregator": "Lợi suất", "Bridge": "Cầu nối",
-            "Cross Chain Bridge": "Cầu nối", "Chain": "Blockchain L1/L2", "Rollup": "Blockchain L1/L2", "Launchpad": "Launchpad", "RWA": "RWA",
+            "Cross Chain Bridge": "Cầu nối", "Chain": "Layer 1", "Rollup": "Layer 2", "Launchpad": "Launchpad", "RWA": "RWA",
             "Oracle": "Oracle", "Services": "Dịch vụ", "SoFi": "Mạng xã hội", "Gaming": "Game", "NFT Marketplace": "NFT", "Wallets": "Ví",
             "Prediction Market": "Dự đoán", "Telegram Bot": "Bot giao dịch", "Trading App": "Bot giao dịch", "Memes": "Meme", "Basis Trading": "Lợi suất",
             "Payments": "Thanh toán", "DePIN": "DePIN", "AI Agents": "AI", "Exchange": "Sàn tập trung"}
 
-CG_GROUP = [("meme-token", "Meme"), ("artificial-intelligence", "AI"), ("layer-1", "Blockchain L1/L2"), ("layer-2", "Blockchain L1/L2"),
-            ("exchange-based-tokens", "Sàn tập trung"), ("decentralized-exchange", "DEX"), ("lending-borrowing", "Cho vay"),
-            ("real-world-assets-rwa", "RWA"), ("depin", "DePIN"), ("gaming", "Game"), ("oracle", "Oracle"), ("privacy-coins", "Riêng tư"),
-            ("decentralized-finance-defi", "DeFi khác"), ("infrastructure", "Hạ tầng")]
+CG_GROUP = [("meme-token", "Meme"), ("ai-agents", "AI"), ("artificial-intelligence", "AI"), ("depin", "DePIN"), ("storage", "DePIN"), ("gaming", "Game"),
+            ("real-world-assets-rwa", "RWA"), ("privacy-coins", "Riêng tư"), ("oracle", "Oracle"), ("exchange-based-tokens", "Sàn tập trung"),
+            ("perpetuals", "Phái sinh"), ("decentralized-exchange", "DEX"), ("lending-borrowing", "Cho vay"), ("liquid-staking-governance-tokens", "Staking"),
+            ("prediction-markets", "Dự đoán"), ("layer-2", "Layer 2"), ("zero-knowledge-zk", "Layer 2"), ("bitcoin-ecosystem", "Hệ Bitcoin"),
+            ("payment-solutions", "Thanh toán"), ("layer-1", "Layer 1"), ("decentralized-finance-defi", "DeFi khác"), ("infrastructure", "Hạ tầng")]
+CAT2LAB = dict(CG_GROUP)
+# coin lớn: gán tay để không bị danh mục phụ của CoinGecko kéo sai nhóm
+GROUP_FIX = {"bitcoin": "Layer 1", "ethereum": "Layer 1", "solana": "Layer 1", "cardano": "Layer 1", "avalanche-2": "Layer 1", "tron": "Layer 1",
+             "binancecoin": "Sàn tập trung", "ripple": "Thanh toán", "stellar": "Thanh toán", "litecoin": "Thanh toán", "bitcoin-cash": "Thanh toán",
+             "chainlink": "Oracle", "hyperliquid": "Phái sinh", "uniswap": "DEX", "aave": "Cho vay", "ondo-finance": "RWA", "monero": "Riêng tư", "zcash": "Riêng tư",
+             "dogecoin": "Meme", "shiba-inu": "Meme", "pepe": "Meme", "bittensor": "AI", "render-token": "DePIN", "filecoin": "DePIN", "ethena": "Lợi suất",
+             "lido-dao": "Staking", "pendle": "Lợi suất", "arbitrum": "Layer 2", "optimism": "Layer 2", "mantle": "Layer 2", "polygon-ecosystem-token": "Layer 2",
+             "stacks": "Hệ Bitcoin", "sui": "Layer 1", "aptos": "Layer 1", "near": "Layer 1", "the-open-network": "Layer 1", "polkadot": "Layer 1", "cosmos": "Layer 1",
+             "internet-computer": "Layer 1", "hedera-hashgraph": "Layer 1", "algorand": "Layer 1", "kaspa": "Layer 1", "ethereum-classic": "Layer 1"}
 
 
 def _f(x, nd=4):
@@ -313,7 +323,7 @@ def verdict(v: dict, c: dict) -> tuple[str, list[str]]:
     g_act = v.get("rev_vs1y")
     vs = v.get("vs_grp")
     pts = 0
-    if v.get("group") == "Blockchain L1/L2":
+    if v.get("group") in ("Layer 1", "Layer 2", "Blockchain L1/L2"):
         why.insert(0, "Blockchain nền tảng: giá chủ yếu là phần bù 'tiền tệ / nền tảng' (giữ giá trị, thế chấp, trả phí gas) – phí giao dịch chỉ giải thích một phần, nên chỉ so P/F với các chuỗi khác")
         if vs is not None:
             why.append(f"P/F {'thấp hơn' if vs < 0 else 'cao hơn'} {abs(vs):.0f}% so với trung vị các blockchain" if abs(vs) < 100 else f"P/F gấp {vn(vs / 100 + 1, '.1f')} lần trung vị các blockchain")
