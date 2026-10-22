@@ -149,6 +149,20 @@ export async function onRequest(ctx) {
         return json({ subs: results });
       }
     }
+    // cầu nối tới Binance khi trình duyệt không gọi thẳng được: chỉ chuyển tiếp yêu cầu ĐÃ KÝ sẵn từ trình duyệt,
+    // không nhận / không lưu Secret Key; chỉ cho các đường dẫn giao dịch & tài khoản cần thiết, chỉ quản trị viên
+    if (key === "bx" && m === "POST") {
+      if (ses.r !== "admin") return err("Chỉ quản trị viên được dùng cầu nối Binance", 403);
+      let b;
+      try { b = await request.json(); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+      const HOST = { demo: { spot: "https://demo-api.binance.com", fut: "https://demo-fapi.binance.com" }, test: { spot: "https://testnet.binance.vision", fut: "https://testnet.binancefuture.com" },
+        live: { spot: "https://api.binance.com", fut: "https://fapi.binance.com" } };
+      const base = (HOST[b.env] || {})[b.mkt];
+      const okPath = /^\/(api\/v3\/(account|order|openOrders|allOrders|myTrades|orderList\/oco|openOrderList|exchangeInfo|time)|fapi\/v[123]\/(account|balance|positionRisk|order|openOrders|allOrders|leverage|marginType|userTrades|exchangeInfo|time|income))$/;
+      if (!base || !okPath.test(String(b.path || "")) || !["GET", "POST", "DELETE"].includes(b.method) || /[\s#]/.test(String(b.qs || ""))) return err("Yêu cầu không được phép", 400);
+      const r = await fetch(base + b.path + (b.qs ? "?" + b.qs : ""), { method: b.method, headers: b.key ? { "X-MBX-APIKEY": String(b.key) } : {} });
+      return new Response(await r.text(), { status: r.status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
+    }
     if (!USER_KEYS.has(key)) return err("Không có API này", 404);
     if (m === "GET") {
       const v = await getData(env, uid, key);

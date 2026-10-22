@@ -88,7 +88,7 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
-function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof plClose === "function") plClose(); if (typeof oppClose === "function") oppClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
+function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof plClose === "function") plClose(); if (typeof oppClose === "function") oppClose(); if (typeof papClose === "function") papClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -173,6 +173,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
+    else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
     else if (r === "sector" && arg[0]) { setTab("sectors"); await viewSector(arg[0]); }
@@ -934,10 +935,24 @@ function ticketCard(t, opts = {}) {
     <div class="tk-plan"><b>Cách đánh:</b> ${t.order === "market" ? "Vào" : "Đặt lệnh chờ"} ${qty(t.q)} ${esc(t.k)} ở ${px(t.e)}, đặt sẵn cắt lỗ ${px(t.s)} trên sàn. Chạm ${px(t.t1)} → chốt 50% và dời cắt lỗ về ${px(t.e)} (hoà vốn). Phần còn lại chốt ở ${px(t.t2)}${t.tf === "d" ? " hoặc khi đóng cửa ngày dưới EMA20" : " hoặc khi nến 4h đóng ngược EMA20"}. ${t.order === "limit" ? `Huỷ lệnh chờ nếu giá chạy tới ${px(t.t1)} trước khi khớp.` : ""}</div>
     <small class="muted">Cơ sở: ${esc(t.src)}${t.notes.length ? " · " + t.notes.map(esc).join(" · ") : ""}</small>
     ${t.warn.length ? `<ul class="tk-w">${t.warn.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
-    ${opts.save !== false ? `<div class="tk-a"><button class="btn primary" data-tsave='${esc(JSON.stringify({ k: t.k, side: t.side, tf: t.tf, e: t.e, s: t.s, t1: t.t1, t2: t.t2, lev: t.lev, mode: t.mode, q: t.q, eta1: t.eta1, tstop: t.tstop, order: t.order }))}'>Lưu kế hoạch & nhắc tôi</button> <small class="faint">hệ thống báo khi giá tới điểm vào / MT1 / cắt lỗ / hết thời gian</small></div>` : ""}
+    ${opts.save !== false ? `<div class="tk-a">${(() => { const J = esc(JSON.stringify({ k: t.k, side: t.side, tf: t.tf, e: t.e, s: t.s, t1: t.t1, t2: t.t2, lev: t.lev, mode: t.mode, q: t.q, eta1: t.eta1, tstop: t.tstop, order: t.order }));
+      return `<button class="btn primary" data-tsave='${J}'>Lưu kế hoạch & nhắc tôi</button><button class="btn" data-tpaper='${J}'>🧪 Đặt vào sàn giả lập</button><button class="btn" data-tbx='${J}'>🔗 Đặt lên Binance</button><small class="faint">giả lập: lệnh vào + cắt lỗ + 2 mức chốt lời tự động · Binance: gửi đúng bộ lệnh đó lên tài khoản đã kết nối (Demo / thật)</small><div class="tk-log"></div>`; })()}</div>` : ""}
   </div>`;
 }
 function bindTicketSave(root = document) {
+  $$("[data-tpaper]", root).forEach((b) => b.onclick = async () => {
+    const x = JSON.parse(b.dataset.tpaper), e = await papFromTicket(x), lg = b.parentElement.querySelector(".tk-log");
+    if (e) { lg.innerHTML = `<p class="down">${esc(e)}</p>`; return; }
+    b.disabled = true; b.textContent = "Đã đặt giả lập ✓"; lg.innerHTML = `<p class="up">Đã đặt bộ lệnh giả lập cho ${esc(x.k)} – theo dõi ở <a href="#/paper/${enc(x.k)}">Sàn giao dịch thử</a>.</p>`;
+  });
+  $$("[data-tbx]", root).forEach((b) => b.onclick = async () => {
+    const x = JSON.parse(b.dataset.tbx), lg = b.parentElement.querySelector(".tk-log");
+    if (!BX.keys[BX.env]) { lg.innerHTML = `<p class="down">Chưa mở khoá tài khoản Binance – vào <a href="#/paper/${enc(x.k)}">Sàn giao dịch thử → Kết nối Binance</a> để nhập khoá (nên thử môi trường Demo trước).</p>`; return; }
+    if (!(await bxGuard(`${x.mode === "perp" ? "Perp x" + x.lev : "Spot"} ${x.side === "long" ? "LONG" : "SHORT"} ${qty(x.q)} ${x.k} · vào ${px(x.e)} · cắt lỗ ${px(x.s)} · MT ${px(x.t1)} / ${px(x.t2)}`))) return;
+    b.disabled = true; lg.innerHTML = `<p class="muted">Đang gửi lên ${esc(BXE[BX.env].n)}…</p>`;
+    const log = (t) => { lg.innerHTML += `<p>✓ ${esc(t)}</p>`; };
+    try { await bxFromTicket(x, log); lg.innerHTML += `<p class="up"><b>Xong.</b> Kiểm tra trên Binance hoặc ở <a href="#/paper/${enc(x.k)}">Sàn giao dịch thử</a>.</p>`; } catch (e) { lg.innerHTML += `<p class="down">✗ ${esc(e.message)}</p>`; b.disabled = false; }
+  });
   $$("[data-tsave]", root).forEach((b) => b.onclick = async () => {
     const x = JSON.parse(b.dataset.tsave);
     await pfLoad();
@@ -1950,6 +1965,463 @@ async function mtfMount(D) {
   const tm = setInterval(() => { if (!el.isConnected) { clearInterval(tm); return; } go(); }, 60e3);
 }
 
+// ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)
+// Giả lập chạy hoàn toàn trên trình duyệt với giá thật từng giây của Binance; trạng thái lưu vào tài khoản MyBit ("paper").
+// Khoá API Binance (nếu kết nối) mã hoá bằng mật khẩu riêng của anh và CHỈ nằm trong trình duyệt này – không gửi lên máy chủ MyBit.
+const PFEE = { spot: { m: 0.001, t: 0.001 }, fut: { m: 0.0002, t: 0.0005 } }, SLIP = 0.0003;
+let PAP = null;
+const papNew = (cap) => ({ v: 1, usdt: cap, start: cap, created: Date.now(), last: Date.now(), spot: {}, pos: [], orders: [], hist: [], trades: [], eq: [[Date.now(), cap]], seq: 1, fundT: Math.floor(Date.now() / 288e5) });
+async function papLoad() { if (PAP) return PAP; let r = null; try { r = await Store.get("paper"); } catch (e) { /* rỗng */ } PAP = r?.data?.v ? r.data : papNew(setting("acct", 10000)); return PAP; }
+let papSaveT = null;
+function papSave() { clearTimeout(papSaveT); papSaveT = setTimeout(() => { PAP.hist = PAP.hist.slice(-400); PAP.trades = PAP.trades.slice(-400); PAP.eq = PAP.eq.slice(-1500); Store.put("paper", PAP); }, 700); }
+const papId = () => (PAP.seq++).toString(36) + "-" + (Date.now() % 1e6).toString(36);
+const PXS = {}, PXM = {}, FR = {};            // giá spot, giá mark perp, funding (%/kỳ) theo coin
+const papPx = (k, mkt) => (mkt === "fut" ? PXM[k] ?? PXS[k] : PXS[k] ?? PXM[k]) ?? BYK?.[k]?.p;
+function papPos(k) { return PAP.pos.find((p) => p.k === k); }
+function papLocked(k) { const seen = new Set(); return PAP.orders.filter((o) => o.mkt === "spot" && o.side === "sell" && o.k === k).reduce((s, o) => { if (o.oco && seen.has(o.oco)) return s; if (o.oco) seen.add(o.oco); return s + o.q; }, 0); }
+function papEquity() {
+  let e = PAP.usdt + PAP.orders.reduce((s, o) => s + (o.res || 0), 0);
+  for (const [k, h] of Object.entries(PAP.spot)) e += h.q * (papPx(k, "spot") || h.cost / Math.max(1e-12, h.q));
+  for (const p of PAP.pos) { const m = papPx(p.k, "fut") || p.e; e += p.margin + p.q * (m - p.e); }
+  return e;
+}
+function papLiq(p) { const mmr = (BYK?.[p.k]?.mc || 0) < 1e9 ? 0.01 : 0.005; return liqPrice(p.q > 0 ? "long" : "short", p.e, p.lev, mmr); }
+// đặt lệnh: o = {k, mkt:"spot"|"fut", side:"buy"|"sell", type:"market"|"limit"|"stop"|"tp", px, stop, q, reduce, lev, oco, tag}
+function papPlace(o, silent) {
+  const r = BYK[o.k]; if (!r) return "Không có coin này";
+  if (o.mkt === "spot" && !r.sp) return `${o.k} không có cặp spot trên Binance`;
+  if (o.mkt === "fut" && !r.bf) return `${o.k} không có hợp đồng perp trên Binance`;
+  if (!(o.q > 0)) return "Số lượng phải > 0";
+  const p = papPx(o.k, o.mkt); if (!p) return "Chưa có giá";
+  o = { ...o, id: papId(), ts: Date.now() };
+  if (o.mkt === "fut") {
+    const G = levGov(r, o.side === "buy" ? "long" : "short", o.tf || "h4", o.stopPct);
+    o.lev = Math.max(1, Math.min(o.lev || 1, G.cap));
+    if (!o.reduce) { const need = o.q * (o.px || p) / o.lev; if (need > PAP.usdt) return `Không đủ USDT ký quỹ (cần ${usd2(need)}, còn ${usd2(PAP.usdt)})`; }
+    else if (!papPos(o.k)) return "Không có vị thế để đóng";
+  } else if (o.side === "buy") {
+    const cost = o.q * (o.type === "limit" ? o.px : p) * (1 + PFEE.spot.t);
+    if (cost > PAP.usdt) return `Không đủ USDT (cần ${usd2(cost)}, còn ${usd2(PAP.usdt)})`;
+    if (o.type === "limit") { o.res = cost; PAP.usdt -= cost; }
+  } else {
+    const free = (PAP.spot[o.k]?.q || 0) - papLocked(o.k) + (o.oco && PAP.orders.some((x) => x.oco === o.oco) ? o.q : 0);
+    if (o.q > free + 1e-12) return `Không đủ ${o.k} để bán (còn ${qty(free)})`;
+  }
+  const mkble = o.type === "limit" && (o.side === "buy" ? o.px >= p : o.px <= p);     // lệnh giới hạn khớp ngay như Binance (giá tốt hơn, phí taker)
+  if (o.type === "market" || mkble) { if (o.res) { PAP.usdt += o.res; o.res = 0; } papFill(o, mkble ? p : p * (1 + (o.side === "buy" ? SLIP : -SLIP)), true); }
+  else PAP.orders.push(o);
+  if (!silent) papSave();
+  return null;
+}
+function papCancel(id, why) { const i = PAP.orders.findIndex((o) => o.id === id); if (i < 0) return; const o = PAP.orders[i]; if (o.res) PAP.usdt += o.res; PAP.orders.splice(i, 1); PAP.hist.push({ ...o, st: why || "huỷ", at: Date.now() }); }
+function papFill(o, price, taker) {
+  const fee = o.q * price * PFEE[o.mkt][taker ? "t" : "m"], now = Date.now();
+  if (o.mkt === "spot") {
+    const h = PAP.spot[o.k] || (PAP.spot[o.k] = { q: 0, cost: 0, ts: now });
+    if (o.side === "buy") { if (o.res) PAP.usdt += o.res; PAP.usdt -= o.q * price + fee; h.q += o.q; h.cost += o.q * price + fee; }
+    else {
+      const avg = h.q > 0 ? h.cost / h.q : price, proceeds = o.q * price - fee;
+      PAP.usdt += proceeds; h.q -= o.q; h.cost -= avg * o.q;
+      PAP.trades.push({ k: o.k, mkt: "spot", side: "long", e: avg, x: price, q: o.q, pnl: proceeds - avg * o.q, fee, open: h.ts, close: now, why: o.tag || o.type });
+      if (h.q <= 1e-12) delete PAP.spot[o.k];
+    }
+  } else {
+    let d = o.side === "buy" ? o.q : -o.q, p = papPos(o.k);
+    if (p && Math.sign(p.q) !== Math.sign(d)) {
+      const wasLong = p.q > 0, aq = Math.abs(p.q), cq = Math.min(Math.abs(d), aq), part = p.margin * cq / aq, pnl = cq * (price - p.e) * (wasLong ? 1 : -1);
+      const feeIn = (p.feeIn || 0) * cq / aq, fund = (p.fund || 0) * cq / aq;
+      PAP.usdt += part + pnl - fee; p.margin -= part; p.feeIn = (p.feeIn || 0) - feeIn; p.fund = (p.fund || 0) - fund; p.q += (wasLong ? -1 : 1) * cq; d += (wasLong ? 1 : -1) * cq;
+      PAP.trades.push({ k: o.k, mkt: "fut", side: wasLong ? "long" : "short", e: p.e, x: price, q: cq, lev: p.lev, pnl: pnl - fee - feeIn + fund, fund, fee: fee + feeIn, open: p.ts, close: now, why: o.tag || o.type });
+      if (Math.abs(p.q) < 1e-12) { PAP.pos = PAP.pos.filter((x) => x !== p); PAP.orders.filter((x) => x.k === o.k && x.mkt === "fut" && x.reduce).forEach((x) => papCancel(x.id, "huỷ (vị thế đã đóng)")); p = null; }
+      if (o.reduce) d = 0;
+    }
+    if (Math.abs(d) > 1e-12) {
+      const lev = o.lev || 1, mg = Math.abs(d) * price / lev;
+      PAP.usdt -= mg + fee;
+      if (p) { p.e = (p.e * Math.abs(p.q) + price * Math.abs(d)) / (Math.abs(p.q) + Math.abs(d)); p.q += d; p.margin += mg; p.feeIn = (p.feeIn || 0) + fee; }
+      else PAP.pos.push({ k: o.k, q: d, e: price, lev, margin: mg, ts: now, fund: 0, feeIn: fee });
+    }
+  }
+  PAP.orders = PAP.orders.filter((x) => x.id !== o.id && !(o.oco && x.oco === o.oco));
+  PAP.hist.push({ ...o, st: "khớp", fill: price, fee, at: now });
+  if (!o.quiet) toast(`🧪 Giả lập: ${o.mkt === "spot" ? (o.side === "buy" ? "mua" : "bán") : o.reduce ? "đóng" : o.side === "buy" ? "Long" : "Short"} ${qty(o.q)} ${o.k} @ ${px(price)}${o.tag ? " (" + o.tag + ")" : ""}`);
+}
+// so khớp theo giá (p = giá spot hoặc mark) – gọi mỗi giây và khi chạy lại nến lúc trình duyệt tắt
+function papTick(k, p, mkt, silent) {
+  if (!isNum(p)) return false;
+  let ch = false;
+  for (const o of PAP.orders.filter((x) => x.k === k && (x.mkt === mkt || !mkt))) {
+    if (!PAP.orders.includes(o)) continue;
+    const buy = o.side === "buy";
+    const hit = o.type === "limit" ? (buy ? p <= o.px : p >= o.px) : o.type === "stop" ? (buy ? p >= o.stop : p <= o.stop) : o.type === "tp" ? (buy ? p <= o.px : p >= o.px) : false;
+    if (!hit) continue;
+    if (o.mkt === "fut" && !o.reduce && o.q * (o.px || p) / (o.lev || 1) > PAP.usdt + 1e-9) { papCancel(o.id, "huỷ (thiếu ký quỹ)"); ch = true; continue; }
+    o.quiet = silent;
+    papFill(o, o.type === "stop" ? p * (1 + (buy ? SLIP : -SLIP)) : o.px, o.type === "stop");
+    ch = true;
+  }
+  const P = papPos(k);
+  if (P && (mkt === "fut" || !mkt)) {
+    const L = papLiq(P);
+    if ((P.q > 0 && p <= L) || (P.q < 0 && p >= L)) {
+      PAP.trades.push({ k, mkt: "fut", side: P.q > 0 ? "long" : "short", e: P.e, x: L, q: Math.abs(P.q), lev: P.lev, pnl: -P.margin, fund: P.fund, fee: 0, open: P.ts, close: Date.now(), why: "THANH LÝ" });
+      PAP.pos = PAP.pos.filter((x) => x !== P); PAP.orders.filter((x) => x.k === k && x.mkt === "fut" && x.reduce).forEach((x) => papCancel(x.id, "huỷ (bị thanh lý)"));
+      if (!silent) toast(`🚨 Giả lập: vị thế ${k} bị THANH LÝ ở ${px(L)}`); ch = true;
+    }
+  }
+  return ch;
+}
+function papFunding() {
+  const nowK = Math.floor(Date.now() / 288e5);
+  if (nowK <= PAP.fundT) return false;
+  for (const p of PAP.pos) { const m = papPx(p.k, "fut") || p.e, r = (FR[p.k] ?? BYK?.[p.k]?.f8 ?? 0.01) / 100, pay = p.q * m * r * (nowK - PAP.fundT); PAP.usdt -= pay; p.fund = (p.fund || 0) - pay; }
+  PAP.fundT = nowK; return true;
+}
+// lúc trình duyệt tắt: chạy lại nến 1 phút để biết lệnh nào đã khớp
+async function papReplay() {
+  const since = PAP.last || Date.now(), gap = Date.now() - since;
+  if (gap < 90e3) return;
+  const ks = new Set([...PAP.orders.map((o) => o.k + "|" + o.mkt), ...PAP.pos.map((p) => p.k + "|fut")]);
+  for (const km of ks) {
+    const [k, mkt] = km.split("|"), r = BYK[k]; if (!r) continue;
+    const iv = gap > 9e5 * 60 ? "15m" : "1m";
+    try {
+      const sym = mkt === "fut" ? r.bf : r.sp, m = mkt === "fut" ? r.bfm || 1 : r.sm || 1; if (!sym) continue;
+      const base = mkt === "fut" ? "https://fapi.binance.com/fapi/v1/klines" : "https://api.binance.com/api/v3/klines";
+      const j = await fetchJ(`${base}?symbol=${sym}&interval=${iv}&startTime=${since}&limit=1000`);
+      for (const b of j) { const o = +b[1] / m, h = +b[2] / m, l = +b[3] / m, c = +b[4] / m; if (c >= o) { papTick(k, l, mkt, true); papTick(k, h, mkt, true); } else { papTick(k, h, mkt, true); papTick(k, l, mkt, true); } }
+    } catch (e) { /* không lấy được nến */ }
+  }
+  papFunding();
+  PAP.last = Date.now(); papSave();
+}
+// động cơ chạy nền: websocket giá cho mọi coin có lệnh / vị thế / đang xem
+const PE = { ws: [], syms: "", timer: null, extra: new Set(), onTick: null };
+function papSyms() { const s = new Set(PE.extra); PAP?.orders.forEach((o) => s.add(o.k)); PAP?.pos.forEach((p) => s.add(p.k)); Object.keys(PAP?.spot || {}).forEach((k) => s.add(k)); return [...s].filter((k) => BYK?.[k]).sort(); }
+function papEngine() {
+  if (!PAP) return;
+  const ks = papSyms(), sig = ks.join(",");
+  if (sig !== PE.syms) {
+    PE.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); PE.ws = []; PE.syms = sig;
+    const sp = ks.map((k) => BYK[k]).filter((r) => r.sp), fu = ks.map((k) => BYK[k]).filter((r) => r.bf);
+    if (sp.length) try { const w = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = sp.find((x) => x.sp === d.s); if (r) PXS[r.k] = +d.c / (r.sm || 1); }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
+    if (fu.length) try { const w = new WebSocket(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = fu.find((x) => x.bf === d.s); if (r) { PXM[r.k] = +d.p / (r.bfm || 1); FR[r.k] = +d.r * 100; } }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
+  }
+  if (!PE.timer) PE.timer = setInterval(() => {
+    if (!PAP) return;
+    let ch = false;
+    for (const k of papSyms()) { if (PXS[k]) ch = papTick(k, PXS[k], "spot") || ch; if (PXM[k]) ch = papTick(k, PXM[k], "fut") || ch; }
+    ch = papFunding() || ch;
+    const now = Date.now();
+    if (now - (PAP.eq[PAP.eq.length - 1]?.[0] || 0) > 3e5) { PAP.eq.push([now, papEquity()]); ch = true; }
+    if (now - PAP.last > 6e4) { PAP.last = now; ch = true; }
+    if (ch) { papSave(); papEngine(); }
+    if (PE.onTick) PE.onTick();
+  }, 1000);
+}
+// phiếu lệnh → lệnh giả lập: vào lệnh + cắt lỗ + 2 mức chốt lời (50/50, OCO với cắt lỗ)
+async function papFromTicket(t) {
+  await papLoad();
+  const r = BYK[t.k] || {}, L = t.side === "long", half = t.q / 2;
+  const mkt = t.mode === "perp" ? "fut" : "spot";
+  if (mkt === "spot" && !L) return "Spot không Short được";
+  const entry = { k: t.k, mkt, side: L ? "buy" : "sell", type: t.order === "limit" ? "limit" : "market", px: t.e, q: t.q, lev: t.lev, tf: t.tf, stopPct: Math.abs(t.e - t.s) / t.e * 100, tag: "vào lệnh" };
+  const e1 = papPlace(entry, true); if (e1) return e1;
+  if (mkt === "spot") {
+    if (entry.type === "limit") { const eo = PAP.orders[PAP.orders.length - 1]; if (eo) eo.after = { s: t.s, t1: t.t1, t2: t.t2, half }; }
+    else papBrackets(t.k, t.s, t.t1, t.t2, half);
+  } else {
+    const ex = L ? "sell" : "buy";
+    PAP.orders.push({ id: papId(), ts: Date.now(), k: t.k, mkt, side: ex, type: "stop", stop: t.s, q: t.q, reduce: true, tag: "cắt lỗ" });
+    PAP.orders.push({ id: papId(), ts: Date.now(), k: t.k, mkt, side: ex, type: "tp", px: t.t1, q: half, reduce: true, tag: "MT1" });
+    PAP.orders.push({ id: papId(), ts: Date.now(), k: t.k, mkt, side: ex, type: "tp", px: t.t2, q: half, reduce: true, tag: "MT2" });
+  }
+  PE.extra.add(t.k); papSave(); papEngine();
+  return null;
+}
+function papBrackets(k, s, t1, t2, half) {
+  const g1 = papId(), g2 = papId();
+  PAP.orders.push({ id: papId(), ts: Date.now(), k, mkt: "spot", side: "sell", type: "tp", px: t1, q: half, oco: g1, tag: "MT1" }, { id: papId(), ts: Date.now(), k, mkt: "spot", side: "sell", type: "stop", stop: s, q: half, oco: g1, tag: "cắt lỗ" });
+  PAP.orders.push({ id: papId(), ts: Date.now(), k, mkt: "spot", side: "sell", type: "tp", px: t2, q: half, oco: g2, tag: "MT2" }, { id: papId(), ts: Date.now(), k, mkt: "spot", side: "sell", type: "stop", stop: s, q: half, oco: g2, tag: "cắt lỗ" });
+}
+// lệnh mua chờ khớp xong → tự gắn OCO chốt lời / cắt lỗ
+const _papFill0 = papFill;
+papFill = function (o, price, taker) {
+  _papFill0(o, price, taker);
+  if (o.after && o.mkt === "spot" && o.side === "buy") papBrackets(o.k, o.after.s, o.after.t1, o.after.t2, o.after.half);
+  if (o.after2 && o.mkt === "spot" && o.side === "buy") o.after2.forEach((x) => PAP.orders.push({ id: papId(), ts: Date.now(), k: o.k, mkt: "spot", side: "sell", ...x }));
+};
+
+// ---------------------------------------------------------------- KẾT NỐI BINANCE
+const BXE = {
+  demo: { n: "Binance Demo Trading (tiền ảo, giá thật)", spot: "https://demo-api.binance.com", fut: "https://demo-fapi.binance.com", url: "https://demo.binance.com" },
+  test: { n: "Binance Testnet (tiền ảo, thị trường riêng)", spot: "https://testnet.binance.vision", fut: "https://testnet.binancefuture.com", url: "https://testnet.binance.vision" },
+  live: { n: "Binance THẬT (tiền thật)", spot: "https://api.binance.com", fut: "https://fapi.binance.com", url: "https://www.binance.com/vi/my/settings/api-management" },
+};
+const BX = { env: lsGet("bxenv", "demo"), keys: {}, off: { spot: 0, fut: 0 }, xi: {}, via: lsGet("bxvia", "direct"), liveOk: false };
+const b64 = (u8) => btoa(String.fromCharCode(...new Uint8Array(u8))), ub64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function bxKey(pass, salt) { const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]); return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: 250000, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]); }
+async function bxSaveKeys(env, apiKey, secret, pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12)), k = await bxKey(pass, salt);
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, k, new TextEncoder().encode(JSON.stringify({ apiKey, secret })));
+  lsSet("bxk_" + env, { salt: b64(salt), iv: b64(iv), ct: b64(ct), tail: apiKey.slice(-4), at: Date.now() });
+  BX.keys[env] = { apiKey, secret };
+}
+async function bxUnlock(env, pass) {
+  const x = lsGet("bxk_" + env, null); if (!x) throw new Error("Chưa lưu khoá cho môi trường này");
+  const k = await bxKey(pass, ub64(x.salt));
+  try { BX.keys[env] = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: ub64(x.iv) }, k, ub64(x.ct)))); } catch (e) { throw new Error("Sai mật khẩu mở khoá"); }
+}
+function bxForget(env) { try { localStorage.removeItem("mybit_bxk_" + env); } catch (e) { /* bỏ qua */ } delete BX.keys[env]; }
+async function hmac(secret, msg) { const k = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]); return [...new Uint8Array(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msg)))].map((b) => b.toString(16).padStart(2, "0")).join(""); }
+async function bxRaw(mkt, method, path, qs, apiKey) {
+  const base = BXE[BX.env][mkt], url = base + path + (qs ? "?" + qs : "");
+  const viaRelay = async () => { const r = await fetch("api/bx", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ env: BX.env, mkt, method, path, qs, key: apiKey || "" }) }); return r; };
+  let r;
+  if (BX.via === "relay") r = await viaRelay();
+  else {
+    try { r = await fetch(url, { method, headers: apiKey ? { "X-MBX-APIKEY": apiKey } : {} }); }
+    catch (e) { r = await viaRelay(); BX.via = "relay"; lsSet("bxvia", "relay"); toast("Trình duyệt không gọi thẳng được Binance → chuyển sang đi qua máy chủ MyBit"); }
+  }
+  const txt = await r.text(); let j; try { j = JSON.parse(txt); } catch (e) { j = { msg: txt.slice(0, 200) }; }
+  if (!r.ok || (j && j.code && j.code < 0)) throw new Error(`Binance ${r.status}${j?.code ? " · mã " + j.code : ""}: ${j?.msg || "lỗi"}`);
+  return j;
+}
+async function bxTime(mkt) { const j = await bxRaw(mkt, "GET", mkt === "fut" ? "/fapi/v1/time" : "/api/v3/time", ""); BX.off[mkt] = j.serverTime - Date.now(); }
+async function bx(mkt, method, path, params = {}, signed = true) {
+  const K = BX.keys[BX.env]; if (signed && !K) throw new Error("Chưa mở khoá API Binance");
+  if (signed && BX.off[mkt] === 0) await bxTime(mkt).catch(() => {});
+  const p = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "").map(([k, v]) => [k, String(v)]));
+  if (signed) { p.set("recvWindow", "5000"); p.set("timestamp", String(Date.now() + BX.off[mkt])); p.set("signature", await hmac(K.secret, p.toString())); }
+  return bxRaw(mkt, method, path, p.toString(), signed ? K.apiKey : null);
+}
+async function bxFilters(mkt, sym) {
+  const key = mkt + sym; if (BX.xi[key]) return BX.xi[key];
+  const j = await bx(mkt, "GET", mkt === "fut" ? "/fapi/v1/exchangeInfo" : "/api/v3/exchangeInfo", mkt === "fut" ? {} : { symbol: sym }, false);
+  (j.symbols || []).forEach((s) => { const f = Object.fromEntries((s.filters || []).map((x) => [x.filterType, x])); BX.xi[mkt + s.symbol] = { tick: +(f.PRICE_FILTER?.tickSize || 0), step: +(f.LOT_SIZE?.stepSize || 0), minN: +(f.MIN_NOTIONAL?.minNotional || f.MIN_NOTIONAL?.notional || f.NOTIONAL?.minNotional || 0) }; });
+  return BX.xi[key] || { tick: 0, step: 0, minN: 0 };
+}
+const rnd = (v, st, up) => { if (!st) return String(v); const d = Math.max(0, Math.round(-Math.log10(st))); const n = (up ? Math.ceil(v / st - 1e-9) : Math.floor(v / st + 1e-9)) * st; return n.toFixed(d); };
+// đặt cả bộ lệnh theo phiếu lên Binance (spot: lệnh mua + 2 OCO; perp: Isolated + đòn bẩy + lệnh vào + SL + 2 TP)
+async function bxFromTicket(t, log) {
+  const r = BYK[t.k], L = t.side === "long", fut = t.mode === "perp";
+  if (fut && !r.bf) throw new Error("Coin không có perp trên Binance");
+  if (!fut && !r.sp) throw new Error("Coin không có spot trên Binance");
+  const sym = fut ? r.bf : r.sp, m = fut ? r.bfm || 1 : r.sm || 1, mk = fut ? "fut" : "spot";
+  const F = await bxFilters(mk, sym), P = (v) => rnd(v * m, F.tick), Q = (v) => rnd(v / m, F.step);
+  const q = Q(t.q), qh = Q(t.q / 2), qr = rnd(+q - +qh, F.step);
+  if (+q * t.e * m < F.minN) throw new Error(`Giá trị lệnh nhỏ hơn mức tối thiểu của Binance (${F.minN} USDT)`);
+  const side = L ? "BUY" : "SELL", ex = L ? "SELL" : "BUY", lim = t.order === "limit";
+  if (fut) {
+    await bx(mk, "POST", "/fapi/v1/marginType", { symbol: sym, marginType: "ISOLATED" }).catch((e) => { if (!/-4046|No need/i.test(e.message)) throw e; });
+    await bx(mk, "POST", "/fapi/v1/leverage", { symbol: sym, leverage: t.lev }); log(`Đòn bẩy x${t.lev}, ký quỹ cô lập`);
+    const o = await bx(mk, "POST", "/fapi/v1/order", lim ? { symbol: sym, side, type: "LIMIT", timeInForce: "GTC", quantity: q, price: P(t.e) } : { symbol: sym, side, type: "MARKET", quantity: q });
+    log(`Lệnh vào #${o.orderId} ${lim ? "LIMIT " + P(t.e) : "MARKET"} · ${q}`);
+    const sl = await bx(mk, "POST", "/fapi/v1/order", { symbol: sym, side: ex, type: "STOP_MARKET", stopPrice: P(t.s), closePosition: "true", workingType: "MARK_PRICE" }); log(`Cắt lỗ #${sl.orderId} STOP_MARKET ${P(t.s)} (đóng toàn bộ)`);
+    for (const [px_, qq, nm] of [[t.t1, qh, "MT1"], [t.t2, qr, "MT2"]]) { const tp = await bx(mk, "POST", "/fapi/v1/order", { symbol: sym, side: ex, type: "TAKE_PROFIT_MARKET", stopPrice: P(px_), quantity: qq, reduceOnly: "true", workingType: "MARK_PRICE" }); log(`${nm} #${tp.orderId} ${P(px_)} · ${qq}`); }
+  } else {
+    const o = await bx(mk, "POST", "/api/v3/order", lim ? { symbol: sym, side: "BUY", type: "LIMIT", timeInForce: "GTC", quantity: q, price: P(t.e) } : { symbol: sym, side: "BUY", type: "MARKET", quantity: q });
+    log(`Lệnh mua #${o.orderId} ${lim ? "LIMIT " + P(t.e) : "MARKET"} · ${q} ${o.status ? "(" + o.status + ")" : ""}`);
+    if (lim && o.status !== "FILLED") { log("⏳ Lệnh mua chờ khớp – sau khi khớp, bấm 'Đặt chốt lời/cắt lỗ (OCO)' ở bảng tài sản Binance"); return; }
+    for (const [px_, qq, nm] of [[t.t1, qh, "MT1"], [t.t2, qr, "MT2"]]) { const oc = await bx(mk, "POST", "/api/v3/orderList/oco", { symbol: sym, side: "SELL", quantity: qq, aboveType: "LIMIT_MAKER", abovePrice: P(px_), belowType: "STOP_LOSS_LIMIT", belowStopPrice: P(t.s), belowPrice: P(t.s * 0.995), belowTimeInForce: "GTC" }); log(`OCO ${nm} #${oc.orderListId}: chốt ${P(px_)} / cắt lỗ ${P(t.s)} · ${qq}`); }
+  }
+}
+// lệnh thủ công từ khung đặt lệnh
+async function bxManual(f) {
+  const r = BYK[f.k], fut = f.mkt === "fut", sym = fut ? r.bf : r.sp, m = fut ? r.bfm || 1 : r.sm || 1, mk = f.mkt;
+  const F = await bxFilters(mk, sym), P = (v) => rnd(v * m, F.tick), Q = rnd(f.q / m, F.step);
+  const base = { symbol: sym, side: f.side.toUpperCase(), quantity: Q };
+  if (fut) { if (!f.reduce) { await bx(mk, "POST", "/fapi/v1/marginType", { symbol: sym, marginType: "ISOLATED" }).catch(() => {}); await bx(mk, "POST", "/fapi/v1/leverage", { symbol: sym, leverage: f.lev }); } if (f.reduce) base.reduceOnly = "true"; }
+  const p = f.type === "market" ? { ...base, type: "MARKET" } : f.type === "limit" ? { ...base, type: "LIMIT", timeInForce: "GTC", price: P(f.px) }
+    : fut ? { ...base, type: f.type === "stop" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", stopPrice: P(f.type === "stop" ? f.stop : f.px), workingType: "MARK_PRICE" }
+      : { ...base, type: f.type === "stop" ? "STOP_LOSS_LIMIT" : "TAKE_PROFIT_LIMIT", timeInForce: "GTC", stopPrice: P(f.type === "stop" ? f.stop : f.px), price: P((f.type === "stop" ? f.stop : f.px) * (f.side === "sell" ? 0.995 : 1.005)) };
+  return bx(mk, "POST", fut ? "/fapi/v1/order" : "/api/v3/order", p);
+}
+
+// ---------------------------------------------------------------- TRANG SÀN GIẢ LẬP / GIAO DỊCH
+const PV = { k: lsGet("pvk", "BTC"), mkt: lsGet("pvmkt", "spot"), side: "buy", type: "limit", tab: lsGet("pvtab", "pos"), book: null };
+function papClose() { if (PV.book) { try { PV.book.onclose = null; PV.book.close(); } catch (e) { /* bỏ qua */ } PV.book = null; } PE.onTick = null; }
+async function viewPaper(k0) {
+  await Promise.all([coins(), loadSettings(), pfLoad().catch(() => null)]);
+  await papLoad();
+  if (k0 && BYK[k0]) PV.k = k0;
+  if (!BYK[PV.k]) PV.k = "BTC";
+  const envOn = lsGet("pvenv", "paper");
+  app().innerHTML = `<div class="ph"><h1>Sàn giao dịch thử</h1><span class="meta">giá thật từng giây từ Binance · phí, funding, thanh lý như sàn thật · đòn bẩy vẫn do hệ thống kiểm soát</span></div>
+    <div class="envbar"><span class="seg" id="pvEnv"><button data-e="paper" class="${envOn === "paper" ? "on" : ""}">🧪 Giả lập MyBit</button><button data-e="bx" class="${envOn === "bx" ? "on" : ""}">🔗 Tài khoản Binance</button></span>
+      <span id="pvEnvInfo" class="faint"></span></div>
+    <div id="pvSum"></div>
+    <div class="trade">
+      <section class="panel tr-ch"><div class="tr-h"><input id="pvK" list="pvList" value="${esc(PV.k)}" class="tr-k"><datalist id="pvList">${COINS.rows.filter((r) => r.sp || r.bf).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>
+        <b id="pvP" class="tr-p">—</b><small id="pvR"></small><span class="faint" id="pvInfo"></span></div><div id="pvChart"></div></section>
+      <section class="panel tr-ob"><div class="ph"><h2>Sổ lệnh</h2><span class="meta" id="pvObS">Binance</span></div><div id="pvBook" class="book"><p class="muted">Đang kết nối…</p></div></section>
+      <section class="panel tr-form" id="pvForm"></section>
+    </div>
+    <section class="panel"><div class="subtabs" id="pvTabs">${[["pos", "Vị thế futures"], ["spot", "Tài sản spot"], ["ord", "Lệnh đang chờ"], ["hist", "Lịch sử lệnh"], ["tr", "Nhật ký lãi/lỗ"], ["eq", "Đường tài sản"]].map(([k, n]) => `<button data-t="${k}" class="${PV.tab === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="pvTab"></div></section>
+    <section class="panel" id="pvBx"></section>
+    <p class="faint disclaimer">Giả lập dùng giá thật nhưng khớp lệnh theo quy tắc đơn giản (lệnh giới hạn khớp khi giá chạm, lệnh dừng khớp giá thị trường + trượt giá 0,03%), không có độ sâu sổ lệnh – kết quả thật có thể kém hơn. Lệnh khi trình duyệt tắt được tính lại theo nến 1 phút lúc anh mở lại.</p>`;
+  await papReplay();
+  PE.extra.add(PV.k); papEngine();
+  const env = () => lsGet("pvenv", "paper");
+  const loadCoin = async () => {
+    const r = BYK[PV.k]; PE.extra.add(PV.k); papEngine();
+    if (PV.mkt === "fut" && !r.bf) PV.mkt = "spot"; if (PV.mkt === "spot" && !r.sp) PV.mkt = "fut";
+    $("#pvInfo").textContent = `${r.n || ""} · ${r.sp ? "spot " + r.sp : "không có spot"} · ${r.bf ? "perp " + r.bf : "không có perp"}${r.g ? " · " + r.g : ""}`;
+    try { const D = await load(`data/c/${enc(PV.k)}.json`); D._ij = null; $("#pvChart").innerHTML = chartBox(D, 430); bindChart(D); } catch (e) { $("#pvChart").innerHTML = `<p class="muted">Không có dữ liệu biểu đồ.</p>`; }
+    book(); form();
+  };
+  const book = () => {
+    if (PV.book) { try { PV.book.onclose = null; PV.book.close(); } catch (e) { /* bỏ qua */ } }
+    const r = BYK[PV.k], fut = PV.mkt === "fut", sym = (fut ? r.bf : r.sp || r.bf); if (!sym) return;
+    const m = (fut || !r.sp ? r.bfm : r.sm) || 1;
+    $("#pvObS").textContent = `${fut || !r.sp ? "perp" : "spot"} ${sym} · 10 mức`;
+    try {
+      const w = new WebSocket(fut || !r.sp ? `wss://fstream.binance.com/ws/${sym.toLowerCase()}@depth10@500ms` : `wss://stream.binance.com:9443/ws/${sym.toLowerCase()}@depth10@1000ms`);
+      w.onmessage = (ev) => { const d = JSON.parse(ev.data), A = (d.asks || d.a || []).slice(0, 10).map(([p, q]) => [+p / m, +q * m]), B = (d.bids || d.b || []).slice(0, 10).map(([p, q]) => [+p / m, +q * m]);
+        const mx = Math.max(...A.concat(B).map(([p, q]) => p * q), 1), row = ([p, q], c) => `<div class="bk ${c}" data-px="${p}"><i style="width:${(p * q / mx * 100).toFixed(0)}%"></i><span>${px(p)}</span><span>${qty(q)}</span><span>${usd(p * q)}</span></div>`;
+        const el = $("#pvBook"); if (!el) return; el.innerHTML = `<div class="bk h"><span>Giá</span><span>Số lượng</span><span>Giá trị</span></div>${A.slice().reverse().map((x) => row(x, "a")).join("")}<div class="bk mid">${px(papPx(PV.k, PV.mkt))} <small>chênh ${A[0] && B[0] ? nf((A[0][0] / B[0][0] - 1) * 100, 3) + "%" : "—"}</small></div>${B.map((x) => row(x, "b")).join("")}`;
+        $$(".bk[data-px]", el).forEach((b) => b.onclick = () => { const i = $("#fPx"); if (i) { i.value = (+b.dataset.px).toPrecision(8).replace(/\.?0+$/, ""); i.dispatchEvent(new Event("input")); } }); };
+      PV.book = w;
+    } catch (e) { $("#pvBook").innerHTML = `<p class="muted">Không kết nối được sổ lệnh.</p>`; }
+  };
+  const form = () => {
+    const r = BYK[PV.k], fut = PV.mkt === "fut", L = PV.side === "buy";
+    const G = levGov(r, L ? "long" : "short", "h4", null);
+    const lev = Math.min(+lsGet("pvlev", 2), G.cap);
+    $("#pvForm").innerHTML = `<div class="seg wide" id="fMkt"><button data-m="spot" class="${!fut ? "on" : ""}" ${r.sp ? "" : "disabled"}>Spot</button><button data-m="fut" class="${fut ? "on" : ""}" ${r.bf ? "" : "disabled"}>Futures USDⓈ-M</button></div>
+      <div class="seg wide sides" id="fSide"><button data-s="buy" class="b ${L ? "on" : ""}">${fut ? "Long / Mua" : "Mua"}</button><button data-s="sell" class="s ${!L ? "on" : ""}">${fut ? "Short / Bán" : "Bán"}</button></div>
+      <div class="seg wide" id="fType">${[["limit", "Giới hạn"], ["market", "Thị trường"], ["stop", "Dừng (cắt lỗ)"], ["tp", "Chốt lời"]].map(([k, n]) => `<button data-t="${k}" class="${PV.type === k ? "on" : ""}">${n}</button>`).join("")}</div>
+      <div class="ff">${PV.type !== "market" ? `<label>${PV.type === "stop" ? "Giá kích hoạt" : "Giá"}</label><input id="fPx" inputmode="decimal" value="${(papPx(PV.k, PV.mkt) || r.p || 0).toPrecision(6) * 1}">` : ""}
+        <label>Số lượng ${esc(PV.k)}</label><input id="fQ" inputmode="decimal" placeholder="0"><label>hoặc giá trị USDT</label><input id="fU" inputmode="decimal" placeholder="0">
+        <div class="seg wide" id="fPct">${[10, 25, 50, 100].map((p) => `<button data-p="${p}">${p}%</button>`).join("")}</div>
+        ${fut ? `<label>Đòn bẩy (hệ thống cho tối đa x${G.cap})</label><div class="levr"><input type="range" id="fLev" min="1" max="${G.cap}" value="${lev}"><b id="fLevV">x${lev}</b></div><label class="chk"><input type="checkbox" id="fRed"> Chỉ giảm vị thế (reduce-only)</label>` : ""}
+        ${PV.type !== "stop" && PV.type !== "tp" ? `<details class="fx"><summary>Gắn cắt lỗ / chốt lời</summary><label>Cắt lỗ</label><input id="fSL" inputmode="decimal"><label>Chốt lời</label><input id="fTP" inputmode="decimal"></details>` : ""}</div>
+      <div class="fsum" id="fSum"></div>
+      <button class="btn ${L ? "buyb" : "sellb"} big" id="fGo">${env() === "bx" ? "🔗 Gửi lên Binance: " : "🧪 "}${fut ? (L ? "Long" : "Short") : L ? "Mua" : "Bán"} ${esc(PV.k)}</button>
+      <small class="faint">Khả dụng giả lập: ${usd2(PAP.usdt)} USDT${!fut && PAP.spot[PV.k] ? ` · ${qty(PAP.spot[PV.k].q - papLocked(PV.k))} ${esc(PV.k)}` : ""}</small><div id="fMsg"></div>`;
+    $$("#fMkt button").forEach((b) => b.onclick = () => { PV.mkt = b.dataset.m; lsSet("pvmkt", PV.mkt); book(); form(); });
+    $$("#fSide button").forEach((b) => b.onclick = () => { PV.side = b.dataset.s; form(); });
+    $$("#fType button").forEach((b) => b.onclick = () => { PV.type = b.dataset.t; form(); });
+    const pNow = () => (PV.type === "market" ? papPx(PV.k, PV.mkt) : +($("#fPx")?.value || 0)) || papPx(PV.k, PV.mkt);
+    const lv = () => (fut ? +($("#fLev")?.value || 1) : 1);
+    const sum = () => { const q = +$("#fQ").value || 0, p = pNow(), N = q * p, mg = N / lv(); $("#fSum").innerHTML = q ? `Giá trị ${usd2(N)}${fut ? ` · ký quỹ ${usd2(mg)} · thanh lý ~${px(liqPrice(L ? "long" : "short", p, lv(), (r.mc || 0) < 1e9 ? 0.01 : 0.005))}` : ""} · phí ~${usd2(N * PFEE[PV.mkt][PV.type === "limit" ? "m" : "t"])}` : ""; };
+    $("#fQ").oninput = () => { $("#fU").value = ((+$("#fQ").value || 0) * pNow()).toFixed(2); sum(); };
+    $("#fU").oninput = () => { const p = pNow(); $("#fQ").value = p ? +((+$("#fU").value || 0) / p).toPrecision(6) : ""; sum(); };
+    if ($("#fPx")) $("#fPx").oninput = () => { $("#fU").dispatchEvent(new Event("input")); };
+    if ($("#fLev")) $("#fLev").oninput = (e) => { $("#fLevV").textContent = "x" + e.target.value; lsSet("pvlev", +e.target.value); sum(); };
+    $$("#fPct button").forEach((b) => b.onclick = () => { const p = pNow(), f = +b.dataset.p / 100;
+      const q = L || fut ? (PAP.usdt * f * lv()) / (p * (1 + 0.002)) : ((PAP.spot[PV.k]?.q || 0) - papLocked(PV.k)) * f;
+      $("#fQ").value = +q.toPrecision(6); $("#fQ").dispatchEvent(new Event("input")); });
+    $("#fGo").onclick = async () => {
+      const q = +$("#fQ").value, p = +($("#fPx")?.value || 0), msg = (t, c = "") => { $("#fMsg").innerHTML = `<p class="${c}">${t}</p>`; };
+      const f = { k: PV.k, mkt: PV.mkt, side: PV.side, type: PV.type, q, px: PV.type === "limit" || PV.type === "tp" ? p : undefined, stop: PV.type === "stop" ? p : undefined, lev: lv(), reduce: !!$("#fRed")?.checked || (fut && (PV.type === "stop" || PV.type === "tp")) };
+      if (env() === "bx") {
+        if (!(await bxGuard(`${f.mkt === "fut" ? "Futures" : "Spot"} ${f.side === "buy" ? "MUA/LONG" : "BÁN/SHORT"} ${qty(q)} ${f.k} ${f.type.toUpperCase()}${f.px ? " @ " + px(f.px) : ""}${f.stop ? " kích hoạt " + px(f.stop) : ""}${fut ? " x" + f.lev : ""}`))) return;
+        try { const o = await bxManual(f); msg(`✓ Binance nhận lệnh #${o.orderId || o.orderListId} (${o.status || "NEW"})`, "up"); bxPanel(); } catch (e) { msg(esc(e.message), "down"); }
+        return;
+      }
+      const e1 = papPlace(f); if (e1) { msg(esc(e1), "down"); return; }
+      const sl = +($("#fSL")?.value || 0), tp = +($("#fTP")?.value || 0), ex = f.side === "buy" ? "sell" : "buy";
+      if (sl || tp) {
+        if (fut) { if (sl) PAP.orders.push({ id: papId(), ts: Date.now(), k: f.k, mkt: "fut", side: ex, type: "stop", stop: sl, q, reduce: true, tag: "cắt lỗ" }); if (tp) PAP.orders.push({ id: papId(), ts: Date.now(), k: f.k, mkt: "fut", side: ex, type: "tp", px: tp, q, reduce: true, tag: "chốt lời" }); }
+        else if (f.side === "buy") { const g = papId(), add = (o) => PAP.orders.push({ id: papId(), ts: Date.now(), k: f.k, mkt: "spot", side: "sell", q, oco: g, ...o }); const after = []; if (tp) after.push({ type: "tp", px: tp, tag: "chốt lời" }); if (sl) after.push({ type: "stop", stop: sl, tag: "cắt lỗ" });
+          if (PV.type === "market") after.forEach(add); else { const eo = PAP.orders[PAP.orders.length - 1]; eo.after2 = after.map((x) => ({ ...x, q, oco: g })); } }
+        papSave();
+      }
+      papEngine(); form(); tab(); $("#fMsg").innerHTML = `<p class="up">✓ Đã ${PV.type === "market" ? "khớp" : "đặt"} lệnh giả lập</p>`;
+    };
+    sum();
+  };
+  const tab = () => {
+    const el = $("#pvTab"); if (!el) return;
+    const T = PV.tab, row = (cells) => `<tr>${cells.map((c, i) => `<td class="${i ? "" : "l"}">${c}</td>`).join("")}</tr>`, tbl = (h, rs, empty) => `<div class="tw"><table><thead><tr>${h.map((x, i) => `<th class="${i ? "" : "l"}">${x}</th>`).join("")}</tr></thead><tbody>${rs.join("") || `<tr><td colspan="${h.length}" class="muted">${empty}</td></tr>`}</tbody></table></div>`;
+    if (T === "pos") el.innerHTML = tbl(["Coin", "Chiều", "Số lượng", "Giá vào", "Giá mark", "Đòn bẩy", "Ký quỹ", "Lãi/lỗ", "% ký quỹ", "Thanh lý", "Funding", ""], PAP.pos.map((p) => { const m = papPx(p.k, "fut") || p.e, u = p.q * (m - p.e);
+      return row([coinLink(p.k), `<span class="pill ${p.q > 0 ? "buy" : "sell"}">${p.q > 0 ? "LONG" : "SHORT"}</span>`, qty(Math.abs(p.q)), px(p.e), px(m), `x${p.lev}`, usd2(p.margin), `<b class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</b>`, `<span class="${cls(u)}">${pct(u / p.margin * 100, 1)}</span>`, `<span class="down">${px(papLiq(p))}</span>`, usd2(p.fund || 0), `<button class="btn sm" data-cl="${esc(p.k)}">Đóng thị trường</button>`]); }), "Chưa có vị thế futures giả lập.");
+    if (T === "spot") el.innerHTML = tbl(["Coin", "Số lượng", "Giá vốn TB", "Giá hiện tại", "Giá trị", "Lãi/lỗ", "%", ""], Object.entries(PAP.spot).map(([k, h]) => { const p = papPx(k, "spot") || 0, avg = h.cost / h.q, u = h.q * p - h.cost;
+      return row([coinLink(k), qty(h.q), px(avg), px(p), usd2(h.q * p), `<b class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</b>`, `<span class="${cls(u)}">${pct(u / h.cost * 100, 1)}</span>`, `<button class="btn sm" data-sl="${esc(k)}">Bán hết</button>`]); }).concat([row(["<b>USDT</b>", usd2(PAP.usdt), "", "", usd2(PAP.usdt), "", "", ""])]), "");
+    if (T === "ord") el.innerHTML = tbl(["Coin", "Thị trường", "Lệnh", "Loại", "Giá / kích hoạt", "Số lượng", "Ghi chú", "Đặt lúc", ""], PAP.orders.map((o) => row([coinLink(o.k), o.mkt === "fut" ? "Futures" : "Spot", `<b class="${o.side === "buy" ? "up" : "down"}">${o.mkt === "fut" ? (o.reduce ? "Đóng" : o.side === "buy" ? "Long" : "Short") : o.side === "buy" ? "Mua" : "Bán"}</b>`, { limit: "Giới hạn", stop: "Dừng", tp: "Chốt lời" }[o.type] || o.type, px(o.px ?? o.stop), qty(o.q), `${esc(o.tag || "")}${o.oco ? ' <small class="faint">OCO</small>' : ""}`, dt(o.ts), `<button class="btn sm" data-cx="${o.id}">Huỷ</button>`])), "Không có lệnh chờ.");
+    if (T === "hist") el.innerHTML = tbl(["Thời gian", "Coin", "Lệnh", "Loại", "Giá khớp", "Số lượng", "Phí", "Trạng thái"], PAP.hist.slice(-120).reverse().map((o) => row([dt(o.at), esc(o.k), `<span class="${o.side === "buy" ? "up" : "down"}">${o.mkt === "fut" ? (o.reduce ? "Đóng" : o.side === "buy" ? "Long" : "Short") : o.side === "buy" ? "Mua" : "Bán"}</span>`, `${o.type}${o.tag ? " · " + esc(o.tag) : ""}`, o.fill ? px(o.fill) : "—", qty(o.q), o.fee ? usd2(o.fee) : "—", esc(o.st)])), "Chưa có lịch sử.");
+    if (T === "tr") { const tr = PAP.trades, w = tr.filter((x) => x.pnl > 0), sumP = tr.reduce((s, x) => s + x.pnl, 0);
+      el.innerHTML = `${kpis([["Số lệnh đã đóng", nf(tr.length, 0)], ["Thắng", tr.length ? nf(w.length / tr.length * 100, 0) + "%" : "—"], ["Tổng lãi/lỗ", `${sumP >= 0 ? "+" : ""}${usd2(sumP)}`, cls(sumP)], ["Lãi TB lệnh thắng", w.length ? usd2(w.reduce((s, x) => s + x.pnl, 0) / w.length) : "—", "up"], ["Lỗ TB lệnh thua", tr.length - w.length ? usd2(tr.filter((x) => x.pnl <= 0).reduce((s, x) => s + x.pnl, 0) / (tr.length - w.length)) : "—", "down"], ["Tổng phí", usd2(tr.reduce((s, x) => s + (x.fee || 0), 0))]])}
+        ${tbl(["Đóng lúc", "Coin", "Thị trường", "Chiều", "Giá vào", "Giá ra", "Số lượng", "Lãi/lỗ", "Lý do"], tr.slice().reverse().map((x) => row([dt(x.close), esc(x.k), x.mkt === "fut" ? `Futures x${x.lev || 1}` : "Spot", x.side === "long" ? "Long" : "Short", px(x.e), px(x.x), qty(x.q), `<b class="${cls(x.pnl)}">${x.pnl >= 0 ? "+" : ""}${usd2(x.pnl)}</b>`, esc(x.why || "")])), "Chưa có lệnh nào đóng.")}`; }
+    if (T === "eq") el.innerHTML = PAP.eq.length > 1 ? lineSvg([{ color: css("--brand"), pts: PAP.eq.map(([t, v]) => ({ x: new Date(t).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }), y: v })) }], { h: 220, fmt: (v) => usd(v), hlines: [{ y: PAP.start, label: "vốn ban đầu" }] }) : `<p class="muted">Đường tài sản được ghi mỗi 5 phút khi trang đang mở.</p>`;
+    $$("[data-cx]", el).forEach((b) => b.onclick = () => { papCancel(b.dataset.cx); papSave(); tab(); form(); });
+    $$("[data-cl]", el).forEach((b) => b.onclick = () => { const p = papPos(b.dataset.cl); if (!p) return; papPlace({ k: p.k, mkt: "fut", side: p.q > 0 ? "sell" : "buy", type: "market", q: Math.abs(p.q), reduce: true, lev: p.lev, tag: "đóng tay" }); tab(); form(); });
+    $$("[data-sl]", el).forEach((b) => b.onclick = () => { const k = b.dataset.sl; PAP.orders.filter((o) => o.k === k && o.mkt === "spot" && o.side === "sell").forEach((o) => papCancel(o.id)); papPlace({ k, mkt: "spot", side: "sell", type: "market", q: PAP.spot[k]?.q || 0, tag: "bán tay" }); tab(); form(); });
+  };
+  const summary = () => {
+    const E = papEquity(), u = PAP.pos.reduce((s, p) => s + p.q * ((papPx(p.k, "fut") || p.e) - p.e), 0) + Object.entries(PAP.spot).reduce((s, [k, h]) => s + h.q * (papPx(k, "spot") || 0) - h.cost, 0);
+    const rz = PAP.trades.reduce((s, x) => s + x.pnl, 0), mg = PAP.pos.reduce((s, p) => s + p.margin, 0);
+    const el = $("#pvSum"); if (!el) return;
+    el.innerHTML = `<div class="pvs">${[["Tài sản giả lập", usd2(E), cls(E - PAP.start), `${pct((E / PAP.start - 1) * 100, 2)} từ ${usd(PAP.start)}`], ["USDT khả dụng", usd2(PAP.usdt)], ["Ký quỹ đang dùng", usd2(mg), "", `${nf(mg / Math.max(1, E) * 100, 0)}% tài sản`], ["Lãi/lỗ đang mở", `${u >= 0 ? "+" : ""}${usd2(u)}`, cls(u)], ["Lãi/lỗ đã chốt", `${rz >= 0 ? "+" : ""}${usd2(rz)}`, cls(rz), `${PAP.trades.length} lệnh`], ["Lệnh chờ / vị thế", `${PAP.orders.length} / ${PAP.pos.length + Object.keys(PAP.spot).length}`]].map(([a, b, c, d]) => `<div><i>${a}</i><b class="${c || ""}">${b}</b>${d ? `<small>${d}</small>` : ""}</div>`).join("")}
+      <div class="pvs-a"><button class="btn sm" id="pvReset">Làm lại từ đầu</button></div></div>`;
+    $("#pvReset").onclick = () => { el.querySelector(".pvs-a").innerHTML = `<span>Vốn mới (USDT)</span><input id="pvCap" value="${setting("acct", 10000)}" class="sm-in"><button class="btn sm sellb" id="pvRs2">Xoá hết & bắt đầu lại</button>`; $("#pvRs2").onclick = () => { PAP = papNew(+$("#pvCap").value || 10000); papSave(); viewPaper(PV.k); }; };
+  };
+  // môi trường: giả lập / Binance
+  const envInfo = () => { $("#pvEnvInfo").innerHTML = env() === "bx" ? `Đang gửi lệnh tới <b>${esc(BXE[BX.env].n)}</b>${BX.keys[BX.env] ? ' <span class="up">● đã mở khoá</span>' : ' <span class="down">● chưa mở khoá – xem khung bên dưới</span>'}` : "Lệnh chỉ chạy trong MyBit, không đụng tới tài khoản sàn"; };
+  $$("#pvEnv button").forEach((b) => b.onclick = () => { lsSet("pvenv", b.dataset.e); $$("#pvEnv button").forEach((x) => x.classList.toggle("on", x === b)); envInfo(); form(); });
+  $("#pvK").onchange = () => { const k = $("#pvK").value.trim().toUpperCase(); if (BYK[k] && (BYK[k].sp || BYK[k].bf)) { PV.k = k; lsSet("pvk", k); history.replaceState(null, "", "#/paper/" + enc(k)); disposeCharts(); loadCoin(); } };
+  $$("#pvTabs button").forEach((b) => b.onclick = () => { PV.tab = b.dataset.t; lsSet("pvtab", PV.tab); $$("#pvTabs button").forEach((x) => x.classList.toggle("on", x === b)); tab(); });
+  let n = 0;
+  PE.onTick = () => { if (!$("#pvSum")) { PE.onTick = null; return; } n++; const p = papPx(PV.k, PV.mkt), e = $("#pvP"); if (e && p) { const pv = +e.dataset.p || p; e.textContent = px(p); e.className = "tr-p " + (p > pv ? "up" : p < pv ? "down" : ""); e.dataset.p = p; } summary(); if (n % 2 === 0 && ["pos", "spot", "ord"].includes(PV.tab)) tab(); };
+  envInfo(); summary(); tab(); bxPanel(); await loadCoin();
+}
+async function bxGuard(desc) {
+  if (BX.env !== "live") return true;
+  if (!BX.liveOk) { toast("Môi trường Binance THẬT chưa được bật – xem khung Kết nối Binance"); return false; }
+  return new Promise((res) => {
+    const d = document.createElement("div"); d.className = "modal"; d.innerHTML = `<div class="mbox"><h3>Gửi lệnh TIỀN THẬT lên Binance?</h3><p><b>${esc(desc)}</b></p><p class="faint">Lệnh sẽ được khớp trên tài khoản thật của anh. Kiểm tra lại giá, số lượng, đòn bẩy.</p><div class="mbtn"><button class="btn" data-n>Huỷ</button><button class="btn sellb" data-y>Gửi lệnh thật</button></div></div>`;
+    document.body.appendChild(d); $("[data-n]", d).onclick = () => { d.remove(); res(false); }; $("[data-y]", d).onclick = () => { d.remove(); res(true); };
+  });
+}
+async function bxPanel() {
+  const el = $("#pvBx"); if (!el) return;
+  const st = lsGet("bxk_" + BX.env, null), open = !!BX.keys[BX.env];
+  el.innerHTML = `<div class="ph"><h2>🔗 Kết nối tài khoản Binance</h2><span class="meta">khoá API mã hoá bằng mật khẩu riêng của anh, chỉ lưu trong trình duyệt này</span></div>
+    <div class="bxg"><div><div class="field"><label>Môi trường</label><select id="bxEnv">${Object.entries(BXE).map(([k, v]) => `<option value="${k}" ${BX.env === k ? "selected" : ""}>${esc(v.n)}</option>`).join("")}</select></div>
+      <div class="field"><label>Đường kết nối</label><select id="bxVia"><option value="direct" ${BX.via === "direct" ? "selected" : ""}>Trình duyệt gọi thẳng Binance (khoá IP được)</option><option value="relay" ${BX.via === "relay" ? "selected" : ""}>Qua máy chủ MyBit (khi trình duyệt bị chặn)</option></select></div>
+      ${st ? `<p>Đã lưu khoá …${esc(st.tail)} (${new Date(st.at).toLocaleDateString("vi-VN")}). ${open ? '<b class="up">Đã mở khoá cho phiên này.</b>' : ""}</p>
+        ${open ? "" : `<div class="field"><label>Mật khẩu mở khoá</label><input type="password" id="bxPass"></div><button class="btn primary" id="bxOpen">Mở khoá</button>`} <button class="btn" id="bxDel">Xoá khoá đã lưu</button>`
+      : `<div class="field"><label>API Key</label><input id="bxK" autocomplete="off"></div><div class="field"><label>Secret Key</label><input id="bxS" type="password" autocomplete="off"></div><div class="field"><label>Đặt mật khẩu mở khoá (để mã hoá khoá trên máy này)</label><input id="bxP" type="password"></div><button class="btn primary" id="bxSave">Lưu & kết nối</button>`}
+      ${BX.env === "live" ? `<label class="chk"><input type="checkbox" id="bxLive" ${BX.liveOk ? "checked" : ""}> Tôi hiểu đây là tiền thật – cho phép gửi lệnh (mỗi lệnh vẫn hỏi xác nhận)</label>` : ""}<div id="bxMsg"></div></div>
+      <div class="bxh"><h4>Cách tạo khoá an toàn</h4><ol>
+        <li>${BX.env === "demo" ? `Vào <a href="${BXE.demo.url}" target="_blank" rel="noopener">demo.binance.com</a> (đăng nhập bằng tài khoản Binance) → <b>Quản lý API</b> → Tạo API. Tiền trong Demo là tiền ảo, giá theo thị trường thật – nên thử ở đây trước.` : BX.env === "test" ? `Vào <a href="https://testnet.binance.vision" target="_blank" rel="noopener">testnet.binance.vision</a> (spot) và <a href="https://testnet.binancefuture.com" target="_blank" rel="noopener">testnet.binancefuture.com</a> (futures) để tạo khoá testnet.` : `Binance → <b>Quản lý API</b> → Tạo API (loại do hệ thống tạo).`}</li>
+        <li>Chỉ bật <b>Enable Spot & Margin Trading</b> và <b>Enable Futures</b>. <b>TUYỆT ĐỐI KHÔNG bật rút tiền (Withdrawals)</b>.</li>
+        <li>Nếu dùng "Trình duyệt gọi thẳng": chọn <b>Restrict access to trusted IPs</b> và nhập IP mạng nhà / máy anh – khoá bị lộ cũng không dùng được ở nơi khác.</li>
+        <li>Dán API Key + Secret vào đây, đặt mật khẩu mở khoá. Khoá được mã hoá AES-256 bằng mật khẩu đó và chỉ nằm trên trình duyệt này; mỗi lần mở trang cần nhập lại mật khẩu.</li></ol></div></div>
+    <div id="bxAcc"></div>`;
+  $("#bxEnv").onchange = (e) => { BX.env = e.target.value; lsSet("bxenv", BX.env); BX.off = { spot: 0, fut: 0 }; BX.xi = {}; BX.liveOk = false; bxPanel(); const i = $("#pvEnvInfo"); if (i) i.innerHTML = ""; };
+  $("#bxVia").onchange = (e) => { BX.via = e.target.value; lsSet("bxvia", BX.via); };
+  const msg = (t, c = "") => { $("#bxMsg").innerHTML = `<p class="${c}">${t}</p>`; };
+  if ($("#bxSave")) $("#bxSave").onclick = async () => { const k = $("#bxK").value.trim(), s = $("#bxS").value.trim(), p = $("#bxP").value; if (!k || !s || p.length < 6) { msg("Nhập đủ API Key, Secret và mật khẩu (≥ 6 ký tự)", "down"); return; } await bxSaveKeys(BX.env, k, s, p); bxPanel(); };
+  if ($("#bxOpen")) $("#bxOpen").onclick = async () => { try { await bxUnlock(BX.env, $("#bxPass").value); bxPanel(); } catch (e) { msg(esc(e.message), "down"); } };
+  if ($("#bxDel")) $("#bxDel").onclick = () => { bxForget(BX.env); bxPanel(); };
+  if ($("#bxLive")) $("#bxLive").onchange = (e) => { BX.liveOk = e.target.checked; };
+  if (open) bxAccount();
+}
+async function bxAccount() {
+  const el = $("#bxAcc"); if (!el) return;
+  el.innerHTML = `<p class="muted">Đang đọc tài khoản Binance…</p>`;
+  const out = [];
+  try {
+    const a = await bx("spot", "GET", "/api/v3/account", { omitZeroBalances: "true" });
+    const bal = (a.balances || []).filter((b) => +b.free + +b.locked > 0);
+    out.push(`<h4>Spot – số dư</h4><div class="chips">${bal.map((b) => `<span class="ck"><b>${esc(b.asset)}</b> ${qty(+b.free)}${+b.locked ? ` <small>(khoá ${qty(+b.locked)})</small>` : ""}</span>`).join("") || "<span class='muted'>Trống</span>"}</div>`);
+    const oo = await bx("spot", "GET", "/api/v3/openOrders", {});
+    out.push(`<h4>Spot – lệnh đang chờ (${oo.length})</h4>${oo.map((o) => `<div class="bxo"><b>${esc(o.symbol)}</b> ${esc(o.side)} ${esc(o.type)} ${esc(o.price)} × ${esc(o.origQty)} <button class="btn sm" data-bxc="spot|${esc(o.symbol)}|${o.orderId}">Huỷ</button></div>`).join("") || "<p class='muted'>Không có.</p>"}`);
+  } catch (e) { out.push(`<p class="down">Spot: ${esc(e.message)}</p>`); }
+  try {
+    const p = (await bx("fut", "GET", "/fapi/v2/positionRisk", {})).filter((x) => +x.positionAmt !== 0);
+    const b = (await bx("fut", "GET", "/fapi/v2/balance", {})).find((x) => x.asset === "USDT");
+    out.push(`<h4>Futures – USDT ${b ? `${usd2(+b.balance)} · khả dụng ${usd2(+b.availableBalance)}` : ""}</h4>${p.map((x) => `<div class="bxo"><b>${esc(x.symbol)}</b> <span class="${+x.positionAmt > 0 ? "up" : "down"}">${+x.positionAmt > 0 ? "LONG" : "SHORT"}</span> ${esc(x.positionAmt)} @ ${esc(x.entryPrice)} · x${esc(x.leverage)} · lãi/lỗ <b class="${cls(+x.unRealizedProfit)}">${usd2(+x.unRealizedProfit)}</b> · thanh lý ${esc(x.liquidationPrice)}</div>`).join("") || "<p class='muted'>Không có vị thế.</p>"}`);
+    const fo = await bx("fut", "GET", "/fapi/v1/openOrders", {});
+    out.push(`<h4>Futures – lệnh đang chờ (${fo.length})</h4>${fo.map((o) => `<div class="bxo"><b>${esc(o.symbol)}</b> ${esc(o.side)} ${esc(o.type)} ${esc(+o.stopPrice ? o.stopPrice : o.price)} × ${esc(o.origQty)}${o.reduceOnly ? " · reduce" : ""} <button class="btn sm" data-bxc="fut|${esc(o.symbol)}|${o.orderId}">Huỷ</button></div>`).join("") || "<p class='muted'>Không có.</p>"}`);
+  } catch (e) { out.push(`<p class="down">Futures: ${esc(e.message)}</p>`); }
+  el.innerHTML = `<div class="bxacc">${out.join("")}</div><button class="btn sm" id="bxRf">Làm mới</button>`;
+  $("#bxRf").onclick = bxAccount;
+  $$("[data-bxc]", el).forEach((b) => b.onclick = async () => { const [mk, sym, id] = b.dataset.bxc.split("|"); try { await bx(mk, "DELETE", mk === "fut" ? "/fapi/v1/order" : "/api/v3/order", { symbol: sym, orderId: id }); toast("Đã huỷ lệnh"); bxAccount(); } catch (e) { toast(e.message); } });
+}
+
 // ================================================================ FUTURES
 async function viewFutures(sub) {
   const C = await coins();
@@ -2496,6 +2968,7 @@ function initAccountUI() {
   drawTicker().then(() => liveData()).catch(() => {});
   setInterval(() => liveData(true), 120000);
   WL.load().catch(() => {});
+  coins().then(() => papLoad()).then(() => { if (PAP.orders.length || PAP.pos.length || Object.keys(PAP.spot).length) papReplay().then(papEngine); }).catch(() => {});
   window.addEventListener("hashchange", route);
   route();
 })();
