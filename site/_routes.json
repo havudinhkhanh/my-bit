@@ -1,5 +1,5 @@
 {
   "version": 1,
   "include": ["/*"],
-  "exclude": ["/vendor/*", "/app.css", "/auth.css", "/icon.svg", "/manifest.webmanifest", "/glossary.js", "/login.js", "/sw.js", "/ban-tin/*", "/robots.txt", "/sitemap.xml", "/rss.xml"]
+  "exclude": ["/vendor/*", "/app.css", "/auth.css", "/icon.svg", "/manifest.webmanifest", "/glossary.js", "/login.js", "/i18n-en.json", "/sw.js", "/ban-tin/*", "/robots.txt", "/sitemap.xml", "/rss.xml"]
 }

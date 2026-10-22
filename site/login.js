@@ -6,7 +6,36 @@
   const hash = new URLSearchParams(location.hash.replace(/^#/, ""));
   const next = (() => { const n = qs.get("next") || "/"; return n.startsWith("/") && !n.startsWith("//") ? n : "/"; })();
   let invite = (hash.get("invite") || qs.get("invite") || "").toUpperCase();
-  const msg = (t, ok) => { const m = $("#msg"); m.textContent = t || ""; m.className = "msg " + (ok ? "ok" : t ? "bad" : ""); };
+  const EN = {
+    "Đăng nhập · MyBit": "Sign in · MyBit",
+    "Phân tích crypto spot & futures": "Crypto spot & futures analysis",
+    "có số liệu thật, không theo cảm xúc.": "with real data, not emotions.",
+    "Bản tin thị trường": "Market briefing", "cập nhật mỗi 4 giờ: BTC, độ rộng, nhóm ngành, funding, OI, tâm lý.": "updated every 4 hours: BTC, breadth, sectors, funding, OI, sentiment.",
+    "Danh mục của riêng anh/chị": "Your own portfolio", ": mức cắt lỗ, chốt lời, cảnh báo khi giá chạm.": ": stop-loss, take-profit, alerts when price hits.",
+    "Thông báo": "Notifications", "trên web, điện thoại và email khi coin trong danh sách đổi trạng thái.": "on web, phone and email when a watched coin changes status.",
+    "Mọi phương pháp đều": "Every method is", "kiểm chứng trên dữ liệu lịch sử crypto": "verified on historical crypto data", "trước khi đưa ra khuyến nghị.": "before it is shown.",
+    "Thông tin tham khảo từ hệ thống phân tích tự động, không phải lời khuyên đầu tư. Crypto và đòn bẩy có thể mất toàn bộ vốn.": "Reference information from an automated analysis system, not investment advice. Crypto and leverage can lose all your capital.",
+    "Đăng nhập": "Sign in", "Đăng ký": "Sign up", "hoặc": "or", "Mật khẩu": "Password", "Quên mật khẩu?": "Forgot password?", "Họ tên": "Full name",
+    "(tối thiểu 8 ký tự)": "(at least 8 characters)", "Mã mời": "Invite code", "(để trống nếu chưa có – yêu cầu sẽ chờ duyệt)": "(leave blank if you don't have one – the request will await approval)",
+    "Tạo tài khoản": "Create account", "Nhập email đã đăng ký. Hệ thống gửi liên kết đặt lại mật khẩu (hoặc báo quản trị viên gửi cho anh/chị).": "Enter your registered email. The system sends a password reset link (or asks the admin to send it to you).",
+    "Gửi yêu cầu": "Send request", "← Quay lại đăng nhập": "← Back to sign in", "Đặt mật khẩu mới cho tài khoản.": "Set a new password for your account.", "Mật khẩu mới": "New password", "Lưu mật khẩu mới": "Save new password",
+    "Đã gửi yêu cầu. Quản trị viên sẽ duyệt và báo cho anh/chị – sau đó đăng nhập bằng email vừa đăng ký.": "Request sent. The admin will approve it and let you know – then sign in with the email you registered.",
+    "Đăng nhập thành công…": "Signed in…", "Nếu email có trong hệ thống, liên kết đặt lại đã được gửi (kiểm tra cả hộp thư rác).": "If the email exists, a reset link has been sent (check your spam folder too).",
+    "Đã ghi nhận. Quản trị viên sẽ gửi liên kết đặt lại mật khẩu cho anh/chị.": "Noted. The admin will send you a password reset link.", "(đã điền từ liên kết mời)": "(filled from the invite link)",
+  };
+  let LANG = "vi";
+  try { LANG = JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { /* bỏ qua */ }
+  const T = (t) => (LANG === "en" && t && EN[t.trim()] ? t.replace(t.trim(), EN[t.trim()]) : t);
+  function trPage() {
+    if (LANG !== "en") return;
+    document.documentElement.lang = "en"; document.title = T(document.title);
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let x = w.nextNode(); x; x = w.nextNode()) { const v = T(x.nodeValue); if (v !== x.nodeValue) x.nodeValue = v; }
+  }
+  trPage();
+  const lb = $("#lang");
+  if (lb) { lb.textContent = LANG === "en" ? "VI" : "EN"; lb.onclick = () => { try { localStorage.setItem("mybit_lang", JSON.stringify(LANG === "en" ? "vi" : "en")); } catch (e) { /* bỏ qua */ } location.reload(); }; }
+  const msg = (t, ok) => { const m = $("#msg"); m.textContent = T(t) || ""; m.className = "msg " + (ok ? "ok" : t ? "bad" : ""); };
   try {
     const th = localStorage.getItem("mybit_theme");
     if (th) document.documentElement.dataset.theme = JSON.parse(th);
@@ -51,7 +80,7 @@
   });
   handle($("#f-reset"), async (d) => done(await post("reset", { ...d, token: hash.get("reset") })));
 
-  if (invite) { $("#f-signup [name=invite]").value = invite; $("#invHint").textContent = "(đã điền từ liên kết mời)"; }
+  if (invite) { $("#f-signup [name=invite]").value = invite; $("#invHint").textContent = T("(đã điền từ liên kết mời)"); }
   show(hash.get("reset") ? "reset" : invite || hash.has("signup") ? "signup" : "login");
 
   // đã đăng nhập rồi thì vào thẳng
@@ -72,7 +101,7 @@
           catch (err) { msg(err.message); }
         },
       });
-      google.accounts.id.renderButton($("#gbtn"), { theme: "outline", size: "large", width: 320, text: "continue_with", locale: "vi" });
+      google.accounts.id.renderButton($("#gbtn"), { theme: "outline", size: "large", width: 320, text: "continue_with", locale: LANG === "en" ? "en" : "vi" });
       show(document.querySelector("[data-pane]:not([hidden])")?.dataset.pane || "login");
     };
     document.head.appendChild(s);

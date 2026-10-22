@@ -2,20 +2,23 @@
 "use strict";
 
 // ================================================================ tiện ích
+const LANG = (() => { try { return JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { return "vi"; } })();
+const LOC = LANG === "en" ? "en-US" : "vi-VN";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const isNum = (x) => x !== null && x !== undefined && x !== "" && typeof x !== "boolean" && !Number.isNaN(Number(x));
 const NF = {};
-const nf = (x, d = 2) => (isNum(x) ? (NF[d] || (NF[d] = new Intl.NumberFormat("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d }))).format(Number(x)) : "—");
+const nf = (x, d = 2) => (isNum(x) ? (NF[d] || (NF[d] = new Intl.NumberFormat(LOC, { minimumFractionDigits: d, maximumFractionDigits: d }))).format(Number(x)) : "—");
 const pct = (x, d = 1, sign = true) => (isNum(x) ? (sign && x > 0 ? "+" : "") + nf(x, d) + "%" : "—");
 const cls = (x) => (!isNum(x) ? "" : x > 0 ? "up" : x < 0 ? "down" : "ref");
 // giá crypto: từ 0,00000123 đến 100.000 → số chữ số thập phân theo độ lớn
 const pdec = (x) => { const a = Math.abs(Number(x)); return a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 5 : a > 0 ? Math.min(10, Math.ceil(-Math.log10(a)) + 3) : 2; };
 const px = (x) => (isNum(x) ? nf(x, pdec(x)) : "—");
-const usd = (x, d = 1) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return a >= 1e12 ? `${s}$${nf(a / 1e12, 2)} nghìn tỷ` : a >= 1e9 ? `${s}$${nf(a / 1e9, d + 1)} tỷ` : a >= 1e6 ? `${s}$${nf(a / 1e6, d)} tr` : a >= 1e3 ? `${s}$${nf(a / 1e3, d)} k` : `${s}$${nf(a, 0)}`; };
+const UNIT = LANG === "en" ? ["T", "B", "M", "k"] : [" nghìn tỷ", " tỷ", " tr", " k"];
+const usd = (x, d = 1) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return a >= 1e12 ? `${s}$${nf(a / 1e12, 2)}${UNIT[0]}` : a >= 1e9 ? `${s}$${nf(a / 1e9, d + 1)}${UNIT[1]}` : a >= 1e6 ? `${s}$${nf(a / 1e6, d)}${UNIT[2]}` : a >= 1e3 ? `${s}$${nf(a / 1e3, d)}${UNIT[3]}` : `${s}$${nf(a, 0)}`; };
 const QF = {};
-const qty = (x) => { if (!isNum(x)) return "—"; const a = Math.abs(x), d = a >= 1000 ? 0 : a >= 1 ? 3 : 6; return (QF[d] || (QF[d] = new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: d }))).format(Number(x)); };
+const qty = (x) => { if (!isNum(x)) return "—"; const a = Math.abs(x), d = a >= 1000 ? 0 : a >= 1 ? 3 : 6; return (QF[d] || (QF[d] = new Intl.NumberFormat(LOC, { minimumFractionDigits: 0, maximumFractionDigits: d }))).format(Number(x)); };
 const CSSV = {};
 const css = (v) => { const k = (document.documentElement.dataset.theme || "") + v; return k in CSSV ? CSSV[k] : (CSSV[k] = getComputedStyle(document.documentElement).getPropertyValue(v).trim()); };
 const enc = encodeURIComponent;
@@ -94,7 +97,7 @@ function themeOpts() {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
     grid: { vertLines: { visible: false }, horzLines: { color: css("--line-2") } },
     rightPriceScale: { borderColor: css("--line") }, timeScale: { borderColor: css("--line"), timeVisible: true, secondsVisible: false },
-    crosshair: { mode: 0 }, localization: { locale: "vi-VN", priceFormatter: (p) => px(p) },
+    crosshair: { mode: 0 }, localization: { locale: LOC, priceFormatter: (p) => px(p) },
   };
 }
 function mkChart(el, extra = {}) { const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, ...extra }); charts.push(c); return c; }
@@ -113,7 +116,7 @@ function candleChart(el, o, opts = {}) {
     const s = c.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
     s.setData(o.t.map((t, i) => (v[i] == null ? null : { time: t, value: v[i] })).filter(Boolean));
   });
-  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: l.title || "" }); });
+  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: T(l.title || "") }); });
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
   return { c, cs };
 }
@@ -184,6 +187,7 @@ async function route() {
     else if (r === "tools") { setTab("tools"); await viewTools(arg[0]); }
     else if (r === "backtest") { setTab("backtest"); await viewBacktest(); }
     else if (r === "help") { setTab(""); await viewHelp(); }
+    else if (r === "methods") { setTab("methods"); await viewMethods(arg[0]); }
     else if (r === "account") { setTab(""); await viewAccount(); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
@@ -240,7 +244,7 @@ async function viewMarket() {
   const list = (keys, fn, n = 8) => (keys || []).slice(0, n).map((k) => coinMini(k, fn(BYK[k] || {}))).join("") || `<p class="muted">—</p>`;
   const sec = (X.sectors || []).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a> <small class="faint">${s.n}</small></td><td class="${cls(s.r1)}">${pct(s.r1, 1)}</td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 0)}</td><td>${usd(s.mc)}</td><td>${nf(s.up / s.n * 100, 0)}%</td><td class="l">${coinLink(s.best)} <small class="${cls(s.best7)}">${pct(s.best7, 0)}</small></td></tr>`).join("");
   app().innerHTML = `
-  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString("vi-VN"))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/radar">⚡ Radar vào lệnh</a> · <a href="#/pairs">Cặp coin</a> · <a href="#/live">Binance trực tiếp →</a></span></div>
+  <div class="ph"><h1>Thị trường crypto</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString(LOC))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/radar">⚡ Radar vào lệnh</a> · <a href="#/pairs">Cặp coin</a> · <a href="#/live">Binance trực tiếp →</a></span></div>
   <section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
   <div class="stgs">
     ${stGroup("Xu hướng", [
@@ -723,7 +727,7 @@ function tabLevels(D) {
 }
 BIND.lv = () => {};
 const durTxt = (bars, perDay) => { const d = bars * perDay; return d < 1 ? `~${nf(d * 24, 0)} giờ` : `~${nf(d, d < 3 ? 1 : 0)} ngày`; };
-const etaTxt = (iso) => (iso ? new Date(iso + "Z").toLocaleString("vi-VN", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
+const etaTxt = (iso) => (iso ? new Date(iso + "Z").toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
 let IDEA_NAMES = { pullback_up: "Hồi về vùng Fibonacci trong xu hướng tăng", pullback_dn: "Hồi lên vùng Fibonacci trong xu hướng giảm", breakout_up: "Phá đỉnh 55 nến có khối lượng",
   breakout_dn: "Thủng đáy 55 nến có khối lượng", oversold_up: "Bán quá mức trong xu hướng tăng (bật lại)", overbought_dn: "Mua quá mức trong xu hướng giảm (quay đầu)" };
 function ideaCards(list) {
@@ -915,7 +919,7 @@ function makeTicket(D, IJ, opt = {}) {
   return t;
 }
 const D_FX = (t) => !!BYK?.[t.k]?.fx && t.Lmax > 1;
-const dt = (ms) => new Date(ms).toLocaleString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const dt = (ms) => new Date(ms).toLocaleString(LOC, { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 function ticketCard(t, opts = {}) {
   if (!t || t.none) return `<div class="ticket"><div class="tk-h"><span class="pill sell">KHÔNG VÀO</span> <b>${esc(t?.k || "")}</b></div><p>${esc(t?.reason || "Không đủ dữ liệu.")}</p></div>`;
   const [vt, vc] = VERD[t.verdict], L = t.side === "long";
@@ -1256,9 +1260,9 @@ async function viewSectors() {
   if (!S) throw new Error("Chưa có dữ liệu nhóm ngành – chờ lượt cập nhật đầy đủ kế tiếp");
   const L = S.sectors.filter((s) => s.series?.length && s.n_liq >= 2 && s.g !== "Khác");
   let rng = lsGet("secrng", 90), sort = lsGet("secsort", "rs30");
-  app().innerHTML = `<div class="ph"><h1>Nhóm ngành crypto</h1><span class="meta">${L.length} nhóm · chỉ số giá theo vốn hoá của coin giao dịch được · cập nhật ${esc(new Date(S.at).toLocaleString("vi-VN"))}</span></div>
+  app().innerHTML = `<div class="ph"><h1>Nhóm ngành crypto</h1><span class="meta">${L.length} nhóm · chỉ số giá theo vốn hoá của coin giao dịch được · cập nhật ${esc(new Date(S.at).toLocaleString(LOC))}</span></div>
     <div class="note"><p>Tiền trong crypto chạy theo <b>nhóm câu chuyện</b> (AI, Meme, Layer 1, DeFi…). Khi một nhóm mạnh hơn BTC và còn tăng tốc, coin trong nhóm thường cùng tăng; khi nhóm hụt hơi, cả nhóm cùng giảm. Trang này cho anh biết từng nhóm làm gì, kiếm tiền từ đâu, đang mạnh hay yếu, và nên làm gì.</p></div>
-    <div class="g g2w">${panel("🔄 Bản đồ luân chuyển dòng tiền", rrg(L) + `<p class="faint" style="font-size:.72rem">Trục ngang: nhóm tăng hơn (phải) hay kém (trái) BTC trong 30 ngày. Trục dọc: lợi thế đó đang tăng thêm (trên) hay giảm đi (dưới) trong 7 ngày. Vệt mờ = đường đi 3 tuần qua. Vòng quay điển hình: Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu. Bong bóng càng to vốn hoá càng lớn.</p>`)}
+    <div class="g g2w">${panel(`🔄 Bản đồ luân chuyển dòng tiền ${mLink("rrg")}`, rrg(L) + `<p class="faint" style="font-size:.72rem">Trục ngang: nhóm tăng hơn (phải) hay kém (trái) BTC trong 30 ngày. Trục dọc: lợi thế đó đang tăng thêm (trên) hay giảm đi (dưới) trong 7 ngày. Vệt mờ = đường đi 3 tuần qua. Vòng quay điển hình: Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu. Bong bóng càng to vốn hoá càng lớn.</p>`)}
       ${panel("📊 Hiệu suất các nhóm", `<div class="tw"><table class="sect"><thead><tr><th class="l">Nhóm</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>So BTC 30n</th><th class="l">Trạng thái</th></tr></thead><tbody>${L.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999)).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a></td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 1)}</td><td class="${cls(s.r90)}">${pct(s.r90, 0)}</td><td class="${cls(s.rs30)}"><b>${pct(s.rs30, 1)}</b></td><td class="l">${pill(esc(s.action?.q || "—"), QCOL[s.action?.q] || "")}</td></tr>`).join("")}</tbody></table></div>`)}</div>
     ${panel("📈 Chỉ số giá các nhóm lớn so với BTC", `<span class="seg" id="srg">${[30, 90, 365].map((d) => `<button data-d="${d}" class="${d === rng ? "on" : ""}">${d === 365 ? "1 năm" : d + " ngày"}</button>`).join("")}</span><div id="smc2"></div>`)}
     <div class="ph" style="margin-top:14px"><h2>Từng nhóm</h2><span class="meta"><span class="seg" id="sso">${[["rs30", "Mạnh nhất so BTC"], ["mc", "Vốn hoá"], ["r7", "7 ngày"], ["vflow", "Tiền đổ vào"]].map(([k, n]) => `<button data-k="${k}" class="${k === sort ? "on" : ""}">${n}</button>`).join("")}</span></span></div>
@@ -1586,7 +1590,7 @@ function rtCard(E, ctx = {}) {
   const sd = E.best, B = E[sd], O = E[sd === "long" ? "short" : "long"], [st, sc] = RTS[B.status];
   const stat = ctx.stats && B.setup ? ctx.stats[B.setup] : null;
   return `<div class="rt ${sd}"><div class="rt-h"><span class="pill ${sc} big">${st}</span> <b class="${sd === "long" ? "up" : "down"}">${sd === "long" ? "LONG" : "SHORT"}</b>
-      <span class="rt-score"><i style="width:${B.score}%"></i></span><b>${B.score}/100</b> <small class="muted">chiều ngược lại ${O.score}/100 · khung vào ${esc(ctx.tf || "")} · cập nhật ${new Date().toLocaleTimeString("vi-VN")}</small></div>
+      <span class="rt-score"><i style="width:${B.score}%"></i></span><b>${B.score}/100</b> <small class="muted">chiều ngược lại ${O.score}/100 · khung vào ${esc(ctx.tf || "")} · cập nhật ${new Date().toLocaleTimeString(LOC)}</small></div>
     ${B.trig ? `<p class="ref">⏳ ${esc(B.trig)}</p>` : ""}
     <div class="rt-g">${kpis([["Vào", px(B.e)], ["Cắt lỗ", px(B.s), "down", pct(-Math.abs(B.e - B.s) / B.e * 100, 2)], ["MT1", px(B.t1), "up", `R:R ${nf(B.rr1, 1)}`], ["MT2", px(B.t2), "up", `R:R ${nf(B.rr2, 1)}`],
       stat ? ["Lịch sử thiết lập", `${nf(stat.win1, 0)}% · ${nf(stat.avgR, 2)}R`, cls(stat.avgR), `${IDEA_NAMES[B.setup]} – ${nf(stat.n, 0)} lần (khung ${ctx.statTf === "d" ? "ngày" : "4h"})`] : ["Lịch sử thiết lập", ctx.statTf ? "chưa có thiết lập SMC" : "chưa kiểm chứng", "", ctx.statTf ? "Chưa xuất hiện quét thanh khoản + phá cấu trúc hoặc hồi về OB" : "Khung dưới 4h chưa có thống kê lịch sử – đánh nhỏ"]])}</div>
@@ -1609,11 +1613,11 @@ function smcOverlay(el, ch, cs) {
     g.font = "10px Be Vietnam Pro, system-ui, sans-serif";
     const box = (i0, lo, hi, col, label) => { let x0 = X(i0); const y0 = Y(hi), y1 = Y(lo); if (y0 == null || y1 == null) return; if (x0 == null || x0 < 0) x0 = 0; if (x0 > right) return;
       g.fillStyle = col + "22"; g.strokeStyle = col + "99"; g.lineWidth = 1; g.fillRect(x0, y0, right - x0, Math.max(1, y1 - y0)); g.strokeRect(x0 + 0.5, y0 + 0.5, right - x0, Math.max(1, y1 - y0));
-      if (label && W >= 600) { g.fillStyle = col; g.fillText(label, x0 + 3, y0 + 11); } };
+      if (label && W >= 600) { g.fillStyle = col; g.fillText(T(label), x0 + 3, y0 + 11); } };
     if (S.pd) { const y0 = Y(S.pd.hi), ym = Y(S.pd.eq), y1 = Y(S.pd.lo); if (y0 != null && y1 != null && ym != null) {
       g.fillStyle = dn + "0c"; g.fillRect(0, y0, right, ym - y0); g.fillStyle = up + "0c"; g.fillRect(0, ym, right, y1 - ym);
       g.setLineDash([2, 4]); g.strokeStyle = i3; g.beginPath(); g.moveTo(0, ym); g.lineTo(right, ym); g.stroke(); g.setLineDash([]);
-      g.fillStyle = i3; g.fillText("Premium ↑ · EQ 50% · ↓ Discount", 6, ym - 4); } }
+      g.fillStyle = i3; g.fillText(T("Premium ↑ · EQ 50% · ↓ Discount"), 6, ym - 4); } }
     S.obs.filter((b) => b.dead == null).slice(-6).forEach((b) => box(b.i, b.lo, b.hi, b.dir === 1 ? up : dn, `OB ${b.dir === 1 ? "mua" : "bán"}${b.mit != null ? " · đã chạm" : ""}`));
     S.fvg.filter((f) => f.fill == null).slice(-6).forEach((f) => box(f.i, f.lo, f.hi, br, `FVG ${f.dir === 1 ? "↑" : "↓"}`));
     S.events.slice(-10).forEach((e) => { const x0 = X(e.from), x1 = X(e.i), y = Y(e.level); if (x0 == null || x1 == null || y == null || x1 < 0) return;
@@ -1635,7 +1639,7 @@ function subPanes(host, main) {
   host.innerHTML = "";
   const panes = [];
   const mk = (h, title, fmt) => { const d = document.createElement("div"); d.className = "pane"; d.style.height = h + "px"; d.innerHTML = `<span class="pane-t">${title}</span>`; host.appendChild(d);
-    const c = mkChart(d, { localization: { locale: "vi-VN", priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
+    const c = mkChart(d, { localization: { locale: LOC, priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
   const line = (c, col, w = 1.3) => c.addLineSeries({ color: col, lineWidth: w, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
   const r = mk(92, "RSI 14 · 70 quá mua · 30 quá bán", (v) => nf(v, 0)), rs = line(r, css("--brand"));
   [70, 50, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
@@ -1753,10 +1757,10 @@ function smcSrv(s, nm) {
 function tabSmc(D) {
   const X = D.smc || {}, IJ = D._ij || {}, up = COINS?.btc_up ?? IJ.btc_up;
   const st = ["d", "h4"].flatMap((tf) => SMC_SET.map((s) => { const x = IJ.stats?.[tf]?.[s]; const a = x && (x[up ? "up" : "down"] || x.all); if (!a) return ""; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[s] || s)}</td><td>${nf(a.n, 0)}</td><td>${nf(a.win1, 0)}%</td><td class="${cls(a.avgR)}">${nf(a.avgR, 2)}R</td><td class="${cls(a.avgR_2y)}">${isNum(a.avgR_2y) ? nf(a.avgR_2y, 2) + "R" : "—"}</td><td>${durTxt(a.d1, tf === "d" ? 1 : 1 / 6)}</td></tr>`; })).join("");
-  return `${panel("🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không?", `<div id="mtf"><p class="muted">Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
+  return `${panel(`🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không? ${mLink("mtf")}`, `<div id="mtf"><p class="muted">Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
   <div class="g g2w">
-    ${panel("Biểu đồ Smart Money – vẽ lại theo từng nến", `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
-    <div>${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
+    ${panel(`Biểu đồ Smart Money – vẽ lại theo từng nến ${mLink("bos", "BOS?")} ${mLink("choch", "CHoCH?")} ${mLink("ob", "OB?")} ${mLink("fvg", "FVG?")}`, `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
+    <div>${panel(`⚡ Vào lệnh lúc này? – đánh giá thời gian thực ${mLink("rt")}`, rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
       ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
     ${st ? panel(`Thiết lập SMC có thật sự hiệu quả? (kiểm chứng trên toàn bộ coin, BTC ${up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${st}</tbody></table></div>
       <p class="faint" style="font-size:.74rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
@@ -1810,7 +1814,7 @@ async function viewRadar() {
     };
     for (let i = 0; i < ks.length; i += 6) { if (g !== RD.gen) break; await Promise.all(ks.slice(i, i + 6).map(one)); if ($("#rdB")) draw(); }
     if (g === RD.gen) RD.busy = false;
-    if (st && g === RD.gen) st.textContent = `${done} coin · khung ${TFN[tf]} · quét lúc ${new Date().toLocaleTimeString("vi-VN")} · tự quét lại mỗi ${TF_SEC[tf] >= 3600 ? 3 : 1} phút`;
+    if (st && g === RD.gen) st.textContent = `${done} coin · khung ${TFN[tf]} · quét lúc ${new Date().toLocaleTimeString(LOC)} · tự quét lại mỗi ${TF_SEC[tf] >= 3600 ? 3 : 1} phút`;
   };
   const restart = () => { rdClose(); RD.busy = false; const g = RD.gen; scan(); RD.timer = setInterval(() => { if (g === RD.gen && $("#rdB")) scan(); }, (TF_SEC[O.tf] >= 3600 ? 180 : 60) * 1000); };
   $("#rdT").onchange = (e) => { O.tf = e.target.value; lsSet("rdtf", O.tf); draw(); restart(); };
@@ -1842,13 +1846,13 @@ async function viewPairs() {
   const rs = (P.rs || []).filter((x) => BYK[x.k]);
   const rsT = (arr) => `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>Giá / BTC 90 ngày</th></tr></thead><tbody>${arr.map((x) => `<tr><td class="l">${coinLink(x.k)}</td><td class="${cls(x.rs7)}">${pct(x.rs7, 1)}</td><td class="${cls(x.rs30)}"><b>${pct(x.rs30, 1)}</b></td><td class="${cls(x.rs90)}">${pct(x.rs90, 0)}</td><td>${spark(x.sp, { w: 110, h: 22 })}</td></tr>`).join("")}</tbody></table></div>`;
   const rsS = rs.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999));
-  app().innerHTML = `<div class="ph"><h1>Cặp coin – coin nào chạy cùng nhau</h1><span class="meta">cập nhật ${esc(new Date(P.at).toLocaleString("vi-VN"))} · ${ks.length} coin thanh khoản lớn · tương quan lợi nhuận ngày ${C.days || 90} ngày</span></div>
+  app().innerHTML = `<div class="ph"><h1>Cặp coin – coin nào chạy cùng nhau</h1><span class="meta">cập nhật ${esc(new Date(P.at).toLocaleString(LOC))} · ${ks.length} coin thanh khoản lớn · tương quan lợi nhuận ngày ${C.days || 90} ngày</span></div>
     <div class="g g2w">
       ${panel("🧩 Bản đồ tương quan (số = tương quan × 100)", heat + `<p class="faint" style="font-size:.72rem">Xếp theo mức tương quan với BTC. Xanh đậm = chạy gần như cùng nhau (đa dạng hoá kém, hedge tốt); đỏ = ngược chiều; nhạt = ít liên quan. Altcoin lớn thường tương quan 0,7–0,9 với BTC – khi thị trường sập, gần như mọi thứ giảm cùng lúc.</p>`)}
       <div>${panel("Chạy cùng nhau nhiều nhất", pl(C.top))}${panel("Ít liên quan nhất (đa dạng hoá)", pl(C.low))}</div></div>
     ${panel("⏱️ Coin chạy theo BTC/ETH – đã bắt kịp chưa? (nến 1 giờ, 20 ngày)", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Theo</th><th>Tương quan cùng giờ</th><th>Beta</th><th>Trễ tốt nhất</th><th>BTC/ETH 3 giờ qua</th><th>Coin 3 giờ qua</th><th>Lẽ ra (theo beta)</th><th class="l">Nhận xét</th></tr></thead><tbody>${lead.map((x) => `<tr><td class="l">${sl(x.k)}</td><td>${esc(x.lead)}</td><td>${nf(x.c0, 2)}</td><td>${nf(x.beta, 2)}</td><td>${x.lag}h <small class="faint">(${nf(x.clag, 2)})</small></td><td class="${cls(x.mv_lead3h)}">${pct(x.mv_lead3h, 2)}</td><td class="${cls(x.mv3h)}">${pct(x.mv3h, 2)}</td><td class="${cls(x.beta * x.mv_lead3h)}">${pct(x.beta * x.mv_lead3h, 2)}</td><td class="l"><small>${llTxt(x)}</small></td></tr>`).join("")}</tbody></table></div>
       <p class="faint" style="font-size:.74rem">Kết quả nghiên cứu thật: tương quan trễ 1–6 giờ cao nhất chỉ ${nf(maxLag, 2)} (gần 0) – altcoin phản ứng với BTC <b>trong cùng giờ</b>, gần như không có độ trễ khai thác được ở khung 1h. Cột nhận xét so sánh biến động 3 giờ của coin với mức "lẽ ra" theo beta – chỉ cho thấy coin đang lệch nhịp (thường do tin riêng hoặc dòng tiền riêng) – không phải tín hiệu đã kiểm chứng.</p>`)}
-    ${panel("⚖️ Giao dịch cặp – chênh lệch giá quay về trung bình", `<div class="tw"><table class="prt"><thead><tr><th class="l">Cặp</th><th>Tương quan</th><th>Beta</th><th>Z-score hiện tại</th><th class="l">Nếu vào</th><th>Số lần (2 năm)</th><th>Quay về</th><th>Lãi TB/lần</th><th>Giữ</th><th>Bán rã</th><th></th></tr></thead><tbody>${pairs.map((x, i) => `<tr data-i="${i}" class="${i === 0 ? "on" : ""}"><td class="l">${sl(x.a)} / ${sl(x.b)}</td><td>${nf(x.corr, 2)}</td><td>${nf(x.beta, 2)}</td><td class="${Math.abs(x.z) >= 2 ? "ref" : ""}"><b>${nf(x.z, 2)}</b></td><td class="l"><small>${Math.abs(x.z) >= 2 ? esc(x.side) : "chưa lệch đủ (|z| < 2)"}</small></td><td>${x.n}</td><td>${nf(x.win, 0)}%</td><td class="${cls(x.avg)}">${pct(x.avg, 2)}</td><td>${nf(x.days, 0)} ngày</td><td>${isNum(x.hl) ? nf(x.hl, 0) + " ngày" : "—"}</td><td>${x.ok ? '<span class="pill brand">đạt</span>' : ""}</td></tr>`).join("")}</tbody></table></div><div id="pz"></div>
+    ${panel(`⚖️ Giao dịch cặp – chênh lệch giá quay về trung bình ${mLink("pairs")}`, `<div class="tw"><table class="prt"><thead><tr><th class="l">Cặp</th><th>Tương quan</th><th>Beta</th><th>Z-score hiện tại</th><th class="l">Nếu vào</th><th>Số lần (2 năm)</th><th>Quay về</th><th>Lãi TB/lần</th><th>Giữ</th><th>Bán rã</th><th></th></tr></thead><tbody>${pairs.map((x, i) => `<tr data-i="${i}" class="${i === 0 ? "on" : ""}"><td class="l">${sl(x.a)} / ${sl(x.b)}</td><td>${nf(x.corr, 2)}</td><td>${nf(x.beta, 2)}</td><td class="${Math.abs(x.z) >= 2 ? "ref" : ""}"><b>${nf(x.z, 2)}</b></td><td class="l"><small>${Math.abs(x.z) >= 2 ? esc(x.side) : "chưa lệch đủ (|z| < 2)"}</small></td><td>${x.n}</td><td>${nf(x.win, 0)}%</td><td class="${cls(x.avg)}">${pct(x.avg, 2)}</td><td>${nf(x.days, 0)} ngày</td><td>${isNum(x.hl) ? nf(x.hl, 0) + " ngày" : "—"}</td><td>${x.ok ? '<span class="pill brand">đạt</span>' : ""}</td></tr>`).join("")}</tbody></table></div><div id="pz"></div>
       <p class="faint" style="font-size:.74rem">Chênh lệch = log(giá A) − beta × log(giá B). Z-score = chênh lệch hiện tại so với trung bình 60 ngày, đo bằng độ lệch chuẩn. |z| ≥ 2 → Short coin đắt / Long coin rẻ cùng giá trị × beta, thoát khi |z| ≤ 0,5, cắt khi |z| ≥ 3,5 hoặc sau 30 ngày; đã trừ phí 4 chân. "Đạt" = đang lệch ≥ 2, quay về ≥ 60% số lần, lãi TB dương, bán rã ≤ 30 ngày. <b>Kết quả nghiên cứu: phần lớn cặp crypto có lãi trung bình gần 0 hoặc âm</b> – các cặp tương quan cao vẫn có thể "lệch luôn" khi một coin có câu chuyện riêng. Số lần ít (thường < 20) nên chỉ dùng tham khảo, khối lượng nhỏ.</p>`)}
     <div class="g g2">${panel("💪 Mạnh hơn BTC (30 ngày)", rsT(rsS.slice(0, 20)))}${panel("🐢 Yếu hơn BTC (30 ngày)", rsT(rsS.slice(-20).reverse()))}</div>
     <p class="faint disclaimer">Tương quan và quan hệ dẫn – theo thay đổi theo thời gian; không phải lời khuyên đầu tư.</p>`;
@@ -1960,7 +1964,7 @@ function mtfHtml(M, IJ) {
 }
 async function mtfMount(D) {
   const el = $("#mtf"); if (!el) return;
-  const go = async () => { if (!el.isConnected) return; const M = await mtfLoad(D.row, D); if (!el.isConnected) return; el.innerHTML = mtfHtml(M, D._ij) + `<p class="faint" style="font-size:.7rem">Cập nhật ${new Date().toLocaleTimeString("vi-VN")} · tự làm mới mỗi 60 giây · khung Quý gộp từ nến tháng.</p>`; };
+  const go = async () => { if (!el.isConnected) return; const M = await mtfLoad(D.row, D); if (!el.isConnected) return; el.innerHTML = mtfHtml(M, D._ij) + `<p class="faint" style="font-size:.7rem">Cập nhật ${new Date().toLocaleTimeString(LOC)} · tự làm mới mỗi 60 giây · khung Quý gộp từ nến tháng.</p>`; };
   await go();
   const tm = setInterval(() => { if (!el.isConnected) { clearInterval(tm); return; } go(); }, 60e3);
 }
@@ -2344,7 +2348,7 @@ async function viewPaper(k0) {
     if (T === "tr") { const tr = PAP.trades, w = tr.filter((x) => x.pnl > 0), sumP = tr.reduce((s, x) => s + x.pnl, 0);
       el.innerHTML = `${kpis([["Số lệnh đã đóng", nf(tr.length, 0)], ["Thắng", tr.length ? nf(w.length / tr.length * 100, 0) + "%" : "—"], ["Tổng lãi/lỗ", `${sumP >= 0 ? "+" : ""}${usd2(sumP)}`, cls(sumP)], ["Lãi TB lệnh thắng", w.length ? usd2(w.reduce((s, x) => s + x.pnl, 0) / w.length) : "—", "up"], ["Lỗ TB lệnh thua", tr.length - w.length ? usd2(tr.filter((x) => x.pnl <= 0).reduce((s, x) => s + x.pnl, 0) / (tr.length - w.length)) : "—", "down"], ["Tổng phí", usd2(tr.reduce((s, x) => s + (x.fee || 0), 0))]])}
         ${tbl(["Đóng lúc", "Coin", "Thị trường", "Chiều", "Giá vào", "Giá ra", "Số lượng", "Lãi/lỗ", "Lý do"], tr.slice().reverse().map((x) => row([dt(x.close), esc(x.k), x.mkt === "fut" ? `Futures x${x.lev || 1}` : "Spot", x.side === "long" ? "Long" : "Short", px(x.e), px(x.x), qty(x.q), `<b class="${cls(x.pnl)}">${x.pnl >= 0 ? "+" : ""}${usd2(x.pnl)}</b>`, esc(x.why || "")])), "Chưa có lệnh nào đóng.")}`; }
-    if (T === "eq") el.innerHTML = PAP.eq.length > 1 ? lineSvg([{ color: css("--brand"), pts: PAP.eq.map(([t, v]) => ({ x: new Date(t).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }), y: v })) }], { h: 220, fmt: (v) => usd(v), hlines: [{ y: PAP.start, label: "vốn ban đầu" }] }) : `<p class="muted">Đường tài sản được ghi mỗi 5 phút khi trang đang mở.</p>`;
+    if (T === "eq") el.innerHTML = PAP.eq.length > 1 ? lineSvg([{ color: css("--brand"), pts: PAP.eq.map(([t, v]) => ({ x: new Date(t).toLocaleDateString(LOC, { day: "2-digit", month: "2-digit" }), y: v })) }], { h: 220, fmt: (v) => usd(v), hlines: [{ y: PAP.start, label: "vốn ban đầu" }] }) : `<p class="muted">Đường tài sản được ghi mỗi 5 phút khi trang đang mở.</p>`;
     $$("[data-cx]", el).forEach((b) => b.onclick = () => { papCancel(b.dataset.cx); papSave(); tab(); form(); });
     $$("[data-cl]", el).forEach((b) => b.onclick = () => { const p = papPos(b.dataset.cl); if (!p) return; papPlace({ k: p.k, mkt: "fut", side: p.q > 0 ? "sell" : "buy", type: "market", q: Math.abs(p.q), reduce: true, lev: p.lev, tag: "đóng tay" }); tab(); form(); });
     $$("[data-sl]", el).forEach((b) => b.onclick = () => { const k = b.dataset.sl; PAP.orders.filter((o) => o.k === k && o.mkt === "spot" && o.side === "sell").forEach((o) => papCancel(o.id)); papPlace({ k, mkt: "spot", side: "sell", type: "market", q: PAP.spot[k]?.q || 0, tag: "bán tay" }); tab(); form(); });
@@ -2380,7 +2384,7 @@ async function bxPanel() {
   el.innerHTML = `<div class="ph"><h2>🔗 Kết nối tài khoản Binance</h2><span class="meta">khoá API mã hoá bằng mật khẩu riêng của anh, chỉ lưu trong trình duyệt này</span></div>
     <div class="bxg"><div><div class="field"><label>Môi trường</label><select id="bxEnv">${Object.entries(BXE).map(([k, v]) => `<option value="${k}" ${BX.env === k ? "selected" : ""}>${esc(v.n)}</option>`).join("")}</select></div>
       <div class="field"><label>Đường kết nối</label><select id="bxVia"><option value="direct" ${BX.via === "direct" ? "selected" : ""}>Trình duyệt gọi thẳng Binance (khoá IP được)</option><option value="relay" ${BX.via === "relay" ? "selected" : ""}>Qua máy chủ MyBit (khi trình duyệt bị chặn)</option></select></div>
-      ${st ? `<p>Đã lưu khoá …${esc(st.tail)} (${new Date(st.at).toLocaleDateString("vi-VN")}). ${open ? '<b class="up">Đã mở khoá cho phiên này.</b>' : ""}</p>
+      ${st ? `<p>Đã lưu khoá …${esc(st.tail)} (${new Date(st.at).toLocaleDateString(LOC)}). ${open ? '<b class="up">Đã mở khoá cho phiên này.</b>' : ""}</p>
         ${open ? "" : `<div class="field"><label>Mật khẩu mở khoá</label><input type="password" id="bxPass"></div><button class="btn primary" id="bxOpen">Mở khoá</button>`} <button class="btn" id="bxDel">Xoá khoá đã lưu</button>`
       : `<div class="field"><label>API Key</label><input id="bxK" autocomplete="off"></div><div class="field"><label>Secret Key</label><input id="bxS" type="password" autocomplete="off"></div><div class="field"><label>Đặt mật khẩu mở khoá (để mã hoá khoá trên máy này)</label><input id="bxP" type="password"></div><button class="btn primary" id="bxSave">Lưu & kết nối</button>`}
       ${BX.env === "live" ? `<label class="chk"><input type="checkbox" id="bxLive" ${BX.liveOk ? "checked" : ""}> Tôi hiểu đây là tiền thật – cho phép gửi lệnh (mỗi lệnh vẫn hỏi xác nhận)</label>` : ""}<div id="bxMsg"></div></div>
@@ -2421,6 +2425,301 @@ async function bxAccount() {
   $("#bxRf").onclick = bxAccount;
   $$("[data-bxc]", el).forEach((b) => b.onclick = async () => { const [mk, sym, id] = b.dataset.bxc.split("|"); try { await bx(mk, "DELETE", mk === "fut" ? "/fapi/v1/order" : "/api/v3/order", { symbol: sym, orderId: id }); toast("Đã huỷ lệnh"); bxAccount(); } catch (e) { toast(e.message); } });
 }
+
+// ================================================================ NGÔN NGỮ (Tiếng Việt / English) – dịch giao diện ngay trên trình duyệt
+const I18N = { lang: LANG, d: null, trie: null, busy: false };
+const VI_CH = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ]/;
+const IS_L = /\p{L}/u;
+const ND_RE = /\b(Xanh|Ngang|Tham lam|tham lam|Mua|mua|MUA|Cho vay|KL|TB|xanh|\d+n|\d+p)\b/;
+const needTr = (s) => VI_CH.test(s) || ND_RE.test(s);
+function trText(s) {
+  if (!I18N.trie || !s || !needTr(s)) return s;
+  const fx = (r) => r.replace(/\b(\d+)n\b/g, "$1d").replace(/\b(\d+)p\b/g, "$1m");
+  const core = s.trim(), ex = I18N.d[core];
+  if (ex !== undefined) return fx(s.replace(core, ex));
+  let out = "", i = 0;
+  const n = s.length;
+  while (i < n) {
+    if (i === 0 || !IS_L.test(s[i - 1]) || !IS_L.test(s[i])) {
+      let node = I18N.trie, j = i, best = -1, key = null;
+      while (j < n && (node = node[s[j]])) { j++; if (node.$ && (j === n || !IS_L.test(s[j]) || !IS_L.test(s[j - 1]))) { best = j; key = node.$; } }
+      if (best > 0) { out += I18N.d[key]; i = best; continue; }
+    }
+    out += s[i]; i++;
+  }
+  return fx(out);
+}
+const T = (s) => (I18N.trie ? trText(s) : s);
+const TR_ATTR = ["title", "placeholder", "aria-label"];
+function trTree(root) {
+  if (!I18N.trie || !root) return;
+  if (root.nodeType === 3) { const p = root.parentNode; if (p && !p.closest?.("[data-noi18n],script,style,textarea")) { const v = trText(root.nodeValue); if (v !== root.nodeValue) root.nodeValue = v; } return; }
+  if (root.nodeType !== 1 || root.closest("[data-noi18n],script,style,textarea")) return;
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, { acceptNode: (x) => (x.nodeType === 1 && (x.hasAttribute("data-noi18n") || /^(SCRIPT|STYLE|TEXTAREA)$/.test(x.tagName)) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT) });
+  const els = [root];
+  for (let x = w.nextNode(); x; x = w.nextNode()) {
+    if (x.nodeType === 3) { if (needTr(x.nodeValue)) { const v = trText(x.nodeValue); if (v !== x.nodeValue) x.nodeValue = v; } }
+    else els.push(x);
+  }
+  for (const e of els) for (const a of TR_ATTR) { const v = e.getAttribute?.(a); if (v && needTr(v)) { const t = trText(v); if (t !== v) e.setAttribute(a, t); } }
+  for (const e of root.querySelectorAll?.("input[type=button],input[type=submit]") || []) if (VI_CH.test(e.value)) { const t = trText(e.value); if (t !== e.value) e.value = t; }
+}
+async function i18nInit() {
+  document.documentElement.lang = I18N.lang;
+  if (I18N.lang !== "en") return;
+  try {
+    I18N.d = await (await fetch("i18n-en.json", { cache: "no-cache" })).json();
+    const root = {};
+    for (const k of Object.keys(I18N.d)) { let n = root; for (let i = 0; i < k.length; i++) n = n[k[i]] || (n[k[i]] = {}); n.$ = k; }
+    I18N.trie = root;
+  } catch (e) { return; }
+  trTree(document.body); document.title = trText(document.title);
+  const pend = new Set(); let sch = false;
+  new MutationObserver((ms) => {
+    for (const m of ms) { if (m.type === "characterData") pend.add(m.target); else m.addedNodes.forEach((x) => pend.add(x)); if (m.type === "attributes") pend.add(m.target); }
+    if (!sch) { sch = true; queueMicrotask(() => { sch = false; const L = [...pend]; pend.clear(); L.forEach((x) => { if (x.isConnected) trTree(x); }); }); }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTR });
+}
+function langToggle() { lsSet("lang", I18N.lang === "en" ? "vi" : "en"); location.reload(); }
+
+// ================================================================ PHƯƠNG PHÁP – giải thích từng khái niệm & cách dùng trên MyBit (song ngữ)
+const MG = { smc: ["Cấu trúc thị trường & Smart Money (SMC)", "Market structure & Smart Money (SMC)"], ta: ["Chỉ báo & mức giá kỹ thuật", "Indicators & technical levels"],
+  flow: ["Dòng tiền & phái sinh", "Money flow & derivatives"], val: ["Định giá & chu kỳ", "Valuation & cycles"], risk: ["Thống kê, ra quyết định & quản trị rủi ro", "Statistics, decisions & risk control"],
+  rel: ["Quan hệ giữa các coin & nhóm ngành", "Relationships between coins & sectors"] };
+// [id, nhóm, tên VI, tên EN, {what, how, web} VI, {what, how, web} EN]
+const METHODS = [
+  ["structure", "smc", "Cấu trúc thị trường (đỉnh/đáy swing)", "Market structure (swing highs/lows)",
+    { what: "Giá đi theo sóng. Đỉnh swing = nến có đỉnh cao hơn các nến xung quanh (MyBit dùng 3 nến mỗi bên); đáy swing tương tự. Xu hướng tăng = đỉnh sau cao hơn đỉnh trước và đáy sau cao hơn đáy trước (HH–HL); xu hướng giảm ngược lại (LH–LL).",
+      how: "Chỉ Long khi cấu trúc khung lớn đang tăng, chỉ Short khi đang giảm. Đỉnh/đáy swing gần nhất là nơi đặt cắt lỗ (phía sau) và mục tiêu (phía trước).",
+      web: "Tab SMC & vào lệnh: các đỉnh/đáy swing là điểm bắt đầu của các đường BOS/CHoCH. Bảng đa khung cho biết cấu trúc từng khung từ 1 phút tới quý." },
+    { what: "Price moves in waves. A swing high = a candle whose high is above the surrounding candles (MyBit uses 3 candles each side); swing low likewise. Uptrend = higher highs and higher lows (HH–HL); downtrend = lower highs and lower lows (LH–LL).",
+      how: "Long only when the higher-timeframe structure is up, Short only when it is down. The nearest swing points are where the stop goes (behind) and the target goes (ahead).",
+      web: "SMC & entry tab: swing points are where BOS/CHoCH lines start. The multi-timeframe table shows the structure of every timeframe from 1 minute to the quarter." }],
+  ["bos", "smc", "BOS – Phá vỡ cấu trúc", "BOS – Break of Structure",
+    { what: "Break of Structure: nến ĐÓNG CỬA vượt qua đỉnh swing gần nhất trong xu hướng tăng (hoặc dưới đáy swing gần nhất trong xu hướng giảm). Nghĩa là xu hướng hiện tại được XÁC NHẬN tiếp diễn.",
+      how: "BOS cùng chiều khung lớn = tín hiệu xu hướng còn khoẻ. Không mua ngay khi vừa BOS (giá thường hồi lại) – chờ giá hồi về Order Block / FVG vừa tạo ra rồi mới vào.",
+      web: "Biểu đồ: đường liền màu xanh (tăng) / đỏ (giảm) có chữ BOS. Bảng kiểm tra vào lệnh: dòng \"BOS/CHoCH … cách N nến\" – sự kiện càng mới (≤ 20 nến) càng có giá trị." },
+    { what: "Break of Structure: a candle CLOSES above the latest swing high in an uptrend (or below the latest swing low in a downtrend). It CONFIRMS that the current trend continues.",
+      how: "A BOS in the direction of the higher timeframe = the trend is healthy. Don't buy right at the BOS (price usually pulls back) – wait for the pullback into the Order Block / FVG it created.",
+      web: "Chart: solid green (up) / red (down) line labelled BOS. Entry checklist: the row \"BOS/CHoCH … N candles ago\" – the fresher (≤ 20 candles), the more useful." }],
+  ["choch", "smc", "CHoCH – Đổi tính chất (đảo chiều)", "CHoCH – Change of Character",
+    { what: "Change of Character: lần phá cấu trúc ĐẦU TIÊN theo chiều ngược lại. Đang giảm (đáy thấp dần) mà giá đóng cửa vượt đỉnh swing gần nhất → CHoCH tăng: dấu hiệu sớm nhất của đảo chiều.",
+      how: "CHoCH là tín hiệu sớm nên hay sai hơn BOS. Đẹp nhất khi CHoCH xảy ra ngay sau một cú quét thanh khoản (râu chọc thủng đáy cũ rồi rút lên) và ở vùng Discount của khung lớn.",
+      web: "Biểu đồ: đường đứt nét có chữ CHoCH. Thiết lập \"SMC: quét thanh khoản đáy + CHoCH/BOS tăng\" là thiết lập có lợi thế tốt nhất trong hệ thống (khung ngày ≈ +0,26R/lệnh khi BTC trên MA200)." },
+    { what: "Change of Character: the FIRST structure break in the opposite direction. In a downtrend (lower lows), a close above the latest swing high → bullish CHoCH: the earliest sign of a reversal.",
+      how: "CHoCH is early, so it fails more often than BOS. Best when it comes right after a liquidity sweep (a wick pierces an old low then snaps back) and in the higher timeframe's Discount zone.",
+      web: "Chart: dashed line labelled CHoCH. The setup \"SMC: liquidity sweep of lows + bullish CHoCH/BOS\" has the best edge in the system (daily ≈ +0.26R/trade when BTC is above MA200)." }],
+  ["ob", "smc", "Order Block (OB)", "Order Block (OB)",
+    { what: "Nến ngược chiều cuối cùng trước cú phá cấu trúc (nến đỏ cuối cùng trước cú tăng làm BOS/CHoCH tăng). Ý tưởng: đó là nơi \"tiền lớn\" đặt lệnh; khi giá quay lại vùng này thường có phản ứng.",
+      how: "Đặt lệnh chờ mua ở đỉnh OB mua, cắt lỗ dưới đáy OB. OB bị đóng cửa xuyên qua = hết hiệu lực. OB chưa từng bị chạm lại mạnh hơn OB đã chạm.",
+      web: "Biểu đồ: hộp xanh (OB mua) / đỏ (OB bán), ghi \"đã chạm\" nếu giá từng quay lại. Thiết lập \"SMC: hồi về Order Block mua\" có lợi thế nhỏ (≈ +0,11–0,15R). Đánh giá thời gian thực tự lấy OB làm điểm vào/cắt lỗ." },
+    { what: "The last opposite candle before a structure break (the last red candle before the rally that made a bullish BOS/CHoCH). Idea: that's where \"big money\" placed orders; price often reacts when it returns there.",
+      how: "Place a buy limit at the top of a bullish OB, stop below its low. An OB that gets closed through is invalid. Untouched OBs are stronger than ones already retested.",
+      web: "Chart: green (bullish OB) / red (bearish OB) boxes, marked \"touched\" if price has returned. The setup \"SMC: retest of a bullish Order Block\" has a small edge (≈ +0.11–0.15R). The real-time evaluation uses OBs for entry/stop." }],
+  ["fvg", "smc", "FVG – Khoảng trống giá", "FVG – Fair Value Gap",
+    { what: "Fair Value Gap: 3 nến liên tiếp mà râu nến 1 và râu nến 3 không chạm nhau – giá chạy quá nhanh để lại \"khoảng trống\". Giá thường quay lại lấp một phần khoảng trống này.",
+      how: "FVG cùng chiều xu hướng là vùng vào lệnh khi giá hồi; FVG ngược chiều là mục tiêu giá có thể chạy tới. MyBit chỉ tính FVG rộng ≥ 0,25 ATR.",
+      web: "Biểu đồ: hộp tím có chữ FVG ↑/↓ (chỉ hiện FVG chưa lấp). Bảng kiểm tra: \"Giá đang ở OB/FVG cùng chiều\"." },
+    { what: "Fair Value Gap: three consecutive candles where the wicks of candle 1 and candle 3 don't overlap – price moved so fast it left a gap. Price often comes back to fill part of it.",
+      how: "A with-trend FVG is an entry zone on pullbacks; an opposite FVG is a target price may run to. MyBit only counts FVGs ≥ 0.25 ATR wide.",
+      web: "Chart: purple boxes labelled FVG ↑/↓ (only unfilled ones). Checklist: \"Price at an OB/FVG in the same direction\"." }],
+  ["liq", "smc", "Thanh khoản & quét thanh khoản (EQH/EQL, sweep)", "Liquidity & liquidity sweeps (EQH/EQL)",
+    { what: "Nhiều đỉnh (EQH) hoặc đáy (EQL) gần bằng nhau = nơi rất nhiều người đặt cắt lỗ / lệnh chờ → \"thanh khoản\". Quét thanh khoản = râu nến chọc qua mức đó rồi đóng cửa quay lại: lệnh cắt lỗ của đám đông bị kích hoạt, tiền lớn khớp được hàng.",
+      how: "Đừng đặt cắt lỗ ngay sát dưới đáy bằng nhau. Sau cú quét đáy + CHoCH tăng là điểm vào Long đẹp; EQH phía trên là mục tiêu tự nhiên.",
+      web: "Biểu đồ: đường chấm vàng \"$$$ EQH/EQL ×n\", chấm vàng = vừa quét. Bảng kiểm tra: \"Đã quét thanh khoản đáy/đỉnh …\"." },
+    { what: "Several near-equal highs (EQH) or lows (EQL) = where many people put stops / pending orders → \"liquidity\". A sweep = a wick pierces that level then closes back: the crowd's stops trigger and big players fill their orders.",
+      how: "Don't put your stop just below equal lows. A sweep of lows + bullish CHoCH is a great Long entry; EQH above is a natural target.",
+      web: "Chart: dotted yellow lines \"$$$ EQH/EQL ×n\", yellow dot = just swept. Checklist: \"Liquidity swept at the lows/highs …\"." }],
+  ["pd", "smc", "Premium / Discount, EQ và OTE", "Premium / Discount, EQ and OTE",
+    { what: "Lấy biên từ đáy swing tới đỉnh swing gần nhất: nửa trên (trên 50% – EQ) là Premium (đắt), nửa dưới là Discount (rẻ). OTE (vùng vào tối ưu) = vùng hồi 62–79% của sóng.",
+      how: "Ưu tiên mua ở Discount, bán ở Premium. Long khi giá đang ở Premium của khung lớn = mua đắt, xác suất thấp hơn.",
+      web: "Biểu đồ: nền đỏ nhạt phía trên đường EQ 50%, xanh nhạt phía dưới. Bảng SMC theo khung (máy chủ) ghi vị trí %, vùng OTE Long / Short." },
+    { what: "Take the range from the latest swing low to swing high: the upper half (above 50% – EQ) is Premium (expensive), the lower half Discount (cheap). OTE (optimal trade entry) = the 62–79% retracement of the swing.",
+      how: "Prefer buying in Discount, selling in Premium. Going Long in the higher timeframe's Premium = buying expensive, lower probability.",
+      web: "Chart: faint red above the EQ 50% line, faint green below. The server SMC table per timeframe shows the position % and the OTE Long / Short zones." }],
+  ["mtf", "smc", "Đa khung thời gian (khung lớn – khung vào)", "Multi-timeframe analysis",
+    { what: "Cùng một coin, khung 15 phút có thể tăng trong khi khung tuần giảm. Khung lớn quyết định \"dòng chảy chính\", khung nhỏ để tìm điểm vào.",
+      how: "Lướt giây–phút: xét 15p + 1h · Trong ngày (15p–1h): xét 4h + ngày · Swing (4h–ngày): xét tuần + tháng · Trung hạn: tháng + quý. Cùng chiều cả 2 khung lớn → 100% khối lượng; gần thuận – xa ngược → 50% và chốt sớm; khung gần ngược → chờ hoặc 0–25%.",
+      web: "Tab SMC & vào lệnh → khung \"Đa khung thời gian\": dải 9 khung, kết luận cho 4 kiểu đánh, trần mục tiêu = kháng cự khung lớn. Kiểm chứng thật: thiết lập thuận xu hướng cần khung lớn cùng chiều; thiết lập đảo chiều (quét đáy) lại tốt nhất khi khung lớn đang giảm." },
+    { what: "The same coin can be rising on 15 minutes while falling on the weekly. The higher timeframe sets the \"main current\", the lower one finds the entry.",
+      how: "Scalping seconds–minutes: check 15m + 1h · Intraday (15m–1h): 4h + daily · Swing (4h–daily): weekly + monthly · Medium term: monthly + quarterly. Both higher timeframes aligned → 100% size; near aligned – far against → 50% and take profit early; near against → wait or 0–25%.",
+      web: "SMC & entry tab → \"Multi-timeframe\" panel: a 9-timeframe strip, verdicts for 4 trading styles, target cap = higher-timeframe resistance. Verified: trend setups need aligned higher timeframes; reversal setups (sweep of lows) work best when the higher timeframe is falling." }],
+  ["ema", "ta", "EMA20 / EMA50 / MA200", "EMA20 / EMA50 / MA200",
+    { what: "Đường trung bình giá. EMA20 = xu hướng ngắn, EMA50 = trung hạn, MA200 ngày = ranh giới thị trường tăng/giảm dài hạn.",
+      how: "Xu hướng tăng khi giá > EMA50 và EMA20 > EMA50. BTC trên MA200 = môi trường thuận lợi cho Long altcoin; dưới MA200 = phòng thủ.",
+      web: "Biểu đồ: EMA20 xanh, EMA50 vàng, MA200 xám. Quy tắc \"Theo xu hướng\" (Long khi giá > EMA50 > …, thoát khi đóng cửa dưới EMA50) được kiểm chứng ở trang Kiểm chứng; đèn thị trường dùng BTC so với MA200." },
+    { what: "Moving averages. EMA20 = short-term trend, EMA50 = medium term, daily MA200 = the long-term bull/bear boundary.",
+      how: "Uptrend when price > EMA50 and EMA20 > EMA50. BTC above MA200 = favourable for altcoin Longs; below = defensive.",
+      web: "Chart: EMA20 blue, EMA50 yellow, MA200 grey. The \"Trend following\" rule (Long when price > EMA50 > …, exit on a close below EMA50) is verified on the Backtests page; the market light uses BTC vs MA200." }],
+  ["rsi", "ta", "RSI & MACD", "RSI & MACD",
+    { what: "RSI (0–100) đo tốc độ tăng/giảm 14 nến: > 70 quá mua, < 30 quá bán. MACD = chênh lệch EMA12 – EMA26 so với đường tín hiệu EMA9; histogram đổi chiều = động lượng đổi chiều.",
+      how: "Không bán chỉ vì RSI > 70 trong xu hướng tăng mạnh. Dùng để tránh vào lệnh ở cực trị (Long khi RSI đã > 70) và xác nhận động lượng (MACD quay cùng chiều lệnh). Phân kỳ RSI = giá tạo đỉnh mới nhưng RSI không – xu hướng yếu đi.",
+      web: "Khung phụ RSI và MACD dưới biểu đồ (đồng bộ). Bảng kiểm tra vào lệnh có 2 dòng RSI và MACD; tab Kỹ thuật có phân kỳ RSI khung ngày." },
+    { what: "RSI (0–100) measures the speed of moves over 14 candles: > 70 overbought, < 30 oversold. MACD = EMA12 – EMA26 vs its EMA9 signal line; a histogram flip = momentum flip.",
+      how: "Don't sell just because RSI > 70 in a strong uptrend. Use it to avoid entering at extremes (Long with RSI already > 70) and to confirm momentum (MACD turning in your direction). RSI divergence = price makes a new high but RSI doesn't – the trend is weakening.",
+      web: "RSI and MACD panes under the chart (synced). The entry checklist has RSI and MACD rows; the Technicals tab shows daily RSI divergence." }],
+  ["atr", "ta", "ATR – Biên độ dao động trung bình", "ATR – Average True Range",
+    { what: "Trung bình biên độ một nến (14 nến), tính cả khoảng trống giữa các nến. ATR ngày 5% = coin thường dao động ~5% mỗi ngày.",
+      how: "Đặt cắt lỗ theo ATR (1,5–2×ATR) để không bị nhiễu quét. Coin ATR lớn → đòn bẩy phải thấp.",
+      web: "Bộ kiểm soát đòn bẩy giới hạn theo ATR (≤ 3% → tối đa x10 … > 12% → x1). Kế hoạch giao dịch và đánh giá thời gian thực dùng ATR để tính khoảng cắt lỗ tối thiểu." },
+    { what: "Average size of one candle (14 candles), including gaps between candles. A 5% daily ATR = the coin usually moves ~5% per day.",
+      how: "Set stops by ATR (1.5–2×ATR) so noise doesn't take you out. High-ATR coins require low leverage.",
+      web: "The leverage governor caps by ATR (≤ 3% → max x10 … > 12% → x1). Trading plans and the real-time evaluation use ATR for the minimum stop distance." }],
+  ["vwap", "ta", "VWAP & Volume Profile (POC, vùng giá trị)", "VWAP & Volume Profile (POC, value area)",
+    { what: "VWAP = giá trung bình có trọng số khối lượng (MyBit: 96 nến gần nhất). Volume profile = khối lượng giao dịch ở từng mức giá; POC = mức giá có nhiều khối lượng nhất; vùng giá trị = nơi diễn ra 70% khối lượng.",
+      how: "Giá trên VWAP = phe mua đang kiểm soát trong phiên. POC thường hút giá về; biên vùng giá trị là hỗ trợ/kháng cự.",
+      web: "Bảng kiểm tra: \"Giá trên/dưới VWAP\". Tab Mức giá & thời gian: POC, đỉnh/đáy vùng giá trị khung ngày và 4h." },
+    { what: "VWAP = volume-weighted average price (MyBit: last 96 candles). Volume profile = volume traded at each price; POC = the price with the most volume; value area = where 70% of the volume traded.",
+      how: "Price above VWAP = buyers in control of the session. The POC tends to attract price; value-area edges act as support/resistance.",
+      web: "Checklist: \"Price above/below VWAP\". Levels & timing tab: POC, value-area high/low on the daily and 4h." }],
+  ["fib", "ta", "Fibonacci (thoái lui & mở rộng)", "Fibonacci (retracements & extensions)",
+    { what: "Các tỉ lệ 23,6% – 38,2% – 50% – 61,8% – 78,6% của một sóng là nơi giá hay hồi về; mở rộng 127% – 161,8% là mục tiêu khi giá vượt đỉnh. Không phải quy luật – chỉ là quy ước nhiều người cùng nhìn nên đôi khi thành vùng phản ứng.",
+      how: "Dùng 38,2–61,8% làm vùng chờ mua trong xu hướng tăng; 161,8% làm mục tiêu 2. Tin hơn khi trùng với đỉnh/đáy cũ hoặc MA (hợp lưu).",
+      web: "Tab Mức giá & thời gian: bảng Fibonacci của sóng gần nhất, % đã thoái lui. Thiết lập \"Hồi về vùng Fibonacci trong xu hướng tăng\" có thống kê ở trang Cơ hội." },
+    { what: "Ratios 23.6% – 38.2% – 50% – 61.8% – 78.6% of a swing are where price often pulls back to; extensions 127% – 161.8% are targets once price breaks the high. Not a law – a convention many people watch, so it sometimes becomes a reaction zone.",
+      how: "Use 38.2–61.8% as a buy zone in an uptrend; 161.8% as target 2. More reliable when it overlaps prior highs/lows or MAs (confluence).",
+      web: "Levels & timing tab: Fibonacci table of the latest swing, % retraced. The setup \"Pullback into a Fibonacci zone in an uptrend\" has stats on the Opportunities page." }],
+  ["gann", "ta", "Gann (Square of 9, chu kỳ thời gian) & mốc thời gian Fibonacci", "Gann (Square of 9, time cycles) & Fibonacci time",
+    { what: "Square of 9 tính các mức giá \"cân bằng\" bằng căn bậc hai (√giá ± 0,25; 0,5…). Chu kỳ thời gian Gann/Fibonacci: số nến 21, 34, 55, 89, 144… kể từ đỉnh/đáy quan trọng – nơi hay xảy ra biến động/đảo chiều.",
+      how: "Chỉ dùng như thêm một lớp xác nhận. Mốc thời gian báo \"có thể biến động\", KHÔNG báo chiều.",
+      web: "Tab Mức giá & thời gian: mức Gann Sq9 trên/dưới giá, bảng mốc thời gian đáng chú ý. Các mức này được gộp vào vùng hợp lưu." },
+    { what: "Square of 9 computes \"balance\" prices using square roots (√price ± 0.25; 0.5…). Gann/Fibonacci time cycles: 21, 34, 55, 89, 144… candles from a major high/low – where volatility/reversals often occur.",
+      how: "Use only as an extra layer of confirmation. Time windows say \"volatility likely\", NOT direction.",
+      web: "Levels & timing tab: Gann Sq9 levels above/below price, table of notable time windows. These levels feed the confluence zones." }],
+  ["conf", "ta", "Vùng hợp lưu (confluence)", "Confluence zones",
+    { what: "Nơi nhiều loại mức trùng nhau trong một khoảng nhỏ: đỉnh/đáy cũ, Fibonacci, Gann, POC, MA… Càng nhiều mức trùng (số trong ngoặc) vùng càng mạnh.",
+      how: "Đặt lệnh chờ ở vùng hợp lưu mạnh, cắt lỗ phía sau vùng; mục tiêu là vùng hợp lưu ngược chiều tiếp theo.",
+      web: "Đường chấm trên biểu đồ \"hỗ trợ/kháng cự (n)\"; tab Mức giá & thời gian liệt kê vùng; Lên lệnh dùng vùng hợp lưu để chọn giá vào và cắt lỗ." },
+    { what: "Where several kinds of levels overlap in a small range: prior highs/lows, Fibonacci, Gann, POC, MAs… The more overlapping levels (the number in brackets), the stronger the zone.",
+      how: "Place pending orders at strong confluence, stop behind the zone; the target is the next opposite confluence zone.",
+      web: "Dotted lines on the chart \"support/resistance (n)\"; the Levels & timing tab lists them; the Order plan uses confluence zones to choose entry and stop." }],
+  ["cvd", "flow", "CVD – Dòng tiền chủ động", "CVD – Cumulative Volume Delta",
+    { what: "Mỗi giao dịch có bên chủ động (người bấm mua/bán thị trường). CVD = tổng khối lượng mua chủ động trừ bán chủ động, cộng dồn. Giá tăng mà CVD giảm = có người xả hàng vào nhịp tăng (phân kỳ âm).",
+      how: "Long khi CVD 20 nến dương (người mua đang chủ động); cẩn thận khi giá và CVD đi ngược nhau.",
+      web: "Khung phụ CVD dưới biểu đồ (lấy từ dữ liệu taker của Binance). Bảng kiểm tra: \"Dòng tiền chủ động 20 nến mua/bán ròng …\". Điểm dòng tiền ngày/4h ở tab Mức giá & thời gian." },
+    { what: "Each trade has an aggressor (the one hitting market buy/sell). CVD = aggressive buy volume minus aggressive sell volume, cumulative. Price up while CVD falls = someone is selling into the rally (bearish divergence).",
+      how: "Long when the 20-candle CVD is positive (buyers are aggressive); be careful when price and CVD diverge.",
+      web: "CVD pane under the chart (from Binance taker data). Checklist: \"Aggressive flow over 20 candles net buy/sell …\". Daily/4h money-flow score on the Levels & timing tab." }],
+  ["funding", "flow", "Funding rate", "Funding rate",
+    { what: "Hợp đồng vĩnh cửu (perp) không có ngày đáo hạn; để giá perp bám giá spot, mỗi 8 giờ phe Long trả phe Short (funding dương) hoặc ngược lại (âm). Funding cao = rất nhiều người Long bằng đòn bẩy.",
+      how: "Funding quá nóng (≥ 0,03%/8h) = đám đông Long, dễ bị \"xả\"; funding âm sâu = Short đông, dễ bị ép tăng. Funding là chi phí giữ lệnh perp – giữ Long lâu khi funding dương sẽ tốn tiền.",
+      web: "Mọi bảng có cột Funding (đã quy về 8h, gộp nhiều sàn). Phiếu lệnh tính tiền funding phải trả/nhận trong thời gian giữ; so sánh Spot vs Futures dùng funding để chọn." },
+    { what: "Perpetual contracts never expire; to keep perp price near spot, every 8 hours Longs pay Shorts (positive funding) or vice versa (negative). High funding = lots of leveraged Longs.",
+      how: "Very hot funding (≥ 0.03%/8h) = crowded Longs, prone to a flush; deeply negative = crowded Shorts, prone to a squeeze. Funding is the cost of holding a perp – holding Longs for long with positive funding costs money.",
+      web: "Every table has a Funding column (normalized to 8h, aggregated across exchanges). Tickets compute the funding paid/received while holding; the Spot vs Futures comparison uses it to choose." }],
+  ["oi", "flow", "Open Interest (OI) & bốn trạng thái giá–OI", "Open Interest (OI) & the price–OI quadrant",
+    { what: "OI = tổng giá trị hợp đồng futures đang mở. Giá ↑ OI ↑: tiền mới vào Long (xu hướng có lực). Giá ↑ OI ↓: Short đóng lệnh (ép short, kém bền). Giá ↓ OI ↑: Short mới mở. Giá ↓ OI ↓: Long cắt lỗ / xả đòn bẩy.",
+      how: "Ưu tiên theo xu hướng khi OI tăng cùng chiều giá; OI vọt mà giá đứng = đòn bẩy dồn tích, sắp có biến động mạnh.",
+      web: "Tab Futures của coin: góc phần tư giá–OI, OI 24h/7 ngày. Trang Futures liệt kê OI tăng/giảm mạnh; cảnh báo \"OI vọt\"." },
+    { what: "OI = total value of open futures contracts. Price ↑ OI ↑: new money going Long (strong trend). Price ↑ OI ↓: Shorts closing (squeeze, less durable). Price ↓ OI ↑: new Shorts. Price ↓ OI ↓: Longs stopped out / deleveraging.",
+      how: "Favour the trend when OI rises with price; OI spiking while price stalls = leverage building, a big move is coming.",
+      web: "Coin Futures tab: price–OI quadrant, 24h/7-day OI. The Futures page lists big OI rises/falls; \"OI spike\" alerts." }],
+  ["basis", "flow", "Basis, Long/Short ratio & tín hiệu đám đông", "Basis, Long/Short ratio & crowd signals",
+    { what: "Basis = giá perp (mark) so với giá spot (index). Long/Short ratio = số tài khoản đang Long chia số tài khoản Short (Binance). Đám đông nhỏ lẻ thường sai ở cực trị.",
+      how: "Basis dương lớn + funding nóng + L/S cao = Long quá đông → cẩn trọng khi Long thêm. Dùng như chỉ báo ngược.",
+      web: "Trang Trực tiếp có cột Basis; tab Futures có L/S, top trader L/S, taker buy/sell; nhãn \"Long đông / Short đông / OI vọt\" trên bảng coin và trong bảng kiểm tra vào lệnh." },
+    { what: "Basis = perp (mark) price vs spot (index) price. Long/Short ratio = accounts Long divided by accounts Short (Binance). Retail crowds are usually wrong at extremes.",
+      how: "Large positive basis + hot funding + high L/S = crowded Longs → careful adding Longs. Use as a contrarian indicator.",
+      web: "The Live page has a Basis column; the Futures tab has L/S, top-trader L/S, taker buy/sell; \"Longs crowded / Shorts crowded / OI spike\" tags on the coin table and in the entry checklist." }],
+  ["carry", "flow", "Carry / ăn funding (mua spot + bán perp)", "Carry / funding harvest (long spot + short perp)",
+    { what: "Mua 1 coin spot và Short 1 coin perp cùng lượng: giá lên hay xuống đều bù trừ (trung tính giá), anh nhận funding mỗi 8 giờ khi funding dương.",
+      how: "Chỉ làm khi funding cao và ổn định (≥ 15%/năm, ≥ 70% kỳ dương). Giữ chân perp đòn bẩy thấp (≤ 2–3x) để không bị thanh lý khi giá vọt. Rủi ro: funding đổi chiều, sàn gặp sự cố.",
+      web: "Trang Futures → Carry; trang Cơ hội → \"Ăn funding (carry)\"; công cụ phòng hộ spot bằng perp ở tab Futures của coin." },
+    { what: "Buy 1 coin on spot and Short 1 coin on perp in the same size: up or down cancels out (price neutral), you collect funding every 8 hours while it is positive.",
+      how: "Only when funding is high and stable (≥ 15%/yr, ≥ 70% positive periods). Keep the perp leg at low leverage (≤ 2–3x) so a spike doesn't liquidate it. Risks: funding flips, exchange incidents.",
+      web: "Futures page → Carry; Opportunities page → \"Earn funding (carry)\"; spot-hedge calculator on the coin's Futures tab." }],
+  ["valuation", "val", "Định giá bằng dòng tiền thật (P/F, P/S, P/HR, tăng trưởng ngầm định)", "Cash-flow valuation (P/F, P/S, P/HR, implied growth)",
+    { what: "P/F = vốn hoá / phí người dùng trả 1 năm; P/S = vốn hoá / doanh thu giao thức; P/HR = vốn hoá / phần thực sự về tay người giữ token (mua lại, đốt, chia thưởng) – gần với P/E nhất. Tăng trưởng ngầm định = dòng tiền phải tăng bao nhiêu %/năm trong 5 năm để giá hiện tại hợp lý (chiết khấu 20%/năm, bội số cuối kỳ 15).",
+      how: "Coin rẻ thật = P/HR thấp so với nhóm + tăng trưởng ngầm định thấp + ít mở khoá. Coin không có dòng tiền = Đầu cơ (không có nghĩa là xấu, chỉ là không định giá bằng tiền thật được). Blockchain L1 chỉ so tương đối với L1 khác.",
+      web: "Tab Định giá của coin; nhãn định giá (Rẻ / Hợp lý / Đắt / Đầu cơ / L1 …) trên mọi bảng; danh sách \"Định giá rẻ\" ở Thị trường; P/S rẻ nhất ở trang nhóm ngành." },
+    { what: "P/F = market cap / annual user fees; P/S = market cap / protocol revenue; P/HR = market cap / what actually reaches token holders (buybacks, burns, distributions) – closest to P/E. Implied growth = how much %/yr cash flow must grow for 5 years to justify the price (20%/yr discount, terminal multiple 15).",
+      how: "Truly cheap = low P/HR vs peers + low implied growth + few unlocks. No cash flow = Speculative (not bad, just not valuable on real money). L1 blockchains are only compared with other L1s.",
+      web: "Coin Valuation tab; valuation tags (Cheap / Fair / Expensive / Speculative / L1 …) on every table; the \"Cheap valuation\" list on Market; cheapest P/S on sector pages." }],
+  ["supply", "val", "Mở khoá token, lạm phát cung & pha loãng", "Token unlocks, supply inflation & dilution",
+    { what: "Nhiều token chỉ lưu hành một phần; phần còn lại được \"mở khoá\" dần cho đội ngũ / quỹ đầu tư. Mở khoá lớn = nguồn cung mới đổ ra thị trường, thường gây áp lực bán. FDV = vốn hoá nếu toàn bộ cung lưu hành.",
+      how: "Tránh Long trước đợt mở khoá ≥ 2–3% lượng lưu hành; FDV gấp nhiều lần vốn hoá = rủi ro pha loãng dài hạn.",
+      web: "Tab Định giá: lịch mở khoá, lạm phát cung thực tế; trang Thị trường: mở khoá lớn 14 ngày; trang nhóm: mở khoá 90 ngày tới; cảnh báo mở khoá ở coin đang giữ." },
+    { what: "Many tokens circulate only partly; the rest unlocks gradually to the team / investors. Big unlocks = new supply hitting the market, usually selling pressure. FDV = market cap if all supply circulated.",
+      how: "Avoid Longs before unlocks ≥ 2–3% of circulating supply; FDV many times the market cap = long-term dilution risk.",
+      web: "Valuation tab: unlock schedule, actual supply inflation; Market page: big unlocks in 14 days; sector pages: unlocks in the next 90 days; unlock alerts on held coins." }],
+  ["btcval", "val", "Định giá Bitcoin: MVRV, giá vốn toàn mạng, Mayer, mô hình luỹ thừa", "Bitcoin valuation: MVRV, realized price, Mayer, power law",
+    { what: "Giá vốn toàn mạng (realized price) = giá trung bình mà mỗi BTC được giao dịch lần cuối. MVRV = vốn hoá / vốn hoá thực: < 1 đáy chu kỳ, > 3 đỉnh chu kỳ. Mayer = giá / MA200. Mô hình luỹ thừa = giá BTC tăng theo hàm mũ của thời gian, cho \"giá hợp lý\" và dải 5–95%.",
+      how: "MVRV < 1,5: vùng rẻ – mua đều (DCA). 1,5–3: trung tính. > 3: vùng đắt – chốt lời dần phần dài hạn.",
+      web: "Trang Thị trường: nhóm \"Định giá Bitcoin\", bảng BTC 1 năm sau theo vùng MVRV (từ 2014); trang Cơ hội: \"Tích luỹ BTC dài hạn\"." },
+    { what: "Realized price = the average price at which each BTC last moved. MVRV = market cap / realized cap: < 1 cycle bottom, > 3 cycle top. Mayer = price / MA200. Power law = BTC price grows as a power of time, giving a \"fair price\" and a 5–95% band.",
+      how: "MVRV < 1.5: cheap zone – DCA. 1.5–3: neutral. > 3: expensive – take long-term profits gradually.",
+      web: "Market page: the \"Bitcoin valuation\" group, table of BTC 1 year later by MVRV zone (since 2014); Opportunities page: \"Long-term BTC accumulation\"." }],
+  ["sentiment", "val", "Sợ hãi & Tham lam, đèn thị trường, độ rộng, mùa altcoin", "Fear & Greed, market light, breadth, altcoin season",
+    { what: "Chỉ số Sợ hãi & Tham lam (0–100) đo tâm lý. Đèn thị trường (xanh/vàng/đỏ) tổng hợp xu hướng BTC (MA200), độ rộng (% coin trên MA50/MA200) và tâm lý. Mùa altcoin = % top 50 coin tăng hơn BTC trong 90 ngày.",
+      how: "Đèn xanh: được Long theo xu hướng, đòn bẩy cao hơn. Vàng: giảm quy mô. Đỏ: phòng thủ, chỉ Short theo xu hướng. Sợ hãi khi BTC trên MA200 thường là cơ hội mua dần.",
+      web: "Đầu trang Thị trường; đèn quyết định trần đòn bẩy và rủi ro mỗi lệnh của hệ thống; bảng \"BTC 90 ngày sau theo vùng tâm lý\"." },
+    { what: "The Fear & Greed index (0–100) measures sentiment. The market light (green/yellow/red) combines the BTC trend (MA200), breadth (% of coins above MA50/MA200) and sentiment. Altcoin season = % of the top 50 beating BTC over 90 days.",
+      how: "Green: trend Longs allowed, higher leverage. Yellow: reduce size. Red: defensive, trend Shorts only. Fear while BTC is above MA200 is usually a chance to buy gradually.",
+      web: "Top of the Market page; the light sets the system's leverage cap and risk per trade; table \"BTC 90 days later by sentiment zone\"." }],
+  ["r", "risk", "R, tỉ lệ thắng, lãi trung bình & \"có lợi thế\"", "R multiples, win rate, average profit & \"edge\"",
+    { what: "1R = khoảng từ giá vào tới cắt lỗ (số tiền anh chấp nhận mất). Lãi TB 0,2R = mỗi lần rủi ro $100 trung bình lãi $20 sau phí. \"Có lợi thế\" = lãi TB ≥ 0,05R trên ≥ 100 lần lịch sử, vẫn dương ở 2 năm gần nhất (kiểm tra ngoài mẫu) và ở đúng trạng thái khung lớn hiện tại.",
+      how: "Chỉ đánh thiết lập có lợi thế; mọi \"mẹo\" kỹ thuật khác cho kết quả quanh 0 sau phí. Tỉ lệ thắng thấp vẫn có lãi nếu R:R đủ lớn.",
+      web: "Trang Cơ hội và Kiểm chứng: bảng thống kê từng thiết lập; nhãn \"có lợi thế lịch sử\"; trang nhóm ngành: thiết lập hiệu quả nhất theo nhóm." },
+    { what: "1R = distance from entry to stop (the money you accept to lose). Avg profit 0.2R = for every $100 risked you make $20 on average after fees. \"Edge\" = avg profit ≥ 0.05R over ≥ 100 historical occurrences, still positive in the last 2 years (out-of-sample check) and in the current higher-timeframe state.",
+      how: "Trade only setups with an edge; other technical \"tricks\" land near zero after fees. A low win rate can still be profitable with a large enough R:R.",
+      web: "Opportunities and Backtests pages: stats per setup; the \"historical edge\" tag; sector pages: the best setups per sector." }],
+  ["rt", "risk", "Đánh giá vào lệnh thời gian thực (điểm 0–100) & Radar", "Real-time entry evaluation (0–100 score) & Radar",
+    { what: "Bảng kiểm tra 13 yếu tố cho cả Long và Short trên khung đang xem: cấu trúc 2 khung lớn, BOS/CHoCH, quét thanh khoản, Premium/Discount, OB/FVG, RSI, MACD, CVD, VWAP, khối lượng, đám đông futures, cản khung lớn trên đường tới mục tiêu. Mỗi yếu tố có trọng số, cộng lại thành điểm.",
+      how: "VÀO ĐƯỢC: ≥ 75 điểm và đã phá cấu trúc. CHUẨN BỊ: ≥ 58 – đặt cảnh báo / lệnh chờ ở mức phá cấu trúc. CHỜ: còn lại. Đây là quy tắc chấm điểm, không phải xác suất – khung dưới 4h chưa kiểm chứng lịch sử.",
+      web: "Tab Tổng quan / SMC & vào lệnh của coin (tính lại mỗi 1,5 giây, báo trình duyệt khi đổi trạng thái); trang Radar quét 20–80 coin; xác nhận khung 15 phút trong Lên lệnh." },
+    { what: "A 13-factor checklist for both Long and Short on the viewed timeframe: structure of 2 higher timeframes, BOS/CHoCH, liquidity sweep, Premium/Discount, OB/FVG, RSI, MACD, CVD, VWAP, volume, futures crowding, higher-timeframe resistance before the target. Each factor is weighted and summed into a score.",
+      how: "ENTER: ≥ 75 points and structure broken. GET READY: ≥ 58 – set an alert / pending order at the break level. WAIT: otherwise. It is a scoring rule, not a probability – timeframes below 4h are not historically verified.",
+      web: "Coin Overview / SMC & entry tabs (recomputed every 1.5 seconds, browser alert on status change); the Radar page scans 20–80 coins; 15-minute confirmation in the Order plan." }],
+  ["gov", "risk", "Kiểm soát đòn bẩy, khối lượng & dừng giao dịch", "Leverage governor, position sizing & trading halts",
+    { what: "Khối lượng = (vốn × % rủi ro) ÷ khoảng cắt lỗ – lỗ tối đa luôn bằng % rủi ro dù dùng đòn bẩy bao nhiêu. Đòn bẩy chỉ để giảm tiền ký quỹ. Hệ thống tự giới hạn đòn bẩy theo đèn thị trường, ATR, vốn hoá, đám đông, khoảng cắt lỗ (giá thanh lý phải xa gấp 2,2 lần cắt lỗ) và mức sụt tài khoản.",
+      how: "Rủi ro 0,5–1%/lệnh (tối đa 2%). Lỗ −3% trong ngày → dừng tới mai; −6% trong tuần hoặc thua 3 lệnh liên tiếp → giảm rủi ro một nửa; sụt ≥ 10% → tối đa x2, ≥ 20% → chỉ x1.",
+      web: "Mọi phiếu lệnh (Lên lệnh, Cơ hội, đánh giá thời gian thực) dùng bộ kiểm soát này; Danh mục hiển thị trạng thái rủi ro; sàn giả lập và kết nối Binance cũng không vượt được trần." },
+    { what: "Size = (capital × % risk) ÷ stop distance – the maximum loss always equals the risk % whatever the leverage. Leverage only reduces margin. The system caps leverage by market light, ATR, market cap, crowding, stop distance (liquidation must be 2.2× further than the stop) and account drawdown.",
+      how: "Risk 0.5–1%/trade (max 2%). −3% in a day → halt until tomorrow; −6% in a week or 3 losses in a row → risk halved; drawdown ≥ 10% → max x2, ≥ 20% → x1 only.",
+      web: "Every ticket (Order plan, Opportunities, real-time evaluation) uses this governor; Portfolio shows the risk state; the simulator and Binance connection cannot exceed the cap either." }],
+  ["spotfut", "risk", "Spot hay Futures, OCO, TP/SL, Isolated", "Spot vs Futures, OCO, TP/SL, Isolated",
+    { what: "Spot = mua coin thật, không thanh lý, không funding, chỉ Long được. Futures perp = hợp đồng, Long hoặc Short, có đòn bẩy, trả/nhận funding, có giá thanh lý. OCO = cặp lệnh chốt lời + cắt lỗ, một lệnh khớp thì lệnh kia tự huỷ. Isolated = ký quỹ cô lập cho từng vị thế.",
+      how: "Long và coin có spot, giá trị lệnh ≤ 25% tài sản → spot. Short, hoặc coin không có spot, hoặc muốn khoá ít vốn → perp với đòn bẩy hệ thống cho, ký quỹ Isolated, TP/SL theo Mark price.",
+      web: "Mỗi phiếu lệnh có khung \"Đánh spot hay futures?\" với bảng so sánh và các bước đặt lệnh trên Binance; trang Cơ hội chia 3 làn Mua spot / Long futures / Short futures; Sàn thử để tập." },
+    { what: "Spot = buying the real coin, no liquidation, no funding, Long only. Perp futures = a contract, Long or Short, leveraged, pays/receives funding, has a liquidation price. OCO = a take-profit + stop pair; when one fills the other cancels. Isolated = margin isolated per position.",
+      how: "Long on a coin with spot, order value ≤ 25% of assets → spot. Short, or no spot, or to lock less capital → perp at the system's leverage, Isolated margin, TP/SL on Mark price.",
+      web: "Every ticket has a \"Spot or futures?\" panel with a comparison and Binance order steps; the Opportunities page splits into Buy spot / Long futures / Short futures lanes; Paper trading to practise." }],
+  ["corr", "rel", "Tương quan, beta & dẫn – theo (lead–lag)", "Correlation, beta & lead–lag",
+    { what: "Tương quan (−1…1) = mức hai coin chạy cùng nhau. Beta = BTC biến động 1% thì coin biến động bao nhiêu %. Lead–lag = coin có phản ứng TRỄ sau BTC/ETH không.",
+      how: "Hai coin tương quan 0,9 = gần như cùng một vị thế – đừng nghĩ là đa dạng hoá. Phòng hộ chéo bằng BTC cần nhân beta. Kết quả nghiên cứu: altcoin phản ứng với BTC trong cùng giờ, độ trễ gần 0 – không khai thác được.",
+      web: "Trang Cặp coin: bản đồ tương quan, cặp chạy cùng / ít liên quan, bảng \"đã bắt kịp BTC chưa\"; tab Futures: beta để phòng hộ." },
+    { what: "Correlation (−1…1) = how much two coins move together. Beta = when BTC moves 1%, how many % the coin moves. Lead–lag = whether a coin reacts LATE after BTC/ETH.",
+      how: "Two coins at 0.9 correlation are almost the same position – not diversification. Cross-hedging with BTC needs beta. Research result: altcoins react to BTC within the same hour, lag ≈ 0 – not exploitable.",
+      web: "Pairs page: correlation map, most / least related pairs, the \"caught up with BTC yet\" table; Futures tab: beta for hedging." }],
+  ["pairs", "rel", "Giao dịch cặp (z-score, half-life)", "Pair trading (z-score, half-life)",
+    { what: "Chênh lệch = log(giá A) − beta × log(giá B). Z-score = chênh lệch hiện tại cách trung bình 60 ngày bao nhiêu độ lệch chuẩn. Half-life = thời gian để chênh lệch quay về một nửa.",
+      how: "|z| ≥ 2: Short coin đắt / Long coin rẻ cùng giá trị × beta, thoát khi |z| ≤ 0,5, cắt khi |z| ≥ 3,5 hoặc sau 30 ngày. Kết quả nghiên cứu: phần lớn cặp crypto có lãi TB gần 0 hoặc âm – chỉ làm cặp \"đạt\", khối lượng nhỏ.",
+      web: "Trang Cặp coin → Giao dịch cặp: z-score hiện tại, lịch sử 2 năm, biểu đồ z-score 180 ngày; trang Cơ hội → \"Giao dịch cặp\"." },
+    { what: "Spread = log(price A) − beta × log(price B). Z-score = how many standard deviations the spread is from its 60-day mean. Half-life = the time for the spread to revert halfway.",
+      how: "|z| ≥ 2: Short the expensive coin / Long the cheap one at equal value × beta, exit at |z| ≤ 0.5, stop at |z| ≥ 3.5 or after 30 days. Research result: most crypto pairs average near zero or negative – only trade \"passing\" pairs, small size.",
+      web: "Pairs page → Pair trading: current z-score, 2-year history, 180-day z-score chart; Opportunities page → \"Pair trading\"." }],
+  ["rrg", "rel", "Sức mạnh tương đối & bản đồ luân chuyển nhóm ngành", "Relative strength & sector rotation map",
+    { what: "Sức mạnh tương đối (RS) = coin/nhóm tăng hơn hay kém BTC. Bản đồ luân chuyển: trục ngang = RS 30 ngày, trục dọc = RS đang tăng hay giảm (7 ngày) → 4 góc: Dẫn dắt, Suy yếu, Tụt hậu, Cải thiện. Tiền thường quay vòng Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu.",
+      how: "Ưu tiên Long coin đầu nhóm \"Dẫn dắt\" khi hồi; theo dõi nhóm \"Cải thiện\"; tránh Long nhóm \"Tụt hậu\". Chỉ số nhóm theo vốn hoá vs bình quân cho biết coin lớn hay coin nhỏ đang kéo.",
+      web: "Trang Nhóm ngành: bản đồ luân chuyển, chỉ số giá các nhóm so BTC, thẻ từng nhóm; trang nhóm: giải thích, cách đánh, coin tiêu biểu; trang Cặp coin: mạnh/yếu hơn BTC 30 ngày." },
+    { what: "Relative strength (RS) = whether a coin/sector beats or lags BTC. Rotation map: horizontal axis = 30-day RS, vertical = whether RS is rising or falling (7 days) → 4 quadrants: Leading, Weakening, Lagging, Improving. Money usually rotates Improving → Leading → Weakening → Lagging.",
+      how: "Prefer Longs in the leaders of \"Leading\" sectors on pullbacks; watch \"Improving\"; avoid Longs in \"Lagging\". Cap-weighted vs equal-weighted sector indices show whether large or small coins are driving.",
+      web: "Sectors page: rotation map, sector price indices vs BTC, sector cards; each sector page: explanation, how to trade, key coins; Pairs page: stronger/weaker than BTC over 30 days." }],
+];
+async function viewMethods(id) {
+  const en = I18N.lang === "en", L = (v) => (en ? v[1] : v[0]);
+  const H = { what: en ? "What it is" : "Là gì", how: en ? "How to use it" : "Cách vận dụng", web: en ? "Where & how on MyBit" : "Trên MyBit dùng ở đâu, thế nào" };
+  const groups = Object.keys(MG);
+  app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Phương pháp – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
+    <div class="mtoc">${groups.map((g) => `<div><h4>${esc(L(MG[g]))}</h4>${METHODS.filter((m) => m[1] === g).map((m) => `<a href="#/methods/${m[0]}" data-m="${m[0]}">${esc(en ? m[3] : m[2])}</a>`).join("")}</div>`).join("")}</div>
+    ${groups.map((g) => `<h2 class="mgh">${esc(L(MG[g]))}</h2><div class="mgrid">${METHODS.filter((m) => m[1] === g).map((m) => { const c = en ? m[5] : m[4];
+      return `<section class="panel mcard" id="m-${m[0]}"><h3>${esc(en ? m[3] : m[2])}</h3>${["what", "how", "web"].map((k) => `<div class="mk mk-${k}"><b>${H[k]}</b><p>${esc(c[k])}</p></div>`).join("")}</section>`; }).join("")}</div>`).join("")}
+    <p class="faint disclaimer">${en ? "All methods are tools for structuring decisions with real numbers, not guarantees. Always place a stop on the exchange." : "Mọi phương pháp chỉ là công cụ để ra quyết định có số liệu, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn."}</p></div>`;
+  const go = (x) => { const e = document.getElementById("m-" + x); if (e) { e.scrollIntoView({ block: "start" }); e.classList.add("flash"); } };
+  $$(".mtoc a").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); history.replaceState(null, "", "#/methods/" + a.dataset.m); go(a.dataset.m); });
+  if (id) setTimeout(() => go(id), 50);
+}
+const mLink = (id, t) => `<a class="mhelp" href="#/methods/${id}" title="${I18N.lang === "en" ? "What is this?" : "Đây là gì?"}">${t || "?"}</a>`;
 
 // ================================================================ FUTURES
 async function viewFutures(sub) {
@@ -2507,7 +2806,7 @@ async function viewPortfolio() {
       ${kpis([["Lãi/lỗ hôm nay", RISK ? pct(RISK.day_pct, 2) : "—", RISK?.day_pct <= -3 ? "down" : cls(RISK?.day_pct), "Mức dừng: −3%/ngày → không mở lệnh mới tới hết ngày (giờ Việt Nam)"],
         ["Lãi/lỗ tuần này", RISK ? pct(RISK.week_pct, 2) : "—", RISK?.week_pct <= -6 ? "down" : cls(RISK?.week_pct), "−6%/tuần → rủi ro mỗi lệnh giảm 1/2 tới hết tuần"],
         ["Chuỗi thua", RISK ? `${RISK.streak} lệnh` : "—", RISK?.streak >= 3 ? "down" : "", "Thua 3 lệnh liên tiếp → rủi ro giảm 1/2 trong 24 giờ"],
-        ["Trạng thái", RISK?.halt ? "⛔ DỪNG" : (RISK?.half || []).length ? "⚠️ GIẢM RỦI RO" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString("vi-VN")}` : "máy chủ chưa kiểm tra lần nào – sau lượt 15 phút tới"]])}
+        ["Trạng thái", RISK?.halt ? "⛔ DỪNG" : (RISK?.half || []).length ? "⚠️ GIẢM RỦI RO" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString(LOC)}` : "máy chủ chưa kiểm tra lần nào – sau lượt 15 phút tới"]])}
       <p class="faint" style="font-size:.74rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
   app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
     <section class="panel hero">${kpis([["Tổng tài sản (ước)", usd(eq)], ["Spot", usd(spotV), "", `Giá vốn ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC)], ["Tiền mặt / stablecoin", usd(cash)],
@@ -2527,7 +2826,7 @@ async function viewPortfolio() {
       return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
     ${panel("📒 Sổ lệnh đã đóng", (PF.journal || []).length ? (() => { const J = PF.journal.slice().reverse(), w = J.filter((j) => j.pnl > 0).length, tot = J.reduce((a, j) => a + (j.pnl || 0), 0);
       return `${kpis([["Số lệnh", nf(J.length, 0)], ["Thắng", nf(w / J.length * 100, 0) + "%"], ["Tổng lãi/lỗ", usd(tot), cls(tot)], ["TB mỗi lệnh (R)", (() => { const R = J.filter((j) => isNum(j.r)); return R.length ? nf(R.reduce((a, j) => a + j.r, 0) / R.length, 2) + "R" : "—"; })()]])}
-      <div class="tw" style="max-height:320px"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString("vi-VN")}</small></td></tr>`).join("")}</tbody></table></div>`; })()
+      <div class="tw" style="max-height:320px"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString(LOC)}</small></td></tr>`).join("")}</tbody></table></div>`; })()
       : `<p class="muted">Bấm "Đóng" / "Bán hết" ở vị thế để ghi lãi/lỗ thực – hệ thống dùng sổ này để tính lỗ trong ngày và chuỗi thua.</p>`)}
     ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`)}
     <datalist id="coinlist">${C.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>`;
@@ -2691,7 +2990,7 @@ async function drawTicker() {
   tickerWs();
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;
-  $("#upd").title = "Dữ liệu cập nhật lúc " + new Date(C.at).toLocaleString("vi-VN");
+  $("#upd").title = "Dữ liệu cập nhật lúc " + new Date(C.at).toLocaleString(LOC);
 }
 
 // ================================================================ TÀI KHOẢN, THÔNG BÁO, QUẢN TRỊ (dùng chung hạ tầng với vn-stock)
@@ -2741,7 +3040,7 @@ function planTable() {
 const NK = { idea: "🎯", liq: "🚨", stop: "🛑", trend: "🔀", crowd: "👥", unlock: "🔓", alert: "🔔", light: "🚦", carry: "💱", system: "ℹ️", admin: "🛠️" };
 const NKIND = { idea: "Cơ hội có lợi thế mới (coin đang giữ/theo dõi + mạnh nhất)", liq: "Vị thế futures gần giá thanh lý / vượt đòn bẩy", stop: "Giá chạm mức cắt lỗ của vị thế", trend: "Xu hướng coin đang giữ đảo chiều", crowd: "Đám đông futures cực đoan ở coin đang giữ",
   unlock: "Mở khoá token lớn ở coin đang giữ", alert: "Cảnh báo giá", light: "Đèn thị trường đổi màu", carry: "Cơ hội chênh lệch funding mới" };
-const agoShort = (iso) => { const m = (Date.now() - new Date(iso)) / 60000; return m < 1 ? "vừa xong" : m < 60 ? `${Math.round(m)} phút` : m < 1440 ? `${Math.round(m / 60)} giờ` : new Date(iso).toLocaleDateString("vi-VN"); };
+const agoShort = (iso) => { const m = (Date.now() - new Date(iso)) / 60000; return m < 1 ? "vừa xong" : m < 60 ? `${Math.round(m)} phút` : m < 1440 ? `${Math.round(m / 60)} giờ` : new Date(iso).toLocaleDateString(LOC); };
 function ntfRow(n) {
   const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt
   return `<a class="ntf ${n.read_at ? "" : "new"} sev${n.sev || 0}" href="${esc(url || "#/notifications")}" data-nid="${n.id}"><span class="ni">${NK[n.kind] || "•"}</span>
@@ -2773,7 +3072,7 @@ async function viewNotifications() {
   let items = [], more = true;
   const draw = () => {
     const by = {};
-    items.forEach((n) => { const d = new Date(n.created_at).toLocaleDateString("vi-VN", { weekday: "long", day: "2-digit", month: "2-digit" }); (by[d] = by[d] || []).push(n); });
+    items.forEach((n) => { const d = new Date(n.created_at).toLocaleDateString(LOC, { weekday: "long", day: "2-digit", month: "2-digit" }); (by[d] = by[d] || []).push(n); });
     app().innerHTML = `<div class="ph"><h1>Thông báo</h1><span class="meta"><button class="btn" id="nAll">Đánh dấu tất cả đã đọc</button> <button class="btn" id="nDel">Xoá thông báo đã đọc</button> <a class="btn" href="#/account">Cài đặt nhận thông báo</a></span></div>
       ${Object.entries(by).map(([d, L]) => `<section class="panel sec"><div class="ph"><h3>${esc(d)}</h3></div><div class="ntfs">${L.map(ntfRow).join("")}</div></section>`).join("") || '<div class="empty">Chưa có thông báo nào.</div>'}
       ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}`;
@@ -2918,7 +3217,7 @@ async function viewAdmin(sub = "users") {
   }
   const j = await api("admin/audit");
   app().innerHTML = head + `<section class="panel sec"><div class="tw"><table><thead><tr><th>Lúc</th><th class="l">Người</th><th>Việc</th><th class="l">Chi tiết</th></tr></thead><tbody>
-    ${j.audit.map((a) => `<tr><td><small>${esc(new Date(a.at).toLocaleString("vi-VN"))}</small></td><td class="l">${esc(a.email || "—")}</td><td>${esc(a.action)}</td><td class="l wrap"><small>${esc(a.detail || "")}</small></td></tr>`).join("")}</tbody></table></div></section>`;
+    ${j.audit.map((a) => `<tr><td><small>${esc(new Date(a.at).toLocaleString(LOC))}</small></td><td class="l">${esc(a.email || "—")}</td><td>${esc(a.action)}</td><td class="l wrap"><small>${esc(a.detail || "")}</small></td></tr>`).join("")}</tbody></table></div></section>`;
 }
 
 // ---- bản tin thị trường
@@ -2955,6 +3254,8 @@ function initAccountUI() {
 }
 
 (async function main() {
+  await i18nInit();
+  const lb = $("#lang"); if (lb) { lb.textContent = I18N.lang === "en" ? "VI" : "EN"; lb.title = I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English"; lb.onclick = langToggle; lb.setAttribute("data-noi18n", ""); }
   ME = await fetchMe();
   if (!ME) { location.replace("/login?next=" + encodeURIComponent("/" + location.hash)); return; }
   initTheme(); initSearch(); initAccountUI(); plansData();
