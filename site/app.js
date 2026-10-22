@@ -2709,15 +2709,61 @@ const METHODS = [
 async function viewMethods(id) {
   const en = I18N.lang === "en", L = (v) => (en ? v[1] : v[0]);
   const H = { what: en ? "What it is" : "Là gì", how: en ? "How to use it" : "Cách vận dụng", web: en ? "Where & how on MyBit" : "Trên MyBit dùng ở đâu, thế nào" };
+  const ICO = { smc: "🧱", ta: "📐", flow: "💧", val: "⚖️", risk: "🛡️", rel: "🔗" };
+  const SH = { smc: ["SMC", "SMC"], ta: ["Chỉ báo", "Indicators"], flow: ["Dòng tiền", "Flows"], val: ["Định giá", "Valuation"], risk: ["Rủi ro", "Risk"], rel: ["Liên quan", "Relations"] };
   const groups = Object.keys(MG);
+  const nm = (m) => (en ? m[3] : m[2]), tx = (m) => (en ? m[5] : m[4]);
+  const fold = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+  const IDX = METHODS.map((m) => ({ m, n: fold(m[2] + " " + m[3] + " " + m[0]), b: fold(Object.values(m[4]).join(" ") + " " + Object.values(m[5]).join(" ")) }));
+  let cur = METHODS.find((m) => m[0] === id) || METHODS[0], q = "", grp = "", PH = [];
   app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Phương pháp – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
-    <div class="mtoc">${groups.map((g) => `<div><h4>${esc(L(MG[g]))}</h4>${METHODS.filter((m) => m[1] === g).map((m) => `<a href="#/methods/${m[0]}" data-m="${m[0]}">${esc(en ? m[3] : m[2])}</a>`).join("")}</div>`).join("")}</div>
-    ${groups.map((g) => `<h2 class="mgh">${esc(L(MG[g]))}</h2><div class="mgrid">${METHODS.filter((m) => m[1] === g).map((m) => { const c = en ? m[5] : m[4];
-      return `<section class="panel mcard" id="m-${m[0]}"><h3>${esc(en ? m[3] : m[2])}</h3>${["what", "how", "web"].map((k) => `<div class="mk mk-${k}"><b>${H[k]}</b><p>${esc(c[k])}</p></div>`).join("")}</section>`; }).join("")}</div>`).join("")}
-    <p class="faint disclaimer">${en ? "All methods are tools for structuring decisions with real numbers, not guarantees. Always place a stop on the exchange." : "Mọi phương pháp chỉ là công cụ để ra quyết định có số liệu, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn."}</p></div>`;
-  const go = (x) => { const e = document.getElementById("m-" + x); if (e) { e.scrollIntoView({ block: "start" }); e.classList.add("flash"); } };
-  $$(".mtoc a").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); history.replaceState(null, "", "#/methods/" + a.dataset.m); go(a.dataset.m); });
-  if (id) setTimeout(() => go(id), 50);
+    <div class="mlay">
+      <aside class="mside panel">
+        <div class="msearch"><input id="mq" type="search" autocomplete="off" placeholder="${en ? "Search: BOS, funding, MVRV…" : "Tìm: BOS, funding, định giá…"}"></div><small id="mcnt" class="mcnt"></small>
+        <div class="mchips"><button class="mchip on" data-g="">${en ? "All" : "Tất cả"}</button>${groups.map((g) => `<button class="mchip" data-g="${g}" title="${esc(L(MG[g]))}">${ICO[g]} ${L(SH[g])}</button>`).join("")}</div>
+        <nav id="mlist" class="mlist"></nav>
+      </aside>
+      <article id="mdet" class="mdet"></article>
+    </div></div>`;
+  const list = () => {
+    const f = fold(q).trim().replace(/\s+/g, " "), words = f.split(" ").filter(Boolean);
+    const wb = (t, w) => new RegExp("(^|[^a-z0-9])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(t);
+    const sc = (x) => !f ? 1 : x.n.includes(f) ? 4 : wb(x.b, f) ? 3 : words.every((w) => wb(x.n, w)) ? 2 : words.every((w) => wb(x.n, w) || wb(x.b, w)) ? 1 : 0;
+    let hit = IDX.filter((x) => !grp || x.m[1] === grp).map((x) => ((x.s = sc(x)), x)).filter((x) => x.s > 0);
+    const top = Math.max(0, ...hit.map((x) => x.s)); if (top >= 3) hit = hit.filter((x) => x.s >= 2);
+    hit.sort((x, y) => y.s - x.s); PH = top >= 3 ? [f] : words;
+    $("#mcnt").textContent = f ? `${hit.length} ${en ? "results" : "kết quả"}` : "";
+    const by = groups.map((g) => [g, hit.filter((x) => x.m[1] === g)]).filter(([, a]) => a.length);
+    $("#mlist").innerHTML = by.length ? by.map(([g, a]) => `<div class="mlg"><h4>${ICO[g]} ${esc(L(MG[g]))} <i>${a.length}</i></h4>${a.map((x) => {
+      let sn = "";
+      if (PH.length && x.s !== 4 && x.s !== 2) { const raw = Object.values(tx(x.m)).join(" "), p = fold(raw).indexOf(PH[0]); if (p >= 0) sn = `<small>…${esc(raw.slice(Math.max(0, p - 30), p + 60))}…</small>`; }
+      return `<a href="#/methods/${x.m[0]}" data-m="${x.m[0]}" class="${x.m === cur ? "on" : ""}">${esc(nm(x.m))}${sn}</a>`; }).join("")}</div>`).join("") : `<p class="muted" style="padding:8px">${en ? "No match." : "Không tìm thấy."}</p>`;
+    $$("#mlist a").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); show(METHODS.find((m) => m[0] === a.dataset.m)); });
+    return hit;
+  };
+  const mark = (t) => { const h = esc(t), ws = PH.filter((w) => w.length > 1); if (!ws.length) return h;
+    const ch = Array.from(h), f = ch.map((x) => fold(x)[0] || x).join(""), re = new RegExp("(?<![a-z0-9])(" + ws.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")", "g");
+    let out = "", i = 0, m; while ((m = re.exec(f))) { out += ch.slice(i, m.index).join("") + "<mark>" + ch.slice(m.index, m.index + m[0].length).join("") + "</mark>"; i = m.index + m[0].length; }
+    return out + ch.slice(i).join(""); };
+  const show = (m, keep) => {
+    cur = m; const c = tx(m), sib = METHODS.filter((x) => x[1] === m[1]), k = METHODS.indexOf(m), pv = METHODS[k - 1], nx = METHODS[k + 1];
+    $("#mdet").innerHTML = `<div class="panel mmain">
+      <div class="mcrumb"><span class="pill">${ICO[m[1]]} ${esc(L(MG[m[1]]))}</span><span class="faint">${sib.indexOf(m) + 1}/${sib.length}</span></div>
+      <h2>${esc(nm(m))}</h2>${en ? "" : `<p class="faint msub">${esc(m[3])}</p>`}
+      ${["what", "how", "web"].map((key, i) => `<section class="mk mk-${key}"><b><span class="mnum">${i + 1}</span>${H[key]}</b><p>${mark(c[key])}</p></section>`).join("")}
+      <div class="mnav">${pv ? `<a href="#/methods/${pv[0]}" data-m="${pv[0]}">← ${esc(nm(pv))}</a>` : "<span></span>"}${nx ? `<a href="#/methods/${nx[0]}" data-m="${nx[0]}">${esc(nm(nx))} →</a>` : ""}</div></div>
+      <div class="panel msib"><h4>${en ? "Same group" : "Cùng nhóm"}</h4>${sib.map((x) => `<a href="#/methods/${x[0]}" data-m="${x[0]}" class="${x === m ? "on" : ""}">${esc(nm(x))}</a>`).join("")}</div>
+      <p class="faint disclaimer">${en ? "All methods are tools for structuring decisions with real numbers, not guarantees. Always place a stop on the exchange." : "Mọi phương pháp chỉ là công cụ để ra quyết định có số liệu, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn."}</p>`;
+    $$("#mdet a[data-m]").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); show(METHODS.find((x) => x[0] === a.dataset.m)); });
+    $$("#mlist a").forEach((a) => a.classList.toggle("on", a.dataset.m === m[0]));
+    history.replaceState(null, "", "#/methods/" + m[0]);
+    if (!keep && innerWidth < 900) $("#mdet").scrollIntoView({ block: "start" });
+  };
+  $("#mq").oninput = (e) => { q = e.target.value; const h = list(); if (h.length && q.trim()) show(h[0].m, true); };
+  $("#mq").onkeydown = (e) => { if (e.key === "Enter") { const h = list(); if (h.length) show(h[0].m); } };
+  $$(".mchip").forEach((b) => b.onclick = () => { grp = b.dataset.g; $$(".mchip").forEach((x) => x.classList.toggle("on", x === b)); const h = list(); if (h.length && grp && cur[1] !== grp) show(h[0].m, true); });
+  list(); show(cur, true);
+  document.onkeydown = (e) => { if (e.key === "/" && location.hash.startsWith("#/methods") && document.activeElement?.id !== "mq") { e.preventDefault(); $("#mq").focus(); } };
 }
 const mLink = (id, t) => `<a class="mhelp" href="#/methods/${id}" title="${I18N.lang === "en" ? "What is this?" : "Đây là gì?"}">${t || "?"}</a>`;
 
