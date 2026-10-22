@@ -3193,7 +3193,7 @@ async function viewMethods(id) {
   app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Phương pháp – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
     <div class="mlay">
       <aside class="mside panel">
-        <div class="msearch"><input id="mq" type="search" autocomplete="off" placeholder="${en ? "Search: BOS, funding, MVRV…" : "Tìm: BOS, funding, định giá…"}"></div><small id="mcnt" class="mcnt"></small>
+        <label class="msearch sbx-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="mq" type="search" autocomplete="off" placeholder="${en ? "Search: BOS, funding, MVRV…" : "Tìm: BOS, funding, định giá…"}"><kbd>/</kbd></label><small id="mcnt" class="mcnt"></small>
         <div class="mchips"><button class="mchip on" data-g="">${en ? "All" : "Tất cả"}</button>${groups.map((g) => `<button class="mchip" data-g="${g}" title="${esc(L(MG[g]))}">${ICO[g]} ${L(SH[g])}</button>`).join("")}</div>
         <nav id="mlist" class="mlist"></nav>
       </aside>
