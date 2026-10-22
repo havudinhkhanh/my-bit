@@ -145,6 +145,25 @@ def run(notify: bool = False) -> dict:
                                    "title": f"{x['k']}: {'LONG' if x['side'] == 'long' else 'SHORT'} – {x['name']} ({'4h' if x['tf'] == 'h4' else 'ngày'})",
                                    "body": f"Vào ~{levels.sig(x['e'])}, cắt lỗ {levels.sig(x['s'])}, MT1 {levels.sig(x['t1'])} ({x.get('t1_pct')}%), xác suất {x.get('win1')}% · lãi TB {x.get('avgR')}R"})
                     users.deliver(be, cfg, u, it, "MyBit – cảnh báo")
+                # ----- bot giao dịch tự động (sàn thử)
+                try:
+                    from . import bot
+                    try:
+                        secs = json.loads(store.path("last_sectors.json").read_text())
+                    except (OSError, ValueError):
+                        secs = {}
+                    cache = {}
+
+                    def bars_of(k):
+                        if k not in cache:
+                            cache[k] = _px("h1", k)
+                        return cache[k]
+                    nb = bot.run_all(be, us, items, cj, secs, fut, prices, bars_of, cj.get("_light"), btc_up,
+                                     lambda u, it: users.deliver(be, cfg, u, it, "MyBit – bot giao dịch"))
+                    if nb:
+                        log.info("Bot: đã chạy cho %d người", nb)
+                except Exception as e:  # noqa: BLE001
+                    log.warning("bot: %s", e)
         except Exception as e:  # noqa: BLE001
             log.warning("notify live: %s", e)
     log.info("Lượt nhanh: %d coin, %d cơ hội (%d có lợi thế), KV=%s, %.0fs", len(prices), len(items), sum(x["edge"] for x in items), ok, time.time() - t0)

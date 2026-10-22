@@ -365,6 +365,10 @@ def run(notify: bool = False) -> dict:
         S = sectors.build(rows, pxs, btc, idea_list, details, book)
         S["at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         _w("sectors.json", S)
+        # bản gọn cho bot (lượt 15 phút đọc từ thư mục dữ liệu)
+        store.path("last_sectors.json").write_text(json.dumps({x["g"]: {"q": (x.get("action") or {}).get("q"), "head": (x.get("action") or {}).get("head"), "r30": x.get("r30"),
+                                                                       "rs30": x.get("rs30"), "mom": x.get("mom"), "best7": x.get("best7"), "trend_up": x.get("trend_up")}
+                                                                for x in S.get("sectors") or []}, ensure_ascii=False, default=str), encoding="utf-8")
     except Exception as e:  # noqa: BLE001
         log.warning("sectors: %s", e)
     # ----- xuất
@@ -375,7 +379,7 @@ def run(notify: bool = False) -> dict:
         _w(f"c/{key}.json", d)
     store.path("last_rows.json").write_text(json.dumps({"_light": (market.get("light") or {}).get("color"),
                                                        **{r["k"]: {"ts": r.get("ts"), "td": r.get("td"), "atr": r.get("atr"), "mc": r.get("mc"), "cr": r.get("cr"), "id": r.get("id"),
-                                                                   "ml": r.get("ml")} for r in rows}}), encoding="utf-8")
+                                                                   "ml": r.get("ml"), "g": r.get("g"), "spot": bool(r.get("spot")), "n": r.get("n")} for r in rows}}), encoding="utf-8")
     _w("coins.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "rows": rows, "peers": peers,
                       "light": (market.get("light") or {}).get("color"), "btc_up": not btc_down})
     _w("market.json", market)

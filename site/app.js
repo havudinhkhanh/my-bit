@@ -252,6 +252,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
+    else if (r === "bot") { setTab("bot"); await viewBot(); }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -420,7 +421,7 @@ function pnInit() {
 const SB = { ws: null, wsk: "", seq: 0, open: null };
 const SB_M = { market: ["sentiment", "btcval", "funding", "oi"], ideas: ["r", "choch", "mtf", "spotfut"], plan: ["gov", "r", "spotfut", "atr"], c: ["structure", "bos", "choch", "ob", "valuation"],
   sectors: ["rrg", "corr"], sector: ["rrg", "valuation", "supply"], futures: ["funding", "oi", "basis", "carry"], pairs: ["pairs", "corr"], radar: ["rt", "mtf", "choch"], live: ["cvd", "funding", "oi"],
-  paper: ["spotfut", "gov", "r"], portfolio: ["gov", "r"], backtest: ["r", "ema", "sentiment"], tools: ["gov", "atr", "r"], coins: ["valuation", "funding", "ema"] };
+  bot: ["r", "gov", "mtf", "spotfut"], paper: ["spotfut", "gov", "r"], portfolio: ["gov", "r"], backtest: ["r", "ema", "sentiment"], tools: ["gov", "atr", "r"], coins: ["valuation", "funding", "ema"] };
 const sbOpen = () => SB.open || (SB.open = pnLS("blk") || {});
 function sbBlk(key, title, body, extra = "") {
   if (!body) return "";
@@ -2443,6 +2444,136 @@ async function mtfMount(D) {
   const tm = setInterval(() => { if (!el.isConnected) { clearInterval(tm); return; } go(); }, 60e3);
 }
 
+// ================================================================ BOT GIAO DỊCH TỰ ĐỘNG (giai đoạn 1: sàn thử, chạy trên máy chủ mỗi 15 phút)
+const BOT_FAM = { trend: ["pullback_up", "pullback_dn", "breakout_up", "breakout_dn"], reversal: ["smc_sweep_up", "smc_sweep_dn", "oversold_up", "overbought_dn"], smc: ["smc_ob_up", "smc_ob_dn", "smc_sweep_up", "smc_sweep_dn"] };
+const BOT_PRE = {
+  safe: { t: "🛡️ Thận trọng", d: "Rủi ro 0,5%/lệnh · tối đa 3 lệnh · đòn bẩy ≤ x2 · chỉ lệnh chất lượng cao · dừng khi sụt 10%", v: { risk: 0.5, max_pos: 3, max_lev: 2, min_win: 45, min_avgR: 0.15, daily_stop: 2, max_dd: 10 } },
+  bal: { t: "⚖️ Cân bằng", d: "Rủi ro 1%/lệnh · tối đa 5 lệnh · đòn bẩy ≤ x3 · dừng khi sụt 15%", v: { risk: 1, max_pos: 5, max_lev: 3, min_win: 40, min_avgR: 0.1, daily_stop: 3, max_dd: 15 } },
+  aggr: { t: "🔥 Mạo hiểm", d: "Rủi ro 1,5%/lệnh · tối đa 8 lệnh · đòn bẩy ≤ x5 · nhận cả lệnh lợi thế mỏng · dừng khi sụt 25%", v: { risk: 1.5, max_pos: 8, max_lev: 5, min_win: 35, min_avgR: 0.05, daily_stop: 5, max_dd: 25 } },
+};
+const BOT_DEF = { enabled: false, name: "Bot của tôi", capital: 1000, preset: "bal", target_month: 5, protect: true, tf: "both", play: ["trend", "reversal", "smc"], sides: "both", spot: true, fut: true,
+  sectors: [], coins: [], exclude: [], sector_lead: false, htf_align: false, edge_only: true, tp1_part: 50, be_after_tp1: true, time_stop: true, ...BOT_PRE.bal.v };
+function botMatch(c, items, S) {
+  const sec = Object.fromEntries((S?.sectors || []).map((g) => [g.g, g.action?.q]));
+  return items.filter((x) => {
+    const r = BYK[x.k] || {};
+    if (c.tf !== "both" && x.tf !== c.tf) return false;
+    if (!c.play.some((f) => BOT_FAM[f].includes(x.setup))) return false;
+    if ((c.sides === "long" && x.side !== "long") || (c.sides === "short" && x.side !== "short")) return false;
+    if (c.edge_only && !x.edge) return false;
+    if ((x.win1 || 0) < c.min_win || (x.avgR || 0) < c.min_avgR) return false;
+    if (c.htf_align && x.htf !== "h+") return false;
+    if (c.exclude.includes(x.k)) return false;
+    if ((c.sectors.length || c.coins.length) && !c.sectors.includes(r.g) && !c.coins.includes(x.k)) return false;
+    if (c.sector_lead && r.g) { const q = sec[r.g]; if (x.side === "long" ? !["Dẫn dắt", "Cải thiện"].includes(q) : !["Tụt hậu", "Suy yếu"].includes(q)) return false; }
+    const mk = x.side === "long" && c.spot && r.spot ? "spot" : c.fut && r.fx ? "fut" : null;
+    return !!mk;
+  }).sort((a, b) => (b.avgR || 0) * (b.win1 || 0) - (a.avgR || 0) * (a.win1 || 0));
+}
+async function viewBot() {
+  const [I, S] = await Promise.all([tryLoad("data/ideas.json"), sectorsData(), coins()]);
+  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
+  const [rc, rs] = await Promise.all([Store.get("bot"), Store.get("botstate")]);
+  let C = { ...BOT_DEF, ...(rc.data || {}) };
+  const st = rs.data || null, Sx = st?.stats || {};
+  const { items } = await sbIdeas();
+  const reg = I?.btc_up ? "up" : "down", stats = I?.stats || {};
+  const groups = [...new Set((COINS?.rows || []).map((r) => r.g).filter(Boolean))].sort();
+  const pxNow = (k) => BYK[k]?.p;
+  const status = !C.enabled ? ["Đang tắt", "", "Bật bot để bắt đầu – máy chủ chạy mỗi 15 phút, kể cả khi anh tắt máy."] : st?.paused ? ["⛔ Tạm dừng", "sell", st.paused.why] : Sx.halt ? ["⏸ Ngừng mở lệnh", "warn", Sx.halt] : ["● Đang chạy", "buy", st?.last ? `lượt gần nhất ${etaTxt(st.last.slice(0, 16))}` : "chờ lượt chạy đầu tiên (≤ 15 phút)"];
+  const eqNow = st ? (st.cash + (st.pos || []).reduce((a, p) => { const m = pxNow(p.k) || p.e; return a + (p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e)); }, 0)) : C.capital;
+  const ret = st ? (eqNow / st.start - 1) * 100 : 0, mon = st?.month?.eq0 ? (eqNow / st.month.eq0 - 1) * 100 : 0, dd = st?.peak ? Math.max(0, (1 - eqNow / Math.max(st.peak, eqNow)) * 100) : 0;
+  const prog = (v, max, cls2) => `<i class="bot-bar"><i class="${cls2}" style="width:${Math.max(2, Math.min(100, (v / (max || 1)) * 100)).toFixed(0)}%"></i></i>`;
+  const R = st?.research;
+  app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch tự động</h1><span class="meta">Sàn thử (tiền giả, giá thật) · chạy trên máy chủ mỗi 15 phút ${mLink("r")}</span></div>
+    <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${status[1]} big">${status[0]}</span><b>${esc(C.name)}</b><small>${esc(status[2])}</small>
+      <span class="bot-btns"><button class="btn ${C.enabled ? "" : "primary"}" id="bOn">${C.enabled ? "⏸ Tắt bot" : "▶ Bật bot"}</button>${st?.paused ? `<button class="btn primary" id="bRes">Chạy lại</button>` : ""}<button class="btn" id="bClose" ${st?.pos?.length ? "" : "disabled"}>Đóng hết lệnh</button><button class="btn" id="bReset">Làm lại từ đầu</button></span></div>
+      ${kpis([["Tài sản bot", usd2(eqNow), "", `vốn ban đầu ${usd(st?.start ?? C.capital)}`], ["Lãi/lỗ từ đầu", pct(ret, 2), cls(ret)],
+        ["Tháng này", `${pct(mon, 2)}`, cls(mon), `mục tiêu ${nf(C.target_month, 1)}%` + prog(Math.max(0, mon), C.target_month, "up")],
+        ["Sụt so với đỉnh", `${nf(dd, 1)}%`, dd > C.max_dd * 0.7 ? "down" : "", `tạm dừng ở ${nf(C.max_dd, 0)}%` + prog(dd, C.max_dd, "down")],
+        ["Số lệnh đã đóng", nf(Sx.n || 0, 0), "", isNum(Sx.win) ? `thắng ${nf(Sx.win, 0)}%` : "chưa có"], ["Lãi TB mỗi lệnh", isNum(Sx.avgR) ? nf(Sx.avgR, 2) + "R" : "—", cls(Sx.avgR)],
+        ["Đang mở", `${(st?.pos || []).length}/${C.max_pos}`, "", isNum(Sx.open_risk) ? `rủi ro đang chịu ${usd2(Sx.open_risk)}` : ""], ["Rủi ro / lệnh", nf(C.risk * (Sx.risk_mult || 1), 2) + "%", "", Sx.risk_mult < 1 ? "đã giảm 1/2 để giữ lãi tháng" : "% tài sản bot"]])}</section>
+    <div class="g g2w">
+      <div>
+        ${panel("📋 Báo cáo nghiên cứu hôm nay", R ? `<p class="faint" style="margin:0 0 6px">Viết lúc ${esc(new Date(R.at + "Z").toLocaleString(LOC))} · bot đọc lại thị trường mỗi 15 phút</p><ul class="bot-rl">${R.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+          ${(R.sectors || []).length ? `<div class="tw"><table><thead><tr><th class="l">Nhóm anh chọn</th><th class="l">Trạng thái</th><th>30 ngày</th><th>So BTC</th><th class="l">Mạnh nhất 7n</th></tr></thead><tbody>${R.sectors.map((g) => `<tr><td class="l"><a href="#/sector/${enc(g.g)}">${esc(g.g)}</a></td><td class="l"><span class="pill ${QCOL[g.q] || ""}">${esc(g.q || "—")}</span></td><td class="${cls(g.r30)}">${pct(g.r30, 1)}</td><td class="${cls(g.rs30)}">${pct(g.rs30, 1)}</td><td class="l">${(g.top || []).map(([k, v]) => `${coinLink(k)} <small class="${cls(v)}">${pct(v, 0)}</small>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>` : ""}
+          ${(R.picks || []).length ? `<p class="sbh">Ứng viên tốt nhất theo cấu hình</p><div class="tw"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Cắt lỗ</th><th>MT1</th><th>Xác suất</th><th>Lãi TB</th></tr></thead><tbody>${R.picks.map((p) => `<tr><td class="l">${coinLink(p.k, "/smc")}</td><td class="l"><b class="${p.side === "long" ? "up" : "down"}">${p.mkt === "spot" ? "Mua spot" : p.side === "long" ? "Long fut" : "Short fut"}</b> <small>${p.tf === "d" ? "ngày" : "4h"}</small><br><small class="faint">${esc(p.name || "")}</small></td><td>${px(p.e)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)}</td><td>${nf(p.win1, 0)}%</td><td class="${cls(p.avgR)}">${nf(p.avgR, 2)}R</td></tr>`).join("")}</tbody></table></div>` : ""}`
+          : `<p class="muted">Chưa có báo cáo – bot viết báo cáo ở lượt chạy đầu tiên mỗi ngày (giờ Việt Nam) sau khi anh bật.</p>`)}
+        ${panel("📈 Tài sản của bot", st?.eq?.length > 1 ? lineSvg([{ name: "Tài sản (USDT)", color: css("--brand"), width: 2, pts: st.eq.map(([t, v]) => ({ x: new Date(t + "Z").toLocaleDateString(LOC, { day: "2-digit", month: "2-digit" }), y: v })) }], { h: 200, dec: 0, hlines: [{ y: st.start, label: "vốn ban đầu" }] }) : `<p class="muted">Đường tài sản hiện sau vài giờ chạy.</p>`)}
+        ${panel("Lệnh đang mở", st?.pos?.length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Lãi/lỗ</th><th class="l">Trạng thái</th></tr></thead><tbody>${st.pos.map((p) => { const m = pxNow(p.k) || p.e, u = p.sd * p.q * (m - p.e) + p.real - p.fee0 - p.fund, rr = p.risk_usd ? u / p.risk_usd : null;
+            return `<tr><td class="l">${coinLink(p.k, "/smc")}</td><td class="l"><b class="${p.sd > 0 ? "up" : "down"}">${p.sd > 0 ? "Long" : "Short"}</b> ${p.mkt === "spot" ? "spot" : "fut x" + p.lev}<br><small class="faint">${esc(p.name || "")} · ${p.tf === "d" ? "ngày" : "4h"}</small></td><td>${px(p.e)}</td><td>${px(m)}</td><td class="down">${px(p.s)}${p.s !== p.s0 ? "<br><small>hoà vốn</small>" : ""}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}<br><small>${isNum(rr) ? nf(rr, 2) + "R" : ""}</small></td><td class="l">${p.tp1 ? '<span class="pill buy">đã chốt MT1</span>' : '<span class="pill">chờ MT1</span>'}<br><small class="faint">mở ${dt(p.opened + "Z")}</small></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Không có lệnh đang mở.</p>`)}
+        ${panel("Lệnh đã đóng", st?.hist?.length ? `<div class="tw" style="max-height:340px"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Lãi/lỗ</th><th>R</th><th class="l">Lý do</th><th>Đóng lúc</th></tr></thead><tbody>${st.hist.slice().reverse().map((h) => `<tr><td class="l">${coinLink(h.k)}</td><td class="l">${h.side === "long" ? "Long" : "Short"} ${h.mkt === "spot" ? "spot" : "fut x" + h.lev}</td><td>${px(h.e)}</td><td class="${cls(h.pnl)}">${h.pnl >= 0 ? "+" : ""}${usd2(h.pnl)}</td><td class="${cls(h.r)}">${isNum(h.r) ? nf(h.r, 2) : "—"}</td><td class="l">${esc({ SL: "Cắt lỗ", BE: "Hoà vốn sau MT1", TP1: "MT1", TP2: "MT2", TIME: "Hết thời gian", LIQ: "Thanh lý", MANUAL: "Anh đóng", PAUSE: "Tạm dừng" }[h.why] || h.why)}</td><td><small>${dt(h.closed + "Z")}</small></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Chưa có lệnh nào đóng.</p>`)}
+        ${panel("📝 Nhật ký bot", st?.log?.length ? `<ul class="bot-log">${st.log.slice().reverse().slice(0, 80).map((l) => `<li class="${l.k}"><small>${dt(l.t + "Z")}</small> ${esc(l.m)}</li>`).join("")}</ul>` : `<p class="muted">Chưa có hoạt động.</p>`)}
+      </div>
+      <div>${panel("⚙️ Thiết lập bot", `<div id="bForm"></div>`)}
+        ${panel("🔗 Giai đoạn 2: lệnh thật trên Binance", `<p class="sbp">Khi bot chạy ổn trên sàn thử vài tuần, anh sẽ chuyển sang Binance bằng một <b>khoá API riêng cho bot</b>: chỉ bật quyền Giao dịch (Spot & Futures), <b>tắt quyền Rút tiền</b>, và tự dán khoá vào phần bí mật của máy chủ – em không bao giờ thấy khoá. Có thể tắt khoá bất cứ lúc nào trên Binance.</p><p class="faint" style="font-size:.74rem">Chưa bật được ở giai đoạn này: máy chủ chạy bot đặt ở Mỹ, nơi Binance.com chặn kết nối – cần một máy chủ đặt ở châu Á để gửi lệnh. Em sẽ làm phần này khi anh sẵn sàng.</p>`)}</div>
+    </div>`;
+  // ---- form
+  const T2 = (k, v) => `<button type="button" data-${k}="${v}"`;
+  const form = () => {
+    const m = botMatch(C, items, S), avgR = m.length ? m.reduce((a, x) => a + (x.avgR || 0), 0) / m.length : null;
+    const hist = ["d", "h4"].filter((tf) => C.tf === "both" || C.tf === tf).flatMap((tf) => Object.entries(stats[tf] || {}).filter(([k]) => k !== "_all" && C.play.some((f) => BOT_FAM[f].includes(k)) && (C.sides === "both" || (C.sides === "long") === /_up$/.test(k))).map(([, v]) => v[reg] || v.all || {}))
+      .filter((v) => isNum(v.avgR) && (v.n || 0) >= 100 && v.avgR >= C.min_avgR && (v.win1 || 0) >= C.min_win && (!C.edge_only || (v.avgR >= 0.05 && !(v.avgR_2y <= 0))));
+    const hR = hist.length ? hist.reduce((a, v) => a + v.avgR * v.n, 0) / hist.reduce((a, v) => a + v.n, 0) : null;
+    const perTrade = C.risk * (hR ?? avgR ?? 0.1), need = perTrade > 0 ? Math.ceil(C.target_month / perTrade) : null;
+    $("#bForm").innerHTML = `
+      <h4 class="bfh">1 · Mục tiêu & vốn</h4><div class="filters bff">
+        <div class="field"><label>Tên bot</label><input id="b_name" value="${esc(C.name)}"></div>
+        <div class="field"><label>Vốn giao cho bot (USDT)</label><input id="b_capital" inputmode="decimal" value="${C.capital}"></div>
+        <div class="field"><label>Lợi nhuận mục tiêu / tháng (%)</label><input id="b_target_month" inputmode="decimal" value="${C.target_month}"></div>
+        <div class="field"><label>Sụt tối đa → tạm dừng (%)</label><input id="b_max_dd" inputmode="decimal" value="${C.max_dd}"></div>
+        <label class="chk"><input type="checkbox" id="b_protect" ${C.protect ? "checked" : ""}> Đạt mục tiêu tháng thì giảm 1/2 rủi ro để giữ lãi</label></div>
+      <h4 class="bfh">2 · Khẩu vị rủi ro</h4><div class="bpre">${Object.entries(BOT_PRE).map(([k, p]) => `${T2("pre", k)} class="${C.preset === k ? "on" : ""}"><b>${p.t}</b><small>${p.d}</small></button>`).join("")}</div>
+      <details class="badv"><summary>Tuỳ chỉnh chi tiết</summary><div class="filters bff">
+        <div class="field"><label>Rủi ro mỗi lệnh (% tài sản)</label><input id="b_risk" inputmode="decimal" value="${C.risk}"></div>
+        <div class="field"><label>Số lệnh mở cùng lúc tối đa</label><input id="b_max_pos" inputmode="numeric" value="${C.max_pos}"></div>
+        <div class="field"><label>Đòn bẩy tối đa (≤ x5, hệ thống còn hạ thêm)</label><input id="b_max_lev" inputmode="numeric" value="${C.max_lev}"></div>
+        <div class="field"><label>Ngừng mở lệnh khi lỗ trong ngày (%)</label><input id="b_daily_stop" inputmode="decimal" value="${C.daily_stop}"></div></div></details>
+      <h4 class="bfh">3 · Phong cách & cách chơi</h4>
+      <div class="bseg">${[["both", "Swing + lướt"], ["d", "Swing khung ngày (giữ vài ngày–tuần)"], ["h4", "Lướt khung 4h (giữ vài giờ–ngày)"]].map(([v, t]) => `${T2("tf", v)} class="${C.tf === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      <div class="bseg">${[["trend", "📈 Theo xu hướng", "hồi Fibonacci, phá đỉnh/đáy"], ["reversal", "🔄 Bắt đảo chiều", "quét thanh khoản + CHoCH, quá mua/bán"], ["smc", "🧱 Smart Money", "hồi về Order Block"]].map(([v, t, d]) => `${T2("play", v)} class="${C.play.includes(v) ? "on" : ""}" title="${d}">${t}</button>`).join("")}</div>
+      <div class="bseg">${[["both", "Long & Short"], ["long", "Chỉ Long"], ["short", "Chỉ Short"]].map(([v, t]) => `${T2("sides", v)} class="${C.sides === v ? "on" : ""}">${t}</button>`).join("")}
+        <label class="chk"><input type="checkbox" id="b_spot" ${C.spot ? "checked" : ""}> Spot</label><label class="chk"><input type="checkbox" id="b_fut" ${C.fut ? "checked" : ""}> Futures</label></div>
+      <h4 class="bfh">4 · Phạm vi nghiên cứu</h4>
+      <p class="faint bfp">Chọn nhóm ngành bot được đánh (để trống = toàn thị trường).</p>
+      <div class="bchips">${groups.map((g) => `${T2("sec", esc(g))} class="${C.sectors.includes(g) ? "on" : ""}">${esc(g)}</button>`).join("")}</div>
+      <div class="filters bff"><div class="field"><label>Thêm coin cụ thể</label><input id="b_coins" placeholder="vd BTC, ETH, SOL" value="${esc(C.coins.join(", "))}"></div>
+        <div class="field"><label>Loại trừ coin</label><input id="b_exclude" placeholder="vd PEPE, DOGE" value="${esc(C.exclude.join(", "))}"></div>
+        <label class="chk" title="Long chỉ ở nhóm Dẫn dắt/Cải thiện, Short chỉ ở nhóm Tụt hậu/Suy yếu"><input type="checkbox" id="b_sector_lead" ${C.sector_lead ? "checked" : ""}> Chỉ đánh thuận dòng tiền nhóm ngành</label></div>
+      <h4 class="bfh">5 · Bộ lọc chất lượng & quản lý lệnh</h4><div class="filters bff">
+        <label class="chk"><input type="checkbox" id="b_edge_only" ${C.edge_only ? "checked" : ""}> Chỉ thiết lập có lợi thế lịch sử</label>
+        <label class="chk"><input type="checkbox" id="b_htf_align" ${C.htf_align ? "checked" : ""}> Bắt buộc khung lớn cùng chiều</label>
+        <div class="field"><label>Xác suất chạm MT1 tối thiểu (%)</label><input id="b_min_win" inputmode="decimal" value="${C.min_win}"></div>
+        <div class="field"><label>Lãi TB tối thiểu (R)</label><input id="b_min_avgR" inputmode="decimal" value="${C.min_avgR}"></div>
+        <div class="field"><label>Chốt bao nhiêu % ở MT1</label><input id="b_tp1_part" inputmode="numeric" value="${C.tp1_part}"></div>
+        <label class="chk"><input type="checkbox" id="b_be_after_tp1" ${C.be_after_tp1 ? "checked" : ""}> Dời cắt lỗ về hoà vốn sau MT1</label>
+        <label class="chk"><input type="checkbox" id="b_time_stop" ${C.time_stop ? "checked" : ""}> Đóng lệnh khi quá hạn kỳ vọng</label></div>
+      <div class="bexp">
+        <div><i>Khớp cấu hình lúc này</i><b>${m.length} lệnh</b><small>${m.slice(0, 4).map((x) => `${esc(x.k)} ${x.side === "long" ? "L" : "S"}`).join(" · ") || "không có"}</small></div>
+        <div><i>Lãi TB lịch sử của các thiết lập đã chọn</i><b class="${cls(hR)}">${isNum(hR) ? nf(hR, 2) + "R" : "—"}</b><small>${hist.length} thiết lập, đã trừ phí</small></div>
+        <div><i>Kỳ vọng mỗi lệnh</i><b class="${cls(perTrade)}">${pct(perTrade, 2)}</b><small>= rủi ro ${nf(C.risk, 1)}% × lãi TB</small></div>
+        <div><i>Để đạt ${nf(C.target_month, 1)}%/tháng</i><b>${need ? "≈ " + need + " lệnh/tháng" : "—"}</b><small>${!need ? "" : need <= 12 ? "khả thi với cấu hình này" : need <= 30 ? "khó – cần nhiều tín hiệu" : "không thực tế – hạ mục tiêu hoặc tăng rủi ro"}</small></div></div>
+      <div class="bsave"><button class="btn primary" id="bSave">💾 Lưu thiết lập</button><small class="faint">Bot dùng thiết lập mới từ lượt chạy kế tiếp (≤ 15 phút).</small></div>`;
+    const rd = () => { const g = (id) => $("#b_" + id); ["name"].forEach((k) => (C[k] = g(k).value.trim() || "Bot của tôi"));
+      ["capital", "target_month", "max_dd", "risk", "max_pos", "max_lev", "daily_stop", "min_win", "min_avgR", "tp1_part"].forEach((k) => { const v = numIn(g(k).value); if (isFinite(v)) C[k] = v; });
+      ["protect", "spot", "fut", "sector_lead", "edge_only", "htf_align", "be_after_tp1", "time_stop"].forEach((k) => (C[k] = g(k).checked));
+      C.coins = g("coins").value.split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter((x) => BYK[x]); C.exclude = g("exclude").value.split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean); };
+    $$("#bForm [data-pre]").forEach((b) => b.onclick = () => { rd(); C.preset = b.dataset.pre; Object.assign(C, BOT_PRE[C.preset].v); form(); });
+    $$("#bForm [data-tf]").forEach((b) => b.onclick = () => { rd(); C.tf = b.dataset.tf; form(); });
+    $$("#bForm [data-sides]").forEach((b) => b.onclick = () => { rd(); C.sides = b.dataset.sides; form(); });
+    $$("#bForm [data-play]").forEach((b) => b.onclick = () => { rd(); const v = b.dataset.play; C.play = C.play.includes(v) ? C.play.filter((x) => x !== v) : [...C.play, v]; if (!C.play.length) C.play = [v]; form(); });
+    $$("#bForm [data-sec]").forEach((b) => b.onclick = () => { rd(); const v = b.dataset.sec; C.sectors = C.sectors.includes(v) ? C.sectors.filter((x) => x !== v) : [...C.sectors, v]; form(); });
+    $$("#bForm input").forEach((e) => e.onchange = () => { rd(); form(); });
+    $("#bSave").onclick = async () => { rd(); await Store.put("bot", C); toast("Đã lưu thiết lập bot"); viewBot(); };
+  };
+  form();
+  const save = async (patch, msg) => { C = { ...C, ...patch }; await Store.put("bot", C); toast(msg); viewBot(); };
+  $("#bOn").onclick = () => save({ enabled: !C.enabled }, C.enabled ? "Đã tắt bot – lệnh đang mở vẫn được quản lý tới khi đóng" : "Đã bật bot – lượt chạy kế tiếp trong ≤ 15 phút");
+  if ($("#bRes")) $("#bRes").onclick = () => save({ resume_at: new Date().toISOString() }, "Bot sẽ chạy lại ở lượt kế tiếp");
+  $("#bClose").onclick = () => { if (confirm("Đóng TẤT CẢ lệnh của bot theo giá thị trường ở lượt chạy kế tiếp?")) save({ close_all_at: new Date().toISOString() }, "Bot sẽ đóng hết lệnh ở lượt kế tiếp"); };
+  $("#bReset").onclick = () => { if (confirm(`Xoá toàn bộ lịch sử bot và bắt đầu lại với ${usd(C.capital)}?`)) save({ reset_at: new Date().toISOString() }, "Bot sẽ khởi tạo lại ở lượt kế tiếp"); };
+}
+
 // ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)
 // Giả lập chạy hoàn toàn trên trình duyệt với giá thật từng giây của Binance; trạng thái lưu vào tài khoản MyBit ("paper").
 // Khoá API Binance (nếu kết nối) mã hoá bằng mật khẩu riêng của anh và CHỈ nằm trong trình duyệt này – không gửi lên máy chủ MyBit.
@@ -2916,7 +3047,7 @@ function trText(s) {
   while (i < n) {
     if (i === 0 || !IS_L.test(s[i - 1]) || !IS_L.test(s[i])) {
       let node = I18N.trie, j = i, best = -1, key = null;
-      while (j < n && (node = node[s[j]])) { j++; if (node.$ && (j === n || !IS_L.test(s[j]) || !IS_L.test(s[j - 1]))) { best = j; key = node.$; } }
+      while (j < n && (node = Object.prototype.hasOwnProperty.call(node, s[j]) ? node[s[j]] : null)) { j++; if (node[""] && (j === n || !IS_L.test(s[j]) || !IS_L.test(s[j - 1]))) { best = j; key = node[""]; } }
       if (best > 0) { out += I18N.d[key]; i = best; continue; }
     }
     out += s[i]; i++;
@@ -2944,7 +3075,7 @@ async function i18nInit() {
   try {
     I18N.d = await (await fetch("i18n-en.json", { cache: "no-cache" })).json();
     const root = {};
-    for (const k of Object.keys(I18N.d)) { let n = root; for (let i = 0; i < k.length; i++) n = n[k[i]] || (n[k[i]] = {}); n.$ = k; }
+    for (const k of Object.keys(I18N.d)) { let n = root; for (let i = 0; i < k.length; i++) n = Object.prototype.hasOwnProperty.call(n, k[i]) ? n[k[i]] : (n[k[i]] = {}); n[""] = k; }
     I18N.trie = root;
   } catch (e) { return; }
   trTree(document.body); document.title = trText(document.title);
