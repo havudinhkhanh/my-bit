@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import cval, derivs, ideas, levels, pairs, regime, smc, strategy, technical, sectors
+from .analysis import coindesc, cval, derivs, ideas, levels, pairs, regime, sectors, smc, strategy, technical
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
 from .data import store, universe
@@ -186,6 +186,18 @@ def run(notify: bool = False) -> dict:
             price = float(c["current_price"])
         if not price:
             continue
+        cgp0 = float(c["current_price"]) if c is not None and c.get("current_price") else None
+        if cgp0 and not (1 / 30 < price / cgp0 < 30):        # cặp nhân 1000 / 1 triệu chưa quy đổi → sửa theo giá CoinGecko
+            for m in (1e3, 1e6, 1e-3, 1e-6):
+                if 0.5 < price / m / cgp0 < 2:
+                    price /= m
+                    if df is not None:
+                        df = df.copy()
+                        for col in ("open", "high", "low", "close"):
+                            df[col] = df[col] / m
+                    break
+            else:
+                price = cgp0
         if df is not None:
             pxs[key] = df
         g = lambda k: (None if c is None else c.get(k))  # noqa: E731
@@ -285,7 +297,7 @@ def run(notify: bool = False) -> dict:
             nl.append({k2: v for k2, v in n.items() if k2 not in ("time", "key")})
         cut = (pd.Timestamp.utcnow().tz_localize(None) - pd.Timedelta(days=3)).strftime("%Y-%m-%dT%H:%M")
         row["nw"] = sum(1 for n in nl if n["t"] >= cut and n.get("sign", 0) < 0 and n.get("sev", 0) >= 3) or None
-        details[key] = {"row": row, "val": val, "news": nl, "lv": {"d": lvd, "h4": lvh}, "smc": smc_x, "flow": {"d": flow_d, "h4": flow_h}, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
+        details[key] = {"row": row, "about": coindesc.DESC.get(key), "gwhat": sectors.INFO.get(grp, {}).get("what"), "val": val, "news": nl, "lv": {"d": lvd, "h4": lvh}, "smc": smc_x, "flow": {"d": flow_d, "h4": flow_h}, "cf": {k: (_f(v, 0) if isinstance(v, (int, float)) else v) for k, v in (cfr or {}).items()
                                                         if k in ("name", "category", "fees_total30d", "rev_total30d", "hrev_total30d", "fees_total1y",
                                                                  "rev_total1y", "hrev_total1y", "fees_total30DaysAgo", "rev_total30DaysAgo", "n_parts")},
                         "unl": {"series": [p for p in (em or {}).get("series", []) if p[0] > time.time() - 3 * 365 * 86400][::2] if em else [],
@@ -350,7 +362,7 @@ def run(notify: bool = False) -> dict:
         log.warning("pairs: %s", e)
     # ----- nhóm ngành
     try:
-        S = sectors.build(rows, pxs, btc, idea_list, details)
+        S = sectors.build(rows, pxs, btc, idea_list, details, book)
         S["at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
         _w("sectors.json", S)
     except Exception as e:  # noqa: BLE001

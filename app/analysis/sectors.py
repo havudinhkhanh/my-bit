@@ -94,6 +94,34 @@ INFO = {
                   "money": "Phí sử dụng giao thức.", "drivers": "TVL & khối lượng DeFi chung.", "risks": "Thanh khoản thấp, lỗi hợp đồng."},
     "Khác": {"what": "Coin chưa phân loại được vào nhóm nào.", "product": "—", "money": "—", "drivers": "—", "risks": "Xem từng coin."},
 }
+PLAY = {
+ "Layer 1": "Đi theo BTC (beta ~1–1,5). Swing khung ngày khi BTC trên MA200; coin lớn (ETH, SOL) dùng được đòn bẩy thấp. Theo dõi dòng tiền ETF và tỉ giá ETH/BTC để biết tiền đang chảy sang altcoin hay chưa.",
+ "Layer 2": "Thường yếu hơn ETH khi thị trường đi ngang vì áp lực mở khoá. Chỉ Long khi ETH mạnh và có tin chia phí / nâng cấp; Short hồi lên kháng cự trước các đợt mở khoá lớn là chiến lược phổ biến.",
+ "Meme": "Chỉ lướt ngắn, khối lượng nhỏ (rủi ro ≤ 0,5% vốn/lệnh), chốt lời nhanh từng phần. Vào khi khối lượng & funding vừa tăng; thoát khi funding nóng hoặc mất cấu trúc khung 4h. Không giữ dài hạn.",
+ "AI": "Chạy theo tin ngành AI (báo cáo Nvidia, ra mắt mô hình). Biến động lớn → đòn bẩy thấp, cắt lỗ rộng hơn; ưu tiên coin có người dùng thật (TAO, RENDER) hơn coin chỉ có câu chuyện.",
+ "DePIN": "Theo dõi doanh thu thật và lượng token đốt; nhóm hay chạy cùng AI. Swing khi nhóm vào góc 'Cải thiện' → 'Dẫn dắt'; tránh coin có lạm phát token cao.",
+ "Sàn tập trung": "Biến động thấp hơn thị trường, chạy theo khối lượng giao dịch toàn thị trường. Phù hợp giữ spot dài hạn, ít hợp để lướt.",
+ "DEX": "Tăng mạnh trong mùa meme / khối lượng on-chain cao. Định giá bằng P/S được – ưu tiên DEX có mua lại token.",
+ "Phái sinh": "Có doanh thu & mua lại thật (Hyperliquid). Định giá theo P/S, swing theo khối lượng perp; cẩn trọng khi có sự cố thanh lý / thao túng.",
+ "Cho vay": "Hưởng lợi khi thị trường tăng (nhu cầu vay đòn bẩy). Định giá bằng P/S, doanh thu ổn định – phù hợp swing và tích luỹ.",
+ "Staking": "Đi theo giá ETH/SOL. Ít biến động riêng; Long khi ETH mạnh hơn BTC.",
+ "Lợi suất": "Nhạy với funding thị trường: funding cao → doanh thu tăng. Long khi funding chung tăng, cẩn trọng khi funding âm kéo dài.",
+ "Stablecoin/CDP": "Có mua lại token từ lợi nhuận, ít biến động – phù hợp giữ spot theo định giá.",
+ "RWA": "Chạy theo tin định chế lớn & pháp lý. Coin lớn (ONDO) swing khi có tin; nhiều token nhỏ thanh khoản thấp – đánh rất nhỏ.",
+ "Oracle": "LINK là đại diện – chạy theo tin ngân hàng & token hoá. Swing khung ngày, ít hợp lướt.",
+ "Cầu nối": "Rủi ro hack cao, mở khoá lớn – chỉ đánh ngắn theo tin, không giữ dài.",
+ "Game": "Nhóm yếu nhất chu kỳ gần đây; chỉ lướt khi có game mới hoặc mùa altcoin, khối lượng nhỏ.",
+ "Riêng tư": "Hay chạy độc lập với thị trường (tin pháp lý, giám sát). Biến động mạnh, rủi ro huỷ niêm yết – khối lượng nhỏ.",
+ "Thanh toán": "Chạy theo tin pháp lý / ETF (XRP), thường bùng nổ ngắn rồi đi ngang dài – chốt lời nhanh khi có tin.",
+ "Hệ Bitcoin": "Chạy khi BTC mạnh và có trào lưu Ordinals/Runes – lướt theo trào lưu.",
+ "Dự đoán": "Theo sự kiện lớn (bầu cử, thể thao).",
+ "Hạ tầng": "Ít câu chuyện – swing theo thị trường chung.",
+ "DeFi khác": "Thanh khoản thấp, đánh nhỏ theo thiết lập kỹ thuật có lợi thế.",
+ "Khác": "Xem từng coin."
+}
+for _k, _v in PLAY.items():
+    INFO.setdefault(_k, {})["play"] = _v
+
 ALIAS = {"Launchpad": "DeFi khác", "Dịch vụ": "Hạ tầng", "Interface": "DeFi khác", "Token Locker": "DeFi khác", "NFT": "Game", "CeDeFi": "DeFi khác",
          "Mạng xã hội": "DeFi khác", "Ví": "Hạ tầng", "Bot giao dịch": "DEX", "Blockchain L1/L2": "Layer 1"}
 
@@ -123,7 +151,9 @@ def _vol(d: pd.DataFrame) -> pd.Series:
     return s[~s.index.duplicated(keep="last")]
 
 
-def build(rows: list[dict], pxs: dict, btc: pd.DataFrame | None, ideas: list[dict], details: dict) -> dict:
+def build(rows: list[dict], pxs: dict, btc: pd.DataFrame | None, ideas: list[dict], details: dict, book=None) -> dict:
+    from . import ideas as ID
+    from .coindesc import DESC
     # bỏ token gần như không biến động (quỹ tín dụng / stablecoin lạ token hoá) – không phải thứ để giao dịch
     def flat(r):
         d = pxs.get(r["k"])
@@ -204,8 +234,52 @@ def build(rows: list[dict], pxs: dict, btc: pd.DataFrame | None, ideas: list[dic
              "ideas": [{k: x.get(k) for k in ("k", "side", "tf", "name", "win1", "avgR", "t1_pct", "e")} for x in idl[:8]],
              "top": [r["k"] for r in L[:12]], "best7": [[r["k"], r["r7"]] for r in rr("r7")[:5]], "worst7": [[r["k"], r["r7"]] for r in rr("r7")[::-1][:5]],
              "best30": [[r["k"], r["r30"]] for r in rr("r30")[:5]], "members": [r["k"] for r in L], "series": series}
+        # đặc tính nhóm
+        def med(k, arr=liq):
+            v = [r[k] for r in arr if r.get(k) is not None]
+            return _f(np.median(v), 2) if v else None
+        s["beta"], s["atr"] = med("beta"), med("atr")
+        if idx is not None and bs is not None and len(idx) > 95:
+            ri, rb = idx.pct_change().tail(90), bs.reindex(idx.index).ffill().pct_change().tail(90)
+            s["volat"] = _f(ri.std() * math.sqrt(365) * 100, 0)
+            s["corr"] = _f(ri.corr(rb), 2)
+        mcs = [r for r in L if r.get("mc")]
+        s["u90"] = _f(sum((r.get("u90") or 0) * r["mc"] for r in mcs) / max(1, sum(r["mc"] for r in mcs)), 2) if mcs else None
+        s["unl"] = [[r["k"], r["u90"]] for r in sorted([r for r in L if (r.get("u90") or 0) >= 1], key=lambda r: -r["u90"])[:6]]
+        vd = {}
+        for r in L:
+            if r.get("vd"):
+                vd[r["vd"]] = vd.get(r["vd"], 0) + 1
+        s["vd"] = vd
+        s["cheap"] = [[r["k"], r["ps"], ((details.get(r["k"]) or {}).get("cf") or {}).get("rev_total30d")] for r in sorted([r for r in L if r.get("ps")], key=lambda r: r["ps"])[:6]]
+        s["revtop"] = [[r["k"], ((details.get(r["k"]) or {}).get("cf") or {}).get("rev_total30d")] for r in sorted(L, key=lambda r: -((((details.get(r["k"]) or {}).get("cf") or {}).get("rev_total30d")) or 0))[:6]
+                       if ((details.get(r["k"]) or {}).get("cf") or {}).get("rev_total30d")]
+        s["f_hot"] = [[r["k"], r["f8"]] for r in sorted([r for r in L if r.get("f8") is not None and (r.get("oi") or 0) > 2e6], key=lambda r: -r["f8"])[:4]]
+        s["oi_top"] = [[r["k"], r.get("oi"), r.get("oi7")] for r in sorted([r for r in L if r.get("oi")], key=lambda r: -r["oi"])[:6]]
+        s["trend_up"] = [r["k"] for r in liq if r.get("ts") == 1][:10]
+        s["desc"] = {r["k"]: DESC[r["k"]] for r in L[:24] if r["k"] in DESC}
         s["action"] = advice(s)
         out.append(s)
+    tot = sum(x["mc"] or 0 for x in out) or 1
+    for x in out:
+        x["share"] = _f((x["mc"] or 0) / tot * 100, 2)
+    # thiết lập kỹ thuật nào hiệu quả với từng nhóm (kiểm chứng lịch sử, gộp mọi coin trong nhóm)
+    if book is not None:
+        gk = {r["k"]: norm(r.get("g")) for r in rows}
+        pool = {}
+        for (key, tf, st), res in book.coin.items():
+            g = gk.get(key)
+            if g:
+                pool.setdefault((g, tf, st), []).extend(res)
+        for x in out:
+            L2 = []
+            for tf in ("d", "h4"):
+                for st in ID.NAMES:
+                    R = pool.get((x["g"], tf, st)) or []
+                    if len(R) >= 40:
+                        q = ID.stats(R)
+                        L2.append({"tf": tf, "setup": st, "n": q["n"], "win1": q.get("win1"), "avgR": q.get("avgR"), "avgR_2y": q.get("avgR_2y"), "d1": q.get("d1")})
+            x["setups"] = sorted(L2, key=lambda q: -(q["avgR"] or -9))
     out.sort(key=lambda s: -(s["mc"] or 0))
     return {"sectors": out}
 

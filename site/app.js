@@ -542,10 +542,12 @@ const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<span class="co
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
-  return `<div class="g g2w">
+  return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="g g3w">
     ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.72rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
-    <div>
+    <div class="col">
       ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
+      ${planSummary(D)}</div>
+    <div class="col">
       ${panel("Tóm tắt", `${kpis([["Định giá", vdPill(V.verdict)], ["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
         ["Vốn hoá", usd(r.mc)], ["FDV", usd(r.fdv), "", "Vốn hoá nếu toàn bộ tổng cung lưu hành"], ["Lưu hành", isNum(V.float_pct) ? nf(V.float_pct, 0) + "%" : "—", V.float_pct < 35 ? "down" : ""],
         ["KL 24h", usd(r.vol)], ["Từ đỉnh", pct(r.ath, 0), "down", cg.ath_date ? `Đỉnh ${px(cg.ath)} ngày ${fmtD(cg.ath_date)}` : ""],
@@ -553,7 +555,6 @@ function tabOverview(D) {
         r.oi ? ["OI futures", usd(r.oi)] : null, r.oi ? ["Funding 8h", f8s(r.f8), f8c(r.f8)] : null, D.hedge?.beta ? ["Beta với BTC", nf(D.hedge.beta, 2), "", `Tương quan ${nf(D.hedge.corr, 2)} · biến động năm hoá ${nf(D.hedge.vol90, 0)}%`] : null])}
         ${why.length ? `<ul class="why">${why.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
         ${(D.crowd || []).length ? `<div class="note">${D.crowd.map((c) => `<p><b>${esc(c.t)}</b>: ${esc(c.d)}</p>`).join("")}</div>` : ""}`)}
-      ${planSummary(D)}
       ${(D.news || []).length ? panel("Tin tức", `<div class="ntfs">${D.news.slice(0, 12).map((n) => newsRow(n)).join("")}</div>`) : ""}
     </div></div>`;
 }
@@ -1254,11 +1255,28 @@ async function viewSectors() {
   const drawS = () => { const xs = L.slice().sort((a, b) => (b[sort] ?? -1e18) - (a[sort] ?? -1e18));
     $("#secs").innerHTML = xs.map((s) => `<a class="sec" href="#/sector/${enc(s.g)}"><div class="sec-h"><b>${esc(s.g)}</b>${pill(esc(s.action?.q || "—"), QCOL[s.action?.q] || "")}</div>
       <p class="sec-w">${esc(s.info.what)}</p>${spark(s.series.slice(-90).map((x) => x[1]), { w: 260, h: 38 })}
-      <div class="sec-k"><span><i>7n</i><b class="${cls(s.r7)}">${pct(s.r7, 1)}</b></span><span><i>30n</i><b class="${cls(s.r30)}">${pct(s.r30, 1)}</b></span><span><i>So BTC</i><b class="${cls(s.rs30)}">${pct(s.rs30, 1)}</b></span><span><i>Đang tăng</i><b>${isNum(s.breadth) ? nf(s.breadth, 0) + "%" : "—"}</b></span><span><i>Tiền vào</i><b class="${cls(s.vflow)}">${pct(s.vflow, 0)}</b></span></div>
+      <div class="sec-k"><span><i>7n</i><b class="${cls(s.r7)}">${pct(s.r7, 1)}</b></span><span><i>30n</i><b class="${cls(s.r30)}">${pct(s.r30, 1)}</b></span><span><i>So BTC</i><b class="${cls(s.rs30)}">${pct(s.rs30, 1)}</b></span><span><i>Đang tăng</i><b>${isNum(s.breadth) ? nf(s.breadth, 0) + "%" : "—"}</b></span><span><i>Tiền vào</i><b class="${cls(s.vflow)}">${pct(s.vflow, 0)}</b></span><span><i>Vốn hoá</i><b>${usd(s.mc)}</b></span><span><i>Beta</i><b>${nf(s.beta, 1)}</b></span><span><i>Biến động</i><b>${isNum(s.volat) ? nf(s.volat, 0) + "%" : "—"}</b></span><span><i>Funding</i><b class="${f8c(s.f8)}">${isNum(s.f8) ? nf(s.f8 * 100, 1) + "‱" : "—"}</b></span><span><i>Cơ hội</i><b>${s.ideas_long ? `<span class="up">${s.ideas_long}L</span> ` : ""}${s.ideas_short ? `<span class="down">${s.ideas_short}S</span>` : ""}${!s.ideas_long && !s.ideas_short ? "0" : ""}</b></span></div>
       <p class="sec-a">${esc(s.action?.head || "")}</p><div class="sec-t">${s.top.slice(0, 6).map((k) => `<span>${esc(k)}</span>`).join("")}</div></a>`).join(""); };
   $$("#srg button").forEach((b) => b.onclick = () => { rng = +b.dataset.d; lsSet("secrng", rng); $$("#srg button").forEach((x) => x.classList.toggle("on", x === b)); drawC(); });
   $$("#sso button").forEach((b) => b.onclick = () => { sort = b.dataset.k; lsSet("secsort", sort); $$("#sso button").forEach((x) => x.classList.toggle("on", x === b)); drawS(); });
   drawC(); drawS();
+}
+
+function secMore(s, mem) {
+  const tbl = (head, rows) => `<div class="tw"><table><thead><tr>${head.map((h, i) => `<th class="${i ? "" : "l"}">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("") || `<tr><td colspan="${head.length}" class="muted">—</td></tr>`}</tbody></table></div>`;
+  const D = s.desc || {}, tops = s.top.slice(0, 9).map((k) => BYK[k]).filter(Boolean);
+  const cards = `<div class="cdesc">${tops.map((r) => `<a class="cd" href="#/c/${enc(r.k)}"><div class="cd-h"><b>${esc(r.k)}</b><small>${esc(r.n || "")}</small><span class="${cls(r.r1)}">${pct(r.r1, 1)}</span></div>
+    <p>${esc(D[r.k] || "Chưa có mô tả – bấm để xem phân tích coin.")}</p><div class="cd-k"><span>${usd(r.mc)}</span><span class="${cls(r.r30)}">30n ${pct(r.r30, 0)}</span>${tsPill(r.ts, r.td)}${vdPill(r.vd)}</div></a>`).join("")}</div>`;
+  const vdT = Object.entries(s.vd || {}).sort((a, b) => b[1] - a[1]), vdN = vdT.reduce((x, [, n]) => x + n, 0) || 1;
+  const vdBar = vdT.length ? `<div class="vdbar">${vdT.map(([k, n]) => `<i class="${VD_CLS[k] || ""}" style="flex:${n}" title="${esc(k)}: ${n} coin">${n / vdN > 0.12 ? esc(k) + " " + n : ""}</i>`).join("")}</div>` : "";
+  const st = (s.setups || []).slice(0, 8).map((q) => `<tr><td class="l">${TFV[q.tf]} · ${esc(IDEA_NAMES[q.setup] || q.setup)}</td><td>${nf(q.n, 0)}</td><td>${nf(q.win1, 0)}%</td><td class="${cls(q.avgR)}"><b>${nf(q.avgR, 2)}R</b></td><td class="${cls(q.avgR_2y)}">${isNum(q.avgR_2y) ? nf(q.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(q.d1) ? durTxt(q.d1, q.tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`);
+  const lst = (arr, f) => `<div class="rows">${(arr || []).map((x) => coinMini(x[0], f(x))).join("") || `<p class="muted">—</p>`}</div>`;
+  return `${panel(`Coin tiêu biểu trong nhóm – làm gì?`, cards)}
+    <div class="g g2">${panel("🎮 Cách đánh nhóm này", `<p class="play">${esc(s.info?.play || "")}</p><h4 class="sub">Thiết lập kỹ thuật hiệu quả nhất với nhóm (kiểm chứng lịch sử)</h4>${tbl(["Thiết lập", "Số lần", "Chạm MT1", "Lãi TB", "2 năm gần", "Tới MT1"], st)}<p class="faint" style="font-size:.72rem">Gộp mọi coin trong nhóm, đã trừ phí. Chỉ tin thiết lập có lãi TB dương ở cả cột "2 năm gần".</p>`)}
+      ${panel("💰 Định giá & dòng tiền thật", `${vdBar}<h4 class="sub">Rẻ nhất theo P/S (vốn hoá / doanh thu năm)</h4>${tbl(["Coin", "P/S", "Doanh thu 30 ngày"], (s.cheap || []).map(([k, ps, rv]) => `<tr><td class="l">${coinLink(k)}</td><td><b>${nf(ps, 1)}</b></td><td>${rv ? usd(rv) : "—"}</td></tr>`))}<h4 class="sub">Doanh thu lớn nhất 30 ngày</h4>${tbl(["Coin", "Doanh thu"], (s.revtop || []).map(([k, rv]) => `<tr><td class="l">${coinLink(k)}</td><td>${usd(rv)}</td></tr>`))}`)}</div>
+    <div class="g g4">${panel("🚀 Mạnh nhất 7 ngày", lst(s.best7, ([, v]) => `<small class="${cls(v)}">${pct(v, 1)}</small>`))}${panel("🩸 Yếu nhất 7 ngày", lst(s.worst7, ([, v]) => `<small class="${cls(v)}">${pct(v, 1)}</small>`))}
+      ${panel("📊 OI futures lớn nhất", lst(s.oi_top, ([, oi, o7]) => `<small>${usd(oi)} · 7n <b class="${cls(o7)}">${pct(o7, 0)}</b></small>`))}${panel("🔓 Mở khoá 90 ngày tới", lst(s.unl, ([, u]) => `<small class="${u >= 3 ? "down" : ""}">${nf(u, 1)}% lưu hành</small>`))}</div>
+    ${(s.trend_up || []).length ? panel("✅ Coin trong nhóm đang xu hướng tăng (khung ngày)", `<div class="chips">${s.trend_up.map((k) => coinLink(k)).join("")}</div>`) : ""}`;
 }
 async function viewSector(g) {
   const [S, I] = await Promise.all([sectorsData(), tryLoad("data/ideas.json"), coins()]);
@@ -1274,10 +1292,13 @@ async function viewSector(g) {
     <div class="g g2w">
       ${panel("Chỉ số giá nhóm", `<span class="seg" id="srg1">${[30, 90, 365].map((d) => `<button data-d="${d}" class="${d === rng ? "on" : ""}">${d === 365 ? "1 năm" : d + " ngày"}</button>`).join("")}</span><div id="sch"></div><p class="faint" style="font-size:.72rem">Theo vốn hoá = coin lớn nặng ký hơn · Bình quân = mỗi coin như nhau (phản ánh coin nhỏ trong nhóm) · BTC để so sánh. Chỉ tính coin giao dịch được trên Binance / sàn futures.</p>`)}
       ${panel("Nhóm này là gì?", `<dl class="secinfo"><dt>Là gì</dt><dd>${esc(In.what)}</dd><dt>Sản phẩm / dịch vụ</dt><dd>${esc(In.product)}</dd><dt>Kiếm tiền từ đâu · token được gì</dt><dd>${esc(In.money)}</dd><dt>Điều làm giá chạy</dt><dd>${esc(In.drivers)}</dd><dt>Rủi ro chính</dt><dd>${esc(In.risks)}</dd></dl>`)}</div>
-    ${panel("Số liệu nhóm", kpis([["Vốn hoá", usd(s.mc)], ["KL 24h", usd(s.vol)], ["7 ngày", pct(s.r7, 1), cls(s.r7)], ["30 ngày", pct(s.r30, 1), cls(s.r30)], ["90 ngày", pct(s.r90, 0), cls(s.r90)], ["1 năm", pct(s.r365, 0), cls(s.r365)],
+    ${panel("Số liệu nhóm", kpis([["Vốn hoá", usd(s.mc)], ["Tỷ trọng thị trường", isNum(s.share) ? nf(s.share, 2) + "%" : "—"], ["KL 24h", usd(s.vol)],
+      ["Beta với BTC (trung vị)", nf(s.beta, 2), "", "BTC tăng/giảm 1% thì coin trong nhóm thường tăng/giảm bấy nhiêu %"], ["Biến động năm hoá", isNum(s.volat) ? nf(s.volat, 0) + "%" : "—"], ["Tương quan với BTC", nf(s.corr, 2)], ["Biến động ngày (ATR)", isNum(s.atr) ? nf(s.atr, 1) + "%" : "—"],
+      ["Mở khoá 90 ngày tới", isNum(s.u90) ? nf(s.u90, 2) + "% vốn hoá" : "—", s.u90 >= 2 ? "down" : ""], ["7 ngày", pct(s.r7, 1), cls(s.r7)], ["30 ngày", pct(s.r30, 1), cls(s.r30)], ["90 ngày", pct(s.r90, 0), cls(s.r90)], ["1 năm", pct(s.r365, 0), cls(s.r365)],
       ["So BTC 30 ngày", pct(s.rs30, 1), cls(s.rs30)], ["So BTC 90 ngày", pct(s.rs90, 1), cls(s.rs90)], ["Cách đỉnh 1 năm", pct(s.dd, 0), "down"], ["Coin đang tăng", isNum(s.breadth) ? `${nf(s.breadth, 0)}%` : "—", "", `${s.up} tăng · ${s.dn} giảm`],
       ["Khối lượng 7n vs 30n", pct(s.vflow, 0), cls(s.vflow)], ["Thị phần khối lượng", isNum(s.vshare7) ? nf(s.vshare7, 1) + "%" : "—", "", `30 ngày trước: ${nf(s.vshare30, 1)}%`], ["OI futures", usd(s.oi)], ["OI 7 ngày", pct(s.oi7, 0), cls(s.oi7)], ["Funding TB", f8s(s.f8), f8c(s.f8)],
       ["P/S trung vị", isNum(s.ps_med) ? nf(s.ps_med, 1) : "—", "", "Vốn hoá / doanh thu năm hoá – chỉ coin có doanh thu đo được"], ["Doanh thu 30 ngày", s.rev30 ? usd(s.rev30) : "—", "", `Phí người dùng trả 30 ngày: ${usd(s.fees30)}`]]))}
+    ${secMore(s, mem)}
     ${ideasHere.length ? panel(`🎯 Cơ hội có lợi thế trong nhóm ${esc(g)}`, `<div class="rows">${ideasHere.slice(0, 10).map((x) => coinMini(x.k, `<span class="pill ${x.side === "long" ? "buy" : "sell"}">${x.side === "long" ? (BYK[x.k]?.spot ? "Mua spot" : "Long") : "Short"}</span> <small>${x.tf === "d" ? "ngày" : "4h"} · MT1 ${pct(x.t1_pct, 1)} · ${nf(x.win1, 0)}% · ${nf(x.avgR, 2)}R</small>`)).join("")}</div>`, `<a href="#/ideas">tất cả cơ hội</a>`) : ""}
     ${panel(`Các coin trong nhóm (${mem.length})`, `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Giá</th><th>24h</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>Vốn hoá</th><th>Xu hướng</th><th class="l">Định giá</th><th>Funding</th><th class="l">Giao dịch</th></tr></thead><tbody>${mem.map((r) => `<tr><td class="l">${coinLink(r.k)}</td><td>${px(r.p)}</td><td class="${cls(r.r1)}">${pct(r.r1, 1)}</td><td class="${cls(r.r7)}">${pct(r.r7, 1)}</td><td class="${cls(r.r30)}">${pct(r.r30, 0)}</td><td class="${cls(r.r90)}">${pct(r.r90, 0)}</td><td>${usd(r.mc)}</td><td>${tsPill(r.ts, r.td)}</td><td class="l">${vdPill(r.vd)}</td><td class="${f8c(r.f8)}">${r.oi ? f8s(r.f8) : "—"}</td><td class="l"><small>${r.spot ? "Spot" : ""}${r.spot && r.fx ? " · " : ""}${r.fx ? "Perp" : ""}</small></td></tr>`).join("")}</tbody></table></div>`)}`;
   const drawC = () => { const z = s.series.slice(-rng - 1); if (!z.length) { $("#sch").innerHTML = `<p class="muted">Chưa đủ dữ liệu giá.</p>`; return; } const [a0, e0, c0] = [z[0][1], z[0][2], z[0][3]];

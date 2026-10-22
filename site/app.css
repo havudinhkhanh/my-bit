@@ -1721,3 +1721,76 @@ small{font-size:.8em}
 .secinfo{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:8px 14px;margin:0;font-size:.88rem;line-height:1.55}
 .secinfo dt{color:var(--ink-3);font-weight:600}.secinfo dd{margin:0}
 .sec-ah{font-size:1.05rem;font-weight:600;margin:0 0 6px}
+
+/* =====================================================================
+   BỐ CỤC THỐNG NHẤT – một thang khoảng cách, lưới nhiều cột theo bề rộng màn hình, nút & ô nhập cùng chiều cao
+   ===================================================================== */
+:root{--gap:14px;--gap-s:8px;--ctl:34px;--rad:10px}
+main{max-width:1920px}
+#app>*+*{margin-top:var(--gap)}
+#app>.ph+*{margin-top:6px}
+.g,.g2w,.g3w,.g5,.lanes,.secs,.more,.hzs,.ideas,.cdesc{gap:var(--gap)!important}
+.g>div:not(.panel)>*+*,.g2w>div:not(.panel)>*+*,.g3w>.col>*+*{margin-top:var(--gap)}
+.g+.g,.panel+.g,.g+.panel,.panel+.panel,.filters+.lanes,.panel+.secs{margin-top:var(--gap)}
+.panel{padding:14px 16px;border-radius:var(--rad)}
+.panel>.ph,.panel .ph:first-child{margin-bottom:12px;padding-bottom:10px}
+.ph{gap:10px}
+.ph .meta{font-size:.78rem;line-height:1.5}
+/* lưới */
+@media (min-width:760px){.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1150px){.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1150px) and (max-width:1399px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1400px){.g4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.g5{display:grid;grid-template-columns:minmax(0,1fr)}
+@media (min-width:700px){.g5{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1150px){.g5{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:1450px){.g5{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1750px){.g5{grid-template-columns:repeat(5,minmax(0,1fr))}}
+.g3w{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:1100px){.g3w{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)}.g3w>.col:last-child{grid-column:1/-1}}
+@media (min-width:1500px){.g3w{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,.9fr)}.g3w>.col:last-child{grid-column:auto}}
+.g3w>*{min-width:0}
+@media (min-width:1700px){.g2w{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}}
+/* phiếu lệnh 2 cột khi màn rộng */
+@media (min-width:1650px){#plTop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--gap);align-items:start}#plTop>.ltk{margin:0}#plTop>.empty{grid-column:1/-1}}
+/* nút & ô nhập: cùng chiều cao, cách đều */
+.btn{min-height:var(--ctl);padding:0 14px;border-radius:8px;font-size:.84rem;font-weight:600;gap:6px;line-height:1;justify-content:center;white-space:nowrap}
+.btn+.btn{margin-left:0}
+.opp-b,.tk-a,.rt-act,.ltk-r,.cbar,.cops{gap:var(--gap-s)!important}
+.filters{gap:10px 14px;padding:12px 14px;background:var(--surface);border:1px solid var(--line-2);border-radius:var(--rad);align-items:flex-end}
+.field{gap:4px}
+.field label{font-size:.72rem;font-weight:600;color:var(--ink-3)}
+.field input,.field select{height:var(--ctl);padding:0 10px;border-radius:8px;font-size:.86rem;background:var(--sunk)}
+.filters .chk,.filters>.btn{height:var(--ctl);align-self:flex-end;padding-bottom:0;display:inline-flex;align-items:center}
+.seg{padding:3px;gap:2px;border-radius:9px}
+.seg button{padding:6px 12px;border-radius:7px;font-size:.8rem}
+.subtabs{gap:4px}
+.subtabs button{padding:10px 16px;border-radius:8px 8px 0 0}
+.pill{gap:4px}
+.kpis{border-radius:8px}
+.kpis>div{padding:8px 10px}
+.kpis dt{margin-bottom:2px}
+table th,table td{padding-top:7px;padding-bottom:7px}
+.rows .row{padding:7px 2px}
+.note{border-radius:var(--rad);padding:12px 16px}
+.disclaimer{margin-top:var(--gap)}
+/* mô tả dự án / nhóm */
+.about{padding:12px 16px;border:1px solid var(--line-2);border-radius:var(--rad);background:var(--surface);font-size:.9rem;line-height:1.6}
+.about b{margin-right:4px}.about .faint{display:block;margin-top:3px;font-size:.82rem}
+.cdesc{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.cd{display:flex;flex-direction:column;gap:6px;padding:11px 13px;border:1px solid var(--line-2);border-radius:9px;background:var(--sunk);color:var(--ink)}
+.cd:hover{border-color:var(--brand);text-decoration:none}
+.cd-h{display:flex;align-items:baseline;gap:6px}.cd-h b{font-size:1rem}.cd-h small{color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cd-h span{margin-left:auto;font-weight:600}
+.cd p{margin:0;font-size:.82rem;line-height:1.5;color:var(--ink-2);flex:1}
+.cd-k{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:.76rem}
+.play{font-size:.9rem;line-height:1.6;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--brand) 8%,transparent);margin:0 0 10px}
+h4.sub{margin:12px 0 6px;font-size:.82rem;color:var(--ink-2)}
+.vdbar{display:flex;height:24px;border-radius:6px;overflow:hidden;gap:2px;margin-bottom:6px}
+.vdbar i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:.68rem;font-weight:600;background:var(--sunk-2);color:var(--ink-2);white-space:nowrap;overflow:hidden}
+.vdbar i.buy{background:var(--up-bg);color:var(--up)}.vdbar i.sell{background:var(--down-bg);color:var(--down)}.vdbar i.warn{background:var(--ref-bg);color:var(--ref)}.vdbar i.brand{background:var(--brand-2);color:var(--brand)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chips .ck{padding:5px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--sunk)}
+.sec-k{grid-template-columns:repeat(5,minmax(0,1fr));row-gap:6px}
+
+.g2,.g3,.g4,.g5{align-items:stretch!important}
+.g2>.panel,.g3>.panel,.g4>.panel,.g5>.panel{height:100%}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
