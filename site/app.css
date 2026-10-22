@@ -2065,3 +2065,14 @@ body.cz-lock::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.5);
 .cbox.cz-full::before,.lwbox.cz-full::before{content:attr(data-title);display:block;font-weight:700;font-size:.95rem;margin:0 70px 10px 2px;color:var(--ink)}
 .lwbox.cz-full::before{position:absolute;top:12px;left:16px;z-index:4}
 .cbox.cz-full{display:flex;flex-direction:column}.cbox.cz-full>.cbc{flex:1 1 0;min-height:0;height:auto!important;overflow:hidden}.cbox.cz-full .svgchart{position:absolute;inset:0}
+/* Danh mục: nhập vốn theo số tiền đã bỏ ra */
+.pf-add{margin-top:12px;padding:12px;border:1px solid var(--line-2);border-radius:10px;background:var(--sunk)}
+.pf-add h4{margin:0 0 8px;font-size:.86rem}
+.pf-modes{margin-bottom:10px}.pf-modes button{font-size:.78rem;padding:5px 10px}
+.pf-f{margin:0;align-items:flex-end}.pf-mf{display:contents}
+.pf-f .field label small,.pf-cash .field label small{font-weight:400;color:var(--ink-3)}
+.pf-now{margin:0 0 8px;font-size:.78rem;align-self:center}
+.pf-prev{margin:8px 2px 0;font-size:.82rem;color:var(--ink-2);min-height:1.2em}
+.pf-cash{margin-top:10px}
+.pf-how{display:block;font-size:.64rem}
+td.pf-act{white-space:nowrap}

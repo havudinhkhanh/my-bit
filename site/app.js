@@ -3275,8 +3275,31 @@ let PF = null;
 let RISK = null;
 async function pfLoad() { const [r, k] = await Promise.all([Store.get("portfolio"), Store.get("risk").catch(() => ({ data: null }))]); PF = r.data && typeof r.data === "object" ? r.data : {}; PF.holdings = PF.holdings || []; PF.futures = PF.futures || []; PF.journal = PF.journal || []; RISK = k && k.data && k.data.at ? k.data : null; return PF; }
 async function pfSave() { PF.updated = new Date().toISOString(); await Store.put("portfolio", PF); }
+// tỷ giá USDT/VND & giá theo ngày (để nhập vốn theo số tiền đã bỏ ra thay vì giá mua)
+const FX = { vnd: null, src: "" };
+async function fxVnd() {
+  if (PF?.fx > 0) return PF.fx;
+  if (FX.vnd) return FX.vnd;
+  const c = lsGet("fxvnd", null); if (c && Date.now() - c.t < 6 * 3600e3) { FX.vnd = c.v; FX.src = "CoinGecko"; return c.v; }
+  try { const j = await fetchJ("https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=vnd"); const v = +j?.tether?.vnd; if (v > 1000) { FX.vnd = v; FX.src = "CoinGecko"; lsSet("fxvnd", { v, t: Date.now() }); return v; } } catch (e) { /* bỏ qua */ }
+  FX.vnd = c?.v || 26300; FX.src = c ? "CoinGecko (cũ)" : "ước tính"; return FX.vnd;
+}
+const vndF = (x) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return I18N.lang === "en" ? (a >= 1e9 ? `${s}₫${nf(a / 1e9, 2)}B` : a >= 1e6 ? `${s}₫${nf(a / 1e6, 1)}M` : `${s}₫${nf(a, 0)}`) : (a >= 1e9 ? `${s}${nf(a / 1e9, 2)} tỷ ₫` : a >= 1e6 ? `${s}${nf(a / 1e6, 1)} triệu ₫` : `${s}${nf(a, 0)} ₫`); };
+const numIn = (v) => { const t = String(v ?? "").trim().replace(/\s/g, ""); if (!t) return NaN; const n = /^\d{1,3}([.,]\d{3})+$/.test(t) ? t.replace(/[.,]/g, "") : t.replace(/,(?=\d{1,2}$)/, ".").replace(/,/g, ""); return Number(n); };
+async function pxOnDate(k, date) {
+  const r = BYK[k]; if (!r || !date) return null;
+  const t = Date.parse(date + "T00:00:00Z"); if (!isFinite(t)) return null;
+  const tries = [];
+  if (r.sp) tries.push([`https://api.binance.com/api/v3/klines?symbol=${r.sp}&interval=1d&startTime=${t}&limit=1`, r.sm || 1], [`https://data-api.binance.vision/api/v3/klines?symbol=${r.sp}&interval=1d&startTime=${t}&limit=1`, r.sm || 1]);
+  if (r.bf) tries.push([`https://fapi.binance.com/fapi/v1/klines?symbol=${r.bf}&interval=1d&startTime=${t}&limit=1`, r.bfm || 1]);
+  for (const [u, m] of tries) { try { const j = await fetchJ(u); if (Array.isArray(j) && j[0] && Math.abs(j[0][0] - t) < 2 * 864e5) return { p: (+j[0][1] + +j[0][4]) / 2 / m, src: "Binance (TB giá mở & đóng ngày)" }; } catch (e) { /* thử nguồn khác */ } }
+  if (r.id) { try { const d = date.split("-").reverse().join("-"), j = await fetchJ(`https://api.coingecko.com/api/v3/coins/${r.id}/history?date=${d}&localization=false`); const p = j?.market_data?.current_price?.usd; if (p > 0) return { p, src: "CoinGecko" }; } catch (e) { /* bỏ qua */ } }
+  return null;
+}
+const HM = [["usdt", "💵 Số USDT đã bỏ ra"], ["vnd", "₫ Số tiền VND đã bỏ ra"], ["date", "📅 Theo ngày mua"], ["price", "Giá mua / coin"], ["now", "Không nhớ – tính từ hôm nay"]];
 async function viewPortfolio() {
   const C = await coins(); await pfLoad(); await WL.load();
+  const fx = await fxVnd(), fxSrc = PF.fx > 0 ? "anh tự đặt" : FX.src;
   const P = (k) => BYK[k]?.p;
   let spotV = 0, spotC = 0, futN = 0, futPnl = 0, futMargin = 0, fundDay = 0, netDelta = 0;
   const flags = [];
@@ -3286,7 +3309,9 @@ async function viewPortfolio() {
     if (r.ts === -1) flags.push([h.symbol, `xu hướng ngày đã chuyển GIẢM – cân nhắc giảm tỷ trọng hoặc phòng hộ`]);
     if (isNum(r.u90) && r.u90 >= 3) flags.push([h.symbol, `mở khoá ${nf(r.u90, 1)}% lượng lưu hành trong 90 ngày tới`]);
     if ((r.cr || []).includes("long_crowded")) flags.push([h.symbol, `phe Long quá đông trên futures (funding ${f8s(r.f8)}) – rủi ro điều chỉnh`]);
-    return `<tr><td class="l">${coinLink(h.symbol)}</td><td>${qty(h.qty)}</td><td>${px(h.cost)}</td><td>${px(p)}</td><td>${usd(v)}</td><td class="${cls(pnl)}">${usd(pnl)}<br><small>${h.cost ? pct((p / h.cost - 1) * 100) : ""}</small></td><td>${tsPill(r.ts, r.td)}</td><td>${vdPill(r.vd)}</td><td><button class="chip" data-ch="${i}">Bán hết</button> <button class="chip" data-dh="${i}" title="Xoá dòng (nhập nhầm)">Xoá</button></td></tr>`;
+    const inv = isNum(h.usdt) ? h.usdt : c, invV = isNum(h.vnd) ? h.vnd : inv * fx;
+    return `<tr><td class="l">${coinLink(h.symbol)}${h.how ? `<small class="faint pf-how">${esc(h.how)}</small>` : ""}</td><td>${qty(h.qty)}</td><td>${px(h.cost)}</td><td>${usd2(inv)}<br><small class="faint">${vndF(invV)}</small></td><td>${px(p)}</td><td>${usd2(v)}<br><small class="faint">≈ ${vndF(isNum(v) ? v * fx : null)}</small></td>
+      <td class="${cls(pnl)}">${isNum(pnl) ? (pnl >= 0 ? "+" : "") + usd2(pnl) : "—"}<br><small>${h.cost ? pct((p / h.cost - 1) * 100) : ""}${isNum(v) && isNum(h.vnd) ? ` · ${v * fx - h.vnd >= 0 ? "+" : ""}${vndF(v * fx - h.vnd)}` : ""}</small></td><td>${tsPill(r.ts, r.td)}</td><td>${vdPill(r.vd)}</td><td class="pf-act"><button class="chip" data-eh="${i}" title="Sửa số lượng / vốn">Sửa</button> <button class="chip" data-ch="${i}">Bán hết</button> <button class="chip" data-dh="${i}" title="Xoá dòng (nhập nhầm)">Xoá</button></td></tr>`;
   }).join("");
   const fu = PF.futures.map((f, i) => {
     const r = BYK[f.symbol] || {}, p = r.p, s = f.side === "short" ? -1 : 1, n = isNum(p) ? f.qty * p : null;
@@ -3328,17 +3353,28 @@ async function viewPortfolio() {
         ["Trạng thái", RISK?.halt ? "⛔ DỪNG" : (RISK?.half || []).length ? "⚠️ GIẢM RỦI RO" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString(LOC)}` : "máy chủ chưa kiểm tra lần nào – sau lượt 15 phút tới"]])}
       <p class="faint" style="font-size:.74rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
   app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
-    <section class="panel hero">${kpis([["Tổng tài sản (ước)", usd(eq)], ["Spot", usd(spotV), "", `Giá vốn ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC)], ["Tiền mặt / stablecoin", usd(cash)],
+    <section class="panel hero">${kpis([["Tổng tài sản (ước)", usd(eq), "", `≈ ${vndF(eq * fx)}`], ...(PF.depVnd > 0 ? [["Tiền đã nạp vào sàn", vndF(PF.depVnd)], ["Lãi/lỗ so với tiền nạp", `${eq * fx - PF.depVnd >= 0 ? "+" : ""}${vndF(eq * fx - PF.depVnd)}`, cls(eq * fx - PF.depVnd), `${pct((eq * fx / PF.depVnd - 1) * 100, 1)} · tỷ giá ${nf(fx, 0)} ₫/USDT`]] : []),
+      ["Spot", usd(spotV), "", `Đã bỏ ra ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC), `≈ ${vndF((spotV - spotC) * fx)}`], ["Tiền mặt / stablecoin", usd(cash)],
       ["Futures: giá trị vị thế", usd(futN)], ["Lãi/lỗ futures", usd(futPnl), cls(futPnl)], ["Ký quỹ đang dùng", usd(futMargin)], ["Funding mỗi ngày", usd(fundDay), cls(fundDay), "Dương = nhận, âm = trả (ước theo funding hiện tại)"],
       ["Độ phơi nhiễm ròng", usd(netDelta), "", "Spot + Long − Short (USD). Gần 0 = đã phòng hộ"], ["Đòn bẩy ròng", eq > 0 ? "x" + nf(Math.abs(netDelta) / eq, 2) : "—"]], true)}</section>
     ${govBox}
     ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${k ? coinLink(k) : ""} ${esc(t)}</li>`).join("")}</ul>`) : ""}
-    ${panel("Spot", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="9" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
-      <div class="filters"><div class="field"><label>Coin</label><input id="hS" list="coinlist" placeholder="BTC"></div><div class="field"><label>Số lượng</label><input id="hQ" type="number" step="any"></div><div class="field"><label>Giá vốn (USD)</label><input id="hC" type="number" step="any"></div><button class="btn primary" id="hAdd">Thêm / cộng dồn</button>
-      <div class="field"><label>Tiền mặt / stablecoin (USD)</label><input id="pCash" type="number" step="any" value="${cash || ""}"></div><button class="btn" id="cSave">Lưu tiền mặt</button></div>`)}
+    ${panel("Spot", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
+      <div class="pf-add" id="pfAdd"><h4>➕ Thêm coin – nhập theo cách anh nhớ</h4>
+        <div class="seg pf-modes" id="hM">${HM.map(([k, t]) => `<button type="button" data-m="${k}" class="${k === lsGet("hmode", "usdt") ? "on" : ""}">${t}</button>`).join("")}</div>
+        <div class="filters pf-f"><div class="field"><label>Coin</label><input id="hS" list="coinlist" placeholder="BTC" autocomplete="off"></div>
+          <div class="field"><label>Số lượng coin đang có <small>(Binance › Ví › Spot)</small></label><input id="hQ" inputmode="decimal" placeholder="vd 0,05"></div>
+          <div id="hF" class="pf-mf"></div>
+          <label class="chk" title="Bỏ chọn = cộng dồn vào số đã có (mua thêm)"><input type="checkbox" id="hRep"> Ghi đè dòng cũ</label>
+          <button class="btn primary" id="hAdd">Lưu</button></div>
+        <p id="hPrev" class="pf-prev"></p></div>
+      <div class="filters pf-cash"><div class="field"><label>Tiền mặt / stablecoin trên sàn (USDT)</label><input id="pCash" inputmode="decimal" value="${cash || ""}"></div>
+        <div class="field"><label>Tổng tiền đã nạp vào sàn (VND) <small>tuỳ chọn</small></label><input id="pDep" inputmode="numeric" placeholder="vd 50.000.000" value="${PF.depVnd ? nf(PF.depVnd, 0) : ""}"></div>
+        <div class="field"><label>Tỷ giá USDT/VND <small>${esc(fxSrc)}: ${nf(fx, 0)}</small></label><input id="pFx" inputmode="numeric" placeholder="${nf(fx, 0)}" value="${PF.fx ? nf(PF.fx, 0) : ""}" title="Để trống = tự lấy theo CoinGecko. Nhập giá P2P anh mua thực tế nếu muốn chính xác hơn."></div>
+        <button class="btn" id="cSave">Lưu</button></div>`, `1 USDT ≈ ${nf(fx, 0)} ₫`)}
     ${panel("Futures (perp)", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Số lượng</th><th>Giá vào</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Thanh lý (ước)</th><th>Cắt lỗ</th><th>Funding</th><th></th></tr></thead><tbody>${fu || '<tr><td colspan="11" class="muted">Chưa có vị thế.</td></tr>'}</tbody></table></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="fS" list="coinlist" placeholder="ETH"></div><div class="field"><label>Chiều</label><select id="fSide"><option value="long">Long</option><option value="short">Short</option></select></div>
-      <div class="field"><label>Số lượng (coin)</label><input id="fQ" type="number" step="any"></div><div class="field"><label>Giá vào</label><input id="fE" type="number" step="any"></div><div class="field"><label>Đòn bẩy</label><input id="fL" type="number" step="any" value="3"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
+      <div class="field"><label>Giá vào <small>(Binance › Vị thế › Giá vào)</small></label><input id="fE" inputmode="decimal"></div><div class="field"><label>Đòn bẩy</label><input id="fL" inputmode="decimal" value="3"></div><div class="field"><label>Ký quỹ (USDT)</label><input id="fM" inputmode="decimal" placeholder="vd 100"></div><div class="field"><label>hoặc Số lượng (coin)</label><input id="fQ" inputmode="decimal"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
       <p class="faint" style="font-size:.72rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. Hệ thống chỉ theo dõi, không kết nối tài khoản sàn.</p>`)}
     ${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
       const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
@@ -3350,17 +3386,63 @@ async function viewPortfolio() {
     ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`)}
     <datalist id="coinlist">${C.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>`;
   const num = (id) => Number($(id).value);
-  $("#hAdd").onclick = async () => {
-    const s = $("#hS").value.trim().toUpperCase(), q = num("#hQ"), c = num("#hC") || BYK[s]?.p || 0;
-    if (!BYK[s] || !(q > 0)) return toast("Nhập mã coin có trong danh sách và số lượng > 0");
-    const h = PF.holdings.find((x) => x.symbol === s);
-    if (h) { h.cost = (h.cost * h.qty + c * q) / (h.qty + q); h.qty += q; } else PF.holdings.push({ symbol: s, qty: q, cost: c });
-    await pfSave(); viewPortfolio();
+  // ---- nhập spot theo số tiền đã bỏ ra (USDT / VND), theo ngày mua, theo giá, hoặc tính từ hôm nay
+  let hm = lsGet("hmode", "usdt"), dpx = null, editI = -1;
+  const fld = (id, lab, ph = "", extra = "") => `<div class="field"><label>${lab}</label><input id="${id}" inputmode="decimal" placeholder="${ph}" ${extra}></div>`;
+  const form = () => {
+    $("#hF").innerHTML = hm === "usdt" ? fld("hU", "Tổng USDT đã bỏ ra <small>(cả các lần mua)</small>", "vd 500")
+      : hm === "vnd" ? fld("hV", "Tổng tiền VND đã bỏ ra", "vd 12.000.000") + fld("hFx", `Tỷ giá lúc mua (₫/USDT)`, nf(fx, 0), `value="${nf(fx, 0)}"`)
+      : hm === "date" ? `<div class="field"><label>Ngày mua (gần đúng)</label><input id="hD" type="date" max="${new Date().toISOString().slice(0, 10)}"></div>` + fld("hU", "hoặc tổng USDT đã bỏ ra <small>(nếu không nhớ số lượng)</small>", "tuỳ chọn")
+      : hm === "price" ? fld("hC", "Giá mua trung bình / coin (USDT)", "vd 64.000") : `<p class="faint pf-now">Giá vốn = giá hiện tại. Lãi/lỗ sẽ tính từ hôm nay.</p>`;
+    $$("#hF input, #hS, #hQ").forEach((e) => (e.oninput = calc));
+    const getD = async () => { dpx = null; calc(); const k = $("#hS").value.trim().toUpperCase(); if (!BYK[k] || !$("#hD")?.value) return; $("#hPrev").innerHTML = "Đang lấy giá ngày đó…"; const d0 = $("#hD").value, x = await pxOnDate(k, d0); if (k === $("#hS").value.trim().toUpperCase() && d0 === $("#hD")?.value) { dpx = x; calc(); } };
+    if ($("#hD")) { $("#hD").onchange = getD; $("#hS").onchange = getD; } else $("#hS").onchange = null;
+    $$("#hM button").forEach((b) => b.classList.toggle("on", b.dataset.m === hm));
+    calc();
   };
-  $("#cSave").onclick = async () => { PF.cash = num("#pCash") || 0; await pfSave(); viewPortfolio(); };
+  const val = () => {
+    const k = $("#hS").value.trim().toUpperCase(), r = BYK[k], q0 = numIn($("#hQ").value), now = r?.p;
+    if (!r) return { err: "Chọn coin có trong danh sách" };
+    let q = q0, usdt = null, vnd = null, rate = null, cost = null, how = "";
+    if (hm === "usdt") { usdt = numIn($("#hU")?.value); if (!(usdt > 0)) return { err: "Nhập tổng USDT đã bỏ ra" }; if (!(q > 0)) return { err: "Nhập số lượng coin đang có" }; cost = usdt / q; how = "theo USDT đã bỏ ra"; }
+    else if (hm === "vnd") { vnd = numIn($("#hV")?.value); rate = numIn($("#hFx")?.value) || fx; if (!(vnd > 0)) return { err: "Nhập tổng tiền VND đã bỏ ra" }; if (!(q > 0)) return { err: "Nhập số lượng coin đang có" }; usdt = vnd / rate; cost = usdt / q; how = `theo VND (${nf(rate, 0)} ₫/USDT)`; }
+    else if (hm === "date") { if (!$("#hD")?.value) return { err: "Chọn ngày mua" }; if (!dpx) return { err: "Chưa lấy được giá ngày đó – thử ngày khác hoặc cách khác" }; cost = dpx.p; const u = numIn($("#hU")?.value); if (!(q > 0) && u > 0) q = u / cost; if (!(q > 0)) return { err: "Nhập số lượng coin (hoặc tổng USDT)" }; usdt = q * cost; how = `theo giá ngày ${fmtD($("#hD").value)}`; }
+    else if (hm === "price") { cost = numIn($("#hC")?.value); if (!(cost > 0)) return { err: "Nhập giá mua / coin" }; if (!(q > 0)) return { err: "Nhập số lượng coin đang có" }; usdt = q * cost; }
+    else { if (!(q > 0)) return { err: "Nhập số lượng coin đang có" }; cost = now; usdt = q * cost; how = `tính từ ${fmtD(new Date().toISOString().slice(0, 10))}`; }
+    return { k, r, q, usdt, vnd, rate, cost, how, now };
+  };
+  const calc = () => {
+    const v = val(), el = $("#hPrev");
+    if (v.err) { el.innerHTML = `<span class="faint">${esc(v.err)}${hm === "date" && dpx === null && $("#hD")?.value ? "" : ""}</span>`; return; }
+    const val2 = v.q * v.now, pnl = val2 - v.usdt;
+    const odd = v.now > 0 && (v.cost / v.now > 20 || v.now / v.cost > 20);
+    el.innerHTML = `${odd ? `<b class="down">⚠️ Giá vốn lệch quá xa giá hiện tại – kiểm tra lại số lượng / số tiền.</b><br>` : ""}→ <b>${qty(v.q)} ${esc(v.k)}</b> · giá vốn TB <b>${px(v.cost)}</b> · đã bỏ ra <b>${usd2(v.usdt)}</b> (≈ ${vndF(v.vnd ?? v.usdt * fx)}) · giá trị hiện tại ${usd2(val2)} · lãi/lỗ <b class="${cls(pnl)}">${pnl >= 0 ? "+" : ""}${usd2(pnl)} (${pct((v.now / v.cost - 1) * 100, 1)})</b>${dpx && hm === "date" ? ` <small class="faint">· giá ngày đó ${px(dpx.p)} (${esc(dpx.src)})</small>` : ""}`;
+  };
+  $$("#hM button").forEach((b) => b.onclick = () => { hm = b.dataset.m; lsSet("hmode", hm); dpx = null; form(); });
+  form();
+  $("#hAdd").onclick = async () => {
+    const v = val(); if (v.err) return toast(v.err);
+    const i0 = PF.holdings.findIndex((x) => x.symbol === v.k), h = PF.holdings[i0];
+    if (h && !$("#hRep").checked) {
+      const u0 = isNum(h.usdt) ? h.usdt : h.qty * (h.cost || 0), v0 = isNum(h.vnd) ? h.vnd : null;
+      h.qty += v.q; h.usdt = u0 + v.usdt; h.cost = h.usdt / h.qty; h.vnd = v0 != null && v.vnd != null ? v0 + v.vnd : v0 != null ? v0 + v.usdt * fx : v.vnd != null ? u0 * fx + v.vnd : null; h.how = "cộng dồn nhiều lần";
+    } else {
+      const row = { symbol: v.k, qty: v.q, cost: v.cost, usdt: v.usdt, vnd: v.vnd, how: v.how, at: new Date().toISOString().slice(0, 10) };
+      if (h) PF.holdings[i0] = row; else PF.holdings.push(row);
+    }
+    await pfSave(); toast(`Đã lưu ${v.k}: giá vốn TB ${px(v.cost)}`); viewPortfolio();
+  };
+  $$("[data-eh]").forEach((b) => b.onclick = () => {
+    const h = PF.holdings[Number(b.dataset.eh)]; hm = isNum(h.vnd) ? "vnd" : "usdt"; form();
+    $("#hS").value = h.symbol; $("#hQ").value = String(h.qty);
+    if (hm === "vnd") $("#hV").value = nf(h.vnd, 0); else $("#hU").value = String(+(isNum(h.usdt) ? h.usdt : h.qty * h.cost).toFixed(2));
+    $("#hRep").checked = true; calc(); $("#pfAdd").scrollIntoView({ behavior: "smooth", block: "center" }); $("#pfAdd").classList.add("flash");
+  });
+  $("#cSave").onclick = async () => { PF.cash = numIn($("#pCash").value) || 0; PF.depVnd = numIn($("#pDep").value) || 0; const f = numIn($("#pFx").value); PF.fx = f > 1000 ? f : 0; await pfSave(); viewPortfolio(); };
   $("#fAdd").onclick = async () => {
-    const s = $("#fS").value.trim().toUpperCase(), q = num("#fQ"), e = num("#fE") || BYK[s]?.p, l = num("#fL") || 1, sl = num("#fSL") || null;
-    if (!BYK[s] || !(q > 0) || !(e > 0)) return toast("Nhập mã coin, số lượng và giá vào");
+    const s = $("#fS").value.trim().toUpperCase(), e = numIn($("#fE").value) || BYK[s]?.p, l = numIn($("#fL").value) || 1, sl = numIn($("#fSL").value) || null, mg = numIn($("#fM").value);
+    const q = numIn($("#fQ").value) > 0 ? numIn($("#fQ").value) : mg > 0 && e > 0 ? mg * l / e : NaN;
+    if (!BYK[s] || !(q > 0) || !(e > 0)) return toast("Nhập mã coin, giá vào và ký quỹ USDT (hoặc số lượng)");
     const G = levGov(BYK[s], $("#fSide").value, "d", sl ? Math.abs(e - sl) / e * 100 : null);
     if (l > G.cap && !confirm(`Đòn bẩy x${l} vượt mức hệ thống cho phép x${G.cap} cho ${s}.\n\n${G.why.join("\n")}\n\nVẫn ghi lại vị thế này (hệ thống sẽ nhắc giảm)?`)) return;
     PF.futures.push({ symbol: s, side: $("#fSide").value, qty: q, entry: e, lev: l, stop: sl, opened: new Date().toISOString().slice(0, 10) });
