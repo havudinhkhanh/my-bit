@@ -588,8 +588,11 @@ def cg_groups() -> dict:
     rows, bad = [], []
     for cat, lab in CG_GROUP:
         try:
-            j = src.get(src.CG + "coins/markets", "coingecko", params={"vs_currency": "usd", "category": cat, "order": "market_cap_desc", "per_page": 250, "page": 1})
-            rows += [{"id": x["id"], "cat": cat, "group": lab} for x in j]
+            for pg in (1, 2, 3):
+                j = src.get(src.CG + "coins/markets", "coingecko", params={"vs_currency": "usd", "category": cat, "order": "market_cap_desc", "per_page": 250, "page": pg})
+                rows += [{"id": x["id"], "cat": cat, "group": lab} for x in j]
+                if len(j) < 250:
+                    break
         except src.FetchError as e:
             REPORT["errors"].append(f"cg cat {cat}: {e}"[:200])
             bad.append(cat)
