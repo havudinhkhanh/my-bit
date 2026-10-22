@@ -1273,18 +1273,97 @@ function ideaMoney(x, lane) {
   const ev = (x.avgR || 0) * riskUsd;
   return { acct, G, riskUsd, q, N, lev, margin: N / lev, liq: lane === "spot" ? null : liqPrice(x.side, x.e, lev, (r.mc || 0) < 1e9 ? 0.01 : 0.005), ev, win1: q * Math.abs(x.t1 - x.e), win2: q * Math.abs(x.t2 - x.e) };
 }
+const LCOL = { spot: "--up", flong: "--floor", fshort: "--down" };
+// nến cho thẻ cơ hội: tải lười khi thẻ hiện ra, nhớ đệm theo coin + khung, tối đa 4 yêu cầu cùng lúc
+const KLC = new Map(), KLQ = { n: 0, q: [] };
+function oppKl(r, tf) {
+  const key = r.k + "|" + tf; if (KLC.has(key)) return KLC.get(key);
+  const run = async () => { try { const L = await liveKlines(r, tf === "d" ? "1d" : "4h", 1, tf === "d" ? 90 : 120); return L?.o || null; } catch (e) { return null; } };
+  const p = new Promise((res) => { const go = () => { KLQ.n++; run().then((v) => { KLQ.n--; res(v); const nx = KLQ.q.shift(); if (nx) nx(); }); }; KLQ.n < 4 ? go() : KLQ.q.push(go); });
+  KLC.set(key, p); return p;
+}
+// hình kế hoạch: nến + hộp lãi (xanh) / hộp lỗ (đỏ) như công cụ "vị thế" trên TradingView
+function oppChart(o, x, p, W = 320, H = 104, mini = false) {
+  if (!o || !o.c?.length) o = { c: [], o: [], h: [], l: [] };
+  const N = Math.min(o.c.length, mini ? 45 : x.tf === "d" ? 70 : 90), off = o.c.length - N;
+  const lv = [x.s, x.e, x.t1, x.t2, p].filter(isNum);
+  let lo = Math.min(...lv), hi = Math.max(...lv);
+  for (let i = off; i < o.c.length; i++) { lo = Math.min(lo, o.l[i]); hi = Math.max(hi, o.h[i]); }
+  const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
+  const fx = !N ? 0.08 : mini ? 0.8 : 0.74, cw = N ? (W * fx) / N : 0, Y = (v) => +(H - ((v - lo) / (hi - lo)) * H).toFixed(1);
+  const up = css("--up"), dn = css("--down"), ink = css("--ink-3");
+  let g = "";
+  for (let i = 0; i < N; i++) {
+    const k = off + i, X = +(i * cw + cw / 2).toFixed(1), c = o.c[k] >= o.o[k] ? up : dn;
+    g += `<line x1="${X}" x2="${X}" y1="${Y(o.h[k])}" y2="${Y(o.l[k])}" stroke="${c}" stroke-width="1" opacity=".7"/>`;
+    const y1 = Y(Math.max(o.o[k], o.c[k])), y2 = Y(Math.min(o.o[k], o.c[k]));
+    g += `<rect x="${(X - cw * 0.32).toFixed(1)}" y="${y1}" width="${Math.max(1, cw * 0.64).toFixed(1)}" height="${Math.max(0.8, y2 - y1).toFixed(1)}" fill="${c}" opacity=".85"/>`;
+  }
+  const x0 = W * fx + 2, bw = W - x0 - (mini ? 1 : 30);
+  const box = (a, b, c, op) => `<rect x="${x0}" y="${Math.min(Y(a), Y(b))}" width="${bw}" height="${Math.max(1, Math.abs(Y(a) - Y(b)))}" fill="${c}" opacity="${op}"/>`;
+  const hl = (v, c, t, dash) => `<line x1="0" x2="${x0 + bw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-width="1" ${dash ? 'stroke-dasharray="3 3"' : ""} opacity="${dash ? 0.55 : 0.9}"/>` + (mini ? "" : `<text x="${W - 1}" y="${Y(v) + 3}" text-anchor="end" fill="${c}">${t}</text>`);
+  const pm = `<g data-pm><line x1="0" x2="${x0 + bw}" y1="0" y2="0" stroke="${css("--ink")}" stroke-width=".8" stroke-dasharray="1 2" opacity=".6"/><circle cx="${x0}" cy="0" r="${mini ? 2.2 : 3}" fill="${css("--ink")}" stroke="${css("--surface")}" stroke-width="1.2"/></g>`;
+  return `<svg class="oc-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" data-lo="${lo}" data-hi="${hi}" data-h="${H}">${box(x.e, x.t2, up, 0.13)}${box(x.e, x.t1, up, 0.12)}${box(x.e, x.s, dn, 0.18)}${g}
+    ${hl(x.t2, up, "MT2", true)}${hl(x.t1, up, "MT1")}${hl(x.e, ink, "Vào")}${hl(x.s, dn, "SL")}${pm}</svg>`;
+}
+function oppPm(el, p) {
+  const svg = el.querySelector(".oc-svg"), g = svg?.querySelector("[data-pm]"); if (!g || !isNum(p)) return;
+  const lo = +svg.dataset.lo, hi = +svg.dataset.hi, H = +svg.dataset.h, y = Math.max(1, Math.min(H - 1, H - ((p - lo) / (hi - lo)) * H));
+  g.setAttribute("transform", `translate(0,${y.toFixed(1)})`);
+}
+const bar = (v, mx, c) => `<i class="oc-bar"><i style="width:${Math.max(3, Math.min(100, (v / mx) * 100)).toFixed(0)}%;background:var(${c})"></i></i>`;
 function oppCard(x, i) {
   const r = BYK[x.k] || {}, lane = laneOf(x), L = x.side === "long", M = ideaMoney(x, lane);
-  const verb = lane === "spot" ? "MUA" : L ? "LONG" : "SHORT", exitv = lane === "spot" ? "BÁN" : "ĐÓNG";
+  const verb = lane === "spot" ? "Mua" : L ? "Long" : "Short";
   const htf = x.htf ? `<span class="pill ${x.htf === "h+" ? "buy" : x.htf === "h-" ? "sell" : ""}">${x.htf === "h+" ? "khung lớn cùng chiều" : x.htf === "h-" ? "khung lớn ngược" : "khung lớn lẫn lộn"}</span>` : "";
-  return `<div class="opp ${x.side}" data-i="${i}">
-    <div class="opp-h"><span class="pill big" data-st>…</span> ${coinLink(x.k)} <span class="pill">${x.tf === "d" ? "Swing ngày" : "Lướt 4h"}</span> ${secLink(r.g)} <span class="opp-p" data-p>${px(r.p)}</span><small class="${cls(r.r1)}" data-r>${pct(r.r1, 1)}</small></div>
-    <p class="opp-a"><b class="${L ? "up" : "down"}">${verb}</b> ở <b>${px(x.e)}</b> → ${exitv} <b class="up">${px(x.t1)}</b> <small>(${pct(x.t1_pct, 1)})</small> rồi <b class="up">${px(x.t2)}</b> <small>(${pct(x.t2_pct, 1)})</small> · cắt lỗ <b class="down">${px(x.s)}</b> <small>(${pct(L ? -x.risk_pct : x.risk_pct, 1)})</small></p>
-    <div class="opp-k"><span><i>Xác suất MT1</i><b>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</b></span><span><i>Lãi TB/lệnh</i><b class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</b></span><span><i>R:R</i><b>${nf(x.r1, 1)} / ${nf(x.r2, 1)}</b></span><span><i>Tới MT1</i><b>${isNum(x.d1) ? durTxt(x.d1, x.bd) : "—"}</b></span></div>
-    <p class="opp-m">Vốn ${usd(M.acct)}, rủi ro ${nf(M.G.risk, 2)}% = <b>${usd2(M.riskUsd)}</b> → ${lane === "spot" ? `mua <b>${qty(M.q)} ${esc(x.k)}</b> (${usd2(M.N)})` : `perp <b>x${M.lev}</b>: ${qty(M.q)} ${esc(x.k)} (${usd2(M.N)}), ký quỹ <b>${usd2(M.margin)}</b>, thanh lý ${px(M.liq)}`}.
-      Chạm MT1: <b class="up">+${usd2(M.win1)}</b> · chạm MT2: <b class="up">+${usd2(M.win2)}</b> · dính cắt lỗ: <b class="down">−${usd2(M.riskUsd)}</b> · kỳ vọng mỗi lệnh <b class="${cls(M.ev)}">${M.ev >= 0 ? "+" : ""}${usd2(M.ev)}</b></p>
-    <small class="faint">${esc(x.name)} · ${nf(x.n, 0)} lần lịch sử ${htf} ${(x.notes || []).slice(0, 2).map(esc).join(" · ")}</small>
-    <div class="opp-b"><a class="btn primary" href="#/plan/${enc(x.k)}" data-pl="${x.tf}|${x.side}">Lên lệnh & hướng dẫn đặt lệnh →</a><a class="btn" href="#/c/${enc(x.k)}/smc">Biểu đồ SMC</a></div></div>`;
+  return `<div class="opp ocard ${x.side}" data-i="${i}" data-oi="${i}" style="--lc:var(${LCOL[lane]})">
+    <div class="oc-h"><span class="pill" data-st>…</span>${coinLink(x.k)}<span class="oc-tag">${x.tf === "d" ? "Swing ngày" : "Lướt 4h"}${r.g ? ` · <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>` : ""}</span><span class="oc-p"><b data-p>${px(r.p)}</b><small class="${cls(r.r1)}" data-r>${pct(r.r1, 1)}</small></span></div>
+    <div class="oc-ch" data-ch><div class="oc-sk"></div></div>
+    <div class="oc-lv"><span class="e"><i>${verb} ở</i><b>${px(x.e)}</b></span><span class="t"><i>MT1 ${pct(x.t1_pct, 1)}</i><b>${px(x.t1)}</b></span><span class="t"><i>MT2 ${pct(x.t2_pct, 0)}</i><b>${px(x.t2)}</b></span><span class="s"><i>Cắt lỗ ${pct(L ? -x.risk_pct : x.risk_pct, 1)}</i><b>${px(x.s)}</b></span></div>
+    <div class="oc-k"><span title="Tỉ lệ lịch sử giá chạm MT1 trước cắt lỗ"><i>Xác suất MT1</i><b>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</b>${bar(x.win1 || 0, 100, "--brand")}</span>
+      <span title="Lãi trung bình mỗi lệnh sau phí, tính theo R (1R = khoảng cắt lỗ)"><i>Lãi TB/lệnh</i><b class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</b>${bar(Math.max(0, x.avgR || 0), 0.6, "--up")}</span>
+      <span title="Lãi tới MT1 / MT2 so với rủi ro"><i>R:R</i><b>${nf(x.r1, 1)}<small>/${nf(x.r2, 1)}</small></b>${bar(x.r1 || 0, 5, "--floor")}</span>
+      <span title="Thời gian trung vị để chạm MT1"><i>Tới MT1</i><b>${isNum(x.d1) ? durTxt(x.d1, x.bd) : "—"}</b></span></div>
+    <div class="oc-money"><span>Rủi ro <b>${usd2(M.riskUsd)}</b></span><span>MT1 <b class="up">+${usd2(M.win1)}</b></span><span>MT2 <b class="up">+${usd2(M.win2)}</b></span><span>Kỳ vọng <b class="${cls(M.ev)}">${M.ev >= 0 ? "+" : ""}${usd2(M.ev)}</b></span></div>
+    <details class="oc-why"><summary>Vì sao vào · khối lượng</summary>
+      <p><b>${esc(x.name)}</b> · ${nf(x.n, 0)} lần lịch sử ${htf}</p>${(x.notes || []).length ? `<ul>${x.notes.slice(0, 4).map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}
+      <p>Vốn ${usd(M.acct)} · rủi ro ${nf(M.G.risk, 2)}% → ${lane === "spot" ? `mua <b>${qty(M.q)} ${esc(x.k)}</b> (${usd2(M.N)})` : `perp <b>x${M.lev}</b>: ${qty(M.q)} ${esc(x.k)} (${usd2(M.N)}), ký quỹ <b>${usd2(M.margin)}</b>, thanh lý ${px(M.liq)}`}</p></details>
+    <div class="oc-b"><a class="btn primary sm" href="#/plan/${enc(x.k)}" data-pl="${x.tf}|${x.side}">Lên lệnh →</a><a class="btn sm" href="#/c/${enc(x.k)}/smc">SMC</a></div></div>`;
+}
+function oppRow(x, i) {
+  const r = BYK[x.k] || {}, lane = laneOf(x), M = ideaMoney(x, lane);
+  return `<tr class="oppr" data-oi="${i}" style="--lc:var(${LCOL[lane]})"><td class="l"><i class="ldot"></i>${lane === "spot" ? "Mua spot" : lane === "flong" ? "Long fut" : "Short fut"}</td><td class="l">${coinLink(x.k)}<small class="faint"> · ${x.tf === "d" ? "ngày" : "4h"}</small></td><td class="l"><span class="pill" data-st>…</span></td>
+    <td class="chc" data-ch><div class="oc-sk"></div></td><td><b data-p>${px(r.p)}</b><br><small class="${cls(r.r1)}" data-r>${pct(r.r1, 1)}</small></td>
+    <td>${px(x.e)}</td><td class="up">${px(x.t1)}<br><small>${pct(x.t1_pct, 1)}</small></td><td class="down">${px(x.s)}<br><small>${pct(x.side === "long" ? -x.risk_pct : x.risk_pct, 1)}</small></td>
+    <td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}${bar(x.win1 || 0, 100, "--brand")}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}${bar(Math.max(0, x.avgR || 0), 0.6, "--up")}</td><td>${nf(x.r1, 1)}</td><td>${isNum(x.d1) ? durTxt(x.d1, x.bd) : "—"}</td>
+    <td class="${cls(M.ev)}">${M.ev >= 0 ? "+" : ""}${usd2(M.ev)}</td><td><a class="btn primary sm" href="#/plan/${enc(x.k)}" data-pl="${x.tf}|${x.side}">Lên lệnh</a></td></tr>`;
+}
+// bản đồ cơ hội: X = xác suất chạm MT1, Y = lãi TB/lệnh, cỡ = R:R, màu = làn
+function oppMap(xs, W = 720, H = 280) {
+  const P = xs.map((x, i) => [x, i]).filter(([x]) => isNum(x.win1) && isNum(x.avgR));
+  if (P.length < 2) return `<p class="muted">Chưa đủ cơ hội để vẽ.</p>`;
+  const x0 = Math.max(0, Math.floor(Math.min(...P.map(([x]) => x.win1)) / 5) * 5 - 5), x1 = Math.min(100, Math.ceil(Math.max(...P.map(([x]) => x.win1)) / 5) * 5 + 5);
+  const y0 = Math.min(0, Math.floor(Math.min(...P.map(([x]) => x.avgR)) * 10) / 10), y1 = Math.ceil(Math.max(...P.map(([x]) => x.avgR)) * 10 + 1) / 10;
+  const L = 44, R = 12, T = 12, B = 30, X = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  let s = `<svg class="svgchart omap" viewBox="0 0 ${W} ${H}">`;
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  s += `<rect x="${X(mx)}" y="${T}" width="${X(x1) - X(mx)}" height="${Y(my) - T}" fill="${css("--up")}" opacity=".07"/><text x="${X(x1) - 6}" y="${T + 14}" text-anchor="end" class="oq">Tốt nhất: chắc + lời</text>`;
+  for (let v = Math.ceil(x0 / 10) * 10; v <= x1; v += 10) s += `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" class="gl"/><text x="${X(v)}" y="${H - B + 14}" text-anchor="middle" class="ax">${v}%</text>`;
+  const st = (y1 - y0) > 0.8 ? 0.2 : 0.1;
+  for (let v = Math.ceil(y0 / st) * st; v <= y1 + 1e-9; v += st) s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" class="gl ${Math.abs(v) < 1e-9 ? "z" : ""}"/><text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end" class="ax">${nf(v, 1)}R</text>`;
+  s += `<text x="${W - R}" y="${H - 4}" text-anchor="end" class="axt">Xác suất chạm MT1 →</text><text x="${L}" y="${T - 2}" class="axt">↑ Lãi TB/lệnh</text>`;
+  // gộp các điểm trùng toạ độ (cùng thiết lập → cùng thống kê)
+  const G = new Map();
+  P.forEach(([x, i]) => { const k = Math.round(X(x.win1) / 6) + "|" + Math.round(Y(x.avgR) / 6) + "|" + laneOf(x); if (!G.has(k)) G.set(k, []); G.get(k).push([x, i]); });
+  const placed = [];
+  [...G.values()].sort((a, b) => b.length - a.length).forEach((grp) => {
+    const [x, i] = grp[0], cx = X(x.win1), cy = Y(x.avgR), rr = Math.min(16, 5 + Math.sqrt(grp.length) * 3), c = css(LCOL[laneOf(x)]);
+    const lbl = grp.length > 1 ? `${x.k} +${grp.length - 1}` : x.k;
+    let ly = cy + 3; for (let t = 0; t < 6 && placed.some(([px2, py2]) => Math.abs(py2 - ly) < 11 && Math.abs(px2 - cx) < 70); t++) ly += 11;
+    placed.push([cx, ly]);
+    s += `<g class="ob" data-oi="${i}"><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}" fill="${c}" fill-opacity=".5" stroke="${c}"/>${grp.length > 1 ? `<text x="${cx.toFixed(1)}" y="${(cy + 3).toFixed(1)}" text-anchor="middle" class="obn">${grp.length}</text>` : ""}<text x="${(cx + rr + 3).toFixed(1)}" y="${ly.toFixed(1)}">${esc(lbl)}</text><title>${grp.map(([y]) => `${y.k} ${y.side === "long" ? "Long" : "Short"} ${y.tf === "d" ? "ngày" : "4h"} · R:R ${nf(y.r1, 1)}`).join("\n")}\n${esc(x.name || "")}: ${nf(x.win1, 0)}% · ${nf(x.avgR, 2)}R</title></g>`;
+  });
+  return s + `</svg><div class="omap-lg"><span style="--lc:var(--up)"><i class="ldot"></i>Mua spot</span><span style="--lc:var(--floor)"><i class="ldot"></i>Long futures</span><span style="--lc:var(--down)"><i class="ldot"></i>Short futures</span><span class="faint">số trong chấm = số coin cùng thiết lập · bấm chấm để tới thẻ</span></div>`;
 }
 const OPP = { ws: [], timer: null };
 function oppClose() { OPP.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); OPP.ws = []; clearInterval(OPP.timer); OPP.timer = null; }
@@ -1294,7 +1373,7 @@ async function viewIdeas() {
   const L0 = await liveData();
   const fromLive = L0 && L0.ideas && new Date(L0.at) > new Date(I.at);
   const all = (fromLive ? L0.ideas : I.items).filter((x) => BYK[x.k]);
-  const F = { tf: "", edge: true, g: "", sort: "ev", ...lsGet("ifilter2", {}) };
+  const F = { tf: "", edge: true, g: "", sort: "ev", lane: "", view: "card", ...lsGet("ifilter2", {}) };
   const groups = [...new Set(all.map((x) => BYK[x.k]?.g).filter(Boolean))].sort();
   const st = I.stats || {}, reg = I.btc_up ? "up" : "down";
   const sTab = ["d", "h4"].map((tf) => Object.entries(st[tf] || {}).filter(([k]) => k !== "_all").map(([k, v]) => { const x = v[reg] || v.all || {}; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[k] || k)}</td><td>${nf(x.n, 0)}</td><td>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</td><td class="${cls(x.avgR)}">${isNum(x.avgR) ? nf(x.avgR, 2) + "R" : "—"}</td><td class="${cls(x.avgR_2y)}">${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(x.d1) ? durTxt(x.d1, tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`; }).join("")).join("");
@@ -1312,10 +1391,13 @@ async function viewIdeas() {
     <div class="mo"><h4>🧱 Tích luỹ BTC dài hạn</h4><p>MVRV ${nf(cy.mvrv, 2)} (${esc(cy.mvrv_zone || "")}). ${cy.mvrv < 1.5 ? "Vùng rẻ lịch sử – mua đều (DCA) hằng tuần là chiến lược có xác suất cao nhất." : cy.mvrv > 3 ? "Vùng đắt lịch sử – ngừng mua thêm, chốt lời dần phần dài hạn." : "Vùng trung tính – mua đều phần nhỏ, giữ tiền mặt chờ vùng rẻ."}</p><a href="#/">Xem định giá BTC →</a></div></div>`;
   app().innerHTML = `<div class="ph"><h1>Cơ hội kiếm lời – vào lệnh gì lúc này</h1><span class="meta">${fromLive ? "thiết lập cập nhật " + etaTxt(L0.at.slice(0, 16)) : "cập nhật " + etaTxt(I.at.slice(0, 16))} · giá trực tiếp từng giây <span class="live-dot"></span></span></div>
     <section class="panel hero light-${light.color || ""}"><div class="opp-sum" id="oSum"></div></section>
+    <section class="panel"><div class="ph"><h2>🗺️ Bản đồ cơ hội – chọn nhanh lệnh đáng làm</h2><span class="meta">góc trên-phải = xác suất cao và lời nhiều</span></div><div class="omap-w"><div id="oMap"></div><div id="oTop" class="otop"></div></div></section>
     <div class="filters"><div class="field"><label>Kiểu đánh</label><select id="iT"><option value="">Swing + lướt</option><option value="d" ${F.tf === "d" ? "selected" : ""}>Swing – khung ngày (giữ vài ngày–tuần)</option><option value="h4" ${F.tf === "h4" ? "selected" : ""}>Lướt – khung 4h (giữ vài giờ–ngày)</option></select></div>
       <div class="field"><label>Nhóm ngành</label><select id="iG"><option value="">Tất cả</option>${groups.map((g) => `<option ${F.g === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></div>
       <div class="field"><label>Xếp theo</label><select id="iO"><option value="ev" ${F.sort === "ev" ? "selected" : ""}>Kỳ vọng lãi</option><option value="win" ${F.sort === "win" ? "selected" : ""}>Xác suất chạm MT1</option><option value="near" ${F.sort === "near" ? "selected" : ""}>Gần điểm vào nhất</option></select></div>
-      <label class="chk"><input type="checkbox" id="iE" ${F.edge ? "checked" : ""}> Chỉ thiết lập có lợi thế lịch sử</label></div>
+      <div class="field"><label>Làn</label><select id="iL"><option value="">Cả 3 làn</option>${LANES.map((l) => `<option value="${l.k}" ${F.lane === l.k ? "selected" : ""}>${l.t.replace(/^\S+\s/, "")}</option>`).join("")}</select></div>
+      <label class="chk"><input type="checkbox" id="iE" ${F.edge ? "checked" : ""}> Chỉ thiết lập có lợi thế lịch sử</label>
+      <span class="seg oview"><button data-v="card" class="${F.view !== "table" ? "on" : ""}">▦ Thẻ</button><button data-v="table" class="${F.view === "table" ? "on" : ""}">☰ Bảng</button></span></div>
     <div class="lanes" id="lanes"></div>
     ${panel("🧭 Ngoài vào lệnh theo tín hiệu, anh còn có thể kiếm lời bằng", more)}
     <details class="panel"><summary>Thiết lập nào thực sự có lợi thế? (BTC ${I.btc_up ? "trên" : "dưới"} MA200 – bấm để xem)</summary><div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${sTab}</tbody></table></div>
@@ -1324,13 +1406,37 @@ async function viewIdeas() {
   let xs = [];
   const draw = () => {
     oppClose();
-    xs = all.filter((x) => (!F.tf || x.tf === F.tf) && (!F.edge || x.edge) && (!F.g || BYK[x.k]?.g === F.g));
+    xs = all.filter((x) => (!F.tf || x.tf === F.tf) && (!F.edge || x.edge) && (!F.g || BYK[x.k]?.g === F.g) && (!F.lane || laneOf(x) === F.lane));
     const seen = new Set(); xs = xs.filter((x) => { const k = x.k + x.side + x.tf; if (seen.has(k)) return false; seen.add(k); return true; });
     const lp = (x) => BYK[x.k]?.p ?? x.e;
     xs.sort((a, b) => F.sort === "win" ? (b.win1 || 0) - (a.win1 || 0) : F.sort === "near" ? Math.abs(lp(a) / a.e - 1) - Math.abs(lp(b) / b.e - 1) : (b.avgR || 0) - (a.avgR || 0));
     xs = xs.slice(0, 60);
-    $("#lanes").innerHTML = LANES.map((ln) => { const L = xs.map((x, i) => [x, i]).filter(([x]) => laneOf(x) === ln.k);
-      return `<section class="lane lane-${ln.k}"><div class="lane-h"><h2>${ln.t} <small>${L.length}</small></h2><p>${ln.sub}</p></div>${L.length ? L.map(([x, i]) => oppCard(x, i)).join("") : `<p class="muted lane-e">Không có cơ hội ${F.edge ? "có lợi thế " : ""}ở làn này lúc này – không vào cũng là quyết định đúng.</p>`}</section>`; }).join("");
+    const lanes = F.lane ? LANES.filter((l) => l.k === F.lane) : LANES;
+    if (F.view === "table") {
+      $("#lanes").className = "olist"; $("#lanes").style.gridTemplateColumns = "";
+      $("#lanes").innerHTML = xs.length ? `<section class="panel flush"><div class="ph"><h2>☰ Bảng cơ hội <small class="faint">${xs.length}</small></h2><span class="meta">tiêu đề cột luôn hiện khi cuộn · giá & trạng thái trực tiếp</span></div><div class="tw otw"><table class="ot"><thead><tr><th class="l">Làn</th><th class="l">Coin</th><th class="l">Trạng thái</th><th class="l">Biểu đồ</th><th>Giá</th><th>Vào</th><th>MT1</th><th>Cắt lỗ</th><th>Xác suất MT1</th><th>Lãi TB</th><th>R:R</th><th>Tới MT1</th><th>Kỳ vọng $</th><th></th></tr></thead><tbody>${xs.map((x, i) => oppRow(x, i)).join("")}</tbody></table></div></section>` : `<p class="muted lane-e">Không có cơ hội phù hợp bộ lọc.</p>`;
+    } else {
+      const cntL = (k) => xs.filter((x) => laneOf(x) === k).length, empty = lanes.filter((l) => !cntL(l.k)), full = lanes.length > 1 ? lanes.filter((l) => cntL(l.k)) : lanes;
+      $("#lanes").className = "lanes" + (full.length === 1 ? " one" : "");
+      $("#lanes").style.gridTemplateColumns = full.length > 1 ? `repeat(${full.length}, minmax(0,1fr))` : "";
+      $("#lanes").innerHTML = (empty.length && full.length < lanes.length ? `<p class="lane-none">${empty.map((l) => `<b>${l.t}</b>`).join(" · ")}: không có cơ hội ${F.edge ? "có lợi thế " : ""}lúc này – không vào cũng là quyết định đúng.</p>` : "") + (full.length ? full : lanes).map((ln) => { const L = xs.map((x, i) => [x, i]).filter(([x]) => laneOf(x) === ln.k);
+        return `<section class="lane lane-${ln.k}"><div class="lane-h"><h2>${ln.t} <small>${L.length}</small></h2><p title="${esc(ln.sub)}">${ln.sub}</p></div><div class="lane-b">${L.length ? L.map(([x, i]) => oppCard(x, i)).join("") : `<p class="muted lane-e">Không có cơ hội ${F.edge ? "có lợi thế " : ""}ở làn này lúc này – không vào cũng là quyết định đúng.</p>`}</div></section>`; }).join("");
+    }
+    // bản đồ + xếp hạng
+    $("#oMap").innerHTML = oppMap(xs);
+    const rank = xs.map((x, i) => [x, i]).sort((a, b) => (b[0].avgR || 0) * (b[0].win1 || 0) - (a[0].avgR || 0) * (a[0].win1 || 0)).slice(0, 8);
+    const mxr = Math.max(0.01, ...rank.map(([x]) => x.avgR || 0));
+    $("#oTop").innerHTML = `<h4>Xếp hạng (xác suất × lãi TB)</h4>${rank.map(([x, i], n) => `<a href="#" class="otr" data-oi="${i}" data-go="${i}" style="--lc:var(${LCOL[laneOf(x)]})"><span class="otn">${n + 1}</span><span class="otk"><b>${esc(x.k)}</b><small>${laneOf(x) === "spot" ? "Mua spot" : x.side === "long" ? "Long" : "Short"} · ${x.tf === "d" ? "ngày" : "4h"}</small></span><span class="pill" data-st>…</span><span class="otv"><b class="${cls(x.avgR)}">${nf(x.avgR, 2)}R</b><small>${nf(x.win1, 0)}%</small><i class="oc-bar"><i style="width:${Math.max(4, (x.avgR || 0) / mxr * 100).toFixed(0)}%;background:var(--lc)"></i></i></span></a>`).join("")}`;
+    const goTo = (i) => { if (F.view !== "table" && F.lane && laneOf(xs[i]) !== F.lane) return; const el = $(`#lanes [data-oi="${i}"]`); if (!el) return; el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); };
+    $$("#oMap .ob").forEach((g) => g.onclick = () => goTo(+g.dataset.oi));
+    $$("#oTop [data-go]").forEach((a) => a.onclick = (e) => { e.preventDefault(); goTo(+a.dataset.go); });
+    // biểu đồ nhỏ: tải khi hiện ra
+    const io = new IntersectionObserver((es) => es.forEach((en) => {
+      if (!en.isIntersecting) return; io.unobserve(en.target);
+      const host = en.target.closest("[data-oi]"), x = xs[+host.dataset.oi], r = BYK[x.k]; if (!r) return;
+      oppKl(r, x.tf).then((o) => { if (!en.target.isConnected) return; const mini = host.tagName === "TR"; en.target.innerHTML = oppChart(o, x, r.p, mini ? 110 : 320, mini ? 34 : 104, mini) ; oppPm(host, BYK[x.k]?.p); });
+    }), { rootMargin: "300px" });
+    $$("#lanes [data-ch]").forEach((e) => io.observe(e));
     $$("[data-pl]").forEach((a) => a.onclick = () => { const [tf, sd] = a.dataset.pl.split("|"); lsSet("pltf", tf); lsSet("plside", sd); });
     // giá trực tiếp
     const px0 = {};
@@ -1342,12 +1448,14 @@ async function viewIdeas() {
       if (!$("#lanes")) { oppClose(); return; }
       if (document.hidden) return;
       const cnt = { go: 0, wait: 0, chase: 0 }, top = [];
-      $$(".opp").forEach((el) => {
-        const x = xs[+el.dataset.i], r = BYK[x.k] || {}, p = px0[x.k] ?? r.p;
+      $$("#lanes [data-oi], #oTop [data-oi]").forEach((el) => {
+        const x = xs[+el.dataset.oi], r = BYK[x.k] || {}, p = px0[x.k] ?? r.p; if (!x) return;
+        const inList = !!el.closest("#lanes");
         const t = { side: x.side, e: x.e, s: x.s, t1: x.t1, t2: x.t2, r1: x.r1, order: "market" }, S = liveSt(t, p);
-        const sEl = $("[data-st]", el); if (sEl._k !== S.k) { sEl.textContent = S.lbl; sEl.className = `pill big ${S.c}`; sEl.title = S.txt; sEl._k = S.k; el.classList.toggle("dim", ["dead", "missed"].includes(S.k)); }
-        const pe = $("[data-p]", el), t2 = px(p); if (pe.textContent !== t2) { pe.classList.toggle("up", p > (pe._v || p)); pe.classList.toggle("down", p < (pe._v || p)); pe.textContent = t2; pe._v = p; }
-        const re = $("[data-r]", el), t3 = pct(r.r1, 1); if (re.textContent !== t3) { re.textContent = t3; re.className = cls(r.r1); }
+        const sEl = $("[data-st]", el); if (sEl && sEl._k !== S.k) { sEl.textContent = S.lbl; sEl.className = `pill ${S.c}`; sEl.title = S.txt; sEl._k = S.k; el.classList.toggle("dim", ["dead", "missed"].includes(S.k)); const b = $(`#oMap .ob[data-oi="${el.dataset.oi}"]`); if (b) b.classList.toggle("dim", ["dead", "missed"].includes(S.k)); }
+        if (!inList) return;
+        const pe = $("[data-p]", el), t2 = px(p); if (pe && pe.textContent !== t2) { pe.classList.toggle("up", p > (pe._v || p)); pe.classList.toggle("down", p < (pe._v || p)); pe.textContent = t2; pe._v = p; oppPm(el, p); }
+        const re = $("[data-r]", el), t3 = pct(r.r1, 1); if (re && re.textContent !== t3) { re.textContent = t3; re.className = cls(r.r1); }
         if (S.k in cnt) cnt[S.k]++;
         if (S.k === "go") top.push([x, S]);
       });
@@ -1361,7 +1469,8 @@ async function viewIdeas() {
     };
     tick(); OPP.timer = setInterval(tick, 1000);
   };
-  [["#iT", "tf"], ["#iG", "g"], ["#iO", "sort"]].forEach(([id, k]) => $(id).onchange = (e) => { F[k] = e.target.value; lsSet("ifilter2", F); draw(); });
+  $$(".oview button").forEach((b) => b.onclick = () => { F.view = b.dataset.v; lsSet("ifilter2", F); $$(".oview button").forEach((y) => y.classList.toggle("on", y === b)); draw(); });
+  [["#iT", "tf"], ["#iG", "g"], ["#iO", "sort"], ["#iL", "lane"]].forEach(([id, k]) => $(id).onchange = (e) => { F[k] = e.target.value; lsSet("ifilter2", F); draw(); });
   $("#iE").onchange = (e) => { F.edge = e.target.checked; lsSet("ifilter2", F); draw(); };
   draw();
 }
