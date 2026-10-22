@@ -251,23 +251,38 @@ function notes(ev) {
 // ---------------------------------------------------------------- giá: Binance spot (data-api, không bị chặn vùng) → OKX swap dự phòng
 async function getJ(u, opt) { const r = await fetch(u, { headers: { "user-agent": "my-bit-bot", "content-type": "application/json" }, ...(opt || {}) }); if (!r.ok) throw new Error(r.status + " " + u.split("?")[0]); return r.json(); }
 // giá: Binance spot (cả lô, lỗi một mã → lấy cả bảng) → Hyperliquid (mọi perp một lần) → OKX → Bitget → Gate → Binance futures → giá lượt phân tích (cũ)
-async function prices(meta, since) {
+async function prices(meta, since, srcMap = {}) {
   const P = {}, SRC = {}, HL = {}, D = { err: [] };
   const ks = Object.keys(meta), put = (k, v, s) => { v = +v; if (v > 0 && !P[k]) { P[k] = v; SRC[k] = s; } };
   const sp = ks.filter((k) => meta[k].sp);
   if (sp.length) {
     let by = null;
     try { const j = await getJ(`https://data-api.binance.vision/api/v3/ticker/price?symbols=${encodeURIComponent(JSON.stringify([...new Set(sp.map((k) => meta[k].sp))]))}`); by = Object.fromEntries(j.map((x) => [x.symbol, +x.price])); }
-    catch (e) { D.err.push("binance lô: " + e.message.slice(0, 60)); try { const j = await getJ("https://data-api.binance.vision/api/v3/ticker/price"); by = Object.fromEntries(j.map((x) => [x.symbol, +x.price])); } catch (e2) { D.err.push("binance bảng: " + e2.message.slice(0, 60)); } }
+    catch (e) { D.err.push("binance lô: " + e.message.slice(0, 60)); if (!/^403/.test(e.message)) { try { const j = await getJ("https://data-api.binance.vision/api/v3/ticker/price"); by = Object.fromEntries(j.map((x) => [x.symbol, +x.price])); } catch (e2) { D.err.push("binance bảng: " + e2.message.slice(0, 60)); } } }
     if (by) for (const k of sp) put(k, by[meta[k].sp] / (meta[k].sm || 1), "Binance");
   }
   let mids = null;
   if (ks.some((k) => !P[k])) { try { mids = await getJ("https://api.hyperliquid.xyz/info", { method: "POST", body: JSON.stringify({ type: "allMids" }) }); } catch (e) { D.err.push("hyperliquid: " + e.message.slice(0, 60)); } }
   if (mids) for (const k of ks) if (!P[k]) { if (mids[k]) put(k, mids[k], "Hyperliquid"); else if (mids["k" + k]) put(k, mids["k" + k] / 1000, "Hyperliquid"); }
-  for (const k of ks.filter((k) => !P[k]).slice(0, 10)) {
-    const tries = [[`https://www.okx.com/api/v5/market/ticker?instId=${k}-USDT-SWAP`, (j) => j?.data?.[0]?.last, "OKX"], [`https://api.bitget.com/api/v2/mix/market/ticker?symbol=${k}USDT&productType=USDT-FUTURES`, (j) => j?.data?.[0]?.lastPr, "Bitget"],
-      [`https://api.gateio.ws/api/v4/futures/usdt/tickers?contract=${k}_USDT`, (j) => j?.[0]?.last, "Gate"], ...(meta[k].bf ? [[`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${meta[k].bf}`, (j) => j?.price / (meta[k].bfm || 1), "Binance futures"]] : [])];
-    for (const [u, f, s] of tries) { try { put(k, f(await getJ(u)), s); if (P[k]) break; } catch (e) { /* nguồn kế */ } }
+  // mã còn thiếu: thử nguồn đã dùng được lần trước cho mã đó trước (nhớ trong D1), rồi lần lượt các sàn khác – giới hạn số lần gọi
+  const SRCS = {
+    okx: [(k) => `https://www.okx.com/api/v5/market/ticker?instId=${k}-USDT-SWAP`, (j) => j?.data?.[0]?.last, "OKX"],
+    bitget: [(k) => `https://api.bitget.com/api/v2/mix/market/ticker?symbol=${k}USDT&productType=USDT-FUTURES`, (j) => j?.data?.[0]?.lastPr, "Bitget"],
+    gate: [(k) => `https://api.gateio.ws/api/v4/futures/usdt/tickers?contract=${k}_USDT`, (j) => j?.[0]?.last, "Gate"],
+    okxs: [(k) => `https://www.okx.com/api/v5/market/ticker?instId=${k}-USDT`, (j) => j?.data?.[0]?.last, "OKX spot"],
+    gates: [(k) => `https://api.gateio.ws/api/v4/spot/tickers?currency_pair=${k}_USDT`, (j) => j?.[0]?.last, "Gate spot"],
+    bitgets: [(k) => `https://api.bitget.com/api/v2/spot/market/tickers?symbol=${k}USDT`, (j) => j?.data?.[0]?.lastPr, "Bitget spot"],
+    mexc: [(k) => `https://api.mexc.com/api/v3/ticker/price?symbol=${k}USDT`, (j) => j?.price, "MEXC"],
+  };
+  let budget = 30;
+  for (const k of ks.filter((k) => !P[k])) {
+    const order = [...new Set([srcMap[k], "okx", "gate", "bitget", "okxs", "gates", "bitgets", "mexc"].filter((x) => x && SRCS[x]))];
+    for (const id of order) {
+      if (budget-- <= 0) break;
+      const [u, f, name] = SRCS[id];
+      try { put(k, f(await getJ(u(k))), name); if (P[k]) { if (srcMap[k] !== id) { srcMap[k] = id; D.mapChanged = true; } break; } } catch (e) { /* nguồn kế */ }
+    }
+    if (budget <= 0) break;
   }
   for (const k of ks) if (!P[k] && meta[k].p) { P[k] = +meta[k].p; SRC[k] = "cũ"; }
   // đỉnh/đáy nến 1 phút kể từ lần kiểm tra trước – cho coin đang có lệnh mở
@@ -277,7 +292,10 @@ async function prices(meta, since) {
       if (m.sp && SRC[k] === "Binance") {
         const j = await getJ(`https://data-api.binance.vision/api/v3/klines?symbol=${m.sp}&interval=1m&startTime=${t0 - 60e3}&limit=60`);
         if (j.length) HL[k] = { hi: Math.max(...j.map((x) => +x[2])) / (m.sm || 1), lo: Math.min(...j.map((x) => +x[3])) / (m.sm || 1) };
-      } else {
+      } else if (SRC[k] === "Gate" || SRC[k] === "OKX") {
+        if (SRC[k] === "Gate") { const j = await getJ(`https://api.gateio.ws/api/v4/futures/usdt/candlesticks?contract=${k}_USDT&interval=1m&from=${Math.floor((t0 - 60e3) / 1000)}`); if (Array.isArray(j) && j.length) HL[k] = { hi: Math.max(...j.map((x) => +x.h)), lo: Math.min(...j.map((x) => +x.l)) }; }
+        else { const j = await getJ(`https://www.okx.com/api/v5/market/candles?instId=${k}-USDT-SWAP&bar=1m&limit=60`); const d = (j.data || []).filter((x) => +x[0] >= t0 - 60e3); if (d.length) HL[k] = { hi: Math.max(...d.map((x) => +x[2])), lo: Math.min(...d.map((x) => +x[3])) }; }
+      } else if (SRC[k] === "Hyperliquid") {
         const coin = mids && !mids[k] && mids["k" + k] ? "k" + k : k, div = coin === k ? 1 : 1000;
         const j = await getJ("https://api.hyperliquid.xyz/info", { method: "POST", body: JSON.stringify({ type: "candleSnapshot", req: { coin, interval: "1m", startTime: t0 - 60e3, endTime: Date.now() } }) });
         if (Array.isArray(j) && j.length) HL[k] = { hi: Math.max(...j.map((x) => +x.h)) / div, lo: Math.min(...j.map((x) => +x.l)) / div };
@@ -323,7 +341,11 @@ export async function botTick(env) {
     for (const p of j.S[b.id]?.pos || []) { since[p.k] = Math.min(since[p.k] ?? Infinity, ms(p.chk)); if (!meta[p.k]) meta[p.k] = j.PL[b.id]?.meta?.[p.k] || {}; }
   }
   if (!meta.BTC) meta.BTC = { sp: "BTCUSDT", sm: 1 };
-  const { P, SRC, HL, D } = await prices(meta, since);
+  let srcMap = {};
+  try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'bot_pxmap'").first(); srcMap = r ? JSON.parse(r.value) : {}; } catch (e) { /* trống */ }
+  const { P, SRC, HL, D } = await prices(meta, since, srcMap);
+  if (D.mapChanged) await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_pxmap', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(srcMap)).run();
+  delete D.mapChanged;
   const price = (k) => P[k] ?? null;
   price.fresh = (k) => !!P[k] && SRC[k] !== "cũ";
   await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_px', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ at: nowIso, ...D })).run();
