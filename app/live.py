@@ -159,7 +159,7 @@ def run(notify: bool = False) -> dict:
                             cache[k] = _px("h1", k)
                         return cache[k]
                     nb = bot.run_all(be, us, items, cj, secs, fut, prices, bars_of, cj.get("_light"), btc_up,
-                                     lambda u, it: users.deliver(be, cfg, u, it, "MyBit – bot giao dịch"))
+                                     lambda u, it: users.deliver(be, cfg, u, it, "MyBit – bot giao dịch"), cfg)
                     if nb:
                         log.info("Bot: đã chạy cho %d người", nb)
                 except Exception as e:  # noqa: BLE001

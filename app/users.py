@@ -26,7 +26,7 @@ from .config import ROOT
 
 log = logging.getLogger("users")
 PLANS = json.loads((ROOT / "functions" / "_lib" / "plans.json").read_text(encoding="utf-8"))
-DATA_KEYS = ("portfolio", "watchlist", "profile", "notify", "assumptions", "journal", "peermap", "_nstate", "risk", "bot", "botstate")
+DATA_KEYS = ("portfolio", "watchlist", "profile", "notify", "assumptions", "journal", "peermap", "_nstate", "risk", "bot", "botstate", "botplan")
 SEV_MIN = {"all": 0, "normal": 1, "important": 2, "off": 99}
 
 

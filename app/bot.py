@@ -459,20 +459,69 @@ def notes(events: list, u: dict) -> list[dict]:
     return out
 
 
-def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc_up, deliver) -> int:
+def make_plan(cfg_raw: dict, st: dict | None, items, rows, sectors, fut, prices, light, btc_up, now: datetime | None = None) -> dict:
+    """Kế hoạch cho bộ khớp lệnh chạy mỗi phút (Cloudflare Worker): ứng viên đã lọc + trần đòn bẩy, funding, nguồn giá, báo cáo ngày."""
+    cfg = norm(cfg_raw)
+    now = now or _now()
+    cands, why = candidates(cfg, items, rows, sectors, fut, btc_up)
+    price = lambda k: (prices.get(k) or [None])[0]  # noqa: E731
+    out = []
+    for x in cands[:30]:
+        r = {**(rows.get(x["k"]) or {}), "k": x["k"]}
+        p = price(x["k"]) or x["e"]
+        sp = abs(p - x["s"]) / p * 100 if p else None
+        out.append({k: x.get(k) for k in ("k", "tf", "setup", "name", "side", "e", "s", "t1", "t2", "d1", "bd", "win1", "avgR", "at", "htf")}
+                   | {"mkt": x["_mkt"], "g": x.get("_g"), "cap": risk.lev_cap(r, x["side"], x["tf"], sp, light, 0.0)})
+    keys = {x["k"] for x in out} | {p["k"] for p in (st or {}).get("pos") or []}
+    meta = {}
+    for k in keys:
+        r = rows.get(k) or {}
+        meta[k] = {"sp": r.get("sp"), "sm": r.get("sm") or 1, "bf": r.get("bf"), "bfm": r.get("bfm") or 1, "okx": "okx" in str(r.get("fx") or ""), "p": price(k)}
+    st0 = st or new_state(cfg["capital"], now)
+    eq = equity(st0, price)
+    res = research(cfg, cands, why, sectors, rows, light, btc_up, st0, eq, now)
+    res["n_cands"], res["skip"] = len(cands), why
+    return {"at": _iso(now), "light": light, "btc_up": btc_up, "cands": out, "f8": {k: (fut.get(k) or [None])[0] for k in keys}, "meta": meta, "research": res}
+
+
+def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc_up, deliver, cfg_d1: dict | None = None) -> int:
+    """Lượt 15 phút. Nếu bộ khớp lệnh mỗi phút (Worker) đang chạy → chỉ viết kế hoạch + gửi thông báo đẩy/email cho sự kiện Worker ghi.
+    Nếu Worker chưa chạy (hoặc ngừng > 5 phút) → tự chạy cả vòng như trước (dự phòng)."""
     from . import users
+    hb = (cfg_d1 or {}).get("bot_hb")
+    try:
+        worker = bool(hb) and (_now() - datetime.fromisoformat(hb.replace("Z", "")[:19])).total_seconds() < 300
+    except ValueError:
+        worker = False
+    log.info("Bot: bộ khớp lệnh mỗi phút %s (nhịp tim %s)", "ĐANG CHẠY" if worker else "chưa chạy – lượt 15 phút tự xử lý", hb or "chưa có")
     n = 0
     for u in us:
-        cfg = (u.get("data") or {}).get("bot")
-        if not cfg or not (cfg.get("enabled") or (u.get("data") or {}).get("botstate")):
+        d = u.get("data") or {}
+        cfg = d.get("bot")
+        if not cfg or not (cfg.get("enabled") or d.get("botstate")):
             continue
         if "bot" not in u.get("features", set()) and u.get("role") != "admin":
             continue
         try:
-            st, ev = step(cfg, (u.get("data") or {}).get("botstate"), items, rows, sectors, fut, prices, bars_of, light, btc_up)
-            users.save(be, u["id"], "botstate", st)
-            if ev:
-                deliver(u, notes(ev, u))
+            st = d.get("botstate")
+            if not worker:
+                st, ev = step(cfg, st, items, rows, sectors, fut, prices, bars_of, light, btc_up)
+                users.save(be, u["id"], "botstate", st)
+                if ev:
+                    deliver(u, notes(ev, u))
+            pl = make_plan(cfg, st, items, rows, sectors, fut, prices, light, btc_up)
+            old = d.get("botplan") or {}
+            pl["pushed_at"] = old.get("pushed_at") or _iso(_now()) + ".000Z"
+            if worker:       # đẩy / email cho thông báo bot mà Worker vừa ghi vào chuông
+                rs, _ = be.q("SELECT key, kind, sev, title, body, url, sym, created_at FROM notifications WHERE user_id = ? AND kind = 'bot' AND created_at > ? ORDER BY created_at",
+                             [u["id"], pl["pushed_at"]])
+                if rs:
+                    cfgx = users.config(be)
+                    site = cfgx.get("site_url") or ""
+                    users.send_push(be, cfgx, u, rs, site)
+                    users.send_email(cfgx, u, rs, "MyBit – bot giao dịch", site)
+                    pl["pushed_at"] = rs[-1]["created_at"]
+            users.save(be, u["id"], "botplan", pl)
             n += 1
         except Exception as e:  # noqa: BLE001
             log.warning("bot %s: %s", u.get("email"), e)

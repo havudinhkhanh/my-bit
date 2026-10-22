@@ -1,5 +1,7 @@
-// Cloudflare Worker: hẹn giờ chạy GitHub Actions đúng giờ (lịch của GitHub hay trễ).
-// Mỗi 15 phút: lượt nhanh. Phút 07 của giờ chia hết cho 4 (UTC) → lượt đầy đủ (định giá, kiểm chứng, đăng web).
+// Cloudflare Worker: (1) hẹn giờ chạy GitHub Actions đúng giờ (lịch của GitHub hay trễ):
+//   mỗi 15 phút: lượt nhanh; phút 00 của giờ chia hết cho 4 (UTC) → lượt đầy đủ (định giá, kiểm chứng, đăng web);
+// (2) MỖI PHÚT: bộ khớp lệnh của bot giao dịch (worker/bot.js) – theo dõi giá, cắt lỗ / chốt lời, vào lệnh.
+import { botTick } from "./bot.js";
 async function dispatch(env, mode) {
   const url = `https://api.github.com/repos/${env.GH_REPO}/actions/workflows/update.yml/dispatches`;
   let last = "";
@@ -17,13 +19,15 @@ async function dispatch(env, mode) {
 }
 
 export default {
-  async scheduled(event, env) {
-    const d = new Date(event.scheduledTime);
-    const full = d.getUTCHours() % 4 === 0 && d.getUTCMinutes() < 15;
-    const res = await dispatch(env, full ? "" : "fast");
-    console.log(`my-bit: ${full ? "đầy đủ" : "nhanh"}`, JSON.stringify(res));
+  async scheduled(event, env, ctx) {
+    const d = new Date(event.scheduledTime), m = d.getUTCMinutes();
+    if (m % 15 === 0 && env.GH_TOKEN) {
+      const full = d.getUTCHours() % 4 === 0 && m === 0;
+      ctx.waitUntil(dispatch(env, full ? "" : "fast").then((res) => console.log(`my-bit: ${full ? "đầy đủ" : "nhanh"}`, JSON.stringify(res))).catch((e) => console.log("dispatch lỗi", e.message)));
+    }
+    try { console.log("bot", JSON.stringify(await botTick(env))); } catch (e) { console.log("bot lỗi", e.message); }
   },
   async fetch() {
-    return new Response("my-bit scheduler: nhanh mỗi 15 phút · đầy đủ mỗi 4 giờ", { headers: { "content-type": "text/plain; charset=utf-8" } });
+    return new Response("my-bit scheduler: nhanh mỗi 15 phút · đầy đủ mỗi 4 giờ · bot mỗi phút", { headers: { "content-type": "text/plain; charset=utf-8" } });
   },
 };

@@ -379,7 +379,8 @@ def run(notify: bool = False) -> dict:
         _w(f"c/{key}.json", d)
     store.path("last_rows.json").write_text(json.dumps({"_light": (market.get("light") or {}).get("color"),
                                                        **{r["k"]: {"ts": r.get("ts"), "td": r.get("td"), "atr": r.get("atr"), "mc": r.get("mc"), "cr": r.get("cr"), "id": r.get("id"),
-                                                                   "ml": r.get("ml"), "g": r.get("g"), "spot": bool(r.get("spot")), "n": r.get("n")} for r in rows}}), encoding="utf-8")
+                                                                   "ml": r.get("ml"), "g": r.get("g"), "spot": bool(r.get("spot")), "n": r.get("n"), "sp": r.get("sp"), "sm": r.get("sm"),
+                                                                   "bf": r.get("bf"), "bfm": r.get("bfm"), "fx": r.get("fx")} for r in rows}}), encoding="utf-8")
     _w("coins.json", {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "rows": rows, "peers": peers,
                       "light": (market.get("light") or {}).get("color"), "btc_up": not btc_down})
     _w("market.json", market)
