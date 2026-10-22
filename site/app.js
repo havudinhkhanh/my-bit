@@ -100,7 +100,11 @@ function themeOpts() {
     crosshair: { mode: 0 }, localization: { locale: LOC, priceFormatter: (p) => px(p) },
   };
 }
-function mkChart(el, extra = {}) { const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, ...extra }); charts.push(c); return c; }
+function mkChart(el, extra = {}) {
+  const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, ...extra }); charts.push(c);
+  if (el.clientHeight >= 200 && !el.querySelector(":scope > .cbt")) { el.classList.add("lwbox"); el.insertAdjacentHTML("beforeend", `<div class="cbt"><button type="button" data-cz="wide" title="Mở rộng – xem to ngay trong trang">▭</button><button type="button" data-cz="full" title="Toàn màn hình (Esc để thoát)">⛶</button></div>`); }
+  return c;
+}
 function candleChart(el, o, opts = {}) {
   const c = mkChart(el);
   const cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"),
@@ -120,40 +124,112 @@ function candleChart(el, o, opts = {}) {
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
   return { c, cs };
 }
+// ---------------------------------------------------------------- khung biểu đồ: vẽ đúng kích thước thật (chữ không phóng to), nhỏ mặc định, có "Mở rộng" & "Toàn màn hình"
+const CB = new Map(); let CBN = 0;
+function svgMount(draw, o = {}) {
+  const id = ++CBN; CB.set(id, { draw, h: o.h || 200, ar: o.ar || 0, cx: {} });
+  if (CB.size > 500) for (const [k, r] of CB) { if ((r.el && !r.el.isConnected) || (!r.el && k < CBN - 300)) CB.delete(k); }
+  return `<div class="cbox" data-cb="${id}"><div class="cbt"><button type="button" data-cz="wide" title="Mở rộng – xem to ngay trong trang">▭</button><button type="button" data-cz="full" title="Toàn màn hình (Esc để thoát)">⛶</button></div><div class="cbc"></div>${o.legend || ""}</div>`;
+}
+function cbMount(root) {
+  (root || document).querySelectorAll?.(".cbox:not([data-m])").forEach((el) => {
+    const r = CB.get(+el.dataset.cb); if (!r) return;
+    el.dataset.m = 1; r.el = el;
+    const c = el.querySelector(".cbc");
+    const draw = () => {
+      if (!el.isConnected) return;
+      const full = el.classList.contains("cz-full"), wide = el.classList.contains("cz-wide");
+      const W = Math.max(220, Math.floor(c.clientWidth || el.clientWidth || 600));
+      let H = r.ar ? Math.max(180, Math.min(r.h, Math.round(W * r.ar))) : r.h;
+      if (wide) H = Math.round(Math.max(H * 1.8, Math.min(innerHeight * 0.62, W * 0.45)));
+      if (full) { c.style.height = ""; H = Math.max(240, Math.floor(c.clientHeight)); }
+      if (W === r.W && H === r.H) return;
+      r.W = W; r.H = H; r.cx = { full: full || wide };
+      if (!full) c.style.height = H + "px";
+      c.innerHTML = r.draw(W, H, r.cx) + `<i class="cbv" hidden></i><div class="cbtip" hidden></div>`;
+    };
+    r.redraw = () => { r.W = 0; draw(); };
+    draw();
+    try { new ResizeObserver(() => requestAnimationFrame(draw)).observe(c); } catch (e) { /* trình duyệt cũ */ }
+    c.onmousemove = (e) => {
+      if (!r.cx.hover) return;
+      const b = c.getBoundingClientRect(), h = r.cx.hover(e.clientX - b.left, e.clientY - b.top), v = c.querySelector(".cbv"), t = c.querySelector(".cbtip");
+      if (!h) { v.hidden = t.hidden = true; return; }
+      v.hidden = t.hidden = false; v.style.left = h.x + "px"; t.innerHTML = h.html;
+      const tw = t.offsetWidth, th = t.offsetHeight;
+      t.style.left = (h.x + 14 + tw > b.width ? Math.max(0, h.x - tw - 14) : h.x + 14) + "px";
+      t.style.top = Math.max(4, Math.min(b.height - th - 4, e.clientY - b.top - th / 2)) + "px";
+    };
+    c.onmouseleave = () => c.querySelectorAll(".cbv,.cbtip").forEach((x) => (x.hidden = true));
+  });
+}
+function czToggle(box, mode) {
+  const on = !box.classList.contains("cz-" + mode);
+  box.classList.remove("cz-wide", "cz-full");
+  box.closest(".panel")?.classList.remove("cz-span");
+  document.body.classList.remove("cz-lock");
+  if (on && !box.dataset.title) box.dataset.title = (box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || "").replace(/\s+/g, " ").trim();
+  if (on) { box.classList.add("cz-" + mode); if (mode === "wide") box.closest(".panel")?.classList.add("cz-span"); else document.body.classList.add("cz-lock"); }
+  box.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", box.classList.contains("cz-" + b.dataset.cz)));
+  const r = CB.get(+box.dataset.cb); if (r?.redraw) setTimeout(r.redraw, 30);
+  if (on && mode === "wide") setTimeout(() => box.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+  window.dispatchEvent(new Event("resize"));
+}
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cz]"); if (!b) return; e.preventDefault(); czToggle(b.closest(".cbox, .lwbox"), b.dataset.cz); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czToggle(f, "full"); } });
+new MutationObserver((ms) => { if (ms.some((m) => m.addedNodes.length)) cbMount(); }).observe(document.documentElement, { childList: true, subtree: true });
+function niceTicks(mn, mx, n) {
+  const span = mx - mn || 1, raw = span / Math.max(1, n), p = 10 ** Math.floor(Math.log10(raw)), f = raw / p, st = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
+  const out = []; for (let v = Math.ceil(mn / st) * st; v <= mx + st * 1e-6; v += st) out.push(+v.toFixed(10)); return out;
+}
 function lineSvg(series, opt = {}) {
-  const W = opt.w || 640, H = opt.h || 180, pl = 40, pr = 8, pt = 8, pb = 18;
-  const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum).concat(opt.hlines ? opt.hlines.map((h) => h.y) : []);
+  const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum);
   if (!all.length) return `<p class="muted">Chưa có số liệu.</p>`;
+  const legend = series.filter((x) => x.name).map((x) => `<span><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</span>`).join("");
+  return svgMount((W, H, cx) => lineDraw(series, opt, W, H, cx), { h: opt.h || 180, legend: legend ? `<div class="leg">${legend}</div>` : "" });
+}
+function lineDraw(series, opt, W, H, cx) {
+  const pr = 10, pt = 10, pb = 20;
+  const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum).concat(opt.hlines ? opt.hlines.map((h) => h.y) : []);
   let mn = Math.min(...all), mx = Math.max(...all);
   if (opt.zero) { mn = Math.min(mn, 0); mx = Math.max(mx, 0); }
   if (isNum(opt.min)) mn = Math.min(mn, opt.min);
   if (isNum(opt.max)) mx = Math.max(mx, opt.max);
   if (mx === mn) { mx += 1; mn -= 1; }
-  const pad = (mx - mn) * 0.06; mn -= pad; mx += pad;
+  const pad = (mx - mn) * 0.05; mn -= pad; mx += pad;
   const lg = !!opt.log && mn > 0;
-  const T = (v) => (lg ? Math.log10(v) : v), tmn = T(mn > 0 || !lg ? mn : 1e-9), tmx = T(mx);
+  const TF = (v) => (lg ? Math.log10(v) : v), tmn = TF(mn > 0 || !lg ? mn : 1e-9), tmx = TF(mx);
+  const fmt = (v) => (opt.fmt ? opt.fmt(v) : nf(v, opt.dec ?? 1));
+  const nY = Math.max(2, Math.min(6, Math.floor(H / 42)));
+  const tv = lg ? Array.from({ length: nY + 1 }, (_, k) => 10 ** (tmn + (tmx - tmn) * k / nY)) : niceTicks(mn, mx, nY);
+  const pl = Math.max(30, Math.min(70, Math.max(...tv.map((v) => String(fmt(v)).length)) * 6.2 + 10));
   const n = Math.max(...series.map((s) => s.pts.length));
   const X = (i) => pl + (i / Math.max(1, n - 1)) * (W - pl - pr);
-  const Y = (v) => pt + (1 - (T(v) - tmn) / (tmx - tmn)) * (H - pt - pb);
-  let s = `<svg class="svgchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "biểu đồ")}">`;
+  const Y = (v) => pt + (1 - (TF(v) - tmn) / (tmx - tmn)) * (H - pt - pb);
+  let s = `<svg class="svgchart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "biểu đồ")}">`;
   (opt.bands || []).forEach((b) => { const y1 = Y(Math.min(mx, b.hi)), y2 = Y(Math.max(mn, b.lo)); if (y2 > y1) s += `<rect x="${pl}" width="${W - pl - pr}" y="${y1}" height="${y2 - y1}" fill="${b.color}" opacity="${b.op ?? 0.1}"/>`; });
-  for (let k = 0; k <= 3; k++) { const tv = tmn + (tmx - tmn) * k / 3, v = lg ? 10 ** tv : tv; s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line-2)"/><text x="2" y="${Y(v) + 3}">${opt.fmt ? opt.fmt(v) : nf(v, opt.dec ?? 1)}</text>`; }
-  (opt.hlines || []).forEach((h) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="${h.color || "var(--ink-3)"}" stroke-dasharray="4 3"/>${h.label ? `<text x="${W - pr - 2}" y="${Y(h.y) - 3}" text-anchor="end" style="fill:${h.color || "var(--ink-3)"}">${esc(h.label)}</text>` : ""}`; });
+  tv.forEach((v) => { const y = Y(v).toFixed(1); s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" class="g${Math.abs(v) < 1e-12 && !lg ? " z" : ""}"/><text x="${pl - 6}" y="${+y + 3.5}" text-anchor="end" class="ya">${esc(fmt(v))}</text>`; });
+  (opt.hlines || []).forEach((h) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="${h.color || "var(--ink-3)"}" stroke-dasharray="4 3"/>${h.label ? `<text x="${W - pr - 2}" y="${Y(h.y) - 4}" text-anchor="end" style="fill:${h.color || "var(--ink-3)"}">${esc(h.label)}</text>` : ""}`; });
   series.forEach((se) => {
     if (se.bars) {
       const bw = Math.max(1, (W - pl - pr) / n - 1);
-      se.pts.forEach((p, i) => { if (!isNum(p.y)) return; const y0 = Y(Math.max(mn, Math.min(mx, 0))), y1 = Y(p.y); s += `<rect x="${X(i) - bw / 2}" y="${Math.min(y0, y1)}" width="${bw}" height="${Math.max(0.5, Math.abs(y1 - y0))}" fill="${se.color || (p.y >= 0 ? css("--up") : css("--down"))}" opacity=".75"><title>${esc(p.x)}: ${opt.fmt ? opt.fmt(p.y) : nf(p.y, opt.dec ?? 1)}</title></rect>`; });
+      se.pts.forEach((p, i) => { if (!isNum(p.y)) return; const y0 = Y(Math.max(mn, Math.min(mx, 0))), y1 = Y(p.y); s += `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, Math.abs(y1 - y0)).toFixed(1)}" fill="${se.color || (p.y >= 0 ? css("--up") : css("--down"))}" opacity=".75"/>`; });
       return;
     }
-    const d = se.pts.map((p, i) => (isNum(p.y) ? `${X(i)},${Y(p.y)}` : null)).filter(Boolean).join(" ");
-    s += `<polyline fill="none" stroke="${se.color}" stroke-width="${se.width || 1.6}" ${se.dash ? `stroke-dasharray="${se.dash}"` : ""} points="${d}"/>`;
+    const d = se.pts.map((p, i) => (isNum(p.y) ? `${X(i).toFixed(1)},${Y(p.y).toFixed(1)}` : null)).filter(Boolean).join(" ");
+    s += `<polyline fill="none" stroke="${se.color}" stroke-width="${se.width || 1.5}" stroke-linejoin="round" ${se.dash ? `stroke-dasharray="${se.dash}"` : ""} points="${d}"/>`;
   });
   const ref = series[0].pts;
-  const step = Math.ceil(ref.length / (opt.ticks || 6));
-  ref.forEach((p, i) => { if (i % step === 0 || i === ref.length - 1) s += `<text x="${X(i)}" y="${H - 4}" text-anchor="middle">${esc(p.x)}</text>`; });
+  const nx = Math.max(2, Math.floor((W - pl - pr) / 90)), step = Math.max(1, Math.ceil(ref.length / nx));
+  ref.forEach((p, i) => { if (i % step === 0 && (ref.length - 1 - i) * (W - pl - pr) / Math.max(1, n - 1) > 40 || i === ref.length - 1) s += `<text x="${X(i).toFixed(1)}" y="${H - 5}" text-anchor="${i === ref.length - 1 ? "end" : i === 0 ? "start" : "middle"}" class="xa">${esc(p.x)}</text>`; });
   s += `</svg>`;
-  const legend = series.filter((x) => x.name).map((x) => `<span><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</span>`).join("");
-  return s + (legend ? `<div class="leg">${legend}</div>` : "");
+  cx.hover = (mx2) => {
+    if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;
+    const i = Math.max(0, Math.min(n - 1, Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
+    const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b></span>` : ""; }).join("");
+    return rows ? { x: X(i), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
+  };
+  return s;
 }
 function gauge(v, lo = 0, hi = 100, label = "") {
   const t = Math.max(0, Math.min(1, ((v ?? lo) - lo) / (hi - lo)));
@@ -1488,13 +1564,17 @@ function oppRow(x, i) {
     <td class="${cls(M.ev)}">${M.ev >= 0 ? "+" : ""}${usd2(M.ev)}</td><td><a class="btn primary sm" href="#/plan/${enc(x.k)}" data-pl="${x.tf}|${x.side}">Lên lệnh</a></td></tr>`;
 }
 // bản đồ cơ hội: X = xác suất chạm MT1, Y = lãi TB/lệnh, cỡ = R:R, màu = làn
-function oppMap(xs, W = 720, H = 280) {
+function oppMap(xs) {
+  if (xs.filter((x) => isNum(x.win1) && isNum(x.avgR)).length < 2) return `<p class="muted">Chưa đủ cơ hội để vẽ.</p>`;
+  return svgMount((W, H) => oppMapDraw(xs, W, H), { h: 340, ar: 0.42, legend: `<div class="omap-lg"><span style="--lc:var(--up)"><i class="ldot"></i>Mua spot</span><span style="--lc:var(--floor)"><i class="ldot"></i>Long futures</span><span style="--lc:var(--down)"><i class="ldot"></i>Short futures</span><span class="faint">số trong chấm = số coin cùng thiết lập · bấm chấm để tới thẻ</span></div>` });
+}
+function oppMapDraw(xs, W, H) {
   const P = xs.map((x, i) => [x, i]).filter(([x]) => isNum(x.win1) && isNum(x.avgR));
   if (P.length < 2) return `<p class="muted">Chưa đủ cơ hội để vẽ.</p>`;
   const x0 = Math.max(0, Math.floor(Math.min(...P.map(([x]) => x.win1)) / 5) * 5 - 5), x1 = Math.min(100, Math.ceil(Math.max(...P.map(([x]) => x.win1)) / 5) * 5 + 5);
   const y0 = Math.min(0, Math.floor(Math.min(...P.map(([x]) => x.avgR)) * 10) / 10), y1 = Math.ceil(Math.max(...P.map(([x]) => x.avgR)) * 10 + 1) / 10;
   const L = 44, R = 12, T = 12, B = 30, X = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), Y = (v) => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
-  let s = `<svg class="svgchart omap" viewBox="0 0 ${W} ${H}">`;
+  let s = `<svg class="svgchart omap" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
   const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
   s += `<rect x="${X(mx)}" y="${T}" width="${X(x1) - X(mx)}" height="${Y(my) - T}" fill="${css("--up")}" opacity=".07"/><text x="${X(x1) - 6}" y="${T + 14}" text-anchor="end" class="oq">Tốt nhất: chắc + lời</text>`;
   for (let v = Math.ceil(x0 / 10) * 10; v <= x1; v += 10) s += `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${H - B}" class="gl"/><text x="${X(v)}" y="${H - B + 14}" text-anchor="middle" class="ax">${v}%</text>`;
@@ -1512,7 +1592,7 @@ function oppMap(xs, W = 720, H = 280) {
     placed.push([cx, ly]);
     s += `<g class="ob" data-oi="${i}"><circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr.toFixed(1)}" fill="${c}" fill-opacity=".5" stroke="${c}"/>${grp.length > 1 ? `<text x="${cx.toFixed(1)}" y="${(cy + 3).toFixed(1)}" text-anchor="middle" class="obn">${grp.length}</text>` : ""}<text x="${(cx + rr + 3).toFixed(1)}" y="${ly.toFixed(1)}">${esc(lbl)}</text><title>${grp.map(([y]) => `${y.k} ${y.side === "long" ? "Long" : "Short"} ${y.tf === "d" ? "ngày" : "4h"} · R:R ${nf(y.r1, 1)}`).join("\n")}\n${esc(x.name || "")}: ${nf(x.win1, 0)}% · ${nf(x.avgR, 2)}R</title></g>`;
   });
-  return s + `</svg><div class="omap-lg"><span style="--lc:var(--up)"><i class="ldot"></i>Mua spot</span><span style="--lc:var(--floor)"><i class="ldot"></i>Long futures</span><span style="--lc:var(--down)"><i class="ldot"></i>Short futures</span><span class="faint">số trong chấm = số coin cùng thiết lập · bấm chấm để tới thẻ</span></div>`;
+  return s + `</svg>`;
 }
 const OPP = { ws: [], timer: null };
 function oppClose() { OPP.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); OPP.ws = []; clearInterval(OPP.timer); OPP.timer = null; }
@@ -1577,7 +1657,7 @@ async function viewIdeas() {
     const mxr = Math.max(0.01, ...rank.map(([x]) => x.avgR || 0));
     $("#oTop").innerHTML = `<h4>Xếp hạng (xác suất × lãi TB)</h4>${rank.map(([x, i], n) => `<a href="#" class="otr" data-oi="${i}" data-go="${i}" style="--lc:var(${LCOL[laneOf(x)]})"><span class="otn">${n + 1}</span><span class="otk"><b>${esc(x.k)}</b><small>${laneOf(x) === "spot" ? "Mua spot" : x.side === "long" ? "Long" : "Short"} · ${x.tf === "d" ? "ngày" : "4h"}</small></span><span class="pill" data-st>…</span><span class="otv"><b class="${cls(x.avgR)}">${nf(x.avgR, 2)}R</b><small>${nf(x.win1, 0)}%</small><i class="oc-bar"><i style="width:${Math.max(4, (x.avgR || 0) / mxr * 100).toFixed(0)}%;background:var(--lc)"></i></i></span></a>`).join("")}`;
     const goTo = (i) => { if (F.view !== "table" && F.lane && laneOf(xs[i]) !== F.lane) return; const el = $(`#lanes [data-oi="${i}"]`); if (!el) return; el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); };
-    $$("#oMap .ob").forEach((g) => g.onclick = () => goTo(+g.dataset.oi));
+    $("#oMap").onclick = (e) => { const g = e.target.closest?.(".ob"); if (g) goTo(+g.dataset.oi); };
     $$("#oTop [data-go]").forEach((a) => a.onclick = (e) => { e.preventDefault(); goTo(+a.dataset.go); });
     // biểu đồ nhỏ: tải khi hiện ra
     const io = new IntersectionObserver((es) => es.forEach((en) => {
@@ -1626,14 +1706,15 @@ async function viewIdeas() {
 
 // ================================================================ NHÓM NGÀNH
 const QCOL = { "Dẫn dắt": "buy", "Cải thiện": "brand", "Suy yếu": "warn", "Tụt hậu": "sell" };
-function rrg(S, W = 760, H = 380) {
+function rrg(S) { return svgMount((W, H) => rrgDraw(S, W, H), { h: 460, ar: 0.56 }); }
+function rrgDraw(S, W, H) {
   const xs = S.filter((s) => isNum(s.rs30) && isNum(s.mom));
   if (!xs.length) return `<p class="muted">Chưa đủ dữ liệu.</p>`;
   const q80 = (arr) => { const v = arr.map(Math.abs).sort((p, q) => p - q); return v[Math.floor(v.length * 0.8)] || 1; };
   const ax = Math.max(5, q80(xs.map((s) => s.rs30)) * 1.6), ay = Math.max(3, q80(xs.map((s) => s.mom)) * 1.6);
   const cl = (v, m) => Math.max(-m * 0.97, Math.min(m * 0.97, v));
   const X = (v) => W / 2 + (cl(v, ax) / ax) * (W / 2 - 30), Y = (v) => H / 2 - (cl(v, ay) / ay) * (H / 2 - 24), mx = Math.sqrt(Math.max(...xs.map((s) => s.mc || 1)));
-  let s = `<svg class="svgchart rrg" viewBox="0 0 ${W} ${H}">`;
+  let s = `<svg class="svgchart rrg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
   [[W / 2, 0, "Cải thiện", css("--brand")], [W / 2, H / 2, "Dẫn dắt", css("--up")], [0, H / 2, "Tụt hậu", css("--down")], [0, 0, "Suy yếu", css("--ref")]].forEach(([x0, y0, t, c], i) => {
     const qx = i === 0 ? 0 : i === 1 ? W / 2 : i === 2 ? 0 : W / 2, qy = i === 0 ? 0 : i === 1 ? 0 : i === 2 ? H / 2 : H / 2;
     const lab = ["Cải thiện", "Dẫn dắt", "Tụt hậu", "Suy yếu"][i], col = [css("--brand"), css("--up"), css("--down"), css("--ref")][i];

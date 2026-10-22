@@ -238,8 +238,8 @@ td.wrap{white-space:normal;min-width:180px}
 .vrange .zone{position:absolute;top:22px;height:7px;border-radius:4px}
 .vrange .mk{position:absolute;top:6px;transform:translateX(-50%);font-size:.68rem;text-align:center;white-space:nowrap}
 .vrange .mk::after{content:"";display:block;width:2px;height:20px;margin:2px auto 0;background:currentColor}
-.svgchart{width:100%;height:auto;display:block}
-.svgchart text{fill:var(--ink-2);font-size:10px}
+.svgchart{display:block;max-width:100%}
+.svgchart text{fill:var(--ink-3);font:500 10.5px/1 "Be Vietnam Pro",system-ui,sans-serif}
 .leg{display:flex;flex-wrap:wrap;gap:10px;font-size:.74rem;color:var(--ink-2)}
 .leg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 .tags{display:flex;flex-wrap:wrap;gap:4px}
@@ -2039,3 +2039,29 @@ a.sbw{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:6px;align-i
 a.sbm{display:block;padding:5px 6px;border-radius:6px;color:var(--ink)}a.sbm:hover{background:var(--sunk);text-decoration:none}a.sbm b{display:block;font-size:.78rem}a.sbm small{display:block;font-size:.7rem;color:var(--ink-3);line-height:1.4}
 #pnsec .pn-list a{padding:4px 6px}
 .sb>summary::before{content:none!important;display:none!important}.sb>summary>span{flex:1;text-align:left}
+
+/* Khung biểu đồ: kích thước thật + mở rộng / toàn màn hình */
+.cbox{position:relative;margin:4px 0}
+.cbc{position:relative;width:100%;min-height:60px}
+.cbc .svgchart{width:100%;height:100%}
+.svgchart line.g{stroke:var(--line-2);stroke-width:1}.svgchart line.g.z{stroke:var(--ink-3);stroke-opacity:.6}
+.svgchart text.ya,.svgchart text.xa{font-size:10px;fill:var(--ink-3);font-variant-numeric:tabular-nums}
+.cbt{position:absolute;top:4px;right:4px;z-index:5;display:flex;gap:3px;opacity:0;transition:opacity .15s}
+.cbox:hover>.cbt,.lwbox:hover>.cbt,.cbox.cz-wide>.cbt,.cbox.cz-full>.cbt,.lwbox.cz-wide>.cbt,.lwbox.cz-full>.cbt,.cbt:focus-within{opacity:1}
+@media (hover:none){.cbt{opacity:.85}}
+.cbt button{width:26px;height:24px;border-radius:6px;border:1px solid var(--line);background:color-mix(in srgb,var(--surface) 88%,transparent);color:var(--ink-2);font-size:.8rem;line-height:1;cursor:pointer;padding:0}
+.cbt button:hover,.cbt button.on{background:var(--brand);border-color:var(--brand);color:#111}
+.cbv{position:absolute;top:8px;bottom:20px;width:1px;background:var(--ink-3);opacity:.55;pointer-events:none}
+.cbtip{position:absolute;z-index:6;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:.72rem;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.25);white-space:nowrap}
+.cbtip em{display:block;font-style:normal;color:var(--ink-3);font-size:.68rem;margin-bottom:2px}.cbtip span{display:block}.cbtip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
+.panel.cz-span{grid-column:1/-1}
+.cbox.cz-full,.lwbox.cz-full{position:fixed!important;z-index:90;inset:calc(var(--toph,56px) + 10px) 16px 16px 16px!important;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.45);height:auto!important;width:auto!important}
+.cbox.cz-full .cbc{height:100%!important}
+.lwbox{position:relative}
+.lwbox.cz-wide{height:min(72vh,760px)!important}
+body.cz-lock{overflow:hidden}
+body.cz-lock::after{content:"";position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:85}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.72rem;color:var(--ink-2);margin-top:4px}.leg i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:5px;vertical-align:3px}
+.cbox.cz-full::before,.lwbox.cz-full::before{content:attr(data-title);display:block;font-weight:700;font-size:.95rem;margin:0 70px 10px 2px;color:var(--ink)}
+.lwbox.cz-full::before{position:absolute;top:12px;left:16px;z-index:4}
+.cbox.cz-full{display:flex;flex-direction:column}.cbox.cz-full>.cbc{flex:1 1 0;min-height:0;height:auto!important;overflow:hidden}.cbox.cz-full .svgchart{position:absolute;inset:0}
