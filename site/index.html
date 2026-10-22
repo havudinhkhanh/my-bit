@@ -43,7 +43,20 @@
   <a href="#/methods" data-r="methods" class="nav-wide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg>Phương pháp</a>
   <a href="#/backtest" data-r="backtest"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Kiểm chứng</a>
 </nav>
+<div class="shell">
+<aside id="pnav" class="pnav" hidden>
+  <div class="pn-in">
+    <div class="pn-top"><b>Trên trang này</b><span><button id="pnFocus" class="pn-btn" type="button" title="Chỉ hiện mục đang chọn (như trang Phương pháp)">Từng mục</button><button id="pnHide" class="pn-btn" type="button" title="Thu gọn mục lục">«</button></span></div>
+    <div class="msearch"><input id="pnq" type="search" autocomplete="off" placeholder="Tìm trong trang… ( / )"></div>
+    <small id="pncnt" class="mcnt"></small>
+    <div id="pntabs" class="mchips pn-tabs"></div>
+    <nav id="pnlist" class="mlist pn-list"></nav>
+  </div>
+</aside>
 <main id="app" tabindex="-1"><p class="muted">Đang tải…</p></main>
+</div>
+<button id="pnFab" class="pnfab" type="button" title="Mục lục & tìm trong trang">☰ <span>Mục lục</span></button>
+<div id="pnShade" class="pnshade"></div>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script src="app.js"></script>
 </body>

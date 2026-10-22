@@ -197,6 +197,141 @@ async function route() {
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
   app().focus({ preventScroll: true });
+  pnRoute(r);
+}
+
+
+// ================================================================ MỤC LỤC TRANG (tìm trong trang + danh mục mục, như trang Phương pháp)
+const PN = { r: "", items: [], q: "", focus: false, cur: null, t: 0, chk: 0, skip: new Set(["methods", "account", "admin", "notifications", "help"]) };
+const PN_ITEM = ".panel, .lane, .ltk, .tw", PN_SUB = ".opp, .ltk", PN_ROW = "tbody tr, .rows > .row, .rows > a, .opp, .vrow, .rt-row, .kpis > div, .stats > *, li";
+const pnFold = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+const pnLS = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("mybit_pn_" + k)); localStorage.setItem("mybit_pn_" + k, JSON.stringify(v)); } catch (e) { return null; } };
+function pnSubT(c) {
+  const k = c.querySelector(".ck b, .ltk-r b")?.textContent || "", pills = [...c.querySelectorAll(".ltk-r .pill")].map((x) => x.textContent.trim());
+  const sd = pills.find((t) => /^(LONG|SHORT)$/.test(t)) || "", st = c.querySelector("[data-st]")?.textContent || pills.find((t) => !/^(LONG|SHORT)$/.test(t)) || "";
+  return [k, sd, st && st !== "…" ? "· " + st : ""].filter(Boolean).join(" ").trim();
+}
+function pnTitle(p) {
+  if (p.classList.contains("ltk")) return pnSubT(p);
+  const h = p.querySelector(":scope > .ph h2, :scope > .ph h3, :scope > .lane-h h2, :scope > h2, :scope > h3");
+  return h ? T(h.textContent.replace(/\s+/g, " ").trim()).slice(0, 70) : "";
+}
+function pnCollect() {
+  return [...app().querySelectorAll(PN_ITEM)].filter((p) => !p.parentElement.closest(PN_ITEM) && !p.closest("[hidden]") && !p.closest(".modal"));
+}
+function pnRoute(r) {
+  document.body.classList.remove("pn-focus");
+  PN.r = r || "market"; PN.q = ""; PN.cur = null; PN.focus = !!pnLS("focus_" + PN.r);
+  const q = $("#pnq"); if (q) q.value = "";
+  pnCheck(true);
+}
+function pnCheck(force) {
+  const nav = $("#pnav"); if (!nav) return;
+  const its = PN.skip.has(PN.r) ? [] : pnCollect();
+  const named = its.filter((p) => pnTitle(p));
+  const full = named.length >= 3 || (named.length >= 2 && named.reduce((n, p) => n + p.querySelectorAll(PN_SUB).length, 0) >= 2), mini = !full && its.some((p) => pnRows(p).length >= 20), on = full || mini;
+  document.body.classList.toggle("pn-on", full && pnLS("open") !== false);
+  document.body.classList.toggle("pn-has", on);
+  document.body.classList.toggle("pn-mini", mini);
+  nav.hidden = !on;
+  if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
+  const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
+  const nr = its.reduce((n, p) => n + pnRows(p).length, 0);
+  if (same) { if (PN.q && nr !== PN.nr) { PN.nr = nr; pnApply(); } return; }
+  PN.items = its; PN.nr = nr;
+  pnBuild(); pnApply();
+}
+function pnBuild() {
+  const tabs = [...app().querySelectorAll(".subtabs")].find((t) => !t.closest(".panel"));
+  $("#pntabs").innerHTML = tabs ? [...tabs.querySelectorAll("button, a")].map((b, i) => `<button class="mchip ${b.classList.contains("on") ? "on" : ""}" data-ti="${i}">${esc(b.textContent.trim())}</button>`).join("") : "";
+  $$("#pntabs button").forEach((b) => b.onclick = () => { const src = [...tabs.querySelectorAll("button, a")][+b.dataset.ti]; src?.click(); setTimeout(() => pnCheck(true), 60); });
+  $("#pnFocus").classList.toggle("on", PN.focus);
+}
+function pnRows(p) { return p.querySelectorAll(PN_ROW); }
+function pnApply() {
+  const f = pnFold(PN.q).trim().replace(/\s+/g, " ");
+  let nItem = 0, nRow = 0;
+  const res = PN.items.map((p) => {
+    const t = pnTitle(p), tf = pnFold(t);
+    const rows = pnRows(p); let hits = 0, show = true;
+    if (!f) { rows.forEach((r) => r.classList.remove("pn-xr")); }
+    else if (tf.includes(f)) { rows.forEach((r) => r.classList.remove("pn-xr")); hits = -1; }
+    else {
+      if (rows.length) rows.forEach((r) => { const m = pnFold(r.textContent).includes(f); r.classList.toggle("pn-xr", !m); if (m) hits++; });
+      if (!hits) { const m = pnFold(p.textContent).includes(f); if (m && rows.length) rows.forEach((r) => r.classList.remove("pn-xr")); show = m; hits = m ? -1 : 0; }
+    }
+    if (f && show) { nItem++; if (hits > 0) nRow += hits; }
+    return { p, t, show, hits };
+  });
+  const cur = PN.cur && res.find((x) => x.p === PN.cur && x.show) ? PN.cur : (res.find((x) => x.show && x.t) || {}).p;
+  PN.cur = cur;
+  res.forEach((x) => x.p.classList.toggle("pn-x", !x.show || (PN.focus && x.p !== cur && !f)));
+  document.body.classList.toggle("pn-focus", PN.focus && !f);
+  $("#pncnt").textContent = f ? (nItem ? `${nItem} ${I18N.lang === "en" ? "sections" : "mục"}${nRow ? ` · ${nRow} ${I18N.lang === "en" ? "rows" : "dòng"}` : ""}` : (I18N.lang === "en" ? "No match" : "Không tìm thấy")) : "";
+  let k = 0;
+  PN.subs = [];
+  $("#pnlist").innerHTML = res.map((x, i) => {
+    if (!x.t) return "";
+    const subs = x.p.matches(".ltk") ? [] : [...x.p.querySelectorAll(PN_SUB)].filter((c) => !c.classList.contains("pn-xr")).slice(0, 15);
+    return `<a href="#" data-i="${i}" class="${x.p === cur ? "on" : ""} ${x.show ? "" : "dim"}"><span class="pn-n">${++k}</span><span>${esc(x.t)}</span>${f && x.hits > 0 ? `<i>${x.hits}</i>` : ""}</a>${x.show && subs.length ? `<div class="pn-subs">${subs.map((c) => `<a href="#" class="pn-sub" data-s="${PN.subs.push(c) - 1}">${esc(pnSubT(c) || "•")}</a>`).join("")}</div>` : ""}`;
+  }).join("") || `<p class="muted" style="padding:6px 8px;font-size:.8rem">${I18N.lang === "en" ? "Type to filter rows on this page" : "Gõ để lọc các dòng trên trang"}</p>`;
+  $$("#pnlist a[data-i]").forEach((a) => a.onclick = (e) => { e.preventDefault(); pnGo(res[+a.dataset.i].p); });
+  $$("#pnlist a[data-s]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const c = PN.subs[+a.dataset.s]; const p = res.find((x) => x.p.contains(c))?.p; if (PN.focus && p) pnGo(p); pnGo(c); });
+  pnMark(f);
+}
+function pnGo(p) {
+  if (!p) return;
+  const isItem = PN.items.includes(p); if (isItem) PN.cur = p;
+  if (isItem && PN.focus && !PN.q) { PN.items.forEach((x) => x.classList.toggle("pn-x", x !== p)); window.dispatchEvent(new Event("resize")); window.scrollTo({ top: Math.max(0, app().getBoundingClientRect().top + scrollY - 70), behavior: "smooth" }); }
+  else window.scrollTo({ top: p.getBoundingClientRect().top + scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--toph")) || 60) - 12, behavior: "smooth" });
+  p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
+  if (isItem) $$("#pnlist a[data-i]").forEach((a) => a.classList.toggle("on", PN.items[+a.dataset.i] === p));
+  if (innerWidth < 1180 || document.body.classList.contains("pn-mini")) pnOpen(false);
+}
+function pnMark(f) {
+  if (!window.CSS?.highlights || typeof Highlight === "undefined") return;
+  CSS.highlights.delete("pn-hit");
+  if (!f || f.length < 2) return;
+  const hl = new Highlight(); let n = 0;
+  for (const p of PN.items) {
+    if (p.classList.contains("pn-x")) continue;
+    const w = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    for (let x = w.nextNode(); x && n < 1500; x = w.nextNode()) {
+      const t = x.nodeValue; if (t.length < f.length) continue;
+      const tf = t.split("").map((c) => pnFold(c)[0] || c).join("");
+      let i = tf.indexOf(f);
+      while (i >= 0 && n < 1500) { const r = new Range(); r.setStart(x, i); r.setEnd(x, i + f.length); hl.add(r); n++; i = tf.indexOf(f, i + f.length); }
+    }
+  }
+  CSS.highlights.set("pn-hit", hl);
+}
+function pnSpy() {
+  if (!PN.items.length || PN.focus || PN.q) return;
+  const top = (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--toph")) || 60) + 40;
+  let cur = null;
+  for (const p of PN.items) { if (p.classList.contains("pn-x") || !pnTitle(p)) continue; if (p.getBoundingClientRect().top <= top) cur = p; else if (cur) break; }
+  cur = cur || PN.items.find((p) => pnTitle(p));
+  if (cur === PN.cur) return;
+  PN.cur = cur;
+  $$("#pnlist a[data-i]").forEach((a) => { const on = PN.items[+a.dataset.i] === cur; a.classList.toggle("on", on); if (on) a.scrollIntoView({ block: "nearest" }); });
+}
+function pnOpen(v) {
+  if (innerWidth < 1180 || document.body.classList.contains("pn-mini")) { document.body.classList.toggle("pn-sheet", v); return; }
+  pnLS("open", v); document.body.classList.toggle("pn-on", v && document.body.classList.contains("pn-has"));
+  window.dispatchEvent(new Event("resize"));
+}
+function pnInit() {
+  const nav = $("#pnav"); if (!nav) return;
+  const setH = () => document.documentElement.style.setProperty("--toph", ($(".top")?.offsetHeight || 56) + "px");
+  setH(); addEventListener("resize", setH);
+  $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; pnApply(); }, 140); };
+  $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
+  $("#pnFocus").onclick = () => { PN.focus = !PN.focus; pnLS("focus_" + PN.r, PN.focus); $("#pnFocus").classList.toggle("on", PN.focus); pnApply(); if (PN.focus) pnGo(PN.cur); else window.dispatchEvent(new Event("resize")); };
+  $("#pnHide").onclick = () => pnOpen(false);
+  $("#pnFab").onclick = () => pnOpen(innerWidth < 1180 || document.body.classList.contains("pn-mini") ? !document.body.classList.contains("pn-sheet") : true);
+  $("#pnShade").onclick = () => pnOpen(false);
+  let raf = 0; addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; pnSpy(); }); }, { passive: true });
+  new MutationObserver(() => { clearTimeout(PN.chk); PN.chk = setTimeout(() => pnCheck(false), 300); }).observe(app(), { childList: true, subtree: true });
 }
 
 // ================================================================ dữ liệu chung
@@ -2763,7 +2898,6 @@ async function viewMethods(id) {
   $("#mq").onkeydown = (e) => { if (e.key === "Enter") { const h = list(); if (h.length) show(h[0].m); } };
   $$(".mchip").forEach((b) => b.onclick = () => { grp = b.dataset.g; $$(".mchip").forEach((x) => x.classList.toggle("on", x === b)); const h = list(); if (h.length && grp && cur[1] !== grp) show(h[0].m, true); });
   list(); show(cur, true);
-  document.onkeydown = (e) => { if (e.key === "/" && location.hash.startsWith("#/methods") && document.activeElement?.id !== "mq") { e.preventDefault(); $("#mq").focus(); } };
 }
 const mLink = (id, t) => `<a class="mhelp" href="#/methods/${id}" title="${I18N.lang === "en" ? "What is this?" : "Đây là gì?"}">${t || "?"}</a>`;
 
@@ -3026,7 +3160,11 @@ function initSearch() {
   });
   document.addEventListener("click", (e) => { if (!e.target.closest(".search")) box.hidden = true; });
   box.addEventListener("click", () => { box.hidden = true; q.value = ""; });
-  document.addEventListener("keydown", (e) => { if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); q.focus(); } });
+  document.addEventListener("keydown", (e) => {
+    const typing = /input|textarea|select/i.test(document.activeElement.tagName);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); q.focus(); return; }
+    if (e.key === "/" && !typing) { e.preventDefault(); const p = $("#mq") || (!$("#pnav").hidden && $("#pnq")); if (p) { if (p.id === "pnq") pnOpen(true); p.focus(); } else q.focus(); }
+  });
 }
 async function drawTicker() {
   const C = await tryLoad("data/coins.json"); if (!C) return;
@@ -3317,5 +3455,6 @@ function initAccountUI() {
   WL.load().catch(() => {});
   coins().then(() => papLoad()).then(() => { if (PAP.orders.length || PAP.pos.length || Object.keys(PAP.spot).length) papReplay().then(papEngine); }).catch(() => {});
   window.addEventListener("hashchange", route);
+  pnInit();
   route();
 })();
