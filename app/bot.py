@@ -28,16 +28,17 @@ FAMILY = {"trend": {"pullback_up", "pullback_dn", "breakout_up", "breakout_dn"},
           "reversal": {"smc_sweep_up", "smc_sweep_dn", "oversold_up", "overbought_dn"},
           "smc": {"smc_ob_up", "smc_ob_dn", "smc_sweep_up", "smc_sweep_dn"}}
 PRESETS = {
-    "safe": {"risk": 0.5, "max_pos": 3, "max_lev": 2, "min_win": 45, "min_avgR": 0.15, "daily_stop": 2, "max_dd": 10},
-    "bal": {"risk": 1.0, "max_pos": 5, "max_lev": 3, "min_win": 40, "min_avgR": 0.1, "daily_stop": 3, "max_dd": 15},
-    "aggr": {"risk": 1.5, "max_pos": 8, "max_lev": 5, "min_win": 35, "min_avgR": 0.05, "daily_stop": 5, "max_dd": 25},
+    "safe": {"risk": 0.5, "max_pos": 5, "max_lev": 2, "min_win": 45, "min_avgR": 0.15, "daily_stop": 2, "max_dd": 10, "max_heat": 3, "max_sector": 2, "max_gross": 1.0, "cash_min": 30},
+    "bal": {"risk": 1.0, "max_pos": 10, "max_lev": 3, "min_win": 40, "min_avgR": 0.1, "daily_stop": 3, "max_dd": 15, "max_heat": 5, "max_sector": 3, "max_gross": 1.5, "cash_min": 20},
+    "aggr": {"risk": 1.5, "max_pos": 15, "max_lev": 5, "min_win": 35, "min_avgR": 0.05, "daily_stop": 5, "max_dd": 25, "max_heat": 8, "max_sector": 4, "max_gross": 2.5, "cash_min": 10},
 }
 DEFAULT = {"enabled": False, "mode": "paper", "name": "Bot của tôi", "capital": 1000.0, "preset": "bal",
            "target_month": 5.0, "protect": True, "tf": "both", "play": ["trend", "reversal", "smc"], "sides": "both",
            "spot": True, "fut": True, "sectors": [], "coins": [], "exclude": [], "sector_lead": False, "htf_align": False,
-           "edge_only": True, "tp1_part": 50, "be_after_tp1": True, "time_stop": True, **PRESETS["bal"]}
-HARD = {"risk": (0.1, 2.0), "max_pos": (1, 10), "max_lev": (1, 5), "min_win": (0, 80), "min_avgR": (0.0, 1.0),
-        "daily_stop": (0.5, 10), "max_dd": (3, 50), "capital": (50, 1e7), "target_month": (0, 100), "tp1_part": (0, 100)}
+           "edge_only": True, "tp1_part": 50, "be_after_tp1": True, "time_stop": True, "streak_cut": True, "eq_ma": True, "use_model": True, **PRESETS["bal"]}
+HARD = {"risk": (0.1, 2.0), "max_pos": (1, 20), "max_lev": (1, 5), "min_win": (0, 80), "min_avgR": (0.0, 1.0),
+        "daily_stop": (0.5, 10), "max_dd": (3, 50), "capital": (50, 1e7), "target_month": (0, 100), "tp1_part": (0, 100),
+        "max_heat": (1, 15), "max_sector": (1, 10), "max_gross": (0.5, 5), "cash_min": (0, 80)}
 
 
 def _now() -> datetime:
@@ -255,6 +256,10 @@ def candidates(cfg: dict, items: list, rows: dict, sectors: dict, fut: dict, btc
             skip("dưới ngưỡng chất lượng"); continue
         if cfg["htf_align"] and x.get("htf") != "h+":
             skip("khung lớn không cùng chiều"); continue
+        if cfg["use_model"] and x.get("play") == "avoid":
+            skip("mô hình riêng của mã: tránh thiết lập này"); continue
+        if cfg["use_model"] and x.get("pm") is not None and x["pm"] < cfg["min_win"]:
+            skip("mô hình học máy: xác suất thấp"); continue
         if k in cfg["exclude"]:
             skip("coin bị loại"); continue
         g = r.get("g")
@@ -274,7 +279,10 @@ def candidates(cfg: dict, items: list, rows: dict, sectors: dict, fut: dict, btc
         if not mkt:
             skip("không có thị trường phù hợp (spot/futures)"); continue
         out.append({**x, "_mkt": mkt, "_g": g})
-    out.sort(key=lambda x: ((x.get("avgR") or 0) * (x.get("win1") or 0), x.get("score") or 0), reverse=True)
+    def ev(x):              # kỳ vọng theo R: ưu tiên xác suất của mô hình học máy (nếu có), rồi tới thống kê
+        p = (x.get("pm") if cfg["use_model"] and x.get("pm") is not None else x.get("win1") or 0) / 100
+        return p * (x.get("r1") or 1.5) - (1 - p) + (0.1 if x.get("play") == "prefer" else 0)
+    out.sort(key=lambda x: (ev(x), x.get("score") or 0), reverse=True)
     return out, why
 
 
@@ -301,32 +309,43 @@ def entries(st, cfg, cands, rows, light, price, now, events, risk_mult=1.0):
         sig = f"{x['k']}|{x['setup']}|{x['tf']}|{x.get('at')}"
         if x["k"] in held or sig in used or x["k"] in cool:
             continue
+        if cfg["use_model"] and (x.get("play") == "avoid" or (x.get("pm") is not None and x["pm"] < cfg["min_win"])):
+            continue
         p = price(x["k"])
         if not p:
             continue
         ok, txt = _live_ok(x, p)
         if not ok:
             continue
+        risk_pct = cfg["risk"] * risk_mult
+        heat = sum(q["risk_usd"] for q in st["pos"] if not (q["tp1"] and q["s"] == q["e"])) / eq * 100
+        if heat + risk_pct > cfg["max_heat"] + 1e-9:
+            continue
+        g = x.get("_g")
+        if g and sum(1 for q in st["pos"] if q.get("g") == g) >= cfg["max_sector"]:
+            continue
+        gross = sum(q["q"] * (price(q["k"]) or q["e"]) for q in st["pos"]) / eq
+        free = st["cash"] - eq * cfg["cash_min"] / 100
         r = {**(rows.get(x["k"]) or {}), "k": x["k"]}
         stop_pct = abs(p - x["s"]) / p * 100
-        risk_usd = eq * cfg["risk"] / 100 * risk_mult
-        q = risk_usd / abs(p - x["s"])
-        n = q * p
+        q = eq * risk_pct / 100 / abs(p - x["s"])
+        n = min(q * p, max(0.0, (cfg["max_gross"] - gross) * eq))
         mkt = x["_mkt"]
         dd = max(0.0, (1 - eq / st["peak"]) * 100) if st.get("peak") else 0.0
         if mkt == "spot":
-            n = min(n, eq * 0.3, st["cash"] * 0.98)
+            n = min(n, eq * 0.3, free * 0.98)
             lev = 1
         else:
             cap = min(cfg["max_lev"], risk.lev_cap(r, x["side"], x["tf"], stop_pct, light, dd))
             n = min(n, eq * 0.25 * cap)
             lev = max(1, min(cap, math.ceil(n / max(1e-9, eq * 0.25))))
-            if n / lev > st["cash"] * 0.98:
-                n = st["cash"] * 0.98 * lev
+            if n / lev > free * 0.98:
+                n = max(0.0, free * 0.98 * lev)
         q = n / p
         if n < 10:
             continue
         pos = BROKER.open(st, x, mkt, q, p, lev, now)
+        pos["g"] = g
         held.add(x["k"])
         st["used"] = (st.get("used") or [])[-299:] + [sig]
         events.append(("open", pos, None))
@@ -424,6 +443,12 @@ def step(cfg_raw: dict, st: dict | None, items, rows, sectors, fut, prices, bars
     elif day_pct <= -cfg["daily_stop"]:
         halt = f"lỗ {day_pct:.1f}% hôm nay (giới hạn {cfg['daily_stop']:.1f}%)"
     mult = 0.5 if (cfg["protect"] and mon_pct >= cfg["target_month"] > 0) else 1.0
+    last3 = (st.get("hist") or [])[-3:]
+    if cfg["streak_cut"] and len(last3) == 3 and all(h["pnl"] < 0 for h in last3) and now - datetime.fromisoformat(last3[-1]["closed"]) < timedelta(hours=24):
+        mult *= 0.5
+    eqs = [q[1] for q in (st.get("eq") or [])[-20:]]
+    if cfg["eq_ma"] and len(eqs) >= 20 and eq < sum(eqs) / len(eqs):
+        mult *= 0.5
     if not halt:
         entries(st, cfg, cands, rows, light, price, now, events, mult)
     eq = equity(st, price)
@@ -471,13 +496,18 @@ def make_plan(cfg_raw: dict, st: dict | None, items, rows, sectors, fut, prices,
         r = {**(rows.get(x["k"]) or {}), "k": x["k"]}
         p = price(x["k"]) or x["e"]
         sp = abs(p - x["s"]) / p * 100 if p else None
-        out.append({k: x.get(k) for k in ("k", "tf", "setup", "name", "side", "e", "s", "t1", "t2", "d1", "bd", "win1", "avgR", "at", "htf")}
-                   | {"mkt": x["_mkt"], "g": x.get("_g"), "cap": risk.lev_cap(r, x["side"], x["tf"], sp, light, 0.0)})
+        c = {k: x.get(k) for k in ("k", "tf", "setup", "name", "side", "e", "s", "t1", "t2", "d1", "bd", "win1", "avgR", "at", "htf", "pm", "play", "coin_n", "coin_win", "coin_R", "m_best")} \
+            | {"mkt": x["_mkt"], "g": x.get("_g"), "cap": risk.lev_cap(r, x["side"], x["tf"], sp, light, 0.0)}
+        if cfg["use_model"] and x.get("m_best"):        # mục tiêu đã tối ưu theo lịch sử riêng của mã
+            sd, rk = (1 if x["side"] == "long" else -1), abs(x["e"] - x["s"])
+            c["t1_0"], c["t1"] = x["t1"], x["e"] + sd * x["m_best"] * rk
+            c["t2"] = x["e"] + sd * max(2 * x["m_best"], abs(x["t2"] - x["e"]) / rk) * rk
+        out.append(c)
     keys = {x["k"] for x in out} | {p["k"] for p in (st or {}).get("pos") or []}
     meta = {}
     for k in keys:
         r = rows.get(k) or {}
-        meta[k] = {"sp": r.get("sp"), "sm": r.get("sm") or 1, "bf": r.get("bf"), "bfm": r.get("bfm") or 1, "okx": "okx" in str(r.get("fx") or ""), "p": price(k)}
+        meta[k] = {"sp": r.get("sp"), "sm": r.get("sm") or 1, "bf": r.get("bf"), "bfm": r.get("bfm") or 1, "okx": "okx" in str(r.get("fx") or ""), "fx": r.get("fx"), "p": price(k)}
     st0 = st or new_state(cfg["capital"], now)
     eq = equity(st0, price)
     res = research(cfg, cands, why, sectors, rows, light, btc_up, st0, eq, now)
@@ -507,6 +537,8 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
     except ValueError:
         worker = False
     log.info("Bot: bộ khớp lệnh mỗi phút %s (nhịp tim %s)", "ĐANG CHẠY" if worker else "chưa chạy – lượt 15 phút tự xử lý", hb or "chưa có")
+    if (cfg_d1 or {}).get("bot_px"):
+        log.info("Bot: nguồn giá lần gần nhất %s", str(cfg_d1["bot_px"])[:600])
     n = 0
     for u in us:
         d = u.get("data") or {}

@@ -65,6 +65,8 @@ def run(notify: bool = False) -> dict:
     except (OSError, ValueError):
         table = {}
     book = _Book(table)
+    from .analysis import coinmodel
+    scorer = coinmodel.Scorer()
     btc = _px("d", "BTC")
     btc_up = bool(btc is not None and regime.regime_series(btc).iloc[-1] > 0)
     prices, fut, items = {}, {}, []
@@ -102,6 +104,7 @@ def run(notify: bool = False) -> dict:
             fl = levels.money_flow(dd, None, f8)
             ctx = {"flow": fl, "zones": lvx.get("zones"), "crowd": [], "perp": bool(vl)}
             for x in ideas.current(k, tf, dd, book, btc_up, ctx):
+                scorer.annotate(x, dd, btc_up)
                 st = (table.get(tf, {}).get(x["setup"], {}).get("up" if btc_up else "down")) or {}
                 x["avgR_2y"] = st.get("avgR_2y")
                 x["edge"] = bool((x.get("avgR") or 0) >= 0.05 and (x.get("n") or 0) >= 100 and (st.get("avgR_2y") is None or st["avgR_2y"] > 0))

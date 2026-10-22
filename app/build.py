@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import coindesc, cval, derivs, ideas, levels, pairs, regime, sectors, smc, strategy, technical
+from .analysis import coinmodel, coindesc, cval, derivs, ideas, levels, pairs, regime, sectors, smc, strategy, technical
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
 from .data import store, universe
@@ -165,6 +165,7 @@ def run(notify: bool = False) -> dict:
     btc_down = bool(btc_reg is not None and btc_reg.iloc[-1] < 0)
     rows, details, pxs, alerts = [], {}, {}, []
     book, fresh = ideas.Book(), {}
+    mem = coinmodel.Memory()
     h1s = {}
     tr_bt = []
     for r in uni.to_dict("records"):
@@ -286,7 +287,9 @@ def run(notify: bool = False) -> dict:
             if dd is not None and len(dd) >= 150 and ((row.get("vol") or 0) >= 2e6 or (oi_tot or 0) >= 2e6):
                 dd2 = dd.reset_index(drop=True)
                 sg = ideas.detect(dd2, tf)
-                book.add(key, tf, dd2, ideas.simulate(dd2, sg, 60), ideas.regime_of(dd2, btc_reg))
+                res_, reg_ = ideas.simulate(dd2, sg, 60), ideas.regime_of(dd2, btc_reg)
+                book.add(key, tf, dd2, res_, reg_)
+                mem.add(key, tf, dd2, res_, reg_)
                 fresh[(key, tf)] = (dd2, sg)
         row["mf"] = flow_d.get("score")
         nl = []
@@ -310,6 +313,15 @@ def run(notify: bool = False) -> dict:
         for x in crowd:
             if x.get("sev", 0) >= 2 and (oi_tot or 0) > 5e6:
                 alerts.append({"k": key, "t": x["t"], "d": x["d"], "kind": x["k"]})
+    # ----- mô hình học theo từng mã: cộng dồn bộ nhớ, học lại mỗi tuần, sổ tay từng mã
+    try:
+        CMS = mem.finish()
+        scorer = coinmodel.Scorer(CMS, mem.model)
+        _w("coinmodel.json", scorer.site())
+        log.info("Mô hình từng mã: %s tín hiệu trong bộ nhớ, học máy %s", CMS.get("n_rows"), (CMS.get("ml") or {}).get("ok"))
+    except Exception as e:  # noqa: BLE001
+        log.warning("coinmodel: %s", e)
+        scorer = None
     # ----- cơ hội giao dịch (cần thống kê lịch sử của toàn bộ coin trước)
     T = book.table()
     btc_up = not btc_down
@@ -328,6 +340,8 @@ def run(notify: bool = False) -> dict:
                 x["edge"] = False
             x["vd"] = d["row"].get("vd")
             x["mc"] = d["row"].get("mc")
+            if scorer is not None:
+                scorer.annotate(x, dd2, btc_up)
         d.setdefault("ideas", []).extend(cur)
         idea_list += cur
         d.setdefault("setup_stats", {})[tf] = {st: ideas.stats(book.coin.get((key, tf, st), [])) for st in ideas.NAMES if book.coin.get((key, tf, st))}

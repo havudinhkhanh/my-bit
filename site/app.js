@@ -1543,7 +1543,7 @@ function oppCard(x, i) {
   const verb = lane === "spot" ? "Mua" : L ? "Long" : "Short";
   const htf = x.htf ? `<span class="pill ${x.htf === "h+" ? "buy" : x.htf === "h-" ? "sell" : ""}">${x.htf === "h+" ? "khung lớn cùng chiều" : x.htf === "h-" ? "khung lớn ngược" : "khung lớn lẫn lộn"}</span>` : "";
   return `<div class="opp ocard ${x.side}" data-i="${i}" data-oi="${i}" style="--lc:var(${LCOL[lane]})">
-    <div class="oc-h"><span class="pill" data-st>…</span>${coinLink(x.k)}<span class="oc-tag">${x.tf === "d" ? "Swing ngày" : "Lướt 4h"}${r.g ? ` · <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>` : ""}</span><span class="oc-p"><b data-p>${px(r.p)}</b><small class="${cls(r.r1)}" data-r>${pct(r.r1, 1)}</small></span></div>
+    <div class="oc-h"><span class="pill" data-st>…</span>${coinLink(x.k)}${isNum(x.pm) ? `<span class="pill brand" title="Xác suất chạm MT1 do mô hình học máy ước cho tín hiệu này (thống kê chung: ${nf(x.win1, 0)}%)">🧬 ${nf(x.pm, 0)}%</span>` : ""}${x.play === "avoid" ? `<span class="pill sell" title="Lịch sử riêng của mã cho thấy thiết lập này lỗ">mã tránh</span>` : x.play === "prefer" ? `<span class="pill buy" title="Lịch sử riêng của mã cho thấy thiết lập này hợp">mã hợp</span>` : ""}<span class="oc-tag">${x.tf === "d" ? "Swing ngày" : "Lướt 4h"}${r.g ? ` · <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>` : ""}</span><span class="oc-p"><b data-p>${px(r.p)}</b><small class="${cls(r.r1)}" data-r>${pct(r.r1, 1)}</small></span></div>
     <div class="oc-ch" data-ch><div class="oc-sk"></div></div>
     <div class="oc-lv"><span class="e"><i>${verb} ở</i><b>${px(x.e)}</b></span><span class="t"><i>MT1 ${pct(x.t1_pct, 1)}</i><b>${px(x.t1)}</b></span><span class="t"><i>MT2 ${pct(x.t2_pct, 0)}</i><b>${px(x.t2)}</b></span><span class="s"><i>Cắt lỗ ${pct(L ? -x.risk_pct : x.risk_pct, 1)}</i><b>${px(x.s)}</b></span></div>
     <div class="oc-k"><span title="Tỉ lệ lịch sử giá chạm MT1 trước cắt lỗ"><i>Xác suất MT1</i><b>${isNum(x.win1) ? nf(x.win1, 0) + "%" : "—"}</b>${bar(x.win1 || 0, 100, "--brand")}</span>
@@ -2447,12 +2447,12 @@ async function mtfMount(D) {
 // ================================================================ BOT GIAO DỊCH TỰ ĐỘNG (giai đoạn 1: sàn thử, chạy trên máy chủ mỗi 15 phút)
 const BOT_FAM = { trend: ["pullback_up", "pullback_dn", "breakout_up", "breakout_dn"], reversal: ["smc_sweep_up", "smc_sweep_dn", "oversold_up", "overbought_dn"], smc: ["smc_ob_up", "smc_ob_dn", "smc_sweep_up", "smc_sweep_dn"] };
 const BOT_PRE = {
-  safe: { t: "🛡️ Thận trọng", d: "Rủi ro 0,5%/lệnh · tối đa 3 lệnh · đòn bẩy ≤ x2 · chỉ lệnh chất lượng cao · dừng khi sụt 10%", v: { risk: 0.5, max_pos: 3, max_lev: 2, min_win: 45, min_avgR: 0.15, daily_stop: 2, max_dd: 10 } },
-  bal: { t: "⚖️ Cân bằng", d: "Rủi ro 1%/lệnh · tối đa 5 lệnh · đòn bẩy ≤ x3 · dừng khi sụt 15%", v: { risk: 1, max_pos: 5, max_lev: 3, min_win: 40, min_avgR: 0.1, daily_stop: 3, max_dd: 15 } },
-  aggr: { t: "🔥 Mạo hiểm", d: "Rủi ro 1,5%/lệnh · tối đa 8 lệnh · đòn bẩy ≤ x5 · nhận cả lệnh lợi thế mỏng · dừng khi sụt 25%", v: { risk: 1.5, max_pos: 8, max_lev: 5, min_win: 35, min_avgR: 0.05, daily_stop: 5, max_dd: 25 } },
+  safe: { t: "🛡️ Thận trọng", d: "Rủi ro 0,5%/lệnh · tối đa 5 lệnh · tổng rủi ro mở ≤ 3% · đòn bẩy ≤ x2 · giữ 30% tiền mặt · dừng khi sụt 10%", v: { risk: 0.5, max_pos: 5, max_lev: 2, min_win: 45, min_avgR: 0.15, daily_stop: 2, max_dd: 10, max_heat: 3, max_sector: 2, max_gross: 1.0, cash_min: 30 } },
+  bal: { t: "⚖️ Cân bằng", d: "Rủi ro 1%/lệnh · tối đa 10 lệnh · tổng rủi ro mở ≤ 5% · đòn bẩy ≤ x3 · giữ 20% tiền mặt · dừng khi sụt 15%", v: { risk: 1, max_pos: 10, max_lev: 3, min_win: 40, min_avgR: 0.1, daily_stop: 3, max_dd: 15, max_heat: 5, max_sector: 3, max_gross: 1.5, cash_min: 20 } },
+  aggr: { t: "🔥 Mạo hiểm", d: "Rủi ro 1,5%/lệnh · tối đa 15 lệnh · tổng rủi ro mở ≤ 8% · đòn bẩy ≤ x5 · giữ 10% tiền mặt · dừng khi sụt 25%", v: { risk: 1.5, max_pos: 15, max_lev: 5, min_win: 35, min_avgR: 0.05, daily_stop: 5, max_dd: 25, max_heat: 8, max_sector: 4, max_gross: 2.5, cash_min: 10 } },
 };
 const BOT_DEF = { enabled: false, name: "Bot của tôi", capital: 1000, preset: "bal", target_month: 5, protect: true, tf: "both", play: ["trend", "reversal", "smc"], sides: "both", spot: true, fut: true,
-  sectors: [], coins: [], exclude: [], sector_lead: false, htf_align: false, edge_only: true, tp1_part: 50, be_after_tp1: true, time_stop: true, ...BOT_PRE.bal.v };
+  sectors: [], coins: [], exclude: [], sector_lead: false, htf_align: false, edge_only: true, tp1_part: 50, be_after_tp1: true, time_stop: true, streak_cut: true, eq_ma: true, use_model: true, ...BOT_PRE.bal.v };
 function botMatch(c, items, S) {
   const sec = Object.fromEntries((S?.sectors || []).map((g) => [g.g, g.action?.q]));
   return items.filter((x) => {
@@ -2473,7 +2473,7 @@ function botMatch(c, items, S) {
 const botsOf = (c) => (Array.isArray(c?.bots) ? c.bots : c && typeof c === "object" && "enabled" in c ? [{ id: "b1", ...c }] : []);
 const statesOf = (s) => (s?.bots && typeof s.bots === "object" ? s.bots : s && s.cash != null ? { b1: s } : {});
 const botEq = (st, pxNow) => (st ? st.cash + (st.pos || []).reduce((a, p) => { const m = pxNow(p.k) || p.e; return a + (p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e)); }, 0) : null);
-const BOT_V = { go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["THIẾU TIỀN", "warn"] };
+const BOT_V = { go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"] };
 async function viewBot(sel) {
   const [I, S] = await Promise.all([tryLoad("data/ideas.json"), sectorsData(), coins()]);
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
@@ -2522,7 +2522,7 @@ async function viewBot(sel) {
             <div class="bth-rail"><i class="s" style="left:${w(p.s)}%"></i><i class="e" style="left:${w(p.e)}%"></i><i class="t" style="left:${w(p.t)}%"></i><i class="p" style="left:${w(p.p)}%"></i></div>
             <small class="faint">${esc(p.why)}</small></div>`; }).join("")}` : ""}
       ${(TH.cands || []).length ? `<p class="sbh">Ứng viên bot đang xét (${TH.n} từ máy chủ phân tích)</p><div class="bth-c">${TH.cands.map((t) => { const v = BOT_V[t.v] || [t.v, ""];
-          return `<div class="bth-ci"><span class="pill ${v[1]}">${v[0]}</span><b>${t.side === "long" ? "Long" : "Short"} ${esc(t.k)}</b> <small class="faint">${t.tf === "d" ? "ngày" : "4h"} · ${t.mkt === "spot" ? "spot" : "fut"} · ${nf(t.win1, 0)}% · ${nf(t.avgR, 2)}R</small><div class="bth-why">${esc(t.why || "")}${isNum(t.p) ? ` <small class="faint">· giá ${px(t.p)} · vào ${px(t.e)} · SL ${px(t.s)} · MT1 ${px(t.t1)}</small>` : ""}</div></div>`; }).join("")}</div>` : ""}`
+          return `<div class="bth-ci"><span class="pill ${v[1]}">${v[0]}</span><b>${t.side === "long" ? "Long" : "Short"} ${esc(t.k)}</b> <small class="faint">${t.tf === "d" ? "ngày" : "4h"} · ${t.mkt === "spot" ? "spot" : "fut"} · thống kê ${nf(t.win1, 0)}% · ${nf(t.avgR, 2)}R</small>${isNum(t.pm) ? ` <span class="pill brand" title="Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này">🧬 ${nf(t.pm, 0)}%</span>` : ""}${t.play ? ` <span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[t.play] || ""}" title="Sổ tay riêng của mã cho thiết lập này">${{ prefer: "mã hợp", ok: "mã được", weak: "mã yếu", avoid: "mã tránh" }[t.play]}</span>` : ""}<div class="bth-why">${esc(t.why || "")}${isNum(t.p) ? ` <small class="faint">· giá ${px(t.p)} · vào ${px(t.e)} · SL ${px(t.s)} · MT1 ${px(t.t1)}</small>` : ""}</div></div>`; }).join("")}</div>` : ""}`
     : `<p class="muted">Bot chưa chạy phút nào – bật bot và chờ 1–2 phút.</p>`;
   app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch tự động</h1><span class="meta">Sàn thử (tiền giả, giá thật) · theo dõi giá & khớp lệnh mỗi phút · phân tích lại mỗi 15 phút ${mLink("r")}</span></div>
     ${panel(`🤖 Đội bot của anh (${B.length}/6)`, fleet)}
@@ -2533,10 +2533,14 @@ async function viewBot(sel) {
         ["Tháng này", `${pct(mon, 2)}`, cls(mon), `mục tiêu ${nf(C.target_month, 1)}%` + prog(Math.max(0, mon), C.target_month, "up")],
         ["Sụt so với đỉnh", `${nf(dd, 1)}%`, dd > C.max_dd * 0.7 ? "down" : "", `tạm dừng ở ${nf(C.max_dd, 0)}%` + prog(dd, C.max_dd, "down")],
         ["Số lệnh đã đóng", nf(Sx.n || 0, 0), "", isNum(Sx.win) ? `thắng ${nf(Sx.win, 0)}%` : "chưa có"], ["Lãi TB mỗi lệnh", isNum(Sx.avgR) ? nf(Sx.avgR, 2) + "R" : "—", cls(Sx.avgR)],
-        ["Đang mở", `${(st?.pos || []).length}/${C.max_pos}`, "", isNum(Sx.open_risk) ? `rủi ro đang chịu ${usd2(Sx.open_risk)}` : ""], ["Rủi ro / lệnh", nf(C.risk * (Sx.risk_mult || 1), 2) + "%", "", Sx.risk_mult < 1 ? "đã giảm 1/2 để giữ lãi tháng" : "% tài sản bot"]])}</section>
+        ["Đang mở", `${(st?.pos || []).length}/${C.max_pos}`, "", isNum(Sx.heat) ? `rủi ro mở ${nf(Sx.heat, 1)}%/${nf(C.max_heat, 0)}% · vị thế ${nf(Sx.gross, 2)}×` + prog(Sx.heat, C.max_heat, "down") : ""], ["Rủi ro / lệnh", nf(C.risk * (Sx.risk_mult || 1), 2) + "%", "", Sx.risk_mult < 1 ? "đã giảm 1/2 để giữ lãi tháng" : "% tài sản bot"]])}</section>
     <div class="g g2w">
       <div>
         ${panel("🧠 Bot đang nghĩ gì", thinkBox, "cập nhật mỗi phút")}
+        ${panel("🧾 Báo cáo mỗi 2 phút", st?.report ? `<p class="faint" style="margin:0 0 6px">${esc(new Date(st.report.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</p><ul class="bot-rl">${st.report.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+          ${(st.reports || []).length > 1 ? `<details><summary class="faint">Các báo cáo trước (${st.reports.length - 1})</summary>${st.reports.slice(0, -1).reverse().map((r) => `<div class="brep"><small>${esc(new Date(r.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</small><ul>${r.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</details>` : ""}`
+          : `<p class="muted">Báo cáo đầu tiên có trong vòng 2 phút sau khi bot chạy.</p>`, "tài sản · rủi ro · ứng viên · lệnh")}
+        <div id="bModel"></div>
         ${panel("💭 Dòng suy nghĩ", st?.dlog?.length ? `<ul class="bot-log">${st.dlog.slice().reverse().slice(0, 60).map((l) => { const v = BOT_V[l.v] || ["", ""]; return `<li><small>${dt(l.t + "Z")}</small> <span class="pill ${v[1]}">${v[0]}</span> ${esc(l.m)}</li>`; }).join("")}</ul>` : `<p class="muted">Bot ghi lại mỗi khi đổi ý về một ứng viên (ví dụ từ CHỜ GIÁ sang VÀO).</p>`, "chỉ ghi khi bot đổi ý")}
         ${panel("📋 Báo cáo nghiên cứu hôm nay", R ? `<p class="faint" style="margin:0 0 6px">Viết lúc ${esc(new Date(R.at + "Z").toLocaleString(LOC))} · máy chủ phân tích lại mỗi 15 phút</p><ul class="bot-rl">${R.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
           ${(R.sectors || []).length ? `<div class="tw"><table><thead><tr><th class="l">Nhóm anh chọn</th><th class="l">Trạng thái</th><th>30 ngày</th><th>So BTC</th><th class="l">Mạnh nhất 7n</th></tr></thead><tbody>${R.sectors.map((g) => `<tr><td class="l"><a href="#/sector/${enc(g.g)}">${esc(g.g)}</a></td><td class="l"><span class="pill ${QCOL[g.q] || ""}">${esc(g.q || "—")}</span></td><td class="${cls(g.r30)}">${pct(g.r30, 1)}</td><td class="${cls(g.rs30)}">${pct(g.rs30, 1)}</td><td class="l">${(g.top || []).map(([k, v]) => `${coinLink(k)} <small class="${cls(v)}">${pct(v, 0)}</small>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>` : ""}`
@@ -2568,7 +2572,7 @@ async function viewBot(sel) {
       <h4 class="bfh">2 · Khẩu vị rủi ro</h4><div class="bpre">${Object.entries(BOT_PRE).map(([k, p]) => `${T2("pre", k)} class="${C.preset === k ? "on" : ""}"><b>${p.t}</b><small>${p.d}</small></button>`).join("")}</div>
       <details class="badv"><summary>Tuỳ chỉnh chi tiết</summary><div class="filters bff">
         <div class="field"><label>Rủi ro mỗi lệnh (% tài sản)</label><input id="b_risk" inputmode="decimal" value="${C.risk}"></div>
-        <div class="field"><label>Số lệnh mở cùng lúc tối đa</label><input id="b_max_pos" inputmode="numeric" value="${C.max_pos}"></div>
+        <div class="field"><label>Số lệnh mở cùng lúc tối đa (≤ 20)</label><input id="b_max_pos" inputmode="numeric" value="${C.max_pos}"></div>
         <div class="field"><label>Đòn bẩy tối đa (≤ x5, hệ thống còn hạ thêm)</label><input id="b_max_lev" inputmode="numeric" value="${C.max_lev}"></div>
         <div class="field"><label>Ngừng mở lệnh khi lỗ trong ngày (%)</label><input id="b_daily_stop" inputmode="decimal" value="${C.daily_stop}"></div></div></details>
       <h4 class="bfh">3 · Phong cách & cách chơi</h4>
@@ -2590,6 +2594,15 @@ async function viewBot(sel) {
         <div class="field"><label>Chốt bao nhiêu % ở MT1</label><input id="b_tp1_part" inputmode="numeric" value="${C.tp1_part}"></div>
         <label class="chk"><input type="checkbox" id="b_be_after_tp1" ${C.be_after_tp1 ? "checked" : ""}> Dời cắt lỗ về hoà vốn sau MT1</label>
         <label class="chk"><input type="checkbox" id="b_time_stop" ${C.time_stop ? "checked" : ""}> Đóng lệnh khi quá hạn kỳ vọng</label></div>
+      <h4 class="bfh">6 · Kỷ luật & quản lý dòng tiền</h4><p class="faint bfp">Mở được nhiều lệnh nhưng tổng rủi ro luôn bị khoá trần – thua chuỗi hay tài sản đi xuống thì bot tự giảm khối lượng.</p><div class="filters bff">
+        <div class="field"><label>Tổng rủi ro đang mở tối đa (% tài sản)</label><input id="b_max_heat" inputmode="decimal" value="${C.max_heat}"></div>
+        <div class="field"><label>Số lệnh tối đa mỗi nhóm ngành</label><input id="b_max_sector" inputmode="numeric" value="${C.max_sector}"></div>
+        <div class="field"><label>Tổng giá trị vị thế tối đa (× tài sản)</label><input id="b_max_gross" inputmode="decimal" value="${C.max_gross}"></div>
+        <div class="field"><label>Luôn giữ tiền mặt tối thiểu (%)</label><input id="b_cash_min" inputmode="decimal" value="${C.cash_min}"></div>
+        <label class="chk"><input type="checkbox" id="b_streak_cut" ${C.streak_cut ? "checked" : ""}> Thua 3 lệnh liên tiếp → giảm 1/2 rủi ro 24 giờ</label>
+        <label class="chk"><input type="checkbox" id="b_eq_ma" ${C.eq_ma ? "checked" : ""}> Tài sản dưới trung bình 20 giờ → giảm 1/2 rủi ro</label></div>
+      <h4 class="bfh">7 · Mô hình học theo từng mã</h4><div class="filters bff">
+        <label class="chk" title="Bỏ thiết lập mà lịch sử riêng của mã cho thấy lỗ; xếp hạng & lọc theo xác suất của mô hình học máy; dùng mục tiêu đã tối ưu theo mã"><input type="checkbox" id="b_use_model" ${C.use_model ? "checked" : ""}> Dùng sổ tay từng mã + học máy để lọc, xếp hạng và đặt mục tiêu</label></div>
       <div class="bexp">
         <div><i>Khớp cấu hình lúc này</i><b>${m.length} lệnh</b><small>${m.slice(0, 4).map((x) => `${esc(x.k)} ${x.side === "long" ? "L" : "S"}`).join(" · ") || "không có"}</small></div>
         <div><i>Lãi TB lịch sử của các thiết lập đã chọn</i><b class="${cls(hR)}">${isNum(hR) ? nf(hR, 2) + "R" : "—"}</b><small>${hist.length} thiết lập, đã trừ phí</small></div>
@@ -2597,8 +2610,8 @@ async function viewBot(sel) {
         <div><i>Để đạt ${nf(C.target_month, 1)}%/tháng</i><b>${need ? "≈ " + need + " lệnh/tháng" : "—"}</b><small>${!need ? "" : need <= 12 ? "khả thi với cấu hình này" : need <= 30 ? "khó – cần nhiều tín hiệu" : "không thực tế – hạ mục tiêu hoặc tăng rủi ro"}</small></div></div>
       <div class="bsave"><button class="btn primary" id="bSave">💾 Lưu thiết lập</button><small class="faint">Bot dùng thiết lập mới từ phút kế tiếp; danh sách ứng viên cập nhật mỗi 15 phút.</small></div>`;
     const rd = () => { const g = (id) => $("#b_" + id); ["name"].forEach((k) => (C[k] = g(k).value.trim() || "Bot của tôi"));
-      ["capital", "target_month", "max_dd", "risk", "max_pos", "max_lev", "daily_stop", "min_win", "min_avgR", "tp1_part"].forEach((k) => { const v = numIn(g(k).value); if (isFinite(v)) C[k] = v; });
-      ["protect", "spot", "fut", "sector_lead", "edge_only", "htf_align", "be_after_tp1", "time_stop"].forEach((k) => (C[k] = g(k).checked));
+      ["capital", "target_month", "max_dd", "risk", "max_pos", "max_lev", "daily_stop", "min_win", "min_avgR", "tp1_part", "max_heat", "max_sector", "max_gross", "cash_min"].forEach((k) => { const v = numIn(g(k).value); if (isFinite(v)) C[k] = v; });
+      ["protect", "spot", "fut", "sector_lead", "edge_only", "htf_align", "be_after_tp1", "time_stop", "streak_cut", "eq_ma", "use_model"].forEach((k) => (C[k] = g(k).checked));
       C.coins = g("coins").value.split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter((x) => BYK[x]); C.exclude = g("exclude").value.split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean); };
     $$("#bForm [data-pre]").forEach((b) => b.onclick = () => { rd(); C.preset = b.dataset.pre; Object.assign(C, BOT_PRE[C.preset].v); form(); });
     $$("#bForm [data-tf]").forEach((b) => b.onclick = () => { rd(); C.tf = b.dataset.tf; form(); });
@@ -2609,6 +2622,25 @@ async function viewBot(sel) {
     $("#bSave").onclick = async () => { rd(); Object.assign(B.find((b) => b.id === id), C); await putAll(); toast("Đã lưu thiết lập bot"); viewBot(id); };
   };
   form();
+  // ---- mô hình học theo từng mã
+  tryLoad("data/coinmodel.json").then((CM) => {
+    if (!CM || !$("#bModel")) return;
+    const ml = CM.ml || {}, FN = { r1: "R:R tới MT1", prior_win: "trí nhớ của mã (thắng quá khứ)", setup_i: "loại thiết lập", compress: "độ nén giá (tam giác)", dslow: "khoảng cách MA200", mom10: "đà 10 nến", mom30: "đà 30 nến", stop_atr: "độ rộng cắt lỗ (ATR)", d20: "khoảng cách EMA20", d50: "khoảng cách EMA50", volz: "khối lượng bất thường", tri: "tam giác hội tụ", lo_slope: "độ dốc đáy", hi_slope: "độ dốc đỉnh", fibpos: "vị trí Fibonacci", rsi: "RSI", atrp: "biến động (ATR%)", slope50: "độ dốc EMA50", htf: "khung lớn", btc: "BTC trên/dưới MA200", mf: "dòng tiền chủ động", side: "chiều Long/Short", tf_d: "khung ngày/4h", prior_n: "số lần mã đã có tín hiệu" };
+    const imp = Object.entries(ml.importance || {}), mx = Math.max(1e-9, ...imp.map(([, v]) => v));
+    const keys = [...new Set([...(st?.think?.cands || []).map((t) => t.k), ...(st?.pos || []).map((p) => p.k)])].slice(0, 12);
+    const NM = Object.fromEntries(Object.entries(I?.names || {}));
+    $("#bModel").innerHTML = panel("🧬 Mô hình học theo từng mã", `<div class="bm-g"><div>
+        <p class="sbp">Bộ nhớ: <b>${nf(CM.n_rows, 0)}</b> tín hiệu lịch sử · học lại mỗi tuần (lần gần nhất ${CM.trained_at ? esc(new Date(CM.trained_at).toLocaleDateString(LOC)) : "—"})</p>
+        ${ml.auc ? `<div class="bexp"><div><i>Độ phân biệt (AUC, ngoài mẫu)</i><b class="${ml.ok ? "up" : "down"}">${nf(ml.auc, 3)}</b><small>thống kê thuần: ${nf(ml.auc_base, 3)} · 0,5 = đoán mò</small></div>
+          <div><i>Lãi TB 30% tín hiệu mô hình chấm cao nhất</i><b class="${cls(ml.avgR_top30)}">${nf(ml.avgR_top30, 2)}R</b><small>so với tất cả: ${nf(ml.avgR_all, 2)}R</small></div></div>
+          <p class="faint" style="font-size:.74rem">${ml.ok ? "✅ Mô hình tốt hơn thống kê thuần trên dữ liệu chưa từng thấy → bot dùng xác suất của mô hình." : "⚠️ Mô hình chưa tốt hơn thống kê thuần → bot chỉ dùng sổ tay từng mã, chưa dùng xác suất học máy."} Kiểm tra trên 20% dữ liệu gần nhất (${nf(ml.n_test, 0)} tín hiệu) mà mô hình không được học.</p>` : `<p class="muted">${esc(ml.why || "Chưa huấn luyện")}</p>`}
+        ${imp.length ? `<p class="sbh">Mô hình dựa vào gì nhiều nhất</p>${imp.map(([f, v]) => `<div class="bm-i"><span>${esc(FN[f] || f)}</span><i><i style="width:${(v / mx * 100).toFixed(0)}%"></i></i></div>`).join("")}` : ""}</div>
+      <div><p class="sbh">Sổ tay của các mã bot đang xét</p>${keys.length ? keys.map((k) => { const c = CM.coins?.[k] || {}, tn = CM.tune?.[k] || {};
+          const rows2 = ["d", "h4"].flatMap((tf) => Object.entries(c[tf] || {}).map(([st2, v]) => ({ tf, st: st2, ...v }))).sort((a, b) => b.shr - a.shr);
+          return `<div class="bm-c"><b>${coinLink(k)}</b>${rows2.length ? `<div class="bm-r">${rows2.slice(0, 5).map((v) => `<span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[v.play]}" title="${esc(NM[v.st] || v.st)} · ${v.n} lần · thắng ${nf(v.win, 0)}% · lãi TB ${nf(v.avgR, 2)}R (đã co về trung bình: ${nf(v.shr, 2)}R)">${esc((NM[v.st] || v.st).replace(/^SMC: /, "").slice(0, 26))} ${v.tf === "d" ? "ngày" : "4h"} ${nf(v.shr, 2)}R</span>`).join("")}</div>` : `<small class="faint">chưa đủ lịch sử – dùng thống kê chung</small>`}
+            ${tn.d?.m || tn.h4?.m ? `<small class="faint">mục tiêu tối ưu: ${tn.d?.m ? `ngày ${tn.d.m}R` : ""} ${tn.h4?.m ? `4h ${tn.h4.m}R` : ""} (mặc định 1,5R)</small>` : ""}</div>`; }).join("") : `<p class="muted">Bật bot để xem sổ tay các mã bot đang xét.</p>`}</div></div>
+      <p class="faint" style="font-size:.72rem">Các phương pháp hình học như "định lý Pytago", tam giác cân / đều trên biểu đồ chưa có bằng chứng thống kê; mô hình chỉ dùng những gì đo được (độ nén tam giác, Fibonacci, khối lượng, xu hướng…) và giữ lại cái nào thực sự giúp dự đoán trên dữ liệu chưa từng thấy. Dự đoán là xác suất, không phải chắc chắn.</p>`, "mỗi mã một cách chơi");
+  });
   const save = async (patch, msg) => { Object.assign(C, patch); Object.assign(B.find((b) => b.id === id), C); await putAll(); toast(msg); viewBot(id); };
   $("#bOn").onclick = () => save({ enabled: !C.enabled }, C.enabled ? "Đã tắt bot – lệnh đang mở vẫn được quản lý tới khi đóng" : "Đã bật bot – bot bắt đầu theo dõi trong vòng 1–2 phút");
   if ($("#bRes")) $("#bRes").onclick = () => save({ resume_at: new Date().toISOString() }, "Bot sẽ chạy lại ở lượt kế tiếp");
