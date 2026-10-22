@@ -197,12 +197,12 @@ async function route() {
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
   app().focus({ preventScroll: true });
-  pnRoute(r);
+  pnRoute(r, arg);
 }
 
 
 // ================================================================ MỤC LỤC TRANG (tìm trong trang + danh mục mục, như trang Phương pháp)
-const PN = { r: "", items: [], q: "", focus: false, cur: null, t: 0, chk: 0, skip: new Set(["methods", "account", "admin", "notifications", "help"]) };
+const PN = { r: "", arg: [], items: [], q: "", focus: false, cur: null, t: 0, chk: 0, skip: new Set(["methods", "account", "admin", "notifications", "help"]), narrow: new Set(["coins", "radar", "live"]) };
 const PN_ITEM = ".panel, .lane, .ltk, .tw", PN_SUB = ".opp, .ltk", PN_ROW = "tbody tr, .rows > .row, .rows > a, .opp, .vrow, .rt-row, .kpis > div, .stats > *, li";
 const pnFold = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
 const pnLS = (k, v) => { try { if (v === undefined) return JSON.parse(localStorage.getItem("mybit_pn_" + k)); localStorage.setItem("mybit_pn_" + k, JSON.stringify(v)); } catch (e) { return null; } };
@@ -219,22 +219,26 @@ function pnTitle(p) {
 function pnCollect() {
   return [...app().querySelectorAll(PN_ITEM)].filter((p) => !p.parentElement.closest(PN_ITEM) && !p.closest("[hidden]") && !p.closest(".modal"));
 }
-function pnRoute(r) {
+function pnRoute(r, arg) {
   document.body.classList.remove("pn-focus");
+  PN.arg = arg || [];
   PN.r = r || "market"; PN.q = ""; PN.cur = null; PN.focus = !!pnLS("focus_" + PN.r);
   const q = $("#pnq"); if (q) q.value = "";
+  $("#pnav")?.classList.remove("pn-searching");
   pnCheck(true);
+  sbRender();
 }
 function pnCheck(force) {
   const nav = $("#pnav"); if (!nav) return;
   const its = PN.skip.has(PN.r) ? [] : pnCollect();
   const named = its.filter((p) => pnTitle(p));
-  const full = named.length >= 3 || (named.length >= 2 && named.reduce((n, p) => n + p.querySelectorAll(PN_SUB).length, 0) >= 2), mini = !full && its.some((p) => pnRows(p).length >= 20), on = full || mini;
+  const full = !PN.skip.has(PN.r) && !PN.narrow.has(PN.r), mini = !full && its.some((p) => pnRows(p).length >= 20), on = full || mini;
   document.body.classList.toggle("pn-on", full && pnLS("open") !== false);
   document.body.classList.toggle("pn-has", on);
   document.body.classList.toggle("pn-mini", mini);
   nav.hidden = !on;
   if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
+  $("#pnsec").hidden = !named.length;
   const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
   const nr = its.reduce((n, p) => n + pnRows(p).length, 0);
   if (same) { if (PN.q && nr !== PN.nr) { PN.nr = nr; pnApply(); } return; }
@@ -324,7 +328,8 @@ function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
   const setH = () => document.documentElement.style.setProperty("--toph", ($(".top")?.offsetHeight || 56) + "px");
   setH(); addEventListener("resize", setH);
-  $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; pnApply(); }, 140); };
+  $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
+  let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
   $("#pnFocus").onclick = () => { PN.focus = !PN.focus; pnLS("focus_" + PN.r, PN.focus); $("#pnFocus").classList.toggle("on", PN.focus); pnApply(); if (PN.focus) pnGo(PN.cur); else window.dispatchEvent(new Event("resize")); };
   $("#pnHide").onclick = () => pnOpen(false);
@@ -332,6 +337,150 @@ function pnInit() {
   $("#pnShade").onclick = () => pnOpen(false);
   let raf = 0; addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; pnSpy(); }); }, { passive: true });
   new MutationObserver(() => { clearTimeout(PN.chk); PN.chk = setTimeout(() => pnCheck(false), 300); }).observe(app(), { childList: true, subtree: true });
+}
+
+
+// ---------------------------------------------------------------- cột thông tin: tình hình, điểm chính của trang, theo dõi, sàn thử, khái niệm
+const SB = { ws: null, wsk: "", seq: 0, open: null };
+const SB_M = { market: ["sentiment", "btcval", "funding", "oi"], ideas: ["r", "choch", "mtf", "spotfut"], plan: ["gov", "r", "spotfut", "atr"], c: ["structure", "bos", "choch", "ob", "valuation"],
+  sectors: ["rrg", "corr"], sector: ["rrg", "valuation", "supply"], futures: ["funding", "oi", "basis", "carry"], pairs: ["pairs", "corr"], radar: ["rt", "mtf", "choch"], live: ["cvd", "funding", "oi"],
+  paper: ["spotfut", "gov", "r"], portfolio: ["gov", "r"], backtest: ["r", "ema", "sentiment"], tools: ["gov", "atr", "r"], coins: ["valuation", "funding", "ema"] };
+const sbOpen = () => SB.open || (SB.open = pnLS("blk") || {});
+function sbBlk(key, title, body, extra = "") {
+  if (!body) return "";
+  return `<details class="sb" data-b="${key}" ${sbOpen()[key] === false ? "" : "open"}><summary><span>${title}</span>${extra ? `<em>${extra}</em>` : ""}</summary><div class="sb-b">${body}</div></details>`;
+}
+const sbRow = (l, v, x = "", href = "") => `${href ? `<a class="sbr" href="${href}">` : `<div class="sbr">`}<span class="sbl">${l}</span><span class="sbv">${v}</span>${x ? `<small class="sbx">${x}</small>` : ""}${href ? "</a>" : "</div>"}`;
+const sbPx = (k) => `<b data-lk="${k}">${px(BYK?.[k]?.p)}</b> <i data-lr="${k}" class="${cls(BYK?.[k]?.r1)}">${pct(BYK?.[k]?.r1, 1)}</i>`;
+const sbDot = (c) => `<i class="sbdot ${c || ""}"></i>`;
+function sbIdeaSt(x) { const p = BYK?.[x.k]?.p; return liveSt({ side: x.side, e: x.e, s: x.s, t1: x.t1, t2: x.t2, r1: x.r1, order: "market" }, p); }
+async function sbIdeas() { const I = await tryLoad("data/ideas.json"); const L0 = LIVE && LIVE.ideas && I && new Date(LIVE.at) > new Date(I.at) ? LIVE.ideas : I?.items || []; return { I, items: L0.filter((x) => BYK?.[x.k]) }; }
+async function sbPage(r, a) {
+  const M = await tryLoad("data/market.json"), light = M?.light || {}, play = M?.play || {};
+  const tip = { green: "Đèn Xanh: ưu tiên Long theo xu hướng, Short chỉ khi thiết lập có lợi thế.", yellow: "Đèn Vàng: giảm khối lượng, chỉ vào lệnh có lợi thế rõ, chốt lời sớm hơn.", red: "Đèn Đỏ: hạn chế Long, ưu tiên phòng thủ / Short có lợi thế, giữ tiền mặt." }[light.color] || "";
+  if (r === "market") {
+    const { items } = await sbIdeas(); const go = items.filter((x) => x.edge && sbIdeaSt(x).k === "go");
+    return `<p class="sbp"><b>${esc(play.head || light.text || "")}</b></p>${(play.lines || []).slice(0, 2).map((t) => `<p class="sbp">• ${esc(t)}</p>`).join("")}
+      <div class="sbacts"><a class="btn sm primary" href="#/ideas">🎯 ${go.length} lệnh vào được ngay</a><a class="btn sm" href="#/sectors">Nhóm dẫn dắt</a></div>`;
+  }
+  if (r === "ideas") {
+    const { items } = await sbIdeas(), E = items.filter((x) => x.edge);
+    const st = E.map((x) => [x, sbIdeaSt(x)]), go = st.filter(([, S]) => S.k === "go").sort((p, q) => (q[0].avgR || 0) * (q[0].win1 || 0) - (p[0].avgR || 0) * (p[0].win1 || 0));
+    const n = (k) => E.filter((x) => laneOf(x) === k).length;
+    return `<div class="sbstat"><span style="--lc:var(--up)"><b>${n("spot")}</b>Mua spot</span><span style="--lc:var(--floor)"><b>${n("flong")}</b>Long fut</span><span style="--lc:var(--down)"><b>${n("fshort")}</b>Short fut</span><span style="--lc:var(--brand)"><b>${go.length}</b>Vào ngay</span></div>
+      ${go.length ? `<p class="sbh">Đáng làm nhất lúc này</p>${go.slice(0, 4).map(([x]) => `<a class="sbidea" href="#/plan/${enc(x.k)}" data-pl="${x.tf}|${x.side}" style="--lc:var(${LCOL[laneOf(x)]})"><b>${laneOf(x) === "spot" ? "Mua" : x.side === "long" ? "Long" : "Short"} ${esc(x.k)}</b><small>${x.tf === "d" ? "ngày" : "4h"} · ${nf(x.win1, 0)}% · ${nf(x.avgR, 2)}R</small><span>vào ${px(x.e)} → MT1 <b class="up">${pct(x.t1_pct, 1)}</b> · SL <b class="down">${pct(x.side === "long" ? -x.risk_pct : x.risk_pct, 1)}</b></span></a>`).join("")}` : `<p class="sbp">Chưa có lệnh nào vào được ngay – đặt lệnh chờ hoặc đứng ngoài.</p>`}
+      ${tip ? `<p class="sbtip">${tip}</p>` : ""}`;
+  }
+  if (r === "c" && a[0]) {
+    const K = a[0].toUpperCase(), x = BYK?.[K]; if (!x) return "";
+    const { items } = await sbIdeas(), my = items.filter((y) => y.k === K);
+    const vd = x.vd ? `<span class="pill ${VD_CLS[x.vd] || ""}">${esc(x.vd)}</span>` : "—";
+    return `<div class="sbcoin"><b>${esc(K)}</b><small>${esc(x.n || "")}</small><span>${sbPx(K)}</span></div>
+      ${sbRow("7 / 30 ngày", `<span class="${cls(x.r7)}">${pct(x.r7, 0)}</span> / <span class="${cls(x.r30)}">${pct(x.r30, 0)}</span>`)}
+      ${sbRow("Nhóm", x.g ? `<a href="#/sector/${enc(x.g)}">${esc(x.g)}</a>` : "—")}${sbRow("Định giá", vd, "", `#/c/${enc(K)}/val`)}
+      ${sbRow("Điểm kỹ thuật", isNum(x.tsc) ? `${nf(x.tsc, 0)}/100` : "—", x.ts === 1 ? "xu hướng tăng" : x.ts === -1 ? "xu hướng giảm" : "", `#/c/${enc(K)}/tech`)}
+      ${x.fx ? sbRow("Funding · OI 7n", `<span class="${f8c(x.f8)}">${f8s(x.f8)}</span> · <span class="${cls(x.oi7)}">${pct(x.oi7, 0)}</span>`, "", `#/c/${enc(K)}/fut`) : ""}
+      ${sbRow("Biến động ngày", isNum(x.atr) ? nf(x.atr, 1) + "%" : "—", isNum(x.beta) ? `beta ${nf(x.beta, 1)}` : "")}
+      ${my.length ? `<p class="sbh">Thiết lập đang có</p>${my.slice(0, 3).map((y) => { const S = sbIdeaSt(y); return `<a class="sbidea" href="#/plan/${enc(K)}" data-pl="${y.tf}|${y.side}" style="--lc:var(${LCOL[laneOf(y)]})"><b>${y.side === "long" ? "Long" : "Short"} · ${y.tf === "d" ? "ngày" : "4h"}</b><small><span class="pill ${S.c}">${S.lbl}</span></small><span>vào ${px(y.e)} · MT1 ${px(y.t1)} · SL ${px(y.s)} · ${nf(y.win1, 0)}%</span></a>`; }).join("")}` : `<p class="sbp">Chưa có thiết lập có lợi thế cho ${esc(K)} – xem tab SMC để chờ tín hiệu.</p>`}
+      <div class="sbacts"><a class="btn sm primary" href="#/plan/${enc(K)}">Lên lệnh</a><a class="btn sm" href="#/paper/${enc(K)}">Sàn thử</a><button class="btn sm" data-sbw="${K}">${WL.has(K) ? "★ Đang theo dõi" : "☆ Theo dõi"}</button></div>`;
+  }
+  if (r === "sector" && a[0]) {
+    const S = await sectorsData(), g = (S?.sectors || []).find((y) => y.g === a[0]); if (!g) return "";
+    const q = g.action?.q || "";
+    return `<p class="sbp"><span class="pill ${QCOL[q] || ""}">${esc(q)}</span> ${esc(g.action?.head || "")}</p>
+      ${sbRow("30 ngày · so BTC", `<span class="${cls(g.r30)}">${pct(g.r30, 1)}</span> · <span class="${cls(g.rs30)}">${pct(g.rs30, 1)}</span>`)}${sbRow("Độ rộng", isNum(g.breadth) ? nf(g.breadth, 0) + "%" : "—", "coin đang tăng")}${sbRow("Dòng tiền 7n", pct(g.vflow, 0), "khối lượng so 30 ngày")}
+      ${(g.best7 || []).length ? `<p class="sbh">Mạnh nhất 7 ngày</p><div class="sbchips">${g.best7.slice(0, 5).map(([k, v]) => `<a href="#/c/${enc(k)}">${esc(k)} <i class="${cls(v)}">${pct(v, 0)}</i></a>`).join("")}</div>` : ""}
+      ${g.ideas_long || g.ideas_short ? `<p class="sbp">Cơ hội trong nhóm: <b class="up">${g.ideas_long} Long</b> · <b class="down">${g.ideas_short} Short</b> → <a href="#/ideas">xem</a></p>` : ""}`;
+  }
+  if (r === "sectors") {
+    const S = await sectorsData(), L = (S?.sectors || []).filter((y) => y.n_liq >= 3);
+    const by = (q) => L.filter((y) => y.action?.q === q).sort((p, q2) => (q2.rs30 || 0) - (p.rs30 || 0)).slice(0, 4);
+    return ["Dẫn dắt", "Cải thiện", "Suy yếu", "Tụt hậu"].map((q) => { const xs = by(q); return xs.length ? `<p class="sbh"><span class="pill ${QCOL[q]}">${q}</span></p>${xs.map((y) => sbRow(esc(y.g), `<span class="${cls(y.r30)}">${pct(y.r30, 0)}</span>`, `so BTC ${pct(y.rs30, 1)}`, `#/sector/${enc(y.g)}`)).join("")}` : ""; }).join("");
+  }
+  if (r === "futures") {
+    const Ls = M?.lists || {};
+    return `${(Ls.f_hot || []).length ? `<p class="sbh">🔥 Funding nóng (dễ bị xả)</p><div class="sbchips">${Ls.f_hot.slice(0, 6).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a>`).join("")}</div>` : ""}
+      ${(Ls.f_cold || []).length ? `<p class="sbh">🧊 Funding âm (dễ bị ép tăng)</p><div class="sbchips">${Ls.f_cold.slice(0, 6).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a>`).join("")}</div>` : ""}
+      ${(M?.alerts || []).slice(0, 3).map((x) => `<a class="sbal" href="#/c/${enc(x.k)}/fut"><b>${esc(x.k)}</b> ${esc(x.t)}<small>${esc(x.d)}</small></a>`).join("")}`;
+  }
+  if (r === "plan" || r === "tools") {
+    return `${sbRow("Vốn", usd(setting("acct", 10000)), "", "#/tools")}${sbRow("Rủi ro / lệnh", nf(setting("risk", 1), 2) + "%", "lỗ tối đa mỗi lệnh", "#/tools")}${sbRow("Đèn thị trường", `${sbDot(light.color)}${LIGHT_VI[light.color] || "—"}`, "", "#/")}
+      <p class="sbtip">${tip || "Luôn đặt cắt lỗ trên sàn ngay khi vào lệnh."} Khối lượng = vốn × % rủi ro ÷ khoảng cắt lỗ – đòn bẩy chỉ để giảm ký quỹ.</p>`;
+  }
+  if (r === "pairs") {
+    const P = await tryLoad("data/pairs.json"), ok = (P?.pairs || []).filter((x) => x.ok).slice(0, 4);
+    return ok.length ? `<p class="sbh">Cặp đạt chuẩn lúc này</p>${ok.map((x) => sbRow(esc(x.side), `z ${nf(x.z, 1)}`, `quay về ${nf(x.win, 0)}% · ${x.n} lần`)).join("")}` : `<p class="sbp">Chưa có cặp nào lệch đủ để giao dịch.</p>`;
+  }
+  const note = app().querySelector(".note p, .note")?.textContent?.trim();
+  return note ? `<p class="sbp">${esc(note.slice(0, 260))}${note.length > 260 ? "…" : ""}</p>` : "";
+}
+function sbMarket(M) {
+  if (!M) return "";
+  const b = M.btc || {}, F = M.fng || {}, l = M.light || {}, dom = M.global?.dom || {};
+  return `${sbRow("Đèn thị trường", `${sbDot(l.color)}${LIGHT_VI[l.color] || "—"}`, esc((l.text || "").split("–")[0]), "#/")}
+    ${sbRow("BTC", sbPx("BTC"), spark((b.sp || []).slice(-30), { w: 70, h: 16 }), "#/c/BTC")}
+    ${sbRow("ETH", sbPx("ETH"), "", "#/c/ETH")}
+    ${sbRow("Sợ hãi & Tham lam", `${nf(F.now, 0)} · ${esc(F.zone || "")}`, spark((F.series || []).slice(-30).map((x) => x[1]), { w: 70, h: 16, color: css("--brand") }))}
+    ${sbRow("Funding TB", `<span class="${f8c(M.agg?.f8)}">${f8s(M.agg?.f8)}</span>`, "", "#/futures")}
+    ${sbRow("BTC dominance", isNum(dom.btc) ? nf(dom.btc, 1) + "%" : "—", isNum(M.alt?.idx) ? `mùa altcoin ${nf(M.alt.idx, 0)}/100` : "")}
+    ${(M.alerts || []).slice(0, 2).map((x) => `<a class="sbal" href="#/c/${enc(x.k)}"><b>⚠️ ${esc(x.k)}</b> ${esc(x.t)}</a>`).join("")}`;
+}
+async function sbWatch(items) {
+  try { await WL.load(); } catch (e) { return ""; }
+  const ks = [...WL.set].filter((k) => BYK?.[k]).slice(0, 14);
+  if (!ks.length) return `<p class="sbp faint">Bấm ☆ Theo dõi ở trang coin để ghim coin vào đây (giá trực tiếp).</p>`;
+  return ks.map((k) => { const y = items.find((z) => z.k === k && z.edge); return `<a class="sbw" href="#/c/${enc(k)}"><b>${esc(k)}</b>${y ? `<small class="${y.side === "long" ? "up" : "down"}">${y.side === "long" ? "Long" : "Short"} ${y.tf === "d" ? "ngày" : "4h"}</small>` : "<small></small>"}<span>${sbPx(k)}</span></a>`; }).join("");
+}
+function sbPaper() {
+  if (!PAP) return "";
+  const sp = Object.entries(PAP.spot || {}).filter(([, h]) => h.q > 1e-12);
+  if (!PAP.pos.length && !sp.length && !PAP.orders.length) return "";
+  const eq = papEquity(), pnl = eq - PAP.start;
+  return `${sbRow("Tài sản", `<b data-peq>${usd2(eq)}</b>`, `<span data-ppn class="${cls(pnl)}">${pnl >= 0 ? "+" : ""}${usd2(pnl)} (${pct(pnl / PAP.start * 100, 2)})</span>`, "#/paper")}
+    ${PAP.pos.slice(0, 6).map((p) => { const m = papPx(p.k, "fut") || p.e, u = p.q * (m - p.e); return sbRow(`${esc(p.k)} <small class="${p.q > 0 ? "up" : "down"}">${p.q > 0 ? "Long" : "Short"} x${p.lev}</small>`, `<span class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</span>`, `vào ${px(p.e)}`, `#/paper/${enc(p.k)}`); }).join("")}
+    ${sp.slice(0, 6).map(([k, h]) => { const m = papPx(k, "spot") || h.cost / h.q, u = h.q * m - h.cost; return sbRow(`${esc(k)} <small>spot</small>`, `<span class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</span>`, `${qty(h.q)}`, `#/paper/${enc(k)}`); }).join("")}
+    ${PAP.orders.length ? `<p class="sbp faint">${PAP.orders.length} lệnh chờ khớp</p>` : ""}`;
+}
+function sbConcepts(r) {
+  const ids = SB_M[r] || []; if (!ids.length || typeof METHODS === "undefined") return "";
+  const en = I18N.lang === "en";
+  return ids.map((id) => METHODS.find((m) => m[0] === id)).filter(Boolean).map((m) => { const w = (en ? m[5] : m[4]).what, sh = w.split(/(?<=[.:;])\s/)[0].slice(0, 120); return `<a class="sbm" href="#/methods/${m[0]}" data-noi18n><b>${esc(en ? m[3] : m[2])}</b><small>${esc(sh)}${sh.length < w.length ? "…" : ""}</small></a>`; }).join("");
+}
+async function sbRender() {
+  const top = $("#pninfo"), bot = $("#pninfo2"); if (!top || !bot) return;
+  const my = ++SB.seq, r = PN.r, a = PN.arg;
+  try {
+    if (!BYK) await coins();
+    try { await WL.load(); } catch (e) { /* chưa đăng nhập */ }
+    const [M, pg, { items }] = await Promise.all([tryLoad("data/market.json"), sbPage(r, a).catch(() => ""), sbIdeas()]);
+    if (r !== "paper") { try { await papLoad(); } catch (e) { /* chưa đăng nhập */ } }
+    const wl = await sbWatch(items);
+    if (my !== SB.seq) return;
+    const T0 = { market: "Nên làm gì lúc này", ideas: "Tóm tắt cơ hội", c: "Nhanh về coin", sector: "Nhóm này lúc này", sectors: "Nhóm theo góc luân chuyển", futures: "Phái sinh đáng chú ý", plan: "Quản trị rủi ro của anh", tools: "Quản trị rủi ro của anh", pairs: "Giao dịch cặp" }[r] || "Điểm chính";
+    top.innerHTML = sbBlk("page", "📍 " + T0, pg) + (r === "market" ? "" : sbBlk("mkt", "🌡️ Thị trường lúc này", sbMarket(M), `<span class="live-dot"></span>`));
+    bot.innerHTML = sbBlk("wl", "★ Đang theo dõi", wl) + sbBlk("pap", "🧪 Sàn thử", sbPaper()) + sbBlk("cpt", "📚 Khái niệm trên trang này", sbConcepts(r)) + (r === "market" ? sbBlk("mkt", "🌡️ Chỉ số nhanh", sbMarket(M)) : "");
+    $$("#pnav details.sb").forEach((d) => d.ontoggle = () => { sbOpen()[d.dataset.b] = d.open; pnLS("blk", sbOpen()); });
+    $$("#pnav [data-pl]").forEach((x) => x.onclick = () => { const [tf, sd] = x.dataset.pl.split("|"); lsSet("pltf", tf); lsSet("plside", sd); });
+    $$("#pnav [data-sbw]").forEach((b) => b.onclick = async () => { await WL.toggle(b.dataset.sbw); sbRender(); });
+    sbWs();
+  } catch (e) { console.warn(e); }
+}
+function sbWs() {
+  const tick = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"]);
+  const ks = [...new Set($$("#pnav [data-lk]").map((e) => e.dataset.lk))].filter((k) => !tick.has(k) && BYK?.[k]?.sp).slice(0, 40), key = ks.join(",");
+  if (key === SB.wsk) return;
+  try { SB.ws?.close(); } catch (e) { /* bỏ qua */ }
+  SB.ws = null; SB.wsk = key; if (!ks.length) return;
+  try {
+    const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
+    SB.ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
+    SB.ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data, k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1; r.p = +d.c / m; r.r1 = (+d.c / +d.o - 1) * 100; };
+  } catch (e) { /* bỏ qua */ }
+}
+function sbLive() {
+  $$("#pnav [data-lk]").forEach((e) => { const r = BYK?.[e.dataset.lk]; if (!r) return; const t = px(r.p); if (e.textContent !== t) { e.classList.toggle("up", r.p > (e._v || r.p)); e.classList.toggle("down", r.p < (e._v || r.p)); e.textContent = t; e._v = r.p; } });
+  $$("#pnav [data-lr]").forEach((e) => { const r = BYK?.[e.dataset.lr]; if (!r) return; const t = pct(r.r1, 1); if (e.textContent !== t) { e.textContent = t; e.className = cls(r.r1); } });
+  if (PAP && $("#pnav [data-peq]")) { const eq = papEquity(), pnl = eq - PAP.start; $("#pnav [data-peq]").textContent = usd2(eq); const pe = $("#pnav [data-ppn]"); pe.textContent = `${pnl >= 0 ? "+" : ""}${usd2(pnl)} (${pct(pnl / PAP.start * 100, 2)})`; pe.className = cls(pnl); }
 }
 
 // ================================================================ dữ liệu chung

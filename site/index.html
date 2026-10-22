@@ -46,11 +46,14 @@
 <div class="shell">
 <aside id="pnav" class="pnav" hidden>
   <div class="pn-in">
-    <div class="pn-top"><b>Trên trang này</b><span><button id="pnFocus" class="pn-btn" type="button" title="Chỉ hiện mục đang chọn (như trang Phương pháp)">Từng mục</button><button id="pnHide" class="pn-btn" type="button" title="Thu gọn mục lục">«</button></span></div>
+    <div class="pn-top"><b>Bảng thông tin</b><span><button id="pnFocus" class="pn-btn" type="button" title="Chỉ hiện mục đang chọn (như trang Phương pháp)">Từng mục</button><button id="pnHide" class="pn-btn" type="button" title="Thu gọn mục lục">«</button></span></div>
     <div class="msearch"><input id="pnq" type="search" autocomplete="off" placeholder="Tìm trong trang… ( / )"></div>
     <small id="pncnt" class="mcnt"></small>
-    <div id="pntabs" class="mchips pn-tabs"></div>
-    <nav id="pnlist" class="mlist pn-list"></nav>
+    <div class="pn-scroll">
+      <div id="pninfo" class="pn-info"></div>
+      <details class="sb" id="pnsec" data-b="sec" open><summary><span>🧭 Các mục trên trang</span></summary><div class="sb-b"><div id="pntabs" class="mchips pn-tabs"></div><nav id="pnlist" class="mlist pn-list"></nav></div></details>
+      <div id="pninfo2" class="pn-info"></div>
+    </div>
   </div>
 </aside>
 <main id="app" tabindex="-1"><p class="muted">Đang tải…</p></main>
