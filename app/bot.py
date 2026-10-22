@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from datetime import datetime, timedelta, timezone
 
 from .analysis import risk
@@ -484,9 +485,21 @@ def make_plan(cfg_raw: dict, st: dict | None, items, rows, sectors, fut, prices,
     return {"at": _iso(now), "light": light, "btc_up": btc_up, "cands": out, "f8": {k: (fut.get(k) or [None])[0] for k in keys}, "meta": meta, "research": res}
 
 
+def bots_of(c) -> list:
+    if isinstance(c, dict) and isinstance(c.get("bots"), list):
+        return c["bots"][:6]
+    return [{"id": "b1", **c}] if isinstance(c, dict) and "enabled" in c else []
+
+
+def states_of(s) -> dict:
+    if isinstance(s, dict) and isinstance(s.get("bots"), dict):
+        return s["bots"]
+    return {"b1": s} if isinstance(s, dict) and s.get("cash") is not None else {}
+
+
 def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc_up, deliver, cfg_d1: dict | None = None) -> int:
-    """Lượt 15 phút. Nếu bộ khớp lệnh mỗi phút (Worker) đang chạy → chỉ viết kế hoạch + gửi thông báo đẩy/email cho sự kiện Worker ghi.
-    Nếu Worker chưa chạy (hoặc ngừng > 5 phút) → tự chạy cả vòng như trước (dự phòng)."""
+    """Lượt 15 phút cho MỌI bot của mọi người dùng. Nếu bộ khớp lệnh mỗi phút (Worker) đang chạy → chỉ viết kế hoạch + gửi thông báo
+    đẩy/email cho sự kiện Worker ghi. Nếu Worker chưa chạy (hoặc ngừng > 5 phút) → tự chạy cả vòng như trước (dự phòng)."""
     from . import users
     hb = (cfg_d1 or {}).get("bot_hb")
     try:
@@ -497,21 +510,34 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
     n = 0
     for u in us:
         d = u.get("data") or {}
-        cfg = d.get("bot")
-        if not cfg or not (cfg.get("enabled") or d.get("botstate")):
+        B = bots_of(d.get("bot"))
+        if not B or ("bot" not in u.get("features", set()) and u.get("role") != "admin"):
             continue
-        if "bot" not in u.get("features", set()) and u.get("role") != "admin":
+        S = states_of(d.get("botstate"))
+        if not any(b.get("enabled") or S.get(b.get("id")) for b in B):
             continue
         try:
-            st = d.get("botstate")
+            plans, out, evs = {}, dict(S), []
+            for b in B:
+                bid = b.get("id") or "b1"
+                st = S.get(bid)
+                if not (b.get("enabled") or st):
+                    continue
+                if not worker:
+                    st, ev = step(b, st, items, rows, sectors, fut, prices, bars_of, light, btc_up)
+                    out[bid] = st
+                    for x in notes(ev, u):
+                        x["key"] = f"bot:{bid}:{x['key'][4:]}"
+                        if len(B) > 1:
+                            x["title"] = re.sub(r"^(🤖|⛔) (Bot )?", lambda m: f"{m.group(1)} {b.get('name') or bid}: ", x["title"])
+                        evs.append(x)
+                plans[bid] = make_plan(b, st, items, rows, sectors, fut, prices, light, btc_up)
             if not worker:
-                st, ev = step(cfg, st, items, rows, sectors, fut, prices, bars_of, light, btc_up)
-                users.save(be, u["id"], "botstate", st)
-                if ev:
-                    deliver(u, notes(ev, u))
-            pl = make_plan(cfg, st, items, rows, sectors, fut, prices, light, btc_up)
+                users.save(be, u["id"], "botstate", {"v": 2, "bots": out})
+                if evs:
+                    deliver(u, evs)
             old = d.get("botplan") or {}
-            pl["pushed_at"] = old.get("pushed_at") or _iso(_now()) + ".000Z"
+            pl = {"v": 2, "at": _iso(_now()), "bots": plans, "pushed_at": old.get("pushed_at") or _iso(_now()) + ".000Z"}
             if worker:       # đẩy / email cho thông báo bot mà Worker vừa ghi vào chuông
                 rs, _ = be.q("SELECT key, kind, sev, title, body, url, sym, created_at FROM notifications WHERE user_id = ? AND kind = 'bot' AND created_at > ? ORDER BY created_at",
                              [u["id"], pl["pushed_at"]])
@@ -522,7 +548,7 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
                     users.send_email(cfgx, u, rs, "MyBit – bot giao dịch", site)
                     pl["pushed_at"] = rs[-1]["created_at"]
             users.save(be, u["id"], "botplan", pl)
-            n += 1
+            n += len(plans)
         except Exception as e:  # noqa: BLE001
             log.warning("bot %s: %s", u.get("email"), e)
     return n

@@ -27,7 +27,7 @@ function newState(cap, now) {
   return { v: 1, start: cap, cash: cap, pos: [], hist: [], log: [], eq: [[iso(now), +cap.toFixed(2)]], peak: cap, day: { d: vnDay(now), eq0: cap }, month: { m: vnDay(now).slice(0, 7), eq0: cap },
     paused: null, research: null, seq: 1, created: iso(now), reset_seen: null, close_seen: null, last: null };
 }
-const say = (st, now, m, k = "info") => { st.log = [...(st.log || []).slice(-199), { t: iso(now), k, m }]; };
+const say = (st, now, m, k = "info") => { st.log = [...(st.log || []).slice(-149), { t: iso(now), k, m }]; };
 function equity(st, price) {
   let e = +st.cash || 0;
   for (const p of st.pos || []) { const m = price(p.k) || p.e; e += p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e); }
@@ -90,16 +90,25 @@ function liveOk(x, p) {
   const rr = Math.abs(x.t1 - p) / Math.abs(p - x.s);
   return [rr >= 1.2, rr];
 }
-function entries(st, cfg, cands, price, now, ev, mult) {
-  const eq = equity(st, price), held = new Set(st.pos.map((p) => p.k)), used = new Set(st.used || []);
+// xét từng ứng viên – vừa quyết định vào lệnh, vừa ghi lại "suy nghĩ" (vì sao vào / chờ / bỏ)
+function entries(st, cfg, cands, price, now, ev, mult, halt) {
+  const eq = equity(st, price), held = new Set(st.pos.map((p) => p.k)), used = new Set(st.used || []), th = [];
   const cool = new Set((st.hist || []).filter((h) => h.pnl < 0 && now - ms(h.closed) < 864e5).map((h) => h.k));
   const dd = st.peak ? Math.max(0, (1 - eq / st.peak) * 100) : 0;
-  for (const x of cands || []) {
-    if (st.pos.length >= cfg.max_pos) break;
-    const key = `${x.k}|${x.setup}|${x.tf}|${x.at}`;
-    if (held.has(x.k) || used.has(key) || cool.has(x.k)) continue;
-    const p = price(x.k); if (!p) continue;
-    const [ok, rr] = liveOk(x, p); if (!ok) continue;
+  for (const x of (cands || []).slice(0, 10)) {
+    const key = `${x.k}|${x.setup}|${x.tf}|${x.at}`, p = price(x.k), L = x.side === "long", sd = L ? 1 : -1;
+    const t = { k: x.k, side: x.side, tf: x.tf, mkt: x.mkt, name: x.name, win1: x.win1, avgR: x.avgR, p, e: x.e, s: x.s, t1: x.t1 };
+    th.push(t);
+    if (held.has(x.k)) { t.v = "hold"; t.why = "đang có lệnh với coin này"; continue; }
+    if (used.has(key)) { t.v = "done"; t.why = "đã đánh tín hiệu này rồi"; continue; }
+    if (cool.has(x.k)) { t.v = "cool"; t.why = "vừa thua lệnh coin này – nghỉ 24 giờ"; continue; }
+    if (!p) { t.v = "nopx"; t.why = "chưa lấy được giá"; continue; }
+    if (sd * (p - x.s) <= 0) { t.v = "dead"; t.why = `giá ${sig(p)} đã qua cắt lỗ ${sig(x.s)} – tín hiệu hỏng`; continue; }
+    if (sd * (p - x.t1) >= 0) { t.v = "miss"; t.why = `giá ${sig(p)} đã tới MT1 – lỡ nhịp, không đuổi`; continue; }
+    const rr = Math.abs(x.t1 - p) / Math.abs(p - x.s); t.rr = rr;
+    if (rr < 1.2) { const lvl = (x.t1 + 1.2 * x.s) / 2.2; t.v = "wait"; t.lvl = lvl; t.why = `R:R chỉ còn ${rr.toFixed(2)} (cần ≥ 1,2) – chờ giá ${L ? "hồi về ≤" : "hồi lên ≥"} ${sig(lvl)}`; continue; }
+    if (halt) { t.v = "halt"; t.why = `đạt chuẩn (R:R ${rr.toFixed(1)}) nhưng không mở lệnh: ${halt}`; continue; }
+    if (st.pos.length >= cfg.max_pos) { t.v = "full"; t.why = `đạt chuẩn (R:R ${rr.toFixed(1)}) nhưng đã đủ ${cfg.max_pos} lệnh`; continue; }
     const riskUsd = eq * cfg.risk / 100 * mult;
     let n = riskUsd / Math.abs(p - x.s) * p, lev = 1;
     if (x.mkt === "spot") n = Math.min(n, eq * 0.3, st.cash * 0.98);
@@ -109,13 +118,34 @@ function entries(st, cfg, cands, price, now, ev, mult) {
       lev = Math.max(1, Math.min(cap, Math.ceil(n / Math.max(1e-9, eq * 0.25))));
       if (n / lev > st.cash * 0.98) n = st.cash * 0.98 * lev;
     }
-    if (n < 10) continue;
+    if (n < 10) { t.v = "cash"; t.why = "không đủ tiền mặt để vào lệnh"; continue; }
     const pos = openPos(st, x, x.mkt, n / p, p, lev, now);
     held.add(x.k); st.used = [...(st.used || []).slice(-299), key];
+    t.v = "go"; t.why = `VÀO: R:R ${rr.toFixed(1)}, rủi ro ${pos.risk_usd.toFixed(2)} USDT, ${x.mkt === "spot" ? "spot" : "futures x" + lev}`;
     ev.push(["open", pos, null]);
-    say(st, now, `Vào ${x.side === "long" ? "Long" : "Short"} ${x.k} (${x.mkt === "spot" ? "spot" : "futures x" + lev}) ở ${sig(pos.e)} · cắt lỗ ${sig(x.s)} · MT1 ${sig(x.t1)} · MT2 ${sig(x.t2)} · rủi ro ${pos.risk_usd.toFixed(2)} USDT – ${x.name} (${x.tf === "d" ? "ngày" : "4h"}, xác suất ${x.win1}%, lãi TB ${x.avgR}R, R:R ${rr.toFixed(1)})`, "open");
+    say(st, now, `Vào ${L ? "Long" : "Short"} ${x.k} (${x.mkt === "spot" ? "spot" : "futures x" + lev}) ở ${sig(pos.e)} · cắt lỗ ${sig(x.s)} · MT1 ${sig(x.t1)} · MT2 ${sig(x.t2)} · rủi ro ${pos.risk_usd.toFixed(2)} USDT – ${x.name} (${x.tf === "d" ? "ngày" : "4h"}, xác suất ${x.win1}%, lãi TB ${x.avgR}R, R:R ${rr.toFixed(1)})`, "open");
   }
+  return th;
 }
+function posThink(st, price) {
+  return (st.pos || []).map((p) => {
+    const m = price(p.k) || p.e, L = p.sd > 0, u = p.sd * p.q * (m - p.e) + p.real - p.fee0 - p.fund;
+    const toS = (p.s / m - 1) * 100, toT = ((p.tp1 ? p.t2 : p.t1) / m - 1) * 100;
+    return { k: p.k, side: p.side, mkt: p.mkt, lev: p.lev, p: m, e: p.e, s: p.s, t: p.tp1 ? p.t2 : p.t1, tp1: p.tp1, u: +u.toFixed(2), r: p.risk_usd ? +(u / p.risk_usd).toFixed(2) : null,
+      toS: +toS.toFixed(2), toT: +toT.toFixed(2), tmax: p.tmax,
+      why: `${L ? "Long" : "Short"} ${p.k}: giá ${sig(m)} · ${p.tp1 ? "đã chốt MT1, cắt lỗ ở hoà vốn" : "chờ MT1"} · còn ${Math.abs(toT).toFixed(1)}% tới ${p.tp1 ? "MT2" : "MT1"}, ${Math.abs(toS).toFixed(1)}% tới cắt lỗ → giữ` };
+  });
+}
+// dòng suy nghĩ: chỉ ghi khi bot đổi ý về một ứng viên (tránh lặp mỗi phút)
+function thinkLog(st, th, now) {
+  const prev = st.cv || {}, cur = {};
+  for (const t of th) {
+    const k = `${t.k}|${t.side}|${t.tf}`; cur[k] = t.v;
+    if (prev[k] !== t.v && !["hold", "done"].includes(t.v)) st.dlog = [...(st.dlog || []).slice(-149), { t: iso(now), k: t.k, v: t.v, m: `${t.side === "long" ? "Long" : "Short"} ${t.k} (${t.tf === "d" ? "ngày" : "4h"}): ${t.why}` }];
+  }
+  st.cv = cur;
+}
+
 export function botStep(cfgRaw, st, plan, price, hl, now) {
   const cfg = norm(cfgRaw), ev = [];
   if (!st || (cfgRaw?.reset_at && cfgRaw.reset_at !== st.reset_seen)) {
@@ -148,11 +178,16 @@ export function botStep(cfgRaw, st, plan, price, hl, now) {
   else if (dayPct <= -cfg.daily_stop) halt = `lỗ ${dayPct.toFixed(1)}% hôm nay (giới hạn ${cfg.daily_stop.toFixed(1)}%)`;
   else if (!plan || now - ms(plan.at) > 45 * 60e3) halt = "chờ kế hoạch mới từ máy chủ phân tích";
   const mult = cfg.protect && monPct >= cfg.target_month && cfg.target_month > 0 ? 0.5 : 1;
-  if (!halt) entries(st, cfg, plan.cands, price, now, ev, mult);
+  const th = plan && cfg.enabled ? entries(st, cfg, plan.cands, price, now, ev, mult, halt) : [];
+  thinkLog(st, th, now);
   eq = equity(st, price);
+  const nGo = th.filter((t) => t.v === "go").length, nWait = th.filter((t) => t.v === "wait").length;
+  st.think = { at: iso(now), eq: +eq.toFixed(2), light: plan?.light || null, n: (plan?.cands || []).length, plan_at: plan?.at || null, halt,
+    head: !cfg.enabled ? "Bot đang tắt – chỉ quản lý lệnh còn mở." : halt ? `Không mở lệnh mới: ${halt}.` : nGo ? `Vừa vào ${nGo} lệnh.` : nWait ? `${nWait} ứng viên gần đạt chuẩn – chờ giá đẹp hơn.` : (plan?.cands || []).length ? "Các ứng viên chưa có điểm vào tốt – tiếp tục theo dõi." : "Không có ứng viên khớp thiết lập – đứng ngoài.",
+    pos: posThink(st, price), cands: th.map((t) => ({ ...t, p: t.p ? +t.p.toPrecision(8) : null })) };
   const h = st.eq || [];
   if (!h.length || now - ms(h[h.length - 1][0]) >= 3000e3) h.push([iso(now), +eq.toFixed(2)]);
-  st.eq = h.slice(-2500);
+  st.eq = h.slice(-1500);
   const hist = st.hist || [], wins = hist.filter((x) => x.pnl > 0);
   st.stats = { eq: +eq.toFixed(2), ret: +((eq / st.start - 1) * 100).toFixed(2), dd: +dd.toFixed(2), day_pct: +dayPct.toFixed(2), mon_pct: +monPct.toFixed(2), n: hist.length,
     win: hist.length ? +(wins.length / hist.length * 100).toFixed(1) : null, avgR: hist.length ? +(hist.reduce((a, x) => a + (x.r || 0), 0) / hist.length).toFixed(2) : null,
@@ -213,6 +248,12 @@ const canBot = (u) => {
   return (PLANS.plans[plan]?.features || []).includes("bot");
 };
 
+// nhiều bot song song: "bot" = {bots:[cfg…]}, "botstate" = {bots:{id: trạng thái}}, "botplan" = {bots:{id: kế hoạch}} (bản cũ một bot vẫn đọc được)
+export const botsOf = (c) => (Array.isArray(c?.bots) ? c.bots : c && typeof c === "object" && "enabled" in c ? [{ id: "b1", ...c }] : []);
+export const statesOf = (s) => (s?.bots && typeof s.bots === "object" ? s.bots : s && s.cash != null ? { b1: s } : {});
+const plansOf = (p) => (p?.bots && typeof p.bots === "object" ? p.bots : p?.cands ? { b1: p } : {});
+const active = (b, st) => b.enabled || st?.pos?.length || (b.reset_at && b.reset_at !== st?.reset_seen);
+
 export async function botTick(env) {
   if (!env.DB) return { skip: "no DB" };
   const now = Date.now(), nowIso = new Date(now).toISOString();
@@ -220,29 +261,39 @@ export async function botTick(env) {
   const { results: rows } = await env.DB.prepare("SELECT d.user_id, d.key, d.value, u.role, u.plan, u.plan_until FROM user_data d JOIN users u ON u.id = d.user_id WHERE u.status = 'active' AND d.key IN ('bot', 'botstate', 'botplan')").all();
   const by = {};
   for (const r of rows || []) { const o = (by[r.user_id] ||= { u: r }); try { o[r.key] = JSON.parse(r.value); } catch (e) { /* bỏ qua */ } }
-  const jobs = Object.entries(by).filter(([, o]) => o.bot && canBot(o.u) && (o.bot.enabled || o.botstate?.pos?.length || (o.bot.reset_at && o.bot.reset_at !== o.botstate?.reset_seen)));
+  const jobs = [];
+  for (const [uid, o] of Object.entries(by)) {
+    if (!o.bot || !canBot(o.u)) continue;
+    const S = statesOf(o.botstate), PL = plansOf(o.botplan), B = botsOf(o.bot).slice(0, 6);
+    const list = B.filter((b) => active(b, S[b.id]));
+    if (list.length) jobs.push({ uid, o, S, PL, B, list });
+  }
   if (!jobs.length) return { users: 0 };
-  // gộp nhu cầu giá của mọi người dùng → một lần gọi
   const meta = {}, since = {};
-  for (const [, o] of jobs) {
-    Object.assign(meta, o.botplan?.meta || {});
-    for (const p of o.botstate?.pos || []) { since[p.k] = Math.min(since[p.k] ?? Infinity, ms(p.chk)); if (!meta[p.k]) meta[p.k] = o.botplan?.meta?.[p.k] || {}; }
+  for (const j of jobs) for (const b of j.list) {
+    Object.assign(meta, j.PL[b.id]?.meta || {});
+    for (const p of j.S[b.id]?.pos || []) { since[p.k] = Math.min(since[p.k] ?? Infinity, ms(p.chk)); if (!meta[p.k]) meta[p.k] = j.PL[b.id]?.meta?.[p.k] || {}; }
   }
   const { P, HL } = await prices(meta, since);
   const price = (k) => P[k] ?? null;
   let n = 0, nev = 0;
-  for (const [uid, o] of jobs) {
+  for (const j of jobs) {
     try {
-      const { st, ev } = botStep(o.bot, o.botstate, o.botplan, price, HL, now);
+      const out = {}, it = [];
+      for (const b of j.B) {                                   // giữ nguyên trạng thái của bot không chạy (đang tắt, không lệnh mở)
+        if (!j.list.includes(b)) { if (j.S[b.id]) out[b.id] = j.S[b.id]; continue; }
+        const { st, ev } = botStep(b, j.S[b.id], j.PL[b.id], price, HL, now);
+        out[b.id] = st; nev += ev.length;
+        for (const x of notes(ev)) it.push({ ...x, key: `bot:${b.id}:${x.key.slice(4)}`, title: j.B.length > 1 ? x.title.replace(/^(🤖|⛔) (Bot )?/u, `$1 ${b.name || b.id}: `) : x.title });
+      }
       await env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'botstate', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
-        .bind(Number(uid), JSON.stringify(st), nowIso).run();
-      const it = notes(ev);
+        .bind(Number(j.uid), JSON.stringify({ v: 2, bots: out }), nowIso).run();
       if (it.length) {
         await env.DB.batch(it.map((x) => env.DB.prepare("INSERT OR IGNORE INTO notifications(user_id, key, kind, sev, title, body, url, sym, created_at) VALUES(?, ?, 'bot', ?, ?, ?, '#/bot', ?, ?)")
-          .bind(Number(uid), x.key.slice(0, 200), x.sev, x.title.slice(0, 200), (x.body || "").slice(0, 1500), x.sym || null, nowIso)));
+          .bind(Number(j.uid), x.key.slice(0, 200), x.sev, x.title.slice(0, 200), (x.body || "").slice(0, 1500), x.sym || null, nowIso)));
       }
-      n++; nev += ev.length;
-    } catch (e) { console.log("bot user", uid, e.message); }
+      n += j.list.length;
+    } catch (e) { console.log("bot user", j.uid, e.message); }
   }
-  return { users: n, events: nev, priced: Object.keys(P).length };
+  return { bots: n, events: nev, priced: Object.keys(P).length };
 }

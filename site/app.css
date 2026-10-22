@@ -2108,3 +2108,21 @@ td.pf-act{white-space:nowrap}
 .bexp>div{background:var(--sunk);border-radius:8px;padding:8px 10px}.bexp i{display:block;font-style:normal;font-size:.68rem;color:var(--ink-3)}.bexp b{display:block;font-size:1rem}.bexp small{display:block;font-size:.68rem;color:var(--ink-2)}
 .bsave{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 @media (max-width:700px){.bpre{grid-template-columns:minmax(0,1fr)}}
+/* Đội bot & suy nghĩ của bot */
+.bfleet{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.bcard{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--sunk);color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.bcard:hover{text-decoration:none;border-color:var(--line)}.bcard.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+.bcard-h{display:flex;justify-content:space-between;align-items:center;gap:6px}.bcard-h b{font-size:.9rem}.bcard-h .pill{font-size:.6rem}
+.bcard-v{font-size:1.25rem;font-weight:700}.bcard small{font-size:.68rem;color:var(--ink-3);line-height:1.4}.bcard .spk{width:100%;height:26px;margin-top:2px}
+.badd{border-style:dashed;justify-content:center}.badd b{font-size:.86rem}
+tr.on td{background:color-mix(in srgb,var(--brand) 8%,transparent)}
+.bth-h{margin:0 0 8px;font-size:.88rem;font-weight:600}.bth-h small{color:var(--ink-3);font-weight:500;margin-right:6px}
+.bth-p{padding:7px 9px;border-radius:8px;background:var(--sunk);margin-bottom:6px}
+.bth-l{display:flex;gap:6px;align-items:baseline;font-size:.84rem}.bth-l span{margin-left:auto;font-weight:600}
+.bth-rail{position:relative;height:6px;border-radius:3px;margin:8px 4px 6px;background:linear-gradient(90deg,color-mix(in srgb,var(--down) 35%,transparent),color-mix(in srgb,var(--up) 35%,transparent))}
+.bth-rail i{position:absolute;top:-3px;width:2px;height:12px;transform:translateX(-1px);background:var(--ink-3)}
+.bth-rail i.s{background:var(--down)}.bth-rail i.t{background:var(--up)}.bth-rail i.e{background:var(--ink-2)}
+.bth-rail i.p{top:-4px;width:10px;height:14px;transform:translateX(-5px);border-radius:3px;background:var(--ink);box-shadow:0 0 0 2px var(--surface);transition:left .5s}
+.bth-c{display:grid;gap:5px}.bth-ci{padding:6px 9px;border-radius:8px;border:1px solid var(--line-2);font-size:.8rem}
+.bth-ci .pill{font-size:.6rem;margin-right:6px}.bth-why{margin-top:3px;color:var(--ink-2);font-size:.76rem;line-height:1.45}
+.bot-log .pill{font-size:.58rem;padding:1px 5px;margin-right:3px}
