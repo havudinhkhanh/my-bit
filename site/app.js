@@ -437,7 +437,7 @@ function pnInit() {
 
 // ---------------------------------------------------------------- cột thông tin: tình hình, điểm chính của trang, theo dõi, sàn thử, khái niệm
 const SB = { ws: null, wsk: "", seq: 0, open: null };
-const SB_M = { market: ["sentiment", "btcval", "funding", "oi"], ideas: ["r", "choch", "mtf", "spotfut"], plan: ["gov", "r", "spotfut", "atr"], c: ["structure", "bos", "choch", "ob", "valuation"],
+const SB_M = { market: ["sentiment", "btcval", "funding", "oi"], ideas: ["r", "choch", "mtf", "spotfut"], plan: ["gov", "r", "spotfut", "atr"], c: ["structure", "magnet", "bos", "choch", "ob", "valuation"],
   sectors: ["rrg", "corr"], sector: ["rrg", "valuation", "supply"], futures: ["funding", "oi", "basis", "carry"], pairs: ["pairs", "corr"], radar: ["rt", "mtf", "choch"], live: ["cvd", "funding", "oi"],
   bot: ["r", "gov", "mtf", "spotfut"], paper: ["spotfut", "gov", "r"], portfolio: ["gov", "r"], backtest: ["r", "ema", "sentiment"], tools: ["gov", "atr", "r"], coins: ["valuation", "funding", "ema"] };
 const sbOpen = () => SB.open || (SB.open = pnLS("blk") || {});
@@ -937,9 +937,9 @@ function bindChart(D) {
   const el = $("#pchart"); if (!el) return;
   priceChart(D, el, CTF);
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
-  [["#zt", "showZones"], ["#smt", "showSmc"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
+  [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
@@ -2110,7 +2110,7 @@ function rtCard(E, ctx = {}) {
 // ---- lớp vẽ SMC lên biểu đồ (hộp OB / FVG, đường BOS / CHoCH, thanh khoản, vùng premium/discount)
 function smcOverlay(el, ch, cs) {
   const cv = document.createElement("canvas"); cv.className = "ov"; el.appendChild(cv);
-  let o = null, S = null, q = false;
+  let o = null, S = null, q = false, MZ = null;
   const draw = () => {
     q = false; if (!S || !o || !cv.isConnected) return;
     const W = el.clientWidth, H = el.clientHeight, dpr = devicePixelRatio || 1;
@@ -2136,13 +2136,30 @@ function smcOverlay(el, ch, cs) {
     S.liq.forEach((q) => { let x0 = X(q.i); const y = Y(q.p); if (y == null) return; if (x0 == null || x0 < 0) x0 = 0;
       g.strokeStyle = rf; g.setLineDash([1, 3]); g.beginPath(); g.moveTo(x0, y); g.lineTo(right, y); g.stroke(); g.setLineDash([]); g.fillStyle = rf; g.fillText(`$$$ ${q.kind} ×${q.n}`, right - 70, y - 3); });
     S.sweeps.filter((s) => s.i > N - 80).forEach((s) => { const x = X(s.i), y = Y(s.ext); if (x == null || y == null) return; g.fillStyle = rf; g.beginPath(); g.arc(x, y + (s.dir === 1 ? 7 : -7), 3, 0, 7); g.fill(); });
+    // vùng nam châm: nhãn xác suất chạm ở mép phải + mũi tên từ giá hiện tại tới vùng dễ về nhất mỗi phía
+    if (MZ && MZ.length) {
+      const xl = X(N - 1), yp = Y(o.c[N - 1]), best = [1, 0].map((sd) => MZ.filter((z) => z.above === sd && z.kind !== 4).sort((a, b) => b.prob - a.prob)[0]).filter(Boolean);
+      const show = [1, 0].flatMap((sd) => MZ.filter((z) => z.above === sd).sort((a, b) => a.dist - b.dist).slice(0, 3));
+      g.font = "bold 10px Be Vietnam Pro, system-ui, sans-serif";
+      // xếp nhãn không chồng nhau (cách nhau ≥ 16px), có vạch nối về đúng mức giá
+      const lab = show.map((z) => ({ z, y0: Y(z.edge) })).filter((q) => q.y0 != null && q.y0 >= 0 && q.y0 <= bot).sort((u, v) => u.y0 - v.y0);
+      lab.forEach((q, k) => { q.y = k ? Math.max(q.y0, lab[k - 1].y + 16) : q.y0; });
+      for (let k = lab.length - 2; k >= 0; k--) if (lab[k + 1].y > bot - 8) lab[k + 1].y = Math.min(lab[k + 1].y, bot - 8), lab[k].y = Math.min(lab[k].y, lab[k + 1].y - 16);
+      lab.forEach(({ z, y0, y }) => { const t = `🧲 ${MAGS[z.k]} ${Math.round(z.prob * 100)}%`, w = g.measureText(t).width + 10, al = Math.round(40 + z.prob * 200).toString(16).padStart(2, "0"), x0 = right - w - 2;
+        if (Math.abs(y - y0) > 2) { g.strokeStyle = br + "88"; g.lineWidth = 1; g.beginPath(); g.moveTo(x0 - 6, y0); g.lineTo(x0, y); g.stroke(); }
+        g.fillStyle = br + al; g.fillRect(x0, y - 8, w, 15); g.fillStyle = z.prob >= 0.5 ? "#111" : css("--ink"); g.fillText(t, x0 + 5, y + 3); });
+      if (xl != null && yp != null) best.forEach((z) => { const y = Y(z.edge); if (y == null) return; const x1 = right - 70;
+        g.strokeStyle = br + "cc"; g.lineWidth = 1.2 + z.prob * 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(xl, yp); g.quadraticCurveTo((xl + x1) / 2, yp, x1, y); g.stroke(); g.setLineDash([]);
+        const ang = Math.atan2(y - yp, x1 - (xl + x1) / 2); g.fillStyle = br; g.beginPath(); g.moveTo(x1, y); g.lineTo(x1 - 8 * Math.cos(ang - 0.4), y - 8 * Math.sin(ang - 0.4)); g.lineTo(x1 - 8 * Math.cos(ang + 0.4), y - 8 * Math.sin(ang + 0.4)); g.fill(); });
+      g.font = "10px system-ui, sans-serif";
+    }
     g.restore();
   };
   const later = () => { if (!q) { q = true; requestAnimationFrame(draw); } };
   ch.timeScale().subscribeVisibleLogicalRangeChange(later);
   ch.subscribeCrosshairMove(later);
   try { new ResizeObserver(later).observe(el); } catch (e) { /* trình duyệt cũ */ }
-  return { set(o2, S2) { o = o2; S = S2; later(); } };
+  return { set(o2, S2, M2) { o = o2; S = S2; MZ = M2 || null; later(); } };
 }
 // ---- khung phụ đồng bộ với biểu đồ chính: RSI, MACD, dòng tiền chủ động (CVD)
 function subPanes(host, main) {
@@ -2234,7 +2251,9 @@ function chartTools(D, el, ch, tf) {
   const run = () => {
     const o = cur; if (!o || !el.isConnected) return; last = Date.now();
     const S = TA.smc(o);
-    if (ov) ov.set(o, S);
+    const MZ = MAG.m ? magScore(MAG.m, magZones(o, S, magTfi(tf)), magTfi(tf)) : null;
+    if (ov) ov.set(o, S, lsGet("showMag", true) ? MZ : null);
+    const mel = $("#mag"); if (mel && mel.isConnected && MAG.m !== undefined) mel.innerHTML = magHtml(MZ || [], MAG.m, tf);
     if (pn) try { pn(o); } catch (e) { console.warn(e); }
     if (body && body.isConnected) {
       if (Date.now() - H.t > 120e3) loadH();
@@ -2249,7 +2268,93 @@ function chartTools(D, el, ch, tf) {
   }
   const upd = (o, force) => { cur = o; if (force || Date.now() - last > 1500) { clearTimeout(pend); pend = null; run(); } else if (!pend) pend = setTimeout(() => { pend = null; run(); }, 1500 - (Date.now() - last)); };
   loadH().then(() => run());
+  magLoad().then(() => run());
   return { upd };
+}
+
+// ================================================================ VÙNG NAM CHÂM (SMC + học máy): giá có quay về vùng này không, khả năng bao nhiêu, chạm rồi bật hay xuyên
+// Nhận diện giống hệt app/analysis/magnet.py (sửa một bên phải sửa bên kia). Mô hình (cây quyết định) học trên máy chủ, chấm điểm ngay trên trình duyệt.
+const MAGK = ["fvg", "ob", "liq", "swing", "eq", "rand"];
+const MAGN = { fvg: "FVG chưa lấp", ob: "Order Block chưa chạm", liq: "Thanh khoản đỉnh/đáy bằng nhau", swing: "Đỉnh/đáy swing chưa phá", eq: "Cân bằng 50% (EQ)" };
+const MAGS = { fvg: "FVG", ob: "OB", liq: "$$$", swing: "Swing", eq: "EQ" };
+const MAG = { m: undefined, busy: null };
+async function magLoad() { if (MAG.m !== undefined) return MAG.m; if (!MAG.busy) MAG.busy = tryLoad("data/magnet.json").then((x) => (MAG.m = x && x.model ? x : null)); return MAG.busy; }
+function magRaw(E, x) {
+  let s = E.base;
+  for (const T of E.trees) { let k = 0; while (!T.z[k]) { const v = x[T.f[k]]; k = (Number.isNaN(v) ? T.m[k] : v <= T.t[k]) ? T.l[k] : T.r[k]; } s += T.v[k]; }
+  return s;
+}
+const magTfi = (tf) => (TF_SEC[tf] >= 86400 ? 2 : TF_SEC[tf] >= 14400 ? 1 : 0);
+function magZones(o, S, tfi) {
+  const N = o.c.length, i = N - 1, a = S?.atr?.[i], p = o.c[i];
+  if (!S || !a || !p) return [];
+  const Z = [];
+  const put = (kind, lo, hi, born, dr = 0, touch = 0) => {
+    let above, edge; if (hi < p) { above = 0; edge = hi; } else if (lo > p) { above = 1; edge = lo; } else return;
+    const dist = Math.abs(edge - p) / a; if (dist <= 0.02 || dist > 12) return;
+    Z.push({ kind, lo, hi, edge, above, dist, size: (hi - lo) / a, age: born == null ? 0 : Math.log1p(Math.max(0, i - born)), fresh: (dr === 1 && !above) || (dr === -1 && above) ? 1 : 0, touch, dir: dr });
+  };
+  S.fvg.filter((g) => g.fill == null).forEach((g) => put(0, g.lo, g.hi, g.i, g.dir));
+  S.obs.filter((b) => b.mit == null && b.dead == null).forEach((b) => put(1, b.lo, b.hi, b.i, b.dir));
+  S.liq.forEach((q) => put(2, q.p, q.p, q.i, q.kind === "EQH" ? -1 : 1, q.n));
+  if (S.sh && !S.sh.br) put(3, S.sh.p, S.sh.p, S.sh.i, -1);
+  if (S.sl && !S.sl.br) put(3, S.sl.p, S.sl.p, S.sl.i, 1);
+  let pdp = 50; if (S.pd) { pdp = Math.max(-50, Math.min(150, S.pd.pos)); put(4, S.pd.eq, S.pd.eq, null, 0); }
+  [0, 1].forEach((sd) => Z.filter((z) => z.above === sd).sort((u, v) => u.dist - v.dist).forEach((z, r) => (z.rank = r + 1)));
+  const mom = (p - o.c[Math.max(0, i - 10)]) / a;
+  Z.forEach((z) => Object.assign(z, { align: S.trend * (z.above ? 1 : -1), pd: pdp, mom, atrp: (a / p) * 100, tf: tfi, p0: p }));
+  return Z;
+}
+function magScore(M, Z, tfi) {
+  if (!M?.model) return [];
+  const F = M.model.feats;
+  return Z.map((z) => {
+    const x = F.map((f) => (f === "kind" ? z.kind : z[f] ?? 0)), pr = 1 / (1 + Math.exp(-magRaw(M.model, x)));
+    const k = MAGK[z.kind], rc = M.react?.[k]?.tf?.[tfi], et = (M.eta?.[tfi] || []).find(([b0, b1]) => z.dist > b0 && z.dist <= b1);
+    return { ...z, k, prob: pr, bounce: rc?.[0], bounceCtl: rc?.[1], eta: et?.[3], lift: M.lift?.[k]?.tf?.[tfi] ?? M.lift?.[k]?.lift };
+  });
+}
+// câu chữ: vùng nào giá dễ về nhất, chạm rồi thường bật hay xuyên – rút ra từ chính số liệu kiểm chứng
+function magWhy(z) {
+  if (!isNum(z.bounce) || !isNum(z.bounceCtl)) return "";
+  const d = (z.bounce - z.bounceCtl) * 100;
+  if (d >= 2.5) return `khi chạm thường <b class="up">bật lại</b> (${nf(z.bounce * 100, 0)}% so với ${nf(z.bounceCtl * 100, 0)}% ở mức giá thường) → vùng canh vào lệnh ngược chiều, cắt lỗ ngoài vùng`;
+  if (d <= -2.5) return `khi chạm thường <b class="down">bị xuyên qua</b> (${nf(z.bounce * 100, 0)}% so với ${nf(z.bounceCtl * 100, 0)}% ở mức giá thường bật lại) → dùng làm mục tiêu chốt lời / điểm phá vỡ, đừng bắt đỉnh đáy ở đây`;
+  return `chạm rồi bật hay xuyên gần như mức giá thường (${nf(z.bounce * 100, 0)}% bật lại) – chờ thêm tín hiệu nến`;
+}
+function magHtml(MZ, M, tf) {
+  if (!M) return `<p class="muted">Mô hình vùng nam châm chưa được huấn luyện – có sau lượt phân tích đầy đủ đầu tiên của tuần.</p>`;
+  if (!MZ.length) return `<p class="muted">Khung ${TFN[tf] || tf} hiện không có vùng SMC nào trong phạm vi 12 ATR.</p>`;
+  const tfi = magTfi(tf), Hn = M.H?.[["h1", "h4", "d"][tfi]] || 30, hrs = (Hn * (TF_SEC[tf] || 3600)) / 3600;
+  const hz = hrs >= 48 ? `${nf(hrs / 24, 0)} ngày` : `${nf(hrs, 0)} giờ`, p0 = MZ[0].p0;
+  const up = MZ.filter((z) => z.above && z.kind !== 4).sort((a, b) => a.dist - b.dist).slice(0, 4), dn = MZ.filter((z) => !z.above && z.kind !== 4).sort((a, b) => a.dist - b.dist).slice(0, 4);
+  const eq = MZ.find((z) => z.kind === 4);
+  const bU = up.slice().sort((a, b) => b.prob - a.prob)[0], bD = dn.slice().sort((a, b) => b.prob - a.prob)[0];
+  const nm = (z) => `${MAGN[z.k]} ${z.lo === z.hi ? px(z.edge) : `${px(z.lo)}–${px(z.hi)}`}`;
+  const tilt = bU && bD ? (bU.prob - bD.prob > 0.1 ? `nghiêng <b class="up">lên</b>` : bD.prob - bU.prob > 0.1 ? `nghiêng <b class="down">xuống</b>` : "hai phía gần cân bằng") : "";
+  const lines = [];
+  const L0 = [bD, bU].filter(Boolean).sort((a, b) => b.prob - a.prob)[0];
+  if (L0) lines.push(`Theo cách đọc SMC, vùng giá dễ quay về nhất trong ${Hn} nến tới (≈ ${hz}): <b>${nm(L0)}</b> – xác suất chạm <b>${nf(L0.prob * 100, 0)}%</b>${isNum(L0.eta) ? `, thường tới sau ~${L0.eta} nến` : ""}.`);
+  if (bU && bD) lines.push(`Phía trên: ${nm(bU)} (${nf(bU.prob * 100, 0)}%) · phía dưới: ${nm(bD)} (${nf(bD.prob * 100, 0)}%) → ${tilt}.`);
+  if (L0 && magWhy(L0)) lines.push(`${MAGS[L0.k]}: ${magWhy(L0)}.`);
+  if (eq) lines.push(`Mức cân bằng 50% của biên swing: ${px(eq.edge)} (${nf(eq.prob * 100, 0)}% chạm) – giá ${eq.above ? "đang ở vùng rẻ (Discount), EQ là mục tiêu phía trên" : "đang ở vùng đắt (Premium), EQ là nơi giá hay hồi về"}.`);
+  const row = (z) => { const pct_ = (z.edge / p0 - 1) * 100;
+    return `<tr><td class="l"><span class="pill ${z.kind === 0 ? "brand" : z.kind === 1 ? (z.dir === 1 ? "buy" : "sell") : "warn"}">${MAGS[z.k]}</span> <small>${esc(MAGN[z.k])}${z.k === "liq" ? ` ×${z.touch}` : ""}</small></td>
+      <td>${z.lo === z.hi ? px(z.edge) : `${px(z.lo)}–${px(z.hi)}`}</td><td class="${cls(pct_)}">${pct(pct_, 1)}</td>
+      <td><div class="mgb"><i style="width:${(z.prob * 100).toFixed(0)}%"></i><b>${nf(z.prob * 100, 0)}%</b></div></td><td>${isNum(z.eta) ? `~${z.eta} nến` : "—"}</td>
+      <td class="l"><small>${magWhy(z) || "—"}</small></td></tr>`; };
+  const tb = (L, t) => (L.length ? `<tr class="mg-h"><td colspan="6">${t}</td></tr>${L.map(row).join("")}` : "");
+  const lk = M.lift || {}, rc = M.react || {};
+  const pull = ["fvg", "ob", "liq", "swing", "eq"].filter((k) => lk[k]).map((k) => `${MAGS[k]} ×${nf(lk[k].lift, 2)}`).join(" · ");
+  const rxs = ["fvg", "ob", "liq", "swing", "eq"].filter((k) => rc[k]?.tf?.[tfi]).map((k) => { const [b, c] = rc[k].tf[tfi]; return `${MAGS[k]} ${nf(b * 100, 0)}% <small class="${b - c >= 0.025 ? "up" : b - c <= -0.025 ? "down" : "faint"}">(${pct((b - c) * 100, 0)})</small>`; }).join(" · ");
+  return `<ul class="mg-why">${lines.map((t) => `<li>${t}</li>`).join("")}</ul>
+    <div class="tw"><table class="mgt"><thead><tr><th class="l">Vùng</th><th>Giá</th><th>Khoảng cách</th><th title="Xác suất giá chạm mép gần của vùng trong ${Hn} nến tới – học máy trên dữ liệu lịch sử">Chạm trong ${Hn} nến</th><th title="Số nến trung vị tới lúc chạm (các lần đã chạm)">Thường sau</th><th class="l">Chạm rồi thì sao</th></tr></thead>
+      <tbody>${tb(up, "▲ Phía trên giá")}${tb(dn, "▼ Phía dưới giá")}</tbody></table></div>
+    <div class="mg-proof"><b>Kiểm chứng trên ${nf(M.n, 0)} quan sát · ${nf(M.keys, 0)} coin · khung 1h/4h/ngày</b> (học trên dữ liệu tới ${esc(M.test_from || "")}, chấm trên phần sau chưa từng thấy):
+      <span>Độ chính xác xác suất (AUC) <b>${nf(M.auc, 3)}</b> · chỉ dùng khoảng cách: ${nf(M.auc_base, 3)}</span>
+      <span>"Lực hút" so với mức giá ngẫu nhiên cùng khoảng cách: ${pull || "—"}</span>
+      <span>Bật lại ≥ 1 ATR sau khi chạm (khung này, so với mức giá thường): ${rxs || "—"}</span>
+      <small class="faint">Đọc thật thà: khả năng giá CHẠM một vùng chủ yếu do khoảng cách (tính theo ATR), biến động và thời gian – vùng SMC ${Math.max(...Object.values(lk).map((x) => x.lift)) < 1.15 ? "không hút giá mạnh hơn đáng kể so với một mức giá bất kỳ" : "hút giá hơn mức giá thường ở một số khung"}. Giá trị thật nằm ở chuyện chạm rồi thì sao: FVG/OB hay bật lại hơn, thanh khoản & đỉnh/đáy swing hay bị quét xuyên. Khung nhỏ hơn 1 giờ dùng tỉ lệ của khung 1 giờ theo ATR. Xác suất, không phải chắc chắn.</small></div>`;
 }
 
 // ================================================================ TAB SMC & VÀO LỆNH
@@ -2272,6 +2377,7 @@ function tabSmc(D) {
     ${panel(`Biểu đồ Smart Money – vẽ lại theo từng nến ${mLink("bos", "BOS?")} ${mLink("choch", "CHoCH?")} ${mLink("ob", "OB?")} ${mLink("fvg", "FVG?")}`, `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
     <div>${panel(`⚡ Vào lệnh lúc này? – đánh giá thời gian thực ${mLink("rt")}`, rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
       ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
+    ${panel(`🧲 Vùng giá sẽ về – SMC + học máy ${mLink("magnet")}`, `<div id="mag"><p class="muted">Đang tải mô hình…</p></div>`, "theo khung đang xem trên biểu đồ · xác suất chạm & chạm rồi thì sao")}
     ${st ? panel(`Thiết lập SMC có thật sự hiệu quả? (kiểm chứng trên toàn bộ coin, BTC ${up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${st}</tbody></table></div>
       <p class="faint" style="font-size:.74rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
 }
@@ -3374,6 +3480,13 @@ const METHODS = [
     { what: "Several near-equal highs (EQH) or lows (EQL) = where many people put stops / pending orders → \"liquidity\". A sweep = a wick pierces that level then closes back: the crowd's stops trigger and big players fill their orders.",
       how: "Don't put your stop just below equal lows. A sweep of lows + bullish CHoCH is a great Long entry; EQH above is a natural target.",
       web: "Chart: dotted yellow lines \"$$$ EQH/EQL ×n\", yellow dot = just swept. Checklist: \"Liquidity swept at the lows/highs …\"." }],
+  ["magnet", "smc", "Vùng giá sẽ về (nam châm SMC) – kiểm chứng bằng học máy", "Where price will swing to (SMC magnets) – tested with machine learning",
+    { what: "Người chơi SMC hay nói \"giá sẽ quay về lấp FVG\", \"giá sẽ về test OB\", \"giá sẽ đi quét thanh khoản ở đỉnh bằng nhau\", \"giá sẽ hồi về cân bằng 50%\". MyBit liệt kê đúng các vùng đó trên khung anh đang xem (FVG chưa lấp, OB chưa chạm, thanh khoản EQH/EQL chưa quét, đỉnh/đáy swing chưa phá, EQ 50%) và gắn cho mỗi vùng: xác suất giá CHẠM trong H nến tới, số nến thường mất, và chạm rồi thì hay BẬT LẠI hay XUYÊN QUA.",
+      how: "Dữ liệu lớn: hàng triệu thời điểm trong quá khứ trên hàng trăm coin, khung 1h/4h/ngày – ở mỗi thời điểm chỉ dùng những gì người xem biểu đồ lúc đó thấy được, kèm 2 mức giá ngẫu nhiên làm đối chứng. Học máy (gradient boosting) học xác suất chạm từ khoảng cách theo ATR, độ dày vùng, tuổi, chiều cấu trúc, premium/discount, đà giá, biến động; học trên phần cũ, chấm trên phần mới chưa từng thấy; học lại mỗi tuần. Kết quả thật thà: xác suất chạm chủ yếu do khoảng cách & biến động – vùng SMC gần như không hút giá hơn một mức giá bất kỳ cùng khoảng cách; nhưng chạm rồi thì khác: FVG/OB bật lại nhiều hơn mức giá thường, còn thanh khoản đỉnh/đáy bằng nhau và đỉnh/đáy swing hay bị quét xuyên → FVG/OB để canh vào lệnh, thanh khoản để làm mục tiêu chốt lời.",
+      web: "Tab SMC & vào lệnh: bảng 🧲 \"Vùng giá sẽ về\" + câu tóm tắt; trên biểu đồ: nhãn 🧲 kèm % ở mép phải từng vùng và mũi tên đứt nét từ giá hiện tại tới vùng dễ về nhất mỗi phía (bật/tắt bằng ô 🧲 trên thanh biểu đồ). Mô hình chấm điểm ngay trên trình duyệt theo giá từng giây." },
+    { what: "SMC traders say \"price will come back to fill the FVG\", \"price will retest the OB\", \"price will run the liquidity above equal highs\", \"price will return to 50% equilibrium\". MyBit lists exactly those zones on the timeframe you are viewing (unfilled FVGs, untouched OBs, unswept EQH/EQL liquidity, unbroken swing highs/lows, EQ 50%) and gives each one: the probability price TOUCHES it within the next H candles, the usual number of candles, and whether price tends to BOUNCE or BREAK THROUGH once it gets there.",
+      how: "Big data: millions of past moments across hundreds of coins on 1h/4h/daily – at each moment only what a chart reader could see then, plus 2 random price levels as a control. Machine learning (gradient boosting) learns the touch probability from distance in ATR, zone thickness, age, structure direction, premium/discount, momentum and volatility; trained on older data, scored on newer unseen data; retrained weekly. Honest result: touch probability is mostly distance & volatility – SMC zones barely attract price more than any level at the same distance; but what happens on contact differs: FVGs/OBs bounce more than random levels, while equal-high/low liquidity and swing points are more often swept through → use FVG/OB for entries and liquidity as profit targets.",
+      web: "SMC & entry tab: the 🧲 \"Where price will swing to\" table + summary sentences; on the chart: 🧲 labels with % at the right edge of each zone and dashed arrows from current price to the most likely zone on each side (toggle with the 🧲 box on the chart bar). The model scores live in your browser, tick by tick." }],
   ["pd", "smc", "Premium / Discount, EQ và OTE", "Premium / Discount, EQ and OTE",
     { what: "Lấy biên từ đáy swing tới đỉnh swing gần nhất: nửa trên (trên 50% – EQ) là Premium (đắt), nửa dưới là Discount (rẻ). OTE (vùng vào tối ưu) = vùng hồi 62–79% của sóng.",
       how: "Ưu tiên mua ở Discount, bán ở Premium. Long khi giá đang ở Premium của khung lớn = mua đắt, xác suất thấp hơn.",

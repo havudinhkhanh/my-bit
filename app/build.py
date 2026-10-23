@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from . import config
-from .analysis import coinmodel, coindesc, cval, derivs, ideas, levels, pairs, regime, sectors, smc, strategy, technical
+from .analysis import coinmodel, coindesc, magnet, cval, derivs, ideas, levels, pairs, regime, sectors, smc, strategy, technical
 from .analysis import indicators as ind
 from .analysis.strategy import sig6
 from .data import store, universe
@@ -166,6 +166,7 @@ def run(notify: bool = False) -> dict:
     rows, details, pxs, alerts = [], {}, {}, []
     book, fresh = ideas.Book(), {}
     mem = coinmodel.Memory()
+    mag = magnet.Memory()          # vùng nam châm SMC: thu thập + học lại mỗi tuần
     h1s = {}
     tr_bt = []
     for r in uni.to_dict("records"):
@@ -291,6 +292,10 @@ def run(notify: bool = False) -> dict:
                 book.add(key, tf, dd2, res_, reg_)
                 mem.add(key, tf, dd2, res_, reg_)
                 fresh[(key, tf)] = (dd2, sg)
+        if mag.due and ((row.get("vol") or 0) >= 2e6 or (oi_tot or 0) >= 2e6):
+            for tf, dd in (("d", df), ("h4", h4), ("h1", h1)):
+                if dd is not None and len(dd) >= 260:
+                    mag.add(key, tf, dd)
         row["mf"] = flow_d.get("score")
         nl = []
         for n in nby.get(key, []):
@@ -322,6 +327,12 @@ def run(notify: bool = False) -> dict:
     except Exception as e:  # noqa: BLE001
         log.warning("coinmodel: %s", e)
         scorer = None
+    try:
+        MS = mag.finish()
+        _w("magnet.json", magnet.site_payload(MS))
+        log.info("Vùng nam châm: %s quan sát, AUC %s (chỉ khoảng cách %s)", MS.get("n"), MS.get("auc"), MS.get("auc_base"))
+    except Exception as e:  # noqa: BLE001
+        log.warning("magnet: %s", e)
     # ----- cơ hội giao dịch (cần thống kê lịch sử của toàn bộ coin trước)
     T = book.table()
     btc_up = not btc_down
