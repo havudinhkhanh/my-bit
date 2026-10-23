@@ -15,7 +15,7 @@
 import { DurableObject } from "cloudflare:workers";
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
-  fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
+  fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 5 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
@@ -34,7 +34,7 @@ function norm(c) {
   const n = (k, a, b) => (c[k] = clamp(Number.isFinite(+c[k]) ? +c[k] : SCALP_DEF[k], a, b));
   n("capital", 50, 1e7); n("min_vol", 0, 1e4); n("max_mk", 10, 1200); n("lev", 1, 20); n("risk", 0.02, 1); n("max_pos", 1, 30);
   n("fee_m", -0.02, 0.3); n("fee_t", 0, 0.3); n("fee_ms", -0.02, 0.5); n("fee_ts", 0, 0.5); n("min_net", 0, 50); n("k", 1, 5); n("min_n", 50, 20000);
-  n("hmax", 2, 300); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
+  n("hmax", 2, 300); n("warm", 0, 1440); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = c.mode === "maker" ? "maker" : "taker"; c.fut = c.fut !== false; c.spot = c.spot !== false;
   if (!c.fut && !c.spot) c.fut = true;
   return c;
@@ -101,7 +101,22 @@ const SRC = {
     },
   },
 };
-const ORDER = ["okx", "bybit"];
+SRC.binance = {      // chỉ spot: data-stream.binance.vision (Binance futures chặn máy chủ Cloudflare – HTTP 403)
+  only: "S",
+  url: () => "https://data-stream.binance.vision/stream?streams=!miniTicker@arr",
+  uniFrom: (arr, t) => arr.filter((x) => /^[A-Z0-9]+USDT$/.test(x.s)).map((x) => ({ id: `${x.s.replace(/USDT$/, "")}:${t}`, sym: x.s, ct: 1, qv: +x.q / 1e6 })),
+  subs: (t, L) => { const a = L.slice(0, 500).flatMap((m) => [`${m.sym.toLowerCase()}@bookTicker`, `${m.sym.toLowerCase()}@aggTrade`]), out = []; for (let i = 0; i < a.length; i += 100) out.push(JSON.stringify({ method: "SUBSCRIBE", params: a.slice(i, i + 100), id: i / 100 + 1 })); return out; },
+  ping: null,
+  parse(m, F, on) {
+    const d = m.data; if (!d) return;
+    if (Array.isArray(d)) { for (const x of d) { const mk = F.bySym.get(x.s); if (mk) mk.qv = +x.q / 1e6; } return; }
+    const mk = F.bySym.get(d.s); if (!mk) return;
+    if (d.e === "aggTrade") on.trade(mk, +d.p, +d.q, d.m ? -1 : 1);
+    else if (d.b) on.book(mk, +d.b, +d.B, +d.a, +d.A);
+  },
+};
+// thứ tự thử nguồn theo loại: OKX hay trả 429 cho IP chung của Cloudflare nên futures thử Bybit trước
+const ORD = { F: ["bybit", "okx"], S: ["binance", "okx", "bybit"] };
 const BN_PROBE = [["futures", "https://fstream.binance.com/public/ws/btcusdt@bookTicker"], ["spot", "https://data-stream.binance.vision/ws/btcusdt@bookTicker"]];
 
 export class Scalper extends DurableObject {
@@ -160,33 +175,49 @@ export class Scalper extends DurableObject {
       const f = (this.F[t] ||= { t, src: null, srcI: 0, ws: null, last: 0, n: 0, n0: 0, rate: 0, bySym: new Map(), list: [], at: 0 });
       const silent = f.ws && Date.now() - f.last >= 15000, old = f.ws && Date.now() - f.at >= 3600e3;
       if (f.ws && !silent && !old) continue;
-      if (silent) { this.err(`${f.src} ${t === "F" ? "futures" : "spot"}: im lặng > 15 giây – chuyển nguồn`); f.srcI = (f.srcI + 1) % ORDER.length; this.closeFeed(t, "im lặng"); }
+      if (silent) { this.err(`${f.src} ${t === "F" ? "futures" : "spot"}: im lặng > 15 giây – chuyển nguồn`); f.srcI = (f.srcI + 1) % ORD[t].length; this.closeFeed(t, "im lặng"); }
       else if (old) this.closeFeed(t, "làm mới danh sách thị trường");
       await this.connect(f);
     }
   }
   async connect(f) {
     const c = this.cfg, t = f.t, name = t === "F" ? "futures" : "spot";
-    for (let n = 0; n < ORDER.length; n++) {
-      const id = ORDER[(f.srcI + n) % ORDER.length], S = SRC[id];
+    const O = ORD[t];
+    for (let n = 0; n < O.length; n++) {
+      const id = O[(f.srcI + n) % O.length], S = SRC[id];
+      let ws = null;
       try {
-        let U = (await S.universe(t)).filter((m) => !STABLE.has(m.id.split(":")[0]) && m.qv >= c.min_vol);
-        const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, c.max_mk);
+        let U0;
+        if (S.uniFrom) {     // danh sách thị trường lấy từ chính luồng WebSocket (tin đầu tiên của !miniTicker@arr)
+          const r = await fetch(S.url(t), { headers: { Upgrade: "websocket" } });
+          ws = r.webSocket; if (!ws) throw new Error("WebSocket HTTP " + r.status);
+          ws.accept();
+          const w = ws, arr = await new Promise((res, rej) => {
+            const tm = setTimeout(() => rej(new Error("không nhận được danh sách thị trường")), 8000);
+            const h = (ev) => { try { const m = JSON.parse(ev.data); if (Array.isArray(m.data)) { clearTimeout(tm); w.removeEventListener("message", h); res(m.data); } } catch (e) { /* bỏ qua */ } };
+            w.addEventListener("message", h);
+          });
+          U0 = S.uniFrom(arr, t);
+        } else U0 = await S.universe(t);
+        let U = U0.filter((m) => !STABLE.has(m.id.split(":")[0]) && m.qv >= c.min_vol);
+        const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, S.uniFrom ? Math.min(c.max_mk, 500) : c.max_mk);
         if (!U.length) throw new Error("danh sách thị trường rỗng");
-        const r = await fetch(S.url(t), { headers: { Upgrade: "websocket" } });
-        const ws = r.webSocket; if (!ws) throw new Error("WebSocket HTTP " + r.status);
-        ws.accept();
+        if (!ws) {
+          const r = await fetch(S.url(t), { headers: { Upgrade: "websocket" } });
+          ws = r.webSocket; if (!ws) throw new Error("WebSocket HTTP " + r.status);
+          ws.accept();
+        }
         f.bySym = new Map(); f.list = U;
         for (const u of U) { const m = this.mk(u.id, t); m.sym = u.sym; m.ct = u.ct; m.qv = u.qv; m.g = t + tierOf(u.qv); f.bySym.set(u.sym, m); }
         const keep = new Set(U.map((u) => u.id)); for (const k of Object.keys(this.M)) if (this.M[k].t === t && !keep.has(k) && !this.S.pos[k]) delete this.M[k];
         ws.addEventListener("message", (ev) => this.onMsg(f, ws, ev.data));
         ws.addEventListener("close", () => { if (f.ws === ws) f.ws = null; });
         ws.addEventListener("error", () => { if (f.ws === ws) f.ws = null; });
-        f.ws = ws; f.src = id; f.srcI = (f.srcI + n) % ORDER.length; f.last = Date.now(); f.at = Date.now(); this.diag.conn++;
-        for (const msg of S.subs(t, U)) { ws.send(msg); await sleep(id === "okx" ? 120 : 40); }
+        f.ws = ws; f.src = id; f.srcI = (f.srcI + n) % O.length; f.last = Date.now(); f.at = Date.now(); this.diag.conn++;
+        for (const msg of S.subs(t, U)) { ws.send(msg); await sleep(id === "binance" ? 300 : id === "okx" ? 120 : 40); }
         this.say(Date.now(), `Kết nối ${name}: ${id} · quét ${U.length} thị trường (khối lượng 24h ≥ ${c.min_vol} triệu USD)`);
         return;
-      } catch (e) { this.err(`${id} ${name}: ${e.message}`); }
+      } catch (e) { this.err(`${id} ${name}: ${e.message}`); if (ws && f.ws !== ws) { try { ws.close(1000, "lỗi"); } catch (x) { /* bỏ qua */ } } }
     }
     this.say(Date.now(), `Không kết nối được nguồn dữ liệu ${name} nào – thử lại sau 10 giây`, "stop");
   }
@@ -281,18 +312,24 @@ export class Scalper extends DurableObject {
         const h = HS[hi]; if (h > c.hmax) continue;
         const P = LP[bin][hi], Q = LM[bin][hi];
         if (P[0] < c.min_n && Q[0] < c.min_n) continue;
-        const pool = P[0] >= c.min_n ? P[1] * vol * Math.sqrt(h) : null;
-        const exp = pool == null ? Q[1] : (Q[0] * Q[1] + N0 * pool) / (Q[0] + N0);
+        // kỳ vọng THẬN TRỌNG: trừ 1,65 sai số chuẩn. Mẫu lấy mỗi giây chồng lên nhau (giữ h giây) và nhiều coin cùng lúc thường đi cùng nhau,
+        // nên số mẫu "độc lập" ≈ n / (2h) – không phải n. Coin riêng: độ lệch ước theo độ lệch của nhóm × biến động coin.
+        const sdz = Math.sqrt(P[2]) || 1, sdb = sdz * vol * Math.sqrt(h);
+        const pool = P[0] >= c.min_n ? (P[1] - 1.65 * sdz / Math.sqrt(Math.max(1, P[0] / (2 * h)))) * vol * Math.sqrt(h) : null;
+        const own = Q[0] ? Q[1] - 1.65 * sdb / Math.sqrt(Math.max(1, Q[0] / (2 * h))) : 0;
+        const exp = pool == null ? own : (Q[0] * own + N0 * pool) / (Q[0] + N0);
         const net = exp - cost, sc = net / Math.sqrt(h);
         if (!best || sc > best.sc) best = { h, exp, net, sc, n: P[0], nq: Q[0] };
       }
+      const t0g = (S.LPt ||= {})[g] ||= now, warm = now - t0g >= c.warm * 60000;
       let v = "learn", why;
       if (!best) why = `đang học: nhóm ${g} mới ${LP[bin].reduce((a, q) => Math.max(a, q[0]), 0)}/${c.min_n} mẫu`;
+      else if (!warm) { why = `đang khởi động: nhóm ${g} mới học ${Math.floor((now - t0g) / 60000)}/${c.warm} phút – chưa cho vào lệnh`; best = { ...best, warm: false }; }
       else why = `lợi thế kỳ vọng ${best.exp.toFixed(2)} bps (giữ ${best.h}s) so với chi phí khứ hồi ${cost.toFixed(2)} bps → ròng sau phí ${best.net >= 0 ? "+" : ""}${best.net.toFixed(2)} bps`;
       const ok = best && best.net >= c.min_net && best.exp >= kk * cost;
       if (S.pos[id]) v = "hold";
       else if (S.ord[id]) v = "order";
-      else if (!best) v = "learn";
+      else if (!best || best.warm === false) v = "learn";
       else if (!ok) { v = "fee"; why += best.net < c.min_net ? ` – cần ròng ≥ ${c.min_net} bps` : ` – cần kỳ vọng ≥ ${kk.toFixed(1)}× chi phí = ${(kk * cost).toFixed(2)} bps`; }
       else if (x.t === "S" && side < 0) { v = "skip"; why = "tín hiệu bán nhưng spot không bán khống được – đứng ngoài"; }
       else if (S.pause) { v = "pause"; why = `tạm dừng: ${S.pause.why}`; }

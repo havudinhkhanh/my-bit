@@ -2969,7 +2969,7 @@ async function viewSup() {
 }
 
 // ================================================================ BOT LƯỚT GIÂY (scalping) – quét toàn thị trường spot + futures, chạy liên tục trên máy chủ (Durable Object); trang này chỉ hiển thị & cài đặt
-const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
+const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
 const SCV = { go: ["ĐẠT CHUẨN", "buy"], hold: ["ĐANG GIỮ", "brand"], order: ["CHỜ KHỚP", "brand"], fee: ["CHƯA ĐỦ BIÊN", "warn"], learn: ["ĐANG HỌC", ""], skip: ["BỎ QUA", ""], pause: ["TẠM DỪNG", "sell"] };
 const hms = (t) => (t ? new Date(t + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 const bps = (x, d = 1) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, d)}` : "—");
@@ -2988,7 +2988,7 @@ async function viewScalp() {
   const S = X.stats || {}, L50 = X.last50, ret = X.start ? (X.eq / X.start - 1) * 100 : null, dayP = X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null, N = X.cnt || {};
   const feeShare = S.gross > 0 ? S.fees / S.gross * 100 : null, nOpen = Object.keys(X.pos || {}).length;
   const feedTxt = Object.entries(FD).map(([t, f]) => `<span>${t === "F" ? "Futures" : "Spot"}: <b>${esc(f.src || "—")}</b> · ${nf(f.n || 0, 0)} thị trường · ${nf(f.rate || 0, 0)} tin/giây ${f.ws ? `<i class="up">●</i>` : `<i class="down">●</i>`}</span>`).join("");
-  const bn = X.bn ? `<span class="faint">Binance (thử lại mỗi giờ): futures ${esc(X.bn.futures || "—")} · spot ${esc(X.bn.spot || "—")}${/OK/.test((X.bn.futures || "") + (X.bn.spot || "")) ? "" : " – Binance đang chặn máy chủ Cloudflare nên bot dùng dữ liệu sàn khác cho cùng các coin, phí vẫn tính theo mức phí Binance anh nhập"}</span>` : "";
+  const bn = X.bn ? `<span class="faint">Binance (thử lại mỗi giờ): futures ${esc(X.bn.futures || "—")} · spot ${esc(X.bn.spot || "—")}${X.bn.futures === "OK" ? "" : " – Binance futures đang chặn máy chủ Cloudflare nên futures dùng dữ liệu sàn khác (Bybit/OKX) cho cùng các coin; phí vẫn tính theo mức phí Binance anh nhập"}</span>` : "";
   const F0 = (window.__scF ||= "all");
   const rows = (X.radar || []).filter(([id, q]) => F0 === "all" || q.t === F0);
   const radar = rows.map(([id, x]) => { const v = SCV[x.v] || [x.v, ""], b = x.best;
@@ -3025,6 +3025,7 @@ async function viewScalp() {
     ${PG("Thiết lập & cách nghĩ")}<div class="g g2w"><div>${panel("🧮 Bài toán phí – vì sao bot hay đứng ngoài", `<ul class="bot-rl">
         <li><b>Chi phí khứ hồi</b> là thứ phải thắng trước tiên. <span>Futures (taker cả 2 chiều):</span> <b>${nf(C.fee_t * 200, 1)} bps</b> <span>+ chênh lệch mua/bán. Spot (taker cả 2 chiều):</span> <b>${nf(C.fee_ts * 200, 1)} bps</b> <span>+ chênh lệch – spot đắt gấp đôi và không bán khống được, nên spot ít khi đạt chuẩn.</span></li>
         <li>Trong vài giây tới vài phút, coin lớn thường chỉ đi vài bps. Coin nhỏ dao động mạnh hơn nhưng chênh lệch mua/bán cũng rộng hơn. Bot cân cả hai cho từng coin mỗi giây: chỉ vào khi phần giá đi được dự báo LỚN HƠN phí + chênh lệch.</li>
+        <li><span>Kỳ vọng dùng để quyết định là kỳ vọng THẬN TRỌNG: đã trừ sai số thống kê, vì mẫu lấy mỗi giây chồng lên nhau và nhiều coin thường chạy cùng nhau – 300 mẫu trên 250 coin trong vài giây chưa đáng tin bằng 300 mẫu rải trong nhiều giờ. Mỗi nhóm coin phải học tối thiểu</span> <b>${nf(C.warm, 0)}</b> <span>phút mới được vào lệnh.</span></li>
         <li><span>Quét nhiều thị trường KHÔNG có nghĩa là vào nhiều lệnh hơn bừa bãi: mỗi giây tối đa 1 lệnh mới (cơ hội tốt nhất); số vị thế cùng lúc tối đa</span> <b>${nf(C.max_pos, 0)}</b><span>; số lệnh mỗi giờ tối đa</span> <b>${nf(C.max_h, 0)}</b><span>; số giây nghỉ sau khi đóng lệnh trên cùng coin:</span> <b>${nf(C.cool, 0)}</b></li>
         <li>Lệnh maker rẻ hơn nhưng chỉ khớp khi giá đi NGƯỢC về phía mình (có người bán xuyên qua giá mua của mình) → hay khớp đúng lúc xấu. Bot mô phỏng cả hàng chờ phía trước, nên kết quả maker trên sàn thử gần thật.</li>
         <li>Muốn lướt giây có lời thật cần ít nhất một trong các thứ: phí thấp hơn nhiều (hạng VIP, giảm phí bằng BNB), coin có dao động lớn so với phí + chênh lệch, hoặc tín hiệu mạnh hơn. Nhập đúng mức phí của tài khoản anh ở bên cạnh – bot tính lại ngay.</li>
@@ -3036,14 +3037,14 @@ async function viewScalp() {
       <div class="filters bff">${num("min_vol", "Khối lượng 24h tối thiểu (triệu USD)")}${num("max_mk", "Số thị trường tối đa")}${num("capital", "Vốn sàn thử (USDT)")}</div>
       <h4 class="bfh">Cách vào lệnh & phí</h4><div class="bseg">${[["taker", "Taker (khớp ngay)"], ["maker", "Maker (đặt sẵn, chờ khớp)"]].map(([v, t]) => `<button type="button" data-scm="${v}" class="${C.mode === v ? "on" : ""}">${t}</button>`).join("")}</div>
       <div class="filters bff">${num("fee_m", "Phí maker futures (%)")}${num("fee_t", "Phí taker futures (%)")}${num("fee_ms", "Phí maker spot (%)")}${num("fee_ts", "Phí taker spot (%)")}</div>
-      <h4 class="bfh">Kỷ luật vào lệnh</h4><div class="filters bff">${num("min_net", "Lời ròng tối thiểu sau phí (bps)")}${num("k", "Kỳ vọng ≥ k × chi phí")}${num("min_n", "Số mẫu tối thiểu mỗi ô")}${num("hmax", "Giữ tối đa (giây, ≤ 300)")}${num("cool", "Nghỉ sau khi đóng lệnh cùng coin (giây)")}
+      <h4 class="bfh">Kỷ luật vào lệnh</h4><div class="filters bff">${num("min_net", "Lời ròng tối thiểu sau phí (bps)")}${num("k", "Kỳ vọng ≥ k × chi phí")}${num("min_n", "Số mẫu tối thiểu mỗi ô")}${num("warm", "Học tối thiểu trước khi vào lệnh (phút)")}${num("hmax", "Giữ tối đa (giây, ≤ 300)")}${num("cool", "Nghỉ sau khi đóng lệnh cùng coin (giây)")}
         ${num("risk", "Rủi ro mỗi lệnh (% tài sản)")}${num("lev", "Đòn bẩy tối đa (futures)")}${num("max_pos", "Số vị thế mở tối đa")}${num("daily_stop", "Dừng khi lỗ trong ngày (%)")}${num("max_h", "Tối đa lệnh / giờ")}${num("spread_max", "Bỏ qua khi chênh lệch > (bps)")}</div>
       <div class="bsave"><button class="btn primary" id="scSave">💾 Lưu</button><small class="faint">Bot đọc thiết lập mới trong ≤ 30 giây; đổi phạm vi quét thì bot kết nối lại.</small></div>`;
     $$("#scForm [data-scm]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.scm; f(); }));
     $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; f(); }));
     $("#scSave").onclick = async () => { rd(); delete C.syms; await Store.put("scalp", C); toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); };
   };
-  const rd = () => { ["capital", "min_vol", "max_mk", "fee_m", "fee_t", "fee_ms", "fee_ts", "min_net", "k", "min_n", "hmax", "cool", "risk", "lev", "max_pos", "daily_stop", "max_h", "spread_max"].forEach((k) => { const v = numIn($("#sc_" + k).value); if (isFinite(v)) C[k] = v; }); };
+  const rd = () => { ["capital", "min_vol", "max_mk", "fee_m", "fee_t", "fee_ms", "fee_ts", "min_net", "k", "min_n", "warm", "hmax", "cool", "risk", "lev", "max_pos", "daily_stop", "max_h", "spread_max"].forEach((k) => { const v = numIn($("#sc_" + k).value); if (isFinite(v)) C[k] = v; }); };
   f();
   $$("[data-scf]").forEach((b) => (b.onclick = () => { window.__scF = b.dataset.scf; viewScalp(); }));
   $$("[data-scg]").forEach((b) => (b.onclick = () => { window.__scG = b.dataset.scg; const y = scrollY; viewScalp().then(() => scrollTo(0, y)); }));
