@@ -2197,3 +2197,13 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
   .tabs a.nav-sub{padding:5px 10px!important}
   body.rail-min .tabs .nav-g{margin:10px 6px 4px;padding:0}
 }
+/* tiêu đề nhóm thò ra lề trái, các mục lùi vào trong – nhìn ra cấp ngay */
+@media (min-width:1180px){
+  .tabs .nav-g{padding-left:2px!important;padding-right:4px}
+  .tabs a:not(.rail-brand){margin-left:14px!important;padding-left:10px!important}
+  .tabs a.nav-sub{margin-left:36px!important;padding-left:8px!important}
+  .tabs a.on::before{left:-24px}.tabs a.nav-sub.on::before{left:-46px}
+  .tabs a.nav-sub::after{left:-13px}
+  body.rail-min .tabs a:not(.rail-brand),body.rail-min .tabs a.nav-sub{margin-left:0!important;padding-left:12px!important}
+  body.rail-min .tabs a.on::before{left:-10px}
+}
