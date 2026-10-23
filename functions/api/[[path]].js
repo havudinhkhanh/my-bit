@@ -81,7 +81,7 @@ function checkLimits(key, body, lim) {
 // ---------------------------------------------------------------- cổng cho bot lướt giây chạy ở MÁY CHỦ RIÊNG (VPS)
 // Xác thực bằng khoá riêng anh tạo trên trang (chỉ lưu mã băm SHA-256 trong D1 – khoá thật chỉ nằm trên VPS).
 // GET  → thiết lập bot lướt giây của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
-async function scalpRunner({ request, env }) {
+async function scalpRunner({ request, env }, sub) {
   const key = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[0-9a-f]{64}$/.test(key)) return err("Thiếu hoặc sai khoá máy chủ riêng", 401);
   const h = await sha256Hex(key);
@@ -89,6 +89,11 @@ async function scalpRunner({ request, env }) {
   if (!u || u.status !== "active") return err("Khoá không hợp lệ hoặc đã bị thay", 401);
   const p = u.plan_until && u.plan_until < nowIso().slice(0, 10) ? "free" : u.plan;
   if (!can({ r: u.role, p }, "bot")) return err("Bot lướt giây dành cho gói Pro", 402);
+  if (sub === "brain") {      // bộ nhớ học dùng chung (bot khác / máy khác / lúc giao dịch thật nạp lại được)
+    if (request.method === "GET") return json(await getData(env, u.id, "scalpbrain"));
+    if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }
+    return err("Phương thức không hỗ trợ", 405);
+  }
   if (request.method === "GET") return json({ uid: u.id, cfg: await getData(env, u.id, "scalp") });
   if (request.method === "POST") {
     const text = await request.text();
@@ -106,7 +111,7 @@ export async function onRequest(ctx) {
   const [key, sub] = parts;
   if (!env.DB) return legacy(ctx, key);
   await ensureSchema(env);
-  if (key === "scalp-runner") return scalpRunner(ctx);
+  if (key === "scalp-runner") return scalpRunner(ctx, sub);
   if (request.method !== "GET" && !sameOrigin(request)) return err("Sai nguồn gửi", 403);
   if (key === "auth") return auth(ctx, sub);
 

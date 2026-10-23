@@ -57,6 +57,14 @@ Khoảng 1 phút sau, trang MyBit sẽ hiện **● Đang chạy · Chạy ở: 
 
 Bộ học và tài khoản sàn thử của máy chủ được lưu ở `/opt/my-bit/scalper/data/state.json`, nên khởi động lại không bị mất.
 
+**Bộ nhớ học dùng chung:** khoảng 10 phút một lần, bot gửi bộ nhớ học lên MyBit. Bản lưu này phục vụ ba việc:
+
+- **Máy chủ mới hoặc cài lại:** bot nạp lại kiến thức cũ, không phải học lại từ đầu.
+- **Bot giao dịch thật sau này:** cũng dùng được bản lưu này.
+- **Sao lưu:** trên trang có nút **⬇ Tải bộ nhớ học** để anh tự giữ một bản.
+
+Nút **Làm lại tài khoản** chỉ xoá lịch sử lệnh và giữ nguyên kiến thức. Muốn bot học lại từ đầu thì bấm **🧹 Xoá bộ nhớ học**.
+
 ## 5. An toàn
 
 - Khoá chỉ có hai quyền: đọc thiết lập bot lướt giây và ghi trạng thái bot lướt giây của chính anh. Nó không đọc hay ghi được dữ liệu nào khác.

@@ -41,8 +41,8 @@ class FileKV {
 const kv = new FileKV(path.join(DIR, "state.json"));
 
 // ---------------------------------------------------------------- cổng trang MyBit
-async function api(method, body) {
-  const r = await fetch(`${SITE}/api/scalp-runner`, { method, headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json", "user-agent": "mybit-scalper" }, body, signal: AbortSignal.timeout(20000) });
+async function api(method, body, sub = "") {
+  const r = await fetch(`${SITE}/api/scalp-runner${sub}`, { method, headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json", "user-agent": "mybit-scalper" }, body, signal: AbortSignal.timeout(20000) });
   const t = await r.text();
   if (!r.ok) { let m = t; try { m = JSON.parse(t).error || t; } catch (e) { /* để nguyên */ } throw new Error(`HTTP ${r.status}: ${String(m).slice(0, 200)}`); }
   return JSON.parse(t);
@@ -50,6 +50,8 @@ async function api(method, body) {
 let UID = null;
 const readCfg = async () => { const j = await api("GET"); UID = j.uid; return j.cfg; };
 const writeState = async (uid, out) => api("POST", JSON.stringify(out));
+const loadBrain = async () => api("GET", undefined, "/brain");
+const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
 const openWS = (url) => new Promise((res, rej) => {
   const ws = new WebSocket(url);
   const tm = setTimeout(() => { rej(new Error("hết thời gian chờ kết nối")); try { ws.close(); } catch (e) { /* bỏ qua */ } }, 15000);
@@ -77,7 +79,7 @@ function adapt() {
 const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP } });
 
 // ---------------------------------------------------------------- chạy
-const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, cap: (t) => CAP[t], sys });
+const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, cap: (t) => CAP[t], sys });
 let busy = false, lastErr = "";
 async function tick(first) {
   if (busy) return; busy = true;
@@ -100,7 +102,7 @@ async function main() {
   await tick(true);
   setInterval(() => tick(false), 10000);
 }
-const stop = async (sig) => { log(`Nhận ${sig} – lưu trạng thái rồi thoát`); try { await core.snapshot(); } catch (e) { /* bỏ qua */ } try { kv.flush(); } catch (e) { /* bỏ qua */ } process.exit(0); };
+const stop = async (sig) => { log(`Nhận ${sig} – lưu trạng thái rồi thoát`); try { await core.snapshot(); await core.saveBrain(); } catch (e) { /* bỏ qua */ } try { kv.flush(); } catch (e) { /* bỏ qua */ } process.exit(0); };
 process.on("SIGTERM", () => stop("SIGTERM")); process.on("SIGINT", () => stop("SIGINT"));
 process.on("unhandledRejection", (e) => log("⚠️ unhandled", e?.message || e));
 main();
