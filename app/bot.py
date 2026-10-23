@@ -541,9 +541,11 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
         log.info("Bot: nguồn giá lần gần nhất %s", str(cfg_d1["bot_px"])[:600])
     try:     # tình trạng bot giám sát (Worker ghi mỗi phút) – để kiểm tra từ log
         rs, _ = be.q("SELECT updated_at, length(value) AS n, json_extract(value, '$.think.head') AS head, json_array_length(json_extract(value, '$.lessons')) AS nl, "
-                     "json_array_length(json_extract(value, '$.watch')) AS nw FROM user_data WHERE key = 'supstate'", [])
+                     "json_array_length(json_extract(value, '$.watch')) AS nw, json_extract(value, '$.eng.pace') AS pace, json_extract(value, '$.eng.acct') AS acct, "
+                     "json_extract(value, '$.eng.idx') AS idx, json_extract(value, '$.mc.p_x') AS px FROM user_data WHERE key = 'supstate'", [])
         for r in rs or []:
             log.info("Bot giám sát: cập nhật %s · %s byte · %s bài học đã xét · %s đang theo dõi · %s", r.get("updated_at"), r.get("n"), r.get("nl"), r.get("nw"), (r.get("head") or "")[:200])
+            log.info("Cỗ máy vốn: chỉ số %s · trạng thái %s · cỡ lệnh chung ×%s · P(×2) %s", r.get("idx"), r.get("pace"), r.get("acct"), r.get("px"))
     except Exception as e:  # noqa: BLE001
         log.info("Bot giám sát: chưa đọc được (%s)", e)
     n = 0
