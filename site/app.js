@@ -2976,6 +2976,7 @@ const bps = (x, d = 1) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, d)}` : "—");
 const scK = (id) => { const [b, t] = String(id).split(":"); return `<b>${esc(b)}</b> <span class="sc-t ${t === "F" ? "f" : "s"}">${t === "F" ? "Futures" : "Spot"}</span>`; };
 const scG = (g, tiers = [500, 50, 5]) => { const t = g[0], i = +g[1]; return `${t === "F" ? "Futures" : "Spot"} · hạng ${i} (${i === 0 ? `≥ ${tiers[0]}` : i === 3 ? `< ${tiers[2]}` : `${tiers[i]}–${tiers[i - 1]}`} triệu $/24h)`; };
 async function viewScalp() {
+  window.__scDirty = false;
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   const [rq, rv, rk] = await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   const KEYH = rk.data?.h ? rk.data : null;
@@ -3054,8 +3055,14 @@ async function viewScalp() {
       <h4 class="bfh">Kỷ luật vào lệnh</h4><div class="filters bff">${num("min_net", "Lời ròng tối thiểu sau phí (bps)")}${num("k", "Kỳ vọng ≥ k × chi phí")}${num("min_n", "Số mẫu tối thiểu mỗi ô")}${num("warm", "Học tối thiểu trước khi vào lệnh (phút)")}${num("hmax", "Giữ tối đa (giây, ≤ 300)")}${num("cool", "Nghỉ sau khi đóng lệnh cùng coin (giây)")}
         ${num("risk", "Rủi ro mỗi lệnh (% tài sản)")}${num("lev", "Đòn bẩy tối đa (futures)")}${num("max_pos", "Số vị thế mở tối đa")}${num("daily_stop", "Dừng khi lỗ trong ngày (%)")}${num("max_h", "Tối đa lệnh / giờ")}${num("spread_max", "Bỏ qua khi chênh lệch > (bps)")}</div>
       <div class="bsave"><button class="btn primary" id="scSave">💾 Lưu</button><small class="faint">Bot đọc thiết lập mới trong ≤ 30 giây; đổi phạm vi quét thì bot kết nối lại.</small></div>`;
-    $$("#scForm [data-scm]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.scm; f(); }));
-    $$("#scForm [data-scw]").forEach((b) => (b.onclick = () => { rd(); C.where = b.dataset.scw; f(); }));
+    $$("#scForm [data-scm]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.scm; window.__scDirty = true; f(); }));
+    // chọn nơi chạy = lưu ngay (trang tự cập nhật mỗi 3 giây sẽ không đè mất lựa chọn)
+    $$("#scForm [data-scw]").forEach((b) => (b.onclick = async () => {
+      rd(); C.where = b.dataset.scw; delete C.syms;
+      if (await Store.put("scalp", C)) toast(C.where === "vps" ? "Đã chọn chạy ở máy chủ riêng – bot trên Cloudflare dừng trong ≤ 1 phút" : "Đã chọn chạy ở Cloudflare");
+      f();
+    }));
+    $("#scForm").oninput = () => (window.__scDirty = true);
     if ($("#scKey")) $("#scKey").onclick = async () => {
       if (KEYH && !confirm("Tạo khoá mới? Máy chủ riêng đang dùng khoá cũ sẽ bị ngắt cho tới khi anh dán khoá mới.")) return;
       const k = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
@@ -3064,8 +3071,8 @@ async function viewScalp() {
       $("#scKeyOut").innerHTML = `<div class="sc-kv"><p><b>Khoá (chỉ hiện lần này):</b></p><code id="scKv" data-noi18n>MYBIT_SCALP_KEY=${k}</code><button type="button" class="btn" id="scCopy">📋 Chép</button><p class="faint">Dán nguyên dòng trên vào tệp <code>.env</code> trên máy chủ riêng, rồi bấm Lưu ở dưới (đã chọn "Máy chủ riêng").</p></div>`;
       $("#scCopy").onclick = () => navigator.clipboard?.writeText($("#scKv").textContent).then(() => toast("Đã chép khoá"));
     };
-    $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; f(); }));
-    $("#scSave").onclick = async () => { rd(); delete C.syms; await Store.put("scalp", C); toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); };
+    $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; window.__scDirty = true; f(); }));
+    $("#scSave").onclick = async () => { rd(); delete C.syms; if (await Store.put("scalp", C)) { window.__scDirty = false; toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); } };
   };
   const rd = () => { ["capital", "min_vol", "max_mk", "fee_m", "fee_t", "fee_ms", "fee_ts", "min_net", "k", "min_n", "warm", "hmax", "cool", "risk", "lev", "max_pos", "daily_stop", "max_h", "spread_max"].forEach((k) => { const v = numIn($("#sc_" + k).value); if (isFinite(v)) C[k] = v; }); };
   f();
@@ -3077,7 +3084,7 @@ async function viewScalp() {
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); return; }
-    if (document.hidden || document.activeElement?.closest?.("#scForm")) return;
+    if (document.hidden || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang sửa dở / đang hiện khoá → không tải lại
     try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) { const y = scrollY; await viewScalp(); scrollTo(0, y); } } catch (e) { /* bỏ qua */ }
   }, 3000);
 }
