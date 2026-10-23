@@ -2675,7 +2675,7 @@ async function viewBot(sel) {
         ["Tháng này", `${pct(mon, 2)}`, cls(mon), `mục tiêu ${nf(C.target_month, 1)}%` + prog(Math.max(0, mon), C.target_month, "up")],
         ["Sụt so với đỉnh", `${nf(dd, 1)}%`, dd > C.max_dd * 0.7 ? "down" : "", `tạm dừng ở ${nf(C.max_dd, 0)}%` + prog(dd, C.max_dd, "down")],
         ["Số lệnh đã đóng", nf(Sx.n || 0, 0), "", isNum(Sx.win) ? `thắng ${nf(Sx.win, 0)}%` : "chưa có"], ["Lãi TB mỗi lệnh", isNum(Sx.avgR) ? nf(Sx.avgR, 2) + "R" : "—", cls(Sx.avgR)],
-        ["Đang mở", `${(st?.pos || []).length}/${C.max_pos}`, "", isNum(Sx.heat) ? `rủi ro mở ${nf(Sx.heat, 1)}%/${nf(C.max_heat, 0)}% · vị thế ${nf(Sx.gross, 2)}×` + prog(Sx.heat, C.max_heat, "down") : ""], ["Rủi ro / lệnh", nf(C.risk * (Sx.risk_mult || 1), 2) + "%", "", Sx.risk_mult < 1 ? "đã giảm 1/2 để giữ lãi tháng" : "% tài sản bot"]])}</section>
+        ["Đang mở", `${(st?.pos || []).length}/${C.max_pos}`, "", isNum(Sx.heat) ? `rủi ro mở ${nf(Sx.heat, 1)}%/${nf(C.max_heat, 0)}% · vị thế ${nf(Sx.gross, 2)}×` + prog(Sx.heat, C.max_heat, "down") : ""], ["Rủi ro / lệnh", nf(C.risk * (Sx.risk_mult || 1), 2) + "%", "", (Sx.mult_why || []).join(" · ") || "% tài sản bot"]])}</section>
     <div class="g g2w">
       <div>
         ${PG("Suy nghĩ & nghiên cứu")}${panel("🧠 Bot đang nghĩ gì", thinkBox, "cập nhật mỗi phút")}
@@ -2806,7 +2806,8 @@ async function viewBot(sel) {
 }
 
 // ================================================================ BOT GIÁM SÁT (quản lý danh mục) – đứng trên mọi bot, chạy mỗi phút trên máy chủ
-const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [] };
+const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [],
+  engine: true, goal_floor: 30, goal_x: 2, goal_x2: 3, max_risk: 2, kelly: 0.5, lock_buf: 10 };
 const SUP_V = { good: ["TỐT", "buy"], ok: ["ỔN", ""], watch: ["CẦN THEO DÕI", "warn"], pause: ["NÊN DỪNG", "sell"], learn: ["ĐANG HỌC", "brand"] };
 const SUP_D = { hold: ["GIỮ", "buy"], cut: ["CẮT", "sell"], advise: ["NÊN CẮT", "warn"], rot: ["ĐỔI LỆNH", "brand"], rev: ["KHÁM NGHIỆM", ""], lesson: ["BÀI HỌC", "brand"], self: ["TỰ CHẤM", ""], stop: ["KHOÁ", "sell"], info: ["", ""] };
 const SUP_TAG = { htf_against: "ngược khung lớn", light_against: "ngược đèn thị trường", low_model: "mô hình chấm thấp", fees_heavy: "phí nặng", chased: "đuổi giá", stale: "tín hiệu cũ", gave_back: "để lãi thành lỗ",
@@ -2818,6 +2819,43 @@ function supStrip(ss, sc) {
   return `<a class="supstrip" href="#/bot/sup"><span class="pill ${st[1]}">${st[0]}</span><b>🛡️ Bot giám sát</b>
     <small>${esc(ss?.think?.head || "Chờ lượt chạy đầu tiên (≤ 2 phút).")}</small>
     <span class="supk">${isNum(a.eq) ? `<i>Tài sản chung <b>${usd2(a.eq)}</b></i><i>Sụt <b class="${a.dd > c.acct_dd * 0.6 ? "down" : ""}">${nf(a.dd, 1)}%</b>/${nf(c.acct_dd, 0)}%</i><i>Rủi ro mở <b>${nf(a.heat, 1)}%</b></i>` : ""}<i>Bài học áp dụng <b>${on.length}</b></i><i>Cắt/đổi đúng <b>${ss?.self?.cut ? `${ss.self.cut.ok}/${ss.self.cut.ok + ss.self.cut.bad}` : "—"}</b></i></span><span class="supgo">Mở →</span></a>`;
+}
+// ---- cỗ máy vốn: mục tiêu năm → rủi ro/lệnh từng bot (worker/engine.js)
+function engPanel(ss, C, B) {
+  const E = ss.eng, G = ss.goal;
+  if (!C.engine) return `<p class="muted">Cỗ máy vốn đang tắt – các bot dùng rủi ro/lệnh theo thiết lập riêng.</p>`;
+  if (!E || !G) return `<p class="muted">Cỗ máy vốn bắt đầu tính ở phút kế tiếp khi có bot đang chạy.</p>`;
+  const P = (x) => (isNum(x) ? `${x >= 0 ? "+" : ""}${nf(x, 1)}%` : "—"), ret = (E.idx - 1) * 100, c = E.cfg || {};
+  const PACE = { x3: ["vượt đường ×" + nf(c.goal_x2, 0), "buy"], x2: ["trên đường ×" + nf(c.goal_x, 0), "buy"], floor: ["giữa sàn và ×" + nf(c.goal_x, 0), "brand"], below: ["dưới đường sàn", "warn"], loss: ["đang lỗ so với đầu năm", "sell"] }[E.pace] || ["—", ""];
+  // biểu đồ: thực tế so với đường sàn / ×2 / ×3 trong năm mục tiêu
+  const t0 = Date.parse(G.start + "Z"), wk = 7 * 864e5, xs = Array.from({ length: 53 }, (_, i) => t0 + i * wk), lab = (t) => new Date(t).toLocaleDateString(LOC, { day: "2-digit", month: "2-digit" });
+  const H = (G.h || []).map(([t, v]) => [Date.parse(t + "Z"), v]);
+  const at = (t) => { let v = null; for (const [u, x] of H) { if (u <= t) v = x; else break; } return t <= Date.now() + wk ? v : null; };
+  const ser = [{ name: "Thực tế (TWR)", color: css("--ink"), width: 2.6, pts: xs.map((t) => ({ x: lab(t), y: isNum(at(t)) ? (at(t) - 1) * 100 : null })) },
+    { name: `Sàn +${nf(c.goal_floor, 0)}%/năm`, color: css("--ref"), width: 1.3, pts: xs.map((t, i) => ({ x: lab(t), y: ((1 + c.goal_floor / 100) ** (i / 52) - 1) * 100 })) },
+    { name: `×${nf(c.goal_x, 0)}`, color: css("--up"), width: 1.3, pts: xs.map((t, i) => ({ x: lab(t), y: (c.goal_x ** (i / 52) - 1) * 100 })) },
+    { name: `×${nf(c.goal_x2, 0)}`, color: css("--brand"), width: 1.1, pts: xs.map((t, i) => ({ x: lab(t), y: (c.goal_x2 ** (i / 52) - 1) * 100 })) }];
+  const MODE = { learn: ["ĐANG HỌC", "brand"], unproven: ["CHƯA CHẮC", "warn"], neg: ["ĐANG LỖ", "sell"], edge: ["CÓ LỢI THẾ", "buy"] };
+  const nm = (id) => esc(B.find((b) => b.id === id)?.name || id);
+  const rows = Object.entries(E.bots).map(([id, x]) => { const m = MODE[x.mode] || [x.mode, ""];
+    return `<tr><td class="l"><b>${nm(id)}</b></td><td class="l"><span class="pill ${m[1]}">${m[0]}</span></td><td>${x.n}</td><td>${isNum(x.mu) ? `${supSg(x.mu)} / <b>${supSg(x.muc)}</b>` : "—"}</td><td>${isNum(x.freq) ? nf(x.freq, 0) : "—"}</td>
+      <td>${isNum(x.fq) ? nf(x.fq, 2) + "%" : "—"}</td><td>${isNum(x.fdd) ? nf(x.fdd, 2) + "%" : "—"}</td><td>${isNum(x.fk) ? nf(x.fk, 2) + "%" : "—"}</td><td><b>${nf(x.f, 2)}%</b></td><td class="${x.mult > 1 ? "up" : x.mult < 1 ? "down" : ""}">×${nf(x.mult, 2)} <small class="faint">(${nf(x.base, 1)}%)</small></td>
+      <td>${isNum(x.exp) ? `${P(x.exp)} <small class="faint">/ ${P(x.con)}</small>` : "—"}</td></tr><tr class="sup-why"><td colspan="11"><small>${x.why.map(esc).join(" · ")}</small></td></tr>`; }).join("");
+  const M = E.mc || {}, pb = (v, cl) => `<div class="mgb"><i style="width:${(v * 100).toFixed(0)}%;background:${cl}"></i><b>${nf(v * 100, 0)}%</b></div>`;
+  const mc = M.none ? `<p class="muted">Mô phỏng cần ít nhất 1 bot có ≥ 10 lệnh đã đóng.</p>` : M.n ? `<div class="eng-mc">
+      <div><span>Cuối năm ≥ sàn +${nf(c.goal_floor, 0)}%</span>${pb(M.p_floor, css("--ref"))}</div><div><span>Cuối năm ≥ ×${nf(c.goal_x, 0)}</span>${pb(M.p_x, css("--up"))}</div>
+      <div><span>Cuối năm ≥ ×${nf(c.goal_x2, 0)}</span>${pb(M.p_x2, css("--floor"))}</div><div><span>Lỗ so với đầu năm</span>${pb(M.p_loss, css("--down"))}</div><div><span>Có lúc sụt ≥ ${nf(C.acct_dd, 0)}%</span>${pb(M.p_dd, css("--down"))}</div></div>
+      <p class="faint" style="font-size:.74rem">${nf(M.n, 0)} lần mô phỏng phần còn lại của năm (~${nf(M.trades, 0)} lệnh) bằng cách bốc ngẫu nhiên từ chính các lệnh đã đóng của từng bot, với đúng cỡ lệnh máy đang đặt và cơ chế bảo vệ sàn. Kết quả cuối năm: xấu 10% ${P((M.p10 - 1) * 100)} · giữa ${P((M.p50 - 1) * 100)} · tốt 10% ${P((M.p90 - 1) * 100)}. Tính lại mỗi 6 giờ.</p>` : `<p class="muted">Đang chờ lượt mô phỏng đầu tiên.</p>`;
+  return `${kpis([["Lợi nhuận từ " + G.start.slice(8, 10) + "/" + G.start.slice(5, 7), P(ret), cls(ret), "lợi nhuận theo thời gian (TWR) – không bị méo khi thêm / làm lại bot"], ["Trạng thái", PACE[0], PACE[1]],
+      ["Đường sàn lúc này", P((E.paths.floor - 1) * 100), "", `+${nf(c.goal_floor, 0)}%/năm`], [`Đường ×${nf(c.goal_x, 0)} lúc này`, P((E.paths.x - 1) * 100)],
+      ["Sàn bảo vệ", P((E.floor - 1) * 100), E.lock ? "up" : "", E.lock ? `đã khoá +${nf(c.goal_floor, 0)}%` : "sụt tối đa từ đỉnh"], ["Cỡ lệnh chung", `×${nf(E.acct, 2)}`, E.acct < 1 ? "down" : "", `đệm tới sàn ${nf(E.cush * 100, 1)}%`],
+      ["Kỳ vọng 12 tháng", isNum(E.exp) ? P(E.exp) : "chưa đo được", cls(E.exp), isNum(E.exp) ? `thận trọng ${P(E.con)} – theo lợi thế đo được và cỡ lệnh hiện tại` : "cần ít nhất 1 bot có lợi thế đã chứng minh"]])}
+    ${lineSvg(ser, { h: 210, dec: 0, zero: true, fmt: (v) => nf(v, 0) + "%" })}
+    <ul class="mg-why">${E.why.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+    <div class="tw"><table><thead><tr><th class="l">Bot</th><th class="l">Chế độ</th><th>Lệnh</th><th title="Lãi TB mỗi lệnh đo được / cận dưới 80% (thận trọng – dùng để đặt cược)">Lợi thế đo / thận trọng</th><th>Lệnh/năm</th>
+      <th title="Rủi ro mỗi lệnh vừa đủ để đạt mục tiêu vào cuối năm">Cần cho mục tiêu</th><th title="Rủi ro lớn nhất để xác suất sụt quá giới hạn ≤ 10%">Trần an toàn sụt</th><th title="Vượt mức này tăng rủi ro lại làm giảm tăng trưởng dài hạn">${nf(c.kelly, 1)}×Kelly</th><th>→ Đặt</th><th>So với cài đặt</th><th title="Lợi nhuận 12 tháng ước tính – theo lợi thế đo / thận trọng">Kỳ vọng năm</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h4 class="bfh">🎲 Mô phỏng phần còn lại của năm</h4>${mc}
+    <p class="faint" style="font-size:.74rem">Thật thà: không cỗ máy nào đảm bảo "luôn luôn ≥ ${nf(c.goal_floor, 0)}%/năm" – thị trường có thể làm mọi lợi thế biến mất. Cỗ máy làm được ba việc: (1) chỉ đặt cược lớn khi lợi thế đã được chứng minh bằng số liệu (dùng cận dưới, không dùng con số đẹp), (2) chỉ lấy đúng mức rủi ro cần cho mục tiêu, không hơn, và không bao giờ vượt trần an toàn sụt / Kelly / 2%/lệnh, (3) khi lãi đủ đệm thì khoá sàn +${nf(c.goal_floor, 0)}%, càng gần sàn càng đánh nhỏ, chạm sàn là dừng. Mục tiêu ×${nf(c.goal_x, 0)}–×${nf(c.goal_x2, 0)} chỉ đạt được nếu các bot có lợi thế thật và đủ nhiều lệnh – bảng trên cho thấy từng bot còn thiếu gì.</p>`;
 }
 async function viewSup() {
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
@@ -2864,6 +2902,7 @@ async function viewSup() {
         ["Sụt so với đỉnh", `${nf(a.dd || 0, 1)}%`, a.dd > C.acct_dd * 0.6 ? "down" : "", `khoá khi sụt ${nf(C.acct_dd, 0)}% · quá nửa thì giảm 1/2 rủi ro` + bar(a.dd || 0, C.acct_dd, "down")],
         ["Rủi ro mở chung", `${nf(a.heat || 0, 1)}%`, "", `${a.n_pos || 0} lệnh`], ["Bài học áp dụng", `${on.length}`, "", (on.map((l) => l.t).join(", ") || "chưa có")],
         ["Cắt / đổi đúng", `${SC.ok}/${SC.ok + SC.bad}`, cls(SC.R), `${SC.bad} lần sai · ròng ${supSg(SC.R)}R so với giữ nguyên`]])}</section>
+    ${PG("Cỗ máy vốn", -1)}${panel(`🎯 Cỗ máy vốn – sàn +${nf(C.goal_floor, 0)}%/năm, mục tiêu ×${nf(C.goal_x, 0)}–×${nf(C.goal_x2, 0)}`, engPanel(ss, C, B), "đặt rủi ro/lệnh từng bot theo toán · mỗi phút")}
     <div class="g g2w"><div>
       ${PG("Theo dõi trực tiếp", 0)}${panel("🧠 Giám sát đang nghĩ gì", items || `<p class="muted">Không có lệnh đang mở để đánh giá.</p>`, "mỗi phút · từng lệnh đang mở")}
       ${panel("🧾 Báo cáo giám sát", ss.report ? `<p class="faint" style="margin:0 0 6px">${esc(new Date(ss.report.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</p><ul class="bot-rl">${ss.report.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
@@ -2877,6 +2916,7 @@ async function viewSup() {
         <li><b>Cắt</b> khi lợi thế đã mất làm kỳ vọng ≤ −0,15R liên tục 3 phút: đèn thị trường đổi ngược, BTC đi ngược ≥ 3%, quá nửa thời gian kỳ vọng mà chưa chạy, funding ăn mòn. Lệnh đã chốt MT1 / đã hoà vốn không bị cắt.</li>
         <li><b>Đổi lệnh</b> khi một tín hiệu bị chặn vì hết chỗ có kỳ vọng (đã trừ phí mở + đóng + trượt giá) hơn lệnh yếu nhất ≥ <b>${nf(C.min_edge, 2)}R</b>; lệnh cũ phải giữ ≥ 1 giờ; tối đa 1 lần / 2 giờ, 3 lần / ngày mỗi bot.</li>
         <li><b>Tự chấm chính mình:</b> sau mỗi lần cắt/đổi, theo dõi giá có về cắt lỗ cũ (cắt đúng) hay tới mục tiêu (cắt sai). Lỗ ròng sau ≥ 8 lần → nâng ngưỡng cắt; lỗ rõ sau ≥ 15 lần → ngừng tự cắt, chỉ khuyên.</li>
+        <li><b>Cỗ máy vốn:</b> rủi ro/lệnh của từng bot = min(mức vừa đủ cho mục tiêu ×${nf(C.goal_x, 0)}, trần an toàn sụt, ${nf(C.kelly, 1)}×Kelly, ${nf(C.max_risk, 1)}%) – tính trên lợi thế THẬN TRỌNG (cận dưới 80%); bot chưa chứng minh được lợi thế chỉ được ½ hoặc ¼ rủi ro.</li>
         <li><b>Cầu dao tài khoản:</b> sụt quá nửa giới hạn → mọi bot giảm 1/2 rủi ro; chạm giới hạn sụt hoặc lỗ trong ngày → khoá mở lệnh mới mọi bot (lệnh đang mở vẫn giữ cắt lỗ).</li></ul>`)}
     </div></div>
       ${PG("Đánh giá & học hỏi", 1)}${panel("🤖 Chấm điểm từng bot", cardT + `<p class="faint" style="font-size:.72rem">R = lãi/lỗ chia cho số tiền rủi ro của lệnh, đã trừ phí & funding. Bot chỉ bị đánh giá "NÊN DỪNG" khi có ≥ <b>${C.min_trades}</b> lệnh và cả khoảng tin cậy 80% của lãi TB nằm dưới 0 – tức lỗ thật sự chứ không phải xui. Khi đó bot giám sát tạm dừng bot (nếu anh cho phép); anh bấm "Chạy lại" ở trang bot = cho thêm 10 lệnh thử.</p>`, "thống kê, không cảm tính")}
@@ -2893,6 +2933,14 @@ async function viewSup() {
       <h4 class="bfh">Cầu dao toàn tài khoản</h4><div class="filters bff">
         <div class="field"><label>Khoá khi tài sản chung sụt (%)</label><input id="s_acct_dd" inputmode="decimal" value="${C.acct_dd}"></div>
         <div class="field"><label>Khoá khi lỗ trong ngày (%)</label><input id="s_acct_day" inputmode="decimal" value="${C.acct_day}"></div></div>
+      <h4 class="bfh">🎯 Cỗ máy vốn</h4><div class="filters bff">
+        <label class="chk"><input type="checkbox" id="s_engine" ${C.engine ? "checked" : ""}> Để cỗ máy đặt rủi ro/lệnh cho từng bot theo mục tiêu năm</label>
+        <div class="field"><label>Sàn lợi nhuận / năm (%)</label><input id="s_goal_floor" inputmode="decimal" value="${C.goal_floor}"></div>
+        <div class="field"><label>Mục tiêu (× tài sản / năm)</label><input id="s_goal_x" inputmode="decimal" value="${C.goal_x}"></div>
+        <div class="field"><label>Mục tiêu cao (× / năm)</label><input id="s_goal_x2" inputmode="decimal" value="${C.goal_x2}"></div>
+        <div class="field"><label>Trần rủi ro mỗi lệnh (%, ≤ 2)</label><input id="s_max_risk" inputmode="decimal" value="${C.max_risk}"></div>
+        <div class="field"><label>Phần Kelly (0,25–1)</label><input id="s_kelly" inputmode="decimal" value="${C.kelly}"></div>
+        <button type="button" class="btn sm" id="sGoalR">Bắt đầu năm mục tiêu mới từ hôm nay</button></div>
       <h4 class="bfh">Ngưỡng</h4><div class="filters bff">
         <div class="field"><label>Lợi thế tối thiểu để đổi lệnh (R)</label><input id="s_min_edge" inputmode="decimal" value="${C.min_edge}"></div>
         <div class="field"><label>Số lệnh tối thiểu để chấm bot</label><input id="s_min_trades" inputmode="numeric" value="${C.min_trades}"></div>
@@ -2900,8 +2948,9 @@ async function viewSup() {
       <div class="bsave"><button class="btn primary" id="sSave">💾 Lưu</button><small class="faint">Áp dụng từ phút kế tiếp.</small></div>`;
     $$("#sForm [data-mode]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.mode; f(); }));
     $("#sSave").onclick = async () => { rd(); await Store.put("sup", C); toast("Đã lưu thiết lập bot giám sát"); viewSup(); };
+    $("#sGoalR").onclick = async () => { if (!confirm("Bắt đầu năm mục tiêu mới từ hôm nay? Lợi nhuận tính lại từ 0%, sàn và đường mục tiêu tính từ hôm nay.")) return; rd(); C.goal_reset_at = new Date().toISOString(); await Store.put("sup", C); toast("Năm mục tiêu mới bắt đầu từ phút kế tiếp"); viewSup(); };
   };
-  const rd = () => { ["cut", "rotate", "lessons", "pause_bots"].forEach((k) => (C[k] = $("#s_" + k).checked)); ["acct_dd", "acct_day", "min_edge", "min_trades"].forEach((k) => { const v = numIn($("#s_" + k).value); if (isFinite(v)) C[k] = v; }); C.be1 = $("#s_be1").value; };
+  const rd = () => { ["cut", "rotate", "lessons", "pause_bots", "engine"].forEach((k) => (C[k] = $("#s_" + k).checked)); ["acct_dd", "acct_day", "min_edge", "min_trades", "goal_floor", "goal_x", "goal_x2", "max_risk", "kelly"].forEach((k) => { const v = numIn($("#s_" + k).value); if (isFinite(v)) C[k] = v; }); C.max_risk = Math.min(2, C.max_risk); C.be1 = $("#s_be1").value; };
   f();
   $("#sOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("sup", C); toast(C.enabled ? "Đã bật bot giám sát" : "Đã tắt bot giám sát – các bot tự chạy theo kỷ luật riêng"); viewSup(); };
   if ($("#sRes")) $("#sRes").onclick = async () => { if (!confirm("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại.")) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); viewSup(); };

@@ -7,8 +7,9 @@
 // Nguyên tắc: chi phí chìm không quan trọng – chỉ so KỲ VỌNG PHÍA TRƯỚC; giá đi ngẫu nhiên thì giữ hay cắt kỳ vọng như nhau (= 0),
 // nên chỉ cắt khi lợi thế ban đầu đã mất (thị trường đổi, BTC sập, funding ăn mòn); mọi phép so đều trừ phí giao dịch + trượt giá.
 import { FEE, SLIP, iso, ms, vnDay, vn, sigS, say, equity, closeAll, norm } from "./bot.js";
+import { plan as engPlan, ENG_DEF } from "./engine.js";
 
-export const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [] };
+export const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [], ...ENG_DEF };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const sg = (x, d = 2) => (x >= 0 ? "+" : "") + vn(x, d);
 const mean = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null);
@@ -166,7 +167,7 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
   if (ss.sig !== sig) { ss.sig = sig; ss.peak = eq; ss.day = { d: day, eq0: eq }; }
   ss.peak = Math.max(ss.peak || eq, eq);
   if (ss.day?.d !== day) { ss.day = { d: day, eq0: eq }; if (ss.halt?.kind === "day") { slog(ss, now, "Sang ngày mới – mở lại khoá lỗ trong ngày của toàn tài khoản."); ss.halt = null; } }
-  if (scfgRaw?.resume_at && scfgRaw.resume_at !== ss.resume_seen) { ss.resume_seen = scfgRaw.resume_at; if (ss.halt) { slog(ss, now, "Anh mở khoá toàn tài khoản – đỉnh tài sản chung đặt lại theo hiện tại.", "info"); ss.halt = null; ss.peak = eq; } }
+  if (scfgRaw?.resume_at && scfgRaw.resume_at !== ss.resume_seen) { ss.resume_seen = scfgRaw.resume_at; if (ss.halt) { slog(ss, now, "Anh mở khoá toàn tài khoản – đỉnh tài sản chung đặt lại theo hiện tại.", "info"); ss.halt = null; ss.peak = eq; if (ss.goal) { ss.goal.peak = ss.goal.idx; if (ss.goal.lock && ss.goal.idx < 1 + (+scfg.goal_floor || 30) / 100) ss.goal.lock = false; } } }
   const dd = ss.peak ? (1 - eq / ss.peak) * 100 : 0, dayPct = ss.day?.eq0 ? (eq / ss.day.eq0 - 1) * 100 : 0;
   if (!ss.halt && eq > 0) {
     if (dd >= scfg.acct_dd) ss.halt = { kind: "dd", at: iso(now), why: `tài sản chung các bot sụt ${vn(dd, 1)}% so với đỉnh (giới hạn ${scfg.acct_dd}%)` };
@@ -176,6 +177,18 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
   const heatAll = live.reduce((a, b) => a + (S[b.id].pos || []).filter((p) => !(p.be1 || (p.tp1 && p.s === p.e))).reduce((x, p) => x + p.risk_usd, 0), 0);
   ss.acct = { eq: +eq.toFixed(2), peak: +(ss.peak || eq).toFixed(2), dd: +dd.toFixed(2), day_pct: +dayPct.toFixed(2), heat: eq ? +(heatAll / eq * 100).toFixed(2) : 0, n_pos: live.reduce((a, b) => a + (S[b.id].pos || []).length, 0), n_bots: live.length };
   const softMult = !ss.halt && dd >= scfg.acct_dd / 2 ? 0.5 : 1;
+  // ---- cỗ máy vốn: mục tiêu năm → rủi ro/lệnh từng bot (xem engine.js)
+  let E = null;
+  if (scfg.engine && eq > 0) {
+    try { E = engPlan(scfgRaw || {}, ss, B, S, norm, (b) => equity(S[b.id], price), active, scfg.acct_dd, dayPct, scfg.acct_day, now); } catch (e) { E = null; slog(ss, now, "Cỗ máy vốn lỗi: " + e.message, "info"); }
+    if (E && E.cppi <= 0 && !ss.halt) {
+      ss.halt = { kind: "floor", at: iso(now), why: `chạm sàn bảo vệ (${E.lock ? `khoá lãi +${scfg.goal_floor}%` : `sụt ${scfg.acct_dd}% từ đỉnh`}) – dừng mở lệnh mới để giữ thành quả` };
+      slog(ss, now, `⛔ ${ss.halt.why}.`, "stop"); out.push({ key: `sup:floor:${ss.halt.at}`, sev: 3, title: "🛡️ Cỗ máy vốn: chạm sàn bảo vệ", body: ss.halt.why });
+    }
+    if (E && ss.eng_mode) for (const [id, x] of Object.entries(E.bots)) if (ss.eng_mode[id] && ss.eng_mode[id] !== x.mode) slog(ss, now, `🎯 ${B.find((b) => b.id === id)?.name || id}: ${x.why.join("; ")}`, "lesson", id);
+    if (E) ss.eng_mode = Object.fromEntries(Object.entries(E.bots).map(([id, x]) => [id, x.mode]));
+  }
+  ss.eng = E;
   // ---- bài học đang áp dụng (đã tính ở lượt SAU trước đó)
   const act = scfg.lessons ? (ss.lessons || []).filter((l) => l.on && !scfg.off.includes(l.id)) : [];
   const be1 = scfg.be1 === "on" || (scfg.be1 === "auto" && act.some((l) => l.id === "gave_back"));
@@ -186,7 +199,9 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
   for (const b of B) {
     const st = S[b.id]; if (!st || !active(b, st)) continue;
     const cfg = norm(b), plan = PL[b.id], ev = (evs[b.id] = []);
-    gates[b.id] = { halt: ss.halt ? `bot giám sát khoá toàn tài khoản – ${ss.halt.why}` : null, mult: softMult, mwhy: `tài sản chung sụt ${vn(dd, 1)}%`, be1,
+    const EB = E?.bots?.[b.id];
+    gates[b.id] = { halt: ss.halt ? `bot giám sát khoá toàn tài khoản – ${ss.halt.why}` : null, mult: EB ? EB.mult : softMult,
+      mwhy: EB ? `cỗ máy vốn đặt ${vn(EB.f, 2)}%/lệnh (${{ learn: "đang học", unproven: "lợi thế chưa chắc", neg: "đang lỗ", edge: "theo lợi thế đo được" }[EB.mode]})` : `tài sản chung sụt ${vn(dd, 1)}%`, be1,
       check: scfg.lessons ? makeCheck(ss, act, b.id, st.hist || [], now) : null };
     // ---- đánh giá lại từng lệnh: giữ hay cắt
     const A = [];

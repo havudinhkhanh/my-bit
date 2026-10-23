@@ -134,7 +134,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
           [ -n "$GH_DISPATCH_TOKEN" ] || { echo "Chưa có GH_DISPATCH_TOKEN – dùng lịch GitHub (hay trễ vài phút)" | tee data/scheduler.txt; exit 0; }
-          h=$(cat worker/scheduler.js worker/bot.js worker/sup.js worker/wrangler.toml functions/_lib/plans.json <(echo "$D1_DATABASE_ID") | sha1sum | cut -c1-12)
+          h=$(cat worker/scheduler.js worker/bot.js worker/sup.js worker/engine.js worker/wrangler.toml functions/_lib/plans.json <(echo "$D1_DATABASE_ID") | sha1sum | cut -c1-12)
           if [ "$(cat data/scheduler_hash 2>/dev/null)" = "$h" ]; then echo "Worker hẹn giờ đã cài (bản $h)" | tee data/scheduler.txt; exit 0; fi
           set -o pipefail
           cd worker

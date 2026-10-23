@@ -2207,3 +2207,5 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
   body.rail-min .tabs a:not(.rail-brand),body.rail-min .tabs a.nav-sub{margin-left:0!important;padding-left:12px!important}
   body.rail-min .tabs a.on::before{left:-10px}
 }
+
+.eng-mc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 16px;margin:4px 0 6px}.eng-mc>div{display:flex;align-items:center;gap:8px;font-size:.8rem}.eng-mc span{flex:1}.eng-mc .mgb{width:120px}

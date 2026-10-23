@@ -131,7 +131,7 @@ function entries(st, cfg, cands, price, now, ev, mult, halt, fresh, plan) {
     if (les) { t.v = "lesson"; t.why = les; continue; }
     if (halt) { t.v = "halt"; t.why = `đạt chuẩn (R:R ${vn(rr, 1)}) nhưng không mở lệnh: ${halt}`; continue; }
     if (st.pos.length >= cfg.max_pos) { t.v = "full"; t.why = `đạt chuẩn (R:R ${vn(rr, 1)}) nhưng đã đủ ${cfg.max_pos} lệnh`; continue; }
-    const riskPct = cfg.risk * mult, hn = heatNow();
+    const riskPct = Math.min(2, cfg.risk * mult), hn = heatNow();   // trần cứng 2%/lệnh dù cỗ máy vốn có tăng
     if (hn + riskPct > cfg.max_heat + 1e-9) { t.v = "heat"; t.why = `kỷ luật vốn: tổng rủi ro đang mở ${vn(hn, 1)}% + ${vn(riskPct, 1)}% > trần ${cfg.max_heat}% tài sản`; continue; }
     if (x.g && secN(x.g) >= cfg.max_sector) { t.v = "sector"; t.why = `kỷ luật vốn: đã có ${secN(x.g)} lệnh nhóm ${x.g} (tối đa ${cfg.max_sector}) – tránh dồn rủi ro một nhóm`; continue; }
     const riskUsd = eq * riskPct / 100, free = st.cash - eq * cfg.cash_min / 100;
@@ -178,7 +178,7 @@ function report(st, cfg, th, plan, price, now, eq, dayPct, monPct, dd, mwhy, hal
   const cnt = (v) => th.filter((t) => t.v === v).length, btc = price("BTC");
   const lines = [
     `💰 Tài sản ${vn(eq, 2)} USDT · hôm nay ${f(dayPct)}% · tháng ${f(monPct)}% (mục tiêu ${cfg.target_month}%) · sụt ${vn(dd, 1)}%/${cfg.max_dd}%`,
-    `🛡️ Rủi ro đang mở ${vn((S.heat ?? 0), 1)}%/${cfg.max_heat}% · ${st.pos.length}/${cfg.max_pos} lệnh · tổng vị thế ${vn((S.gross ?? 0), 2)}×/${cfg.max_gross}× · tiền mặt ${vn((S.cash_pct ?? 0), 0)}% (giữ ≥ ${cfg.cash_min}%) · rủi ro/lệnh ${vn((cfg.risk * (S.risk_mult || 1)), 2)}%${mwhy.length ? " (đã giảm: " + mwhy.join(", ") + ")" : ""}`,
+    `🛡️ Rủi ro đang mở ${vn((S.heat ?? 0), 1)}%/${cfg.max_heat}% · ${st.pos.length}/${cfg.max_pos} lệnh · tổng vị thế ${vn((S.gross ?? 0), 2)}×/${cfg.max_gross}× · tiền mặt ${vn((S.cash_pct ?? 0), 0)}% (giữ ≥ ${cfg.cash_min}%) · rủi ro/lệnh ${vn((cfg.risk * (S.risk_mult || 1)), 2)}%${mwhy.length ? " (điều chỉnh: " + mwhy.join(", ") + ")" : ""}`,
     `🌡️ Thị trường: đèn ${L}${btc ? ` · BTC ${sigS(btc)}` : ""} · ${Object.values(st.pxsrc || {}).length ? `giá mới từ ${[...new Set(Object.values(st.pxsrc))].join(", ")}` : ""}`,
     `🔎 ${th.length} ứng viên đang xét: ${cnt("go")} vào · ${cnt("wait")} chờ giá · ${cnt("heat") + cnt("sector") + cnt("cash")} bị kỷ luật vốn chặn · ${cnt("model")} mô hình loại · ${cnt("dead") + cnt("miss")} hỏng/lỡ`,
   ];
@@ -227,7 +227,7 @@ export function botStep(cfgRaw, st, plan, price, hl, now) {
   const eqs = (st.eq || []).slice(-20).map((q) => q[1]);
   if (cfg.eq_ma && eqs.length >= 20 && eq < eqs.reduce((a, b) => a + b, 0) / eqs.length) { mult *= 0.5; mwhy.push("tài sản dưới trung bình 20 giờ"); }
   if (!halt && cfgRaw?._sup?.halt) halt = cfgRaw._sup.halt;
-  if (cfgRaw?._sup?.mult < 1) { mult *= cfgRaw._sup.mult; mwhy.push(cfgRaw._sup.mwhy || "bot giám sát giảm rủi ro"); }
+  if (cfgRaw?._sup?.mult != null && Math.abs(cfgRaw._sup.mult - 1) > 1e-3) { mult *= cfgRaw._sup.mult; mwhy.push(cfgRaw._sup.mwhy || "bot giám sát chỉnh rủi ro"); }
   const th = plan && cfg.enabled ? entries(st, cfg, plan.cands, price, now, ev, mult, halt, price.fresh || (() => true), plan) : [];
   thinkLog(st, th, now);
   eq = equity(st, price);
