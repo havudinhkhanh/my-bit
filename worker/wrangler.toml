@@ -3,5 +3,14 @@ main = "scheduler.js"
 compatibility_date = "2024-09-23"
 workers_dev = false
 
+# bot lướt giây: Durable Object (lưu trữ SQLite – dùng được cả gói miễn phí), giữ WebSocket tới sàn liên tục
+[[durable_objects.bindings]]
+name = "SCALP"
+class_name = "Scalper"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Scalper"]
+
 [triggers]
 crons = ["* * * * *"]

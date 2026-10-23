@@ -237,7 +237,7 @@ function gauge(v, lo = 0, hi = 100, label = "") {
 }
 
 // ================================================================ khung trang
-function setTab(r) { $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", r === "botsup" && a.dataset.r === "bot"); }); }
+function setTab(r) { $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", (r === "botsup" || r === "botscalp") && a.dataset.r === "bot"); }); }
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => $("#app");
@@ -254,7 +254,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -2909,7 +2909,7 @@ async function viewSup() {
         ${(ss.reports || []).length > 1 ? `<details><summary class="faint">Các báo cáo trước (${ss.reports.length - 1})</summary>${ss.reports.slice(0, -1).reverse().map((r) => `<div class="brep"><small>${esc(new Date(r.at + "Z").toLocaleString(LOC))}</small><ul>${r.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</details>` : ""}` : `<p class="muted">Báo cáo đầu tiên có sau lượt chạy đầu tiên.</p>`, "mỗi 15 phút")}
       ${panel("📝 Nhật ký giám sát", logH ? `<ul class="bot-log">${logH}</ul>` : `<p class="muted">Chưa có hoạt động.</p>`)}
     </div><div>
-      ${PG("Thiết lập & cách nghĩ", 2)}${panel("⚙️ Thiết lập giám sát", `<div id="sForm"></div>`)}
+      ${PG("Thiết lập & cách nghĩ")}${panel("⚙️ Thiết lập giám sát", `<div id="sForm"></div>`)}
       ${panel("🧭 Bot giám sát suy nghĩ thế nào", `<ul class="bot-rl">
         <li><b>Chi phí chìm không quan trọng.</b> Đang lỗ không phải lý do để gồng hay để cắt – chỉ so kỳ vọng <i>từ giờ trở đi</i>.</li>
         <li><b>Giá đi ngẫu nhiên thì giữ hay cắt như nhau</b> (kỳ vọng = 0, xác suất tới mục tiêu = khoảng cách tới cắt lỗ ÷ tổng hai khoảng). Lợi thế của lệnh = xác suất thống kê/mô hình ÷ xác suất ngẫu nhiên lúc vào.</li>
@@ -2966,6 +2966,76 @@ async function viewSup() {
     if (document.hidden || document.activeElement?.closest?.("#sForm")) return;
     try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) viewSup(); } catch (e) { /* bỏ qua */ }
   }, 60000);
+}
+
+// ================================================================ BOT LƯỚT GIÂY (scalping) – chạy liên tục trên máy chủ (Durable Object), trang này chỉ hiển thị & cài đặt
+const SCALP_DEF = { enabled: false, capital: 1000, syms: ["BTC", "ETH", "SOL"], lev: 5, risk: 0.25, mode: "taker", fee_m: 0.02, fee_t: 0.05, min_net: 1.0, k: 1.3, min_n: 300, hmax: 60, daily_stop: 3, max_h: 120, spread_max: 3 };
+const SCV = { go: ["VÀO", "buy"], hold: ["ĐANG GIỮ", "brand"], order: ["CHỜ KHỚP", "brand"], fee: ["PHÍ > LỜI", "warn"], watch: ["ĐANG HỌC", ""], skip: ["BỎ QUA", ""], pause: ["TẠM DỪNG", "sell"] };
+const hms = (t) => (t ? new Date(t + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
+const bps = (x, d = 1) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, d)}` : "—");
+async function viewScalp() {
+  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
+  const [rq, rv] = await Promise.all([Store.get("scalp"), Store.get("scalpstate")]);
+  const C = { ...SCALP_DEF, ...(rq.data || {}) }, X = rv.data || {};
+  const age = X.at ? (Date.now() - Date.parse(X.at + "Z")) / 1000 : null, msgAge = X.last_msg ? (Date.now() - Date.parse(X.last_msg + "Z")) / 1000 : null;
+  const st = !C.enabled ? ["Đang tắt", "", "Bật để bot nghe sổ lệnh & khớp lệnh từng mili-giây và tự đánh giá mỗi giây – chạy trên máy chủ kể cả khi anh tắt máy."]
+    : !X.at || age > 90 ? ["Đang khởi động", "warn", "máy chủ đánh thức bot trong vòng 1 phút sau khi bật"]
+    : !X.live_ws || msgAge > 20 ? ["Mất kết nối dữ liệu", "sell", `đang thử nguồn khác${X.diag?.err?.length ? " · " + X.diag.err.slice(-2).join(" · ") : ""}`]
+    : X.pause ? ["⏸ Tạm dừng", "warn", X.pause.why] : ["● Đang chạy", "buy", `nguồn dữ liệu ${X.src} · tin nhắn gần nhất ${nf(msgAge, 0)} giây trước · cập nhật trang mỗi 3 giây`];
+  const S = X.stats || {}, L50 = X.last50, ret = X.start ? (X.eq / X.start - 1) * 100 : null, dayP = X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null;
+  const feeShare = S.gross > 0 ? S.fees / S.gross * 100 : null;
+  const live = Object.entries(X.live || {}).map(([k, x]) => { const v = SCV[x.v] || [x.v, ""], w = (q) => `${((q + 1) / 2 * 100).toFixed(0)}%`, e = x.best?.exp, cmax = Math.max(1, x.cost * 2, Math.abs(e || 0));
+    return `<div class="scl"><div class="sup-h"><b>${esc(k)}</b><span class="pill ${v[1]}">${v[0]}</span><small class="faint">${px(x.mid)} · chênh lệch mua/bán ${nf(x.spread, 2)} bps · dao động mỗi giây ${nf(x.vol, 2)} bps</small></div>
+      <div class="scl-g" title="Tín hiệu tổng hợp −1 (bán mạnh) → +1 (mua mạnh)"><i style="left:${w(x.s)}"></i><span>bán mạnh</span><span>mua mạnh</span></div>
+      <small class="faint">dòng lệnh chủ động 5 giây ${bps(x.tfi * 100, 0)}% · lệch sổ lệnh ${bps(x.obi * 100, 0)}% · đà giá ${bps(x.mz * 100, 0)}% → tín hiệu ${bps(x.s, 2)} (${x.side > 0 ? "Long" : "Short"}, độ mạnh nhóm ${x.bin + 1}/6)</small>
+      <div class="scl-e"><div><span>Lợi thế kỳ vọng${x.best ? ` (giữ ${x.best.h}s)` : ""}</span><i><i class="${(e || 0) >= x.cost ? "up" : ""}" style="width:${Math.max(0, Math.min(100, (e || 0) / cmax * 100)).toFixed(0)}%"></i></i><b>${isNum(e) ? nf(e, 2) : "—"} bps</b></div>
+        <div><span>Chi phí khứ hồi</span><i><i class="down" style="width:${Math.min(100, x.cost / cmax * 100).toFixed(0)}%"></i></i><b>${nf(x.cost, 2)} bps</b></div></div>
+      <small>${esc(x.why || "")}</small></div>`; }).join("") || `<p class="muted">Chưa có dữ liệu trực tiếp.</p>`;
+  const pos = Object.entries(X.pos || {}).map(([k, p]) => `<tr><td class="l"><b>${esc(k)}</b> <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span> <small>${p.how}</small></td><td>${px(p.e)}</td><td class="down">${px(p.sl)}</td><td class="up">${px(p.tp)}</td><td>${nf(p.h, 0)}s</td><td>${usd2(p.q * p.e)}</td><td><small>${hms(new Date(p.t0).toISOString().slice(0, 23))}</small></td></tr>`).join("");
+  const ords = Object.entries(X.ord || {}).map(([k, o]) => `<li>${esc(k)} ${o.side > 0 ? "mua" : "bán"} maker ở ${px(o.px)} – còn ${nf(Math.max(0, o.queue), 4)} hàng chờ phía trước</li>`).join("");
+  const HS = X.HS || [5, 15, 30, 60], BW = X.BW || 0.15;
+  const learn = Object.entries(X.L || {}).map(([k, L]) => { const cost = X.live?.[k]?.cost;
+    return `<div class="tw"><table class="scl-t"><thead><tr><th class="l">${esc(k)} · độ mạnh tín hiệu</th>${HS.map((h) => `<th>+${h}s</th>`).join("")}</tr></thead><tbody>${L.map((row, b) => `<tr><td class="l">${nf(b * BW, 2)}–${b === L.length - 1 ? "1" : nf((b + 1) * BW, 2)}</td>${row.map(([n, m, sd]) => `<td class="${n >= C.min_n && isNum(cost) && m >= cost ? "up" : n < C.min_n ? "faint" : ""}" title="${nf(n, 0)} mẫu · độ lệch ${nf(sd, 2)} bps">${n ? `${bps(m, 2)} <small class="faint">${n >= 1000 ? nf(n / 1000, 1) + "k" : n}</small>` : "—"}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }).join("");
+  const trs = (X.trades || []).slice().reverse().map((t) => `<tr><td class="l"><small>${hms(t.t1)}</small></td><td class="l"><b>${esc(t.k)}</b> <span class="${t.side > 0 ? "up" : "down"}">${t.side > 0 ? "L" : "S"}</span> <small>${t.how}</small></td><td>${px(t.e)} → ${px(t.x)}</td><td>${nf(t.hold, 1)}s</td><td class="${cls(t.gross)}">${bps(t.gross, 2)}</td><td class="down">−${nf(t.fee, 2)}</td><td class="${cls(t.net)}"><b>${bps(t.net, 2)}</b></td><td class="${cls(t.usd)}">${t.usd >= 0 ? "+" : ""}${nf(t.usd, 3)}</td><td><small>${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ" }[t.why] || t.why}</small></td></tr>`).join("");
+  app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1><span class="meta"><a href="#/bot">← Đội bot</a> · ăn mỏng theo giây · chạy liên tục trên máy chủ · sàn thử (giá & khớp lệnh thật, phí thật)</span></div>
+    <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${st[1]} big">${st[0]}</span><small>${esc(st[2])}</small>
+      <span class="bot-btns"><button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt" : "▶ Bật"}</button><button class="btn" id="scReset">Làm lại từ đầu</button></span></div>
+      ${kpis([["Tài sản", isNum(X.eq) ? "$" + nf(X.eq, 2) : "—", "", `vốn ${usd(X.start ?? C.capital)}`], ["Lãi/lỗ", pct(ret, 2), cls(ret), isNum(S.net) ? `${S.net >= 0 ? "+" : ""}${usd2(S.net)} sau phí` : ""], ["Hôm nay", pct(dayP, 2), cls(dayP), `dừng khi lỗ ${nf(C.daily_stop, 1)}%`],
+        ["Số lệnh", nf(S.n || 0, 0), "", S.n ? `thắng ${nf(S.win / S.n * 100, 0)}%` : "chưa có"], ["50 lệnh gần nhất", L50 ? `${bps(L50.net, 2)} bps` : "—", cls(L50?.net), L50 ? `gộp ${bps(L50.gross, 2)} − phí ${nf(L50.fee, 2)} bps/lệnh` : ""],
+        ["Phí đã trả", isNum(S.fees) ? usd2(S.fees) : "—", feeShare > 60 ? "down" : "", isNum(feeShare) ? `= ${nf(feeShare, 0)}% lãi gộp` : ""], ["Ngưỡng vào lệnh (× chi phí)", `${nf(C.k + (X.kadd || 0), 1)}×`, X.kadd ? "warn" : "", X.kadd ? "đã tự nâng sau lần nghỉ" : `và ròng ≥ ${nf(C.min_net, 1)} bps`]])}</section>
+    ${PG("Trực tiếp")}${panel("⚡ Mỗi giây bot đang thấy gì", `<div class="scl-w">${live}</div>${pos ? `<p class="sbh">Đang giữ</p><div class="tw"><table><thead><tr><th class="l">Lệnh</th><th>Vào</th><th>Cắt lỗ</th><th>Chốt lời</th><th>Giữ tối đa</th><th>Giá trị</th><th>Thời điểm mở</th></tr></thead><tbody>${pos}</tbody></table></div>` : ""}${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`, "đánh giá lại mỗi giây")}
+    ${panel("🧪 Bộ học trực tuyến – giá đi bao nhiêu sau tín hiệu (bps)", `${learn || `<p class="muted">Chưa có mẫu.</p>`}<p class="faint" style="font-size:.74rem">Mỗi giây bot ghi tín hiệu rồi đo giá đi bao nhiêu điểm cơ bản theo hướng tín hiệu sau 5 / 15 / 30 / 60 giây (1 bps = 0,01%; trung bình trượt, tự thích nghi). Ô <b class="up">xanh</b> = kỳ vọng lớn hơn chi phí khứ hồi – chỉ những ô này mới được vào lệnh, cần ≥ ${nf(C.min_n, 0)} mẫu mỗi ô.</p>`, "tự học liên tục")}
+    ${PG("Kết quả chạy")}${panel("📈 Tài sản", (X.eqs || []).length > 2 ? lineSvg([{ name: "Tài sản (USDT)", color: css("--brand"), width: 2, pts: X.eqs.map(([m, v]) => ({ x: new Date(m * 60000).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }), y: v })) }], { h: 180, dec: 2 }) : `<p class="muted">Đường tài sản hiện sau vài phút chạy.</p>`)}
+    ${panel("🧾 Lệnh đã đóng", trs ? `<div class="tw" style="max-height:420px"><table><thead><tr><th class="l">Lúc</th><th class="l">Lệnh</th><th>Vào → ra</th><th>Giữ</th><th>Gộp (bps)</th><th>Phí</th><th>Ròng (bps)</th><th>USDT</th><th>Lý do</th></tr></thead><tbody>${trs}</tbody></table></div>` : `<p class="muted">Chưa có lệnh – bot chỉ vào khi biên lời đo được lớn hơn phí.</p>`)}
+    ${panel("📝 Nhật ký", (X.log || []).length ? `<ul class="bot-log">${X.log.slice().reverse().map((l) => `<li class="${l.k}"><small>${dt(l.t + "Z")}</small> ${esc(l.m)}</li>`).join("")}</ul>` : `<p class="muted">Nhật ký trống.</p>`)}
+    ${PG("Thiết lập & cách nghĩ")}<div class="g g2w"><div>${panel("🧮 Bài toán phí – vì sao bot hay đứng ngoài", `<ul class="bot-rl">
+        <li><b>Chi phí khứ hồi</b> là thứ phải thắng trước tiên. Futures phí thường: taker ${nf(C.fee_t, 3)}% mỗi chiều → vào + ra = <b>${nf(C.fee_t * 200, 1)} bps</b> (+ chênh lệch mua/bán). Maker vào + taker ra = <b>${nf((C.fee_m + C.fee_t) * 100, 1)} bps</b>.</li>
+        <li>Trong 5–60 giây, BTC thường chỉ đi vài bps. Tín hiệu dòng lệnh / sổ lệnh có báo trước được một phần, nhưng phần báo trước được thường <b>nhỏ hơn phí</b> → bot đứng ngoài là đúng kỷ luật, không phải lỗi.</li>
+        <li>Lệnh maker rẻ hơn nhưng chỉ khớp khi giá đi NGƯỢC về phía mình (có người bán xuyên qua giá mua của mình) → hay khớp đúng lúc xấu. Bot mô phỏng cả hàng chờ phía trước, nên kết quả maker trên sàn thử gần thật.</li>
+        <li>Muốn lướt giây có lời thật cần ít nhất một trong các thứ: phí thấp hơn nhiều (hạng VIP, giảm phí bằng BNB, sàn/cặp có phí maker 0), coin có biến động lớn so với phí, hoặc tín hiệu mạnh hơn. Nhập đúng mức phí của tài khoản anh ở bên cạnh – bot tính lại ngay.</li>
+        <li><b>Cầu dao:</b> <span>dừng tới hết ngày khi lỗ trong ngày chạm</span> <b>${nf(C.daily_stop, 1)}%</b><span>; 50 lệnh gần nhất ròng âm → nghỉ 30 phút và tự nâng ngưỡng; số lệnh mỗi giờ tối đa</span> <b>${nf(C.max_h, 0)}</b><span>; bỏ qua khi chênh lệch mua/bán lớn hơn</span> <b>${nf(C.spread_max, 1)} bps</b><span>; đứng ngoài ±60 giây quanh giờ funding.</span></li></ul>`)}</div>
+      <div>${panel("⚙️ Thiết lập", `<div id="scForm"></div>`)}</div></div>`;
+  const f = () => {
+    const num = (k, t, step = "") => `<div class="field"><label>${t}</label><input id="sc_${k}" inputmode="decimal" value="${C[k]}"></div>`;
+    $("#scForm").innerHTML = `<div class="filters bff"><div class="field"><label>Coin (tối đa 5, futures USDT)</label><input id="sc_syms" value="${esc(C.syms.join(", "))}"></div>${num("capital", "Vốn sàn thử (USDT)")}</div>
+      <h4 class="bfh">Cách vào lệnh</h4><div class="bseg">${[["taker", "Taker (khớp ngay)"], ["maker", "Maker (đặt sẵn, chờ khớp)"]].map(([v, t]) => `<button type="button" data-scm="${v}" class="${C.mode === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      <div class="filters bff">${num("fee_m", "Phí maker (%)")}${num("fee_t", "Phí taker (%)")}</div>
+      <h4 class="bfh">Kỷ luật vào lệnh</h4><div class="filters bff">${num("min_net", "Lời ròng tối thiểu sau phí (bps)")}${num("k", "Kỳ vọng ≥ k × chi phí")}${num("min_n", "Số mẫu tối thiểu mỗi ô")}${num("hmax", "Giữ tối đa (giây, ≤ 60)")}
+        ${num("risk", "Rủi ro mỗi lệnh (% tài sản)")}${num("lev", "Đòn bẩy tối đa")}${num("daily_stop", "Dừng khi lỗ trong ngày (%)")}${num("max_h", "Tối đa lệnh / giờ")}${num("spread_max", "Bỏ qua khi chênh lệch > (bps)")}</div>
+      <div class="bsave"><button class="btn primary" id="scSave">💾 Lưu</button><small class="faint">Bot đọc thiết lập mới trong ≤ 30 giây.</small></div>`;
+    $$("#scForm [data-scm]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.scm; f(); }));
+    $("#scSave").onclick = async () => { rd(); await Store.put("scalp", C); toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); };
+  };
+  const rd = () => { ["capital", "fee_m", "fee_t", "min_net", "k", "min_n", "hmax", "risk", "lev", "daily_stop", "max_h", "spread_max"].forEach((k) => { const v = numIn($("#sc_" + k).value); if (isFinite(v)) C[k] = v; }); C.syms = $("#sc_syms").value.split(/[,\s]+/).map((x) => x.trim().toUpperCase()).filter(Boolean).slice(0, 5); };
+  f();
+  $("#scOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
+  $("#scReset").onclick = async () => { if (!confirm(`Xoá lịch sử & bộ học, bắt đầu lại với ${usd(C.capital)}?`)) return; C.reset_at = new Date().toISOString(); await Store.put("scalp", C); toast("Bot làm lại trong ≤ 30 giây"); viewScalp(); };
+  clearInterval(window.__scT);
+  window.__scT = setInterval(async () => {
+    if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); return; }
+    if (document.hidden || document.activeElement?.closest?.("#scForm")) return;
+    try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) { const y = scrollY; await viewScalp(); scrollTo(0, y); } } catch (e) { /* bỏ qua */ }
+  }, 3000);
 }
 
 // ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)

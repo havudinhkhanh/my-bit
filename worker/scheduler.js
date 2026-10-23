@@ -1,7 +1,9 @@
 // Cloudflare Worker: (1) hẹn giờ chạy GitHub Actions đúng giờ (lịch của GitHub hay trễ):
 //   mỗi 15 phút: lượt nhanh; phút 00 của giờ chia hết cho 4 (UTC) → lượt đầy đủ (định giá, kiểm chứng, đăng web);
 // (2) MỖI PHÚT: bộ khớp lệnh của bot giao dịch (worker/bot.js) – theo dõi giá, cắt lỗ / chốt lời, vào lệnh.
-import { botTick } from "./bot.js";
+import { botTick, canBot } from "./bot.js";
+import { scalpPing } from "./scalp.js";
+export { Scalper } from "./scalp.js";       // Durable Object: bot lướt giây chạy liên tục
 async function dispatch(env, mode) {
   const url = `https://api.github.com/repos/${env.GH_REPO}/actions/workflows/update.yml/dispatches`;
   let last = "";
@@ -26,6 +28,7 @@ export default {
       ctx.waitUntil(dispatch(env, full ? "" : "fast").then((res) => console.log(`my-bit: ${full ? "đầy đủ" : "nhanh"}`, JSON.stringify(res))).catch((e) => console.log("dispatch lỗi", e.message)));
     }
     try { console.log("bot", JSON.stringify(await botTick(env))); } catch (e) { console.log("bot lỗi", e.message); }
+    try { console.log("scalp", JSON.stringify(await scalpPing(env, canBot))); } catch (e) { console.log("scalp lỗi", e.message); }
   },
   async fetch() {
     return new Response("my-bit scheduler: nhanh mỗi 15 phút · đầy đủ mỗi 4 giờ · bot mỗi phút", { headers: { "content-type": "text/plain; charset=utf-8" } });

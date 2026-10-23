@@ -2209,3 +2209,11 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
 }
 
 .eng-mc{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 16px;margin:4px 0 6px}.eng-mc>div{display:flex;align-items:center;gap:8px;font-size:.8rem}.eng-mc span{flex:1}.eng-mc .mgb{width:120px}
+
+/* Bot lướt giây */
+.scl-w{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+.scl{padding:9px 11px;border-radius:9px;background:var(--sunk);font-size:.8rem;display:flex;flex-direction:column;gap:5px}.scl .pill{font-size:.6rem}.scl small{line-height:1.45}
+.scl-g{position:relative;height:8px;border-radius:4px;margin:6px 0 16px;background:linear-gradient(90deg,color-mix(in srgb,var(--down) 55%,transparent),var(--line-2) 50%,color-mix(in srgb,var(--up) 55%,transparent))}
+.scl-g i{position:absolute;top:-3px;width:4px;height:14px;border-radius:2px;background:var(--ink);transform:translateX(-2px);transition:left .4s}.scl-g span{position:absolute;top:10px;font-size:.6rem;color:var(--ink-3)}.scl-g span:last-child{right:0}
+.scl-e{display:grid;gap:3px;margin-top:8px}.scl-e>div{display:grid;grid-template-columns:130px minmax(0,1fr) 70px;gap:6px;align-items:center;font-size:.72rem}.scl-e>div>i{height:6px;border-radius:3px;background:var(--line-2);overflow:hidden}.scl-e>div>i>i{display:block;height:100%;background:var(--ink-3)}.scl-e i i.up{background:var(--up)}.scl-e i i.down{background:var(--down)}.scl-e b{text-align:right}
+.scl-t td{font-size:.76rem}

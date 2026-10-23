@@ -322,7 +322,7 @@ async function prices(meta, since, srcMap = {}) {
   return { P, SRC, HL, D };
 }
 
-const canBot = (u) => {
+export const canBot = (u) => {
   if (u.role === "admin") return true;
   const today = new Date().toISOString().slice(0, 10);
   const plan = u.plan_until && u.plan_until < today ? "free" : u.plan;
