@@ -548,6 +548,15 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
             log.info("Cỗ máy vốn: chỉ số %s · trạng thái %s · cỡ lệnh chung ×%s · P(×2) %s", r.get("idx"), r.get("pace"), r.get("acct"), r.get("px"))
     except Exception as e:  # noqa: BLE001
         log.info("Bot giám sát: chưa đọc được (%s)", e)
+    try:     # tình trạng bot lướt giây (Durable Object ghi mỗi ~10 giây)
+        rs, _ = be.q("SELECT updated_at, json_extract(value, '$.enabled') AS en, json_extract(value, '$.src') AS src, json_extract(value, '$.live_ws') AS ws, "
+                     "json_extract(value, '$.last_msg') AS lm, json_extract(value, '$.eq') AS eq, json_extract(value, '$.stats.n') AS n, json_extract(value, '$.stats.net') AS net, "
+                     "json_extract(value, '$.stats.fees') AS fees, json_extract(value, '$.diag') AS diag FROM user_data WHERE key = 'scalpstate'", [])
+        for r in rs or []:
+            log.info("Bot lướt giây: cập nhật %s · bật %s · nguồn %s (ws %s, tin cuối %s) · tài sản %s · %s lệnh · ròng %s · phí %s · chẩn đoán %s", r.get("updated_at"), r.get("en"), r.get("src"),
+                     r.get("ws"), r.get("lm"), r.get("eq"), r.get("n"), r.get("net"), r.get("fees"), str(r.get("diag") or "")[:400])
+    except Exception as e:  # noqa: BLE001
+        log.info("Bot lướt giây: chưa đọc được (%s)", e)
     n = 0
     for u in us:
         d = u.get("data") or {}
