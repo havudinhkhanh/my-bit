@@ -13,6 +13,7 @@ Lệnh thật trên Binance (giai đoạn 2) sẽ đi qua cùng giao diện Brok
 """
 from __future__ import annotations
 
+import json
 import logging
 import math
 import re
@@ -555,6 +556,26 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
         for r in rs or []:
             log.info("Bot lướt giây: cập nhật %s · bật %s · luồng %s · mỗi giây %s · Binance %s · tài sản %s · %s lệnh · ròng %s · phí %s · chẩn đoán %s", r.get("updated_at"), r.get("en"), r.get("src"),
                      r.get("ws"), r.get("lm"), r.get("eq"), r.get("n"), r.get("net"), r.get("fees"), str(r.get("diag") or "")[:400])
+        # kiểm tra: kỳ vọng lúc vào lệnh so với thực tế, theo mốc giữ / lý do thoát / loại thị trường
+        rs, _ = be.q("SELECT json_extract(value, '$.trades') AS tr FROM user_data WHERE key = 'scalpstate'", [])
+        for r in rs or []:
+            T = json.loads(r.get("tr") or "[]")
+            if not T:
+                continue
+            def agg(xs):
+                n = len(xs)
+                f = lambda k: round(sum((t.get(k) or 0) for t in xs) / n, 2)
+                return f"{n} lệnh: kỳ vọng {f('exp')} · gộp thực {f('gross')} · phí {f('fee')} · ròng {f('net')} bps · thắng {round(sum(1 for t in xs if (t.get('net') or 0) > 0) / n * 100)}% · giữ TB {f('hold')}s"
+            log.info("Bot lướt giây – kiểm tra %s", agg(T))
+            for key in ("why", "h", "t", "g", "how"):
+                G = {}
+                for t in T:
+                    G.setdefault(str(t.get(key)), []).append(t)
+                log.info("Bot lướt giây – theo %s: %s", key, " | ".join(f"{k}: {agg(v)}" for k, v in sorted(G.items())))
+            top = {}
+            for t in T:
+                top.setdefault(t.get("k"), []).append(t.get("net") or 0)
+            log.info("Bot lướt giây – coin vào nhiều nhất: %s", ", ".join(f"{k} {len(v)} lệnh ròng {round(sum(v), 1)} bps" for k, v in sorted(top.items(), key=lambda x: -len(x[1]))[:10]))
     except Exception as e:  # noqa: BLE001
         log.info("Bot lướt giây: chưa đọc được (%s)", e)
     n = 0

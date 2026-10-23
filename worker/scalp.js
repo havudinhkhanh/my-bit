@@ -160,6 +160,15 @@ export class Scalper extends DurableObject {
       this.S = newState(c, now); this.LM = {}; await this.ctx.storage.delete([...(await this.ctx.storage.list({ prefix: "LM:" })).keys()]).catch(() => {});
       this.say(now, this.upgraded ? `Nâng cấp lên bản quét toàn thị trường – tài khoản sàn thử mới ${c.capital} USDT` : `Khởi tạo tài khoản lướt giây trên sàn thử: ${c.capital} USDT`); this.upgraded = false;
     }
+    if (c.resume_at && c.resume_at !== this.S.resume_seen) {   // anh bấm "bỏ nghỉ, chạy tiếp"
+      this.S.resume_seen = c.resume_at;
+      if (this.S.pause) {
+        const k = this.S.pause.kind; this.S.pause = null;
+        if (k === "day") this.S.day.eq0 = this.equity();          // dừng ngày: tính lại hạn mức lỗ trong ngày từ bây giờ
+        this.S.brk = now;                                       // cầu dao 50 lệnh không bật lại trong 1 giờ tới
+        this.say(now, `▶ Anh bỏ qua lần nghỉ – chạy tiếp${k === "day" ? " (hạn mức lỗ trong ngày tính lại từ bây giờ)" : ""}; ngưỡng vào lệnh vẫn giữ ${(c.k + (this.S.kadd || 0)).toFixed(1)}× chi phí`, "info");
+      }
+    }
     const old = this.cfg; this.cfg = c;
     if (old && (old.fut !== c.fut || old.spot !== c.spot || old.min_vol !== c.min_vol || old.max_mk !== c.max_mk)) { for (const t of Object.keys(this.F)) this.closeFeed(t, "đổi phạm vi thị trường"); for (const f of Object.values(this.F)) f.at = 0; }
   }
@@ -311,15 +320,18 @@ export class Scalper extends DurableObject {
       for (let hi = 0; hi < HS.length; hi++) {
         const h = HS[hi]; if (h > c.hmax) continue;
         const P = LP[bin][hi], Q = LM[bin][hi];
-        if (P[0] < c.min_n && Q[0] < c.min_n) continue;
-        // kỳ vọng THẬN TRỌNG: trừ 1,65 sai số chuẩn. Mẫu lấy mỗi giây chồng lên nhau (giữ h giây) và nhiều coin cùng lúc thường đi cùng nhau,
-        // nên số mẫu "độc lập" ≈ n / (2h) – không phải n. Coin riêng: độ lệch ước theo độ lệch của nhóm × biến động coin.
-        const sdz = Math.sqrt(P[2]) || 1, sdb = sdz * vol * Math.sqrt(h);
-        const pool = P[0] >= c.min_n ? (P[1] - 1.65 * sdz / Math.sqrt(Math.max(1, P[0] / (2 * h)))) * vol * Math.sqrt(h) : null;
-        const own = Q[0] ? Q[1] - 1.65 * sdb / Math.sqrt(Math.max(1, Q[0] / (2 * h))) : 0;
-        const exp = pool == null ? own : (Q[0] * own + N0 * pool) / (Q[0] + N0);
-        const net = exp - cost, sc = net / Math.sqrt(h);
-        if (!best || sc > best.sc) best = { h, exp, net, sc, n: P[0], nq: Q[0] };
+        if (P[0] < c.min_n) continue;          // bắt buộc có số liệu nhóm – số liệu riêng 1 coin quá ít để tự đứng
+        // KỲ VỌNG THẬN TRỌNG (chống "lời nhờ may"):
+        //  - mẫu lấy mỗi giây chồng lên nhau khi giữ h giây, nhiều coin cùng chạy theo BTC → số mẫu độc lập ≈ n / (2h), không phải n;
+        //  - số liệu riêng coin chỉ được tin dần theo số mẫu độc lập của nó (ne/(ne+50)), còn lại theo nhóm;
+        //  - mỗi giây chọn cái TỐT NHẤT trong hàng trăm coin × 9 mốc giờ → cái được chọn hay là cái được ước lượng lố nhờ may.
+        //    Vì vậy trừ 2,33 sai số chuẩn (mức 99%) thay vì 1,65.
+        const sq = Math.sqrt(h), sdb = (Math.sqrt(P[2]) || 1) * vol * sq, neP = Math.max(1, P[0] / (2 * h)), neQ = Q[0] / (2 * h);
+        const w = neQ / (neQ + 50), raw = w * Q[1] + (1 - w) * P[1] * vol * sq;
+        const se = sdb * Math.sqrt(w * w / Math.max(1, neQ) + (1 - w) * (1 - w) / neP);
+        const exp = raw - 2.33 * se;
+        const net = exp - cost, sc = net / sq;
+        if (!best || sc > best.sc) best = { h, exp, raw, se, net, sc, n: P[0], nq: Q[0] };
       }
       const t0g = (S.LPt ||= {})[g] ||= now, warm = now - t0g >= c.warm * 60000;
       let v = "learn", why;
@@ -339,7 +351,7 @@ export class Scalper extends DurableObject {
       else { v = "go"; cand.push({ x, side, best, cost, vol, mid, spread }); }
       cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v]++;
       live[id] = { t: x.t, g, mid: r2(mid, 8), spread: r2(spread, 2), s: r2(s, 2), tfi: r2(tfi, 2), obi: r2(obi, 2), mz: r2(mz, 2), vol: r2(vol, 2), qv: r2(x.qv, 1), bin, side, cost: r2(cost, 2),
-        best: best ? { h: best.h, exp: r2(best.exp, 2), net: r2(best.net, 2), n: best.n, nq: best.nq } : null, v, why };
+        best: best ? { h: best.h, exp: r2(best.exp, 2), raw: r2(best.raw, 2), se: r2(best.se, 2), net: r2(best.net, 2), n: best.n, nq: best.nq } : null, v, why };
     }
     // chọn: tối đa 1 lệnh mới mỗi giây – ứng viên có lợi thế ròng / √thời gian giữ cao nhất, trong giới hạn vị thế & số lệnh/giờ
     cand.sort((a, b) => b.best.sc - a.best.sc);
@@ -372,7 +384,7 @@ export class Scalper extends DurableObject {
     if (notional < 10) return;
     if (c.mode === "maker") {
       const px = side > 0 ? x.bid : x.ask;
-      S.ord[x.id] = { t: x.t, side, px, q: notional / px, queue: side > 0 ? x.bq : x.aq, t0: now, h: best.h, slb, tpb, exp: best.exp, cost };
+      S.ord[x.id] = { t: x.t, side, px, q: notional / px, queue: side > 0 ? x.bq : x.aq, t0: now, h: best.h, slb, tpb, exp: best.exp, raw: best.raw, g: x.g, cost };
       return;
     }
     this.open(x, side, side > 0 ? x.ask : x.bid, notional / (side > 0 ? x.ask : x.bid), "taker", best, slb, tpb, cost, now);
@@ -380,14 +392,14 @@ export class Scalper extends DurableObject {
   open(x, side, px, q, how, best, slb, tpb, cost, now) {
     const c = this.cfg, fr = x.t === "F" ? (how === "maker" ? c.fee_m : c.fee_t) : how === "maker" ? c.fee_ms : c.fee_ts, fee = q * px * fr / 100;
     this.S.cash -= fee;
-    this.S.pos[x.id] = { id: this.S.seq++, t: x.t, side, e: px, q, fee, how, t0: now, h: best.h, sl: px * (1 - side * slb / 1e4), tp: px * (1 + side * tpb / 1e4), exp: best.exp, cost, slb, tpb };
+    this.S.pos[x.id] = { id: this.S.seq++, t: x.t, side, e: px, q, fee, how, t0: now, h: best.h, sl: px * (1 - side * slb / 1e4), tp: px * (1 + side * tpb / 1e4), exp: best.exp, raw: best.raw, g: x.g, cost, slb, tpb };
   }
   onTrade(x, p, q, side, now) {
     const o = this.S?.ord?.[x.id];
     if (o) {   // lệnh chờ maker: khớp khi có người khớp xuyên giá / hết hàng chờ phía trước ở đúng giá
       if (o.side > 0 && side < 0) { if (p < o.px) o.queue = 0; else if (p === o.px) o.queue -= q; }
       if (o.side < 0 && side > 0) { if (p > o.px) o.queue = 0; else if (p === o.px) o.queue -= q; }
-      if (o.queue <= 0) { delete this.S.ord[x.id]; this.open(x, o.side, o.px, o.q, "maker", { h: o.h, exp: o.exp }, o.slb, o.tpb, o.cost, now); }
+      if (o.queue <= 0) { delete this.S.ord[x.id]; this.open(x, o.side, o.px, o.q, "maker", { h: o.h, exp: o.exp, raw: o.raw }, o.slb, o.tpb, o.cost, now); }
     }
   }
   onBook(x, now) {
@@ -410,7 +422,7 @@ export class Scalper extends DurableObject {
     delete S.pos[x.id];
     if (c.cool) S.cool[x.id] = now + c.cool * 1000;
     const n0 = P.q * P.e, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, net = grossB - feeB, usd = gross - fee - P.fee;
-    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), why, t0: iso(P.t0), t1: iso(now) };
+    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, why, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
