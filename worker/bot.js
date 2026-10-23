@@ -3,8 +3,9 @@
 // Worker này là nơi DUY NHẤT ghi "botstate": theo dõi giá từng phút (kèm đỉnh/đáy trong phút), cắt lỗ / chốt lời / dời hoà vốn,
 // vào lệnh đúng lúc giá còn đẹp, tính funding, phanh an toàn, ghi nhật ký và thông báo (chuông). Quy tắc giống hệt app/bot.py.
 import PLANS from "../functions/_lib/plans.json";
+import { supPre, supPost, supNew } from "./sup.js";
 
-const FEE = { spot: 0.001, fut: 0.0005 }, SLIP = 0.0005;
+export const FEE = { spot: 0.001, fut: 0.0005 }, SLIP = 0.0005;
 const PRESETS = {
   safe: { risk: 0.5, max_pos: 5, max_lev: 2, min_win: 45, min_avgR: 0.15, daily_stop: 2, max_dd: 10, max_heat: 3, max_sector: 2, max_gross: 1.0, cash_min: 30 },
   bal: { risk: 1.0, max_pos: 10, max_lev: 3, min_win: 40, min_avgR: 0.1, daily_stop: 3, max_dd: 15, max_heat: 5, max_sector: 3, max_gross: 1.5, cash_min: 20 },
@@ -13,14 +14,14 @@ const PRESETS = {
 const DEF = { enabled: false, capital: 1000, preset: "bal", target_month: 5, protect: true, tp1_part: 50, be_after_tp1: true, time_stop: true, streak_cut: true, eq_ma: true, use_model: true, ...PRESETS.bal };
 const HARD = { risk: [0.1, 2], max_pos: [1, 20], max_lev: [1, 5], daily_stop: [0.5, 10], max_dd: [3, 50], capital: [50, 1e7], target_month: [0, 100], tp1_part: [0, 100],
   max_heat: [1, 15], max_sector: [1, 10], max_gross: [0.5, 5], cash_min: [0, 80] };
-const iso = (t) => new Date(t).toISOString().slice(0, 19);
-const ms = (s) => Date.parse(s.length <= 19 ? s + "Z" : s);
-const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
-const vn = (x, d = 2) => Number(x).toLocaleString("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d });
-const sigS = (x) => Number(sig(x)).toLocaleString("vi-VN", { maximumFractionDigits: 12 });
+export const iso = (t) => new Date(t).toISOString().slice(0, 19);
+export const ms = (s) => Date.parse(s.length <= 19 ? s + "Z" : s);
+export const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
+export const vn = (x, d = 2) => Number(x).toLocaleString("vi-VN", { minimumFractionDigits: d, maximumFractionDigits: d });
+export const sigS = (x) => Number(sig(x)).toLocaleString("vi-VN", { maximumFractionDigits: 12 });
 const sig = (x) => { if (!x) return 0; const d = Math.max(2, 6 - Math.floor(Math.log10(Math.abs(x)))); return +x.toFixed(Math.min(12, d)); };
 
-function norm(c) {
+export function norm(c) {
   c = { ...DEF, ...(c || {}) };
   for (const [k, [lo, hi]] of Object.entries(HARD)) { const v = Number(c[k]); c[k] = Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : DEF[k]; }
   c.max_pos = Math.floor(c.max_pos); c.max_lev = Math.floor(c.max_lev);
@@ -30,8 +31,8 @@ function newState(cap, now) {
   return { v: 1, start: cap, cash: cap, pos: [], hist: [], log: [], eq: [[iso(now), +cap.toFixed(2)]], peak: cap, day: { d: vnDay(now), eq0: cap }, month: { m: vnDay(now).slice(0, 7), eq0: cap },
     paused: null, research: null, seq: 1, created: iso(now), reset_seen: null, close_seen: null, last: null };
 }
-const say = (st, now, m, k = "info") => { st.log = [...(st.log || []).slice(-149), { t: iso(now), k, m }]; };
-function equity(st, price) {
+export const say = (st, now, m, k = "info") => { st.log = [...(st.log || []).slice(-149), { t: iso(now), k, m }]; };
+export function equity(st, price) {
   let e = +st.cash || 0;
   for (const p of st.pos || []) { const m = price(p.k) || p.e; e += p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e); }
   return e;
@@ -41,7 +42,8 @@ function openPos(st, x, mkt, q, px, lev, now) {
   st.cash -= margin + fee;
   const p = { id: st.seq++, k: x.k, mkt, side: x.side, sd, q, q0: q, e: fill, s: x.s, s0: x.s, t1: x.t1, t2: x.t2, lev, margin: mkt === "fut" ? margin : 0, fees: fee, fee0: fee, fund: 0, real: 0,
     tf: x.tf, setup: x.setup, name: x.name, win1: x.win1, avgR: x.avgR, risk_usd: q * Math.abs(fill - x.s), opened: iso(now), chk: iso(now), tp1: false,
-    tmax: iso(now + (x.d1 || 10) * (x.bd || 1) * 2.2 * 864e5) };
+    tmax: iso(now + (x.d1 || 10) * (x.bd || 1) * 2.2 * 864e5),
+    pm: x.pm ?? null, play: x.play || null, htf: x.htf || null, at: x.at || null, rr0: x.e && x.s && x.t1 ? +(Math.abs(x.t1 - x.e) / Math.abs(x.e - x.s)).toFixed(2) : null, mfe: 0, mae: 0 };
   st.pos.push(p);
   return p;
 }
@@ -51,12 +53,17 @@ function closePart(st, p, q, px) {
   else { const part = p.margin * q / p.q; p.margin -= part; st.cash += part + pnl - fee; }
   p.q -= q; p.fees += fee; p.real += pnl - fee;
 }
-const WHY = { SL: "dính cắt lỗ", BE: "về hoà vốn sau MT1", TP1: "chạm MT1", TP2: "chạm MT2", TIME: "hết thời gian kỳ vọng", LIQ: "bị thanh lý", MANUAL: "anh yêu cầu đóng" };
-function closeAll(st, p, px, why, now, ev) {
+export const WHY = { SL: "dính cắt lỗ", BE: "về hoà vốn", TP1: "chạm MT1", TP2: "chạm MT2", TIME: "hết thời gian kỳ vọng", LIQ: "bị thanh lý", MANUAL: "anh yêu cầu đóng",
+  SUP_CUT: "bot giám sát cắt – kỳ vọng phía trước âm", SUP_ROT: "bot giám sát đổi sang cơ hội tốt hơn" };
+export function closeAll(st, p, px, why, now, ev) {
   closePart(st, p, p.q, px);
   const tot = p.real - p.fee0 - p.fund, r = p.risk_usd ? tot / p.risk_usd : null;
   const h = { id: p.id, k: p.k, mkt: p.mkt, side: p.side, lev: p.lev, e: p.e, s0: p.s0, t1: p.t1, t2: p.t2, q: p.q0, pnl: +tot.toFixed(2), r: r == null ? null : +r.toFixed(2), why, tf: p.tf,
-    setup: p.setup, name: p.name, opened: p.opened, closed: iso(now) };
+    setup: p.setup, name: p.name, opened: p.opened, closed: iso(now),
+    // cho bot giám sát khám nghiệm: đi được xa nhất / ngược xa nhất (R), phí, funding, bối cảnh lúc vào
+    mfe: p.mfe != null ? +p.mfe.toFixed(2) : null, mae: p.mae != null ? +p.mae.toFixed(2) : null, fees: +(p.fees || 0).toFixed(3), fund: +(p.fund || 0).toFixed(3),
+    gross: +(tot + (p.fees || 0) + (p.fund || 0)).toFixed(2), risk: +(p.risk_usd || 0).toFixed(2), n: +(p.q0 * p.e).toFixed(2), tp1: !!p.tp1,
+    pm: p.pm ?? null, play: p.play || null, htf: p.htf || null, light: p.light || null, rr: p.rr ?? null, rr0: p.rr0 ?? null, g: p.g || null, at: p.at || null, btc0: p.btc0 || null, s: p.s };
   st.hist = [...(st.hist || []).slice(-299), h];
   st.pos = st.pos.filter((y) => y !== p);
   ev.push(["close", p, h]);
@@ -66,8 +73,9 @@ function closeAll(st, p, px, why, now, ev) {
 function manage(st, cfg, price, hl, f8, now, ev) {
   for (const p of [...(st.pos || [])]) {
     const m = price(p.k); if (!m) continue;
-    const x = hl[p.k] || { hi: m, lo: m }, hi = Math.max(x.hi, m), lo = Math.min(x.lo, m), L = p.sd > 0;
-    if (L ? lo <= p.s : hi >= p.s) { closeAll(st, p, p.s, p.tp1 ? "BE" : "SL", now, ev); continue; }
+    const x = hl[p.k] || { hi: m, lo: m }, hi = Math.max(x.hi, m), lo = Math.min(x.lo, m), L = p.sd > 0, R0 = Math.abs(p.e - p.s0) || 1;
+    p.mfe = Math.max(p.mfe || 0, p.sd * ((L ? hi : lo) - p.e) / R0); p.mae = Math.min(p.mae || 0, p.sd * ((L ? lo : hi) - p.e) / R0);
+    if (L ? lo <= p.s : hi >= p.s) { closeAll(st, p, p.s, p.tp1 || p.be1 ? "BE" : "SL", now, ev); continue; }
     if (!p.tp1 && (L ? hi >= p.t1 : lo <= p.t1)) {
       const part = p.q * cfg.tp1_part / 100;
       if (part > 0 && part < p.q * 0.999) {
@@ -77,6 +85,8 @@ function manage(st, cfg, price, hl, f8, now, ev) {
       } else { closeAll(st, p, p.t1, "TP1", now, ev); continue; }
     }
     if (L ? hi >= p.t2 : lo <= p.t2) { closeAll(st, p, p.t2, "TP2", now, ev); continue; }
+    // bài học "để lãi chạy ngược": đi được ≥ 1R mà chưa tới MT1 thì dời cắt lỗ về hoà vốn (+ phí)
+    if (cfg._sup?.be1 && !p.tp1 && p.s === p.s0 && p.mfe >= 1) { p.s = p.e * (1 + p.sd * 2 * (FEE[p.mkt] + SLIP)); p.be1 = true; say(st, now, `${p.k}: đã đi +1R – bot giám sát dời cắt lỗ về hoà vốn (bài học: không để lệnh lãi thành lệnh lỗ)`, "tp"); }
     if (p.mkt === "fut") {
       const f = f8[p.k];
       if (f != null) { const n8 = Math.floor(now / 288e5) - Math.floor(ms(p.chk) / 288e5); if (n8 > 0) { const pay = p.sd * p.q * m * f / 100 * n8; p.fund += pay; st.cash -= pay; } }
@@ -94,11 +104,11 @@ function liveOk(x, p) {
   return [rr >= 1.2, rr];
 }
 // xét từng ứng viên – vừa quyết định vào lệnh, vừa ghi lại "suy nghĩ" (vì sao vào / chờ / bỏ)
-function entries(st, cfg, cands, price, now, ev, mult, halt, fresh) {
+function entries(st, cfg, cands, price, now, ev, mult, halt, fresh, plan) {
   const eq = equity(st, price), held = new Set(st.pos.map((p) => p.k)), used = new Set(st.used || []), th = [];
   const cool = new Set((st.hist || []).filter((h) => h.pnl < 0 && now - ms(h.closed) < 864e5).map((h) => h.k));
   const dd = st.peak ? Math.max(0, (1 - eq / st.peak) * 100) : 0;
-  const heatNow = () => st.pos.filter((p) => !p.tp1 || p.s !== p.e).reduce((a, p) => a + p.risk_usd, 0) / eq * 100;
+  const heatNow = () => st.pos.filter((p) => !(p.be1 || (p.tp1 && p.s === p.e))).reduce((a, p) => a + p.risk_usd, 0) / eq * 100;
   const grossNow = () => st.pos.reduce((a, p) => a + p.q * (price(p.k) || p.e), 0) / eq;
   const secN = (g) => st.pos.filter((p) => g && p.g === g).length;
   for (const x of (cands || []).slice(0, 12)) {
@@ -116,6 +126,9 @@ function entries(st, cfg, cands, price, now, ev, mult, halt, fresh) {
     if (sd * (p - x.t1) >= 0) { t.v = "miss"; t.why = `giá ${sigS(p)} đã tới MT1 – lỡ nhịp, không đuổi`; continue; }
     const rr = Math.abs(x.t1 - p) / Math.abs(p - x.s); t.rr = rr;
     if (rr < 1.2) { const lvl = (x.t1 + 1.2 * x.s) / 2.2; t.v = "wait"; t.lvl = lvl; t.why = `R:R chỉ còn ${vn(rr, 2)} (cần ≥ 1,2) – chờ giá ${L ? "hồi về ≤" : "hồi lên ≥"} ${sigS(lvl)}`; continue; }
+    const fR = (2 * FEE[x.mkt] + 2 * SLIP) * p / Math.abs(p - x.s); t.feeR = +fR.toFixed(3);
+    const les = cfg._sup?.check ? cfg._sup.check(x, { p, rr, feeR: fR, now, st, light: plan?.light, f8: plan?.f8 || {} }) : null;
+    if (les) { t.v = "lesson"; t.why = les; continue; }
     if (halt) { t.v = "halt"; t.why = `đạt chuẩn (R:R ${vn(rr, 1)}) nhưng không mở lệnh: ${halt}`; continue; }
     if (st.pos.length >= cfg.max_pos) { t.v = "full"; t.why = `đạt chuẩn (R:R ${vn(rr, 1)}) nhưng đã đủ ${cfg.max_pos} lệnh`; continue; }
     const riskPct = cfg.risk * mult, hn = heatNow();
@@ -133,7 +146,7 @@ function entries(st, cfg, cands, price, now, ev, mult, halt, fresh) {
     }
     if (n < 10) { t.v = "cash"; t.why = grossNow() >= cfg.max_gross - 0.01 ? `kỷ luật vốn: tổng giá trị vị thế đã ${vn(grossNow(), 2)}× tài sản (trần ${cfg.max_gross}×)` : `kỷ luật vốn: phải giữ ≥ ${cfg.cash_min}% tiền mặt dự phòng`; continue; }
     const pos = openPos(st, x, x.mkt, n / p, p, lev, now);
-    pos.g = x.g || null;
+    pos.g = x.g || null; pos.light = plan?.light || null; pos.btc0 = price("BTC") || null; pos.rr = +rr.toFixed(2);
     held.add(x.k); st.used = [...(st.used || []).slice(-299), key];
     t.v = "go"; t.why = `VÀO: R:R ${vn(rr, 1)}, rủi ro ${vn(pos.risk_usd, 2)} USDT (${vn((pos.risk_usd / eq * 100), 2)}%), ${x.mkt === "spot" ? "spot" : "futures x" + lev}${x.pm != null ? `, mô hình ${x.pm}%` : ""}`;
     ev.push(["open", pos, null]);
@@ -213,7 +226,9 @@ export function botStep(cfgRaw, st, plan, price, hl, now) {
   if (cfg.streak_cut && lastH.length === 3 && lastH.every((h) => h.pnl < 0) && now - ms(lastH[2].closed) < 864e5) { mult *= 0.5; mwhy.push("thua 3 lệnh liên tiếp"); }
   const eqs = (st.eq || []).slice(-20).map((q) => q[1]);
   if (cfg.eq_ma && eqs.length >= 20 && eq < eqs.reduce((a, b) => a + b, 0) / eqs.length) { mult *= 0.5; mwhy.push("tài sản dưới trung bình 20 giờ"); }
-  const th = plan && cfg.enabled ? entries(st, cfg, plan.cands, price, now, ev, mult, halt, price.fresh || (() => true)) : [];
+  if (!halt && cfgRaw?._sup?.halt) halt = cfgRaw._sup.halt;
+  if (cfgRaw?._sup?.mult < 1) { mult *= cfgRaw._sup.mult; mwhy.push(cfgRaw._sup.mwhy || "bot giám sát giảm rủi ro"); }
+  const th = plan && cfg.enabled ? entries(st, cfg, plan.cands, price, now, ev, mult, halt, price.fresh || (() => true), plan) : [];
   thinkLog(st, th, now);
   eq = equity(st, price);
   const nGo = th.filter((t) => t.v === "go").length, nWait = th.filter((t) => t.v === "wait").length;
@@ -226,15 +241,15 @@ export function botStep(cfgRaw, st, plan, price, hl, now) {
   const hist = st.hist || [], wins = hist.filter((x) => x.pnl > 0);
   st.stats = { eq: +eq.toFixed(2), ret: +((eq / st.start - 1) * 100).toFixed(2), dd: +dd.toFixed(2), day_pct: +dayPct.toFixed(2), mon_pct: +monPct.toFixed(2), n: hist.length,
     win: hist.length ? +(wins.length / hist.length * 100).toFixed(1) : null, avgR: hist.length ? +(hist.reduce((a, x) => a + (x.r || 0), 0) / hist.length).toFixed(2) : null,
-    halt, risk_mult: mult, mult_why: mwhy, open_risk: +st.pos.filter((p) => !p.tp1 || p.s !== p.e).reduce((a, p) => a + p.risk_usd, 0).toFixed(2), engine: "1m",
-    heat: eq ? +(st.pos.filter((p) => !p.tp1 || p.s !== p.e).reduce((a, p) => a + p.risk_usd, 0) / eq * 100).toFixed(2) : 0,
+    halt, risk_mult: mult, mult_why: mwhy, open_risk: +st.pos.filter((p) => !(p.be1 || (p.tp1 && p.s === p.e))).reduce((a, p) => a + p.risk_usd, 0).toFixed(2), engine: "1m",
+    heat: eq ? +(st.pos.filter((p) => !(p.be1 || (p.tp1 && p.s === p.e))).reduce((a, p) => a + p.risk_usd, 0) / eq * 100).toFixed(2) : 0,
     gross: eq ? +(st.pos.reduce((a, p) => a + p.q * (price(p.k) || p.e), 0) / eq).toFixed(2) : 0, cash_pct: eq ? +(st.cash / eq * 100).toFixed(1) : 0 };
   st.last = iso(now);
   // báo cáo mỗi 2 phút
   if (!st.rep_at || now - ms(st.rep_at) >= 115e3) { st.report = report(st, cfg, th, plan, price, now, eq, dayPct, monPct, dd, mwhy, halt); st.rep_at = iso(now); st.reports = [...(st.reports || []).slice(-29), st.report]; }
   return { st, ev };
 }
-function notes(ev) {
+export function notes(ev) {
   const out = [];
   for (const [kind, p, h] of ev) {
     if (kind === "open") out.push({ key: `bot:open:${p.id}:${p.opened}`, sev: 2, sym: p.k, title: `🤖 Bot vào ${p.sd > 0 ? "Long" : "Short"} ${p.k} (${p.mkt === "spot" ? "spot" : "futures x" + p.lev})`,
@@ -324,7 +339,7 @@ export async function botTick(env) {
   if (!env.DB) return { skip: "no DB" };
   const now = Date.now(), nowIso = new Date(now).toISOString();
   await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_hb', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(nowIso).run();
-  const { results: rows } = await env.DB.prepare("SELECT d.user_id, d.key, d.value, u.role, u.plan, u.plan_until FROM user_data d JOIN users u ON u.id = d.user_id WHERE u.status = 'active' AND d.key IN ('bot', 'botstate', 'botplan')").all();
+  const { results: rows } = await env.DB.prepare("SELECT d.user_id, d.key, d.value, u.role, u.plan, u.plan_until FROM user_data d JOIN users u ON u.id = d.user_id WHERE u.status = 'active' AND d.key IN ('bot', 'botstate', 'botplan', 'sup', 'supstate')").all();
   const by = {};
   for (const r of rows || []) { const o = (by[r.user_id] ||= { u: r }); try { o[r.key] = JSON.parse(r.value); } catch (e) { /* bỏ qua */ } }
   const jobs = [];
@@ -332,7 +347,8 @@ export async function botTick(env) {
     if (!o.bot || !canBot(o.u)) continue;
     const S = statesOf(o.botstate), PL = plansOf(o.botplan), B = botsOf(o.bot).slice(0, 6);
     const list = B.filter((b) => active(b, S[b.id]));
-    if (list.length) jobs.push({ uid, o, S, PL, B, list });
+    const ss = { ...supNew(now), ...(o.supstate || {}) };
+    if (list.length) jobs.push({ uid, o, S, PL, B, list, ss });
   }
   if (!jobs.length) return { users: 0 };
   const meta = {}, since = {};
@@ -340,6 +356,7 @@ export async function botTick(env) {
     Object.assign(meta, j.PL[b.id]?.meta || {});
     for (const p of j.S[b.id]?.pos || []) { since[p.k] = Math.min(since[p.k] ?? Infinity, ms(p.chk)); if (!meta[p.k]) meta[p.k] = j.PL[b.id]?.meta?.[p.k] || {}; }
   }
+  for (const j of jobs) for (const w of j.ss.watch || []) if (!meta[w.k]) meta[w.k] = {};   // giá cho các lệnh bot giám sát đang theo dõi sau khi đóng
   if (!meta.BTC) meta.BTC = { sp: "BTCUSDT", sm: 1 };
   let srcMap = {};
   try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'bot_pxmap'").first(); srcMap = r ? JSON.parse(r.value) : {}; } catch (e) { /* trống */ }
@@ -353,20 +370,28 @@ export async function botTick(env) {
   for (const j of jobs) {
     try {
       const out = {}, it = [];
+      // bot giám sát – TRƯỚC lượt bot: cầu dao tài khoản, cắt lệnh kỳ vọng âm, đổi lệnh, gắn bài học vào cổng vào lệnh
+      let pre = { gates: {}, notes: [] };
+      try { pre = supPre(j.o.sup, j.ss, j.B, j.S, j.PL, price, now, active); } catch (e) { console.log("sup pre", j.uid, e.stack); }
       for (const b of j.B) {                                   // giữ nguyên trạng thái của bot không chạy (đang tắt, không lệnh mở)
         if (!j.list.includes(b)) { if (j.S[b.id]) out[b.id] = j.S[b.id]; continue; }
         const px0 = Object.fromEntries(Object.keys(j.PL[b.id]?.meta || {}).filter((k) => SRC[k]).map((k) => [k, SRC[k]]));
         if (j.S[b.id]) j.S[b.id].pxsrc = px0;
-        const { st, ev } = botStep(b, j.S[b.id], j.PL[b.id], price, HL, now);
+        const { st, ev } = botStep(pre.gates[b.id] ? { ...b, _sup: pre.gates[b.id] } : b, j.S[b.id], j.PL[b.id], price, HL, now);
         st.pxsrc = px0;
         out[b.id] = st; nev += ev.length;
         for (const x of notes(ev)) it.push({ ...x, key: `bot:${b.id}:${x.key.slice(4)}`, title: j.B.length > 1 ? x.title.replace(/^(🤖|⛔) (Bot )?/u, `$1 ${b.name || b.id}: `) : x.title });
       }
-      await env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'botstate', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
-        .bind(Number(j.uid), JSON.stringify({ v: 2, bots: out }), nowIso).run();
+      // bot giám sát – SAU lượt bot: khám nghiệm, rút bài học, chấm điểm, báo cáo
+      let post = [];
+      try { post = supPost(j.o.sup, j.ss, j.B, out, j.PL, price, now, active); } catch (e) { console.log("sup post", j.uid, e.stack); }
+      for (const x of [...pre.notes, ...post]) it.push({ ...x, url: "#/bot/sup" });
+      const up = "INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, ?, ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at";
+      await env.DB.batch([env.DB.prepare(up).bind(Number(j.uid), "botstate", JSON.stringify({ v: 2, bots: out }), nowIso),
+        env.DB.prepare(up).bind(Number(j.uid), "supstate", JSON.stringify(j.ss), nowIso)]);
       if (it.length) {
-        await env.DB.batch(it.map((x) => env.DB.prepare("INSERT OR IGNORE INTO notifications(user_id, key, kind, sev, title, body, url, sym, created_at) VALUES(?, ?, 'bot', ?, ?, ?, '#/bot', ?, ?)")
-          .bind(Number(j.uid), x.key.slice(0, 200), x.sev, x.title.slice(0, 200), (x.body || "").slice(0, 1500), x.sym || null, nowIso)));
+        await env.DB.batch(it.map((x) => env.DB.prepare("INSERT OR IGNORE INTO notifications(user_id, key, kind, sev, title, body, url, sym, created_at) VALUES(?, ?, 'bot', ?, ?, ?, ?, ?, ?)")
+          .bind(Number(j.uid), x.key.slice(0, 200), x.sev, x.title.slice(0, 200), (x.body || "").slice(0, 1500), x.url || "#/bot", x.sym || null, nowIso)));
       }
       n += j.list.length;
     } catch (e) { console.log("bot user", j.uid, e.message); }

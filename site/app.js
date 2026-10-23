@@ -252,7 +252,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { setTab("bot"); await viewBot(arg[0]); }
+    else if (r === "bot") { setTab("bot"); if (arg[0] === "sup") await viewSup(); else await viewBot(arg[0]); }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -2473,11 +2473,11 @@ function botMatch(c, items, S) {
 const botsOf = (c) => (Array.isArray(c?.bots) ? c.bots : c && typeof c === "object" && "enabled" in c ? [{ id: "b1", ...c }] : []);
 const statesOf = (s) => (s?.bots && typeof s.bots === "object" ? s.bots : s && s.cash != null ? { b1: s } : {});
 const botEq = (st, pxNow) => (st ? st.cash + (st.pos || []).reduce((a, p) => { const m = pxNow(p.k) || p.e; return a + (p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e)); }, 0) : null);
-const BOT_V = { go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"] };
+const BOT_V = { go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"], lesson: ["BÀI HỌC CHẶN", "sell"] };
 async function viewBot(sel) {
   const [I, S] = await Promise.all([tryLoad("data/ideas.json"), sectorsData(), coins()]);
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
-  const [rc, rs] = await Promise.all([Store.get("bot"), Store.get("botstate")]);
+  const [rc, rs, rq, rv] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate")]);
   let B = botsOf(rc.data).map((b, i) => ({ ...BOT_DEF, ...b, id: b.id || "b" + (i + 1) }));
   if (!B.length) B = [{ ...BOT_DEF, id: "b1" }];
   const SS = statesOf(rs.data);
@@ -2525,6 +2525,7 @@ async function viewBot(sel) {
           return `<div class="bth-ci"><span class="pill ${v[1]}">${v[0]}</span><b>${t.side === "long" ? "Long" : "Short"} ${esc(t.k)}</b> <small class="faint">${t.tf === "d" ? "ngày" : "4h"} · ${t.mkt === "spot" ? "spot" : "fut"} · thống kê ${nf(t.win1, 0)}% · ${nf(t.avgR, 2)}R</small>${isNum(t.pm) ? ` <span class="pill brand" title="Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này">🧬 ${nf(t.pm, 0)}%</span>` : ""}${t.play ? ` <span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[t.play] || ""}" title="Sổ tay riêng của mã cho thiết lập này">${{ prefer: "mã hợp", ok: "mã được", weak: "mã yếu", avoid: "mã tránh" }[t.play]}</span>` : ""}<div class="bth-why">${esc(t.why || "")}${isNum(t.p) ? ` <small class="faint">· giá ${px(t.p)} · vào ${px(t.e)} · SL ${px(t.s)} · MT1 ${px(t.t1)}</small>` : ""}</div></div>`; }).join("")}</div>` : ""}`
     : `<p class="muted">Bot chưa chạy phút nào – bật bot và chờ 1–2 phút.</p>`;
   app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch tự động</h1><span class="meta">Sàn thử (tiền giả, giá thật) · theo dõi giá & khớp lệnh mỗi phút · phân tích lại mỗi 15 phút ${mLink("r")}</span></div>
+    ${supStrip(rv.data, rq.data)}
     ${panel(`🤖 Đội bot của anh (${B.length}/6)`, fleet)}
     ${cmp}
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${status[1]} big">${status[0]}</span><b>${esc(C.name)}</b><small>${esc(status[2])}</small>
@@ -2548,7 +2549,7 @@ async function viewBot(sel) {
         ${panel("📈 Tài sản của bot", st?.eq?.length > 1 ? lineSvg([{ name: "Tài sản (USDT)", color: css("--brand"), width: 2, pts: st.eq.map(([t, v]) => ({ x: new Date(t + "Z").toLocaleDateString(LOC, { day: "2-digit", month: "2-digit" }), y: v })) }], { h: 200, dec: 0, hlines: [{ y: st.start, label: "vốn ban đầu" }] }) : `<p class="muted">Đường tài sản hiện sau vài giờ chạy.</p>`)}
         ${panel("Lệnh đang mở", st?.pos?.length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Lãi/lỗ</th><th class="l">Trạng thái</th></tr></thead><tbody>${st.pos.map((p) => { const m = pxNow(p.k) || p.e, u = p.sd * p.q * (m - p.e) + p.real - p.fee0 - p.fund, rr = p.risk_usd ? u / p.risk_usd : null;
             return `<tr><td class="l">${coinLink(p.k, "/smc")}</td><td class="l"><b class="${p.sd > 0 ? "up" : "down"}">${p.sd > 0 ? "Long" : "Short"}</b> ${p.mkt === "spot" ? "spot" : "fut x" + p.lev}<br><small class="faint">${esc(p.name || "")} · ${p.tf === "d" ? "ngày" : "4h"}</small></td><td>${px(p.e)}</td><td>${px(m)}</td><td class="down">${px(p.s)}${p.s !== p.s0 ? "<br><small>hoà vốn</small>" : ""}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}<br><small>${isNum(rr) ? nf(rr, 2) + "R" : ""}</small></td><td class="l">${p.tp1 ? '<span class="pill buy">đã chốt MT1</span>' : '<span class="pill">chờ MT1</span>'}<br><small class="faint">mở ${dt(p.opened + "Z")}</small></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Không có lệnh đang mở.</p>`)}
-        ${panel("Lệnh đã đóng", st?.hist?.length ? `<div class="tw" style="max-height:340px"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Lãi/lỗ</th><th>R</th><th class="l">Lý do</th><th>Đóng lúc</th></tr></thead><tbody>${st.hist.slice().reverse().map((h) => `<tr><td class="l">${coinLink(h.k)}</td><td class="l">${h.side === "long" ? "Long" : "Short"} ${h.mkt === "spot" ? "spot" : "fut x" + h.lev}</td><td>${px(h.e)}</td><td class="${cls(h.pnl)}">${h.pnl >= 0 ? "+" : ""}${usd2(h.pnl)}</td><td class="${cls(h.r)}">${isNum(h.r) ? nf(h.r, 2) : "—"}</td><td class="l">${esc({ SL: "Cắt lỗ", BE: "Hoà vốn sau MT1", TP1: "MT1", TP2: "MT2", TIME: "Hết thời gian", LIQ: "Thanh lý", MANUAL: "Anh đóng", PAUSE: "Tạm dừng" }[h.why] || h.why)}</td><td><small>${dt(h.closed + "Z")}</small></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Chưa có lệnh nào đóng.</p>`)}
+        ${panel("Lệnh đã đóng", st?.hist?.length ? `<div class="tw" style="max-height:340px"><table><thead><tr><th class="l">Coin</th><th class="l">Lệnh</th><th>Vào</th><th>Lãi/lỗ</th><th>R</th><th class="l">Lý do</th><th>Đóng lúc</th></tr></thead><tbody>${st.hist.slice().reverse().map((h) => `<tr><td class="l">${coinLink(h.k)}</td><td class="l">${h.side === "long" ? "Long" : "Short"} ${h.mkt === "spot" ? "spot" : "fut x" + h.lev}</td><td>${px(h.e)}</td><td class="${cls(h.pnl)}">${h.pnl >= 0 ? "+" : ""}${usd2(h.pnl)}</td><td class="${cls(h.r)}">${isNum(h.r) ? nf(h.r, 2) : "—"}</td><td class="l">${esc({ SL: "Cắt lỗ", BE: "Hoà vốn sau MT1", TP1: "MT1", TP2: "MT2", TIME: "Hết thời gian", LIQ: "Thanh lý", MANUAL: "Anh đóng", PAUSE: "Tạm dừng", SUP_CUT: "Giám sát cắt", SUP_ROT: "Giám sát đổi lệnh" }[h.why] || h.why)}</td><td><small>${dt(h.closed + "Z")}</small></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Chưa có lệnh nào đóng.</p>`)}
         ${panel("📝 Nhật ký hành động", st?.log?.length ? `<ul class="bot-log">${st.log.slice().reverse().slice(0, 80).map((l) => `<li class="${l.k}"><small>${dt(l.t + "Z")}</small> ${esc(l.m)}</li>`).join("")}</ul>` : `<p class="muted">Chưa có hoạt động.</p>`)}
       </div>
       <div>${panel(`⚙️ Thiết lập: ${esc(C.name)}`, `<div id="bForm"></div>`)}
@@ -2660,6 +2661,120 @@ async function viewBot(sel) {
     if (!location.hash.startsWith("#/bot")) { clearInterval(window.__botT); return; }
     if (document.hidden || dirty || document.activeElement?.closest?.("#bForm")) return;
     try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) viewBot(id); } catch (e) { /* bỏ qua */ }
+  }, 60000);
+}
+
+// ================================================================ BOT GIÁM SÁT (quản lý danh mục) – đứng trên mọi bot, chạy mỗi phút trên máy chủ
+const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [] };
+const SUP_V = { good: ["TỐT", "buy"], ok: ["ỔN", ""], watch: ["CẦN THEO DÕI", "warn"], pause: ["NÊN DỪNG", "sell"], learn: ["ĐANG HỌC", "brand"] };
+const SUP_D = { hold: ["GIỮ", "buy"], cut: ["CẮT", "sell"], advise: ["NÊN CẮT", "warn"], rot: ["ĐỔI LỆNH", "brand"], rev: ["KHÁM NGHIỆM", ""], lesson: ["BÀI HỌC", "brand"], self: ["TỰ CHẤM", ""], stop: ["KHOÁ", "sell"], info: ["", ""] };
+const SUP_TAG = { htf_against: "ngược khung lớn", light_against: "ngược đèn thị trường", low_model: "mô hình chấm thấp", fees_heavy: "phí nặng", chased: "đuổi giá", stale: "tín hiệu cũ", gave_back: "để lãi thành lỗ",
+  time_out: "giữ quá lâu", revenge: "vào lại ngay sau thua", cluster: "thua dồn cùng nhóm", funding: "funding ăn mòn", stop_tight: "cắt lỗ quá sát", liq: "bị thanh lý" };
+const supSg = (x, d = 2) => (isNum(x) ? (x >= 0 ? "+" : "") + nf(x, d) : "—");
+function supStrip(ss, sc) {
+  const c = { ...SUP_DEF, ...(sc || {}) }, a = ss?.acct || {}, on = (ss?.lessons || []).filter((l) => l.on && !c.off.includes(l.id));
+  const st = !c.enabled ? ["Đang tắt", ""] : ss?.halt ? ["⛔ Khoá tài khoản", "sell"] : c.mode === "auto" ? ["● Đang giám sát", "buy"] : ["● Chỉ khuyên", "warn"];
+  return `<a class="supstrip" href="#/bot/sup"><span class="pill ${st[1]}">${st[0]}</span><b>🛡️ Bot giám sát</b>
+    <small>${esc(ss?.think?.head || "Chờ lượt chạy đầu tiên (≤ 2 phút).")}</small>
+    <span class="supk">${isNum(a.eq) ? `<i>Tài sản chung <b>${usd2(a.eq)}</b></i><i>Sụt <b class="${a.dd > c.acct_dd * 0.6 ? "down" : ""}">${nf(a.dd, 1)}%</b>/${nf(c.acct_dd, 0)}%</i><i>Rủi ro mở <b>${nf(a.heat, 1)}%</b></i>` : ""}<i>Bài học áp dụng <b>${on.length}</b></i><i>Cắt/đổi đúng <b>${ss?.self?.cut ? `${ss.self.cut.ok}/${ss.self.cut.ok + ss.self.cut.bad}` : "—"}</b></i></span><span class="supgo">Mở →</span></a>`;
+}
+async function viewSup() {
+  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
+  const [rc, rs, rq, rv] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate")]);
+  let B = botsOf(rc.data).map((b, i) => ({ ...BOT_DEF, ...b, id: b.id || "b" + (i + 1) }));
+  const SS = statesOf(rs.data), ss = rv.data || {}, C = { ...SUP_DEF, ...(rq.data || {}) }, a = ss.acct || {}, TH = ss.think || {};
+  const nm = (id) => esc(B.find((b) => b.id === id)?.name || id || "");
+  const status = !C.enabled ? ["Đang tắt", "", "Bật để bot giám sát theo dõi rủi ro chung, khám nghiệm lệnh và rút bài học."] : ss.halt ? ["⛔ Khoá toàn tài khoản", "sell", ss.halt.why] : C.mode === "auto" ? ["● Đang giám sát · tự hành động", "buy", ss.at ? `kiểm tra mỗi phút · gần nhất ${agoShort(ss.at + "Z")} trước` : "chờ lượt chạy đầu tiên (≤ 2 phút)"] : ["● Chỉ khuyên", "warn", "ghi lại đề xuất, không tự cắt / đổi / dừng bot"];
+  const on = (ss.lessons || []).filter((l) => l.on && !C.off.includes(l.id)), SC = ss.self?.cut || { ok: 0, bad: 0, R: 0 };
+  const bar = (v, max, c2) => `<i class="bot-bar"><i class="${c2}" style="width:${Math.max(2, Math.min(100, (v / (max || 1)) * 100)).toFixed(0)}%"></i></i>`;
+  // ---- giám sát đang nghĩ gì: từng lệnh đang mở
+  const items = (TH.items || []).map((it) => { const d = SUP_D[it.dec] || [it.dec, ""];
+    return `<div class="sup-it"><div class="sup-h"><span class="pill ${d[1]}">${d[0]}</span><b>${it.side === "long" ? "Long" : "Short"} ${esc(it.k)}</b><small class="faint">${esc(it.bn || nm(it.b))}</small><span class="${cls(it.uR)}">đang ${supSg(it.uR)}R</span></div>
+      <div class="sup-pb" title="Xác suất tới ${esc(it.tgt)} trước cắt lỗ: bot giám sát ước ${pct(it.pn * 100, 0, false)}; nếu giá đi hoàn toàn ngẫu nhiên là ${pct(it.prw * 100, 0, false)}"><i style="width:${(it.pn * 100).toFixed(0)}%"></i><b style="left:${(it.prw * 100).toFixed(0)}%"></b></div>
+      <small class="faint">Xác suất tới ${esc(it.tgt)} <b>${pct(it.pn * 100, 0, false)}</b> (ngẫu nhiên ${pct(it.prw * 100, 0, false)} · lợi thế ×${nf(it.E, 2)}) · kỳ vọng nếu giữ <b class="${cls(it.EV)}">${supSg(it.EV)}R</b>${(it.why || []).length ? ` · ${esc(it.why.join("; "))}` : ""}</small></div>`; }).join("");
+  // ---- chấm điểm bot
+  const cards = Object.entries(ss.cards || {});
+  const cardT = cards.length ? `<div class="tw"><table><thead><tr><th class="l">Bot</th><th class="l">Đánh giá</th><th>Lệnh</th><th>Thắng</th><th>Lãi TB</th><th title="Khoảng tin cậy 80% của lãi TB mỗi lệnh – hẹp dần khi có thêm lệnh">Tin cậy 80%</th><th title="Tổng lãi ÷ tổng lỗ">PF</th><th>20 lệnh gần</th><th>Phí</th><th title="Phí ÷ lãi gộp của các lệnh thắng">Phí / lãi gộp</th></tr></thead><tbody>${cards.map(([id, c]) => { const v = SUP_V[c.v] || [c.v, ""];
+      return `<tr><td class="l"><a href="#/bot/${enc(id)}"><b>${esc(c.name)}</b></a>${c.paused ? ' <span class="pill sell">tạm dừng</span>' : !c.enabled ? ' <span class="pill">tắt</span>' : ""}</td><td class="l"><span class="pill ${v[1]}">${v[0]}</span></td><td>${c.n}</td><td>${isNum(c.win) ? c.win + "%" : "—"}</td><td class="${cls(c.avgR)}">${supSg(c.avgR)}R</td><td><small>${isNum(c.lo) ? `${supSg(c.lo)} … ${supSg(c.hi)}` : "—"}</small></td><td>${isNum(c.pf) ? nf(c.pf, 2) : "—"}</td><td class="${cls(c.last20)}">${supSg(c.last20)}R</td><td>${usd2(c.fees)}${c.fund ? `<br><small class="faint">funding ${usd2(c.fund)}</small>` : ""}</td><td class="${c.fee_share > 25 ? "down" : ""}">${isNum(c.fee_share) ? nf(c.fee_share, 0) + "%" : "—"}</td></tr>
+        <tr class="sup-why"><td colspan="10"><small>${esc(c.why)}</small>${(c.sug || []).map((s, i) => `<div class="sup-sug">💡 ${esc(s.t)}${s.patch ? ` <button class="btn sm" data-sug="${enc(id)}|${i}">Áp dụng</button>` : s.from ? ` <a class="btn sm" href="#/bot/${enc(s.from)}">Xem</a>` : ""}</div>`).join("")}</td></tr>`; }).join("")}</tbody></table></div>`
+    : `<p class="muted">Chưa có bot nào chạy.</p>`;
+  // ---- bài học
+  const L = ss.lessons || [];
+  const lesT = L.length ? `<div class="tw"><table><thead><tr><th class="l">Lỗi</th><th class="l">Trạng thái</th><th>Số lệnh</th><th title="Lãi TB của lệnh có lỗi này">Có lỗi</th><th title="Lãi TB các lệnh còn lại">Không lỗi</th><th>% thua</th><th title="Tổng R mất ở các lệnh thua có lỗi này">Thiệt hại</th><th title="Khi bài học chặn một tín hiệu, bot giám sát theo dõi xem giá về cắt lỗ trước (chặn đúng) hay tới MT1 trước (chặn nhầm)">Chặn đúng / nhầm</th></tr></thead><tbody>${L.map((l) => {
+      const off = C.off.includes(l.id), s = l.on ? (off ? ["ANH ĐÃ TẮT", ""] : ["ĐANG ÁP DỤNG", "buy"]) : l.adv ? ["KHUYÊN", "warn"] : /tự gỡ/.test(l.note) ? ["ĐÃ GỠ", "sell"] : ["CHƯA ĐỦ BẰNG CHỨNG", ""];
+      return `<tr><td class="l"><b>${esc(l.t)}</b></td><td class="l"><span class="pill ${s[1]}">${s[0]}</span></td><td>${l.n}</td><td class="${cls(l.rA)}">${supSg(l.rA)}R</td><td class="${cls(l.rB)}">${supSg(l.rB)}R</td><td>${l.loss}%</td><td class="down">${supSg(l.cost, 1)}R</td><td>${l.sh ? `${l.sh.ok} / ${l.sh.bad}` : "—"}</td></tr>
+        <tr class="sup-why"><td colspan="8"><div class="sup-sug">${l.on || l.adv ? "👉" : "·"} ${esc(l.how)}${l.note ? ` <span class="faint">– ${esc(l.note)}</span>` : ""}${l.on ? ` <button class="btn sm" data-off="${l.id}">${off ? "Bật lại" : "Tắt bài học này"}</button>` : ""}</div></td></tr>`; }).join("")}</tbody></table></div>`
+    : `<p class="muted">Chưa có lệnh nào đóng để khám nghiệm. Bài học chỉ thành quy tắc khi có ≥ 6 lệnh mắc cùng một lỗi và các lệnh đó lỗ rõ hơn phần còn lại.</p>`;
+  const blk = (ss.blocks || []).filter((b) => new Date(b.until + "Z") > new Date());
+  // ---- khám nghiệm
+  const rev = Object.values(ss.rev || {}).filter((x) => !x.old).sort((x, y) => (y.closed || "").localeCompare(x.closed || "")).slice(0, 60);
+  const WHYL = { SL: "Cắt lỗ", BE: "Hoà vốn", TP1: "MT1", TP2: "MT2", TIME: "Hết thời gian", LIQ: "Thanh lý", MANUAL: "Anh đóng", SUP_CUT: "Giám sát cắt", SUP_ROT: "Giám sát đổi lệnh" };
+  const revT = rev.length ? `<div class="tw" style="max-height:380px"><table><thead><tr><th class="l">Đóng lúc</th><th class="l">Bot</th><th class="l">Lệnh</th><th>R</th><th class="l">Lý do</th><th title="Đi được xa nhất / ngược xa nhất trong lúc giữ">Xa nhất +/−</th><th class="l">Lỗi tìm thấy</th></tr></thead><tbody>${rev.map((x) => `<tr><td class="l"><small>${dt(x.closed + "Z")}</small></td><td class="l"><small>${nm(x.b)}</small></td><td class="l">${coinLink(x.k)} <small>${x.side === "long" ? "Long" : "Short"} ${x.tf === "d" ? "ngày" : "4h"}</small></td><td class="${cls(x.r)}">${supSg(x.r)}</td><td class="l"><small>${esc(WHYL[x.why] || x.why || "")}</small></td><td><small>${isNum(x.mfe) ? `${supSg(x.mfe, 1)} / ${supSg(x.mae, 1)}` : "—"}</small></td><td class="l">${x.tags.length ? x.tags.map((t) => `<span class="pill ${x.r < 0 ? "sell" : ""}">${esc(SUP_TAG[t] || t)}</span>`).join(" ") : x.r < 0 ? '<small class="faint">không lỗi quy trình – thua trong xác suất</small>' : '<small class="faint">—</small>'}${x.pend ? ' <small class="faint">(đang theo dõi giá sau cắt lỗ)</small>' : ""}</td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Chưa có lệnh đóng.</p>`;
+  // ---- phí
+  const cv = cards.map(([, c]) => c), fees = cv.reduce((s, c) => s + (c.fees || 0), 0), fund = cv.reduce((s, c) => s + (c.fund || 0), 0), fR = cv.filter((c) => isNum(c.feeR));
+  const feeP = `${kpis([["Phí đã trả", usd2(fees)], ["Funding (+ = trả)", usd2(fund), fund > 0 ? "down" : "up"], ["Phí TB mỗi lệnh", fR.length ? nf(fR.reduce((s, c) => s + c.feeR, 0) / fR.length, 3) + "R" : "—"], ["Phí / lãi gộp (cao nhất)", cv.some((c) => isNum(c.fee_share)) ? nf(Math.max(...cv.filter((c) => isNum(c.fee_share)).map((c) => c.fee_share)), 0) + "%" : "—", "", "bot có tỷ lệ phí / lãi gộp cao nhất"]])}
+    <p class="sbp">Phí khứ hồi tính theo R = (phí mở + phí đóng + trượt giá 2 chiều) ÷ khoảng cách tới cắt lỗ. Futures 0,05%/chiều, spot 0,1%/chiều, trượt giá 0,05%/chiều → cắt lỗ cách 2%: futures tốn ≈ <b>0,10R</b>, spot ≈ <b>0,15R</b> mỗi lệnh; cắt lỗ cách 0,8% thì futures đã tốn ≈ 0,25R. Bot giám sát trừ phí này vào mọi phép so (đổi lệnh, chấm điểm) và học để bỏ lệnh có cắt lỗ quá hẹp so với phí.</p>`;
+  const logH = (ss.log || []).slice().reverse().slice(0, 120).map((l) => { const d = SUP_D[l.k] || ["", ""]; return `<li class="${l.k === "stop" ? "stop" : ""}"><small>${dt(l.t + "Z")}</small>${d[0] ? ` <span class="pill ${d[1]}">${d[0]}</span>` : ""} ${esc(l.m)}</li>`; }).join("");
+  app().innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát · quản lý danh mục</h1><span class="meta"><a href="#/bot">← Đội bot</a> · đứng trên ${B.length} bot · chạy mỗi phút trên máy chủ · sàn thử</span></div>
+    <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${status[1]} big">${status[0]}</span><small>${esc(status[2])}</small>
+      <span class="bot-btns">${ss.halt ? `<button class="btn primary" id="sRes">Mở khoá tài khoản</button>` : ""}<button class="btn ${C.enabled ? "" : "primary"}" id="sOn">${C.enabled ? "⏸ Tắt giám sát" : "▶ Bật giám sát"}</button></span></div>
+      <p class="bth-h">${esc(TH.head || "")}</p>
+      ${kpis([["Tài sản chung", isNum(a.eq) ? usd2(a.eq) : "—", "", `${a.n_bots || 0} bot đang chạy`], ["Hôm nay", pct(a.day_pct, 2), cls(a.day_pct), `khoá khi lỗ ${nf(C.acct_day, 0)}%` + bar(Math.max(0, -(a.day_pct || 0)), C.acct_day, "down")],
+        ["Sụt so với đỉnh", `${nf(a.dd || 0, 1)}%`, a.dd > C.acct_dd * 0.6 ? "down" : "", `khoá khi sụt ${nf(C.acct_dd, 0)}% · quá nửa thì giảm 1/2 rủi ro` + bar(a.dd || 0, C.acct_dd, "down")],
+        ["Rủi ro mở chung", `${nf(a.heat || 0, 1)}%`, "", `${a.n_pos || 0} lệnh`], ["Bài học áp dụng", `${on.length}`, "", (on.map((l) => l.t).join(", ") || "chưa có")],
+        ["Cắt / đổi đúng", `${SC.ok}/${SC.ok + SC.bad}`, cls(SC.R), `${SC.bad} lần sai · ròng ${supSg(SC.R)}R so với giữ nguyên`]])}</section>
+    <div class="g g2w"><div>
+      ${panel("🧠 Giám sát đang nghĩ gì", items || `<p class="muted">Không có lệnh đang mở để đánh giá.</p>`, "mỗi phút · từng lệnh đang mở")}
+      ${panel("🧾 Báo cáo giám sát", ss.report ? `<p class="faint" style="margin:0 0 6px">${esc(new Date(ss.report.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</p><ul class="bot-rl">${ss.report.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        ${(ss.reports || []).length > 1 ? `<details><summary class="faint">Các báo cáo trước (${ss.reports.length - 1})</summary>${ss.reports.slice(0, -1).reverse().map((r) => `<div class="brep"><small>${esc(new Date(r.at + "Z").toLocaleString(LOC))}</small><ul>${r.lines.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>`).join("")}</details>` : ""}` : `<p class="muted">Báo cáo đầu tiên có sau lượt chạy đầu tiên.</p>`, "mỗi 15 phút")}
+      ${panel("📝 Nhật ký giám sát", logH ? `<ul class="bot-log">${logH}</ul>` : `<p class="muted">Chưa có hoạt động.</p>`)}
+    </div><div>
+      ${panel("⚙️ Thiết lập giám sát", `<div id="sForm"></div>`)}
+      ${panel("🧭 Bot giám sát suy nghĩ thế nào", `<ul class="bot-rl">
+        <li><b>Chi phí chìm không quan trọng.</b> Đang lỗ không phải lý do để gồng hay để cắt – chỉ so kỳ vọng <i>từ giờ trở đi</i>.</li>
+        <li><b>Giá đi ngẫu nhiên thì giữ hay cắt như nhau</b> (kỳ vọng = 0, xác suất tới mục tiêu = khoảng cách tới cắt lỗ ÷ tổng hai khoảng). Lợi thế của lệnh = xác suất thống kê/mô hình ÷ xác suất ngẫu nhiên lúc vào.</li>
+        <li><b>Cắt</b> khi lợi thế đã mất làm kỳ vọng ≤ −0,15R liên tục 3 phút: đèn thị trường đổi ngược, BTC đi ngược ≥ 3%, quá nửa thời gian kỳ vọng mà chưa chạy, funding ăn mòn. Lệnh đã chốt MT1 / đã hoà vốn không bị cắt.</li>
+        <li><b>Đổi lệnh</b> khi một tín hiệu bị chặn vì hết chỗ có kỳ vọng (đã trừ phí mở + đóng + trượt giá) hơn lệnh yếu nhất ≥ <b>${nf(C.min_edge, 2)}R</b>; lệnh cũ phải giữ ≥ 1 giờ; tối đa 1 lần / 2 giờ, 3 lần / ngày mỗi bot.</li>
+        <li><b>Tự chấm chính mình:</b> sau mỗi lần cắt/đổi, theo dõi giá có về cắt lỗ cũ (cắt đúng) hay tới mục tiêu (cắt sai). Lỗ ròng sau ≥ 8 lần → nâng ngưỡng cắt; lỗ rõ sau ≥ 15 lần → ngừng tự cắt, chỉ khuyên.</li>
+        <li><b>Cầu dao tài khoản:</b> sụt quá nửa giới hạn → mọi bot giảm 1/2 rủi ro; chạm giới hạn sụt hoặc lỗ trong ngày → khoá mở lệnh mới mọi bot (lệnh đang mở vẫn giữ cắt lỗ).</li></ul>`)}
+    </div></div>
+      ${panel("🤖 Chấm điểm từng bot", cardT + `<p class="faint" style="font-size:.72rem">R = lãi/lỗ chia cho số tiền rủi ro của lệnh, đã trừ phí & funding. Bot chỉ bị đánh giá "NÊN DỪNG" khi có ≥ <b>${C.min_trades}</b> lệnh và cả khoảng tin cậy 80% của lãi TB nằm dưới 0 – tức lỗ thật sự chứ không phải xui. Khi đó bot giám sát tạm dừng bot (nếu anh cho phép); anh bấm "Chạy lại" ở trang bot = cho thêm 10 lệnh thử.</p>`, "thống kê, không cảm tính")}
+      ${panel("📚 Bài học rút ra", lesT + (blk.length ? `<p class="sbh">🔬 Đang tạm tránh (nghiên cứu gần đây ở các bot)</p><ul class="bot-rl">${blk.map((b) => `<li>${b.kind === "coin" ? `<b>${coinLink(b.k)}</b> – thua ${b.n} lệnh / 14 ngày (${supSg(b.R, 1)}R)` : `<b>${esc(b.name || b.setup)}</b> ${b.tf === "d" ? "ngày" : "4h"} ${b.side === "long" ? "Long" : "Short"} – ${b.n} lệnh / 30 ngày, TB ${supSg(b.R)}R`} · tới ${esc(new Date(b.until + "Z").toLocaleDateString(LOC))}</li>`).join("")}</ul>` : "")
+        + `<p class="faint" style="font-size:.72rem">Lệnh của nhiều bot cùng đánh một tín hiệu chỉ tính là một bằng chứng. Mỗi bài học tự kiểm tra chính nó: nếu các tín hiệu nó chặn hoá ra thắng nhiều hơn thua, bài học tự gỡ.</p>`, "từ khám nghiệm mọi lệnh")}
+      ${panel("🩺 Khám nghiệm lệnh", revT, "mỗi lệnh đóng đều được xét")}
+      ${panel("💸 Phí giao dịch", feeP)}
+`;
+  // ---- form
+  const f = () => {
+    const ck = (k, t, tip = "") => `<label class="chk"${tip ? ` title="${esc(tip)}"` : ""}><input type="checkbox" id="s_${k}" ${C[k] ? "checked" : ""}> ${t}</label>`;
+    $("#sForm").innerHTML = `<h4 class="bfh">Cách hành động</h4><div class="bseg">${[["auto", "🤖 Tự hành động"], ["advise", "💬 Chỉ khuyên"]].map(([v, t]) => `<button type="button" data-mode="${v}" class="${C.mode === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      <div class="filters bff">${ck("cut", "Cắt lệnh khi kỳ vọng phía trước âm")}${ck("rotate", "Đổi lệnh yếu lấy cơ hội tốt hơn (sau phí)")}${ck("lessons", "Áp dụng bài học vào cổng vào lệnh")}${ck("pause_bots", "Tạm dừng bot lỗ thật sự (thống kê)")}</div>
+      <h4 class="bfh">Cầu dao toàn tài khoản</h4><div class="filters bff">
+        <div class="field"><label>Khoá khi tài sản chung sụt (%)</label><input id="s_acct_dd" inputmode="decimal" value="${C.acct_dd}"></div>
+        <div class="field"><label>Khoá khi lỗ trong ngày (%)</label><input id="s_acct_day" inputmode="decimal" value="${C.acct_day}"></div></div>
+      <h4 class="bfh">Ngưỡng</h4><div class="filters bff">
+        <div class="field"><label>Lợi thế tối thiểu để đổi lệnh (R)</label><input id="s_min_edge" inputmode="decimal" value="${C.min_edge}"></div>
+        <div class="field"><label>Số lệnh tối thiểu để chấm bot</label><input id="s_min_trades" inputmode="numeric" value="${C.min_trades}"></div>
+        <div class="field"><label>Dời hoà vốn khi lệnh đi +1R</label><select id="s_be1">${[["auto", "Tự động khi có bài học"], ["on", "Luôn bật"], ["off", "Tắt"]].map(([v, t]) => `<option value="${v}" ${C.be1 === v ? "selected" : ""}>${t}</option>`).join("")}</select></div></div>
+      <div class="bsave"><button class="btn primary" id="sSave">💾 Lưu</button><small class="faint">Áp dụng từ phút kế tiếp.</small></div>`;
+    $$("#sForm [data-mode]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.mode; f(); }));
+    $("#sSave").onclick = async () => { rd(); await Store.put("sup", C); toast("Đã lưu thiết lập bot giám sát"); viewSup(); };
+  };
+  const rd = () => { ["cut", "rotate", "lessons", "pause_bots"].forEach((k) => (C[k] = $("#s_" + k).checked)); ["acct_dd", "acct_day", "min_edge", "min_trades"].forEach((k) => { const v = numIn($("#s_" + k).value); if (isFinite(v)) C[k] = v; }); C.be1 = $("#s_be1").value; };
+  f();
+  $("#sOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("sup", C); toast(C.enabled ? "Đã bật bot giám sát" : "Đã tắt bot giám sát – các bot tự chạy theo kỷ luật riêng"); viewSup(); };
+  if ($("#sRes")) $("#sRes").onclick = async () => { if (!confirm("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại.")) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); viewSup(); };
+  $$("[data-off]").forEach((b) => (b.onclick = async () => { const id = b.dataset.off; C.off = C.off.includes(id) ? C.off.filter((x) => x !== id) : [...C.off, id]; await Store.put("sup", C); toast("Đã lưu"); viewSup(); }));
+  $$("[data-sug]").forEach((b) => (b.onclick = async () => {
+    const [bid, i] = decodeURIComponent(b.dataset.sug).split("|"), s = ss.cards?.[bid]?.sug?.[+i], bot = B.find((x) => x.id === bid);
+    if (!s?.patch || !bot || !confirm(`Áp dụng cho ${bot.name}: ${s.t}?`)) return;
+    Object.assign(bot, s.patch); await Store.put("bot", { v: 2, bots: B }); toast("Đã chỉnh thiết lập bot"); viewSup();
+  }));
+  clearInterval(window.__supT);
+  window.__supT = setInterval(async () => {
+    if (location.hash !== "#/bot/sup") { clearInterval(window.__supT); return; }
+    if (document.hidden || document.activeElement?.closest?.("#sForm")) return;
+    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) viewSup(); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 

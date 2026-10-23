@@ -2131,3 +2131,14 @@ tr.on td{background:color-mix(in srgb,var(--brand) 8%,transparent)}
 .bm-g{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gap)}@media (max-width:900px){.bm-g{grid-template-columns:minmax(0,1fr)}}
 .bm-i{display:grid;grid-template-columns:150px minmax(0,1fr);gap:8px;align-items:center;font-size:.74rem;margin:3px 0}.bm-i>i{height:6px;border-radius:3px;background:var(--sunk-2,var(--line))}.bm-i>i>i{display:block;height:100%;border-radius:3px;background:var(--brand)}
 .bm-c{padding:6px 0;border-bottom:1px solid var(--line-2)}.bm-r{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}.bm-r .pill{font-size:.62rem}
+
+/* Bot giám sát */
+.supstrip{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 14px;margin-bottom:var(--gap);border-radius:12px;border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 7%,var(--surface));color:var(--ink)}
+.supstrip:hover{text-decoration:none;border-color:var(--brand)}.supstrip>b{font-size:.95rem}.supstrip>small{color:var(--ink-2);font-size:.78rem;flex:1 1 260px}
+.supk{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.72rem;color:var(--ink-3)}.supk i{font-style:normal}.supk b{color:var(--ink)}.supgo{margin-left:auto;font-weight:600;color:var(--brand);font-size:.8rem}
+.sup-it{padding:7px 9px;border-radius:8px;background:var(--sunk);margin-bottom:6px;font-size:.82rem}.sup-it .pill{font-size:.6rem}.sup-it small{line-height:1.45}
+.sup-pb{position:relative;height:7px;border-radius:4px;background:var(--sunk-2,var(--line));margin:7px 2px 5px;overflow:visible}.sup-pb>i{display:block;height:100%;border-radius:4px;background:var(--brand)}
+.sup-pb>b{position:absolute;top:-3px;width:2px;height:13px;background:var(--ink-2);transform:translateX(-1px)}
+tr.sup-why td{border-top:0;padding-top:0;color:var(--ink-2)}.sup-sug{margin-top:3px;font-size:.76rem}.sup-sug .btn{margin-left:4px}
+.sup-h{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.sup-h>span:last-child{margin-left:auto;font-weight:600}
+tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap{white-space:normal;min-width:240px;max-width:360px}
