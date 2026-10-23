@@ -2226,3 +2226,39 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
 .sc-key{margin:6px 0 10px;font-size:.78rem}.sc-kv{margin-top:8px;padding:10px;border-radius:8px;background:var(--sunk);display:flex;flex-direction:column;gap:6px}.sc-kv code{word-break:break-all;font-size:.74rem;user-select:all}.sc-kv .btn{align-self:flex-start}
 .sc-cx{font-size:.56rem;font-weight:600;padding:1px 5px;border-radius:4px;background:var(--line-2);color:var(--ink-2);margin-left:3px;vertical-align:1px}.sc-cx.up{background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}.sc-cx.down{background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)}
 .sc-br{margin-top:10px;padding:10px 12px;border-radius:9px;background:var(--sunk);font-size:.78rem}.sc-br p{margin:0 0 6px}
+
+/* ---------- điện thoại & máy tính bảng (< 980px): thanh dưới 1 hàng, 5 nút; bảng "Thêm"; thanh chuyển nhanh trong trang Bot ---------- */
+.nav-more{display:none}
+@media (max-width:979px){
+  .tabs{grid-template-columns:repeat(5,1fr)!important}
+  .tabs a:not(.nav-m){display:none!important}
+  .tabs a,.tabs .nav-more{font-size:.68rem!important;padding:7px 2px 8px!important}
+  .tabs a svg,.tabs .nav-more svg{width:21px!important;height:21px!important}
+  .tabs .nav-more{display:flex;flex-direction:column;align-items:center;gap:1px;background:none;border:0;color:var(--ink-2);font:inherit;font-weight:500;cursor:pointer}
+  .tabs .nav-more.on,.tabs a.par{color:var(--brass,var(--brand))}
+  body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(66px + env(safe-area-inset-bottom,0px))!important;right:12px}
+  body.msheet-on{overflow:hidden}
+  body.msheet-on .pnfab{display:none!important}
+}
+.msheet{position:fixed;inset:0;z-index:70}
+.msheet[hidden]{display:none}
+.msheet-bg{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.msheet-in{position:absolute;left:0;right:0;bottom:0;max-height:82vh;display:flex;flex-direction:column;background:var(--surface);border-radius:16px 16px 0 0;border-top:1px solid var(--line);box-shadow:0 -12px 32px rgba(0,0,0,.25);padding-bottom:env(safe-area-inset-bottom,0px);animation:msUp .18s ease-out}
+@keyframes msUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.msheet-h{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:1px solid var(--line-2)}
+.msheet-h b{font-size:.95rem}
+.msheet-b{overflow:auto;padding:4px 12px 14px}
+.msheet-g{display:flex;align-items:center;gap:8px;margin:14px 4px 6px;font:700 .64rem/1 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.msheet-g i{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;background:var(--sunk);color:var(--ink-2);font-style:normal;font-size:.6rem}
+.msheet-l{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.msheet-l a{display:flex;align-items:center;gap:9px;padding:10px 11px;border-radius:10px;background:var(--sunk);color:var(--ink);font-size:.86rem;font-weight:500;text-decoration:none!important;min-height:44px}
+.msheet-l a svg{width:18px;height:18px;flex:none;color:var(--ink-3)}
+.msheet-l a.sub{background:transparent;border:1px dashed var(--line)}
+.msheet-l a.on{background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent);color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass,var(--brand)) 45%,transparent)}
+.msheet-l a.on svg{color:var(--brass,var(--brand))}
+.botseg{display:flex;gap:6px;margin:-2px 0 12px;overflow-x:auto;scrollbar-width:none}
+.botseg::-webkit-scrollbar{display:none}
+.botseg a{flex:1 0 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font-size:.82rem;font-weight:600;white-space:nowrap;text-decoration:none!important}
+.botseg a.on{background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent);border-color:color-mix(in srgb,var(--brass,var(--brand)) 55%,transparent);color:var(--ink)}
+@media (min-width:1180px){.botseg{display:none}}
+@media (max-width:480px){.botseg a{flex:1 1 0;min-width:0;padding:8px 6px;font-size:.74rem;gap:4px}.botseg a span{font-size:.85em}}

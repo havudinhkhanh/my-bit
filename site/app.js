@@ -237,7 +237,39 @@ function gauge(v, lo = 0, hi = 100, label = "") {
 }
 
 // ================================================================ khung trang
-function setTab(r) { $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", (r === "botsup" || r === "botscalp") && a.dataset.r === "bot"); }); }
+function setTab(r) {
+  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", (r === "botsup" || r === "botscalp") && a.dataset.r === "bot"); });
+  // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
+  $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
+}
+// ---------------------------------------------------------------- điện thoại: bảng "Thêm" = mọi trang, chia 5 nhóm (dựng từ chính thanh điều hướng → luôn khớp)
+function mSheet(open) {
+  const el = $("#msheet"); if (!el) return;
+  if (open) {
+    let html = "", grp = "";
+    for (const n of $("#tabs").children) {
+      if (n.classList.contains("nav-g")) { if (grp) html += `</div>`; html += `<h4 class="msheet-g">${n.innerHTML}</h4><div class="msheet-l">`; grp = 1; }
+      else if (n.tagName === "A") html += `<a href="${n.getAttribute("href")}" class="${[n.classList.contains("on") || n.classList.contains("par") ? "on" : "", n.classList.contains("nav-sub") ? "sub" : ""].join(" ")}">${n.innerHTML}</a>`;
+    }
+    $("#msheetB").innerHTML = html + (grp ? "</div>" : "");
+  }
+  el.hidden = !open; document.body.classList.toggle("msheet-on", !!open);
+}
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#navMore")) { mSheet($("#msheet")?.hidden); return; }
+  if (e.target.closest("#msheet [data-close]") || e.target.closest("#msheetB a")) mSheet(false);
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msheet")?.hidden) mSheet(false); });
+if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
+// trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
+const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botscalp", "#/bot/scalp", "⚡", "Bot lướt giây"]];
+function botSeg() {
+  if (!/^#\/bot(\/|$)/.test(location.hash) || $("#app .botseg")) return;
+  const k = location.hash.startsWith("#/bot/sup") ? "botsup" : location.hash.startsWith("#/bot/scalp") ? "botscalp" : "bot";
+  const ph = $("#app > .ph"); if (!ph) return;
+  ph.insertAdjacentHTML("afterend", `<nav class="botseg" aria-label="Các bot">${BOTSEG.map(([r, href, ic, t]) => `<a href="${href}" class="${r === k ? "on" : ""}"><span>${ic}</span>${t}</a>`).join("")}</nav>`);
+}
+new MutationObserver(() => botSeg()).observe(document.getElementById("app"), { childList: true });
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => $("#app");
