@@ -16,7 +16,7 @@ import { DurableObject } from "cloudflare:workers";
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
-const HS = [2, 5, 15, 30, 60];
+const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 5 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
 const STABLE = new Set(["USDC", "USDT", "FDUSD", "TUSD", "DAI", "USDE", "USDD", "PYUSD", "BUSD", "EUR", "EURI", "AEUR", "USD1", "USDP", "USTC", "RLUSD", "XUSD", "BFUSD", "USDS", "GUSD"]);
@@ -27,13 +27,14 @@ const r2 = (x, d = 2) => (Number.isFinite(x) ? +x.toFixed(d) : null);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tierOf = (qv) => (qv >= TIERS[0] ? 0 : qv >= TIERS[1] ? 1 : qv >= TIERS[2] ? 2 : 3);
 const newCell = () => Array.from({ length: NB }, () => HS.map(() => [0, 0, 0]));
+const fit = (L, w) => { for (const row of L) while (row.length < HS.length) row.push(Array(w).fill(0)); return L; };   // bảng học cũ ít mốc hơn → thêm cột trống
 
 function norm(c) {
   c = { ...SCALP_DEF, ...(c || {}) };
   const n = (k, a, b) => (c[k] = clamp(Number.isFinite(+c[k]) ? +c[k] : SCALP_DEF[k], a, b));
   n("capital", 50, 1e7); n("min_vol", 0, 1e4); n("max_mk", 10, 1200); n("lev", 1, 20); n("risk", 0.02, 1); n("max_pos", 1, 30);
   n("fee_m", -0.02, 0.3); n("fee_t", 0, 0.3); n("fee_ms", -0.02, 0.5); n("fee_ts", 0, 0.5); n("min_net", 0, 50); n("k", 1, 5); n("min_n", 50, 20000);
-  n("hmax", 2, 60); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
+  n("hmax", 2, 300); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = c.mode === "maker" ? "maker" : "taker"; c.fut = c.fut !== false; c.spot = c.spot !== false;
   if (!c.fut && !c.spot) c.fut = true;
   return c;
@@ -243,7 +244,7 @@ export class Scalper extends DurableObject {
       x.flow.push([x.sec.buy, x.sec.sell]); x.sec = { buy: 0, sell: 0 }; if (x.flow.length > 10) x.flow.shift();
       x.mids.push(mid); if (x.mids.length > 61) x.mids.shift();
       this.manageTime(x, now);
-      if (now - x.tb > 10000) { cnt.stale++; x.pend.length = 0; if (!S.pos[id]) continue; }
+      if (now - x.tb > 10000) { cnt.stale++; x.pend.length = 0; x.ptr = null; if (!S.pos[id]) continue; }
       if (x.mids.length < 20) continue;
       // đặc trưng
       let b5 = 0, s5 = 0; for (let i = Math.max(0, x.flow.length - 5); i < x.flow.length; i++) { b5 += x.flow[i][0]; s5 += x.flow[i][1]; }
@@ -256,15 +257,18 @@ export class Scalper extends DurableObject {
       const s = clamp(0.4 * tfi + 0.3 * obi + 0.3 * mz, -1, 1), side = s >= 0 ? 1 : -1, bin = Math.min(NB - 1, Math.floor(Math.abs(s) / BW));
       const g = (x.g = x.t + tierOf(x.qv));
       // bộ học: chốt các mẫu đã đủ thời gian (gộp theo nhóm – đơn vị biến động; riêng từng coin – bps)
-      const LP = (S.LP[g] ||= newCell()), LM = (this.LM[id] ||= Array.from({ length: NB }, () => HS.map(() => [0, 0])));
-      x.pend.push([now, side, bin, mid, vol, g, 0]);
-      while (x.pend.length && now - x.pend[0][0] > (HS[HS.length - 1] + 1) * 1000) x.pend.shift();
-      for (const p of x.pend) {
-        for (let hi = 0; hi < HS.length; hi++) {
-          if (p[6] & (1 << hi) || now - p[0] < HS[hi] * 1000) continue;
-          p[6] |= 1 << hi;
-          const fwd = clamp(p[1] * (mid / p[3] - 1) * 1e4, -300, 300), z = clamp(fwd / (p[4] * Math.sqrt(HS[hi])), -10, 10);
-          const P = (S.LP[p[5]] ||= newCell())[p[2]][hi], n = P[0] + 1, a = 1 / Math.min(n, 20000), d = z - P[1];
+      const LP = fit((S.LP[g] ||= newCell()), 3), LM = fit((this.LM[id] ||= Array.from({ length: NB }, () => HS.map(() => [0, 0]))), 2);
+      // chỉ học các mốc ≤ thời gian giữ tối đa đang cài (đỡ tốn bộ nhớ/CPU khi quét hàng trăm thị trường); con trỏ theo từng mốc → mỗi mẫu chỉ xử lý 1 lần
+      const nh = HS.filter((h) => h <= c.hmax).length, hl = HS[nh - 1];
+      x.pend.push([now, side, bin, mid, vol, g]);
+      const ptr = (x.ptr ||= HS.map(() => 0));
+      while (x.pend.length && now - x.pend[0][0] > (hl + 1) * 1000) { x.pend.shift(); for (let hi = 0; hi < HS.length; hi++) ptr[hi] = Math.max(0, ptr[hi] - 1); }
+      for (let hi = 0; hi < nh; hi++) {
+        const hms = HS[hi] * 1000, sq = Math.sqrt(HS[hi]);
+        while (ptr[hi] < x.pend.length && now - x.pend[ptr[hi]][0] >= hms) {
+          const p = x.pend[ptr[hi]++];
+          const fwd = clamp(p[1] * (mid / p[3] - 1) * 1e4, -500, 500), z = clamp(fwd / (p[4] * sq), -10, 10);
+          const P = fit((S.LP[p[5]] ||= newCell()), 3)[p[2]][hi], n = P[0] + 1, a = 1 / Math.min(n, 20000), d = z - P[1];
           P[0] = n; P[1] += a * d; P[2] = (1 - a) * (P[2] + a * d * d);
           const Q = LM[p[2]][hi], nq = Q[0] + 1; Q[0] = nq; Q[1] += (fwd - Q[1]) / Math.min(nq, 3000);
         }
@@ -293,7 +297,7 @@ export class Scalper extends DurableObject {
       else if (x.t === "S" && side < 0) { v = "skip"; why = "tín hiệu bán nhưng spot không bán khống được – đứng ngoài"; }
       else if (S.pause) { v = "pause"; why = `tạm dừng: ${S.pause.why}`; }
       else if (spread > c.spread_max) { v = "skip"; why = `chênh lệch mua/bán ${spread.toFixed(2)} bps > ${c.spread_max} – bỏ qua vì chênh lệch quá rộng`; }
-      else if (x.t === "F" && nearFunding(now)) { v = "skip"; why = "sát giờ funding (±45 giây) – đứng ngoài"; }
+      else if (x.t === "F" && nearFunding(now, best.h)) { v = "skip"; why = "lệnh sẽ giữ qua giờ funding – đứng ngoài"; }
       else if (S.cool[id] && now < S.cool[id]) { v = "skip"; why = `vừa đóng lệnh coin này – nghỉ thêm ${Math.ceil((S.cool[id] - now) / 1000)} giây`; }
       else { v = "go"; cand.push({ x, side, best, cost, vol, mid, spread }); }
       cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v]++;
@@ -409,7 +413,8 @@ export class Scalper extends DurableObject {
     }
   }
 }
-const nearFunding = (now) => { const s = Math.floor(now / 1000) % 3600; return s < 45 || s > 3600 - 45; };
+// futures: không mở lệnh trong 45 giây sau giờ tròn, và không mở lệnh mà thời gian giữ sẽ vắt qua giờ tròn (giờ funding 1h/4h/8h đều rơi vào giờ tròn)
+const nearFunding = (now, h = 0) => { const s = Math.floor(now / 1000) % 3600; return s < 45 || 3600 - s < h + 45; };
 
 // gọi từ cron mỗi phút: đánh thức bot lướt giây của những người đang bật
 export async function scalpPing(env, canBot) {
