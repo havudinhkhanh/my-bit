@@ -131,7 +131,9 @@ export class Scalper extends DurableObject {
   }
   async fetch(req) {
     const u = new URL(req.url);
-    if (u.pathname === "/ping") { const b = await req.json().catch(() => ({})); await this.boot(b.uid); return Response.json({ ok: true, feeds: Object.fromEntries(Object.entries(this.F).map(([t, f]) => [t, { src: f.src, live: !!f.ws, n: f.list?.length }])), at: iso(Date.now()) }); }
+    if (u.pathname === "/ping") {
+      const b = await req.json().catch(() => ({}));
+      try { await this.boot(b.uid); } catch (e) { this.err("boot " + (e?.stack || e)); return Response.json({ ok: false, err: String(e?.stack || e).slice(0, 500) }, { status: 500 }); } return Response.json({ ok: true, feeds: Object.fromEntries(Object.entries(this.F).map(([t, f]) => [t, { src: f.src, live: !!f.ws, n: f.list?.length }])), at: iso(Date.now()) }); }
     return new Response("scalper");
   }
   err(m) { this.diag.err = [...this.diag.err.slice(-11), `${new Date().toISOString().slice(11, 19)} ${String(m).slice(0, 140)}`]; }
@@ -475,7 +477,13 @@ export async function scalpPing(env, canBot) {
     if (!c?.enabled) continue;
     if (!canBot(r)) continue;
     const stub = env.SCALP.get(env.SCALP.idFromName("u" + r.user_id), { locationHint: "apac" });
-    try { await stub.fetch("https://scalp/ping", { method: "POST", body: JSON.stringify({ uid: r.user_id }) }); n++; } catch (e) { console.log("scalp ping", r.user_id, e.message); }
+    let res;
+    try { const rp = await stub.fetch("https://scalp/ping", { method: "POST", body: JSON.stringify({ uid: r.user_id }) }); res = { ok: rp.ok, status: rp.status, body: (await rp.text()).slice(0, 600) }; n++; }
+    catch (e) { res = { ok: false, err: String(e?.message || e).slice(0, 600) }; console.log("scalp ping", r.user_id, res.err); }
+    try {      // ghi kết quả đánh thức để kiểm tra từ xa (lỗi hạn mức Durable Object, lỗi khởi động …)
+      await env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpping', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+        .bind(r.user_id, JSON.stringify({ at: new Date().toISOString(), ...res }), new Date().toISOString()).run();
+    } catch (e) { /* bỏ qua */ }
   }
   return { scalpers: n };
 }

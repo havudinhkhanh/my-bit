@@ -556,6 +556,9 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
         for r in rs or []:
             log.info("Bot lướt giây: cập nhật %s · bật %s · luồng %s · mỗi giây %s · Binance %s · tài sản %s · %s lệnh · ròng %s · phí %s · chẩn đoán %s", r.get("updated_at"), r.get("en"), r.get("src"),
                      r.get("ws"), r.get("lm"), r.get("eq"), r.get("n"), r.get("net"), r.get("fees"), str(r.get("diag") or "")[:400])
+        rs, _ = be.q("SELECT value FROM user_data WHERE key = 'scalpping'", [])
+        for r in rs or []:
+            log.info("Bot lướt giây – lần đánh thức gần nhất: %s", str(r.get("value"))[:800])
         # kiểm tra: kỳ vọng lúc vào lệnh so với thực tế, theo mốc giữ / lý do thoát / loại thị trường
         rs, _ = be.q("SELECT json_extract(value, '$.trades') AS tr FROM user_data WHERE key = 'scalpstate'", [])
         for r in rs or []:
