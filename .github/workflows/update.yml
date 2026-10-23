@@ -164,6 +164,7 @@ jobs:
           curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
           curl -s -o /dev/null -w "data %{http_code}\n" https://my-bit.pages.dev/data/market.json >> data/site_check.txt || true
           curl -s -o /dev/null -w "api %{http_code}\n" https://my-bit.pages.dev/api/intraday >> data/site_check.txt || true
+          curl -s -w " runner %{http_code}\n" -H "authorization: Bearer 0000000000000000000000000000000000000000000000000000000000000000" https://my-bit.pages.dev/api/scalp-runner >> data/site_check.txt || true
           cat data/optimize.txt >> data/site_check.txt 2>/dev/null || true
 
       - name: Bản sao dữ liệu để phát triển
