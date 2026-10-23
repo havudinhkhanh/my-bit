@@ -2223,3 +2223,4 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
 .sc-r td{font-size:.76rem;white-space:nowrap}.sc-w{width:220px;white-space:normal;font-size:.68rem;line-height:1.3;margin-top:2px}
 .scl-m{position:relative;display:inline-block;width:54px;height:6px;border-radius:3px;vertical-align:middle;background:linear-gradient(90deg,color-mix(in srgb,var(--down) 55%,transparent),var(--line-2) 50%,color-mix(in srgb,var(--up) 55%,transparent))}.scl-m i{position:absolute;top:-2px;width:3px;height:10px;border-radius:2px;background:var(--ink);transform:translateX(-1px)}
 .sc-fl,.sc-gs{margin-bottom:8px}
+.sc-key{margin:6px 0 10px;font-size:.78rem}.sc-kv{margin-top:8px;padding:10px;border-radius:8px;background:var(--sunk);display:flex;flex-direction:column;gap:6px}.sc-kv code{word-break:break-all;font-size:.74rem;user-select:all}.sc-kv .btn{align-self:flex-start}

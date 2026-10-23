@@ -1,0 +1,21 @@
+[Unit]
+Description=MyBit – bot lướt giây (máy chủ riêng)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mybit
+WorkingDirectory=/opt/my-bit
+ExecStart=/usr/bin/node /opt/my-bit/scalper/runner.mjs
+Restart=always
+RestartSec=5
+# giới hạn an toàn: bot chỉ đọc dữ liệu thị trường công khai và gọi trang MyBit
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/my-bit/scalper/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

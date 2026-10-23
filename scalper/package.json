@@ -1,0 +1,1 @@
+{ "name": "mybit-scalper", "private": true, "type": "module", "engines": { "node": ">=22" }, "scripts": { "start": "node runner.mjs" } }

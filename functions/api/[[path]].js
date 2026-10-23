@@ -4,7 +4,7 @@
 import { admin } from "../_lib/admin.js";
 import { auth } from "../_lib/auth.js";
 import {
-  can, ensureSchema, err, getSession, json, limits, nowIso, sameOrigin, USER_KEYS, vapidPublic, withCookie,
+  can, ensureSchema, err, getSession, json, limits, nowIso, sameOrigin, sha256Hex, USER_KEYS, vapidPublic, withCookie,
 } from "../_lib/core.js";
 
 // ---------------------------------------------------------------- chế độ cũ (một chủ sở hữu)
@@ -78,12 +78,35 @@ function checkLimits(key, body, lim) {
   return null;
 }
 
+// ---------------------------------------------------------------- cổng cho bot lướt giây chạy ở MÁY CHỦ RIÊNG (VPS)
+// Xác thực bằng khoá riêng anh tạo trên trang (chỉ lưu mã băm SHA-256 trong D1 – khoá thật chỉ nằm trên VPS).
+// GET  → thiết lập bot lướt giây của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
+async function scalpRunner({ request, env }) {
+  const key = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+  if (!/^[0-9a-f]{64}$/.test(key)) return err("Thiếu hoặc sai khoá máy chủ riêng", 401);
+  const h = await sha256Hex(key);
+  const u = await env.DB.prepare("SELECT d.user_id AS id, u.role, u.plan, u.plan_until, u.status FROM user_data d JOIN users u ON u.id = d.user_id WHERE d.key = 'scalpkey' AND json_extract(d.value, '$.h') = ?").bind(h).first();
+  if (!u || u.status !== "active") return err("Khoá không hợp lệ hoặc đã bị thay", 401);
+  const p = u.plan_until && u.plan_until < nowIso().slice(0, 10) ? "free" : u.plan;
+  if (!can({ r: u.role, p }, "bot")) return err("Bot lướt giây dành cho gói Pro", 402);
+  if (request.method === "GET") return json({ uid: u.id, cfg: await getData(env, u.id, "scalp") });
+  if (request.method === "POST") {
+    const text = await request.text();
+    if (text.length > 1500000) return err("Dữ liệu quá lớn", 413);
+    try { JSON.parse(text); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    await putData(env, u.id, "scalpstate", text);
+    return json({ ok: true });
+  }
+  return err("Phương thức không hỗ trợ", 405);
+}
+
 export async function onRequest(ctx) {
   const { request, env, params } = ctx;
   const parts = Array.isArray(params.path) ? params.path : [params.path];
   const [key, sub] = parts;
   if (!env.DB) return legacy(ctx, key);
   await ensureSchema(env);
+  if (key === "scalp-runner") return scalpRunner(ctx);
   if (request.method !== "GET" && !sameOrigin(request)) return err("Sai nguồn gửi", 403);
   if (key === "auth") return auth(ctx, sub);
 

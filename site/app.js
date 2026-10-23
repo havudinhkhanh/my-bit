@@ -2969,7 +2969,7 @@ async function viewSup() {
 }
 
 // ================================================================ BOT LƯỚT GIÂY (scalping) – quét toàn thị trường spot + futures, chạy liên tục trên máy chủ (Durable Object); trang này chỉ hiển thị & cài đặt
-const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
+const SCALP_DEF = { enabled: false, where: "cf", capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, daily_stop: 3, max_h: 120, spread_max: 10 };
 const SCV = { go: ["ĐẠT CHUẨN", "buy"], hold: ["ĐANG GIỮ", "brand"], order: ["CHỜ KHỚP", "brand"], fee: ["CHƯA ĐỦ BIÊN", "warn"], learn: ["ĐANG HỌC", ""], skip: ["BỎ QUA", ""], pause: ["TẠM DỪNG", "sell"] };
 const hms = (t) => (t ? new Date(t + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
 const bps = (x, d = 1) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, d)}` : "—");
@@ -2977,17 +2977,19 @@ const scK = (id) => { const [b, t] = String(id).split(":"); return `<b>${esc(b)}
 const scG = (g, tiers = [500, 50, 5]) => { const t = g[0], i = +g[1]; return `${t === "F" ? "Futures" : "Spot"} · hạng ${i} (${i === 0 ? `≥ ${tiers[0]}` : i === 3 ? `< ${tiers[2]}` : `${tiers[i]}–${tiers[i - 1]}`} triệu $/24h)`; };
 async function viewScalp() {
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
-  const [rq, rv] = await Promise.all([Store.get("scalp"), Store.get("scalpstate")]);
+  const [rq, rv, rk] = await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
+  const KEYH = rk.data?.h ? rk.data : null;
   const C = { ...SCALP_DEF, ...(rq.data || {}) }, X0 = rv.data || {}, X = X0.v === 2 ? X0 : { at: X0.at };
-  const age = X.at ? (Date.now() - Date.parse(X.at + "Z")) / 1000 : null, FD = X.feeds || {}, fl = Object.values(FD);
+  const VW = C.where === "vps", age = X.at ? (Date.now() - Date.parse(X.at + "Z")) / 1000 : null, FD = X.feeds || {}, fl = Object.values(FD);
   const nMk = fl.reduce((a, f) => a + (f.n || 0), 0), rate = fl.reduce((a, f) => a + (f.rate || 0), 0), anyLive = fl.some((f) => f.ws && f.last && (Date.now() - Date.parse(f.last + "Z")) / 1000 < 30);
   const st = !C.enabled ? ["Đang tắt", "", "Bật để bot quét mọi cặp spot & futures USDT, nghe sổ lệnh & khớp lệnh liên tục và tự đánh giá mỗi giây – chạy trên máy chủ kể cả khi anh tắt máy."]
-    : !X.at || age > 90 || !X.feeds ? ["Đang khởi động", "warn", "máy chủ đánh thức bot trong vòng 1 phút sau khi bật"]
+    : VW && (X.where !== "vps" || age > 90) ? ["Đang chờ máy chủ riêng", "warn", "chưa nhận được tin từ máy chủ riêng trong 90 giây qua – kiểm tra chương trình trên VPS đang chạy và đã dán đúng khoá (xem Thiết lập → Nơi chạy)"]
+    : !X.at || age > 90 || !X.feeds || (X.where || "cf") !== (VW ? "vps" : "cf") ? ["Đang khởi động", "warn", "máy chủ đánh thức bot trong vòng 1 phút sau khi bật"]
     : !anyLive ? ["Mất kết nối dữ liệu", "sell", `đang thử nguồn khác${X.diag?.err?.length ? " · " + X.diag.err.slice(-2).join(" · ") : ""}`]
     : X.pause ? ["⏸ Tạm dừng", "warn", X.pause.why] : ["● Đang chạy", "buy", `đang quét ${nf(nMk, 0)} thị trường · ${nf(rate, 0)} tin nhắn/giây · cập nhật trang mỗi 3 giây`];
   const S = X.stats || {}, L50 = X.last50, ret = X.start ? (X.eq / X.start - 1) * 100 : null, dayP = X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null, N = X.cnt || {};
   const feeShare = S.gross > 0 ? S.fees / S.gross * 100 : null, nOpen = Object.keys(X.pos || {}).length;
-  const feedTxt = Object.entries(FD).map(([t, f]) => `<span>${t === "F" ? "Futures" : "Spot"}: <b>${esc(f.src || "—")}</b> · ${nf(f.n || 0, 0)} thị trường · ${nf(f.rate || 0, 0)} tin/giây ${f.ws ? `<i class="up">●</i>` : `<i class="down">●</i>`}</span>`).join("");
+  const feedTxt = (X.where === "vps" ? `<span>Chạy ở: <b>máy chủ riêng</b>${X.host ? ` (${esc(X.host)})` : ""}</span>` : "") + Object.entries(FD).map(([t, f]) => `<span>${t === "F" ? "Futures" : "Spot"}: <b>${esc(f.src || "—")}</b> · ${nf(f.n || 0, 0)} thị trường · ${nf(f.rate || 0, 0)} tin/giây ${f.ws ? `<i class="up">●</i>` : `<i class="down">●</i>`}</span>`).join("");
   const bn = X.bn ? `<span class="faint">Binance (thử lại mỗi giờ): futures ${esc(X.bn.futures || "—")} · spot ${esc(X.bn.spot || "—")}${X.bn.futures === "OK" ? "" : " – Binance futures đang chặn máy chủ Cloudflare nên futures dùng dữ liệu sàn khác (Bybit/OKX) cho cùng các coin; phí vẫn tính theo mức phí Binance anh nhập"}</span>` : "";
   const F0 = (window.__scF ||= "all");
   const rows = (X.radar || []).filter(([id, q]) => F0 === "all" || q.t === F0);
@@ -3041,7 +3043,11 @@ async function viewScalp() {
       <div>${panel("⚙️ Thiết lập", `<div id="scForm"></div>`)}</div></div>`;
   const f = () => {
     const num = (k, t) => `<div class="field"><label>${t}</label><input id="sc_${k}" inputmode="decimal" value="${C[k]}"></div>`;
-    $("#scForm").innerHTML = `<h4 class="bfh">Phạm vi quét</h4><div class="bseg">${[["fut", "Futures (vĩnh cửu USDT)"], ["spot", "Spot (USDT)"]].map(([k, t]) => `<button type="button" data-sct="${k}" class="${C[k] ? "on" : ""}">${C[k] ? "✓ " : ""}${t}</button>`).join("")}</div>
+    $("#scForm").innerHTML = `<h4 class="bfh">Nơi chạy</h4><div class="bseg">${[["cf", "Cloudflare (miễn phí, có hạn mức)"], ["vps", "Máy chủ riêng (VPS) – Binance trực tiếp"]].map(([v, t]) => `<button type="button" data-scw="${v}" class="${(C.where === "vps" ? "vps" : "cf") === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      ${C.where === "vps" ? `<div class="sc-key"><p class="faint">Chương trình trên máy chủ riêng xác thực bằng một khoá. Trang chỉ lưu mã băm của khoá; khoá thật chỉ hiện <b>một lần</b> ngay khi tạo – anh dán vào tệp <code>.env</code> trên máy chủ. Tạo khoá mới thì khoá cũ hết hiệu lực.</p>
+        <div class="bsave"><button type="button" class="btn" id="scKey">🔑 ${KEYH ? "Tạo khoá mới (thay khoá cũ)" : "Tạo khoá máy chủ riêng"}</button><small class="faint">${KEYH ? `đã có khoá từ ${dt(KEYH.at)}` : "chưa có khoá"}</small></div><div id="scKeyOut"></div>
+        <p class="faint">Hướng dẫn cài máy chủ: <a href="https://github.com/havudinhkhanh/my-bit/blob/main/scalper/README.md" target="_blank" rel="noopener">scalper/README.md</a></p></div>` : `<p class="faint">Gói Cloudflare miễn phí chỉ cho khoảng 2 triệu tin nhắn dữ liệu mỗi ngày – quét toàn thị trường dùng hết sau chừng nửa giờ, rồi bot đứng tới 07:00 sáng hôm sau.</p>`}
+      <h4 class="bfh">Phạm vi quét</h4><div class="bseg">${[["fut", "Futures (vĩnh cửu USDT)"], ["spot", "Spot (USDT)"]].map(([k, t]) => `<button type="button" data-sct="${k}" class="${C[k] ? "on" : ""}">${C[k] ? "✓ " : ""}${t}</button>`).join("")}</div>
       <div class="filters bff">${num("min_vol", "Khối lượng 24h tối thiểu (triệu USD)")}${num("max_mk", "Số thị trường tối đa")}${num("capital", "Vốn sàn thử (USDT)")}</div>
       <h4 class="bfh">Cách vào lệnh & phí</h4><div class="bseg">${[["taker", "Taker (khớp ngay)"], ["maker", "Maker (đặt sẵn, chờ khớp)"]].map(([v, t]) => `<button type="button" data-scm="${v}" class="${C.mode === v ? "on" : ""}">${t}</button>`).join("")}</div>
       <div class="filters bff">${num("fee_m", "Phí maker futures (%)")}${num("fee_t", "Phí taker futures (%)")}${num("fee_ms", "Phí maker spot (%)")}${num("fee_ts", "Phí taker spot (%)")}</div>
@@ -3049,6 +3055,15 @@ async function viewScalp() {
         ${num("risk", "Rủi ro mỗi lệnh (% tài sản)")}${num("lev", "Đòn bẩy tối đa (futures)")}${num("max_pos", "Số vị thế mở tối đa")}${num("daily_stop", "Dừng khi lỗ trong ngày (%)")}${num("max_h", "Tối đa lệnh / giờ")}${num("spread_max", "Bỏ qua khi chênh lệch > (bps)")}</div>
       <div class="bsave"><button class="btn primary" id="scSave">💾 Lưu</button><small class="faint">Bot đọc thiết lập mới trong ≤ 30 giây; đổi phạm vi quét thì bot kết nối lại.</small></div>`;
     $$("#scForm [data-scm]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.scm; f(); }));
+    $$("#scForm [data-scw]").forEach((b) => (b.onclick = () => { rd(); C.where = b.dataset.scw; f(); }));
+    if ($("#scKey")) $("#scKey").onclick = async () => {
+      if (KEYH && !confirm("Tạo khoá mới? Máy chủ riêng đang dùng khoá cũ sẽ bị ngắt cho tới khi anh dán khoá mới.")) return;
+      const k = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
+      const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)))].map((x) => x.toString(16).padStart(2, "0")).join("");
+      await Store.put("scalpkey", { h, at: new Date().toISOString() });
+      $("#scKeyOut").innerHTML = `<div class="sc-kv"><p><b>Khoá (chỉ hiện lần này):</b></p><code id="scKv" data-noi18n>MYBIT_SCALP_KEY=${k}</code><button type="button" class="btn" id="scCopy">📋 Chép</button><p class="faint">Dán nguyên dòng trên vào tệp <code>.env</code> trên máy chủ riêng, rồi bấm Lưu ở dưới (đã chọn "Máy chủ riêng").</p></div>`;
+      $("#scCopy").onclick = () => navigator.clipboard?.writeText($("#scKv").textContent).then(() => toast("Đã chép khoá"));
+    };
     $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; f(); }));
     $("#scSave").onclick = async () => { rd(); delete C.syms; await Store.put("scalp", C); toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); };
   };
