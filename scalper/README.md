@@ -53,7 +53,7 @@ Khoảng 1 phút sau, trang MyBit sẽ hiện **● Đang chạy · Chạy ở: 
 | Cập nhật bản mới nhất | `sudo bash /opt/my-bit/scalper/install.sh` |
 | Khởi động lại | `sudo systemctl restart mybit-scalper` |
 | Dừng hẳn | `sudo systemctl disable --now mybit-scalper` |
-| Đổi khoá | Tạo khoá mới trên trang, sửa `/opt/my-bit/scalper/.env`, rồi khởi động lại |
+| Đổi khoá (sau khi tạo khoá mới trên trang) | `curl -fsSL https://raw.githubusercontent.com/havudinhkhanh/my-bit/main/scalper/install.sh \| sudo bash -s -- --key` |
 
 Bộ học và tài khoản sàn thử của máy chủ được lưu ở `/opt/my-bit/scalper/data/state.json`, nên khởi động lại không bị mất.
 

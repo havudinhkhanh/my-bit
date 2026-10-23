@@ -27,6 +27,7 @@ const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const r2 = (x, d = 2) => (Number.isFinite(x) ? +x.toFixed(d) : null);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const get = (url) => fetch(url, { signal: AbortSignal.timeout(15000) });   // REST: không bao giờ chờ quá 15 giây (tránh treo cả vòng lặp)
 const tierOf = (qv) => (qv >= TIERS[0] ? 0 : qv >= TIERS[1] ? 1 : qv >= TIERS[2] ? 2 : 3);
 const newCell = () => Array.from({ length: NB }, () => HS.map(() => [0, 0, 0]));
 const fit = (L, w) => { for (const row of L) while (row.length < HS.length) row.push(Array(w).fill(0)); return L; };   // bảng học cũ ít mốc hơn → thêm cột trống
@@ -54,7 +55,7 @@ const SRC = {
   okx: {
     async universe(t) {
       const it = t === "F" ? "SWAP" : "SPOT";
-      const [ri, rt] = await Promise.all([fetch(`https://www.okx.com/api/v5/public/instruments?instType=${it}`), fetch(`https://www.okx.com/api/v5/market/tickers?instType=${it}`)]);
+      const [ri, rt] = await Promise.all([get(`https://www.okx.com/api/v5/public/instruments?instType=${it}`), get(`https://www.okx.com/api/v5/market/tickers?instType=${it}`)]);
       if (!ri.ok || !rt.ok) throw new Error(`HTTP ${ri.status}/${rt.status}`);
       const I = (await ri.json()).data || [], T = new Map(((await rt.json()).data || []).map((x) => [x.instId, x]));
       const out = [];
@@ -83,7 +84,7 @@ const SRC = {
   },
   bybit: {
     async universe(t) {
-      const r = await fetch(`https://api.bybit.com/v5/market/tickers?category=${t === "F" ? "linear" : "spot"}`);
+      const r = await get(`https://api.bybit.com/v5/market/tickers?category=${t === "F" ? "linear" : "spot"}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const L = (await r.json()).result?.list || [], out = [];
       for (const x of L) {
@@ -108,11 +109,13 @@ SRC.binance = {      // spot: data-stream.binance.vision (kết nối được c
   only: "S",
   url: () => "wss://data-stream.binance.vision/stream?streams=!miniTicker@arr",
   uniFrom: (arr, t) => arr.filter((x) => /^[A-Z0-9]+USDT$/.test(x.s)).map((x) => ({ id: `${x.s.replace(/USDT$/, "")}:${t}`, sym: x.s, ct: 1, qv: +x.q / 1e6 })),
-  subs: (t, L) => { const a = L.slice(0, 500).flatMap((m) => [`${m.sym.toLowerCase()}@bookTicker`, `${m.sym.toLowerCase()}@aggTrade`]), out = []; for (let i = 0; i < a.length; i += 100) out.push(JSON.stringify({ method: "SUBSCRIBE", params: a.slice(i, i + 100), id: i / 100 + 1 })); return out; },
+  // sổ lệnh 5 mức chụp mỗi 100ms (thay cho bookTicker: coin lớn đổ về hàng nghìn tin/giây, máy chủ nhỏ không kham nổi) + khớp lệnh gộp
+  subs: (t, L) => { const a = L.slice(0, 500).flatMap((m) => [`${m.sym.toLowerCase()}@depth5@100ms`, `${m.sym.toLowerCase()}@aggTrade`]), out = []; for (let i = 0; i < a.length; i += 100) out.push(JSON.stringify({ method: "SUBSCRIBE", params: a.slice(i, i + 100), id: i / 100 + 1 })); return out; },
   ping: null,
   parse(m, F, on) {
     const d = m.data; if (!d) return;
     if (Array.isArray(d)) { for (const x of d) { const mk = F.bySym.get(x.s); if (mk) mk.qv = +x.q / 1e6; } return; }
+    if (d.bids && d.asks) { const mk = F.bySym.get(String(m.stream || "").split("@")[0].toUpperCase()); if (mk) book5(on, mk, d.bids, d.asks); return; }   // sổ lệnh 5 mức (không có mã coin trong dữ liệu → lấy từ tên luồng)
     const mk = F.bySym.get(d.s); if (!mk) return;
     if (d.e === "aggTrade") on.trade(mk, +d.p, +d.q, d.m ? -1 : 1);
     else if (d.b) on.book(mk, +d.b, +d.B, +d.a, +d.A);
@@ -121,7 +124,7 @@ SRC.binance = {      // spot: data-stream.binance.vision (kết nối được c
 SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy được ở máy chủ riêng (Binance trả 403 cho Cloudflare)
   only: "F",
   async universe() {
-    const [ri, rt] = await Promise.all([fetch("https://fapi.binance.com/fapi/v1/exchangeInfo"), fetch("https://fapi.binance.com/fapi/v1/ticker/24hr")]);
+    const [ri, rt] = await Promise.all([get("https://fapi.binance.com/fapi/v1/exchangeInfo"), get("https://fapi.binance.com/fapi/v1/ticker/24hr")]);
     if (!ri.ok || !rt.ok) throw new Error(`HTTP ${ri.status}/${rt.status}`);
     const I = (await ri.json()).symbols || [], T = new Map(((await rt.json()) || []).map((x) => [x.symbol, x]));
     return I.filter((x) => x.status === "TRADING" && x.contractType === "PERPETUAL" && x.quoteAsset === "USDT" && T.has(x.symbol))
@@ -132,7 +135,7 @@ SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy 
     const out = [];
     for (let i = 0; i < L.length; i += 100) {
       const g = L.slice(i, i + 100).map((m) => m.sym.toLowerCase());
-      out.push({ url: "wss://fstream.binance.com/public/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@bookTicker"), id: i + 1 })] });
+      out.push({ url: "wss://fstream.binance.com/public/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@depth5@500ms"), id: i + 1 })] });
       out.push({ url: "wss://fstream.binance.com/market/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@aggTrade"), id: i + 2 })] });
     }
     return out;
@@ -142,9 +145,16 @@ SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy 
     const d = m.data; if (!d || !d.s) return;
     const mk = F.bySym.get(d.s); if (!mk) return;
     if (d.e === "aggTrade") on.trade(mk, +d.p, +d.q, d.m ? -1 : 1);
-    else if (d.e === "bookTicker" || d.b) on.book(mk, +d.b, +d.B, +d.a, +d.A);
+    else if (d.e === "depthUpdate" && Array.isArray(d.b)) book5(on, mk, d.b, d.a);
+    else if (d.e === "bookTicker") on.book(mk, +d.b, +d.B, +d.a, +d.A);
   },
 };
+// sổ lệnh nhiều mức → giá mua/bán tốt nhất + tổng khối lượng 5 mức mỗi bên (đo lệch sổ lệnh ổn định hơn chỉ nhìn mức đầu)
+function book5(on, mk, B, A) {
+  if (!B?.length || !A?.length) return;
+  let bq = 0, aq = 0; for (const x of B) bq += +x[1]; for (const x of A) aq += +x[1];
+  on.book(mk, +B[0][0], bq, +A[0][0], aq);
+}
 // thứ tự thử nguồn theo loại (mặc định cho Cloudflare: OKX hay trả 429 cho IP chung của Cloudflare nên futures thử Bybit trước)
 export const ORD_CF = { F: ["bybit", "okx"], S: ["binance", "okx", "bybit"] };
 export const ORD_VPS = { F: ["binancef", "bybit", "okx"], S: ["binance", "okx", "bybit"] };
@@ -235,7 +245,7 @@ export class ScalpCore {
           U0 = S.uniFrom(arr, t);
         } else U0 = await S.universe(t);
         let U = U0.filter((m) => !STABLE.has(m.id.split(":")[0]) && m.qv >= c.min_vol);
-        const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, S.uniFrom ? Math.min(c.max_mk, 500) : c.max_mk);
+        const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, Math.min(S.uniFrom ? 500 : 1e9, c.max_mk, this.io.cap ? this.io.cap(t) : 1e9));
         if (!U.length) throw new Error("danh sách thị trường rỗng");
         // một nguồn có thể cần nhiều kết nối (Binance futures: sổ lệnh và khớp lệnh ở 2 đường dẫn, 100 coin mỗi kết nối)
         const plan = S.conns ? S.conns(t, U) : [{ url: S.url(t), subs: S.subs(t, U) }];
@@ -467,7 +477,7 @@ export class ScalpCore {
     for (const id of [...Object.keys(S.pos), ...Object.keys(S.ord)]) if (!radar.some(([k]) => k === id) && this.live[id]) radar.unshift([id, this.live[id]]);
     if (radar.length < 40) radar.push(...L.filter(([, q]) => !q.best).sort((a, b) => b[1].qv - a[1].qv).slice(0, 40 - radar.length));
     const feeds = Object.fromEntries(Object.entries(this.F).map(([t, f]) => [t, { src: f.src, ws: !!f.ws, last: f.last ? iso(f.last) : null, n: f.list.length, rate: r2(f.rate, 0), at: f.at ? iso(f.at) : null }]));
-    const out = { v: 2, at: iso(now), enabled: !!this.cfg?.enabled, where: this.where, host: this.io.host || null, feeds, bn: this.bn, diag: { ...this.diag, err: this.diag.err.slice(-8) },
+    const out = { v: 2, at: iso(now), enabled: !!this.cfg?.enabled, where: this.where, host: this.io.host || null, sys: this.io.sys ? this.io.sys() : null, feeds, bn: this.bn, diag: { ...this.diag, err: this.diag.err.slice(-8) },
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,

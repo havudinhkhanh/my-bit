@@ -57,16 +57,37 @@ const openWS = (url) => new Promise((res, rej) => {
   ws.addEventListener("error", (e) => { clearTimeout(tm); rej(new Error(e?.message || "lỗi WebSocket")); }, { once: true });
 });
 
+// ---------------------------------------------------------------- tự đo sức máy: độ trễ vòng lặp sự kiện (event loop) → tự giảm / tăng số thị trường quét
+// Máy nhỏ (1 vCPU) mà dữ liệu đổ về nhiều hơn sức xử lý thì tin nhắn xếp hàng, trễ tăng dần, bộ nhớ phình ra → phải bớt thị trường.
+const CAP = { F: +(process.env.MYBIT_CAP || 400), S: +(process.env.MYBIT_CAP || 400) }, LAG = [];
+let lagT = performance.now(), capAt = Date.now();
+setInterval(() => { const n = performance.now(); LAG.push(Math.max(0, n - lagT - 1000)); lagT = n; if (LAG.length > 60) LAG.shift(); }, 1000);
+const lagP = (q) => { const a = [...LAG].sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(a.length * q))] : 0; };
+function adapt() {
+  if (LAG.length < 30 || Date.now() - capAt < 60000) return;
+  const p90 = lagP(0.9), mem = process.memoryUsage().rss / 1048576;
+  let ch = 0;
+  if (p90 > 300 || mem > 700) ch = 0.7; else if (p90 < 40 && mem < 400 && Date.now() - capAt > 600000) ch = 1.15;
+  if (!ch) return;
+  for (const t of ["F", "S"]) { const n = Object.values(core.F).find((f) => f.t === t)?.list.length || CAP[t]; CAP[t] = Math.round(Math.max(40, Math.min(1000, (ch < 1 ? Math.min(CAP[t], n) : CAP[t]) * ch))); }
+  capAt = Date.now();
+  log(ch < 1 ? `⚠️ máy quá tải (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB) → giảm còn tối đa ${CAP.F} futures / ${CAP.S} spot` : `máy còn dư sức → nâng lên tối đa ${CAP.F} futures / ${CAP.S} spot`);
+  for (const f of Object.values(core.F)) f.at = 0;    // kết nối lại với danh sách mới ở vòng sau
+}
+const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP } });
+
 // ---------------------------------------------------------------- chạy
-const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState });
+const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, cap: (t) => CAP[t], sys });
 let busy = false, lastErr = "";
 async function tick(first) {
   if (busy) return; busy = true;
   try {
     const on = first ? await core.boot(UID) : await core.tick();
+    adapt();
     const F = Object.values(core.F).map((f) => `${f.t === "F" ? "futures" : "spot"} ${f.src || "—"} ${f.list.length} thị trường ${Math.round(f.rate || 0)} tin/giây${f.ws ? "" : " (mất kết nối)"}`).join(" · ");
     const e = core.diag.err.slice(-1)[0] || "";
-    if (first || Date.now() % 60000 < 10000 || e !== lastErr) log(on ? "● chạy" : "○ chờ (bot đang tắt hoặc chọn chạy ở Cloudflare)", "·", F || "chưa kết nối", "·", core.S ? `tài sản ${core.equity().toFixed(2)} · ${core.S.stats.n} lệnh` : "", e && e !== lastErr ? `· lỗi: ${e}` : "");
+    if (first || Date.now() % 60000 < 10000 || e !== lastErr) log(on ? "● chạy" : "○ chờ (bot đang tắt hoặc chọn chạy ở Cloudflare)", "·", F || "chưa kết nối", "·", `trễ ${Math.round(lagP(0.9))} ms · RAM ${Math.round(process.memoryUsage().rss / 1048576)} MB`, "·", core.S ? `tài sản ${core.equity().toFixed(2)} · ${core.S.stats.n} lệnh` : "", e && e !== lastErr ? `· lỗi: ${e}` : "");
+    if (/HTTP 401/.test(e) && (!tick.h || Date.now() - tick.h > 300000)) { tick.h = Date.now(); log("🔑 Khoá trên máy chủ KHÔNG khớp khoá trên trang (đã tạo khoá mới?). Trên trang: Tạo khoá → Chép; trên máy chủ chạy:  curl -fsSL https://raw.githubusercontent.com/havudinhkhanh/my-bit/main/scalper/install.sh | sudo bash -s -- --key"); }
     lastErr = e;
   } catch (e) { log("⚠️", e.message); } finally { busy = false; }
 }
