@@ -38,6 +38,9 @@ export const CTX_VI = { T: "thuận xu hướng 15 phút", 0: "coin đi ngang 15
 const ZT = 0.5;
 // VÙNG GIÁ kiểu SMC trong biên 60 phút (so với hướng tín hiệu): W = vừa quét thanh khoản phía ngược lại rồi quay đầu (sweep),
 // A = đúng vùng (mua vùng rẻ / bán vùng đắt), M = giữa biên, B = sai vùng (mua đắt / bán rẻ), X = đang phá biên theo hướng tín hiệu, ? = chưa đủ 30 phút giá
+// nhãn dễ đọc cho một loại tình huống, ví dụ "T|F1T+A|15" → "Taker · Futures hạng 1 · thuận xu hướng 15 phút · BTC cùng chiều / đi ngang · vùng giá tốt · giữ 15s"
+const keyVI = (k) => { const [m, g, h] = String(k).split("|"); const p = [m === "M" ? "Maker" : "Taker", g === "*" ? "mọi thị trường" : `${g[0] === "F" ? "Futures" : "Spot"} hạng ${g[1]}`];
+  if (g.length >= 4) p.push(CTX_VI[g[2]], CTX_VI[g[3]]); if (g.length >= 5) p.push(ZONE_VI[g[4]]); p.push(`giữ ${h}s`); return p.filter(Boolean).join(" · "); };
 export const ZONE_VI = { W: "vừa quét thanh khoản rồi quay đầu", A: "vùng giá tốt (mua rẻ / bán đắt)", M: "giữa biên 60 phút", B: "vùng giá xấu (mua đắt / bán rẻ)", X: "đang phá biên 60 phút", "?": "chưa đủ 30 phút giá" };
 // KIỂM NGHIỆM BẰNG LỆNH ẢO: mỗi cơ hội đạt chuẩn ở tầng 1 được đánh thử ảo (cả taker lẫn maker, đúng phí, đúng cắt lỗ/chốt lời/hết giờ).
 // Chỉ khi lệnh ảo của đúng loại tình huống đó có lời ròng (đã trừ sai số) thì mới vào lệnh thật. Trung bình trượt ~300 kết quả gần nhất → nhớ lâu nhưng vẫn theo kịp thị trường.
@@ -185,6 +188,7 @@ export class ScalpCore {
     this.F = {};          // luồng dữ liệu theo loại: {F: {t, src, srcI, ws, last, n, n0, rate, bySym, list, at}, S: {...}}
     this.M = {};          // thị trường (không lưu): {id: {id, t, sym, ct, qv, g, bid, ask, bq, aq, tb, sec:{buy,sell}, flow, mids, pend}}
     this.LM = {};         // bộ học riêng từng coin (bps): {id: NB × HS × [n, mean]}
+    this.notes = [];      // thông báo chờ gửi (chuông + đẩy điện thoại)
     this.lastSec = 0; this.diag = { err: [], conn: 0 }; this.bn = null; this.live = {}; this.cnt = {};
   }
   err(m) { this.diag.err = [...this.diag.err.slice(-11), `${new Date().toISOString().slice(11, 19)} ${String(m).slice(0, 140)}`]; }
@@ -284,6 +288,7 @@ export class ScalpCore {
     const then = L[L.length - 1 - mins][1], now = L[L.length - 1][1];
     return (now / then - 1) * 1e4 / (Math.max(0.05, vol ?? x.vol ?? 1) * Math.sqrt(60 * mins));
   }
+  note(key, sev, title, body, url = "#/bot/scalp") { if (this.notes.length < 50) this.notes.push({ key, sev, title, body, url }); }
   say(now, m, k = "info") { this.S.log = [...(this.S.log || []).slice(-79), { t: iso(now), k, m }]; }
   closeFeed(t, why) { const f = this.F[t]; if (!f) return; for (const w of f.wss || []) { try { w.close(1000, why); } catch (e) { /* bỏ qua */ } } f.ws = null; f.wss = []; }
   closeAll(why) { for (const t of Object.keys(this.F)) this.closeFeed(t, why); }
@@ -375,6 +380,11 @@ export class ScalpCore {
     await this.loadCfg(false);
     if (!this.here()) { this.closeAll("tắt / chạy ở nơi khác"); if (!this.cfg?.enabled) await this.snapshot(); return false; }
     await this.ensureFeeds();
+    for (const f of Object.values(this.F)) {        // mất dữ liệu > 2 phút → báo; có lại → báo
+      const now2 = Date.now(), nm = f.t === "F" ? "futures" : "spot";
+      if (!f.ws || now2 - f.last > 60000) { f.downAt ||= now2; if (now2 - f.downAt > 120000 && !f.downNoted) { f.downNoted = true; this.note(`down:${nm}:${f.downAt}`, 2, `⚠️ Bot lướt giây mất dữ liệu ${nm}`, `Không nhận được dữ liệu từ ${f.src || "sàn"} hơn 2 phút – bot đang thử kết nối lại.`); } }
+      else { if (f.downNoted) this.note(`up:${nm}:${now2}`, 1, `✅ Bot lướt giây có lại dữ liệu ${nm}`, `Đã kết nối lại ${f.src}.`); f.downAt = 0; f.downNoted = false; }
+    }
     for (const f of Object.values(this.F)) { f.rate = (f.n - f.n0) / 10; f.n0 = f.n; if (SRC[f.src]?.ping) for (const w of f.wss || []) { try { w.send(SRC[f.src].ping); } catch (e) { /* bỏ qua */ } } }
     if (this.where === "cf") await this.probeBinance().catch(() => {});
     await this.snapshot();
@@ -398,16 +408,20 @@ export class ScalpCore {
   second(now) {
     const c = this.cfg, S = this.S;
     const day = vnDay(now), eqNow = this.equity();
-    if (S.day.d !== day) { S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); } }
+    if (S.day.d !== day) {
+      const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot lướt giây – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
+      S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
+      S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
+    }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
     if (!S.eq.length || S.eq[S.eq.length - 1][0] < m1) S.eq = [...S.eq.slice(-1440), [m1, r2(eqNow, 2)]];
     const dayPct = (eqNow / S.day.eq0 - 1) * 100;
-    if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); }
+    if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
     if (!S.pause && c.day_lock && c.day_target > 0 && dayPct >= c.day_target && !Object.keys(S.pos).length) {     // CHỐT NGÀY: đạt mục tiêu → giữ thành quả
       S.pause = { kind: "day", why: `đạt mục tiêu ngày +${dayPct.toFixed(2)}% (mục tiêu ${c.day_target}%) – chốt lời, ngừng mở lệnh thật tới hết ngày; lệnh ảo vẫn chạy để học`, until: null };
-      this.say(now, `🎯 ${S.pause.why}`, "info");
+      this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot lướt giây đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
     }
     const kk = c.k + (S.kadd || 0), hourN = this.tradesLastHour(now), nOpen = Object.keys(S.pos).length + Object.keys(S.ord).length;
     const live = {}, cnt = { all: 0, learn: 0, fee: 0, go: 0, skip: 0, hold: 0, stale: 0 }, cand = [];
@@ -498,6 +512,10 @@ export class ScalpCore {
         if (!modes.includes(q.m)) continue;
         const st = this.shStat(this.shKeys(q.m, g, gk, zone, q.h));
         if (st && (!seen || st.lcb > seen.lcb)) seen = { ...st, m: q.m, h: q.h };
+        if (st && st.lcb >= c.min_net && !(S.proven ||= {})[st.key]) {
+          S.proven[st.key] = day; const nd = Object.values(S.proven).filter((d) => d === day).length;
+          if (nd <= 6) this.note(`proven:${st.key}`, 2, "🧪 Lệnh ảo vừa chứng minh một tình huống có lời", `${keyVI(st.key)}: ${st.n} lệnh ảo, ròng TB +${st.mean.toFixed(1)} bps (thận trọng +${st.lcb.toFixed(1)}) – bot sẽ đánh thật tình huống này`);
+        }
         if (st && q.strict && st.lcb >= c.min_net && (!pick || st.lcb / Math.sqrt(q.h) > pick.sc)) pick = { ...q, st, sc: st.lcb / Math.sqrt(q.h) };
       }
       const ok = !!pick;
@@ -534,7 +552,7 @@ export class ScalpCore {
     if (!S.pause && T.length >= 50 && T.reduce((a, t) => a + t.net, 0) < 0 && (!S.brk || now - S.brk > 3600e3)) {
       S.brk = now; S.kadd = Math.min(1, (S.kadd || 0) + 0.2);
       S.pause = { kind: "brk", why: `50 lệnh gần nhất ròng ${T.reduce((a, t) => a + t.net, 0).toFixed(1)} bps (âm) – phí đang ăn hết biên lời; nghỉ 30 phút, nâng ngưỡng vào lệnh lên ${(c.k + S.kadd).toFixed(1)}× chi phí khứ hồi`, until: now + 1800e3 };
-      this.say(now, `⛔ ${S.pause.why}`, "stop");
+      this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk:${now}`, 2, "⛔ Bot lướt giây nghỉ 30 phút", S.pause.why);
     }
   }
   tradesLastHour(now) { let n = 0; for (let i = this.S.trades.length - 1; i >= 0 && now - Date.parse(this.S.trades[i].t1 + "Z") < 3600e3; i--) n++; return n; }
@@ -595,9 +613,28 @@ export class ScalpCore {
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
     if (P.shk) this.shAdd(P.shk, net, true);      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
+    const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
+    this.note(`t:${P.id}`, 1, `⚡ ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", STALE: "mất dữ liệu" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`);
   }
 
   // ---------------------------------------------------------------- VÙNG GIÁ (SMC) & LỆNH ẢO
+  // bảng giá Binance thật (giữa giá mua/bán) + đỉnh/đáy 4 nến 1 phút gần nhất – chuyển cho các bot phút trên Cloudflare
+  pxRelay() {
+    const px = {}, now = Date.now();
+    const add = (k, x, div) => {
+      if (!x.bid || !x.ask || now - x.tb > 30000) return;
+      const mid = (x.bid + x.ask) / 2 / div, bars = (x.m1 || []).slice(-4).map((b) => [b[0], +(b[2] / div).toPrecision(8), +(b[3] / div).toPrecision(8)]);
+      px[k] = [+mid.toPrecision(8), bars];
+    };
+    for (const x of Object.values(this.M)) if (x.t === "S") add(x.id.split(":")[0], x, 1);          // ưu tiên giá spot (giống nguồn cũ của bot phút)
+    for (const x of Object.values(this.M)) {
+      if (x.t !== "F") continue;
+      const b = x.id.split(":")[0], m = b.match(/^(1000000|1000)([A-Z0-9]+)$/);
+      if (!px[b]) add(b, x, 1);
+      if (m && !px[m[2]]) add(m[2], x, +m[1]);      // 1000PEPE → PEPE
+    }
+    return px;
+  }
   // "vì sao chưa vào lệnh" – tổng hợp trực tiếp trên mọi thị trường giây vừa rồi
   whyAgg() {
     const L = Object.values(this.live || {}), rc = {};
@@ -723,6 +760,7 @@ export class ScalpCore {
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
+    if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;
     if (this.dirty % 3 === 0 || !this.cfg?.enabled) await this.kv.put("S", S);
     if (this.dirty % 60 === 5) await this.saveBrain();      // bộ nhớ học dùng chung: lưu ~10 phút/lần (lần đầu sau ~1 phút)

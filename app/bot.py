@@ -626,13 +626,15 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
             old = d.get("botplan") or {}
             pl = {"v": 2, "at": _iso(_now()), "bots": plans, "pushed_at": old.get("pushed_at") or _iso(_now()) + ".000Z"}
             if worker:       # đẩy / email cho thông báo bot mà Worker vừa ghi vào chuông
-                rs, _ = be.q("SELECT key, kind, sev, title, body, url, sym, created_at FROM notifications WHERE user_id = ? AND kind = 'bot' AND created_at > ? ORDER BY created_at",
+                rs, _ = be.q("SELECT key, kind, sev, title, body, url, sym, created_at FROM notifications WHERE user_id = ? AND kind IN ('bot', 'botw', 'scalp') AND created_at > ? ORDER BY created_at",
                              [u["id"], pl["pushed_at"]])
                 if rs:
                     cfgx = users.config(be)
                     site = cfgx.get("site_url") or ""
-                    users.send_push(be, cfgx, u, rs, site)
-                    users.send_email(cfgx, u, rs, "MyBit – bot giao dịch", site)
+                    old = [x for x in rs if x["kind"] == "bot"]          # "botw"/"scalp" đã được Cloudflare đẩy ngay → ở đây chỉ còn gửi email
+                    if old:
+                        users.send_push(be, cfgx, u, old, site)
+                    users.send_email(cfgx, u, [{**x, "kind": "bot"} for x in rs], "MyBit – bot giao dịch", site)
                     pl["pushed_at"] = rs[-1]["created_at"]
             users.save(be, u["id"], "botplan", pl)
             n += len(plans)

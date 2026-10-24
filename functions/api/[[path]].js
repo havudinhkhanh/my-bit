@@ -3,6 +3,7 @@
 // Chế độ cũ (chưa gắn D1): một chủ sở hữu, đăng nhập qua Cloudflare Access, dữ liệu trong Workers KV.
 import { admin } from "../_lib/admin.js";
 import { auth } from "../_lib/auth.js";
+import { notifyNow } from "../_lib/push.js";
 import {
   can, ensureSchema, err, getSession, json, limits, nowIso, sameOrigin, sha256Hex, USER_KEYS, vapidPublic, withCookie,
 } from "../_lib/core.js";
@@ -89,6 +90,22 @@ async function scalpRunner({ request, env }, sub) {
   if (!u || u.status !== "active") return err("Khoá không hợp lệ hoặc đã bị thay", 401);
   const p = u.plan_until && u.plan_until < nowIso().slice(0, 10) ? "free" : u.plan;
   if (!can({ r: u.role, p }, "bot")) return err("Bot lướt giây dành cho gói Pro", 402);
+  if (sub === "notify") {    // thông báo từ bot lướt giây: ghi chuông + đẩy ngay tới điện thoại
+    if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
+    let j; try { j = await request.json(); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    const items = (j.items || []).filter((x) => x && x.key && x.title).slice(0, 20).map((x) => ({ key: "sc:" + String(x.key).slice(0, 180), sev: Math.max(0, Math.min(3, +x.sev || 0)), title: x.title, body: x.body, url: x.url || "#/bot/scalp", sym: x.sym || null }));
+    const items2 = can({ r: u.role, p }, "notify_push") ? items : items.map((x) => ({ ...x, sev: Math.min(x.sev, 0) }));
+    return json({ ok: true, n: await notifyNow(env, u.id, "scalp", items2) });
+  }
+  if (sub === "px") {        // bảng giá Binance thật cho các bot phút (Binance chặn Cloudflare) – chỉ máy chủ của quản trị viên được ghi
+    if (u.role !== "admin") return err("Chỉ máy chủ của quản trị viên được chuyển tiếp giá", 403);
+    if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
+    const t = await request.text(); if (t.length > 400000) return err("Quá lớn", 413);
+    let j; try { j = JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    if (!j || typeof j.px !== "object") return err("Thiếu bảng giá");
+    await env.DB.prepare("INSERT INTO config(key, value) VALUES('px_relay', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ at: nowIso(), n: Object.keys(j.px).length, px: j.px })).run();
+    return json({ ok: true });
+  }
   if (sub === "brain") {      // bộ nhớ học dùng chung (bot khác / máy khác / lúc giao dịch thật nạp lại được)
     if (request.method === "GET") return json(await getData(env, u.id, "scalpbrain"));
     if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }

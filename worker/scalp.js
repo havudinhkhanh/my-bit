@@ -3,6 +3,7 @@
 // → quét toàn thị trường (hàng nghìn tin/giây) hết hạn mức sau khoảng nửa giờ. Muốn chạy liên tục: chọn "máy chủ riêng" (scalper/runner.mjs).
 import { DurableObject } from "cloudflare:workers";
 import { ScalpCore, ORD_CF, SCALP_DEF } from "./scalp_core.js";
+import { notifyNow } from "../functions/_lib/push.js";
 
 export { SCALP_DEF };
 const cfOpenWS = async (url) => {
@@ -16,6 +17,7 @@ export class Scalper extends DurableObject {
     this.core = new ScalpCore({
       kv: ctx.storage, where: "cf", ord: ORD_CF, host: "cloudflare", openWS: cfOpenWS,
       readCfg: async (uid) => { const r = await env.DB.prepare("SELECT value FROM user_data WHERE user_id = ? AND key = 'scalp'").bind(Number(uid)).first(); return r ? JSON.parse(r.value) : null; },
+      notify: async (uid, items) => notifyNow(env, uid, "scalp", items.map((x) => ({ ...x, key: "sc:" + x.key }))),
       loadBrain: async (uid) => { const r = await env.DB.prepare("SELECT value FROM user_data WHERE user_id = ? AND key = 'scalpbrain'").bind(Number(uid)).first(); return r ? JSON.parse(r.value) : null; },
       saveBrain: async (uid, b) => env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpbrain', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
         .bind(Number(uid), JSON.stringify(b), new Date().toISOString()).run(),

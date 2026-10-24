@@ -1,4 +1,5 @@
 // Bộ khớp lệnh của bot – chạy MỖI PHÚT trên Cloudflare (cùng Worker hẹn giờ), không cần máy anh mở.
+import { notifyNow } from "../functions/_lib/push.js";
 // Chia việc: máy chủ phân tích (Python, 15 phút) viết "botplan" = ứng viên đã lọc + trần đòn bẩy + funding + báo cáo;
 // Worker này là nơi DUY NHẤT ghi "botstate": theo dõi giá từng phút (kèm đỉnh/đáy trong phút), cắt lỗ / chốt lời / dời hoà vốn,
 // vào lệnh đúng lúc giá còn đẹp, tính funding, phanh an toàn, ghi nhật ký và thông báo (chuông). Quy tắc giống hệt app/bot.py.
@@ -266,9 +267,19 @@ export function notes(ev) {
 // ---------------------------------------------------------------- giá: Binance spot (data-api, không bị chặn vùng) → OKX swap dự phòng
 async function getJ(u, opt) { const r = await fetch(u, { headers: { "user-agent": "my-bit-bot", "content-type": "application/json" }, ...(opt || {}) }); if (!r.ok) throw new Error(r.status + " " + u.split("?")[0]); return r.json(); }
 // giá: Binance spot (cả lô, lỗi một mã → lấy cả bảng) → Hyperliquid (mọi perp một lần) → OKX → Bitget → Gate → Binance futures → giá lượt phân tích (cũ)
-async function prices(meta, since, srcMap = {}) {
+async function prices(meta, since, srcMap = {}, relay = null) {
   const P = {}, SRC = {}, HL = {}, D = { err: [] };
   const ks = Object.keys(meta), put = (k, v, s) => { v = +v; if (v > 0 && !P[k]) { P[k] = v; SRC[k] = s; } };
+  // 1) GIÁ BINANCE THẬT do máy chủ riêng chuyển tiếp (Binance chặn máy chủ Cloudflare) – dùng khi còn mới (≤ 90 giây)
+  if (relay && Date.now() - Date.parse(relay.at) < 90e3) {
+    D.relay = relay.at;
+    for (const k of ks) { const q = relay.px[k]; if (q) put(k, q[0], "Binance"); }
+    for (const [k, t0] of Object.entries(since)) {     // đỉnh/đáy từng phút kể từ lần kiểm tra trước (nến 1 phút Binance)
+      const B = relay.px[k]?.[1]; if (!B || SRC[k] !== "Binance") continue;
+      const m0 = Math.floor((t0 - 60e3) / 60000), xs = B.filter((b) => b[0] >= m0);
+      if (xs.length) HL[k] = { hi: Math.max(...xs.map((b) => b[1])), lo: Math.min(...xs.map((b) => b[2])) };
+    }
+  }
   const sp = ks.filter((k) => meta[k].sp);
   if (sp.length) {
     let by = null;
@@ -303,6 +314,7 @@ async function prices(meta, since, srcMap = {}) {
   // đỉnh/đáy nến 1 phút kể từ lần kiểm tra trước – cho coin đang có lệnh mở
   for (const [k, t0] of Object.entries(since)) {
     const m = meta[k] || {};
+    if (HL[k]) continue;      // đã có từ nến Binance chuyển tiếp
     try {
       if (m.sp && SRC[k] === "Binance") {
         const j = await getJ(`https://data-api.binance.vision/api/v3/klines?symbol=${m.sp}&interval=1m&startTime=${t0 - 60e3}&limit=60`);
@@ -360,7 +372,9 @@ export async function botTick(env) {
   if (!meta.BTC) meta.BTC = { sp: "BTCUSDT", sm: 1 };
   let srcMap = {};
   try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'bot_pxmap'").first(); srcMap = r ? JSON.parse(r.value) : {}; } catch (e) { /* trống */ }
-  const { P, SRC, HL, D } = await prices(meta, since, srcMap);
+  let relay = null;
+  try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'px_relay'").first(); relay = r ? JSON.parse(r.value) : null; } catch (e) { /* chưa có */ }
+  const { P, SRC, HL, D } = await prices(meta, since, srcMap, relay);
   if (D.mapChanged) await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_pxmap', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(srcMap)).run();
   delete D.mapChanged;
   const price = (k) => P[k] ?? null;
@@ -389,9 +403,9 @@ export async function botTick(env) {
       const up = "INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, ?, ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at";
       await env.DB.batch([env.DB.prepare(up).bind(Number(j.uid), "botstate", JSON.stringify({ v: 2, bots: out }), nowIso),
         env.DB.prepare(up).bind(Number(j.uid), "supstate", JSON.stringify(j.ss), nowIso)]);
-      if (it.length) {
-        await env.DB.batch(it.map((x) => env.DB.prepare("INSERT OR IGNORE INTO notifications(user_id, key, kind, sev, title, body, url, sym, created_at) VALUES(?, ?, 'bot', ?, ?, ?, ?, ?, ?)")
-          .bind(Number(j.uid), x.key.slice(0, 200), x.sev, x.title.slice(0, 200), (x.body || "").slice(0, 1500), x.url || "#/bot", x.sym || null, nowIso)));
+      if (it.length) {     // ghi chuông + ĐẨY NGAY tới điện thoại (kind "botw" = Worker đã đẩy; lượt chạy 15 phút chỉ còn gửi email)
+        try { await notifyNow(env, j.uid, "botw", it.map((x) => ({ ...x, url: x.url || "#/bot" }))); }
+        catch (e) { console.log("notify", j.uid, e.message); }
       }
       n += j.list.length;
     } catch (e) { console.log("bot user", j.uid, e.message); }
