@@ -2262,3 +2262,26 @@ tr.sup-why td{white-space:normal!important;text-align:left!important}.tw td.wrap
 .botseg a.on{background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent);border-color:color-mix(in srgb,var(--brass,var(--brand)) 55%,transparent);color:var(--ink)}
 @media (min-width:1180px){.botseg{display:none}}
 @media (max-width:480px){.botseg a{flex:1 1 0;min-width:0;padding:8px 6px;font-size:.74rem;gap:4px}.botseg a span{font-size:.85em}}
+
+/* Bot lướt giây: cột Thiết lập nổi bên phải (màn hình rộng) / ngăn kéo từ phải (màn hình hẹp) */
+.sc-set{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.sc-set-h{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px;padding-bottom:8px;border-bottom:1px solid var(--line-2)}
+.sc-set-h b{font-size:1rem}
+.sc-setfab,.sc-set-bg{display:none}
+#scAge{margin-right:8px}#scAge.warn{color:var(--warn,#d89614)}
+@media (min-width:1280px){
+  .sc-lay{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+  .sc-main{min-width:0}
+  .sc-set{position:sticky;top:62px;max-height:calc(100vh - 78px);overflow:auto;overscroll-behavior:contain}
+  .sc-set-h [data-scx]{display:none}
+}
+@media (max-width:1279px){
+  .sc-set{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);z-index:72;border-radius:0;border-width:0 0 0 1px;overflow:auto;overscroll-behavior:contain;transform:translateX(105%);transition:transform .2s ease;box-shadow:-12px 0 32px rgba(0,0,0,.25);padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .sc-set-h{position:sticky;top:-12px;background:var(--surface);z-index:1;padding-top:12px;margin-top:-12px}
+  body.sc-set-on .sc-set{transform:none}
+  body.sc-set-on .sc-set-bg{display:block;position:fixed;inset:0;z-index:71;background:rgba(0,0,0,.45)}
+  body.sc-set-on{overflow:hidden}
+  .sc-setfab{display:inline-flex;align-items:center;gap:6px;position:fixed;right:12px;bottom:64px;z-index:44;height:38px;padding:0 15px;border-radius:999px;border:1px solid var(--brass-line,var(--line));background:var(--brass,var(--brand));color:#1b1408;font-weight:700;font-size:.84rem;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer}
+  body.sc-set-on .sc-setfab{display:none}
+}
+@media (max-width:979px){.sc-setfab{bottom:calc(112px + env(safe-area-inset-bottom,0px))}}

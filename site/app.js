@@ -3084,9 +3084,10 @@ async function viewScalp() {
       <tr><td class="l sbh" colspan="9">Theo thời gian giữ dự kiến</td></tr>${grp("h", (k) => (k === "?" ? "(lệnh cũ)" : `${k}s`))}<tr><td class="l sbh" colspan="9">Theo vùng giá (SMC)</td></tr>${grp("zone", (k) => (k === "?" ? "(lệnh cũ / chưa rõ)" : ZONE_TXT[k] || k))}<tr><td class="l sbh" colspan="9">Theo bối cảnh</td></tr>${grp("ctx", (k) => (k === "?" ? "(lệnh cũ)" : scC(k)))}<tr><td class="l sbh" colspan="9">Theo loại</td></tr>${grp("t", (k) => (k === "F" ? "Futures" : "Spot"))}</tbody></table></div>
       <p class="faint" style="font-size:.74rem">Nếu "gộp thực" thấp hơn "kỳ vọng" một cách đều đặn, bộ học đang tự tin quá mức – bot cần thận trọng hơn. Nếu gộp thực ≈ kỳ vọng mà ròng vẫn âm, thì phí + chênh lệch quá lớn so với biên lời.</p>` : `<p class="muted">Chưa có lệnh để kiểm tra.</p>`;
   app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1><span class="meta"><a href="#/bot">← Đội bot</a> · quét toàn bộ spot + futures USDT · vào nhanh, ra nhanh theo giây · sàn thử (giá & khớp lệnh thật, phí thật)</span></div>
+    <div class="sc-lay"><div class="sc-main">
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${st[1]} big">${st[0]}</span><small>${esc(st[2])}</small>
       <span class="bot-btns">${C.enabled && X.pause ? `<button class="btn primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Bỏ nghỉ, chạy tiếp</button>` : ""}<button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ bảng">${autoOff("scalp") ? "▶ Tự cập nhật" : "⏸ Dừng cập nhật"}</button><button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt" : "▶ Bật"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">Làm lại tài khoản</button></span></div>
-      ${feedTxt ? `<div class="sc-fd">${feedTxt}${bn}</div>` : ""}
+      ${feedTxt ? `<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}${feedTxt}${bn}</div>` : ""}
       ${kpis([["Tài sản", isNum(X.eq) ? "$" + nf(X.eq, 2) : "—", "", `vốn ${usd(X.start ?? C.capital)}`], ["Lãi/lỗ", pct(ret, 2), cls(ret), isNum(S.net) ? `${S.net >= 0 ? "+" : ""}${usd2(S.net)} sau phí` : ""], ["Hôm nay", pct(dayP, 2), cls(dayP), `dừng khi lỗ ${nf(C.daily_stop, 1)}%`],
         ["Số lệnh", nf(S.n || 0, 0), "", S.n ? `thắng ${nf(S.win / S.n * 100, 0)}%` : "chưa có"], ["50 lệnh gần nhất", L50 ? `${bps(L50.net, 2)} bps` : "—", cls(L50?.net), L50 ? `gộp ${bps(L50.gross, 2)} − phí ${nf(L50.fee, 2)} bps/lệnh` : ""],
         ["Phí đã trả", isNum(S.fees) ? usd2(S.fees) : "—", feeShare > 60 ? "down" : "", isNum(feeShare) ? `= ${nf(feeShare, 0)}% lãi gộp` : ""], ["Vị thế đang mở", `${nOpen}/${nf(C.max_pos, 0)}`, nOpen ? "brand" : "", "tối đa 1 lệnh mới mỗi giây"],
@@ -3106,7 +3107,7 @@ async function viewScalp() {
     ${panel("🔍 Kiểm tra: kỳ vọng lúc vào lệnh vs kết quả thực", audit, "80 lệnh gần nhất")}
     ${panel("🧾 Lệnh đã đóng", trs ? `<div class="tw" style="max-height:420px"><table><thead><tr><th class="l">Lúc</th><th class="l">Lệnh</th><th>Vào → ra</th><th>Giữ</th><th>Gộp (bps)</th><th>Phí</th><th>Ròng (bps)</th><th>USDT</th><th>Lý do</th></tr></thead><tbody>${trs}</tbody></table></div>` : `<p class="muted">Chưa có lệnh – bot chỉ vào khi biên lời đo được lớn hơn phí.</p>`)}
     ${panel("📝 Nhật ký", (X.log || []).length ? `<ul class="bot-log">${X.log.slice().reverse().map((l) => `<li class="${l.k}"><small>${dt(l.t + "Z")}</small> ${esc(l.m)}</li>`).join("")}</ul>` : `<p class="muted">Nhật ký trống.</p>`)}
-    ${PG("Thiết lập & cách nghĩ")}<div class="g g2w"><div>${panel("🧮 Bài toán phí – vì sao bot hay đứng ngoài", `<ul class="bot-rl">
+    ${PG("Thiết lập & cách nghĩ")}<div>${panel("🧮 Bài toán phí – vì sao bot hay đứng ngoài", `<ul class="bot-rl">
         <li><b>Chi phí khứ hồi</b> là thứ phải thắng trước tiên. <span>Futures (taker cả 2 chiều):</span> <b>${nf(C.fee_t * 200, 1)} bps</b> <span>+ chênh lệch mua/bán. Spot (taker cả 2 chiều):</span> <b>${nf(C.fee_ts * 200, 1)} bps</b> <span>+ chênh lệch – spot đắt gấp đôi và không bán khống được, nên spot ít khi đạt chuẩn.</span></li>
         <li>Trong vài giây tới vài phút, coin lớn thường chỉ đi vài bps. Coin nhỏ dao động mạnh hơn nhưng chênh lệch mua/bán cũng rộng hơn. Bot cân cả hai cho từng coin mỗi giây: chỉ vào khi phần giá đi được dự báo LỚN HƠN phí + chênh lệch.</li>
         <li><span>Kỳ vọng dùng để quyết định là kỳ vọng THẬN TRỌNG: đã trừ 2,33 lần sai số thống kê, vì mẫu lấy mỗi giây chồng lên nhau, nhiều coin thường chạy cùng nhau, và mỗi giây bot chọn cái tốt nhất trong hàng trăm coin – cái được chọn hay là cái được ước lượng lố nhờ may. Số liệu riêng của một coin chỉ được tin dần khi coin đó có nhiều mẫu. Mỗi nhóm coin phải học tối thiểu</span> <b>${nf(C.warm, 0)}</b> <span>phút mới được vào lệnh.</span></li>
@@ -3114,7 +3115,15 @@ async function viewScalp() {
         <li>Lệnh maker rẻ hơn nhưng chỉ khớp khi giá đi NGƯỢC về phía mình (có người bán xuyên qua giá mua của mình) → hay khớp đúng lúc xấu. Bot mô phỏng cả hàng chờ phía trước, nên kết quả maker trên sàn thử gần thật.</li>
         <li>Muốn lướt giây có lời thật cần ít nhất một trong các thứ: phí thấp hơn nhiều (hạng VIP, giảm phí bằng BNB), coin có dao động lớn so với phí + chênh lệch, hoặc tín hiệu mạnh hơn. Nhập đúng mức phí của tài khoản anh ở bên cạnh – bot tính lại ngay.</li>
         <li><b>Cầu dao:</b> <span>dừng tới hết ngày khi lỗ trong ngày chạm</span> <b>${nf(C.daily_stop, 1)}%</b><span>; 50 lệnh gần nhất ròng âm → nghỉ 30 phút và tự nâng ngưỡng; bỏ qua khi chênh lệch mua/bán lớn hơn</span> <b>${nf(C.spread_max, 1)} bps</b><span>; futures không mở lệnh sát giờ tròn hoặc lệnh sẽ giữ vắt qua giờ tròn (giờ funding); mất dữ liệu coin đang giữ > 30 giây → đóng lệnh.</span></li></ul>`)}</div>
-      <div>${panel("⚙️ Thiết lập", `<div id="scForm"></div>`)}</div></div>`;
+      </div>
+    <aside class="sc-set" id="scSet" data-keep aria-label="Thiết lập bot lướt giây"><div class="sc-set-h"><b>⚙️ Thiết lập</b><button type="button" class="iconbtn" data-scx aria-label="Đóng">✕</button></div><div id="scForm"></div></aside></div>
+    <button type="button" class="sc-setfab" id="scSetBtn">⚙️ Thiết lập</button><div class="sc-set-bg" data-scx></div>`;
+  document.body.classList.toggle("sc-set-on", !!window.__scSetOpen);
+  $("#scSetBtn").onclick = () => { window.__scSetOpen = true; document.body.classList.add("sc-set-on"); };
+  $$("[data-scx]").forEach((b) => (b.onclick = () => { window.__scSetOpen = false; document.body.classList.remove("sc-set-on"); }));
+  // độ mới của số liệu (đếm từng giây, không vẽ lại trang)
+  clearInterval(window.__scAgeT);
+  window.__scAgeT = setInterval(() => { const el = $("#scAge"); if (!el) { clearInterval(window.__scAgeT); return; } const a = (Date.now() - Date.parse(el.dataset.at + "Z")) / 1000; el.textContent = `${LANG === "en" ? "data at" : "số liệu lúc"} ${hms(el.dataset.at)} · ${LANG === "en" ? `${Math.max(0, Math.round(a))}s ago` : `cách đây ${Math.max(0, Math.round(a))} giây`}`; el.className = a > 30 ? "warn" : "faint"; }, 1000);
   const f = () => {
     const num = (k, t) => `<div class="field"><label>${t}</label><input id="sc_${k}" inputmode="decimal" value="${C[k]}"></div>`;
     $("#scForm").innerHTML = `<h4 class="bfh">Nơi chạy</h4><div class="bseg">${[["cf", "Cloudflare (miễn phí, có hạn mức)"], ["vps", "Máy chủ riêng (VPS) – Binance trực tiếp"]].map(([v, t]) => `<button type="button" data-scw="${v}" class="${(C.where === "vps" ? "vps" : "cf") === v ? "on" : ""}">${t}</button>`).join("")}</div>
@@ -3162,9 +3171,9 @@ async function viewScalp() {
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
-    if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); return; }
+    if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); document.body.classList.remove("sc-set-on"); return; }
     if (document.hidden || autoOff("scalp") || userBusy() || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
-    if (Date.now() - (window.__scLast || 0) < (innerWidth < 980 ? 10000 : 3000)) return;     // điện thoại: 10 giây / lần là đủ
+    if (Date.now() - (window.__scLast || 0) < (innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần
     try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) { window.__scLast = Date.now(); await softRender(() => viewScalp()); } } catch (e) { /* bỏ qua */ }
   }, 3000);
 }

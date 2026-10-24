@@ -109,6 +109,7 @@ async function main() {
   log(`Đã xác thực – tài khoản #${UID}`);
   await tick(true);
   setInterval(() => tick(false), 10000);
+  setTimeout(() => setInterval(() => { if (!busy && core.here()) core.snapshot().catch(() => {}); }, 10000), 5000);   // gửi số liệu lên trang mỗi ~5 giây (xen giữa các vòng 10 giây)
 }
 const stop = async (sig) => { log(`Nhận ${sig} – lưu trạng thái rồi thoát`); try { await core.snapshot(); await core.saveBrain(); } catch (e) { /* bỏ qua */ } try { kv.flush(); } catch (e) { /* bỏ qua */ } process.exit(0); };
 process.on("SIGTERM", () => stop("SIGTERM")); process.on("SIGINT", () => stop("SIGINT"));
