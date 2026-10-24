@@ -32,7 +32,7 @@ TODAY = dt.date.today()
 FEE = 5.0            # bps mỗi chiều (taker VIP0)
 HS = [1, 3, 5, 10, 15, 30, 60]
 os.makedirs(OUT, exist_ok=True); os.makedirs(CACHE, exist_ok=True)
-LOG = open(os.path.join(OUT, "research.log"), "w")
+LOG = open(os.path.join(OUT, os.environ.get("RS_LOG", "research.log")), "w")
 
 
 def log(*a):
