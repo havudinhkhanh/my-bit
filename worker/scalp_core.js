@@ -459,7 +459,7 @@ export class ScalpCore {
         for (const [m, cm] of [["T", costT], ["M", costM]]) if (exp - cm >= c.min_net && exp >= kk * cm) pass.push({ m, h, exp, raw, se, cost: cm, net: exp - cm });
       }
       const t0g = (S.LPt ||= {})[g] ||= now, warm = now - t0g >= c.warm * 60000;
-      let v = "learn", why;
+      let v = "learn", why, rc = null;
       const cx = `${CTX_VI[tc]} · ${CTX_VI[bc]}`;
       if (!best) why = `đang học: nhóm ${g} (${cx}) mới ${LP[bin].reduce((a, q) => Math.max(a, q[0]), 0)}/${c.min_n} mẫu`;
       else if (!warm) { why = `đang khởi động: nhóm ${g} mới học ${Math.floor((now - t0g) / 60000)}/${c.warm} phút – chưa cho vào lệnh`; best = { ...best, warm: false }; }
@@ -482,24 +482,24 @@ export class ScalpCore {
       else if (!best || best.warm === false) v = "learn";
       else if (!pass.length) { v = "fee"; why += best.net < c.min_net ? ` – cần ròng ≥ ${c.min_net} bps` : ` – cần kỳ vọng ≥ ${kk.toFixed(1)}× chi phí = ${(kk * cost).toFixed(2)} bps`; }
       else if (!ok) { v = "verify"; why = `${cx} · ${ZONE_VI[zone]}: đạt tầng 1, ` + (seen ? `lệnh ảo ${seen.m === "M" ? "maker" : "taker"} giữ ${seen.h}s: ${seen.n} lệnh, ròng TB ${seen.mean >= 0 ? "+" : ""}${seen.mean.toFixed(1)} bps (thận trọng ${seen.lcb >= 0 ? "+" : ""}${seen.lcb.toFixed(1)}) → chưa chứng minh có lời, chỉ đánh ảo` : `đang kiểm nghiệm bằng lệnh ảo (cần ≥ ${c.sh_min} lệnh ảo cùng loại tình huống)`); }
-      else if (x.t === "S" && side < 0) { v = "skip"; why = "tín hiệu bán nhưng spot không bán khống được – đứng ngoài"; }
-      else if (S.pause) { v = "pause"; why = `tạm dừng: ${S.pause.why}`; }
-      else if (spread > c.spread_max) { v = "skip"; why = `chênh lệch mua/bán ${spread.toFixed(2)} bps > ${c.spread_max} – bỏ qua vì chênh lệch quá rộng`; }
-      else if (x.t === "F" && nearFunding(now, best.h)) { v = "skip"; why = "lệnh sẽ giữ qua giờ funding – đứng ngoài"; }
-      else if (S.cool[id] && now < S.cool[id]) { v = "skip"; why = `vừa đóng lệnh coin này – nghỉ thêm ${Math.ceil((S.cool[id] - now) / 1000)} giây`; }
+      else if (x.t === "S" && side < 0) { v = "skip"; rc = "short"; why = "tín hiệu bán nhưng spot không bán khống được – đứng ngoài"; }
+      else if (S.pause) { v = "pause"; rc = "pause"; why = `tạm dừng: ${S.pause.why}`; }
+      else if (spread > c.spread_max) { v = "skip"; rc = "spread"; why = `chênh lệch mua/bán ${spread.toFixed(2)} bps > ${c.spread_max} – bỏ qua vì chênh lệch quá rộng`; }
+      else if (x.t === "F" && nearFunding(now, best.h)) { v = "skip"; rc = "funding"; why = "lệnh sẽ giữ qua giờ funding – đứng ngoài"; }
+      else if (S.cool[id] && now < S.cool[id]) { v = "skip"; rc = "cool"; why = `vừa đóng lệnh coin này – nghỉ thêm ${Math.ceil((S.cool[id] - now) / 1000)} giây`; }
       else { v = "go"; why = `${cx} · ${ZONE_VI[zone]}: lệnh ảo ${pick.m === "M" ? "maker" : "taker"} giữ ${pick.h}s đã chứng minh: ${pick.st.n} lệnh, ròng TB +${pick.st.mean.toFixed(1)} bps (thận trọng +${pick.st.lcb.toFixed(1)})`; cand.push({ x, side, best: { ...pick, sc: pick.sc }, cost: pick.cost, vol, mid, spread, ctx: tc + bc, zone, keys: this.shKeys(pick.m, g, gk, zone, pick.h), mode: pick.m }); }
       cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v] = (cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v] || 0) + 1;
-      live[id] = { t: x.t, g, tc, bc, zone, z15: r2(z15, 2), mid: r2(mid, 8), spread: r2(spread, 2), s: r2(s, 2), tfi: r2(tfi, 2), obi: r2(obi, 2), mz: r2(mz, 2), vol: r2(vol, 2), qv: r2(x.qv, 1), bin, side, cost: r2(cost, 2),
+      live[id] = { t: x.t, g, tc, bc, zone, rc, cT: r2(costT, 2), cM: r2(costM, 2), z15: r2(z15, 2), mid: r2(mid, 8), spread: r2(spread, 2), s: r2(s, 2), tfi: r2(tfi, 2), obi: r2(obi, 2), mz: r2(mz, 2), vol: r2(vol, 2), qv: r2(x.qv, 1), bin, side, cost: r2(cost, 2),
         best: best ? { h: best.h, exp: r2(best.exp, 2), raw: r2(best.raw, 2), se: r2(best.se, 2), net: r2(best.net, 2), n: best.n, nq: best.nq } : null, v, why };
     }
     // chọn: tối đa 1 lệnh mới mỗi giây – ứng viên có lợi thế ròng / √thời gian giữ cao nhất, trong giới hạn vị thế & số lệnh/giờ
     cand.sort((a, b) => b.best.sc - a.best.sc);
     const top = cand[0];
     if (top) {
-      if (nOpen >= c.max_pos) { live[top.x.id].v = "skip"; live[top.x.id].why = `đạt chuẩn nhưng đã mở ${nOpen}/${c.max_pos} vị thế`; }
-      else if (hourN >= c.max_h) { live[top.x.id].v = "skip"; live[top.x.id].why = `đạt chuẩn nhưng đã ${hourN} lệnh trong 1 giờ (tối đa ${c.max_h})`; }
+      if (nOpen >= c.max_pos) { live[top.x.id].v = "skip"; live[top.x.id].rc = "cap"; live[top.x.id].why = `đạt chuẩn nhưng đã mở ${nOpen}/${c.max_pos} vị thế`; }
+      else if (hourN >= c.max_h) { live[top.x.id].v = "skip"; live[top.x.id].rc = "hour"; live[top.x.id].why = `đạt chuẩn nhưng đã ${hourN} lệnh trong 1 giờ (tối đa ${c.max_h})`; }
       else { top.x.ctx = top.ctx; top.x.zone = top.zone; top.x.shk = top.keys; this.enter(top.x, top.side, top.best, top.cost, top.vol, now, top.mode); }
-      for (const q of cand.slice(1)) { live[q.x.id].v = "skip"; live[q.x.id].why = "đạt chuẩn nhưng có cơ hội tốt hơn trong giây này (mỗi giây tối đa 1 lệnh mới)"; }
+      for (const q of cand.slice(1)) { live[q.x.id].v = "skip"; live[q.x.id].rc = "better"; live[q.x.id].why = "đạt chuẩn nhưng có cơ hội tốt hơn trong giây này (mỗi giây tối đa 1 lệnh mới)"; }
     }
     this.live = live; this.cnt = cnt;
     // cầu dao kỷ luật: 50 lệnh gần nhất ròng âm → nghỉ 30 phút + nâng ngưỡng
@@ -571,6 +571,15 @@ export class ScalpCore {
   }
 
   // ---------------------------------------------------------------- VÙNG GIÁ (SMC) & LỆNH ẢO
+  // "vì sao chưa vào lệnh" – tổng hợp trực tiếp trên mọi thị trường giây vừa rồi
+  whyAgg() {
+    const L = Object.values(this.live || {}), rc = {};
+    const med = (a) => { a = a.filter(Number.isFinite).sort((x, y) => x - y); return a.length ? r2(a[Math.floor(a.length / 2)], 2) : null; };
+    for (const q of L) { const k = q.v === "skip" || q.v === "pause" ? q.rc || q.v : q.v; rc[k] = (rc[k] || 0) + 1; }
+    const B = L.filter((q) => q.best && Number.isFinite(q.cT));
+    return { n: L.length, rc, cT: med(L.map((q) => q.cT)), cM: med(L.map((q) => q.cM)), exp: med(B.map((q) => q.best.exp)), raw: med(B.map((q) => q.best.raw)), vol: med(L.map((q) => q.vol)), spread: med(L.map((q) => q.spread)),
+      nb: B.length, posT: B.length ? r2(B.filter((q) => q.best.exp > q.cT).length / B.length * 100, 0) : null, posM: B.length ? r2(B.filter((q) => q.best.exp > q.cM).length / B.length * 100, 0) : null };
+  }
   shSummary() {
     const SH = this.S.SH || {}, rows = [], open = this.shN || 0;
     for (const [k, q] of Object.entries(SH)) {
@@ -685,7 +694,7 @@ export class ScalpCore {
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
       radar, pos: S.pos, ord: S.ord, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
-      sh: this.shSummary(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
+      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     this.dirty++;
     if (this.dirty % 3 === 0 || !this.cfg?.enabled) await this.kv.put("S", S);
