@@ -559,6 +559,19 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
         rs, _ = be.q("SELECT value FROM user_data WHERE key = 'scalpping'", [])
         for r in rs or []:
             log.info("Bot lướt giây – lần đánh thức gần nhất: %s", str(r.get("value"))[:800])
+        rs, _ = be.q("SELECT json_extract(value, '$.why') AS why, json_extract(value, '$.sh.all') AS sha, json_extract(value, '$.sh.best') AS shb, json_extract(value, '$.sh.open') AS sho, "
+                     "json_extract(value, '$.cfg.mode') AS mode, json_extract(value, '$.cfg.hmax') AS hmax, json_extract(value, '$.cfg.sh_min') AS shmin, json_extract(value, '$.pause') AS pause, json_extract(value, '$.sys') AS sys, "
+                     "json_extract(value, '$.log') AS lg FROM user_data WHERE key = 'scalpstate'", [])
+        for r in rs or []:
+            log.info("Bot lướt giây – cài đặt: cách khớp %s · giữ tối đa %s · lệnh ảo tối thiểu %s · tạm dừng %s · máy %s", r.get("mode"), r.get("hmax"), r.get("shmin"), str(r.get("pause"))[:200], str(r.get("sys"))[:200])
+            log.info("Bot lướt giây – vì sao: %s", str(r.get("why"))[:900])
+            log.info("Bot lướt giây – lệnh ảo đang chạy %s · tổng: %s", r.get("sho"), str(r.get("sha"))[:1500])
+            log.info("Bot lướt giây – lệnh ảo tốt nhất: %s", str(r.get("shb"))[:1500])
+            try:
+                for l in (json.loads(r.get("lg") or "[]"))[-8:]:
+                    log.info("Bot lướt giây – nhật ký: %s %s", l.get("t"), str(l.get("m"))[:300])
+            except Exception:  # noqa: BLE001
+                pass
         # kiểm tra: kỳ vọng lúc vào lệnh so với thực tế, theo mốc giữ / lý do thoát / loại thị trường
         rs, _ = be.q("SELECT json_extract(value, '$.trades') AS tr FROM user_data WHERE key = 'scalpstate'", [])
         for r in rs or []:
