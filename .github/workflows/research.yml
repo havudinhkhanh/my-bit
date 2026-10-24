@@ -9,6 +9,9 @@ on:
       nsym:
         description: "Số mã futures (khối lượng lớn nhất)"
         default: "220"
+      env:
+        description: "Biến môi trường thêm, dạng KEY=VAL;KEY=VAL"
+        default: ""
 
 permissions:
   contents: write
@@ -32,7 +35,9 @@ jobs:
       - name: Chạy nghiên cứu
         env:
           RS_NSYM: ${{ inputs.nsym }}
-        run: mkdir -p research_out && (python research/${{ inputs.script }} 2>&1 | tail -c 400000 > research_out/stdout.txt) ; tail -60 research_out/stdout.txt
+        run: |
+          IFS=';' read -ra KV <<< "${{ inputs.env }}"; for kv in "${KV[@]}"; do [ -n "$kv" ] && export "$kv"; done
+          mkdir -p research_out && (python research/${{ inputs.script }} 2>&1 | tail -c 400000 > research_out/stdout.txt) ; tail -60 research_out/stdout.txt
       - name: Đẩy kết quả lên nhánh status
         if: always()
         run: bash scripts/publish_status.sh research research_out

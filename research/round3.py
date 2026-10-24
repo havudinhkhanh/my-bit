@@ -27,11 +27,14 @@ import events as E  # noqa: E402
 
 log = E.log
 MAKER, FEE = 2.0, 5.0
+SIZE = float(os.environ.get("RS_SIZE", "0.1"))     # phần vốn mỗi lệnh
 EXIT_SLIP, STOP_SLIP, THROUGH = 10.0, 20.0, 5.0
-DS = (0.5, 0.75, 1.0, 1.5)
-WS = (5, 15)
-HS = (15, 30, 60, 120, 240)
-SLS = (0, 1.0, 2.0)          # 0 = không cắt lỗ; k = cắt lỗ khi giá đi tiếp k × độ lớn cú sốc sau giá khớp
+DS = tuple(float(x) for x in os.environ.get("RS_DS", "0.5,0.75,1.0,1.5").split(","))
+WS = tuple(int(x) for x in tuple(float(x) for x in os.environ.get("RS_WS", "5,15").split(",")))
+HS = tuple(int(x) for x in tuple(float(x) for x in os.environ.get("RS_HS", "15,30,60,120,240").split(",")))
+SLS = tuple(float(x) for x in os.environ.get("RS_SLS", "0,1.0,2.0").split(","))
+RS_ = tuple(float(x) for x in os.environ.get("RS_RS", "150,200,300,500").split(","))
+ZS_ = tuple(float(x) for x in os.environ.get("RS_ZS", "4,6,8").split(","))          # 0 = không cắt lỗ; k = cắt lỗ khi giá đi tiếp k × độ lớn cú sốc sau giá khớp
 OOS0 = int(dt.datetime.fromisoformat(E.OOS_FROM).replace(tzinfo=dt.timezone.utc).timestamp() // 60)
 BTC = {}
 
@@ -62,11 +65,11 @@ def process(s):
     q24 = qv.rolling(1440, min_periods=600).sum().shift(1).values
     ok = d.c.notna().values; t0 = int(d.index[0]); n = len(d)
     z = r / sd
-    m = (np.abs(z) >= 4) & (np.abs(r) * 1e4 >= 150) & (qv.values >= 3 * mq) & ok
+    m = (np.abs(z) >= min(ZS_)) & (np.abs(r) * 1e4 >= min(RS_)) & (qv.values >= 3 * mq) & ok
     out = []
     half = 3.0
     for i in E.dedupe(np.flatnonzero(m), 30):
-        if i + 16 + max(HS) >= n:
+        if i + 2 + max(WS) + max(HS) >= n:
             continue
         side = -np.sign(r[i]); c0 = c.values[i]; mv = abs(math.expm1(r[i])); T = t0 + i
         bt = BTC.get("c"); b15 = None
@@ -94,7 +97,7 @@ def process(s):
                             if hit.size:
                                 x = stop * (1 - side * STOP_SLIP / 1e4); why = "S"
                         net = side * (x / L - 1) * 1e4 - (MAKER + FEE + half + (0 if why == "S" else EXIT_SLIP))
-                        rec["res"][f"{D}|{W}|{SL}|{H}"] = round(float(net), 1)
+                        rec["res"][f"{D}|{W}|{SL:g}|{H}"] = round(float(net), 1)
         out.append(rec)
     return s, out, None
 
@@ -106,7 +109,7 @@ def agg(evs, key, oos):
     a = np.array([x[1] for x in v]); days = pd.Series(a, index=[x[0] // 1440 for x in v]).groupby(level=0).sum()
     ndays = (max(x[0] for x in v) - min(x[0] for x in v)) / 1440 + 1
     # mỗi lệnh dùng 10% vốn → lãi/lỗ ngày (%) = tổng bps × 10% / 100
-    dret = days * 0.1 / 100
+    dret = days * SIZE / 100
     eq = np.cumprod(1 + dret.values / 100); dd = float((1 - eq / np.maximum.accumulate(eq)).max() * 100)
     return dict(n=len(a), per_day=round(len(a) / ndays, 2), mean=round(float(a.mean()), 1), med=round(float(np.median(a)), 1), win=round(float((a > 0).mean() * 100), 1),
                 p5=round(float(np.percentile(a, 5)), 1), worst=round(float(a.min()), 1), day_pct=round(float(dret.sum() / ndays), 3), worst_day_pct=round(float(dret.min()), 2), maxdd_pct=round(dd, 2))
@@ -125,8 +128,8 @@ if __name__ == "__main__":
     log(f"Xong {len(syms)} mã trong {time.time() - t0:.0f}s · {len(evs)} cú sốc ≥ 150 bps/1 phút (z ≥ 4, khối lượng ≥ 3×) · lỗi {errs}")
     rep = {"n_events": len(evs), "grid": []}
     for VOL in (2e6, 10e6, 50e6):
-        for Z in (4, 6, 8):
-            for R in (150, 200, 300, 500):
+        for Z in ZS_:
+            for R in RS_:
                 E_ = [e for e in evs if e["q24"] >= VOL and e["z"] >= Z and e["R"] >= R]
                 if len(E_) < 30:
                     continue
@@ -134,7 +137,7 @@ if __name__ == "__main__":
                     for W in WS:
                         for SL in SLS:
                             for H in HS:
-                                key = f"{D}|{W}|{SL}|{H}"
+                                key = f"{D}|{W}|{SL:g}|{H}"
                                 IS = agg(E_, key, False)
                                 if IS.get("n", 0) < 60:
                                     continue
@@ -144,9 +147,17 @@ if __name__ == "__main__":
     G.sort(key=lambda x: -x["IS"]["mean"])
     for x in G[:15]:
         log(f"  vol≥{x['VOL'] / 1e6:.0f}tr z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p\n     IS  {x['IS']}\n     OOS {x['OOS']}")
+    log("\nTừng tháng (5 tổ hợp đầu) – lãi ròng TB bps / số lệnh:")
+    for x in G[:5]:
+        key = f"{x['D']}|{x['W']}|{x['SL']:g}|{x['H']}"
+        xs = [e for e in evs if e["q24"] >= x["VOL"] and e["z"] >= x["Z"] and e["R"] >= x["R"] and key in e["res"]]
+        mo = {}
+        for e in xs:
+            mo.setdefault(dt.datetime.fromtimestamp(e["T"] * 60, dt.timezone.utc).strftime("%Y-%m"), []).append(e["res"][key])
+        log(f"  z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p: " + " | ".join(f"{k}: {np.mean(v):.0f} ({len(v)})" for k, v in sorted(mo.items())))
     log("\nĐộ bền: tỉ lệ tổ hợp (đủ ≥ 30 lệnh OOS) có lãi ròng TB OOS > 0, theo từng tham số:")
     okG = [x for x in G if x["OOS"].get("n", 0) >= 30]
-    for p, vals in (("D", DS), ("SL", SLS), ("H", HS), ("R", (150, 200, 300, 500)), ("Z", (4, 6, 8)), ("VOL", (2e6, 10e6, 50e6))):
+    for p, vals in (("D", DS), ("SL", SLS), ("H", HS), ("R", RS_), ("Z", ZS_), ("VOL", (2e6, 10e6, 50e6))):
         row = []
         for v in vals:
             xs = [x for x in okG if x[p] == v]
@@ -155,7 +166,7 @@ if __name__ == "__main__":
         log(f"  {p}: " + " | ".join(row))
     # theo bối cảnh BTC 15 phút cho 1 cấu hình tiêu biểu
     if G:
-        b = G[0]; key = f"{b['D']}|{b['W']}|{b['SL']}|{b['H']}"
+        b = G[0]; key = f"{b['D']}|{b['W']}|{b['SL']:g}|{b['H']}"
         E_ = [e for e in evs if e["q24"] >= b["VOL"] and e["z"] >= b["Z"] and e["R"] >= b["R"] and key in e["res"]]
         for lab, f in (("BTC 15p giảm > 1%", lambda e: e["b15"] is not None and e["b15"] < -100), ("BTC bình thường", lambda e: e["b15"] is not None and abs(e["b15"]) <= 100), ("BTC 15p tăng > 1%", lambda e: e["b15"] is not None and e["b15"] > 100)):
             xs = [e for e in E_ if f(e)]
