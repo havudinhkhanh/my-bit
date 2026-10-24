@@ -237,6 +237,27 @@ function gauge(v, lo = 0, hi = 100, label = "") {
 }
 
 // ================================================================ khung trang
+// ---------------------------------------------------------------- tự cập nhật trang mà KHÔNG làm mất chỗ đang xem
+// - đang chạm / cuộn / gõ (6 giây gần nhất) → hoãn lần cập nhật này
+// - vẽ lại xong: giữ khung đang xem ở đúng vị trí trên màn hình, giữ vị trí cuộn của từng bảng, giữ mục đang mở
+const UI = { t: 0 };
+["touchstart", "touchmove", "wheel", "pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => (UI.t = Date.now()), { passive: true, capture: true }));
+const userBusy = (ms = 6000) => Date.now() - UI.t < ms;
+const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) === "0"; } catch (e) { return false; } };
+async function softRender(fn) {
+  const root = $("#app"); if (!root) return fn();
+  const panels = [...root.querySelectorAll("section.panel, .panel")];
+  let ai = -1, aoff = 0;
+  for (let i = 0; i < panels.length; i++) { const r = panels[i].getBoundingClientRect(); if (r.bottom > 60) { ai = i; aoff = r.top; break; } }
+  const sc = [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].map((el) => [el.scrollTop, el.scrollLeft]);
+  const open = [...root.querySelectorAll("details")].map((d) => d.open);
+  const y = scrollY;
+  await fn();
+  const P2 = [...root.querySelectorAll("section.panel, .panel")];
+  if (ai >= 0 && P2[ai]) scrollTo(0, Math.max(0, scrollY + P2[ai].getBoundingClientRect().top - aoff)); else scrollTo(0, y);
+  [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].forEach((el, i) => { if (sc[i]) { el.scrollTop = sc[i][0]; el.scrollLeft = sc[i][1]; } });
+  [...root.querySelectorAll("details")].forEach((d, i) => { if (open[i] != null) d.open = open[i]; });
+}
 function setTab(r) {
   $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", (r === "botsup" || r === "botscalp") && a.dataset.r === "bot"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
@@ -2832,8 +2853,8 @@ async function viewBot(sel) {
   clearInterval(window.__botT); let dirty = false; $("#bForm").addEventListener("input", () => (dirty = true));
   window.__botT = setInterval(async () => {
     if (!location.hash.startsWith("#/bot")) { clearInterval(window.__botT); return; }
-    if (document.hidden || dirty || document.activeElement?.closest?.("#bForm")) return;
-    try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) viewBot(id); } catch (e) { /* bỏ qua */ }
+    if (document.hidden || dirty || userBusy() || document.activeElement?.closest?.("#bForm")) return;
+    try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) softRender(() => viewBot(id)); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 
@@ -2995,8 +3016,8 @@ async function viewSup() {
   clearInterval(window.__supT);
   window.__supT = setInterval(async () => {
     if (location.hash !== "#/bot/sup") { clearInterval(window.__supT); return; }
-    if (document.hidden || document.activeElement?.closest?.("#sForm")) return;
-    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) viewSup(); } catch (e) { /* bỏ qua */ }
+    if (document.hidden || userBusy() || document.activeElement?.closest?.("#sForm")) return;
+    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) softRender(() => viewSup()); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 
@@ -3064,7 +3085,7 @@ async function viewScalp() {
       <p class="faint" style="font-size:.74rem">Nếu "gộp thực" thấp hơn "kỳ vọng" một cách đều đặn, bộ học đang tự tin quá mức – bot cần thận trọng hơn. Nếu gộp thực ≈ kỳ vọng mà ròng vẫn âm, thì phí + chênh lệch quá lớn so với biên lời.</p>` : `<p class="muted">Chưa có lệnh để kiểm tra.</p>`;
   app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1><span class="meta"><a href="#/bot">← Đội bot</a> · quét toàn bộ spot + futures USDT · vào nhanh, ra nhanh theo giây · sàn thử (giá & khớp lệnh thật, phí thật)</span></div>
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${st[1]} big">${st[0]}</span><small>${esc(st[2])}</small>
-      <span class="bot-btns">${C.enabled && X.pause ? `<button class="btn primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Bỏ nghỉ, chạy tiếp</button>` : ""}<button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt" : "▶ Bật"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">Làm lại tài khoản</button></span></div>
+      <span class="bot-btns">${C.enabled && X.pause ? `<button class="btn primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Bỏ nghỉ, chạy tiếp</button>` : ""}<button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ bảng">${autoOff("scalp") ? "▶ Tự cập nhật" : "⏸ Dừng cập nhật"}</button><button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt" : "▶ Bật"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">Làm lại tài khoản</button></span></div>
       ${feedTxt ? `<div class="sc-fd">${feedTxt}${bn}</div>` : ""}
       ${kpis([["Tài sản", isNum(X.eq) ? "$" + nf(X.eq, 2) : "—", "", `vốn ${usd(X.start ?? C.capital)}`], ["Lãi/lỗ", pct(ret, 2), cls(ret), isNum(S.net) ? `${S.net >= 0 ? "+" : ""}${usd2(S.net)} sau phí` : ""], ["Hôm nay", pct(dayP, 2), cls(dayP), `dừng khi lỗ ${nf(C.daily_stop, 1)}%`],
         ["Số lệnh", nf(S.n || 0, 0), "", S.n ? `thắng ${nf(S.win / S.n * 100, 0)}%` : "chưa có"], ["50 lệnh gần nhất", L50 ? `${bps(L50.net, 2)} bps` : "—", cls(L50?.net), L50 ? `gộp ${bps(L50.gross, 2)} − phí ${nf(L50.fee, 2)} bps/lệnh` : ""],
@@ -3134,6 +3155,7 @@ async function viewScalp() {
   $$("[data-scg]").forEach((b) => (b.onclick = () => { window.__scG = b.dataset.scg; const y = scrollY; viewScalp().then(() => scrollTo(0, y)); }));
   $$("[data-scc]").forEach((b) => (b.onclick = () => { window.__scC = b.dataset.scc; const y = scrollY; viewScalp().then(() => scrollTo(0, y)); }));
   if ($("#scRes")) $("#scRes").onclick = async () => { C.resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot sẽ chạy tiếp trong ≤ 30 giây"); viewScalp(); };
+  $("#scAuto").onclick = () => { const off = !autoOff("scalp"); try { localStorage.setItem("mybit_auto_scalp", off ? "0" : "1"); } catch (e) { /* bỏ qua */ } toast(off ? "Đã dừng tự cập nhật – bấm lại để chạy tiếp" : "Trang tự cập nhật lại"); if (off) $("#scAuto").textContent = "▶ Tự cập nhật"; else softRender(() => viewScalp()); };
   $("#scOn").onclick = async () => { C.enabled = !C.enabled; delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
   $("#scReset").onclick = async () => { if (!confirm(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`)) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
   if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
@@ -3141,8 +3163,9 @@ async function viewScalp() {
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); return; }
-    if (document.hidden || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang sửa dở / đang hiện khoá → không tải lại
-    try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) { const y = scrollY; await viewScalp(); scrollTo(0, y); } } catch (e) { /* bỏ qua */ }
+    if (document.hidden || autoOff("scalp") || userBusy() || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
+    if (Date.now() - (window.__scLast || 0) < (innerWidth < 980 ? 10000 : 3000)) return;     // điện thoại: 10 giây / lần là đủ
+    try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) { window.__scLast = Date.now(); await softRender(() => viewScalp()); } } catch (e) { /* bỏ qua */ }
   }, 3000);
 }
 
