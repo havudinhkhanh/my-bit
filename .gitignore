@@ -4,3 +4,7 @@
 __pycache__/
 *.pyc
 /wrangler.toml
+
+# đầu ra nghiên cứu chạy thử tại máy (kết quả thật nằm ở nhánh status)
+research_out/
+rs_cache*/
