@@ -1,0 +1,38 @@
+name: Nghiên cứu phương pháp bot lướt giây
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Tệp nghiên cứu trong research/"
+        default: "events.py"
+      nsym:
+        description: "Số mã futures (khối lượng lớn nhất)"
+        default: "220"
+
+permissions:
+  contents: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy pandas
+      - name: Bộ đệm dữ liệu nến
+        uses: actions/cache@v4
+        with:
+          path: rs_cache
+          key: rs-${{ github.run_id }}
+          restore-keys: rs-
+      - name: Chạy nghiên cứu
+        env:
+          RS_NSYM: ${{ inputs.nsym }}
+        run: mkdir -p research_out && (python research/${{ inputs.script }} 2>&1 | tail -c 400000 > research_out/stdout.txt) ; tail -60 research_out/stdout.txt
+      - name: Đẩy kết quả lên nhánh status
+        if: always()
+        run: bash scripts/publish_status.sh research research_out
