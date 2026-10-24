@@ -92,7 +92,7 @@ def fetch(sym, kind, key):
     url = f"{BASE}/{kind}/klines/{sym}/1m/{sym}-1m-{key}.zip"
     b = get(url)
     df = parse(b) if b else None
-    if df is not None:
+    if df is not None and not os.environ.get("RS_NOCACHE"):
         df.to_pickle(path)
     return df
 
