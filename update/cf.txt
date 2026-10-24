@@ -1,0 +1,4 @@
+D1: OK
+[[d1_databases]]
+binding = "DB"
+database_name = "mybit"

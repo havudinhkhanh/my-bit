@@ -1,0 +1,12 @@
+✨ Compiled Worker successfully
+Uploading... (63/614)
+Uploading... (246/614)
+Uploading... (430/614)
+Uploading... (614/614)
+✨ Success! Uploaded 551 files (63 already uploaded) (3.49 sec)
+
+✨ Uploading _headers
+✨ Uploading Functions bundle
+✨ Uploading _routes.json
+🌎 Deploying...
+✨ Deployment complete! Take a peek over at https://2d377992.my-bit.pages.dev

@@ -1,0 +1,133 @@
+{
+ "steps": {
+  "futures_snapshot": {
+   "ok": true,
+   "sec": 4.0,
+   "info": {
+    "bitget": 857,
+    "okx": 509,
+    "gate": 1061,
+    "hl": 234
+   }
+  },
+  "universe": {
+   "ok": true,
+   "sec": 42.2,
+   "info": {
+    "coins": 627,
+    "spot": 420,
+    "fut": 413,
+    "excl": 73,
+    "orphans": 93
+   }
+  },
+  "macro": {
+   "ok": true,
+   "sec": 0.2,
+   "info": {
+    "fng": 3184,
+    "mvrv": "skip",
+    "dvol_btc": "skip",
+    "dvol_eth": "skip",
+    "cg_cats": "skip"
+   }
+  },
+  "cg_global": {
+   "ok": true,
+   "sec": 9.7,
+   "info": {
+    "dom_btc": 59.55708520637919
+   }
+  },
+  "prices_daily": {
+   "ok": true,
+   "sec": 19.0,
+   "info": {
+    "coins": 554,
+    "updated": 500,
+    "errors": 0
+   }
+  },
+  "prices_intraday": {
+   "ok": true,
+   "sec": 12.9,
+   "info": {
+    "4h": {
+     "updated": 149,
+     "errors": 0
+    },
+    "1h": {
+     "updated": 149,
+     "errors": 0
+    }
+   }
+  },
+  "funding_hist": {
+   "ok": true,
+   "sec": 0.0,
+   "info": {
+    "todo": 1,
+    "ok": 0,
+    "errors": 0
+   }
+  },
+  "binance_metrics": {
+   "ok": true,
+   "sec": 4.4,
+   "info": {
+    "pairs": 120,
+    "jobs": 90,
+    "got": 45,
+    "errors": 0
+   }
+  },
+  "news": {
+   "ok": true,
+   "sec": 5.0,
+   "info": {
+    "new": 1372,
+    "total": 3523,
+    "src": {
+     "The Block": 19,
+     "Cointelegraph": 30,
+     "Decrypt": 40,
+     "CoinDesk": 25,
+     "Bitcoin Magazine": 10,
+     "Google News": 1199,
+     "Binance": 40
+    }
+   }
+  },
+  "defillama": {
+   "ok": true,
+   "sec": 0.0,
+   "info": "skip (đã cập nhật trong ngày)"
+  },
+  "cg_groups": {
+   "ok": true,
+   "sec": 0.0,
+   "info": "skip"
+  },
+  "unlocks": {
+   "ok": true,
+   "sec": 0.3,
+   "info": {
+    "list": 373,
+    "todo": 0,
+    "ok": 0,
+    "errors": 0
+   }
+  },
+  "supply_hist": {
+   "ok": true,
+   "sec": 0.0,
+   "info": {
+    "todo": 0,
+    "ok": 0,
+    "have": 289
+   }
+  }
+ },
+ "errors": [],
+ "at": "2026-10-24T18:45:26.873294"
+}
