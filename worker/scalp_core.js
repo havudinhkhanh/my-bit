@@ -17,7 +17,10 @@
 // đều tạo ScalpCore với bộ I/O riêng: io = { kv, readCfg(uid), writeState(uid, out), openWS(url), where: "cf" | "vps", ord }.
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
-  fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10 };
+  fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10,
+  // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
+  // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
@@ -59,11 +62,13 @@ function norm(c) {
   n("hmax", 2, 900); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
+  n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
+  c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot;
   if (!c.fut && !c.spot) c.fut = true;
   return c;
 }
 function newState(c, now) {
-  return { v: 2, start: c.capital, cash: c.capital, peak: c.capital, day: { d: vnDay(now), eq0: c.capital }, pos: {}, ord: {}, trades: [], LP: {}, eq: [], log: [], seq: 1,
+  return { v: 2, start: c.capital, cash: c.capital, peak: c.capital, day: { d: vnDay(now), eq0: c.capital }, pos: {}, ord: {}, hk: {}, hkc: {}, byS: {}, trades: [], LP: {}, eq: [], log: [], seq: 1,
     pause: null, kadd: 0, cool: {}, stats: { n: 0, gross: 0, fees: 0, net: 0, win: 0 }, by: { F: { n: 0, net: 0, fees: 0, win: 0 }, S: { n: 0, net: 0, fees: 0, win: 0 } },
     created: iso(now), reset_seen: c.reset_at || null };
 }
@@ -357,8 +362,8 @@ export class ScalpCore {
         try {
           const r = await fetch(url(u.sym), { signal: AbortSignal.timeout(10000) }); if (!r.ok) continue;
           const K = await r.json(); if (!Array.isArray(K) || K.length < 2) continue;
-          const bars = K.map((k) => [Math.floor(+k[0] / 60000), +k[4], +k[2], +k[3]]), last = x.m1[x.m1.length - 1];
-          if (last && bars[bars.length - 1][0] === last[0]) bars[bars.length - 1] = last;
+          const bars = K.map((k) => [Math.floor(+k[0] / 60000), +k[4], +k[2], +k[3], +k[7]]), last = x.m1[x.m1.length - 1];
+          if (last && bars[bars.length - 1][0] === last[0]) { last[4] = Math.max(last[4] || 0, bars[bars.length - 1][4]); bars[bars.length - 1] = last; }
           x.m1 = bars.slice(-62); ok++;
         } catch (e) { /* bỏ qua coin này */ }
         await sleep(60);
@@ -397,7 +402,9 @@ export class ScalpCore {
     const now = Date.now(); f.last = now; f.n++;
     SRC[f.src].parse(m, f, {
       book: (x, b, bq, a, aq, b1, a1) => { if (b) { x.bid = b; if (bq != null) { x.bq = bq; x.b1q = b1 ?? bq; } } if (a) { x.ask = a; if (aq != null) { x.aq = aq; x.a1q = a1 ?? aq; } } x.tb = now; if (x.bid && x.ask) this.onBook(x, now); },
-      trade: (x, p, q, side) => { if (!(p > 0 && q > 0)) return; if (side > 0) x.sec.buy += q * p; else x.sec.sell += q * p; this.onTrade(x, p, q, side, now); },
+      trade: (x, p, q, side) => { if (!(p > 0 && q > 0)) return; if (side > 0) x.sec.buy += q * p; else x.sec.sell += q * p;
+        const mv = Math.floor(now / 60000); if (!x.vm || x.vm[0] !== mv) { x.vmp = x.vm; x.vm = [mv, 0]; } x.vm[1] += q * p * (x.ct || 1);      // khối lượng (USDT) từng phút
+        this.onTrade(x, p, q, side, now); },
     });
     const sec = Math.floor(now / 1000);
     if (sec > this.lastSec) { this.lastSec = sec; try { this.second(now); } catch (e) { this.err("second: " + e.message); } }
@@ -423,7 +430,9 @@ export class ScalpCore {
       S.pause = { kind: "day", why: `đạt mục tiêu ngày +${dayPct.toFixed(2)}% (mục tiêu ${c.day_target}%) – chốt lời, ngừng mở lệnh thật tới hết ngày; lệnh ảo vẫn chạy để học`, until: null };
       this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot lướt giây đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
     }
-    const kk = c.k + (S.kadd || 0), hourN = this.tradesLastHour(now), nOpen = Object.keys(S.pos).length + Object.keys(S.ord).length;
+    S.hk ||= {}; S.hkc ||= {}; S.byS ||= {};
+    for (const [id, H] of Object.entries(S.hk)) if (now > H.exp) { delete S.hk[id]; if (!H.lv.some((l) => l.f)) this.say(now, `🪝 ${id.split(":")[0]}: hết ${c.hk_w} phút giá không xuống tới lệnh chờ – huỷ`, "info"); }
+    const kk = c.k + (S.kadd || 0), hourN = this.tradesLastHour(now), nOpen = Object.values(S.pos).filter((p) => p.strat !== "hook").length + Object.keys(S.ord).length;
     const live = {}, cnt = { all: 0, learn: 0, fee: 0, go: 0, skip: 0, hold: 0, stale: 0 }, cand = [];
     const bx = this.M["BTC:F"] || this.M["BTC:S"], bz = bx ? this.trendZ(bx, 5) : null;      // BTC 5 phút: dẫn dắt cả thị trường
     for (const id in this.M) {
@@ -433,7 +442,10 @@ export class ScalpCore {
       x.flow.push([x.sec.buy, x.sec.sell]); x.sec = { buy: 0, sell: 0 }; if (x.flow.length > 10) x.flow.shift();
       x.mids.push(mid); if (x.mids.length > 61) x.mids.shift();
       const mm = Math.floor(now / 60000), lb = x.m1[x.m1.length - 1];
-      if (!lb || lb[0] < mm) { x.m1.push([mm, mid, mid, mid]); if (x.m1.length > 62) x.m1.shift(); } else { lb[1] = mid; if (!(lb[2] >= mid)) lb[2] = mid; if (!(lb[3] <= mid)) lb[3] = mid; }
+      if (!lb || lb[0] < mm) {
+        if (lb) { const v = x.vm?.[0] === lb[0] ? x.vm[1] : x.vmp?.[0] === lb[0] ? x.vmp[1] : null; if (v != null) lb[4] = Math.max(lb[4] || 0, v); try { this.hookBar(x, lb, now); } catch (e) { this.err("hook " + e.message); } }
+        x.m1.push([mm, mid, mid, mid]); if (x.m1.length > 62) x.m1.shift();
+      } else { lb[1] = mid; if (!(lb[2] >= mid)) lb[2] = mid; if (!(lb[3] <= mid)) lb[3] = mid; }
       this.manageTime(x, now); this.shTime(x, now);
       if (now - x.tb > 10000) { cnt.stale++; x.pend.length = 0; x.ptr = null; if (!S.pos[id]) continue; }
       if (x.mids.length < 20) continue;
@@ -586,6 +598,7 @@ export class ScalpCore {
       if (o.queue <= 0) { delete this.S.ord[x.id]; x.ctx = o.ctx; x.zone = o.zone; x.shk = o.shk; this.open(x, o.side, o.px, o.q, "maker", { h: o.h, exp: o.exp, raw: o.raw }, o.slb, o.tpb, o.cost, now); }
     }
     this.shTrade(x, p, q, side, now);
+    if (this.S?.hk?.[x.id]) this.hookTrade(x, p, now);
   }
   onBook(x, now) {
     if (x.sh?.length) this.shBook(x, now);
@@ -608,13 +621,66 @@ export class ScalpCore {
     delete S.pos[x.id];
     if (c.cool) S.cool[x.id] = now + c.cool * 1000;
     const n0 = P.q * P.e, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, net = grossB - feeB, usd = gross - fee - P.fee;
-    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, val: !!P.shk, t0: iso(P.t0), t1: iso(now) };
+    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
+    const bs = ((S.byS ||= {})[P.strat || "sec"] ||= { n: 0, net: 0, fees: 0, win: 0, bps: 0 }); bs.n++; bs.net += usd; bs.fees += P.fee + fee; bs.bps += net; if (usd > 0) bs.win++;
     if (P.shk) this.shAdd(P.shk, net, true);      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
     const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
-    this.note(`t:${P.id}`, 1, `⚡ ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", STALE: "mất dữ liệu" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`);
+    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", STALE: "mất dữ liệu" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`);
+  }
+
+  // ---------------------------------------------------------------- 🪝 BẮT RÂU SẬP – đặt lệnh chờ sâu sau cú sốc 1 phút
+  // Kiểm chứng (research/round3.py, ~900 mã Binance futures, khối lượng đúng thời điểm, khớp phải xuyên qua giá chờ 5 bps, thoát taker + trượt 10 bps):
+  // trong mẫu 7–9/2026 và ngoài mẫu 10/2026 đều ròng dương sau phí; lời dồn vào các cú sập lớn cả thị trường, đuôi lỗ dày → cỡ lệnh nhỏ, có cắt lỗ thảm hoạ.
+  hookBar(x, b, now) {
+    const c = this.cfg, S = this.S; if (!c?.hk_on || !S || (x.t === "S" && !c.hk_spot)) return;
+    const L = x.m1, n = L.length; if (n < 42 || L[n - 1] !== b) return;
+    const prev = L[n - 2]; if (!(prev[1] > 0 && b[1] > 0)) return;
+    const r = Math.log(b[1] / prev[1]);
+    let sm = 0, sq = 0, k = 0; const vs = [];
+    for (let i = Math.max(1, n - 61); i < n - 1; i++) { const ri = Math.log(L[i][1] / L[i - 1][1]); if (Number.isFinite(ri)) { sm += ri; sq += ri * ri; k++; } if (L[i][4] > 0) vs.push(L[i][4]); }
+    if (k < 40) return;
+    const sd = Math.sqrt(Math.max(1e-14, (sq - sm * sm / k) / (k - 1))), R = Math.abs(r) * 1e4, z = Math.abs(r) / sd;
+    const H = (this.hkStat ||= { seen: 0, vol: 0, placed: 0, last: null });
+    if (R < c.hk_r || z < c.hk_z) return;
+    H.seen++;
+    vs.sort((a, q) => a - q); const med = vs.length >= 20 ? vs[vs.length >> 1] : 0;
+    const base = x.id.split(":")[0], side = r < 0 ? 1 : -1;
+    H.last = { k: x.id, at: iso(now), R: r2(r * 1e4, 0), z: r2(z, 1), vx: med > 0 ? r2((b[4] || 0) / med, 1) : null };
+    if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; return; }
+    H.vol++;
+    if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
+    if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
+    if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày"; return; }
+    const act = Object.keys(S.hk).length + Object.values(S.pos).filter((p) => p.strat === "hook").length;
+    if (act >= c.hk_max) { H.last.why = `đã có ${act}/${c.hk_max} lần bắt râu đang mở`; return; }
+    const eq = this.equity(), lev = x.t === "F" ? c.lev : 1, notional = Math.min(eq * c.hk_size / 100, Math.max(0, eq - this.used()) * lev);
+    const lvs = [c.hk_d1, c.hk_d2].filter((d) => d > 0); if (!lvs.length || notional < 10) { H.last.why = "không đủ vốn"; return; }
+    const mv = Math.abs(Math.expm1(r)), c0 = b[1], each = notional / lvs.length;
+    S.hk[x.id] = { t: x.t, side, t0: now, exp: now + c.hk_w * 60000, mv, R: r2(R, 0), z: r2(z, 1), c0, lv: lvs.map((d) => { const px = c0 * (1 - side * d * mv); return { d, px, q: each / px, f: 0 }; }) };
+    S.hkc[x.id] = now + 30 * 60000; H.placed++; H.last.why = "đã đặt lệnh chờ";
+    const pxs = S.hk[x.id].lv.map((l) => +l.px.toPrecision(6)).join(" / ");
+    this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps trong 1 phút (z ${z.toFixed(1)}, khối lượng ${(b[4] / med).toFixed(1)}×) → chờ ${side > 0 ? "mua" : "bán"} ở ${pxs}`, "info");
+    this.note(`hk:${x.id}:${b[0]}`, 1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 100).toFixed(1)}% trong 1 phút`, `Đặt lệnh chờ ${side > 0 ? "mua" : "bán"} ở ${pxs} (sàn thử) – chờ tối đa ${c.hk_w} phút, khớp thì giữ ${c.hk_h} phút.`);
+  }
+  hookTrade(x, p, now) {
+    const H = this.S.hk[x.id]; if (!H) return;
+    for (const l of H.lv) { if (l.f) continue; const th = l.px * (1 - H.side * 5 / 1e4); if (H.side > 0 ? p < th : p > th) { l.f = 1; this.hookFill(x, H, l, now); } }
+    if (H.lv.every((l) => l.f)) delete this.S.hk[x.id];
+  }
+  hookFill(x, H, l, now) {
+    const c = this.cfg, S = this.S, fr = x.t === "F" ? c.fee_m : c.fee_ms, fee = l.q * l.px * fr / 100, P = S.pos[x.id];
+    const stop = (e) => (c.hk_stop ? e * (1 - H.side * c.hk_stop / 100) : H.side > 0 ? 0 : 1e18);
+    if (P && P.strat !== "hook") return;          // coin đang có lệnh lướt giây → bỏ mức này
+    S.cash -= fee;
+    if (P) { const q = P.q + l.q; P.e = (P.e * P.q + l.px * l.q) / q; P.q = q; P.fee += fee; P.lv = (P.lv || 1) + 1; P.sl = stop(P.e); }
+    else S.pos[x.id] = { id: S.seq++, t: x.t, side: H.side, e: l.px, q: l.q, fee, how: "maker", strat: "hook", t0: now, h: c.hk_h * 60, sl: stop(l.px), tp: H.side > 0 ? 1e18 : 0,
+      exp: null, raw: null, cost: r2((fr + (x.t === "F" ? c.fee_t : c.fee_ts)) * 100, 1), slb: c.hk_stop * 100, tpb: null, R: H.R, z: H.z, lv: 1, c0: H.c0 };
+    const base = x.id.split(":")[0], away = (l.px / H.c0 - 1) * 100;
+    this.say(now, `🪝 Khớp ${H.side > 0 ? "mua" : "bán"} ${base} ở ${+l.px.toPrecision(6)} (${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá đóng nến sốc) · giữ ${c.hk_h} phút`, "info");
+    this.note(`hkf:${x.id}:${H.t0}:${l.d}`, 2, `🪝 Khớp ${H.side > 0 ? "Long" : "Short"} ${base} ở ${+l.px.toPrecision(6)}`, `${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá sau cú ${H.side > 0 ? "sập" : "vọt"} · sàn thử · tự đóng sau ${c.hk_h} phút${c.hk_stop ? `, cắt lỗ thảm hoạ ${c.hk_stop}%` : ""}.`);
   }
 
   // ---------------------------------------------------------------- VÙNG GIÁ (SMC) & LỆNH ẢO
@@ -756,7 +822,7 @@ export class ScalpCore {
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
-      radar, pos: S.pos, ord: S.ord, trades: T.slice(-80),
+      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, hkStat: this.hkStat || null, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
