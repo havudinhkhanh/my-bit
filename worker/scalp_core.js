@@ -18,7 +18,7 @@
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10 };
-const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 5 phút
+const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
 const STABLE = new Set(["USDC", "USDT", "FDUSD", "TUSD", "DAI", "USDE", "USDD", "PYUSD", "BUSD", "EUR", "EURI", "AEUR", "USD1", "USDP", "USTC", "RLUSD", "XUSD", "BFUSD", "USDS", "GUSD"]);
@@ -43,7 +43,9 @@ export const ZONE_VI = { W: "vừa quét thanh khoản rồi quay đầu", A: "v
 // Chỉ khi lệnh ảo của đúng loại tình huống đó có lời ròng (đã trừ sai số) thì mới vào lệnh thật. Trung bình trượt ~300 kết quả gần nhất → nhớ lâu nhưng vẫn theo kịp thị trường.
 const SHW = 300, SH_MAX = 3000, SH_GAP = 15000;                               // |giá đi 15 phút| ≥ 0,5 lần dao động kỳ vọng → coi là có xu hướng
 // BỘ NHỚ HỌC (dùng lại được cho bot khác / máy khác / lúc giao dịch thật): chỉ nạp khi cùng "lược đồ" – cùng mốc giữ, cách chia ô, hạng, bối cảnh, công thức tín hiệu
-export const BRAIN_SCH = JSON.stringify({ v: 3, HS: [2, 5, 15, 30, 60, 120, 180, 240, 300], NB: 6, BW: 0.15, TIERS: [500, 50, 5], ctx: "t15z0.5|b5z0.5", sig: "0.4tfi5+0.3obi5lv+0.3mz5", z: "fwd/(vol60*sqrt(h))" });
+export const BRAIN_SCH = JSON.stringify({ v: 3, HS: [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900], NB: 6, BW: 0.15, TIERS: [500, 50, 5], ctx: "t15z0.5|b5z0.5", sig: "0.4tfi5+0.3obi5lv+0.3mz5", z: "fwd/(vol60*sqrt(h))" });
+// bộ nhớ học bản cũ dùng được nếu chỉ khác ở chỗ có ít mốc giữ hơn (mốc mới thêm vào cuối → bảng cũ được thêm cột trống)
+const schOK = (sch) => { if (sch === BRAIN_SCH) return true; try { const a = JSON.parse(sch), b = JSON.parse(BRAIN_SCH); const { HS: ha, ...ra } = a, { HS: hb, ...rb } = b; return JSON.stringify(ra) === JSON.stringify(rb) && ha.every((h, i) => hb[i] === h); } catch (e) { return false; } };
 const fit = (L, w) => { for (const row of L) while (row.length < HS.length) row.push(Array(w).fill(0)); return L; };   // bảng học cũ ít mốc hơn → thêm cột trống
 
 function norm(c) {
@@ -51,7 +53,7 @@ function norm(c) {
   const n = (k, a, b) => (c[k] = clamp(Number.isFinite(+c[k]) ? +c[k] : SCALP_DEF[k], a, b));
   n("capital", 50, 1e7); n("min_vol", 0, 1e4); n("max_mk", 10, 1200); n("lev", 1, 20); n("risk", 0.02, 1); n("max_pos", 1, 30);
   n("fee_m", -0.02, 0.3); n("fee_t", 0, 0.3); n("fee_ms", -0.02, 0.5); n("fee_ts", 0, 0.5); n("min_net", 0, 50); n("k", 1, 5); n("min_n", 50, 20000);
-  n("hmax", 2, 300); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
+  n("hmax", 2, 900); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
   if (!c.fut && !c.spot) c.fut = true;
@@ -121,6 +123,7 @@ const SRC = {
 };
 SRC.binance = {      // spot: data-stream.binance.vision (kết nối được cả từ Cloudflare); danh sách thị trường lấy từ !miniTicker@arr
   only: "S",
+  bars: (sym) => `https://data-api.binance.vision/api/v3/klines?symbol=${sym}&interval=1m&limit=62`,
   url: () => "wss://data-stream.binance.vision/stream?streams=!miniTicker@arr",
   uniFrom: (arr, t) => arr.filter((x) => /^[A-Z0-9]+USDT$/.test(x.s)).map((x) => ({ id: `${x.s.replace(/USDT$/, "")}:${t}`, sym: x.s, ct: 1, qv: +x.q / 1e6 })),
   // sổ lệnh 5 mức chụp mỗi 100ms (thay cho bookTicker: coin lớn đổ về hàng nghìn tin/giây, máy chủ nhỏ không kham nổi) + khớp lệnh gộp
@@ -137,6 +140,7 @@ SRC.binance = {      // spot: data-stream.binance.vision (kết nối được c
 };
 SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy được ở máy chủ riêng (Binance trả 403 cho Cloudflare)
   only: "F",
+  bars: (sym) => `https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=1m&limit=62`,
   async universe() {
     const [ri, rt] = await Promise.all([get("https://fapi.binance.com/fapi/v1/exchangeInfo"), get("https://fapi.binance.com/fapi/v1/ticker/24hr")]);
     if (!ri.ok || !rt.ok) throw new Error(`HTTP ${ri.status}/${rt.status}`);
@@ -251,7 +255,7 @@ export class ScalpCore {
   }
   // nạp kiến thức đã lưu: ô nào bản lưu có nhiều mẫu hơn thì lấy bản lưu (máy mới / sau khi cài lại không phải học lại từ đầu)
   brainIn(b) {
-    if (!b || b.sch !== BRAIN_SCH) return 0;
+    if (!b || !schOK(b.sch)) return 0;
     const S = this.S; let k = 0;
     S.LP ||= {}; S.LPt ||= {};
     for (const [g, L] of Object.entries(b.LP || {})) { const me = S.LP[g]; if (!me || me.reduce((a, r) => a + r[0][0], 0) < L.reduce((a, r) => a + r[0][0], 0)) { S.LP[g] = L; k++; } }
@@ -265,7 +269,7 @@ export class ScalpCore {
     try {
       const b = await this.io.loadBrain(this.uid);
       if (!b) return;
-      if (b.sch !== BRAIN_SCH) { this.say(now, "Bộ nhớ học đã lưu thuộc phiên bản khác – không nạp, học mới", "info"); return; }
+      if (!schOK(b.sch)) { this.say(now, "Bộ nhớ học đã lưu thuộc phiên bản khác – không nạp, học mới", "info"); return; }
       const k = this.brainIn(b);
       this.say(now, `🧠 Nạp bộ nhớ học đã lưu (${String(b.at).slice(0, 16).replace("T", " ")} UTC, ${b.n} mẫu, ${b.coins} coin) – ${k} bảng nhóm được bổ sung`, "info");
     } catch (e) { this.err("nạp bộ nhớ học " + e.message); }
@@ -332,11 +336,31 @@ export class ScalpCore {
         }
         f.ws = wss[0]; f.wss = wss; f.src = id; f.srcI = (f.srcI + n) % O.length; f.last = Date.now(); f.at = Date.now(); this.diag.conn++;
         for (let i = 0; i < plan.length; i++) for (const msg of plan[i].subs) { wss[i].send(msg); await sleep(id === "binance" ? 300 : id === "binancef" ? 150 : id === "okx" ? 120 : 40); }
+        if (SRC[id].bars) this.backfill(f, id).catch((e) => this.err("nạp nến " + e.message));
         this.say(Date.now(), `Kết nối ${name}: ${id} · quét ${U.length} thị trường (khối lượng 24h ≥ ${c.min_vol} triệu USD)${wss.length > 1 ? ` · ${wss.length} kết nối` : ""}`);
         return;
       } catch (e) { this.err(`${id} ${name}: ${e.message}`); for (const w of opened) { if (!f.wss.includes(w)) { try { w.close(1000, "lỗi"); } catch (x) { /* bỏ qua */ } } } }
     }
     this.say(Date.now(), `Không kết nối được nguồn dữ liệu ${name} nào – thử lại sau 10 giây`, "stop");
+  }
+  // khởi động lại không phải chờ 15–30 phút: tải ngay 62 nến 1 phút gần nhất của từng coin (8 yêu cầu song song, nhẹ nhàng với giới hạn của sàn)
+  async backfill(f, id) {
+    const L = [...f.list], url = SRC[id].bars; let ok = 0, i = 0;
+    const work = async () => {
+      while (i < L.length) {
+        const u = L[i++], x = this.M[u.id]; if (!x || x.m1.length >= 32) continue;
+        try {
+          const r = await fetch(url(u.sym), { signal: AbortSignal.timeout(10000) }); if (!r.ok) continue;
+          const K = await r.json(); if (!Array.isArray(K) || K.length < 2) continue;
+          const bars = K.map((k) => [Math.floor(+k[0] / 60000), +k[4], +k[2], +k[3]]), last = x.m1[x.m1.length - 1];
+          if (last && bars[bars.length - 1][0] === last[0]) bars[bars.length - 1] = last;
+          x.m1 = bars.slice(-62); ok++;
+        } catch (e) { /* bỏ qua coin này */ }
+        await sleep(60);
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, work));
+    this.say(Date.now(), `Nạp nến 1 phút cho ${ok}/${L.length} thị trường ${f.t === "F" ? "futures" : "spot"} – biết ngay xu hướng 15 phút & vùng giá 60 phút, không phải chờ`, "info");
   }
   async probeBinance() {     // Binance chặn máy chủ Cloudflare (HTTP 403) – thử lại mỗi giờ, ghi kết quả để biết khi nào dùng lại được
     if (this.bn && Date.now() - Date.parse(this.bn.at + "Z") < 3600e3) return;
@@ -456,7 +480,7 @@ export class ScalpCore {
         const exp = raw - 2.33 * se;
         const net = exp - cost, sc = net / sq;
         if (!best || sc > best.sc) best = { h, exp, raw, se, net, sc, n: P[0], nq: Q[0] };
-        for (const [m, cm] of [["T", costT], ["M", costM]]) if (exp - cm >= c.min_net && exp >= kk * cm) pass.push({ m, h, exp, raw, se, cost: cm, net: exp - cm });
+        for (const [m, cm] of [["T", costT], ["M", costM]]) if (exp - cm >= c.min_net) pass.push({ m, h, exp, raw, se, cost: cm, net: exp - cm, strict: exp >= kk * cm });   // lệnh ảo: chỉ cần vượt phí; lệnh thật: thêm ngưỡng k × chi phí
       }
       const t0g = (S.LPt ||= {})[g] ||= now, warm = now - t0g >= c.warm * 60000;
       let v = "learn", why, rc = null;
@@ -465,7 +489,7 @@ export class ScalpCore {
       else if (!warm) { why = `đang khởi động: nhóm ${g} mới học ${Math.floor((now - t0g) / 60000)}/${c.warm} phút – chưa cho vào lệnh`; best = { ...best, warm: false }; }
       else why = `${cx}: lợi thế kỳ vọng ${best.exp.toFixed(2)} bps (giữ ${best.h}s) so với chi phí khứ hồi ${cost.toFixed(2)} bps → ròng sau phí ${best.net >= 0 ? "+" : ""}${best.net.toFixed(2)} bps`;
       const zone = this.zoneOf(x, side, mid);
-      const canShadow = best && pass.length && !(x.t === "S" && side < 0) && spread <= c.spread_max && !(x.t === "F" && nearFunding(now, 300));
+      const canShadow = best && pass.length && !(x.t === "S" && side < 0) && spread <= c.spread_max && !(x.t === "F" && nearFunding(now, Math.max(...pass.map((q) => q.h))));
       if (canShadow) this.shSpawn(x, side, pass, gk, zone, vol, now);
       // tầng 2: chọn (cách khớp, mốc giữ) đã được lệnh ảo chứng minh – cận dưới lời ròng ≥ ngưỡng
       const modes = c.mode === "auto" ? ["T", "M"] : [c.mode === "maker" ? "M" : "T"];
@@ -474,7 +498,7 @@ export class ScalpCore {
         if (!modes.includes(q.m)) continue;
         const st = this.shStat(this.shKeys(q.m, g, gk, zone, q.h));
         if (st && (!seen || st.lcb > seen.lcb)) seen = { ...st, m: q.m, h: q.h };
-        if (st && st.lcb >= c.min_net && (!pick || st.lcb / Math.sqrt(q.h) > pick.sc)) pick = { ...q, st, sc: st.lcb / Math.sqrt(q.h) };
+        if (st && q.strict && st.lcb >= c.min_net && (!pick || st.lcb / Math.sqrt(q.h) > pick.sc)) pick = { ...q, st, sc: st.lcb / Math.sqrt(q.h) };
       }
       const ok = !!pick;
       if (S.pos[id]) v = "hold";
@@ -503,9 +527,12 @@ export class ScalpCore {
     }
     this.live = live; this.cnt = cnt;
     // cầu dao kỷ luật: 50 lệnh gần nhất ròng âm → nghỉ 30 phút + nâng ngưỡng
-    const T = S.trades.slice(-50);
+    // chỉ tính lệnh thật đã qua kiểm nghiệm lệnh ảo, trong 24 giờ qua (lệnh cũ trước khi có kiểm nghiệm không làm bot tự trói tay)
+    const T = S.trades.filter((t) => t.val && now - Date.parse(t.t1 + "Z") < 864e5).slice(-50);
+    if (S.kadd > 1) S.kadd = 1;
+    if (S.kadd > 0 && now - (S.brk || 0) > 2 * 3600e3 && now - (S.kdec || 0) > 3600e3) { S.kdec = now; S.kadd = Math.max(0, +(S.kadd - 0.2).toFixed(2)); }   // 2 giờ không phạm → mỗi giờ hạ dần ngưỡng
     if (!S.pause && T.length >= 50 && T.reduce((a, t) => a + t.net, 0) < 0 && (!S.brk || now - S.brk > 3600e3)) {
-      S.brk = now; S.kadd = Math.min(2, (S.kadd || 0) + 0.2);
+      S.brk = now; S.kadd = Math.min(1, (S.kadd || 0) + 0.2);
       S.pause = { kind: "brk", why: `50 lệnh gần nhất ròng ${T.reduce((a, t) => a + t.net, 0).toFixed(1)} bps (âm) – phí đang ăn hết biên lời; nghỉ 30 phút, nâng ngưỡng vào lệnh lên ${(c.k + S.kadd).toFixed(1)}× chi phí khứ hồi`, until: now + 1800e3 };
       this.say(now, `⛔ ${S.pause.why}`, "stop");
     }
@@ -563,7 +590,7 @@ export class ScalpCore {
     delete S.pos[x.id];
     if (c.cool) S.cool[x.id] = now + c.cool * 1000;
     const n0 = P.q * P.e, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, net = grossB - feeB, usd = gross - fee - P.fee;
-    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, t0: iso(P.t0), t1: iso(now) };
+    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, val: !!P.shk, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
