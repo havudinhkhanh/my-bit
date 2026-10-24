@@ -36,11 +36,24 @@ async function load(path) {
   return (cache[path] = await r.json());
 }
 async function tryLoad(path) { try { return await load(path); } catch (e) { return null; } }
-function toast(msg) {
+// thông báo nhỏ: điện thoại = banner thả xuống từ trên như iPhone (vuốt lên để ẩn, chạm để mở); máy tính = viên nhỏ phía dưới
+function toast(msg, o = {}) {
+  document.querySelectorAll(".toast").forEach((x) => x.__out?.());
   const t = document.createElement("div");
-  t.className = "toast"; t.textContent = msg;
+  t.className = "toast" + (o.title ? " ban" : ""); t.setAttribute("role", "status");
+  if (o.title) {
+    t.innerHTML = `<span class="ti"></span><span class="tb"><b></b><small></small></span><time>bây giờ</time>`;
+    t.querySelector(".ti").textContent = o.icon || "🔔"; t.querySelector("b").textContent = o.title; t.querySelector("small").textContent = msg || "";
+  } else t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2600);
+  let gone = false, y0 = null;
+  const out = () => { if (gone) return; gone = true; t.classList.add("out"); setTimeout(() => t.remove(), 340); };
+  t.__out = out;
+  t.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; t.style.transition = "none"; }, { passive: true });
+  t.addEventListener("touchmove", (e) => { if (y0 != null) t.style.transform = `translateY(${Math.min(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
+  t.addEventListener("touchend", (e) => { if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; t.style.transition = ""; t.style.transform = ""; if (dy < -24) { t.__swiped = 1; out(); } });
+  t.addEventListener("click", () => { if (t.__swiped) return; out(); if (o.href) location.hash = o.href.replace(/^[^#]*#/, "#"); });
+  setTimeout(out, o.ms || (o.title ? 6000 : 2600));
 }
 function scoreColor(v) {
   if (!isNum(v)) return "var(--sunk)";
@@ -274,6 +287,12 @@ function mSheet(open) {
     }
     $("#msheetB").innerHTML = html + (grp ? "</div>" : "");
   }
+  if (!open && !el.hidden && MOB.matches) {        // điện thoại: trượt xuống rồi mới ẩn
+    const sh = el.querySelector(".msheet-in"); el.classList.add("out");
+    if (sh) { sh.style.transition = SHEET_EASE; sh.style.transform = "translateY(105%)"; }
+    setTimeout(() => { el.hidden = true; el.classList.remove("out"); if (sh) { sh.style.transform = ""; sh.style.transition = ""; } document.body.classList.remove("msheet-on"); }, 280);
+    return;
+  }
   el.hidden = !open; document.body.classList.toggle("msheet-on", !!open);
 }
 document.addEventListener("click", (e) => {
@@ -291,6 +310,151 @@ function botSeg() {
   ph.insertAdjacentHTML("afterend", `<nav class="botseg" aria-label="Các bot">${BOTSEG.map(([r, href, ic, t]) => `<a href="${href}" class="${r === k ? "on" : ""}"><span>${ic}</span>${t}</a>`).join("")}</nav>`);
 }
 new MutationObserver(() => botSeg()).observe(document.getElementById("app"), { childList: true });
+
+// ================================================================ ĐIỆN THOẠI: cảm giác như ứng dụng iPhone
+// - bảng trượt từ dưới lên (chuông, tài khoản, "Thêm", thiết lập bot lướt giây): có vạch kéo, vuốt xuống để đóng, chạm nền tối để đóng
+// - chuyển trang mượt, nút bấm có phản hồi, banner thông báo thả từ trên xuống
+const MOB = matchMedia("(max-width:979px)");
+const SHEET_EASE = "transform .34s cubic-bezier(.32,.72,0,1)";
+// .menu (chuông / tài khoản) trên điện thoại → bảng trượt từ dưới + nền tối; đóng có hiệu ứng trượt xuống
+new MutationObserver((ms) => {
+  if (!MOB.matches) return;
+  for (const m of ms) for (const el of m.addedNodes) {
+    if (el.nodeType !== 1 || !el.classList?.contains("menu") || el.__sheet) continue;
+    el.__sheet = 1; el.style.top = "";
+    const bg = document.createElement("div"); bg.className = "sheet-bg"; el.before(bg);
+    document.body.classList.add("sheet-on");
+    const rm = el.remove.bind(el);
+    el.remove = () => {
+      if (el.__closing) return; el.__closing = 1; el.removeAttribute("id");
+      el.style.transition = SHEET_EASE; el.style.transform = "translateY(105%)"; bg.classList.add("out");
+      setTimeout(() => { rm(); bg.remove(); if (!document.querySelector(".menu")) document.body.classList.remove("sheet-on"); }, 300);
+    };
+    bg.addEventListener("click", (e) => { e.stopPropagation(); el.remove(); });
+  }
+}).observe(document.body, { childList: true });
+// vuốt xuống để đóng – áp dụng cho mọi bảng trượt (bắt đầu kéo ở vạch kéo / tiêu đề, hoặc ở nội dung khi nội dung đã cuộn lên đầu)
+const SHEETS = [
+  [".msheet-in", () => mSheet(false)],
+  [".menu", (el) => el.remove()],
+  [".sc-set", () => { window.__scSetOpen = false; document.body.classList.remove("sc-set-on"); }],
+];
+(() => {
+  let D = null;
+  const scroller = (t, sh) => { for (let n = t; n && n !== sh.parentNode; n = n.parentNode) { if (n.nodeType === 1 && n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return n; } return null; };
+  addEventListener("touchstart", (e) => {
+    D = null; if (!MOB.matches || e.touches.length !== 1) return;
+    for (const [sel, close] of SHEETS) {
+      const sh = e.target.closest?.(sel); if (!sh) continue;
+      if (sel === ".sc-set" && !document.body.classList.contains("sc-set-on")) return;
+      if (e.target.closest("input, select, textarea, [data-nodrag]")) return;
+      const top = sh.getBoundingClientRect().top, y = e.touches[0].clientY, sc = scroller(e.target, sh);
+      const head = y - top < 56;
+      if (!head && sc && sc.scrollTop > 0) return;
+      D = { sh, close, y0: y, t0: Date.now(), dy: 0, head, sc, on: false };
+      return;
+    }
+  }, { passive: true });
+  addEventListener("touchmove", (e) => {
+    if (!D) return;
+    const dy = e.touches[0].clientY - D.y0;
+    if (!D.on) {
+      if (dy < -4 && !D.head) { D = null; return; }            // vuốt lên trong nội dung = cuộn bình thường
+      if (dy < 8) return;
+      D.on = true; D.sh.style.transition = "none";
+    }
+    D.dy = Math.max(0, dy);
+    D.sh.style.transform = `translateY(${D.dy}px)`;
+    if (e.cancelable) e.preventDefault();
+  }, { passive: false });
+  addEventListener("touchend", () => {
+    if (!D) return; const d = D; D = null; if (!d.on) return;
+    const v = d.dy / Math.max(1, Date.now() - d.t0);
+    d.sh.style.transition = SHEET_EASE;
+    if (d.dy > Math.min(140, d.sh.offsetHeight * 0.3) || (v > 0.5 && d.dy > 40)) {
+      d.sh.style.transform = "translateY(105%)";
+      setTimeout(() => { d.close(d.sh); d.sh.style.transform = ""; d.sh.style.transition = ""; }, 260);
+    } else { d.sh.style.transform = ""; setTimeout(() => (d.sh.style.transition = ""), 360); }
+  }, { passive: true });
+})();
+// đổi giao diện sáng/tối → màu thanh trạng thái điện thoại đi theo
+const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.content = document.documentElement.dataset.theme === "light" ? "#FFFFFF" : "#151C22"; };
+// chuyển trang: nội dung mới hiện dần (không giật)
+function pageIn() { const a = document.getElementById("app"); if (!a) return; a.classList.remove("pg-in"); void a.offsetWidth; a.classList.add("pg-in"); }
+
+// ================================================================ GIÁ BINANCE TRỰC TIẾP trong trình duyệt
+// Binance futures đã tách WebSocket thành /public (sổ lệnh, bookTicker) và /market (giá khớp, mark, nến, ticker); đường cũ /ws, /stream đang bị ngừng dần.
+// BWS(url): giữ nguyên cách dùng như WebSocket; với futures thử đường mới trước, không có tin trong 6 giây thì quay về đường cũ (nhớ đường chạy được).
+function BWS(url) {
+  const m = String(url).match(/^wss:\/\/fstream\.binance\.com\/(ws|stream)([/?].*)$/);
+  if (!m) return new WebSocket(url);
+  const pub = /@(depth|bookTicker)/.test(m[2]) && !/@(aggTrade|markPrice|kline|miniTicker|ticker)/.test(m[2]);
+  let urls = [`wss://fstream.binance.com/${pub ? "public" : "market"}/${m[1]}${m[2]}`, url];
+  try { if (localStorage.getItem("mybit_fws_" + (pub ? "p" : "m")) === "old") urls = urls.reverse(); } catch (e) { /* bỏ qua */ }
+  const H = { onmessage: null, onopen: null, onerror: null, onclose: null, readyState: 0, ws: null, closed: false,
+    close() { this.closed = true; this.readyState = 3; try { this.ws?.close(); } catch (e) { /* bỏ qua */ } }, send(x) { try { this.ws?.send(x); } catch (e) { /* bỏ qua */ } } };
+  let i = 0;
+  const go = () => {
+    if (H.closed) return;
+    let got = false; const w = new WebSocket(urls[i]); H.ws = w;
+    const next = () => { if (got || H.closed || i >= urls.length - 1) return false; w.onclose = w.onerror = w.onmessage = null; try { w.close(); } catch (e) { /* bỏ qua */ } i++; go(); return true; };
+    const tm = setTimeout(next, 6000);
+    w.onopen = (e) => { H.readyState = 1; H.onopen?.(e); };
+    w.onmessage = (e) => { if (!got) { got = true; clearTimeout(tm); try { localStorage.setItem("mybit_fws_" + (pub ? "p" : "m"), urls[i] === url ? "old" : "new"); } catch (x) { /* bỏ qua */ } } H.onmessage?.(e); };
+    w.onerror = (e) => { if (!got && i < urls.length - 1) return; H.onerror?.(e); };
+    w.onclose = (e) => { clearTimeout(tm); if (next()) return; H.readyState = 3; H.onclose?.(e); };
+  };
+  go(); return H;
+}
+// Bot lướt giây: giá khớp từng lệnh (aggTrade) của các coin đang giữ + đầu radar → giá, lãi/lỗ đang mở, đếm ngược cập nhật ~5 lần/giây giữa 2 lần máy chủ gửi trạng thái
+const SCL = { px: {}, at: {}, ws: {}, want: { F: "", S: "" }, tm: 0, iv: 0 };
+function sclStop() { for (const t of ["F", "S"]) { try { SCL.ws[t]?.close(); } catch (e) { /* bỏ qua */ } SCL.ws[t] = null; SCL.want[t] = ""; } clearInterval(SCL.iv); SCL.iv = 0; }
+function sclSync(ids) {
+  const g = { F: [], S: [] };
+  for (const id of ids) { const [b, t] = String(id).split(":"); if (g[t] && /^[A-Z0-9]+$/.test(b)) g[t].push(b.toLowerCase() + "usdt"); }
+  for (const t of ["F", "S"]) {
+    const L = [...new Set(g[t])].slice(0, 40).sort(), key = L.join("/");
+    if (key === SCL.want[t] && SCL.ws[t]) continue;
+    try { SCL.ws[t]?.close(); } catch (e) { /* bỏ qua */ }
+    SCL.ws[t] = null; SCL.want[t] = key; if (!L.length) continue;
+    const q = L.map((x) => x + "@aggTrade").join("/");
+    const w = BWS(t === "F" ? `wss://fstream.binance.com/stream?streams=${q}` : `wss://data-stream.binance.vision/stream?streams=${q}`);
+    w.onmessage = (ev) => { let d; try { d = JSON.parse(ev.data).data; } catch (e) { return; } if (!d?.s || !d.p) return; const id = d.s.replace(/USDT$/, "") + ":" + t; SCL.px[id] = +d.p; SCL.at[id] = Date.now(); sclKick(); };
+    w.onclose = () => { if (SCL.ws[t] === w) { SCL.ws[t] = null; SCL.want[t] = ""; } };
+    SCL.ws[t] = w;
+  }
+  if (!SCL.iv) SCL.iv = setInterval(sclApply, 1000);     // đếm ngược thời gian giữ chạy cả khi chưa có giá mới
+}
+function sclKick() { if (!SCL.tm) SCL.tm = setTimeout(() => { SCL.tm = 0; sclApply(); }, 200); }
+function sclApply() {
+  if (location.hash !== "#/bot/scalp" || !document.getElementById("app")) { sclStop(); return; }
+  if (document.hidden) return;
+  const now = Date.now(), up = css("--up"), dn = css("--down");
+  document.querySelectorAll("[data-lpx]").forEach((el) => {
+    const p = SCL.px[el.dataset.lpx]; if (!p) return;
+    const o = +el.dataset.v || 0; if (p === o) return;
+    el.dataset.v = p; el.textContent = px(p);
+    if (o && el.animate) el.animate([{ backgroundColor: `color-mix(in srgb, ${p > o ? up : dn} 26%, transparent)` }, { backgroundColor: "transparent" }], { duration: 650, easing: "ease-out" });
+  });
+  let tot = 0, nn = 0; const seen = new Set();
+  document.querySelectorAll("[data-lpnl]").forEach((el) => {
+    const m = SCL.px[el.dataset.lpnl]; if (!m) return;
+    const e = +el.dataset.e, q = +el.dataset.q, sd = +el.dataset.sd, usd = sd * q * (m - e) - (+el.dataset.f0) - q * m * (+el.dataset.fr) / 100, b = usd / (q * e) * 1e4;
+    if (!seen.has(el.dataset.lpnl)) { seen.add(el.dataset.lpnl); tot += usd; nn++; }
+    const sl = +el.dataset.sl, tp = +el.dataset.tp, w = Math.max(0, Math.min(100, (sd > 0 ? (m - sl) / (tp - sl) : (sl - m) / (sl - tp)) * 100));
+    el.className = cls(usd);
+    el.innerHTML = `<b>${usd >= 0 ? "+" : ""}${usd2(usd)}</b> <small>${b >= 0 ? "+" : ""}${nf(b, 1)} bps</small><span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i style="left:${w.toFixed(0)}%"></i></span>`;
+  });
+  const u = document.getElementById("scUpnl");
+  if (u && nn) { u.className = "sc-up " + cls(tot); u.textContent = `${tot >= 0 ? "+" : ""}${usd2(tot)}`; }
+  document.querySelectorAll("[data-lt0]").forEach((el) => {
+    const t0 = +el.dataset.lt0, h = +el.dataset.lh, left = Math.max(0, h - (now - t0) / 1000), f = el.querySelector(".sc-cd i"), s = el.querySelector("small");
+    if (f) f.style.width = `${(100 - left / h * 100).toFixed(1)}%`;
+    if (s) s.textContent = left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`;
+  });
+  const lv = document.getElementById("scLive"), last = Math.max(0, ...Object.values(SCL.at));
+  if (lv) { const ok = last && now - last < 5000; lv.className = "sc-lv " + (ok ? "on" : ""); lv.textContent = ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""; }
+}
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => $("#app");
@@ -328,6 +492,7 @@ async function route() {
     console.error(e);
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
+  { const pk = r + "/" + (arg[0] || ""); if (pk !== window.__pgR) { window.__pgR = pk; pageIn(); } }
   app().focus({ preventScroll: true });
   pnRoute(r, arg);
 }
@@ -638,7 +803,7 @@ function sbWs() {
   SB.ws = null; SB.wsk = key; if (!ks.length) return;
   try {
     const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
-    SB.ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
+    SB.ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
     SB.ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data, k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1; r.p = +d.c / m; r.r1 = (+d.c / +d.o - 1) * 100; };
   } catch (e) { /* bỏ qua */ }
 }
@@ -957,7 +1122,7 @@ async function priceChart(D, el, tf) {
     if (L.kind !== "okx") {
       const url = (L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`;
       try {
-        const ws = new WebSocket(url); WSS.push(ws);
+        const ws = BWS(url); WSS.push(ws);
         ws.onmessage = (ev) => {
           const k = JSON.parse(ev.data).k; if (!k) return;
           const t = Math.floor(k.t / 1000), m = L.m, i = raw.t.length - 1;
@@ -1545,8 +1710,8 @@ function liveTickets(host, items, opt = {}) {
   // giá trực tiếp: spot miniTicker, coin chỉ có perp → mark price
   const sp = items.map(({ t }) => BYK[t.k]).filter((r) => r?.sp), fu = items.map(({ t }) => BYK[t.k]).filter((r) => r && !r.sp && r.bf);
   const tick = (k, p) => { px0[k] = p; };
-  if (sp.length) { try { const w = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = sp.find((x) => x.sp === d.s); if (r) { tick(r.k, +d.c / (r.sm || 1)); PL.src[r.k] = "spot · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
-  if (fu.length) { try { const w = new WebSocket(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = fu.find((x) => x.bf === d.s); if (r) { tick(r.k, +d.p / (r.bfm || 1)); PL.src[r.k] = "mark perp · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
+  if (sp.length) { try { const w = BWS(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = sp.find((x) => x.sp === d.s); if (r) { tick(r.k, +d.c / (r.sm || 1)); PL.src[r.k] = "spot · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
+  if (fu.length) { try { const w = BWS(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const r = fu.find((x) => x.bf === d.s); if (r) { tick(r.k, +d.p / (r.bfm || 1)); PL.src[r.k] = "mark perp · trực tiếp"; } }; PL.ws.push(w); } catch (e) { /* bỏ qua */ } }
   // xác nhận khung nhỏ (15 phút) mỗi 60 giây: cấu trúc có đang cùng chiều phiếu không
   const confirm = async () => {
     for (let i = 0; i < items.length; i++) {
@@ -1760,8 +1925,8 @@ async function viewIdeas() {
     const px0 = {};
     const sp = [...new Set(xs.map((x) => BYK[x.k]).filter((r) => r?.sp))], fu = [...new Set(xs.map((x) => BYK[x.k]).filter((r) => r && !r.sp && r.bf))];
     const chunk = (a, n) => a.reduce((o, x, i) => { (o[Math.floor(i / n)] = o[Math.floor(i / n)] || []).push(x); return o; }, []);
-    chunk(sp, 60).forEach((g) => { try { const w = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${g.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = g.find((y) => y.sp === d.s); if (r) { px0[r.k] = +d.c / (r.sm || 1); r.r1 = (+d.c / +d.o - 1) * 100; } }; OPP.ws.push(w); } catch (e) { /* bỏ qua */ } });
-    chunk(fu, 60).forEach((g) => { try { const w = new WebSocket(`wss://fstream.binance.com/stream?streams=${g.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = g.find((y) => y.bf === d.s); if (r) px0[r.k] = +d.p / (r.bfm || 1); }; OPP.ws.push(w); } catch (e) { /* bỏ qua */ } });
+    chunk(sp, 60).forEach((g) => { try { const w = BWS(`wss://stream.binance.com:9443/stream?streams=${g.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = g.find((y) => y.sp === d.s); if (r) { px0[r.k] = +d.c / (r.sm || 1); r.r1 = (+d.c / +d.o - 1) * 100; } }; OPP.ws.push(w); } catch (e) { /* bỏ qua */ } });
+    chunk(fu, 60).forEach((g) => { try { const w = BWS(`wss://fstream.binance.com/stream?streams=${g.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = g.find((y) => y.bf === d.s); if (r) px0[r.k] = +d.p / (r.bfm || 1); }; OPP.ws.push(w); } catch (e) { /* bỏ qua */ } });
     const tick = () => {
       if (!$("#lanes")) { oppClose(); return; }
       if (document.hidden) return;
@@ -1935,7 +2100,7 @@ async function viewLive() {
     }
   })();
   // websocket
-  const open = (url, on, id) => { try { const w = new WebSocket(url); w.onmessage = on; w.onopen = () => set(id, ok); w.onerror = () => set(id, bad); w.onclose = () => { if (location.hash.startsWith("#/live")) setTimeout(() => { if (location.hash.startsWith("#/live")) open(url, on, id); }, 5000); }; LV.ws.push(w); } catch (e) { set(id, bad); } };
+  const open = (url, on, id) => { try { const w = BWS(url); w.onmessage = on; w.onopen = () => set(id, ok); w.onerror = () => set(id, bad); w.onclose = () => { if (location.hash.startsWith("#/live")) setTimeout(() => { if (location.hash.startsWith("#/live")) open(url, on, id); }, 5000); }; LV.ws.push(w); } catch (e) { set(id, bad); } };
   open("wss://stream.binance.com:9443/ws/!miniTicker@arr", (ev) => { const a = JSON.parse(ev.data); a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.sp = x.s; r.o24 = +x.o; r.hi = +x.h; r.lo = +x.l; r.qv = +x.q; lvPush(r, +x.c); r.r24 = (+x.c / +x.o - 1) * 100; r.tk = Date.now(); }); }, "lvS");
   open("wss://fstream.binance.com/stream?streams=!miniTicker@arr/!markPrice@arr", (ev) => { const m = JSON.parse(ev.data); const a = m.data || [];
     if ((m.stream || "").startsWith("!markPrice")) a.forEach((x) => { if (!x.s.endsWith("USDT")) return; const r = lvRow(x.s.slice(0, -4)); r.mk = +x.p; r.ix = +x.i; r.fr = +x.r * 100; r.nf = +x.T; });
@@ -2016,7 +2181,7 @@ function tickerWs() {
   const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"].filter((k) => BYK?.[k]?.sp);
   if (!ks.length) return;
   try {
-    const ws = new WebSocket("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
+    const ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
     const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
     ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1, p = +d.c / m, o = +d.o / m; r.p = p; r.r1 = (p / o - 1) * 100;
       const el = $(`#ticker [data-tk="${k}"]`); if (el) el.innerHTML = `<b>${k}</b>${px(p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`; livePx(k, p); };
@@ -3081,11 +3246,19 @@ async function viewScalp() {
   const F0 = (window.__scF ||= "all");
   const rows = (X.radar || []).filter(([id, q]) => F0 === "all" || q.t === F0);
   const radar = rows.map(([id, x]) => { const v = SCV[x.v] || [x.v, ""], b = x.best;
-    return `<tr><td class="l">${scK(id)} ${scCx(x)}<div class="sc-w faint">${esc(x.why || "")}</div></td><td>${px(x.mid)}</td><td>${nf(x.spread, 2)}</td><td>${nf(x.vol, 2)}</td>
+    return `<tr><td class="l">${scK(id)} ${scCx(x)}<div class="sc-w faint">${esc(x.why || "")}</div></td><td class="lpx" data-lpx="${esc(id)}">${px(x.mid)}</td><td>${nf(x.spread, 2)}</td><td>${nf(x.vol, 2)}</td>
       <td><span class="scl-m" title="${esc(`dòng lệnh ${bps(x.tfi * 100, 0)}% · sổ lệnh ${bps(x.obi * 100, 0)}% · đà giá ${bps(x.mz * 100, 0)}%`)}"><i style="left:${((x.s + 1) / 2 * 100).toFixed(0)}%"></i></span> <small class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"} ${nf(Math.abs(x.s), 2)}</small></td>
       <td title="${b && isNum(b.raw) ? esc(`ước lượng thô ${nf(b.raw, 2)} − 2,33 × sai số ${nf(b.se, 2)} = thận trọng ${nf(b.exp, 2)} bps`) : ""}">${b ? `${nf(b.exp, 2)} <small class="faint">${b.h}s</small>` : "—"}</td><td>${nf(x.cost, 2)}</td><td class="${b ? cls(b.net) : ""}"><b>${b ? bps(b.net, 2) : "—"}</b></td>
       <td><span class="pill ${v[1]}" title="${esc(x.why || "")}">${v[0]}</span></td></tr>`; }).join("");
-  const pos = Object.entries(X.pos || {}).map(([k, p]) => `<tr><td class="l">${scK(k)} <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span> <small>${p.how}</small></td><td>${px(p.e)}</td><td class="down">${px(p.sl)}</td><td class="up">${px(p.tp)}</td><td>${nf(p.h, 0)}s</td><td>${usd2(p.q * p.e)}</td><td><small>${hms(new Date(p.t0).toISOString().slice(0, 23))}</small></td></tr>`).join("");
+  const frOf = (p) => (p.t === "F" ? C.fee_t : C.fee_ts);     // phí taker lúc thoát (%), để tính lãi/lỗ đang mở sau phí
+  const pos = Object.entries(X.pos || {}).map(([k, p]) => `<tr><td class="l">${scK(k)} <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span> <small>${p.how}</small></td><td>${px(p.e)}</td>
+    <td class="lpx" data-lpx="${esc(k)}">${isNum(p.m) ? px(p.m) : "—"}</td><td data-lpnl="${esc(k)}" data-e="${p.e}" data-q="${p.q}" data-sd="${p.side}" data-f0="${p.fee || 0}" data-fr="${frOf(p)}" data-sl="${p.sl}" data-tp="${p.tp}"><b>—</b></td>
+    <td class="down">${px(p.sl)}</td><td class="up">${px(p.tp)}</td><td data-lt0="${p.t0}" data-lh="${p.h}"><span class="sc-cd"><i></i></span><small>${nf(p.h, 0)}s</small></td><td>${usd2(p.q * p.e)}</td></tr>`).join("");
+  // điện thoại: mỗi lệnh là 1 thẻ (không phải kéo ngang bảng)
+  const posC = Object.entries(X.pos || {}).map(([k, p]) => `<div class="sc-pcard"><div class="r1"><span>${scK(k)} <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span> <small class="faint">${p.how} · ${usd2(p.q * p.e)}</small></span><b class="lpx" data-lpx="${esc(k)}">${isNum(p.m) ? px(p.m) : px(p.e)}</b></div>
+    <div class="r2" data-lpnl="${esc(k)}" data-e="${p.e}" data-q="${p.q}" data-sd="${p.side}" data-f0="${p.fee || 0}" data-fr="${frOf(p)}" data-sl="${p.sl}" data-tp="${p.tp}"><b>—</b></div>
+    <div class="r3"><small>vào <b>${px(p.e)}</b></small><small class="down">cắt lỗ ${px(p.sl)}</small><small class="up">chốt ${px(p.tp)}</small></div>
+    <div class="r4" data-lt0="${p.t0}" data-lh="${p.h}"><span class="sc-cd"><i></i></span><small>${nf(p.h, 0)}s</small><small class="faint">giữ tối đa ${nf(p.h, 0)}s</small></div></div>`).join("");
   const ords = Object.entries(X.ord || {}).map(([k, o]) => `<li>${scK(k)} ${o.side > 0 ? "mua" : "bán"} maker ở ${px(o.px)} – còn ${nf(Math.max(0, o.queue), 4)} hàng chờ phía trước</li>`).join("");
   const HS = X.HS || [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900], BW = X.BW || 0.15, LK = Object.keys(X.LP || {}).filter((k) => k.length === 4);
   const GS = [...new Set(LK.map((k) => k.slice(0, 2)))].sort(), Gb = GS.includes(window.__scG) ? window.__scG : GS[0];
@@ -3106,13 +3279,13 @@ async function viewScalp() {
     <div class="sc-lay"><div class="sc-main">
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${st[1]} big">${st[0]}</span><small>${esc(st[2])}</small>
       <span class="bot-btns">${C.enabled && X.pause ? `<button class="btn primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Bỏ nghỉ, chạy tiếp</button>` : ""}<button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ bảng">${autoOff("scalp") ? "▶ Tự cập nhật" : "⏸ Dừng cập nhật"}</button><button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt" : "▶ Bật"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">Làm lại tài khoản</button></span></div>
-      ${feedTxt ? `<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}${feedTxt}${bn}</div>` : ""}
+      ${feedTxt ? `<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}<small id="scLive" class="sc-lv"></small>${feedTxt}${bn}</div>` : ""}
       ${kpis([["Tài sản", isNum(X.eq) ? "$" + nf(X.eq, 2) : "—", "", `vốn ${usd(X.start ?? C.capital)}`], ["Lãi/lỗ", pct(ret, 2), cls(ret), isNum(S.net) ? `${S.net >= 0 ? "+" : ""}${usd2(S.net)} sau phí` : ""], ["Hôm nay", pct(dayP, 2), cls(dayP), `dừng khi lỗ ${nf(C.daily_stop, 1)}%`],
         ["Số lệnh", nf(S.n || 0, 0), "", S.n ? `thắng ${nf(S.win / S.n * 100, 0)}%` : "chưa có"], ["50 lệnh gần nhất", L50 ? `${bps(L50.net, 2)} bps` : "—", cls(L50?.net), L50 ? `gộp ${bps(L50.gross, 2)} − phí ${nf(L50.fee, 2)} bps/lệnh` : ""],
-        ["Phí đã trả", isNum(S.fees) ? usd2(S.fees) : "—", feeShare > 60 ? "down" : "", isNum(feeShare) ? `= ${nf(feeShare, 0)}% lãi gộp` : ""], ["Vị thế đang mở", `${nOpen}/${nf(C.max_pos, 0)}`, nOpen ? "brand" : "", "tối đa 1 lệnh mới mỗi giây"],
+        ["Phí đã trả", isNum(S.fees) ? usd2(S.fees) : "—", feeShare > 60 ? "down" : "", isNum(feeShare) ? `= ${nf(feeShare, 0)}% lãi gộp` : ""], ["Vị thế đang mở", `${nOpen}/${nf(C.max_pos, 0)}${nOpen ? ` <small id="scUpnl" class="sc-up" data-noi18n></small>` : ""}`, nOpen ? "brand" : "", "tối đa 1 lệnh mới mỗi giây · lãi/lỗ đang mở tính trực tiếp theo giá Binance"],
         ["Ngưỡng vào lệnh (× chi phí)", `${nf(C.k + (X.kadd || 0), 1)}×`, X.kadd ? "warn" : "", X.kadd ? "đã tự nâng sau lần nghỉ" : `và ròng ≥ ${nf(C.min_net, 1)} bps`]])}
       ${N.all ? `<div class="sc-cnt"><span>Mỗi giây vừa rồi trên <b>${nf(N.all, 0)}</b> thị trường:</span><span class="pill buy">${nf(N.go || 0, 0)} đạt chuẩn</span><span class="pill brand">${nf(N.hold || 0, 0)} đang giữ</span><span class="pill warn">${nf(N.fee || 0, 0)} chưa đủ biên lời</span><span class="pill brand">${nf(N.verify || 0, 0)} đang đánh ảo</span><span class="pill">${nf(N.learn || 0, 0)} đang học</span><span class="pill">${nf(N.skip || 0, 0)} bỏ qua</span>${N.stale ? `<span class="pill">${nf(N.stale, 0)} không có giao dịch</span>` : ""}</div>` : ""}</section>
-    ${PG("Kết quả chạy")}${pos || ords ? panel("📌 Lệnh đang giữ", `${pos ? `<div class="tw"><table><thead><tr><th class="l">Lệnh</th><th>Vào</th><th>Cắt lỗ</th><th>Chốt lời</th><th>Giữ tối đa</th><th>Giá trị</th><th>Thời điểm mở</th></tr></thead><tbody>${pos}</tbody></table></div>` : ""}${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`, `${nOpen}/${nf(C.max_pos, 0)} vị thế`) : ""}
+    ${PG("Kết quả chạy")}${pos || ords ? panel("📌 Lệnh đang giữ", `${pos ? `<div class="sc-pc">${posC}</div><div class="tw sc-pt"><table><thead><tr><th class="l">Lệnh</th><th>Vào</th><th title="Giá khớp gần nhất trên Binance, cập nhật trực tiếp trong trình duyệt">Giá Binance</th><th title="Đã trừ phí vào + phí ra ước tính">Lãi/lỗ đang mở</th><th>Cắt lỗ</th><th>Chốt lời</th><th title="Thời gian còn lại trước khi bot đóng lệnh theo giờ">Còn lại</th><th>Giá trị</th></tr></thead><tbody>${pos}</tbody></table></div>` : ""}${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`, `${nOpen}/${nf(C.max_pos, 0)} vị thế`) : ""}
     <div class="g g2w"><div>${panel("📈 Tài sản", (X.eqs || []).length > 2 ? lineSvg([{ name: "Tài sản (USDT)", color: css("--brand"), width: 2, pts: X.eqs.map(([m, v]) => ({ x: new Date(m * 60000).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }), y: v })) }], { h: 180, dec: 2 }) : `<p class="muted">Đường tài sản hiện sau vài phút chạy.</p>`)}</div>
       <div>${panel("⚖️ Futures vs Spot", `<div class="tw"><table><thead><tr><th class="l">Loại</th><th>Số lệnh</th><th>Thắng</th><th>Ròng sau phí</th><th>Phí</th></tr></thead><tbody>${byRow("F", "Futures")}${byRow("S", "Spot")}</tbody></table></div>`)}</div></div>
     ${panel("🧾 Lệnh đã đóng", trs ? `<div class="tw" style="max-height:420px"><table><thead><tr><th class="l">Lúc</th><th class="l">Lệnh</th><th>Vào → ra</th><th>Giữ</th><th>Gộp (bps)</th><th>Phí</th><th>Ròng (bps)</th><th>USDT</th><th>Lý do</th></tr></thead><tbody>${trs}</tbody></table></div>` : `<p class="muted">Chưa có lệnh – bot chỉ vào khi biên lời đo được lớn hơn phí.</p>`)}
@@ -3191,6 +3364,7 @@ async function viewScalp() {
   $("#scReset").onclick = async () => { if (!confirm(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`)) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
   if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
+  sclSync([...Object.keys(X.pos || {}), ...rows.slice(0, 24).map(([id]) => id)]); sclApply();
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); document.body.classList.remove("sc-set-on"); return; }
@@ -3339,8 +3513,8 @@ function papEngine() {
   if (sig !== PE.syms) {
     PE.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); PE.ws = []; PE.syms = sig;
     const sp = ks.map((k) => BYK[k]).filter((r) => r.sp), fu = ks.map((k) => BYK[k]).filter((r) => r.bf);
-    if (sp.length) try { const w = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = sp.find((x) => x.sp === d.s); if (r) PXS[r.k] = +d.c / (r.sm || 1); }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
-    if (fu.length) try { const w = new WebSocket(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = fu.find((x) => x.bf === d.s); if (r) { PXM[r.k] = +d.p / (r.bfm || 1); FR[r.k] = +d.r * 100; } }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
+    if (sp.length) try { const w = BWS(`wss://stream.binance.com:9443/stream?streams=${sp.map((r) => r.sp.toLowerCase() + "@miniTicker").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = sp.find((x) => x.sp === d.s); if (r) PXS[r.k] = +d.c / (r.sm || 1); }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
+    if (fu.length) try { const w = BWS(`wss://fstream.binance.com/stream?streams=${fu.map((r) => r.bf.toLowerCase() + "@markPrice@1s").join("/")}`); w.onmessage = (ev) => { const d = JSON.parse(ev.data).data, r = fu.find((x) => x.bf === d.s); if (r) { PXM[r.k] = +d.p / (r.bfm || 1); FR[r.k] = +d.r * 100; } }; w.onclose = () => { PE.syms = ""; }; PE.ws.push(w); } catch (e) { /* bỏ qua */ }
   }
   if (!PE.timer) PE.timer = setInterval(() => {
     if (!PAP) return;
@@ -3511,7 +3685,7 @@ async function viewPaper(k0) {
     const m = (fut || !r.sp ? r.bfm : r.sm) || 1;
     $("#pvObS").textContent = `${fut || !r.sp ? "perp" : "spot"} ${sym} · 10 mức`;
     try {
-      const w = new WebSocket(fut || !r.sp ? `wss://fstream.binance.com/ws/${sym.toLowerCase()}@depth10@500ms` : `wss://stream.binance.com:9443/ws/${sym.toLowerCase()}@depth10@1000ms`);
+      const w = BWS(fut || !r.sp ? `wss://fstream.binance.com/ws/${sym.toLowerCase()}@depth10@500ms` : `wss://stream.binance.com:9443/ws/${sym.toLowerCase()}@depth10@1000ms`);
       w.onmessage = (ev) => { const d = JSON.parse(ev.data), A = (d.asks || d.a || []).slice(0, 10).map(([p, q]) => [+p / m, +q * m]), B = (d.bids || d.b || []).slice(0, 10).map(([p, q]) => [+p / m, +q * m]);
         const mx = Math.max(...A.concat(B).map(([p, q]) => p * q), 1), row = ([p, q], c) => `<div class="bk ${c}" data-px="${p}"><i style="width:${(p * q / mx * 100).toFixed(0)}%"></i><span>${px(p)}</span><span>${qty(q)}</span><span>${usd(p * q)}</span></div>`;
         const el = $("#pvBook"); if (!el) return; el.innerHTML = `<div class="bk h"><span>Giá</span><span>Số lượng</span><span>Giá trị</span></div>${A.slice().reverse().map((x) => row(x, "a")).join("")}<div class="bk mid">${px(papPx(PV.k, PV.mkt))} <small>chênh ${A[0] && B[0] ? nf((A[0][0] / B[0][0] - 1) * 100, 3) + "%" : "—"}</small></div>${B.map((x) => row(x, "b")).join("")}`;
@@ -4322,7 +4496,7 @@ async function viewHelp() {
 
 // ================================================================ khung: giao diện, tìm kiếm, dải giá
 function initTheme() {
-  $("#theme").onclick = () => { const dark = document.documentElement.dataset.theme === "dark"; document.documentElement.dataset.theme = dark ? "light" : "dark"; lsSet("theme", document.documentElement.dataset.theme); route(); };
+  $("#theme").onclick = () => { const dark = document.documentElement.dataset.theme === "dark"; document.documentElement.dataset.theme = dark ? "light" : "dark"; lsSet("theme", document.documentElement.dataset.theme); themeMeta(); route(); };
 }
 function initSearch() {
   const q = $("#q"), box = $("#sugg");
@@ -4416,9 +4590,19 @@ function ntfRow(n) {
     <span class="nb"><b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}</span><time>${agoShort(n.created_at)}</time></a>`;
 }
 let __bellN = 0;
+let __bellTop = null;
 async function bellCount() {
   if (!multiUser() || document.hidden) return;
-  try { const j = await api("notifications/count"); __bellN = j.unread || 0; const b = $("#bellN"); if (b) { b.textContent = __bellN > 99 ? "99+" : __bellN; b.hidden = !__bellN; } } catch (e) { /* bỏ qua */ }
+  try {
+    const j = await api("notifications/count"), n0 = __bellN; __bellN = j.unread || 0; const b = $("#bellN"); if (b) { b.textContent = __bellN > 99 ? "99+" : __bellN; b.hidden = !__bellN; }
+    // có thông báo mới trong lúc đang mở trang → banner kiểu iPhone (chạm để mở đúng chỗ)
+    if (__bellN > n0 || __bellTop == null) {
+      const L = (await api("notifications?limit=3").catch(() => ({ items: [] }))).items || [];
+      const top = Math.max(0, ...L.map((x) => x.id));
+      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at); if (nw.length) { const x = nw[0]; toast(nw.length > 1 ? `${x.title} · và ${nw.length - 1} thông báo khác` : x.body || "", { title: nw.length > 1 ? "MyBit" : x.title, icon: NK[x.kind] || (/^scalp/.test(x.kind) ? "⚡" : /^bot/.test(x.kind) ? "🤖" : "🔔"), href: nw.length > 1 ? "#/notifications" : x.url || "#/notifications" }); } }
+      __bellTop = Math.max(__bellTop || 0, top);
+    }
+  } catch (e) { /* bỏ qua */ }
 }
 async function bellOpen() {
   let box = $("#bellBox");
@@ -4617,7 +4801,8 @@ function initAccountUI() {
   const tabF = { backtest: "backtest" };
   $$("#tabs a").forEach((a) => { const f = tabF[a.dataset.r]; if (f && !can(f)) a.classList.add("locked"); });
   if (!can("pdf")) $("#pdfBtn")?.remove();
-  bellCount(); setInterval(bellCount, 120000);
+  bellCount(); setInterval(bellCount, 20000);
+  navigator.serviceWorker?.addEventListener?.("message", (e) => { if (e.data?.t === "push") bellCount(); });   // thông báo đẩy tới → chuông cập nhật ngay
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bellCount(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
 }

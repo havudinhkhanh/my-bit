@@ -1,9 +1,17 @@
 {
   "name": "MyBit",
   "short_name": "MyBit",
+  "id": "./",
   "start_url": "./#/",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#F3F5F8",
-  "theme_color": "#22408F",
-  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"}]
+  "orientation": "portrait",
+  "background_color": "#0E1419",
+  "theme_color": "#151C22",
+  "icons": [
+    {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml"},
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-mask-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
 }
