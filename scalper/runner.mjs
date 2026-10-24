@@ -71,10 +71,18 @@ function adapt() {
   let ch = 0;
   if (p90 > 300 || mem > 700) ch = 0.7; else if (p90 < 40 && mem < 400 && Date.now() - capAt > 600000) ch = 1.15;
   if (!ch) return;
-  for (const t of ["F", "S"]) { const n = Object.values(core.F).find((f) => f.t === t)?.list.length || CAP[t]; CAP[t] = Math.round(Math.max(40, Math.min(1000, (ch < 1 ? Math.min(CAP[t], n) : CAP[t]) * ch))); }
+  // chỉ kết nối lại luồng nào mà danh sách thị trường thật sự đổi (trước đây cứ 10 phút lại kết nối lại cả hai luồng – mất dữ liệu vài giây mỗi lần)
+  const redo = [];
+  for (const f of Object.values(core.F)) {
+    const t = f.t, n = f.list.length, old = CAP[t];
+    if (ch < 1) CAP[t] = Math.max(40, Math.round(Math.min(old, n) * ch));
+    else if (n >= old) CAP[t] = Math.min(1000, Math.round(old * ch));      // chỉ nâng khi đang bị giới hạn bởi trần
+    if (CAP[t] < n || (CAP[t] > old && n >= old)) redo.push(f);
+  }
   capAt = Date.now();
+  if (!redo.length) return;
   log(ch < 1 ? `⚠️ máy quá tải (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB) → giảm còn tối đa ${CAP.F} futures / ${CAP.S} spot` : `máy còn dư sức → nâng lên tối đa ${CAP.F} futures / ${CAP.S} spot`);
-  for (const f of Object.values(core.F)) f.at = 0;    // kết nối lại với danh sách mới ở vòng sau
+  for (const f of redo) f.at = 0;    // kết nối lại với danh sách mới ở vòng sau
 }
 const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP } });
 
