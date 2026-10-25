@@ -2832,7 +2832,7 @@ function botMatch(c, items, S) {
 const botsOf = (c) => (Array.isArray(c?.bots) ? c.bots : c && typeof c === "object" && "enabled" in c ? [{ id: "b1", ...c }] : []);
 const statesOf = (s) => (s?.bots && typeof s.bots === "object" ? s.bots : s && s.cash != null ? { b1: s } : {});
 const botEq = (st, pxNow) => (st ? st.cash + (st.pos || []).reduce((a, p) => { const m = pxNow(p.k) || p.e; return a + (p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e)); }, 0) : null);
-const BOT_V = { go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"], lesson: ["BÀI HỌC CHẶN", "sell"] };
+const BOT_V = { tight: ["CẮT LỖ QUÁ SÁT", "warn"], vol: ["ĐANG GIẬT MẠNH", "warn"], go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"], lesson: ["BÀI HỌC CHẶN", "sell"] };
 async function viewBot(sel) {
   const [I, S] = await Promise.all([tryLoad("data/ideas.json"), sectorsData(), coins()]);
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }

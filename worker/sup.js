@@ -205,7 +205,12 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
   ss.eng = E;
   // ---- bài học đang áp dụng (đã tính ở lượt SAU trước đó)
   const act = scfg.lessons ? (ss.lessons || []).filter((l) => l.on && !scfg.off.includes(l.id)) : [];
-  const be1 = scfg.be1 === "on" || (scfg.be1 === "auto" && act.some((l) => l.id === "gave_back"));
+  // BẢO VỆ LÃI theo bằng chứng thật: các lệnh từng đi được ≥ +1R mà phần lớn cuối cùng vẫn lỗ → dời hoà vốn ở +1R và chốt 1 nửa ở +1,5R khi MT1 còn xa
+  // (22–25/10: 15 lệnh từng lãi ≥ 1R, MINA +2,3R, LAB +1,9R… rồi vẫn về cắt lỗ; MT1 thường cách 2–4R nên không lệnh SMC nào chạm MT1)
+  const RV = Object.values(ss.rev || {}).filter((x) => !x.old && x.mfe != null && x.r != null && now - ms(x.closed) < 30 * 864e5);
+  const gb = RV.filter((x) => x.mfe >= 1), giveBack = gb.length >= 3 && gb.filter((x) => x.r < 0).length / gb.length >= 0.5;
+  const be1 = scfg.be1 === "on" || (scfg.be1 === "auto" && (act.some((l) => l.id === "gave_back") || giveBack)), pt = scfg.be1 !== "off" && giveBack;
+  if (pt !== !!ss.ptOn) { ss.ptOn = pt; slog(ss, now, pt ? `📚 Bảo vệ lãi BẬT: ${gb.filter((x) => x.r < 0).length}/${gb.length} lệnh từng lãi ≥ +1R cuối cùng vẫn lỗ → từ giờ đi +1R thì dời cắt lỗ về hoà vốn, đi +1,5R mà MT1 còn xa (> 2R) thì chốt 50%.` : "📚 Bảo vệ lãi tạm tắt: lệnh từng lãi phần lớn đã giữ được lãi.", "lesson"); }
   const items = [], seen = new Set();
   // tự học từ chính mình: nếu các lần cắt/đổi trước đó lỗ ròng thì nâng ngưỡng; lỗ rõ thì ngừng tự cắt (chỉ khuyên)
   const SC = ss.self.cut, nSC = SC.ok + SC.bad, cutThr = nSC >= 8 && SC.R < 0 ? -0.3 : -0.15, cutOn = !(nSC >= 15 && SC.R / nSC < -0.2);
@@ -215,7 +220,7 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
     const cfg = norm(b), plan = PL[b.id], ev = (evs[b.id] = []);
     const EB = E?.bots?.[b.id];
     gates[b.id] = { halt: ss.halt ? `bot giám sát khoá toàn tài khoản – ${ss.halt.why}` : null, mult: EB ? EB.mult : softMult,
-      mwhy: EB ? `cỗ máy vốn đặt ${vn(EB.f, 2)}%/lệnh (${{ learn: "đang học", unproven: "lợi thế chưa chắc", neg: "đang lỗ", edge: "theo lợi thế đo được" }[EB.mode]})` : `tài sản chung sụt ${vn(dd, 1)}%`, be1,
+      pt, mwhy: EB ? `cỗ máy vốn đặt ${vn(EB.f, 2)}%/lệnh (${{ learn: "đang học", unproven: "lợi thế chưa chắc", neg: "đang lỗ", edge: "theo lợi thế đo được" }[EB.mode]})` : `tài sản chung sụt ${vn(dd, 1)}%`, be1,
       check: scfg.lessons ? makeCheck(ss, act, b.id, st.hist || [], now, S, scfg.herd) : null };
     // ---- đánh giá lại từng lệnh: giữ hay cắt
     const A = [];

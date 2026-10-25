@@ -86,6 +86,13 @@ function manage(st, cfg, price, hl, f8, now, ev) {
       } else { closeAll(st, p, p.t1, "TP1", now, ev); continue; }
     }
     if (L ? hi >= p.t2 : lo <= p.t2) { closeAll(st, p, p.t2, "TP2", now, ev); continue; }
+    // bảo vệ lãi (bot giám sát bật theo bằng chứng): MT1 còn xa > 2R mà giá đã đi +1,5R → chốt 50% ở +1,5R, dời cắt lỗ về hoà vốn
+    if (cfg._sup?.pt && !p.tp1 && !p.pt && Math.abs(p.t1 - p.e) / R0 > 2 && p.mfe >= 1.5) {
+      const lv = p.e + p.sd * 1.5 * R0, part = p.q * 0.5;
+      closePart(st, p, part, lv); p.pt = true; p.s = p.e * (1 + p.sd * 2 * (FEE[p.mkt] + SLIP)); p.be1 = true;
+      ev.push(["pt", p, null]);
+      say(st, now, `${p.k}: đi được +1,5R (MT1 còn xa) – chốt 50% ở ${sigS(lv)}, dời cắt lỗ về hoà vốn (bài học: lệnh từng lãi đừng để thành lỗ)`, "tp");
+    }
     // bài học "để lãi chạy ngược": đi được ≥ 1R mà chưa tới MT1 thì dời cắt lỗ về hoà vốn (+ phí)
     if (cfg._sup?.be1 && !p.tp1 && p.s === p.s0 && p.mfe >= 1) { p.s = p.e * (1 + p.sd * 2 * (FEE[p.mkt] + SLIP)); p.be1 = true; say(st, now, `${p.k}: đã đi +1R – bot giám sát dời cắt lỗ về hoà vốn (bài học: không để lệnh lãi thành lệnh lỗ)`, "tp"); }
     if (p.mkt === "fut") {
@@ -128,6 +135,10 @@ function entries(st, cfg, cands, price, now, ev, mult, halt, fresh, plan) {
     const rr = Math.abs(x.t1 - p) / Math.abs(p - x.s); t.rr = rr;
     if (rr < 1.2) { const lvl = (x.t1 + 1.2 * x.s) / 2.2; t.v = "wait"; t.lvl = lvl; t.why = `R:R chỉ còn ${vn(rr, 2)} (cần ≥ 1,2) – chờ giá ${L ? "hồi về ≤" : "hồi lên ≥"} ${sigS(lvl)}`; continue; }
     const fR = (2 * FEE[x.mkt] + 2 * SLIP) * p / Math.abs(p - x.s); t.feeR = +fR.toFixed(3);
+    // BỊ CẮT LỖ NGAY KHI VỪA VÀO (13/45 lệnh 22–25/10, mất 20,7R = 73% tổng lỗ): cắt lỗ quá sát so với phí, hoặc vào giữa lúc coin đang giật mạnh
+    if (fR > 0.25) { t.v = "tight"; t.why = `cắt lỗ chỉ cách giá ${vn(Math.abs(p / x.s - 1) * 100, 2)}% – phí + trượt giá đã ≈ ${vn(fR, 2)}R, gần như chắc thua phí; chờ giá xa cắt lỗ hơn`; continue; }
+    const rg = price.rng ? price.rng(x.k) : null, dS = Math.abs(p - x.s) / p;
+    if (rg != null && rg > 0.5 * dS) { t.v = "vol"; t.why = `coin đang giật mạnh: biên độ 3 phút qua ${vn(rg * 100, 2)}% so với khoảng cắt lỗ ${vn(dS * 100, 2)}% – vào lúc này rất dễ dính cắt lỗ ngay; chờ ổn định`; continue; }
     const les = cfg._sup?.check ? cfg._sup.check(x, { p, rr, feeR: fR, now, st, light: plan?.light, f8: plan?.f8 || {} }) : null;
     if (les) { t.v = "lesson"; t.why = les; continue; }
     if (halt) { t.v = "halt"; t.why = `đạt chuẩn (R:R ${vn(rr, 1)}) nhưng không mở lệnh: ${halt}`; continue; }
@@ -257,6 +268,7 @@ export function notes(ev) {
       body: `Giá ${sigS(p.e)} · cắt lỗ ${sigS(p.s)} · MT1 ${sigS(p.t1)} · rủi ro ${vn(p.risk_usd, 2)} USDT (sàn thử)` });
     else if (kind === "close") out.push({ key: `bot:close:${h.id}:${h.closed}`, sev: 2, sym: h.k, title: `🤖 Bot đóng ${h.k}: ${h.pnl >= 0 ? "+" : ""}${vn(h.pnl, 2)} USDT${h.r != null ? ` (${h.r >= 0 ? "+" : ""}${vn(h.r, 2)}R)` : ""}`,
       body: `Lý do: ${WHY[h.why] || h.why} · vào ${sigS(h.e)} (sàn thử)` });
+    else if (kind === "pt") out.push({ key: `bot:pt:${p.id}`, sev: 1, sym: p.k, title: `🤖 ${p.k} đi +1,5R – đã chốt 50% bảo vệ lãi`, body: `MT1 còn xa nên chốt trước một nửa; cắt lỗ phần còn lại dời về hoà vốn ${sigS(p.s)}` });
     else if (kind === "tp1") out.push({ key: `bot:tp1:${p.id}`, sev: 1, sym: p.k, title: `🤖 ${p.k} chạm MT1 – đã chốt một phần`, body: `Cắt lỗ phần còn lại dời về hoà vốn ${sigS(p.s)}` });
     else if (kind === "pause") out.push({ key: `bot:pause:${h.at}`, sev: 3, title: "⛔ Bot tạm dừng", body: h.why });
     else if (kind === "research") out.push({ key: `bot:research:${h.d}`, sev: 1, title: "🤖 Báo cáo nghiên cứu hôm nay của bot", body: (h.lines || []).join(" ").slice(0, 600) });
@@ -268,12 +280,14 @@ export function notes(ev) {
 async function getJ(u, opt) { const r = await fetch(u, { headers: { "user-agent": "my-bit-bot", "content-type": "application/json" }, ...(opt || {}) }); if (!r.ok) throw new Error(r.status + " " + u.split("?")[0]); return r.json(); }
 // giá: Binance spot (cả lô, lỗi một mã → lấy cả bảng) → Hyperliquid (mọi perp một lần) → OKX → Bitget → Gate → Binance futures → giá lượt phân tích (cũ)
 async function prices(meta, since, srcMap = {}, relay = null) {
-  const P = {}, SRC = {}, HL = {}, D = { err: [] };
+  const P = {}, SRC = {}, HL = {}, RNG = {}, D = { err: [] };
   const ks = Object.keys(meta), put = (k, v, s) => { v = +v; if (v > 0 && !P[k]) { P[k] = v; SRC[k] = s; } };
   // 1) GIÁ BINANCE THẬT do máy chủ riêng chuyển tiếp (Binance chặn máy chủ Cloudflare) – dùng khi còn mới (≤ 90 giây)
   if (relay && Date.now() - Date.parse(relay.at) < 90e3) {
     D.relay = relay.at;
     for (const k of ks) { const q = relay.px[k]; if (q) put(k, q[0], "Binance"); }
+    // biên độ 3 nến 1 phút gần nhất (so với giá) – để không vào lệnh giữa lúc coin đang giật mạnh
+    for (const k of ks) { const B = relay.px[k]?.[1]; if (B?.length && P[k]) { const xs = B.slice(-3); RNG[k] = (Math.max(...xs.map((b) => b[1])) - Math.min(...xs.map((b) => b[2]))) / P[k]; } }
     for (const [k, t0] of Object.entries(since)) {     // đỉnh/đáy từng phút kể từ lần kiểm tra trước (nến 1 phút Binance)
       const B = relay.px[k]?.[1]; if (!B || SRC[k] !== "Binance") continue;
       const m0 = Math.floor((t0 - 60e3) / 60000), xs = B.filter((b) => b[0] >= m0);
@@ -331,7 +345,7 @@ async function prices(meta, since, srcMap = {}, relay = null) {
   }
   D.need = ks.length; D.fresh = ks.filter((k) => P[k] && SRC[k] !== "cũ").length; D.stale = ks.filter((k) => SRC[k] === "cũ"); D.miss = ks.filter((k) => !P[k]);
   D.src = Object.values(SRC).reduce((a, s) => ((a[s] = (a[s] || 0) + 1), a), {});
-  return { P, SRC, HL, D };
+  return { P, SRC, HL, RNG, D };
 }
 
 export const canBot = (u) => {
@@ -374,11 +388,12 @@ export async function botTick(env) {
   try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'bot_pxmap'").first(); srcMap = r ? JSON.parse(r.value) : {}; } catch (e) { /* trống */ }
   let relay = null;
   try { const r = await env.DB.prepare("SELECT value FROM config WHERE key = 'px_relay'").first(); relay = r ? JSON.parse(r.value) : null; } catch (e) { /* chưa có */ }
-  const { P, SRC, HL, D } = await prices(meta, since, srcMap, relay);
+  const { P, SRC, HL, RNG, D } = await prices(meta, since, srcMap, relay);
   if (D.mapChanged) await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_pxmap', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify(srcMap)).run();
   delete D.mapChanged;
   const price = (k) => P[k] ?? null;
   price.fresh = (k) => !!P[k] && SRC[k] !== "cũ";
+  price.rng = (k) => RNG[k] ?? null;
   await env.DB.prepare("INSERT INTO config(key, value) VALUES('bot_px', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ at: nowIso, ...D })).run();
   let n = 0, nev = 0;
   for (const j of jobs) {
