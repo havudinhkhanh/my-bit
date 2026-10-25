@@ -550,12 +550,16 @@ export class ScalpCore {
     cand.sort((a, b) => b.best.sc - a.best.sc);
     const top = cand[0];
     S.ent = (S.ent || []).filter((t) => now - t < 300e3);
-    const sameSide = (sd) => Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side === sd).length + Object.values(S.ord).filter((o) => o.side === sd).length;
+    const book = this.book();
     if (top) {
       if (nOpen >= c.max_pos) { live[top.x.id].v = "skip"; live[top.x.id].rc = "cap"; live[top.x.id].why = `đạt chuẩn nhưng đã mở ${nOpen}/${c.max_pos} vị thế`; }
       else if (hourN >= c.max_h) { live[top.x.id].v = "skip"; live[top.x.id].rc = "hour"; live[top.x.id].why = `đạt chuẩn nhưng đã ${hourN} lệnh trong 1 giờ (tối đa ${c.max_h})`; }
       // CÙNG CHIỀU = CÙNG 1 VÁN CƯỢC: nhiều coin cùng Long (hoặc cùng Short) lúc thị trường đảo sẽ thua cả loạt → giới hạn số lệnh cùng chiều & số lệnh mới trong 5 phút
-      else if (sameSide(top.side) >= c.max_side) { live[top.x.id].v = "skip"; live[top.x.id].rc = "side"; live[top.x.id].why = `đạt chuẩn nhưng đã có ${sameSide(top.side)} lệnh ${top.side > 0 ? "Long" : "Short"} – nhiều lệnh cùng chiều là cùng 1 ván cược vào hướng thị trường (tối đa ${c.max_side})`; }
+      else if (book.ids.length && (this._rq = this.corrRisk([...book.ids, top.x.id], [...book.sides, top.side], now)) > c.max_side + 1e-9) {
+        const r0 = this.corrRisk(book.ids, book.sides, now);
+        live[top.x.id].v = "skip"; live[top.x.id].rc = "side";
+        live[top.x.id].why = `đạt chuẩn nhưng rủi ro tương quan của danh mục sẽ thành ${this._rq.toFixed(1)} lệnh tương đương (đang ${r0.toFixed(1)}, tối đa ${c.max_side}) – lệnh này đi cùng nhịp với các lệnh đang giữ`;
+      }
       else if (S.ent.length >= c.burst) { live[top.x.id].v = "skip"; live[top.x.id].rc = "burst"; live[top.x.id].why = `đã vào ${S.ent.length} lệnh trong 5 phút – chờ kết quả rồi mới vào tiếp (tối đa ${c.burst})`; }
       else { top.x.ctx = top.ctx; top.x.zone = top.zone; top.x.shk = top.keys; this.enter(top.x, top.side, top.best, top.cost, top.vol, now, top.mode); }
       for (const q of cand.slice(1)) { live[q.x.id].v = "skip"; live[q.x.id].rc = "better"; live[q.x.id].why = "đạt chuẩn nhưng có cơ hội tốt hơn trong giây này (mỗi giây tối đa 1 lệnh mới)"; }
@@ -578,6 +582,43 @@ export class ScalpCore {
       S.pause = { kind: "brk", why: `50 lệnh gần nhất ròng ${T.reduce((a, t) => a + t.net, 0).toFixed(1)} bps (âm) – phí đang ăn hết biên lời; nghỉ 30 phút, nâng ngưỡng vào lệnh lên ${(c.k + S.kadd).toFixed(1)}× chi phí khứ hồi`, until: now + 1800e3 };
       this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk:${now}`, 2, "⛔ Bot lướt giây nghỉ 30 phút", S.pause.why);
     }
+  }
+  // ---------------------------------------------------------------- RỦI RO TƯƠNG QUAN CỦA DANH MỤC
+  // Mỗi lệnh lướt giây được định cỡ theo rủi ro (cắt lỗ ∝ dao động) → mỗi lệnh ≈ 1 đơn vị rủi ro. Rủi ro danh mục = √(Σᵢⱼ sᵢ sⱼ ρᵢⱼ), sᵢ = ±1 (Long/Short),
+  // ρ = tương quan lợi suất 1 phút trong 60 phút gần nhất. 3 lệnh cùng chiều tương quan hoàn toàn = 3; 9 lệnh độc lập = 3; Long A + Short B tương quan cao ≈ phòng hộ.
+  // Thận trọng: ρ co về mô hình 1 nhân tố (ρᵢ,BTC × ρⱼ,BTC) vì 60 điểm còn nhiễu; phần "phòng hộ" chỉ được tính một nửa vì lúc sập mạnh tương quan dồn về 1.
+  book() {
+    const ids = [], sides = [];
+    for (const [id, p] of Object.entries(this.S.pos)) if (p.strat !== "hook") { ids.push(id); sides.push(p.side); }
+    for (const [id, o] of Object.entries(this.S.ord)) if (!ids.includes(id)) { ids.push(id); sides.push(o.side); }
+    return { ids, sides };
+  }
+  rets(x, mm) {
+    if (!x?.m1?.length) return null;
+    if (x._rm?.mm === mm) return x._rm.m;
+    const L = x.m1, m = new Map();
+    for (let i = 1; i < L.length; i++) if (L[i][0] < mm && L[i][0] === L[i - 1][0] + 1 && L[i][1] > 0 && L[i - 1][1] > 0) m.set(L[i][0], Math.log(L[i][1] / L[i - 1][1]));
+    x._rm = { mm, m }; return m;
+  }
+  pcorr(a, b) {
+    if (!a || !b) return null;
+    let n = 0, sa = 0, sb = 0, saa = 0, sbb = 0, sab = 0;
+    for (const [k, va] of a) { const vb = b.get(k); if (vb == null) continue; n++; sa += va; sb += vb; saa += va * va; sbb += vb * vb; sab += va * vb; }
+    if (n < 30) return null;
+    const cv = sab - sa * sb / n, va = saa - sa * sa / n, vb = sbb - sb * sb / n;
+    return va > 0 && vb > 0 ? clamp(cv / Math.sqrt(va * vb), -1, 1) : null;
+  }
+  corrRisk(ids, sides, now) {
+    const mm = Math.floor(now / 60000), R = ids.map((id) => this.rets(this.M[id], mm)), B = this.rets(this.M["BTC:F"] || this.M["BTC:S"], mm);
+    const rb = ids.map((id, i) => (id.startsWith("BTC:") ? 1 : this.pcorr(R[i], B) ?? 0.6));      // chưa đủ dữ liệu → coi như đi cùng BTC khá chặt (thận trọng)
+    let tot = 0;
+    for (let i = 0; i < ids.length; i++) for (let j = 0; j < ids.length; j++) {
+      let rho = 1;
+      if (i !== j) { const f = rb[i] * rb[j], pc = ids[i].split(":")[0] === ids[j].split(":")[0] ? 1 : this.pcorr(R[i], R[j]); rho = pc == null ? f : 0.7 * pc + 0.3 * f; }
+      let c = sides[i] * sides[j] * rho; if (c < 0) c *= 0.5;
+      tot += c;
+    }
+    return Math.sqrt(Math.max(0, tot));
   }
   tradesLastHour(now) { let n = 0; for (let i = this.S.trades.length - 1; i >= 0 && now - Date.parse(this.S.trades[i].t1 + "Z") < 3600e3; i--) n++; return n; }
 
@@ -845,7 +886,7 @@ export class ScalpCore {
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
-      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, trades: T.slice(-80),
+      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
