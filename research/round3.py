@@ -33,6 +33,7 @@ DS = tuple(float(x) for x in os.environ.get("RS_DS", "0.5,0.75,1.0,1.5").split("
 WS = tuple(int(x) for x in tuple(float(x) for x in os.environ.get("RS_WS", "5,15").split(",")))
 HS = tuple(int(x) for x in tuple(float(x) for x in os.environ.get("RS_HS", "15,30,60,120,240").split(",")))
 SLS = tuple(float(x) for x in os.environ.get("RS_SLS", "0,1.0,2.0").split(","))
+TPS = tuple(float(x) for x in os.environ.get("RS_TPS", "0").split(","))
 RS_ = tuple(float(x) for x in os.environ.get("RS_RS", "150,200,300,500").split(","))
 ZS_ = tuple(float(x) for x in os.environ.get("RS_ZS", "4,6,8").split(","))          # 0 = không cắt lỗ; k = cắt lỗ khi giá đi tiếp k × độ lớn cú sốc sau giá khớp
 OOS0 = int(dt.datetime.fromisoformat(E.OOS_FROM).replace(tzinfo=dt.timezone.utc).timestamp() // 60)
@@ -90,14 +91,23 @@ def process(s):
                 for SL in SLS:
                     stop = L * (1 - side * SL * mv) if SL else None
                     for H in HS:
-                        end = fill + 1 + H; x = o[end]; why = "T"
-                        if stop is not None:
+                        for TP in TPS:
+                            end = fill + 1 + H; x = o[end]; why = "T"; hit_s = hit_t = None
                             seg_l, seg_h = l[fill:end], h[fill:end]
-                            hit = np.flatnonzero(seg_l <= stop) if side > 0 else np.flatnonzero(seg_h >= stop)
-                            if hit.size:
+                            if stop is not None:
+                                hs = np.flatnonzero(seg_l <= stop) if side > 0 else np.flatnonzero(seg_h >= stop)
+                                hit_s = int(hs[0]) if hs.size else None
+                            if TP:
+                                tgt = L * (1 + side * TP * mv)      # chốt lời khi giá hồi lại TP × độ lớn cú sốc từ giá khớp (lệnh chờ maker)
+                                ht = np.flatnonzero(seg_h[1:] >= tgt) + 1 if side > 0 else np.flatnonzero(seg_l[1:] <= tgt) + 1
+                                hit_t = int(ht[0]) if ht.size else None
+                            if hit_s is not None and (hit_t is None or hit_s <= hit_t):
                                 x = stop * (1 - side * STOP_SLIP / 1e4); why = "S"
-                        net = side * (x / L - 1) * 1e4 - (MAKER + FEE + half + (0 if why == "S" else EXIT_SLIP))
-                        rec["res"][f"{D}|{W}|{SL:g}|{H}"] = round(float(net), 1)
+                            elif hit_t is not None:
+                                x = tgt; why = "P"
+                            cost = MAKER + FEE + half + EXIT_SLIP if why == "T" else MAKER + FEE + half if why == "S" else 2 * MAKER
+                            net = side * (x / L - 1) * 1e4 - cost
+                            rec["res"][f"{D}|{W}|{SL:g}|{H}|{TP:g}"] = round(float(net), 1)
         out.append(rec)
     return s, out, None
 
@@ -137,27 +147,28 @@ if __name__ == "__main__":
                     for W in WS:
                         for SL in SLS:
                             for H in HS:
-                                key = f"{D}|{W}|{SL:g}|{H}"
+                              for TP in TPS:
+                                key = f"{D}|{W}|{SL:g}|{H}|{TP:g}"
                                 IS = agg(E_, key, False)
                                 if IS.get("n", 0) < 60:
                                     continue
-                                rep["grid"].append(dict(VOL=VOL, Z=Z, R=R, D=D, W=W, SL=SL, H=H, IS=IS, OOS=agg(E_, key, True)))
+                                rep["grid"].append(dict(VOL=VOL, Z=Z, R=R, D=D, W=W, SL=SL, H=H, TP=TP, IS=IS, OOS=agg(E_, key, True)))
     G = rep["grid"]
     log(f"\nĐã thử {len(G)} tổ hợp. 15 tổ hợp tốt nhất theo lãi ròng TB trong mẫu (IS: tháng 7–9), kèm kết quả ngoài mẫu (OOS: tháng 10):")
     G.sort(key=lambda x: -x["IS"]["mean"])
     for x in G[:15]:
-        log(f"  vol≥{x['VOL'] / 1e6:.0f}tr z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p\n     IS  {x['IS']}\n     OOS {x['OOS']}")
+        log(f"  vol≥{x['VOL'] / 1e6:.0f}tr z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p chốt lời {x['TP'] or 'không'}\n     IS  {x['IS']}\n     OOS {x['OOS']}")
     log("\nTừng tháng (5 tổ hợp đầu) – lãi ròng TB bps / số lệnh:")
     for x in G[:5]:
-        key = f"{x['D']}|{x['W']}|{x['SL']:g}|{x['H']}"
+        key = f"{x['D']}|{x['W']}|{x['SL']:g}|{x['H']}|{x['TP']:g}"
         xs = [e for e in evs if e["q24"] >= x["VOL"] and e["z"] >= x["Z"] and e["R"] >= x["R"] and key in e["res"]]
         mo = {}
         for e in xs:
             mo.setdefault(dt.datetime.fromtimestamp(e["T"] * 60, dt.timezone.utc).strftime("%Y-%m"), []).append(e["res"][key])
-        log(f"  z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p: " + " | ".join(f"{k}: {np.mean(v):.0f} ({len(v)})" for k, v in sorted(mo.items())))
+        log(f"  z≥{x['Z']} sốc≥{x['R']} sâu {x['D']}× chờ {x['W']}p cắt lỗ {x['SL'] or 'không'} giữ {x['H']}p chốt {x['TP'] or 'không'}: " + " | ".join(f"{k}: {np.mean(v):.0f} ({len(v)})" for k, v in sorted(mo.items())))
     log("\nĐộ bền: tỉ lệ tổ hợp (đủ ≥ 30 lệnh OOS) có lãi ròng TB OOS > 0, theo từng tham số:")
     okG = [x for x in G if x["OOS"].get("n", 0) >= 30]
-    for p, vals in (("D", DS), ("SL", SLS), ("H", HS), ("R", RS_), ("Z", ZS_), ("VOL", (2e6, 10e6, 50e6))):
+    for p, vals in (("D", DS), ("SL", SLS), ("H", HS), ("TP", TPS), ("R", RS_), ("Z", ZS_), ("VOL", (2e6, 10e6, 50e6))):
         row = []
         for v in vals:
             xs = [x for x in okG if x[p] == v]
@@ -166,7 +177,7 @@ if __name__ == "__main__":
         log(f"  {p}: " + " | ".join(row))
     # theo bối cảnh BTC 15 phút cho 1 cấu hình tiêu biểu
     if G:
-        b = G[0]; key = f"{b['D']}|{b['W']}|{b['SL']:g}|{b['H']}"
+        b = G[0]; key = f"{b['D']}|{b['W']}|{b['SL']:g}|{b['H']}|{b['TP']:g}"
         E_ = [e for e in evs if e["q24"] >= b["VOL"] and e["z"] >= b["Z"] and e["R"] >= b["R"] and key in e["res"]]
         for lab, f in (("BTC 15p giảm > 1%", lambda e: e["b15"] is not None and e["b15"] < -100), ("BTC bình thường", lambda e: e["b15"] is not None and abs(e["b15"]) <= 100), ("BTC 15p tăng > 1%", lambda e: e["b15"] is not None and e["b15"] > 100)):
             xs = [e for e in E_ if f(e)]

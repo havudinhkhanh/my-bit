@@ -42,12 +42,12 @@ const ZT = 0.5;
 // VÙNG GIÁ kiểu SMC trong biên 60 phút (so với hướng tín hiệu): W = vừa quét thanh khoản phía ngược lại rồi quay đầu (sweep),
 // A = đúng vùng (mua vùng rẻ / bán vùng đắt), M = giữa biên, B = sai vùng (mua đắt / bán rẻ), X = đang phá biên theo hướng tín hiệu, ? = chưa đủ 30 phút giá
 // nhãn dễ đọc cho một loại tình huống, ví dụ "T|F1T+A|15" → "Taker · Futures hạng 1 · thuận xu hướng 15 phút · BTC cùng chiều / đi ngang · vùng giá tốt · giữ 15s"
-const keyVI = (k) => { const [m, g, h] = String(k).split("|"); const p = [m === "M" ? "Maker" : "Taker", g === "*" ? "mọi thị trường" : `${g[0] === "F" ? "Futures" : "Spot"} hạng ${g[1]}`];
+const keyVI = (k) => { const [m, g, h] = String(k).split("|"); const p = [(m[0] === "M" ? "Maker" : "Taker") + (m[1] === "D" ? " thoát linh hoạt" : ""), g === "*" ? "mọi thị trường" : `${g[0] === "F" ? "Futures" : "Spot"} hạng ${g[1]}`];
   if (g.length >= 4) p.push(CTX_VI[g[2]], CTX_VI[g[3]]); if (g.length >= 5) p.push(ZONE_VI[g[4]]); p.push(`giữ ${h}s`); return p.filter(Boolean).join(" · "); };
 export const ZONE_VI = { W: "vừa quét thanh khoản rồi quay đầu", A: "vùng giá tốt (mua rẻ / bán đắt)", M: "giữa biên 60 phút", B: "vùng giá xấu (mua đắt / bán rẻ)", X: "đang phá biên 60 phút", "?": "chưa đủ 30 phút giá" };
 // KIỂM NGHIỆM BẰNG LỆNH ẢO: mỗi cơ hội đạt chuẩn ở tầng 1 được đánh thử ảo (cả taker lẫn maker, đúng phí, đúng cắt lỗ/chốt lời/hết giờ).
 // Chỉ khi lệnh ảo của đúng loại tình huống đó có lời ròng (đã trừ sai số) thì mới vào lệnh thật. Trung bình trượt ~300 kết quả gần nhất → nhớ lâu nhưng vẫn theo kịp thị trường.
-const SHW = 300, SH_MAX = 3000, SH_GAP = 15000, EP = 600e3, SHW_EP = 120;   // EP: lệnh ảo trong cùng 10 phút gộp thành 1 "đợt" (chúng chạy cùng nhau – không phải 30 bằng chứng độc lập)                               // |giá đi 15 phút| ≥ 0,5 lần dao động kỳ vọng → coi là có xu hướng
+const SHW = 300, SH_MAX = 5000, SH_GAP = 15000, EP = 600e3, SHW_EP = 120;   // EP: lệnh ảo trong cùng 10 phút gộp thành 1 "đợt" (chúng chạy cùng nhau – không phải 30 bằng chứng độc lập)                               // |giá đi 15 phút| ≥ 0,5 lần dao động kỳ vọng → coi là có xu hướng
 // BỘ NHỚ HỌC (dùng lại được cho bot khác / máy khác / lúc giao dịch thật): chỉ nạp khi cùng "lược đồ" – cùng mốc giữ, cách chia ô, hạng, bối cảnh, công thức tín hiệu
 export const BRAIN_SCH = JSON.stringify({ v: 3, HS: [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900], NB: 6, BW: 0.15, TIERS: [500, 50, 5], ctx: "t15z0.5|b5z0.5", sig: "0.4tfi5+0.3obi5lv+0.3mz5", z: "fwd/(vol60*sqrt(h))" });
 // bộ nhớ học bản cũ dùng được nếu chỉ khác ở chỗ có ít mốc giữ hơn (mốc mới thêm vào cuối → bảng cũ được thêm cột trống)
@@ -458,6 +458,7 @@ export class ScalpCore {
       const vol = Math.max(0.05, Math.sqrt(Math.max(0, sq / nr - (sm / nr) ** 2)));
       const mom5 = (mid / M[Math.max(0, M.length - 6)] - 1) * 1e4, mz = clamp(mom5 / (vol * Math.sqrt(5)), -3, 3) / 3;
       const s = clamp(0.4 * tfi + 0.3 * obi + 0.3 * mz, -1, 1), side = s >= 0 ? 1 : -1, bin = Math.min(NB - 1, Math.floor(Math.abs(s) / BW));
+      x.sNow = s;      // tín hiệu hiện tại – cho thoát linh hoạt
       const g = (x.g = x.t + tierOf(x.qv));
       x.vol = vol;
       const z15 = this.trendZ(x, 15, vol);
@@ -518,9 +519,11 @@ export class ScalpCore {
       const canShadow = best && pass.length && !(x.t === "S" && side < 0) && spread <= c.spread_max && !(x.t === "F" && nearFunding(now, Math.max(...pass.map((q) => q.h))));
       if (canShadow) this.shSpawn(x, side, pass, gk, zone, vol, now);
       // tầng 2: chọn (cách khớp, mốc giữ) đã được lệnh ảo chứng minh – cận dưới lời ròng ≥ ngưỡng
-      const modes = c.mode === "auto" ? ["T", "M"] : [c.mode === "maker" ? "M" : "T"];
+      // cách khớp × cách thoát: "T"/"M" = thoát đúng giờ; "TD"/"MD" = THOÁT LINH HOẠT (ra sớm khi tín hiệu đảo chiều, giữ thêm tới 2× khi tín hiệu còn thuận & đang lãi)
+      const modes = c.mode === "auto" ? ["T", "M", "TD", "MD"] : c.mode === "maker" ? ["M", "MD"] : ["T", "TD"];
       let pick = null, seen = null;
-      for (const q of pass) {
+      for (const q0 of pass.flatMap((q) => [q, { ...q, m: q.m + "D" }])) {
+        const q = q0;
         if (!modes.includes(q.m)) continue;
         const st = this.shStat(this.shKeys(q.m, g, gk, zone, q.h));
         if (st && (!seen || st.lcb > seen.lcb)) seen = { ...st, m: q.m, h: q.h };
@@ -535,13 +538,13 @@ export class ScalpCore {
       else if (S.ord[id]) v = "order";
       else if (!best || best.warm === false) v = "learn";
       else if (!pass.length) { v = "fee"; why += best.net < c.min_net ? ` – cần ròng ≥ ${c.min_net} bps` : ` – cần kỳ vọng ≥ ${kk.toFixed(1)}× chi phí = ${(kk * cost).toFixed(2)} bps`; }
-      else if (!ok) { v = "verify"; why = `${cx} · ${ZONE_VI[zone]}: đạt tầng 1, ` + (seen ? `lệnh ảo ${seen.m === "M" ? "maker" : "taker"} giữ ${seen.h}s: ${seen.n} lệnh, ròng TB ${seen.mean >= 0 ? "+" : ""}${seen.mean.toFixed(1)} bps (thận trọng ${seen.lcb >= 0 ? "+" : ""}${seen.lcb.toFixed(1)}) → chưa chứng minh có lời, chỉ đánh ảo` : `đang kiểm nghiệm bằng lệnh ảo (cần ≥ ${c.sh_min} lệnh ảo cùng loại tình huống)`); }
+      else if (!ok) { v = "verify"; why = `${cx} · ${ZONE_VI[zone]}: đạt tầng 1, ` + (seen ? `lệnh ảo ${seen.m[0] === "M" ? "maker" : "taker"} ${seen.m[1] === "D" ? "thoát linh hoạt quanh" : "giữ"} ${seen.h}s: ${seen.n} lệnh, ròng TB ${seen.mean >= 0 ? "+" : ""}${seen.mean.toFixed(1)} bps (thận trọng ${seen.lcb >= 0 ? "+" : ""}${seen.lcb.toFixed(1)}) → chưa chứng minh có lời, chỉ đánh ảo` : `đang kiểm nghiệm bằng lệnh ảo (cần ≥ ${c.sh_min} lệnh ảo cùng loại tình huống)`); }
       else if (x.t === "S" && side < 0) { v = "skip"; rc = "short"; why = "tín hiệu bán nhưng spot không bán khống được – đứng ngoài"; }
       else if (S.pause) { v = "pause"; rc = "pause"; why = `tạm dừng: ${S.pause.why}`; }
       else if (spread > c.spread_max) { v = "skip"; rc = "spread"; why = `chênh lệch mua/bán ${spread.toFixed(2)} bps > ${c.spread_max} – bỏ qua vì chênh lệch quá rộng`; }
       else if (x.t === "F" && nearFunding(now, best.h)) { v = "skip"; rc = "funding"; why = "lệnh sẽ giữ qua giờ funding – đứng ngoài"; }
       else if (S.cool[id] && now < S.cool[id]) { v = "skip"; rc = "cool"; why = `vừa đóng lệnh coin này – nghỉ thêm ${Math.ceil((S.cool[id] - now) / 1000)} giây`; }
-      else { v = "go"; why = `${cx} · ${ZONE_VI[zone]}: lệnh ảo ${pick.m === "M" ? "maker" : "taker"} giữ ${pick.h}s đã chứng minh: ${pick.st.n} lệnh, ròng TB +${pick.st.mean.toFixed(1)} bps (thận trọng +${pick.st.lcb.toFixed(1)})`; cand.push({ x, side, best: { ...pick, sc: pick.sc }, cost: pick.cost, vol, mid, spread, ctx: tc + bc, zone, keys: this.shKeys(pick.m, g, gk, zone, pick.h), mode: pick.m }); }
+      else { v = "go"; why = `${cx} · ${ZONE_VI[zone]}: lệnh ảo ${pick.m[0] === "M" ? "maker" : "taker"} ${pick.m[1] === "D" ? "thoát linh hoạt quanh" : "giữ"} ${pick.h}s đã chứng minh: ${pick.st.n} lệnh, ròng TB +${pick.st.mean.toFixed(1)} bps (thận trọng +${pick.st.lcb.toFixed(1)})`; cand.push({ x, side, best: { ...pick, sc: pick.sc }, cost: pick.cost, vol, mid, spread, ctx: tc + bc, zone, keys: this.shKeys(pick.m, g, gk, zone, pick.h), mode: pick.m[0] }); }
       cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v] = (cnt[v === "order" || v === "hold" ? "hold" : v === "pause" ? "skip" : v] || 0) + 1;
       live[id] = { t: x.t, g, tc, bc, zone, rc, cT: r2(costT, 2), cM: r2(costM, 2), z15: r2(z15, 2), mid: r2(mid, 8), spread: r2(spread, 2), s: r2(s, 2), tfi: r2(tfi, 2), obi: r2(obi, 2), mz: r2(mz, 2), vol: r2(vol, 2), qv: r2(x.qv, 1), bin, side, cost: r2(cost, 2),
         best: best ? { h: best.h, exp: r2(best.exp, 2), raw: r2(best.raw, 2), se: r2(best.se, 2), net: r2(best.net, 2), n: best.n, nq: best.nq } : null, v, why };
@@ -634,7 +637,7 @@ export class ScalpCore {
     (S.ent ||= []).push(now);
     if ((mode || (c.mode === "maker" ? "M" : "T")) === "M") {
       const px = side > 0 ? x.bid : x.ask;
-      S.ord[x.id] = { t: x.t, side, px, q: notional / px, queue: side > 0 ? x.b1q ?? x.bq : x.a1q ?? x.aq, t0: now, h: best.h, slb, tpb, exp: best.exp, raw: best.raw, g: x.g, ctx: x.ctx, zone: x.zone, shk: x.shk, cost };
+      S.ord[x.id] = { dx: !!best.m?.endsWith?.("D"), t: x.t, side, px, q: notional / px, queue: side > 0 ? x.b1q ?? x.bq : x.a1q ?? x.aq, t0: now, h: best.h, slb, tpb, exp: best.exp, raw: best.raw, g: x.g, ctx: x.ctx, zone: x.zone, shk: x.shk, cost };
       return;
     }
     this.open(x, side, side > 0 ? x.ask : x.bid, notional / (side > 0 ? x.ask : x.bid), "taker", best, slb, tpb, cost, now);
@@ -642,14 +645,14 @@ export class ScalpCore {
   open(x, side, px, q, how, best, slb, tpb, cost, now) {
     const c = this.cfg, fr = x.t === "F" ? (how === "maker" ? c.fee_m : c.fee_t) : how === "maker" ? c.fee_ms : c.fee_ts, fee = q * px * fr / 100;
     this.S.cash -= fee;
-    this.S.pos[x.id] = { id: this.S.seq++, t: x.t, side, e: px, q, fee, how, t0: now, h: best.h, sl: px * (1 - side * slb / 1e4), tp: px * (1 + side * tpb / 1e4), exp: best.exp, raw: best.raw, g: x.g, ctx: x.ctx, zone: x.zone, shk: x.shk, cost, slb, tpb };
+    this.S.pos[x.id] = { id: this.S.seq++, dx: !!best.m?.endsWith?.("D"), t: x.t, side, e: px, q, fee, how, t0: now, h: best.h, sl: px * (1 - side * slb / 1e4), tp: px * (1 + side * tpb / 1e4), exp: best.exp, raw: best.raw, g: x.g, ctx: x.ctx, zone: x.zone, shk: x.shk, cost, slb, tpb };
   }
   onTrade(x, p, q, side, now) {
     const o = this.S?.ord?.[x.id];
     if (o) {   // lệnh chờ maker: khớp khi có người khớp xuyên giá / hết hàng chờ phía trước ở đúng giá
       if (o.side > 0 && side < 0) { if (p < o.px) o.queue = 0; else if (p === o.px) o.queue -= q; }
       if (o.side < 0 && side > 0) { if (p > o.px) o.queue = 0; else if (p === o.px) o.queue -= q; }
-      if (o.queue <= 0) { delete this.S.ord[x.id]; x.ctx = o.ctx; x.zone = o.zone; x.shk = o.shk; this.open(x, o.side, o.px, o.q, "maker", { h: o.h, exp: o.exp, raw: o.raw }, o.slb, o.tpb, o.cost, now); }
+      if (o.queue <= 0) { delete this.S.ord[x.id]; x.ctx = o.ctx; x.zone = o.zone; x.shk = o.shk; this.open(x, o.side, o.px, o.q, "maker", { h: o.h, exp: o.exp, raw: o.raw, m: o.dx ? "MD" : "M" }, o.slb, o.tpb, o.cost, now); }
     }
     this.shTrade(x, p, q, side, now);
     if (this.S?.hk?.[x.id]) this.hookTrade(x, p, now);
@@ -665,7 +668,8 @@ export class ScalpCore {
     const o = this.S.ord[x.id];
     if (o && now - o.t0 > 3000) delete this.S.ord[x.id];          // maker chờ quá 3 giây → huỷ
     const P = this.S.pos[x.id];
-    if (P && now - P.t0 >= P.h * 1000) this.close1(x, P.side > 0 ? x.bid : x.ask, "TIME", now);
+    if (P && P.dx) { const why = now - x.tb > 30000 ? "STALE" : this.dynExit(x, P.side, P.t0, P.h, P.e, now); if (why) this.close1(x, P.side > 0 ? x.bid : x.ask, why, now); }
+    else if (P && now - P.t0 >= P.h * 1000) this.close1(x, P.side > 0 ? x.bid : x.ask, "TIME", now);
     else if (P && now - x.tb > 30000) this.close1(x, P.side > 0 ? x.bid : x.ask, "STALE", now);   // mất dữ liệu coin này > 30 giây → đóng ở giá cuối
   }
   close1(x, px, why, now) {
@@ -682,7 +686,7 @@ export class ScalpCore {
     const bs = ((S.byS ||= {})[P.strat || "sec"] ||= { n: 0, net: 0, fees: 0, win: 0, bps: 0 }); bs.n++; bs.net += usd; bs.fees += P.fee + fee; bs.bps += net; if (usd > 0) bs.win++;
     if (P.shk) this.shAdd(P.shk, net, true, now);      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
     const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
-    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", STALE: "mất dữ liệu" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`);
+    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", "TIME+": "hết giờ (đã giữ thêm vì tín hiệu còn thuận)", REV: "tín hiệu đảo chiều – thoát sớm", STALE: "mất dữ liệu" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`);
   }
 
   // ---------------------------------------------------------------- 🪝 BẮT RÂU SẬP – đặt lệnh chờ sâu sau cú sốc 1 phút
@@ -817,6 +821,16 @@ export class ScalpCore {
       q[7] += net; q[8]++;
     }
   }
+  // THOÁT LINH HOẠT: ra sớm khi tín hiệu đảo chiều rõ (sau tối thiểu 30% thời gian giữ, ≥ 5 giây); tới giờ mà tín hiệu vẫn thuận & đang lãi → giữ thêm, tối đa 2× (≤ "giữ tối đa").
+  // Chỉ được dùng cho lệnh thật khi lệnh ảo thoát linh hoạt của đúng loại tình huống đó tốt hơn ngưỡng – thị trường tự quyết cách thoát nào hợp.
+  dynExit(x, side, t0, h, e, now) {
+    const el = (now - t0) / 1000, a = side * (x.sNow || 0);
+    if (el >= Math.max(5, 0.3 * h) && a <= -0.3) return "REV";
+    if (el < h) return null;
+    const px = side > 0 ? x.bid : x.ask, up = e ? side * (px / e - 1) * 1e4 : 0;
+    if (el < Math.min(2 * h, Math.max(h, this.cfg.hmax)) && a >= 0.3 && up > 0) return null;
+    return el > h + 1.5 ? "TIME+" : "TIME";      // TIME+ = đã giữ thêm quá mốc rồi mới thoát
+  }
   shSpawn(x, side, pass, gk, zone, vol, now) {
     if ((this.shN || 0) >= SH_MAX) return;
     for (const m of ["T", "M"]) {
@@ -826,10 +840,13 @@ export class ScalpCore {
       const pickH = [...new Set([L[0], L[Math.floor(L.length / 2)], L[L.length - 1]])];      // ngắn nhất / giữa / dài nhất → biết mốc giữ nào thật sự có lời
       for (const q of pickH) {
         const slb = Math.max(2 * q.cost, 4 * vol * Math.sqrt(q.h)), tpb = q.cost + 2 * q.exp;
-        const o = { m, side, h: q.h, keys: this.shKeys(m, x.g, gk, zone, q.h), slb, tpb, cost: q.cost, t0: now, fee: m === "M" ? q.cost : null };
-        if (m === "T") { o.e = side > 0 ? x.ask : x.bid; o.tf = now; }
-        else { o.px = side > 0 ? x.bid : x.ask; o.queue = side > 0 ? x.b1q ?? x.bq : x.a1q ?? x.aq; }
-        x.sh.push(o); this.shN = (this.shN || 0) + 1;
+        for (const dx of [false, true]) {       // cùng 1 cơ hội, 2 cách thoát → so trực tiếp thoát đúng giờ với thoát linh hoạt
+          const mk = m + (dx ? "D" : "");
+          const o = { m, dx, side, h: q.h, keys: this.shKeys(mk, x.g, gk, zone, q.h), slb, tpb, cost: q.cost, t0: now, fee: m === "M" ? q.cost : null };
+          if (m === "T") { o.e = side > 0 ? x.ask : x.bid; o.tf = now; }
+          else { o.px = side > 0 ? x.bid : x.ask; o.queue = side > 0 ? x.b1q ?? x.bq : x.a1q ?? x.aq; }
+          x.sh.push(o); this.shN = (this.shN || 0) + 1;
+        }
       }
     }
   }
@@ -863,7 +880,7 @@ export class ScalpCore {
     for (const o of x.sh) {
       if (o.done) continue;
       if (!o.e) { if (now - o.t0 > 3000 || stale) { this.shAdd(o.keys, 0, false); o.done = true; this.shN--; } continue; }     // maker không khớp trong 3 giây → huỷ (ghi nhận tỉ lệ khớp)
-      if (now - o.tf >= o.h * 1000 || stale) this.shClose(x, o, o.side > 0 ? x.bid : x.ask, now);
+      if (stale || (o.dx ? this.dynExit(x, o.side, o.tf, o.h, o.e, now) : now - o.tf >= o.h * 1000)) this.shClose(x, o, o.side > 0 ? x.bid : x.ask, now);
     }
     if (x.sh.some((o) => o.done)) x.sh = x.sh.filter((o) => !o.done);
   }
