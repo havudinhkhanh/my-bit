@@ -14,6 +14,7 @@ Lệnh thật trên Binance (giai đoạn 2) sẽ đi qua cùng giao diện Brok
 from __future__ import annotations
 
 import json
+import os
 import logging
 import math
 import re
@@ -594,6 +595,20 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
             log.info("Bot lướt giây – coin vào nhiều nhất: %s", ", ".join(f"{k} {len(v)} lệnh ròng {round(sum(v), 1)} bps" for k, v in sorted(top.items(), key=lambda x: -len(x[1]))[:10]))
     except Exception as e:  # noqa: BLE001
         log.info("Bot lướt giây: chưa đọc được (%s)", e)
+    try:     # bản chi tiết để chẩn đoán (chỉ tài khoản quản trị, sàn thử): lệnh, đường tài sản, bài học → data/diag.json (đẩy lên nhánh status)
+        out = {}
+        for key in ("scalpstate", "botstate", "supstate"):
+            rs, _ = be.q("SELECT d.value FROM user_data d JOIN users u ON u.id = d.user_id WHERE u.role = 'admin' AND d.key = ?", [key])
+            for r in rs or []:
+                v = json.loads(r.get("value") or "{}")
+                if key == "scalpstate":
+                    v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "pos", "trades", "eqs", "log", "cfg", "sh", "why")}
+                out[key] = v
+        os.makedirs("data", exist_ok=True)
+        with open("data/diag.json", "w") as fh:
+            json.dump(out, fh, ensure_ascii=False, default=str)
+    except Exception as e:  # noqa: BLE001
+        log.info("Chẩn đoán chi tiết: lỗi %s", e)
     n = 0
     for u in us:
         d = u.get("data") or {}
