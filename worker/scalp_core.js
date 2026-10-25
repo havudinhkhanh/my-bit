@@ -59,7 +59,7 @@ function norm(c) {
   const n = (k, a, b) => (c[k] = clamp(Number.isFinite(+c[k]) ? +c[k] : SCALP_DEF[k], a, b));
   n("capital", 50, 1e7); n("min_vol", 0, 1e4); n("max_mk", 10, 1200); n("lev", 1, 20); n("risk", 0.02, 1); n("max_pos", 1, 30);
   n("fee_m", -0.02, 0.3); n("fee_t", 0, 0.3); n("fee_ms", -0.02, 0.5); n("fee_ts", 0, 0.5); n("min_net", 0, 50); n("k", 1, 5); n("min_n", 50, 20000);
-  n("hmax", 2, 900); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
+  n("hmax", 2, 1800); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("burst", 1, 60); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
