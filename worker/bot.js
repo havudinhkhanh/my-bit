@@ -393,7 +393,7 @@ export async function botTick(env) {
         if (j.S[b.id]) j.S[b.id].pxsrc = px0;
         const { st, ev } = botStep(pre.gates[b.id] ? { ...b, _sup: pre.gates[b.id] } : b, j.S[b.id], j.PL[b.id], price, HL, now);
         st.pxsrc = px0;
-        out[b.id] = st; nev += ev.length;
+        out[b.id] = st; j.S[b.id] = st; nev += ev.length;      // bot sau thấy được lệnh bot trước vừa mở (chống cả đội dồn vào 1 tín hiệu)
         for (const x of notes(ev)) it.push({ ...x, key: `bot:${b.id}:${x.key.slice(4)}`, title: j.B.length > 1 ? x.title.replace(/^(🤖|⛔) (Bot )?/u, `$1 ${b.name || b.id}: `) : x.title });
       }
       // bot giám sát – SAU lượt bot: khám nghiệm, rút bài học, chấm điểm, báo cáo

@@ -26,6 +26,7 @@ export function supNorm(c) {
   c = { ...SUP_DEF, ...(c || {}) };
   c.acct_dd = clamp(+c.acct_dd || 20, 3, 60); c.acct_day = clamp(+c.acct_day || 6, 1, 30); c.min_edge = clamp(+c.min_edge || 0.25, 0.05, 2); c.min_trades = clamp(+c.min_trades || 15, 8, 100);
   c.off = Array.isArray(c.off) ? c.off : [];
+  c.herd = Number.isFinite(+c.herd) && c.herd !== "" && c.herd !== null ? clamp(+c.herd, 0, 6) : 2;      // tối đa số bot cùng giữ 1 coin cùng chiều (0 = không giới hạn)
   return c;
 }
 export function supNew(now) {
@@ -105,12 +106,25 @@ function candEV(c, p) {
 }
 
 // ---------------------------------------------------------------- cổng bài học (gắn vào bot, gọi trong entries)
-function makeCheck(ss, active, bid, hist, now) {
+function makeCheck(ss, active, bid, hist, now, S, herd = 2) {
   const on = new Set(active.map((l) => l.id));
   const blocks = (ss.blocks || []).filter((b) => ms(b.until) > now);
+  // ghi lại tín hiệu bị chặn để sau này chấm chính lệnh chặn: chặn đúng (giá về cắt lỗ trước) hay chặn nhầm (giá tới MT1 trước)
+  const watchBlocked = (l, x, c) => {
+    const key = `${l}|${x.k}|${x.side}|${x.at}`;
+    if (ss.shadow[key] || (ss.watch || []).length >= 400 || !c?.p) return;
+    ss.shadow[key] = 1; ss.watch.push({ kind: "shadow", l, b: bid, k: x.k, sd: x.side === "long" ? 1 : -1, e: c.p, s: x.s, t: x.t1, until: iso(now + (x.tf === "h4" ? 2 : 5) * 864e5) });
+  };
   return (x, c) => {
     const L = x.side === "long", reasons = [];
+    // CẢ ĐỘI DỒN VÀO 1 TÍN HIỆU: 1 tín hiệu xấu = thua ở mọi bot cùng lúc (đã xảy ra: ORDER 6 bot, T 4 bot) → tối đa `herd` bot giữ cùng 1 coin cùng chiều
+    if (S && herd > 0) {
+      const hold = Object.entries(S).filter(([id, st]) => id !== bid && (st?.pos || []).some((p) => p.k === x.k && p.side === x.side)).length;
+      if (hold >= herd) return `đội bot: đã có ${hold} bot khác giữ ${L ? "Long" : "Short"} ${x.k} – không dồn thêm (1 tín hiệu sai sẽ thua ở mọi bot cùng lúc)`;
+    }
     for (const b of blocks) {
+      if (b.kind === "side" && b.side === x.side) { watchBlocked(`blk:side:${b.side}`, x, c); return `bài học: mọi thiết lập ${L ? "Long" : "Short"} 7 ngày qua đều thua (${b.n} tín hiệu, TB ${sg(b.R, 2)}R) – thị trường đang không ủng hộ chiều này, tạm dừng tới ${b.until.slice(5, 16).replace("T", " ")}`; }
+      if (b.kind === "setup" && b.setup === x.setup && b.tf === "*" && b.side === x.side) { watchBlocked(`blk:${b.setup}|*|${b.side}`, x, c); return `bài học: thiết lập "${x.name}" ${L ? "Long" : "Short"} thua ở mọi khung (${b.n} tín hiệu, TB ${sg(b.R, 2)}R) – tạm dừng tới ${b.until.slice(5, 10).split("-").reverse().join("/")}`; }
       if (b.kind === "coin" && b.k === x.k) return `bài học: ${x.k} thua ${b.n} lệnh gần đây (${sg(b.R, 1)}R) ở các bot – tạm tránh tới ${b.until.slice(5, 10).split("-").reverse().join("/")}`;
       if (b.kind === "setup" && b.setup === x.setup && b.tf === x.tf && b.side === x.side) return `bài học: thiết lập "${x.name}" ${x.tf === "d" ? "ngày" : "4h"} gần đây thua (${b.n} lệnh, TB ${sg(b.R, 2)}R) – tạm dừng tới ${b.until.slice(5, 10).split("-").reverse().join("/")}`;
     }
@@ -202,7 +216,7 @@ export function supPre(scfgRaw, ss, B, S, PL, price, now, active) {
     const EB = E?.bots?.[b.id];
     gates[b.id] = { halt: ss.halt ? `bot giám sát khoá toàn tài khoản – ${ss.halt.why}` : null, mult: EB ? EB.mult : softMult,
       mwhy: EB ? `cỗ máy vốn đặt ${vn(EB.f, 2)}%/lệnh (${{ learn: "đang học", unproven: "lợi thế chưa chắc", neg: "đang lỗ", edge: "theo lợi thế đo được" }[EB.mode]})` : `tài sản chung sụt ${vn(dd, 1)}%`, be1,
-      check: scfg.lessons ? makeCheck(ss, act, b.id, st.hist || [], now) : null };
+      check: scfg.lessons ? makeCheck(ss, act, b.id, st.hist || [], now, S, scfg.herd) : null };
     // ---- đánh giá lại từng lệnh: giữ hay cắt
     const A = [];
     for (const p of [...(st.pos || [])]) {
@@ -356,6 +370,30 @@ export function supPost(scfgRaw, ss, B, S, PL, price, now, active) {
         const until = iso(now + 14 * 864e5); blocks.push({ kind: "setup", setup, tf, side, name: xs[0].name, n: xs.length, R: +mR.toFixed(2), until, at: iso(now) });
         slog(ss, now, `🔬 Nghiên cứu: "${xs[0].name}" ${tf === "d" ? "ngày" : "4h"} ${LS(side)} 30 ngày qua ${xs.length} lệnh, TB ${sg(mR)}R – tạm dừng thiết lập này 14 ngày (thị trường hiện không hợp).`, "lesson");
       }
+    }
+    // tầng trên: cùng thiết lập thua ở MỌI khung thời gian (vd. "phá đỉnh" khung 4h lẫn ngày) → chặn cả thiết lập theo chiều đó
+    const bySS = {}; for (const x of R.filter((x) => now - ms(x.closed) < 30 * 864e5)) (bySS[`${x.setup}|${x.side}`] ||= []).push(x);
+    for (const [key, xs] of Object.entries(bySS)) {
+      const mR = mean(xs.map((x) => x.r)), [setup, side] = key.split("|");
+      if (xs.length >= 6 && mR <= -0.4 && !has((b) => b.kind === "setup" && b.setup === setup && b.tf === "*" && b.side === side)) {
+        const until = iso(now + 10 * 864e5); blocks.push({ kind: "setup", setup, tf: "*", side, name: xs[0].name, n: xs.length, R: +mR.toFixed(2), until, at: iso(now) });
+        slog(ss, now, `🔬 Nghiên cứu: "${xs[0].name}" ${LS(side)} thua ở mọi khung – ${xs.length} tín hiệu, TB ${sg(mR)}R – tạm dừng cả thiết lập 10 ngày.`, "lesson");
+      }
+    }
+    // tầng trên cùng: MỌI thiết lập cùng chiều đều thua 7 ngày qua → thị trường không ủng hộ chiều đó (chế độ thị trường) → dừng chiều đó 3 ngày
+    for (const side of ["long", "short"]) {
+      const xs = R.filter((x) => x.side === side && now - ms(x.closed) < 7 * 864e5), mR = mean(xs.map((x) => x.r));
+      if (xs.length >= 10 && mR <= -0.4 && !has((b) => b.kind === "side" && b.side === side)) {
+        const until = iso(now + 3 * 864e5); blocks.push({ kind: "side", side, n: xs.length, R: +mR.toFixed(2), until, at: iso(now) });
+        slog(ss, now, `🔬 Chế độ thị trường: ${xs.length} tín hiệu ${LS(side)} 7 ngày qua, TB ${sg(mR)}R ở mọi thiết lập – tạm dừng ${LS(side)} 3 ngày (tự mở lại sớm nếu lệnh bị chặn lẽ ra thắng).`, "lesson");
+        out.push({ key: `sup:side:${side}:${vnDay(now)}`, sev: 2, title: `🛡️ Bot giám sát tạm dừng mọi lệnh ${LS(side)}`, body: `${xs.length} tín hiệu ${LS(side)} 7 ngày qua TB ${sg(mR)}R ở mọi thiết lập – thị trường đang không ủng hộ chiều này. Tự mở lại sau 3 ngày hoặc sớm hơn nếu lệnh bị chặn lẽ ra thắng.` });
+      }
+    }
+    // tự sửa sai: lệnh chặn nào mà các tín hiệu bị chặn phần lớn lẽ ra THẮNG → gỡ ngay
+    const LS2 = ss.lstat || {};
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      const b = blocks[i], id = b.kind === "side" ? `blk:side:${b.side}` : b.kind === "setup" && b.tf === "*" ? `blk:${b.setup}|*|${b.side}` : null, q = id && LS2[id];
+      if (q && q.ok + q.bad >= 6 && q.bad > q.ok * 1.5) { slog(ss, now, `🔁 Gỡ chặn ${b.kind === "side" ? LS(b.side) : `"${b.name}" ${LS(b.side)}`}: ${q.bad}/${q.ok + q.bad} tín hiệu bị chặn lẽ ra thắng – thị trường đã đổi.`, "lesson"); blocks.splice(i, 1); delete LS2[id]; }
     }
     ss.blocks = blocks.slice(-40);
   }
