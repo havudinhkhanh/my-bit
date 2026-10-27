@@ -602,7 +602,7 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
             for r in rs or []:
                 v = json.loads(r.get("value") or "{}")
                 if key == "scalpstate":
-                    v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "pos", "trades", "eqs", "log", "cfg", "sh", "why")}
+                    v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "pos", "trades", "eqs", "log", "cfg", "sh", "why", "live", "bx", "guard")}
                 out[key] = v
         os.makedirs("data", exist_ok=True)
         with open("data/diag.json", "w") as fh:
