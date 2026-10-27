@@ -20,7 +20,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false,
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
@@ -64,7 +64,7 @@ function norm(c) {
   n("hmax", 2, 1800); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
-  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
+  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_env = c.lv_env === "live" ? "live" : "demo";
   if (!c.fut && !c.spot) c.fut = true;
@@ -714,11 +714,33 @@ export class ScalpCore {
     H.last = { k: x.id, at: iso(now), R: r2(r * 1e4, 0), z: r2(z, 1), vx: med > 0 ? r2((b[4] || 0) / med, 1) : null };
     if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; return; }
     H.vol++;
+    // BỘ LỌC (kiểm chứng 01/2025–10/2026, ~900 mã, 45.800 cú sốc – research/round4.py; sau lỗ 27/10 ở Q, BULLA bắt 2–3 lần liền):
+    // coin đã có cú sốc khác trong hk_f6 giờ = đang bơm/xả liên tục → bỏ. (Kết hợp với lọc "dao rơi" bên dưới: TB +26 → +91 bps/lệnh, đuôi lỗ nhỏ hơn)
+    const SK = ((S.hkShk ||= {})[x.id] ||= []).filter((t) => now - t < 48 * 3600e3), prior = SK.filter((t) => now - t < c.hk_f6 * 3600e3).length;
+    SK.push(now); S.hkShk[x.id] = SK.slice(-30);
+    if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; return; }
     if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
     if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
     if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày (lỗ quá giới hạn ngày)"; return; }      // chốt mục tiêu ngày KHÔNG dừng Bắt râu: lời của nó dồn vào vài ngày sập mạnh – dừng ở +2% là cắt mất phần lời lớn nhất
     const act = Object.keys(S.hk).length + Object.values(S.pos).filter((p) => p.strat === "hook").length;
     if (act >= c.hk_max) { H.last.why = `đã có ${act}/${c.hk_max} lần bắt râu đang mở`; return; }
+    // lọc "dao rơi": giá 4 giờ qua đã đi NGƯỢC hướng lệnh > hk_knife % (bắt đáy trong xu hướng sập / bán đỉnh trong xu hướng bơm) → bỏ. Lấy nến 15 phút từ sàn (cú sốc hiếm nên gọi thêm không tốn)
+    this.hookKnife(x, side, b[1]).then((r4) => {
+      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; return; }
+      if (S.hk[x.id] || S.pos[x.id]) return;
+      this.hookPlace(x, side, b, r, R, z, med, now);
+    }).catch((e) => this.err("hook " + e.message));
+  }
+  async hookKnife(x, side, c0) {
+    try {      // lỗi mạng → không lọc được thì vẫn bắt (như trước khi có bộ lọc)
+      const f = this.F[x.t], u = SRC[f?.src]?.bars?.(x.sym); if (!u) return null;
+      const r = await get(u.replace("interval=1m&limit=62", "interval=15m&limit=20")); if (!r.ok) return null;
+      const K = await r.json(); if (!Array.isArray(K) || K.length < 18) return null;
+      const c4 = +K[K.length - 17][4]; return c4 > 0 ? side * (c0 / c4 - 1) * 1e4 : null;
+    } catch (e) { return null; }
+  }
+  hookPlace(x, side, b, r, R, z, med, now) {
+    const c = this.cfg, S = this.S, H = this.hkStat, base = x.id.split(":")[0];
     const eq = this.equity(), lev = x.t === "F" ? c.lev : 1, notional = Math.min(eq * c.hk_size / 100, Math.max(0, eq - this.used()) * lev);
     const lvs = [c.hk_d1, c.hk_d2].filter((d) => d > 0); if (!lvs.length || notional < 10) { H.last.why = "không đủ vốn"; return; }
     const mv = Math.abs(Math.expm1(r)), c0 = b[1], each = notional / lvs.length;
