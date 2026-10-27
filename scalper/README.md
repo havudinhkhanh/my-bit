@@ -5,7 +5,7 @@ Bản này chạy cùng bộ não với bot lướt giây trên trang MyBit, nh�
 - **Nối thẳng Binance futures và Binance spot.** Binance đang chặn máy chủ Cloudflare (lỗi 403), nên bản Cloudflare phải dùng dữ liệu Bybit hoặc OKX.
 - **Chạy liên tục 24/7, không giới hạn số tin nhắn.** Gói Cloudflare miễn phí hết hạn mức sau khoảng nửa giờ quét toàn thị trường.
 
-Bot vẫn chỉ đánh trên **sàn thử**. Máy chủ không giữ khoá Binance nào và không đặt lệnh thật. Nó chỉ đọc dữ liệu thị trường công khai, rồi gửi trạng thái về trang MyBit. Anh vẫn xem và chỉnh bot ở trang **Bot → Bot lướt giây** như bình thường.
+Mặc định bot chỉ đánh trên **sàn thử**. Muốn phương pháp 🪝 Bắt râu sập đặt lệnh thật trên Binance, xem mục 6. Nó chỉ đọc dữ liệu thị trường công khai, rồi gửi trạng thái về trang MyBit. Anh vẫn xem và chỉnh bot ở trang **Bot → Bot lướt giây** như bình thường.
 
 ## 1. Thuê máy chủ (khoảng 5–6 USD/tháng)
 
@@ -71,3 +71,34 @@ Nút **Làm lại tài khoản** chỉ xoá lịch sử lệnh và giữ nguyên
 - Mất khoá thì anh chỉ cần tạo khoá mới trên trang, khoá cũ hết hiệu lực ngay.
 - Tệp `.env` chỉ người dùng hệ thống `mybit` đọc được (quyền 600). Dịch vụ chạy với quyền tối thiểu: không ghi được ra ngoài thư mục `data`.
 - Muốn quay về chạy trên Cloudflare: chọn lại **Cloudflare** ở mục **Nơi chạy** rồi Lưu. Máy chủ sẽ tự đứng chờ.
+
+## 6. Nối tài khoản Binance (chỉ phương pháp 🪝 Bắt râu sập)
+
+Nên chạy trên **Binance Demo Trading** (tiền ảo, giá thật) vài ngày trước. Khi đặt, huỷ và cắt lỗ đều chạy đúng thì mới chuyển sang tiền thật.
+
+1. **Tạo khoá API riêng cho bot.**
+   - Demo: vào demo.binance.com → Quản lý API.
+   - Thật: vào binance.com → Quản lý API.
+   - Chỉ bật **Futures** (và Reading). **TẮT rút tiền.** Giới hạn IP bằng IP máy chủ (chương trình cài sẽ in IP này ra).
+   - Ở môi trường thật, bot kiểm tra quyền của khoá và **từ chối chạy** nếu khoá được phép rút tiền.
+2. **Chuyển tài khoản futures sang chế độ vị thế One-way** (không dùng Hedge).
+3. **Cài khoá lên máy chủ:**
+
+   ```bash
+   sudo bash /opt/my-bit/scalper/install.sh --binance
+   ```
+
+   Chọn 1 (Demo) hoặc 2 (Thật), rồi dán API Key và Secret Key. Khoá chỉ nằm trong `/opt/my-bit/scalper/.env` (quyền 600), không gửi lên trang MyBit.
+4. **Bật trên trang:** Bot lướt giây → Thiết lập → **💵 Tài khoản Binance thật**.
+   - Bật công tắc.
+   - Chọn Demo hoặc THẬT. Chọn THẬT phải gõ `TIEN THAT` để xác nhận.
+   - Đặt **Vốn tối đa**, **Đòn bẩy** và **Ngừng khi lỗ trong ngày**. Đổi lúc nào cũng được.
+
+**Bot làm gì:**
+- Mỗi lần Bắt râu sập đặt lệnh chờ trên sàn thử, bot đặt lệnh LIMIT tương ứng trên Binance: ký quỹ cô lập, tối đa "Vốn tối đa".
+- Lệnh chờ quá xa giá hiện tại bị sàn từ chối, nên bot chỉ gửi lệnh khi giá đã tới gần.
+- Khớp rồi thì bot đặt ngay **cắt lỗ trên sàn** (STOP_MARKET, đóng toàn bộ). Máy chủ cũng có cắt lỗ dự phòng.
+- Hết giờ giữ thì đóng bằng lệnh MARKET chỉ-giảm-vị-thế (reduce-only).
+- Bot không đụng vào coin anh đang có vị thế.
+- Có 5 lỗi API liên tiếp, hoặc lỗ quá giới hạn ngày, thì bot ngừng mở lệnh mới. Lệnh đang mở vẫn được quản lý tới khi đóng.
+- Mọi lần khớp và đóng lệnh đều đẩy thông báo về điện thoại. Trạng thái xem ở khung 💵 trên trang Bot lướt giây.

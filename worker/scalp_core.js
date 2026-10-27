@@ -20,7 +20,9 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false };
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false,
+  // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
+  lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
@@ -64,6 +66,7 @@ function norm(c) {
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot;
+  n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_env = c.lv_env === "live" ? "live" : "demo";
   if (!c.fut && !c.spot) c.fut = true;
   return c;
 }
@@ -418,7 +421,7 @@ export class ScalpCore {
     if (S.day.d !== day) {
       const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot lướt giây – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
-      S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
+      S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
     }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
@@ -427,7 +430,7 @@ export class ScalpCore {
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
     if (!S.pause && c.day_lock && c.day_target > 0 && dayPct >= c.day_target && !Object.keys(S.pos).length) {     // CHỐT NGÀY: đạt mục tiêu → giữ thành quả
-      S.pause = { kind: "day", why: `đạt mục tiêu ngày +${dayPct.toFixed(2)}% (mục tiêu ${c.day_target}%) – chốt lời, ngừng mở lệnh thật tới hết ngày; lệnh ảo vẫn chạy để học`, until: null };
+      S.pause = { kind: "target", why: `đạt mục tiêu ngày +${dayPct.toFixed(2)}% (mục tiêu ${c.day_target}%) – chốt lời, ngừng mở lệnh thật tới hết ngày; lệnh ảo vẫn chạy để học`, until: null };
       this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot lướt giây đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
     }
     S.hk ||= {}; S.hkc ||= {}; S.byS ||= {};
@@ -713,7 +716,7 @@ export class ScalpCore {
     H.vol++;
     if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
     if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
-    if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày"; return; }
+    if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày (lỗ quá giới hạn ngày)"; return; }      // chốt mục tiêu ngày KHÔNG dừng Bắt râu: lời của nó dồn vào vài ngày sập mạnh – dừng ở +2% là cắt mất phần lời lớn nhất
     const act = Object.keys(S.hk).length + Object.values(S.pos).filter((p) => p.strat === "hook").length;
     if (act >= c.hk_max) { H.last.why = `đã có ${act}/${c.hk_max} lần bắt râu đang mở`; return; }
     const eq = this.equity(), lev = x.t === "F" ? c.lev : 1, notional = Math.min(eq * c.hk_size / 100, Math.max(0, eq - this.used()) * lev);
@@ -721,6 +724,7 @@ export class ScalpCore {
     const mv = Math.abs(Math.expm1(r)), c0 = b[1], each = notional / lvs.length;
     S.hk[x.id] = { t: x.t, side, t0: now, exp: now + c.hk_w * 60000, mv, R: r2(R, 0), z: r2(z, 1), c0, lv: lvs.map((d) => { const px = c0 * (1 - side * d * mv); return { d, px, q: each / px, f: 0 }; }) };
     S.hkc[x.id] = now + 30 * 60000; H.placed++; H.last.why = "đã đặt lệnh chờ";
+    try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, lv: S.hk[x.id].lv.map((l) => ({ d: l.d, px: l.px })) }); } catch (e) { this.err("live " + e.message); }
     const pxs = S.hk[x.id].lv.map((l) => +l.px.toPrecision(6)).join(" / ");
     this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps trong 1 phút (z ${z.toFixed(1)}, khối lượng ${(b[4] / med).toFixed(1)}×) → chờ ${side > 0 ? "mua" : "bán"} ở ${pxs}`, "info");
     this.note(`hk:${x.id}:${b[0]}`, 1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 100).toFixed(1)}% trong 1 phút`, `Đặt lệnh chờ ${side > 0 ? "mua" : "bán"} ở ${pxs} (sàn thử) – chờ tối đa ${c.hk_w} phút, khớp thì giữ ${c.hk_h} phút.`);

@@ -2,7 +2,8 @@
 // MyBit – BOT LƯỚT GIÂY chạy trên MÁY CHỦ RIÊNG (VPS), nối thẳng Binance futures + Binance spot.
 // Dùng chung bộ não với bản Cloudflare (../worker/scalp_core.js). Thiết lập đọc từ trang MyBit, trạng thái gửi về trang MyBit
 // qua cổng /api/scalp-runner, xác thực bằng khoá anh tạo trên trang (Bot lướt giây → Thiết lập → Nơi chạy → Tạo khoá).
-// Vẫn là SÀN THỬ: không có khoá Binance nào ở đây, không đặt lệnh thật.
+// Mặc định là SÀN THỬ. Chỉ khi anh tự cài khoá Binance (install.sh --binance) VÀ bật "Tài khoản Binance thật" trên trang thì
+// phương pháp Bắt râu sập mới đặt lệnh thật – xem scalper/live.mjs.
 //
 // Chạy:  node scalper/runner.mjs        (cần Node.js ≥ 22; tệp scalper/.env chứa MYBIT_SCALP_KEY=...)
 import fs from "node:fs";
@@ -10,6 +11,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { ScalpCore, ORD_VPS } from "../worker/scalp_core.js";
+import { LiveExec } from "./live.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 // ---------------------------------------------------------------- cấu hình (.env cạnh tệp này, hoặc biến môi trường)
@@ -49,7 +51,8 @@ async function api(method, body, sub = "") {
 }
 let UID = null;
 const readCfg = async () => { const j = await api("GET"); UID = j.uid; return j.cfg; };
-const writeState = async (uid, out) => api("POST", JSON.stringify(out));
+let live = null;
+const writeState = async (uid, out) => api("POST", JSON.stringify(live ? { ...out, live: live.summary() } : out));
 const loadBrain = async () => api("GET", undefined, "/brain");
 const notify = async (uid, items) => api("POST", JSON.stringify({ items }), "/notify");
 const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
@@ -89,6 +92,8 @@ const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)),
 
 // ---------------------------------------------------------------- chạy
 const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, notify, cap: (t) => CAP[t], sys });
+live = new LiveExec({ core, dir: DIR, log });
+core.io.onHook = (h) => live.onHook(h);
 let busy = false, lastErr = "";
 async function tick(first) {
   if (busy) return; busy = true;
@@ -110,6 +115,11 @@ async function main() {
   log(`Đã xác thực – tài khoản #${UID}`);
   await tick(true);
   setInterval(() => tick(false), 10000);
+  // tài khoản Binance thật: kiểm tra mỗi 5 phút, quản lý lệnh mỗi 2 giây (chạy cả khi bot tạm tắt – lệnh đang mở vẫn phải được đóng đúng hạn)
+  const lvCheck = async () => { try { if (core.cfg?.lv_on || live.active().length) await live.check(); live.resume(core.cfg?.lv_resume_at); } catch (e) { log("💵 kiểm tra:", e.message); } };
+  await lvCheck(); setInterval(lvCheck, 300000);
+  setInterval(() => live.tick().catch((e) => log("💵", e.message)), 2000);
+  let lvOn = null; setInterval(() => { const on = !!core.cfg?.lv_on; if (on !== lvOn) { lvOn = on; if (on) lvCheck(); } }, 15000);
   setTimeout(() => setInterval(() => { if (!busy && core.here()) core.snapshot().catch(() => {}); }, 10000), 5000);
   let pxOff = false;      // chuyển tiếp giá Binance thật cho các bot phút (chỉ máy chủ của quản trị viên – trang trả 403 nếu không phải)
   setInterval(async () => { if (pxOff || !core.here()) return; const px = core.pxRelay(); if (Object.keys(px).length < 10) return; try { await api("POST", JSON.stringify({ px }), "/px"); } catch (e) { if (/HTTP 403/.test(e.message)) { pxOff = true; log("ℹ️ tài khoản không phải quản trị viên – không chuyển tiếp giá cho bot phút"); } } }, 10000);   // gửi số liệu lên trang mỗi ~5 giây (xen giữa các vòng 10 giây)
