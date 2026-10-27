@@ -3188,8 +3188,10 @@ async function viewSup() {
 
 // ================================================================ BOT LƯỚT GIÂY (scalping) – quét toàn thị trường spot + futures, chạy liên tục trên máy chủ (Durable Object); trang này chỉ hiển thị & cài đặt
 const SCALP_DEF = { enabled: false, where: "cf", capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "auto", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 3, hk_d1: 1.5, hk_d2: 2, hk_w: 15, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10,
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_rev: 2,
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
+// thiết lập cũ (chưa có hk_rev) → nâng lên bản kiểm chứng vòng 5 đúng như máy chủ làm (worker/scalp_core.js hkMigrate)
+const scMig = (c) => { c = { ...(c || {}) }; if (!(+c.hk_rev >= 2)) { c.hk_v = Math.max(+c.hk_v || 8, 8); c.hk_w = Math.min(+c.hk_w || 8, 8); if (c.hk_r15 == null) c.hk_r15 = 100; c.hk_rev = 2; } return c; };
 const SCV = { go: ["ĐẠT CHUẨN", "buy"], hold: ["ĐANG GIỮ", "brand"], order: ["CHỜ KHỚP", "brand"], fee: ["CHƯA ĐỦ BIÊN", "warn"], learn: ["ĐANG HỌC", ""], verify: ["ĐÁNH ẢO", "brand"], skip: ["BỎ QUA", ""], pause: ["TẠM DỪNG", "sell"] };
 const ZN = { W: ["sau quét thanh khoản", "up"], A: ["vùng giá tốt", "up"], M: ["giữa biên", ""], B: ["vùng giá xấu", "down"], X: ["phá biên", ""], "?": ["", ""] };
 const ZONE_TXT = { W: "Vừa quét thanh khoản rồi quay đầu", A: "Vùng giá tốt (mua rẻ / bán đắt)", M: "Giữa biên 60 phút", B: "Vùng giá xấu (mua đắt / bán rẻ)", X: "Đang phá biên 60 phút" };
@@ -3246,7 +3248,7 @@ function dayLessons(D, T, H, C, env) {
   let head;
   if (!n) {
     head = "Không có lệnh nào";
-    L.push(["", `Không có lệnh${D.seen ? ` – thấy ${D.seen} cú sốc đủ lớn, ${D.placed || 0} lần đặt chờ` : ""}${D.f6 || D.knife ? `; bộ lọc chặn ${D.f6 || 0} coin bơm/xả liên tục và ${D.knife || 0} "dao rơi"` : ""}. Ngày không có lệnh không phải ngày xấu – phương pháp chỉ đánh khi có cú sập thật.`]);
+    L.push(["", `Không có lệnh${D.seen ? ` – thấy ${D.seen} cú sốc đủ lớn, ${D.placed || 0} lần đặt chờ` : ""}${D.f6 || D.knife || D.r15 ? `; bộ lọc chặn ${D.f6 || 0} coin bơm/xả liên tục, ${D.knife || 0} "dao rơi", ${D.r15 || 0} "xả sau bơm"` : ""}. Ngày không có lệnh không phải ngày xấu – phương pháp chỉ đánh khi có cú sập thật.`]);
   } else {
     head = `${usd >= 0 ? "Lời" : "Lỗ"} ${usd >= 0 ? "+" : ""}${usd2(usd)} (${pct >= 0 ? "+" : ""}${nf(pct, 2)}%) · ${n} lệnh · thắng ${nf(D.win / n * 100, 0)}%`;
     L.push([usd >= 0 ? "up" : "down", `${head}${worst ? " – ngày TỆ NHẤT trong 30 ngày" : best ? " – ngày TỐT NHẤT trong 30 ngày" : avg != null ? ` (trung bình 30 ngày: ${avg >= 0 ? "+" : ""}${usd2(avg)}/ngày)` : ""}.`]);
@@ -3271,7 +3273,7 @@ function dayLessons(D, T, H, C, env) {
   }
   if (D.mdd >= 2) L.push(["down", `Sụt giảm trong ngày tối đa ${nf(D.mdd, 1)}% từ đỉnh.`]);
   if (D.btc0 && D.btc1) { const b = (D.btc1 / D.btc0 - 1) * 100; if (Math.abs(b) >= 3) L.push(["", `BTC ${b > 0 ? "tăng" : "giảm"} ${nf(Math.abs(b), 1)}% trong ngày – thị trường ${b > 0 ? "hưng phấn" : "giảm mạnh"}, cú sốc của coin nhỏ dễ là xu hướng thật hơn là quét thanh lý.`]); }
-  if (D.f6 || D.knife) L.push(["up", `Bộ lọc đã chặn ${D.f6 || 0} coin đang bơm/xả liên tục và ${D.knife || 0} "dao rơi".`]);
+  if (D.f6 || D.knife || D.r15) L.push(["up", `Bộ lọc đã chặn ${D.f6 || 0} coin đang bơm/xả liên tục, ${D.knife || 0} "dao rơi" và ${D.r15 || 0} "xả sau bơm".`]);
   for (const [t, m] of D.ev || []) L.push(["down", `${vnHM(t)} ${m}`]);
   // chuỗi ngày lỗ
   const seq = [...H, D].filter((x) => x.n > 0); let k = 0; for (let i = seq.length - 1; i >= 0 && seq[i].usd < 0; i--) k++;
@@ -3283,7 +3285,7 @@ function dayLessons(D, T, H, C, env) {
 }
 async function viewDays(envArg, dateArg) {
   const [rd, rs, rn, rq] = await Promise.all([Store.get("scalpdays"), Store.get("scalpstate"), Store.get("scalpnotes"), Store.get("scalp")]);
-  const C = { ...SCALP_DEF, ...(rq.data || {}) }, X = rs.data || {}, ALL = rd.data || {}, NOTES = rn.data || {};
+  const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, ALL = rd.data || {}, NOTES = rn.data || {};
   const env = ["paper", "demo", "live"].includes(envArg) ? envArg : window.__dEnv || "paper"; window.__dEnv = env;
   const src = ALL[env] || {}, days = JSON.parse(JSON.stringify(src.days || {})), dtr = JSON.parse(JSON.stringify(src.dtr || {})), TD = vnToday();
   // hôm nay: số liệu trực tiếp
@@ -3332,7 +3334,7 @@ async function viewDays(envArg, dateArg) {
   const trT = T.length ? `<div class="tw" style="max-height:380px"><table><thead><tr><th class="l">Giờ</th><th class="l">Lệnh</th><th>Lãi/lỗ</th><th>bps</th><th>Giữ</th><th class="l">Lý do</th></tr></thead><tbody>${T.map((t) => `<tr><td class="l"><small>${vnHM(t[0])}</small></td><td class="l">${t[3] === "hook" ? "🪝 " : "⚡ "}${scK(t[1])} <span class="${t[2] > 0 ? "up" : "down"}">${t[2] > 0 ? "Long" : "Short"}</span>${t[7] === 2 ? ' <small class="faint">khớp 2 mức</small>' : ""}</td><td class="${cls(t[4])}"><b>${t[4] >= 0 ? "+" : ""}${usd2(t[4])}</b></td><td class="${cls(t[5])}">${bps(t[5], 0)}</td><td>${isNum(t[8]) ? (t[8] >= 600 ? nf(t[8] / 60, 0) + "p" : nf(t[8], 0) + "s") : "—"}</td><td class="l"><small>${esc(WHYD[t[6]] || t[6])}</small></td></tr>`).join("")}</tbody></table></div>` : "";
   const nk = `${env}|${sel}`;
   const detail = panel(`📆 ${ddmm(sel)}/${sel.slice(0, 4)}${sel === TD ? " (hôm nay – đang cập nhật)" : ""}`, `${kpis([["Lãi/lỗ", D.n ? `${D.usd >= 0 ? "+" : ""}${usd2(D.usd)}` : "—", cls(D.usd), isNum(p) ? `${pct(p, 2)} tài sản` : ""], ["Lệnh", nf(D.n || 0, 0), "", D.n ? `thắng ${nf(D.win / D.n * 100, 0)}%` : ""], ["Phí", isNum(D.fees) ? usd2(D.fees) : "—", "", ""], ["Sụt từ đỉnh", isNum(D.mdd) ? nf(D.mdd, 1) + "%" : "—", D.mdd >= 2 ? "down" : "", "trong ngày"],
-      ["Tài sản cuối ngày", isNum(D.eq1) ? usd2(D.eq1) : "—", "", isNum(D.eq0) ? `đầu ngày ${usd2(D.eq0)}` : ""], ["BTC trong ngày", isNum(btc) ? pct(btc, 1) : "—", cls(btc), ""], ["Bộ lọc đã chặn", nf((D.f6 || 0) + (D.knife || 0), 0), "", `${D.f6 || 0} bơm/xả · ${D.knife || 0} dao rơi`]])}
+      ["Tài sản cuối ngày", isNum(D.eq1) ? usd2(D.eq1) : "—", "", isNum(D.eq0) ? `đầu ngày ${usd2(D.eq0)}` : ""], ["BTC trong ngày", isNum(btc) ? pct(btc, 1) : "—", cls(btc), ""], ["Bộ lọc đã chặn", nf((D.f6 || 0) + (D.knife || 0) + (D.r15 || 0), 0), "", `${D.f6 || 0} bơm/xả · ${D.knife || 0} dao rơi · ${D.r15 || 0} xả sau bơm`]])}
     <div class="g g2w"><div><p class="sbh">📚 Bài học trong ngày</p><ul class="bot-rl dles">${LS_.L.map(([c, m]) => `<li class="${c}">${esc(m)}</li>`).join("")}</ul>
       <p class="sbh">➡️ Rút kinh nghiệm cho ngày tiếp theo</p><ul class="bot-rl dles">${(LS_.N.length ? LS_.N : ["Không có điều chỉnh – giữ nguyên thiết lập."]).map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
       <p class="sbh">📝 Ghi chú của anh</p><textarea id="dNote" rows="3" style="width:100%" placeholder="Ghi lại nhận định của anh về ngày này…">${esc(NOTES[nk] || "")}</textarea><div class="bsave"><button class="btn" id="dNoteSave">💾 Lưu ghi chú</button></div></div>
@@ -3350,7 +3352,7 @@ async function viewScalp() {
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot lướt giây</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   const [rq, rv, rk] = await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   const KEYH = rk.data?.h ? rk.data : null;
-  const C = { ...SCALP_DEF, ...(rq.data || {}) }, X0 = rv.data || {}, X = X0.v === 2 ? X0 : { at: X0.at };
+  const C = { ...SCALP_DEF, ...scMig(rq.data) }, X0 = rv.data || {}, X = X0.v === 2 ? X0 : { at: X0.at };
   const VW = C.where === "vps", age = X.at ? (Date.now() - Date.parse(X.at + "Z")) / 1000 : null, FD = X.feeds || {}, fl = Object.values(FD);
   const nMk = fl.reduce((a, f) => a + (f.n || 0), 0), rate = fl.reduce((a, f) => a + (f.rate || 0), 0), anyLive = fl.some((f) => f.ws && f.last && (Date.now() - Date.parse(f.last + "Z")) / 1000 < 30);
   const st = !C.enabled ? ["Đang tắt", "", "Bật để bot quét mọi cặp spot & futures USDT, nghe sổ lệnh & khớp lệnh liên tục và tự đánh giá mỗi giây – chạy trên máy chủ kể cả khi anh tắt máy."]
@@ -3384,7 +3386,7 @@ async function viewScalp() {
   const hkRows = Object.entries(HK).map(([k, h]) => `<tr><td class="l">🪝 ${scK(k)} <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "chờ Long" : "chờ Short"}</span></td><td class="${h.side > 0 ? "down" : "up"}">${h.side > 0 ? "−" : "+"}${nf(h.R / 100, 1)}% <small class="faint">z ${nf(h.z, 1)}</small></td>
     <td class="lpx" data-lpx="${esc(k)}">${px(h.c0)}</td><td>${h.lv.map((l) => `${l.f ? "✅" : "⏳"} ${px(l.px)} <small class="faint">(${l.d}×)</small>`).join("<br>")}</td><td data-lt0="${h.t0}" data-lh="${(h.exp - h.t0) / 1000}"><span class="sc-cd"><i></i></span><small></small></td></tr>`).join("");
   const sRow = (lab, b) => `<tr><td class="l">${lab}</td><td>${nf(b?.n || 0, 0)}</td><td>${b?.n ? nf(b.win / b.n * 100, 0) + "%" : "—"}</td><td class="${cls(b?.net)}">${b ? (b.net >= 0 ? "+" : "") + usd2(b.net) : "—"}</td><td class="${cls(b?.bps)}">${b?.n ? bps(b.bps / b.n, 1) : "—"}</td></tr>`;
-  const hkLast = HKS?.last ? `<p class="faint" style="font-size:.78rem">Cú sốc gần nhất: <b>${esc(HKS.last.k.split(":")[0])}</b> ${HKS.last.R > 0 ? "+" : ""}${nf(HKS.last.R / 100, 1)}% lúc ${hms(HKS.last.at)} (z ${nf(HKS.last.z, 1)}${HKS.last.vx ? `, khối lượng ${nf(HKS.last.vx, 1)}×` : ""}) – ${esc(HKS.last.why || "")}. Từ lúc máy chủ khởi động: ${nf(HKS.seen, 0)} cú sốc đủ lớn · ${nf(HKS.vol, 0)} đủ khối lượng · bỏ ${nf(HKS.f6 || 0, 0)} coin đang bơm/xả liên tục · bỏ ${nf(HKS.knife || 0, 0)} "dao rơi" · ${nf(HKS.placed, 0)} lần đặt lệnh chờ.</p>` : `<p class="faint" style="font-size:.78rem">Chưa có cú sốc nào đủ lớn từ lúc máy chủ khởi động – cú sốc ≥ ${nf(C.hk_r / 100, 1)}%/phút chỉ xảy ra vài lần mỗi ngày trên toàn thị trường, có ngày không có.</p>`;
+  const hkLast = HKS?.last ? `<p class="faint" style="font-size:.78rem">Cú sốc gần nhất: <b>${esc(HKS.last.k.split(":")[0])}</b> ${HKS.last.R > 0 ? "+" : ""}${nf(HKS.last.R / 100, 1)}% lúc ${hms(HKS.last.at)} (z ${nf(HKS.last.z, 1)}${HKS.last.vx ? `, khối lượng ${nf(HKS.last.vx, 1)}×` : ""}) – ${esc(HKS.last.why || "")}. Từ lúc máy chủ khởi động: ${nf(HKS.seen, 0)} cú sốc đủ lớn · ${nf(HKS.vol, 0)} đủ khối lượng · bỏ ${nf(HKS.f6 || 0, 0)} coin đang bơm/xả liên tục · bỏ ${nf(HKS.knife || 0, 0)} "dao rơi" · bỏ ${nf(HKS.r15 || 0, 0)} "xả sau bơm" · ${nf(HKS.placed, 0)} lần đặt lệnh chờ.</p>` : `<p class="faint" style="font-size:.78rem">Chưa có cú sốc nào đủ lớn từ lúc máy chủ khởi động – cú sốc ≥ ${nf(C.hk_r / 100, 1)}%/phút chỉ xảy ra vài lần mỗi ngày trên toàn thị trường, có ngày không có.</p>`;
   // 🧠 kinh nghiệm đang áp dụng: các quy tắc tự học / tự sửa và tình trạng ngay lúc này
   const GD = X.guard || {}, SHs = X.sh || {}, brain = X.brain;
   const lgFix = (X.log || []).filter((l) => /⛔|🔁|Hết giờ nghỉ|Sang ngày mới/.test(l.m)).slice(-4).reverse();
@@ -3416,6 +3418,13 @@ async function viewScalp() {
       <li><b>Dữ liệu:</b> <span>nến 1 phút của toàn bộ ~900 hợp đồng futures USDT trên Binance, 01/07 – 24/10/2026. Chỉ tính coin đủ khối lượng ở đúng thời điểm (không chọn coin "sống sót" như hôm nay); lệnh chờ chỉ được tính là khớp khi giá xuyên qua thêm 0,05%; thoát lệnh trừ phí taker + trượt giá 0,1%.</span></li>
       <li><b>Cấu hình mặc định</b> <span>(sốc ≥ 3%, z ≥ 4, chờ sâu thêm 1,5× và 2×, giữ 60 phút): trung bình mỗi lệnh</span> <b>+170 / +208 bps</b> <span>(tháng 7–9, dùng để chọn tham số) và</span> <b>+253 / +342 bps</b> <span>(tháng 10, ngoài mẫu), thắng 63–68%.</span></li>
       <li><b>Kiểm chứng dài hơn (01/2025 – 10/2026, ~900 mã, 45.800 cú sốc) – kém hơn nhiều:</b> <span>không lọc, TB chỉ +26 / +57 bps mỗi lệnh và</span> <b>lỗ cả nửa cuối 2025</b> <span>(−126 bps/lệnh); tháng 7–10/2026 là giai đoạn đẹp nhất. Sau lỗ 27/10 (Q, BULLA bắt 2–3 lần liền khi coin đang sập tiếp), bot thêm 2 bộ lọc:</span> <b>bỏ coin đã có cú sốc khác trong 6 giờ</b> <span>và</span> <b>bỏ "dao rơi" (4 giờ qua đã đi ngược lệnh > 10%)</b><span>. Có lọc: TB +91 / +148 bps, thắng 64–67%, lệnh tệ nhất nhỏ hơn; theo nửa năm −72 / +68 / +76 / +237 bps – vẫn có giai đoạn lỗ.</span></li>
+      <li><b>Vòng 5 (27/10, cùng dữ liệu 01/2025 – 10/2026, có tính giới hạn tối đa ${nf(C.hk_max, 0)} lần bắt mở cùng lúc):</b> <span>3 điều chỉnh, chọn trên 2025 rồi kiểm lại trên 2026, vùng tham số lân cận đều cho kết quả tương tự (không phải "trúng số" 1 con số):</span>
+        <span>(1) <b>chờ khớp tối đa 8 phút thay vì 15</b> – lệnh khớp muộn ở phút 8–15 lỗ TB −105 bps, âm cả 4 nửa năm (giá trôi mãi = dao rơi); khớp ngay trong phút đầu TB +346 bps, thắng 80%;</span>
+        <span>(2) <b>khối lượng ≥ 8× bình thường</b> (cũ 3×) – cú sốc khối lượng thấp TB chỉ +23 bps;</span>
+        <span>(3) <b>bỏ "xả sau bơm"</b> – 15 phút trước cú sốc giá vừa chạy cùng hướng lệnh > 1% (vd. vừa bơm rồi sập): TB −56 bps, thua 3/4 nửa năm.</span>
+        <span>Kết quả 22 tháng, 5% tài sản mỗi lần: lợi nhuận</span> <b>+23% → +51%</b><span>, sụt tối đa</span> <b>−20% → −9%</b><span>, ngày tệ nhất −7,1% → −4,3%; mỗi lệnh TB +113 → +235 bps, thắng 65% → 72% (riêng 2026, ngoài mẫu: 75%); nửa đầu 2025 (giai đoạn xấu nhất) từ −16% về gần hoà.</span>
+        <span>Đã thử và KHÔNG dùng: chốt lời sớm bằng lệnh chờ (thắng tới 85% nhưng lời mỗi lệnh giảm mạnh, tổng kém hơn), thoát sớm khi đang lỗ, cắt lỗ chặt 5–25% (đều làm giảm lợi nhuận), giữ lâu hơn 60 phút, đặt sâu hơn 2×.</span>
+        <span>Điều đáng biết: lời lớn nhất đến khi <b>cả thị trường cùng sập</b> (BTC giảm ≥ 0,5%/giờ hoặc nhiều coin cùng sốc): TB +410–490 bps/lệnh, thắng 84–89%; cú sốc riêng lẻ của 1 coin chỉ +44 bps, thắng 61%. Lệnh Short (bán cú vọt) yếu hơn Long nhiều (sau lọc: +106 vs +330 bps/lệnh) nhưng vẫn dương.</span></li>
       <li><b>Rủi ro thật:</b> <span>lệnh tệ nhất −94% (coin sập luôn không hồi) → mỗi lần chỉ dùng 5% tài sản và có cắt lỗ thảm hoạ. Lời dồn vào vài ngày cả thị trường sập mạnh; nhiều ngày không có lệnh nào; có tháng lỗ (tháng 7), tháng 8 lời rất lớn, tháng 9 gần hoà. Đây là kết quả quá khứ trên sàn thử – không bảo đảm tương lai.</span></li>
       <li><b>Đã thử và loại</b> <span>(không thắng nổi phí ngoài mẫu): đánh theo cú sốc, phá đỉnh/đáy 2 giờ kèm khối lượng, BTC dẫn – coin chạy theo, đảo chiều / đà chéo mỗi giờ, ăn funding quanh giờ chốt (giá luôn chạy ngược bù lại funding).</span></li></ul></details>`, bh?.n ? `${bh.n} lệnh` : "chờ cú sốc");
   const ords = Object.entries(X.ord || {}).map(([k, o]) => `<li>${scK(k)} ${o.side > 0 ? "mua" : "bán"} maker ở ${px(o.px)} – còn ${nf(Math.max(0, o.queue), 4)} hàng chờ phía trước</li>`).join("");
@@ -3489,7 +3498,7 @@ async function viewScalp() {
       <div class="filters bff">${num("min_vol", "Khối lượng 24h tối thiểu (triệu USD)")}${num("max_mk", "Số thị trường tối đa")}${num("capital", "Vốn sàn thử (USDT)")}</div>
       <h4 class="bfh">🪝 Bắt râu sập</h4><div class="bseg"><button type="button" data-sch="1" class="${C.hk_on !== false ? "on" : ""}">${C.hk_on !== false ? "✓ Đang bật" : "Đang tắt – bấm để bật"}</button></div>
       <p class="faint">Cú sốc 1 phút đủ lớn → đặt 2 lệnh chờ ngược chiều sâu hơn nữa, khớp thì giữ một lúc rồi đóng. Mặc định là cấu hình đã kiểm chứng trên dữ liệu Binance (xem khung 🪝).</p>
-      <div class="filters bff">${num("hk_r", "Cú sốc tối thiểu trong 1 phút (bps)")}${num("hk_z", "… và ≥ z lần dao động 60 phút")}${num("hk_v", "… và khối lượng ≥ × trung vị")}${num("hk_d1", "Lệnh chờ 1: sâu thêm × cú sốc")}${num("hk_d2", "Lệnh chờ 2: sâu thêm × cú sốc (0 = bỏ)")}${num("hk_w", "Chờ khớp tối đa (phút)")}${num("hk_h", "Giữ sau khi khớp (phút)")}${num("hk_size", "Giá trị mỗi lần bắt (% tài sản)")}${num("hk_stop", "Cắt lỗ thảm hoạ (% từ giá vào, 0 = không)")}${num("hk_max", "Tối đa số lần bắt mở cùng lúc")}${num("hk_f6", "Bỏ coin đã có cú sốc khác trong … giờ (0 = tắt)")}${num("hk_knife", "Bỏ \"dao rơi\": 4 giờ qua đã đi ngược lệnh > … % (0 = tắt)")}</div>
+      <div class="filters bff">${num("hk_r", "Cú sốc tối thiểu trong 1 phút (bps)")}${num("hk_z", "… và ≥ z lần dao động 60 phút")}${num("hk_v", "… và khối lượng ≥ × trung vị")}${num("hk_d1", "Lệnh chờ 1: sâu thêm × cú sốc")}${num("hk_d2", "Lệnh chờ 2: sâu thêm × cú sốc (0 = bỏ)")}${num("hk_w", "Chờ khớp tối đa (phút)")}${num("hk_h", "Giữ sau khi khớp (phút)")}${num("hk_size", "Giá trị mỗi lần bắt (% tài sản)")}${num("hk_stop", "Cắt lỗ thảm hoạ (% từ giá vào, 0 = không)")}${num("hk_max", "Tối đa số lần bắt mở cùng lúc")}${num("hk_f6", "Bỏ coin đã có cú sốc khác trong … giờ (0 = tắt)")}${num("hk_knife", "Bỏ \"dao rơi\": 4 giờ qua đã đi ngược lệnh > … % (0 = tắt)")}${num("hk_r15", "Bỏ \"xả sau bơm\": 15 phút trước đã chạy cùng hướng lệnh > … bps (0 = tắt)")}</div>
       <h4 class="bfh">💵 Tài khoản Binance thật (chỉ Bắt râu sập)</h4>
       <div class="bseg"><button type="button" data-scv="1" class="${C.lv_on ? "on" : ""}">${C.lv_on ? "✓ Đang bật – bot đặt lệnh trên Binance" : "Đang tắt – bấm để bật"}</button></div>
       <div class="bseg">${[["demo", "Demo – tiền ảo, giá thật"], ["live", "THẬT – tiền thật"]].map(([v, t]) => `<button type="button" data-sce="${v}" class="${(C.lv_env || "demo") === v ? "on" : ""}">${t}</button>`).join("")}</div>
@@ -3536,7 +3545,7 @@ async function viewScalp() {
     $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; window.__scDirty = true; f(); }));
     $("#scSave").onclick = async () => { rd(); delete C.syms; if (await Store.put("scalp", C)) { window.__scDirty = false; toast("Đã lưu thiết lập bot lướt giây"); viewScalp(); } };
   };
-  const rd = () => { ["capital", "min_vol", "max_mk", "fee_m", "fee_t", "fee_ms", "fee_ts", "min_net", "k", "min_n", "warm", "sh_min", "hmax", "cool", "risk", "lev", "max_pos", "daily_stop", "day_target", "max_h", "spread_max", "max_side", "burst", "bx_z", "bx_r", "bx_min", "hk_r", "hk_z", "hk_v", "hk_d1", "hk_d2", "hk_w", "hk_h", "hk_size", "hk_stop", "hk_max", "hk_f6", "hk_knife", "lv_cap", "lv_lev", "lv_daily"].forEach((k) => { const el = $("#sc_" + k); if (!el) return; const v = numIn(el.value); if (isFinite(v)) C[k] = v; }); };
+  const rd = () => { ["capital", "min_vol", "max_mk", "fee_m", "fee_t", "fee_ms", "fee_ts", "min_net", "k", "min_n", "warm", "sh_min", "hmax", "cool", "risk", "lev", "max_pos", "daily_stop", "day_target", "max_h", "spread_max", "max_side", "burst", "bx_z", "bx_r", "bx_min", "hk_r", "hk_z", "hk_v", "hk_d1", "hk_d2", "hk_w", "hk_h", "hk_size", "hk_stop", "hk_max", "hk_f6", "hk_knife", "hk_r15", "lv_cap", "lv_lev", "lv_daily"].forEach((k) => { const el = $("#sc_" + k); if (!el) return; const v = numIn(el.value); if (isFinite(v)) C[k] = v; }); };
   f();
   $$("[data-scf]").forEach((b) => (b.onclick = () => { window.__scF = b.dataset.scf; viewScalp(); }));
   $$("[data-scg]").forEach((b) => (b.onclick = () => { window.__scG = b.dataset.scg; const y = scrollY; viewScalp().then(() => scrollTo(0, y)); }));
