@@ -749,20 +749,48 @@ export class ScalpCore {
     H.vol++;
     // BỘ LỌC (kiểm chứng 01/2025–10/2026, ~900 mã, 45.800 cú sốc – research/round4.py; sau lỗ 27/10 ở Q, BULLA bắt 2–3 lần liền):
     // coin đã có cú sốc khác trong hk_f6 giờ = đang bơm/xả liên tục → bỏ. (Kết hợp với lọc "dao rơi" bên dưới: TB +26 → +91 bps/lệnh, đuôi lỗ nhỏ hơn)
-    const SK = ((S.hkShk ||= {})[x.id] ||= []).filter((t) => now - t < 48 * 3600e3), prior = SK.filter((t) => now - t < c.hk_f6 * 3600e3).length;
+    // Bộ nhớ trong máy chỉ là phương án dự phòng: sau mỗi lần khởi động lại / cập nhật nó trống → còn tính lại từ nến 1 phút của sàn (hookHist) ngay lúc có cú sốc.
+    const SK = ((S.hkShk ||= {})[x.id] ||= []).filter((t) => now - t < 48 * 3600e3), mem = SK.filter((t) => now - t < c.hk_f6 * 3600e3).length;
     SK.push(now); S.hkShk[x.id] = SK.slice(-30);
-    if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(now).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; return; }
     if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
     if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
     if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày (lỗ quá giới hạn ngày)"; return; }      // chốt mục tiêu ngày KHÔNG dừng Bắt râu: lời của nó dồn vào vài ngày sập mạnh – dừng ở +2% là cắt mất phần lời lớn nhất
     const act = Object.keys(S.hk).length + Object.values(S.pos).filter((p) => p.strat === "hook").length;
     if (act >= c.hk_max) { H.last.why = `đã có ${act}/${c.hk_max} lần bắt râu đang mở`; return; }
     // lọc "dao rơi": giá 4 giờ qua đã đi NGƯỢC hướng lệnh > hk_knife % (bắt đáy trong xu hướng sập / bán đỉnh trong xu hướng bơm) → bỏ. Lấy nến 15 phút từ sàn (cú sốc hiếm nên gọi thêm không tốn)
-    this.hookKnife(x, side, b[1]).then((r4) => {
-      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(Date.now()).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; return; }
+    this.hookHist(x, side, b[1], b[0]).then(async (hh) => {
+      const t1 = Date.now(), prior = Math.max(mem, hh.prior || 0);
+      if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(t1).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      const r4 = hh.r4 != null ? hh.r4 : await this.hookKnife(x, side, b[1]);
+      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(t1).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
       if (S.hk[x.id] || S.pos[x.id]) return;
       this.hookPlace(x, side, b, r, R, z, med, now);
     }).catch((e) => this.err("hook " + e.message));
+  }
+  // Lịch sử 1 phút ~8 giờ ngay trước cú sốc, lấy thẳng từ sàn (1 lần gọi, cú sốc hiếm): số cú sốc khác trong hk_f6 giờ (cùng chuẩn: ≥ hk_r bps, z ≥ hk_z, khối lượng ≥ hk_v×)
+  // và giá 4 giờ qua đi theo/ngược hướng lệnh. Không phụ thuộc bộ nhớ trong máy → khởi động lại / cập nhật xong vẫn lọc đúng ngay. Lỗi mạng → {null} (dùng dự phòng).
+  async hookHist(x, side, c0, tb) {
+    const c = this.cfg, out = { r4: null, prior: null };
+    try {
+      const f = this.F[x.t], u = SRC[f?.src]?.bars?.(x.sym); if (!u || !u.includes("limit=62")) return out;
+      const r = await get(u.replace("limit=62", "limit=500")); if (!r.ok) return out;
+      const K = await r.json(); if (!Array.isArray(K)) return out;
+      const B = K.map((k) => [Math.floor(+k[0] / 60000), +k[4], +k[7]]).filter((k) => k[0] < tb && k[1] > 0), n = B.length;
+      if (n >= 241) out.r4 = side * (c0 / B[n - 240][1] - 1) * 1e4;
+      if (n < 120) return out;
+      const lr = B.map((k, i) => (i ? Math.log(k[1] / B[i - 1][1]) : 0)), from = tb - c.hk_f6 * 60;
+      let cnt = 0;
+      for (let i = 61; i < n; i++) {
+        if (B[i][0] < from) continue;
+        const R = Math.abs(lr[i]) * 1e4; if (R < c.hk_r) continue;
+        let sm = 0, sq = 0; const vs = [];
+        for (let j = i - 60; j < i; j++) { sm += lr[j]; sq += lr[j] * lr[j]; vs.push(B[j][2]); }
+        const sd = Math.sqrt(Math.max(1e-14, (sq - sm * sm / 60) / 59)); vs.sort((a, q) => a - q);
+        if (Math.abs(lr[i]) / sd >= c.hk_z && B[i][2] >= c.hk_v * vs[30]) { cnt++; i += 29; }      // gộp các nến sốc liền nhau (30 phút) thành 1 lần
+      }
+      out.prior = cnt;
+    } catch (e) { /* dùng dự phòng */ }
+    return out;
   }
   async hookKnife(x, side, c0) {
     try {      // lỗi mạng → không lọc được thì vẫn bắt (như trước khi có bộ lọc)
