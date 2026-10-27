@@ -2367,3 +2367,13 @@ body{touch-action:manipulation}
   .sc-pcard .r3{display:flex;gap:12px;flex-wrap:wrap;font-size:.76rem;color:var(--ink-2)}
   .sc-pcard .r4{display:flex;align-items:center;gap:6px;font-size:.76rem}.sc-pcard .r4 .sc-cd{flex:1;width:auto;height:5px}.sc-pcard .r4 .faint{margin-left:auto}
 }
+/* 📅 kết quả theo ngày */
+.dseg{margin-bottom:12px}.dseg a{text-decoration:none!important}.dseg a small{opacity:.7;font-weight:500}
+.dtab tr[data-dd]{cursor:pointer}.dtab tr.on td{background:color-mix(in srgb,var(--brass,var(--brand)) 10%,transparent)}
+.dles li.down{color:var(--ink)}.dles li.down::marker{color:var(--down)}.dles li.up::marker{color:var(--up)}
+.dbars{display:grid;gap:6px;margin-bottom:10px}.dbars>div{display:grid;grid-template-columns:minmax(90px,1fr) 2fr 80px;gap:8px;align-items:center;font-size:.8rem}
+.dbars>div>i{height:8px;border-radius:4px;background:var(--line-2);overflow:hidden}.dbars>div>i>i{display:block;height:100%}.dbars>div>i>i.up{background:var(--up)}.dbars>div>i>i.down{background:var(--down)}
+.dbars>div>b{text-align:right}
+.dseg a{border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:8px;padding:8px 12px;font-size:.84rem;font-weight:600}
+.dseg a.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent)}
+@media (max-width:640px){.dseg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.dseg a{padding:8px 6px;font-size:.74rem;text-align:center}.dseg a small{display:block}}

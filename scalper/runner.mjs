@@ -54,6 +54,7 @@ const readCfg = async () => { const j = await api("GET"); UID = j.uid; return j.
 let live = null;
 const writeState = async (uid, out) => api("POST", JSON.stringify(live ? { ...out, live: live.summary() } : out));
 const loadBrain = async () => api("GET", undefined, "/brain");
+const saveDays = async (uid, paper) => api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), paper, demo: live?.daysOut("demo"), live: live?.daysOut("live") }), "/days");
 const notify = async (uid, items) => api("POST", JSON.stringify({ items }), "/notify");
 const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
 const openWS = (url) => new Promise((res, rej) => {
@@ -91,7 +92,7 @@ function adapt() {
 const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP } });
 
 // ---------------------------------------------------------------- chạy
-const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, notify, cap: (t) => CAP[t], sys });
+const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, saveDays, notify, cap: (t) => CAP[t], sys });
 live = new LiveExec({ core, dir: DIR, log });
 core.io.onHook = (h) => live.onHook(h);
 let busy = false, lastErr = "";

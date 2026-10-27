@@ -233,6 +233,6 @@ export async function vapidPublic(env) {
 }
 
 export const LEGACY_KEYS = ["portfolio", "assumptions", "groups", "profile", "journal", "watchlist", "views"];
-export const USER_KEYS = new Set([...LEGACY_KEYS, "notify", "ui", "risk", "paper", "bot", "botstate", "botplan", "sup", "supstate", "scalp", "scalpstate", "scalpkey", "scalpbrain"]);
+export const USER_KEYS = new Set([...LEGACY_KEYS, "notify", "ui", "risk", "paper", "bot", "botstate", "botplan", "sup", "supstate", "scalp", "scalpstate", "scalpkey", "scalpbrain", "scalpdays", "scalpnotes"]);
 export const ownerList = (env) => String(env.OWNER_EMAIL || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
 export const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e || "");

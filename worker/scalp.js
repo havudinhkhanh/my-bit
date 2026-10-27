@@ -21,6 +21,8 @@ export class Scalper extends DurableObject {
       loadBrain: async (uid) => { const r = await env.DB.prepare("SELECT value FROM user_data WHERE user_id = ? AND key = 'scalpbrain'").bind(Number(uid)).first(); return r ? JSON.parse(r.value) : null; },
       saveBrain: async (uid, b) => env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpbrain', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
         .bind(Number(uid), JSON.stringify(b), new Date().toISOString()).run(),
+      saveDays: async (uid, paper) => env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpdays', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+        .bind(Number(uid), JSON.stringify({ v: 1, at: new Date().toISOString(), paper }), new Date().toISOString()).run(),
       writeState: async (uid, out) => env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpstate', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
         .bind(Number(uid), JSON.stringify(out), new Date().toISOString()).run(),
     });

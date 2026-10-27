@@ -59,6 +59,7 @@ export class LiveExec {
       const dual = await this.req("GET", "/fapi/v1/positionSide/dual"); st.dual = !!dual.dualSidePosition;
       const bal = await this.req("GET", "/fapi/v2/balance").catch(() => this.req("GET", "/fapi/v3/balance"));
       const u = (bal || []).find((b) => b.asset === "USDT"); st.bal = u ? +(+u.balance).toFixed(2) : 0; st.avail = u ? +(+u.availableBalance).toFixed(2) : 0;
+      { const B = ((this.S.bal ||= {})[env] ||= {}), d = vnDay(Date.now()); B[d] = [B[d]?.[0] ?? st.bal, st.bal]; this.save(); }      // số dư đầu / cuối ngày
       if (env === "live") {
         const R = await this.req("GET", "/sapi/v1/account/apiRestrictions", {}, true, SAPI);
         st.restr = { withdraw: !!R.enableWithdrawals, futures: !!R.enableFutures, ip: !!R.ipRestrict };
@@ -224,12 +225,31 @@ export class LiveExec {
     const fee = ev.fees + P.q * px * c.fee_t / 100, pnl = ev.side * P.q * (px - P.ap) - fee;
     ev.done = true; ev.exit = px; ev.pnl = +pnl.toFixed(4); ev.why = why; ev.t2 = Date.now();
     this.S.day.pnl += pnl; this.S.tot.n++; this.S.tot.pnl += pnl; this.S.tot.fees += fee; if (pnl > 0) this.S.tot.win++;
+    this.dayAdd(ev, pnl, fee, px, why);
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env }];
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps, đã trừ phí ước tính) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `💵 ${ev.env === "live" ? "LỆNH THẬT" : "Demo"}: ${ev.sym} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`);
-    if (this.S.day.pnl <= -c.lv_cap * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
+    if (this.S.day.pnl <= -c.lv_cap * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
+  }
+  // ---------------------------------------------------------------- kết quả theo ngày, tách riêng Demo / Thật
+  dayAdd(ev, pnl, fee, px, why) {
+    const env = ev.env, d = vnDay(Date.now()), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] });
+    const bps = ev.pos.ap ? ev.side * (px / ev.pos.ap - 1) * 1e4 - (fee / Math.max(1e-9, ev.pos.q * ev.pos.ap)) * 1e4 : 0, coin = ev.sym.replace(/USDT$/, "");
+    D.n++; D.usd += pnl; D.bps += bps; D.fees += fee; if (pnl > 0) D.win++;
+    const b = (D.by.hook ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += pnl; if (pnl > 0) b.win++;
+    const k = (D.coins[coin] ||= [0, 0]); k[0]++; k[1] += pnl;
+    const w = (D.why[why] ||= [0, 0]); w[0]++; w[1] += pnl;
+    const T = (((this.S.dtr ||= {})[env] ||= {})[d] ||= []);
+    if (T.length < 400) T.push([iso(Date.now()).slice(11, 16), coin + ":F", ev.side, "hook", +pnl.toFixed(3), +bps.toFixed(1), why, ev.lv.filter((l) => l.fq > 0).length || null, Math.round((Date.now() - (ev.pos.t1 || ev.t0)) / 1000)]);
+  }
+  dayEvent(m) { const env = this.env(), d = vnDay(Date.now()), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] }); D.ev = [...(D.ev || []).slice(-9), [iso(Date.now()).slice(11, 16), String(m).slice(0, 160)]]; }
+  daysOut(env) {
+    const E = (this.S.days || {})[env] || {}, T = (this.S.dtr || {})[env] || {}, B = (this.S.bal || {})[env] || {};
+    const ks = Object.keys(T).sort(); for (const k of ks.slice(0, Math.max(0, ks.length - 90))) delete T[k];
+    for (const [d, b] of Object.entries(B)) { const D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] }); D.eq0 = b[0]; D.eq1 = b[1]; }
+    return { days: E, dtr: T, start: null, eq: this.st.env === env ? this.st.bal ?? null : null, at: iso(Date.now()) };
   }
   err(what, e) {
     this.S.errs++; this.say(`⚠️ ${what}: ${e.message}`, "stop");

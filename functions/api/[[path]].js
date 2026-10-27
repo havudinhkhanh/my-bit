@@ -106,6 +106,12 @@ async function scalpRunner({ request, env }, sub) {
     await env.DB.prepare("INSERT INTO config(key, value) VALUES('px_relay', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(JSON.stringify({ at: nowIso(), n: Object.keys(j.px).length, px: j.px })).run();
     return json({ ok: true });
   }
+  if (sub === "days") {       // kết quả theo ngày (sàn thử / Demo / thật) – trang "Kết quả theo ngày" đọc
+    if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
+    const t = await request.text(); if (t.length > 1900000) return err("Quá lớn", 413);
+    try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    await putData(env, u.id, "scalpdays", t); return json({ ok: true });
+  }
   if (sub === "brain") {      // bộ nhớ học dùng chung (bot khác / máy khác / lúc giao dịch thật nạp lại được)
     if (request.method === "GET") return json(await getData(env, u.id, "scalpbrain"));
     if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }

@@ -297,7 +297,32 @@ export class ScalpCore {
     return (now / then - 1) * 1e4 / (Math.max(0.05, vol ?? x.vol ?? 1) * Math.sqrt(60 * mins));
   }
   note(key, sev, title, body, url = "#/bot/scalp") { if (this.notes.length < 50) this.notes.push({ key, sev, title, body, url }); }
-  say(now, m, k = "info") { this.S.log = [...(this.S.log || []).slice(-79), { t: iso(now), k, m }]; }
+  say(now, m, k = "info") { this.S.log = [...(this.S.log || []).slice(-79), { t: iso(now), k, m }]; if (k === "stop" && this.S.days) { const D = this.dayRec(now); D.ev = [...(D.ev || []).slice(-9), [iso(now).slice(11, 16), m.slice(0, 160)]]; } }
+  // ---------------------------------------------------------------- KẾT QUẢ THEO NGÀY (giờ Việt Nam) – lưu lâu dài, trang "Kết quả theo ngày" đọc để vẽ biểu đồ & rút bài học
+  dayRec(now, d = vnDay(now)) {
+    const S = this.S, D = ((S.days ||= {})[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, f6: 0, knife: 0, seen: 0, placed: 0, ev: [] });
+    return D;
+  }
+  daysInit() {      // lần đầu: dựng lại các ngày cũ từ lịch sử lệnh còn giữ (≤ 300 lệnh gần nhất)
+    this.S.days = {}; this.S.dtr = {};
+    for (const t of this.S.trades || []) this.dayAdd(t, (t.fee || 0) * Math.abs(t.usd || 0) / Math.max(1, Math.abs(t.net || 1)));
+    this.say(Date.now(), `📅 Bắt đầu lưu kết quả theo ngày – dựng lại ${Object.keys(this.S.days).length} ngày từ lịch sử lệnh`, "info");
+  }
+  dayAdd(t, feeUsd) {
+    const d = vnDay(Date.parse(t.t1 + "Z")), D = this.dayRec(0, d), st = t.strat || "sec", coin = t.k.split(":")[0];
+    D.n++; D.usd += t.usd || 0; D.bps += t.net || 0; D.fees += feeUsd || 0; if (t.usd > 0) D.win++;
+    const b = (D.by[st] ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += t.usd || 0; if (t.usd > 0) b.win++;
+    const k = (D.coins[coin] ||= [0, 0]); k[0]++; k[1] += t.usd || 0;
+    const w = (D.why[t.why] ||= [0, 0]); w[0]++; w[1] += t.usd || 0;
+    const L = ((this.S.dtr ||= {})[d] ||= []);
+    if (L.length < 400) L.push([t.t1.slice(11, 16), t.k, t.side, st, r2(t.usd, 3), r2(t.net, 1), t.why, t.lv || null, r2(t.hold, 0)]);
+  }
+  daysOut() {
+    const S = this.S, keys = Object.keys(S.days || {}).sort(), dk = Object.keys(S.dtr || {}).sort();
+    for (const k of keys.slice(0, Math.max(0, keys.length - 400))) delete S.days[k];
+    for (const k of dk.slice(0, Math.max(0, dk.length - 90))) delete S.dtr[k];
+    return { days: S.days || {}, dtr: S.dtr || {}, start: S.start, eq: r2(this.equity(), 2), at: iso(Date.now()) };
+  }
   closeFeed(t, why) { const f = this.F[t]; if (!f) return; for (const w of f.wss || []) { try { w.close(1000, why); } catch (e) { /* bỏ qua */ } } f.ws = null; f.wss = []; }
   closeAll(why) { for (const t of Object.keys(this.F)) this.closeFeed(t, why); }
 
@@ -421,11 +446,18 @@ export class ScalpCore {
     if (S.day.d !== day) {
       const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot lướt giây – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
+      if (S.days) { const P = this.dayRec(0, S.day.d); P.eq0 ??= r2(S.day.eq0, 2); P.eq1 = r2(eqNow, 2); }
       S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
     }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
-    if (!S.eq.length || S.eq[S.eq.length - 1][0] < m1) S.eq = [...S.eq.slice(-1440), [m1, r2(eqNow, 2)]];
+    if (!S.eq.length || S.eq[S.eq.length - 1][0] < m1) {
+      S.eq = [...S.eq.slice(-1440), [m1, r2(eqNow, 2)]];
+      if (!S.days) this.daysInit();
+      const D = this.dayRec(now); D.eq0 ??= r2(S.day.eq0, 2); D.eq1 = r2(eqNow, 2); D.pk = Math.max(D.pk || D.eq0, eqNow); D.mdd = r2(Math.max(D.mdd || 0, (1 - eqNow / D.pk) * 100), 2);
+      const bx = this.M["BTC:F"] || this.M["BTC:S"]; if (bx?.bid) { const m = (bx.bid + bx.ask) / 2; D.btc0 ??= r2(m, 2); D.btc1 = r2(m, 2); }
+      if (m1 % 60 === 0) D.pos = Object.keys(S.pos).length;
+    }
     const dayPct = (eqNow / S.day.eq0 - 1) * 100;
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
@@ -685,6 +717,7 @@ export class ScalpCore {
     const n0 = P.q * P.e, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, net = grossB - feeB, usd = gross - fee - P.fee;
     const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
+    if (!S.days) this.daysInit(); else this.dayAdd(t, P.fee + fee);
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
     const bs = ((S.byS ||= {})[P.strat || "sec"] ||= { n: 0, net: 0, fees: 0, win: 0, bps: 0 }); bs.n++; bs.net += usd; bs.fees += P.fee + fee; bs.bps += net; if (usd > 0) bs.win++;
@@ -708,7 +741,7 @@ export class ScalpCore {
     const sd = Math.sqrt(Math.max(1e-14, (sq - sm * sm / k) / (k - 1))), R = Math.abs(r) * 1e4, z = Math.abs(r) / sd;
     const H = (this.hkStat ||= { seen: 0, vol: 0, placed: 0, last: null });
     if (R < c.hk_r || z < c.hk_z) return;
-    H.seen++;
+    H.seen++; this.dayRec(now).seen++;
     vs.sort((a, q) => a - q); const med = vs.length >= 20 ? vs[vs.length >> 1] : 0;
     const base = x.id.split(":")[0], side = r < 0 ? 1 : -1;
     H.last = { k: x.id, at: iso(now), R: r2(r * 1e4, 0), z: r2(z, 1), vx: med > 0 ? r2((b[4] || 0) / med, 1) : null };
@@ -718,7 +751,7 @@ export class ScalpCore {
     // coin đã có cú sốc khác trong hk_f6 giờ = đang bơm/xả liên tục → bỏ. (Kết hợp với lọc "dao rơi" bên dưới: TB +26 → +91 bps/lệnh, đuôi lỗ nhỏ hơn)
     const SK = ((S.hkShk ||= {})[x.id] ||= []).filter((t) => now - t < 48 * 3600e3), prior = SK.filter((t) => now - t < c.hk_f6 * 3600e3).length;
     SK.push(now); S.hkShk[x.id] = SK.slice(-30);
-    if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; return; }
+    if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(now).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; return; }
     if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
     if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
     if (S.pause?.kind === "day") { H.last.why = "bot đang dừng tới hết ngày (lỗ quá giới hạn ngày)"; return; }      // chốt mục tiêu ngày KHÔNG dừng Bắt râu: lời của nó dồn vào vài ngày sập mạnh – dừng ở +2% là cắt mất phần lời lớn nhất
@@ -726,7 +759,7 @@ export class ScalpCore {
     if (act >= c.hk_max) { H.last.why = `đã có ${act}/${c.hk_max} lần bắt râu đang mở`; return; }
     // lọc "dao rơi": giá 4 giờ qua đã đi NGƯỢC hướng lệnh > hk_knife % (bắt đáy trong xu hướng sập / bán đỉnh trong xu hướng bơm) → bỏ. Lấy nến 15 phút từ sàn (cú sốc hiếm nên gọi thêm không tốn)
     this.hookKnife(x, side, b[1]).then((r4) => {
-      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; return; }
+      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(Date.now()).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; return; }
       if (S.hk[x.id] || S.pos[x.id]) return;
       this.hookPlace(x, side, b, r, R, z, med, now);
     }).catch((e) => this.err("hook " + e.message));
@@ -745,7 +778,7 @@ export class ScalpCore {
     const lvs = [c.hk_d1, c.hk_d2].filter((d) => d > 0); if (!lvs.length || notional < 10) { H.last.why = "không đủ vốn"; return; }
     const mv = Math.abs(Math.expm1(r)), c0 = b[1], each = notional / lvs.length;
     S.hk[x.id] = { t: x.t, side, t0: now, exp: now + c.hk_w * 60000, mv, R: r2(R, 0), z: r2(z, 1), c0, lv: lvs.map((d) => { const px = c0 * (1 - side * d * mv); return { d, px, q: each / px, f: 0 }; }) };
-    S.hkc[x.id] = now + 30 * 60000; H.placed++; H.last.why = "đã đặt lệnh chờ";
+    S.hkc[x.id] = now + 30 * 60000; H.placed++; this.dayRec(now).placed++; H.last.why = "đã đặt lệnh chờ";
     try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, lv: S.hk[x.id].lv.map((l) => ({ d: l.d, px: l.px })) }); } catch (e) { this.err("live " + e.message); }
     const pxs = S.hk[x.id].lv.map((l) => +l.px.toPrecision(6)).join(" / ");
     this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps trong 1 phút (z ${z.toFixed(1)}, khối lượng ${(b[4] / med).toFixed(1)}×) → chờ ${side > 0 ? "mua" : "bán"} ở ${pxs}`, "info");
@@ -965,14 +998,15 @@ export class ScalpCore {
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
-      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, trades: T.slice(-80),
+      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;
     if (this.dirty % 3 === 0 || !this.cfg?.enabled) await this.kv.put("S", S);
-    if (this.dirty % 60 === 5) await this.saveBrain();      // bộ nhớ học dùng chung: lưu ~10 phút/lần (lần đầu sau ~1 phút)
+    if (this.dirty % 60 === 5) await this.saveBrain();
+    if (this.io.saveDays && S.days && (this.dirty % 60 === 15 || S.daysSaved !== S.day.d)) { try { await this.io.saveDays(this.uid, this.daysOut()); S.daysSaved = S.day.d; } catch (e) { this.err("lưu kết quả ngày " + e.message); } }      // bộ nhớ học dùng chung: lưu ~10 phút/lần (lần đầu sau ~1 phút)
     if (this.dirty % 30 === 0 || !this.cfg?.enabled) {     // bộ học riêng từng coin: lưu mỗi ~5 phút, chia khối 100 coin
       const ids = Object.keys(this.LM), put = {};
       for (let i = 0; i < ids.length; i += 100) put["LM:" + i / 100] = Object.fromEntries(ids.slice(i, i + 100).map((k) => [k, this.LM[k]]));
