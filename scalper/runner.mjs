@@ -116,7 +116,7 @@ async function main() {
   await tick(true);
   setInterval(() => tick(false), 10000);
   // tài khoản Binance thật: kiểm tra mỗi 5 phút, quản lý lệnh mỗi 2 giây (chạy cả khi bot tạm tắt – lệnh đang mở vẫn phải được đóng đúng hạn)
-  const lvCheck = async () => { try { if (core.cfg?.lv_on || live.active().length) await live.check(); live.resume(core.cfg?.lv_resume_at); } catch (e) { log("💵 kiểm tra:", e.message); } };
+  const lvCheck = async () => { try { if (core.cfg?.lv_on || live.active().length || live.keys()) await live.check(); live.resume(core.cfg?.lv_resume_at); } catch (e) { log("💵 kiểm tra:", e.message); } };
   await lvCheck(); setInterval(lvCheck, 300000);
   setInterval(() => live.tick().catch((e) => log("💵", e.message)), 2000);
   let lvOn = null; setInterval(() => { const on = !!core.cfg?.lv_on; if (on !== lvOn) { lvOn = on; if (on) lvCheck(); } }, 15000);
