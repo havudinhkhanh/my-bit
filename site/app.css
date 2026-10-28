@@ -2612,3 +2612,14 @@ body.pn-sheet #pnHide::before{content:"✕";font-size:.8rem}
 .pp b{font-size:.72rem}
 body.pn-mini .pnfab{left:auto!important}
 @media (min-width:1180px){body.pn-on:not(.pn-sheet) .pp{flex-direction:column;align-items:flex-start;gap:1px}body.pn-on:not(.pn-sheet) .pp b{text-align:left;max-width:100%}}
+/* 🪝 Bắt râu sập trên trang Cơ hội */
+.hk-rows{display:grid;gap:6px}
+.hk-r{display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:4px 10px;align-items:center;padding:8px 10px;border-radius:9px;background:var(--sunk);border-left:3px solid var(--brand);font-size:.82rem}
+.hk-r.hold{border-left-color:var(--up)}.hk-r.dim{opacity:.45}
+.hk-r .hk-m{color:var(--ink-2);min-width:0}.hk-r .hk-p{white-space:nowrap;text-align:right}.hk-r .hk-c{white-space:nowrap;color:var(--ink-3);font-size:.74rem;min-width:74px;text-align:right}
+.hk-none{margin:2px 2px 6px;font-size:.8rem;color:var(--ink-2)}
+.hk-h{margin:12px 2px 4px;font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3)}
+.hk-last{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:.8rem}.hk-last small{color:var(--ink-3)}
+.hk-how{margin-top:10px;font-size:.78rem;color:var(--ink-2)}.hk-how summary{cursor:pointer;color:var(--brand);font-weight:600}.hk-how p{margin:6px 0;line-height:1.55}
+@media (max-width:700px){.hk-r{grid-template-columns:auto auto minmax(0,1fr)}.hk-r .hk-m{grid-column:1/-1}.hk-r .hk-p{text-align:left}.hk-r .hk-c{text-align:right}}
+.hk-r>.pill{justify-self:start}

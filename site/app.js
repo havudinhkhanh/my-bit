@@ -2091,6 +2091,84 @@ function oppMapDraw(xs, W, H) {
 }
 const OPP = { ws: [], timer: null };
 function oppClose() { OPP.ws.forEach((w) => { try { w.onclose = null; w.close(); } catch (e) { /* bỏ qua */ } }); OPP.ws = []; clearInterval(OPP.timer); OPP.timer = null; }
+// ================================================================ 🪝 BẮT RÂU SẬP trên trang Cơ hội hôm nay
+// Cú sốc 1 phút do Bot Phản Xạ (máy chủ riêng) phát hiện trên ~300 hợp đồng futures: lệnh chờ đang đặt, lệnh đang giữ, kết quả 24 giờ.
+// Cơ hội kiểu này chỉ sống vài phút (chờ khớp tối đa 8 phút, giữ 60 phút) nên không nằm trong danh sách thiết lập 4 giờ/ngày bên dưới.
+const HKI = { t: 0, t1: 0, X: null, px: {}, ws: null, wsk: "" };
+const hkT = (t) => (typeof t === "number" ? t : Date.parse(String(t).endsWith("Z") ? t : t + "Z"));
+const hkBase = (id) => String(id).split(":")[0];
+const hkCoin = (b) => { const m = b.match(/^(1000000|1000)([A-Z0-9]+)$/); return BYK?.[b] ? b : m && BYK?.[m[2]] ? m[2] : b; };
+const hkMMSS = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+async function hookIdeas() {
+  clearInterval(HKI.t); clearInterval(HKI.t1);
+  const el = $("#oHook"); if (!el) return;
+  if (ME && !can("bot")) return;
+  const pull = async () => { try { const r = await Store.get("scalpstate"); HKI.X = r.data && r.data.at ? r.data : null; } catch (e) { HKI.X = null; } };
+  await pull(); hookRender();
+  HKI.t = setInterval(async () => { if (!$("#oHook")) { hookStop(); return; } if (document.hidden) return; await pull(); hookRender(); }, 20000);
+  HKI.t1 = setInterval(() => { if (!$("#oHook")) { hookStop(); return; } hookTick(); }, 1000);
+}
+function hookStop() { clearInterval(HKI.t); clearInterval(HKI.t1); try { HKI.ws?.close(); } catch (e) { /* bỏ qua */ } HKI.ws = null; HKI.wsk = ""; }
+function hookRender() {
+  const el = $("#oHook"), X = HKI.X; if (!el) return;
+  if (!X || X.cfg?.hk_on === false) { el.innerHTML = ""; return; }
+  const now = Date.now(), age = (now - hkT(X.at)) / 1000, stale = age > 180;
+  const pend = Object.entries(X.hk || {}).map(([id, H]) => ({ ...H, id })).filter((H) => H.exp > now - 60e3);
+  const hold = Object.entries(X.pos || {}).filter(([, P]) => P.strat === "hook").map(([id, P]) => ({ ...P, id }));
+  const demo = new Set((X.live?.ev || []).map((e) => e.k));
+  const day = now - 24 * 3600e3;
+  const done = (X.trades || []).filter((t) => t.strat === "hook" && hkT(t.t1 || t.t0) > day).slice(-8).reverse();
+  const logs = (X.log || []).filter((l) => l.m.startsWith("🪝") && hkT(l.t) > day && !/Khớp|hết \d+ phút/.test(l.m)).slice(-6).reverse();
+  const side = (sd) => (sd > 0 ? `<span class="pill buy">Long</span>` : `<span class="pill sell">Short</span>`);
+  const coin = (id) => { const b = hkBase(id), k = hkCoin(b); return BYK?.[k] ? `<a href="#/c/${enc(k)}/fut"><b>${esc(b)}</b></a>` : `<b>${esc(b)}</b>`; };
+  const rows = pend.map((H) => {
+    const lv = (H.lv || []).filter((l) => !l.f).map((l) => +(+l.px).toPrecision(6));
+    return `<div class="hk-r" data-hkid="${esc(H.id)}" data-side="${H.side}" data-lv="${lv.join(",")}" data-exp="${H.exp}">${coin(H.id)}${side(H.side)}
+      <span class="hk-m">${H.side > 0 ? "sập" : "vọt"} ${nf(Math.abs(H.R) / 100, 1)}% trong 1 phút → chờ ${H.side > 0 ? "mua" : "bán"} ở <b>${lv.map((v) => px(v)).join(" / ") || "—"}</b>${demo.has(H.id) ? ` <span class="pill">Binance Demo</span>` : ""}</span>
+      <span class="hk-p" data-hkp>—</span><span class="hk-c" data-hkc>còn ${hkMMSS(H.exp - now)}</span></div>`;
+  }).concat(hold.map((P) => `<div class="hk-r hold" data-hkid="${esc(P.id)}" data-side="${P.side}" data-e="${P.e}" data-end="${P.t0 + P.h * 1000}">${coin(P.id)}${side(P.side)}
+      <span class="hk-m">đang giữ · vào ${px(P.e)}${(P.lv || 1) > 1 ? ` (khớp ${P.lv} mức)` : ""}${demo.has(P.id) ? ` <span class="pill">Binance Demo</span>` : ""}</span>
+      <span class="hk-p" data-hkp>—</span><span class="hk-c" data-hkc>đóng sau ${hkMMSS(P.t0 + P.h * 1000 - now)}</span></div>`)).join("");
+  const last = done.map((t) => `<li>${coin(t.k)} ${t.side > 0 ? "Long" : "Short"} <b class="${cls(t.net)}">${t.net >= 0 ? "+" : ""}${nf(t.net / 100, 1)}%</b> <small>${{ TIME: "hết 60 phút", SL: "cắt lỗ thảm hoạ", TP: "chốt lời" }[t.why] || esc(t.why || "")} · ${agoShort(new Date(hkT(t.t1 || t.t0)).toISOString())} trước</small></li>`)
+    .concat(logs.map((l) => `<li class="faint"><small>${esc(l.m.replace(/^🪝\s*/, ""))} · ${agoShort(new Date(hkT(l.t)).toISOString())} trước</small></li>`)).slice(0, 10).join("");
+  const st = X.hkStat || {};
+  el.innerHTML = `<section class="panel hk-p"><div class="ph"><h2>🪝 Bắt râu sập – cú sốc 1 phút <small class="faint">${pend.length + hold.length || ""}</small></h2><span class="meta">${stale ? `<span class="down">bot chưa gửi số liệu ${Math.round(age / 60)} phút</span>` : `từ Bot Phản Xạ · ${Math.round(age)}s trước <span class="live-dot"></span>`} · <a href="#/bot/scalp">mở bot →</a></span></div>
+    ${rows ? `<div class="hk-rows">${rows}</div>` : `<p class="hk-none">Chưa có cú sốc nào đang chờ khớp. Bot quét liên tục ~300 hợp đồng futures; hôm nay thấy ${st.seen || 0} cú sốc, ${st.placed || 0} lần đặt lệnh chờ, còn lại bị bộ lọc chặn.</p>`}
+    ${last ? `<h4 class="hk-h">24 giờ qua</h4><ul class="hk-last">${last}</ul>` : ""}
+    <details class="hk-how"><summary>Cách chơi & kết quả kiểm chứng</summary>
+      <p>Coin futures vọt/sập ≥ 3% trong 1 phút (gấp ≥ 4 lần dao động thường, khối lượng ≥ 8×) → đặt 2 lệnh chờ <b>ngược chiều</b>, sâu thêm 1,5× và 2× độ lớn cú sốc, chờ tối đa 8 phút. Khớp thì <b>giữ đúng 60 phút</b> rồi đóng, chỉ có cắt lỗ thảm hoạ 35%.</p>
+      <p>Bỏ qua: coin vừa có cú sốc khác trong 6 giờ (đang bơm/xả liên tục) · 4 giờ qua giá đã đi ngược hướng lệnh > 10% ("dao rơi") · lệnh Short khi 15 phút trước giá vừa bơm > 1% ("xả sau bơm").</p>
+      <p>Kiểm chứng toàn bộ futures Binance 01/2025–10/2026, mô phỏng sát thực tế (tối đa 6 lệnh cùng lúc, mỗi cú sốc 5% tài sản): thắng ~63%, lời TB ~+0,65%/lệnh sau phí, 22 tháng +49%, sụt tối đa ~13%. <b>Long (mua cú sập) mạnh hơn Short rõ rệt.</b> Đã thử chốt lời sớm, dời hoà vốn, cắt lỗ đuổi – đều không hơn giữ 60 phút. Lời dồn vào vài ngày sập mạnh, nhiều ngày gần như không có gì.</p>
+    </details></section>`;
+  hookWs([...pend, ...hold].map((x) => hkBase(x.id)));
+  hookTick();
+}
+function hookWs(bases) {
+  const ks = [...new Set(bases)].slice(0, 30), key = ks.join(",");
+  if (key === HKI.wsk) return;
+  try { HKI.ws?.close(); } catch (e) { /* bỏ qua */ }
+  HKI.ws = null; HKI.wsk = key; if (!ks.length) return;
+  try {
+    HKI.ws = BWS(`wss://fstream.binance.com/stream?streams=${ks.map((b) => b.toLowerCase() + "usdt@markPrice@1s").join("/")}`);
+    HKI.ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; if (d?.s) HKI.px[d.s.replace(/USDT$/, "")] = +d.p; };
+  } catch (e) { /* bỏ qua */ }
+}
+function hookTick() {
+  const now = Date.now();
+  $$("#oHook .hk-r").forEach((r) => {
+    const b = hkBase(r.dataset.hkid), p = HKI.px[b] ?? BYK?.[hkCoin(b)]?.p, sd = +r.dataset.side, pe = $("[data-hkp]", r), ce = $("[data-hkc]", r);
+    if (r.classList.contains("hold")) {
+      const e = +r.dataset.e, u = isNum(p) && e ? sd * (p / e - 1) * 100 : null;
+      if (pe) { pe.innerHTML = isNum(u) ? `${px(p)} · <b class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</b>` : "—"; }
+      if (ce) ce.textContent = `đóng sau ${hkMMSS(+r.dataset.end - now)}`;
+    } else {
+      const lv = (r.dataset.lv || "").split(",").map(Number).filter((x) => x > 0), near = lv.length ? lv[0] : null;
+      if (pe) pe.innerHTML = isNum(p) && near ? `giá ${px(p)} · cách mức gần ${nf(Math.abs(near / p - 1) * 100, 2)}%` : "—";
+      if (ce) { const left = +r.dataset.exp - now; ce.textContent = left > 0 ? `còn ${hkMMSS(left)}` : "hết hạn"; r.classList.toggle("dim", left <= 0); }
+    }
+  });
+}
+
 async function viewIdeas() {
   const [I, M, S, P] = await Promise.all([load("data/ideas.json"), tryLoad("data/market.json"), sectorsData(), tryLoad("data/pairs.json"), coins(), loadSettings(), pfLoad().catch(() => null)]);
   IDEA_NAMES = { ...IDEA_NAMES, ...(I.names || {}) };
@@ -2115,6 +2193,7 @@ async function viewIdeas() {
     <div class="mo"><h4>🧱 Tích luỹ BTC dài hạn</h4><p>MVRV ${nf(cy.mvrv, 2)} (${esc(cy.mvrv_zone || "")}). ${cy.mvrv < 1.5 ? "Vùng rẻ lịch sử – mua đều (DCA) hằng tuần là chiến lược có xác suất cao nhất." : cy.mvrv > 3 ? "Vùng đắt lịch sử – ngừng mua thêm, chốt lời dần phần dài hạn." : "Vùng trung tính – mua đều phần nhỏ, giữ tiền mặt chờ vùng rẻ."}</p><a href="#/">Xem định giá BTC →</a></div></div>`;
   app().innerHTML = `<div class="ph"><h1>Cơ hội hôm nay – vào lệnh gì lúc này</h1><span class="meta">${fromLive ? "thiết lập cập nhật " + etaTxt(L0.at.slice(0, 16)) : "cập nhật " + etaTxt(I.at.slice(0, 16))} · giá trực tiếp từng giây <span class="live-dot"></span></span></div>
     <section class="panel hero light-${light.color || ""}"><div class="opp-sum" id="oSum"></div></section>
+    <div id="oHook"></div>
     <section class="panel"><div class="ph"><h2>🗺️ Bản đồ cơ hội – chọn nhanh lệnh đáng làm</h2><span class="meta">góc trên-phải = xác suất cao và lời nhiều</span></div><div class="omap-w"><div id="oMap"></div><div id="oTop" class="otop"></div></div></section>
     <div class="filters"><div class="field"><label>Kiểu đánh</label><select id="iT"><option value="">Swing + lướt</option><option value="d" ${F.tf === "d" ? "selected" : ""}>Swing – khung ngày (giữ vài ngày–tuần)</option><option value="h4" ${F.tf === "h4" ? "selected" : ""}>Lướt – khung 4h (giữ vài giờ–ngày)</option></select></div>
       <div class="field"><label>Nhóm ngành</label><select id="iG"><option value="">Tất cả</option>${groups.map((g) => `<option ${F.g === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></div>
@@ -2127,6 +2206,7 @@ async function viewIdeas() {
     <details class="panel"><summary>Thiết lập nào thực sự có lợi thế? (BTC ${I.btc_up ? "trên" : "dưới"} MA200 – bấm để xem)</summary><div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${sTab}</tbody></table></div>
       <p class="faint" style="font-size:.74rem">1R = khoảng từ điểm vào tới cắt lỗ. Lãi TB 0,2R = mỗi lần rủi ro $100 thì trung bình lãi $20 sau phí. "Có lợi thế" = kỳ vọng dương trên ≥ 100 lần, vẫn dương ở 2 năm gần nhất và ở đúng trạng thái khung lớn hiện tại.</p></details>
     <p class="faint disclaimer">Tín hiệu từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn.</p>`;
+  hookIdeas();
   let xs = [];
   const draw = () => {
     oppClose();

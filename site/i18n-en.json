@@ -4354,5 +4354,20 @@
 "Bỏ \"xả sau bơm\" (chỉ lệnh Short): 15 phút đã chạy cùng hướng >": "Skip \"dump after pump\" (Short only): 15 min already moved same way >",
 "0 = tắt · Long không lọc vì kiểm chứng cho thấy chặn nhầm lệnh lời": "0 = off · Longs not filtered – testing showed it blocked winning trades",
 "↑ tăng tốc / ↓ chậm lại": "↑ speeding up / ↓ slowing",
-"mạnh hơn BTC →": "stronger than BTC →"
+"mạnh hơn BTC →": "stronger than BTC →",
+"🪝 Bắt râu sập – cú sốc 1 phút": "🪝 Wick catcher – 1-minute shocks",
+"từ Bot Phản Xạ": "from Reflex Bot",
+"mở bot →": "open bot →",
+"24 giờ qua": "Last 24 hours",
+"Cách chơi & kết quả kiểm chứng": "How it works & test results",
+"đang giữ": "holding",
+"chờ mua ở": "buy limit at",
+"chờ bán ở": "sell limit at",
+"trong 1 phút → ": "in 1 minute → ",
+"hết 60 phút": "60 min elapsed",
+"cắt lỗ thảm hoạ": "disaster stop",
+"hết hạn": "expired",
+"cách mức gần": "from nearest level",
+"đóng sau": "closes in",
+"bot chưa gửi số liệu": "bot hasn't reported for"
 }
