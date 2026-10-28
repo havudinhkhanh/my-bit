@@ -4249,5 +4249,15 @@
 "theo ngày": "by day",
 "theo coin": "by coin",
 "So với sàn thử cùng ngày": "Versus the paper account on the same day",
-"(hôm nay – đang cập nhật)": "(today – updating)"
+"(hôm nay – đang cập nhật)": "(today – updating)",
+"Demo cao nhất": "Demo high",
+"Demo thấp nhất": "Demo low",
+"sàn thật cao nhất": "live exchange high",
+"sàn thật thấp nhất": "live exchange low",
+"– còn cách mức chờ gần nhất": "– short of the nearest limit level",
+"· giá Binance thật (sàn thử dùng) cao nhất": "· real Binance price (used by paper) high",
+"· giá Binance thật (sàn thử dùng) thấp nhất": "· real Binance price (used by paper) low",
+"– ĐÃ chạm mức chờ": "– DID reach the level",
+"– cũng chưa chạm": "– didn't reach it either",
+". Sàn Demo có sổ lệnh riêng, râu nến lúc sốc thường ngắn hơn sàn thật → lệnh chờ sâu khó khớp trên Demo.": ". Binance Demo has its own order book and its shock wicks are usually shorter than on the real exchange → deep limit orders rarely fill on Demo."
 }

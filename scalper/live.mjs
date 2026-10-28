@@ -219,8 +219,21 @@ export class LiveExec {
         ev.pAt = now; const p = await this.pos(ev.sym);
         if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) await this.finish(ev, "SL", sp || ev.pos.ap, "vị thế đã được đóng trên sàn (cắt lỗ chạy hoặc anh tự đóng)");
       }
-    } else if (ev.lv.every((l) => l.st === "cxl" || (l.st === "filled" && l.fq === 0))) { ev.done = true; this.say(`${ev.sym}: hết ${Math.round((ev.exp - ev.t0) / 60e3)} phút giá không tới lệnh chờ – đã huỷ, không mất phí`); }
+    } else if (ev.lv.every((l) => l.st === "cxl" || (l.st === "filled" && l.fq === 0))) { ev.done = true; this.say(`${ev.sym}: hết ${Math.round((ev.exp - ev.t0) / 60e3)} phút giá không tới lệnh chờ – đã huỷ, không mất phí`); this.missWhy(ev).catch(() => {}); }
     this.save();
+  }
+  // Lệnh chờ hết giờ không khớp: so đỉnh/đáy trên sàn đang đặt lệnh (Demo / thật) với giá sàn thật mà sàn thử dùng (nến 1 phút của luồng dữ liệu bot)
+  // → ghi rõ "Demo không chạm tới mức chờ trong khi sàn thật đã chạm" (sàn Demo có sổ lệnh riêng, râu nến thường ngắn hơn sàn thật).
+  async missWhy(ev) {
+    const K = await this.req("GET", "/fapi/v1/klines", { symbol: ev.sym, interval: "1m", startTime: ev.t0 - 60e3, endTime: ev.exp }, false);
+    if (!Array.isArray(K) || !K.length) return;
+    const hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), lvl = ev.side > 0 ? Math.max(...ev.lv.map((l) => l.px)) : Math.min(...ev.lv.map((l) => l.px));
+    const reach = ev.side > 0 ? lo : hi, gap = ev.side > 0 ? (reach / lvl - 1) * 100 : (lvl / reach - 1) * 100;
+    const x = this.core.M?.[ev.k], m0 = Math.floor(ev.t0 / 60000) - 1, m1 = Math.floor(ev.exp / 60000), B = (x?.m1 || []).filter((b) => b[0] >= m0 && b[0] <= m1);
+    const rH = B.length ? Math.max(...B.map((b) => b[2])) : null, rL = B.length ? Math.min(...B.map((b) => b[3])) : null, rr = ev.side > 0 ? rL : rH;
+    const realHit = rr != null && (ev.side > 0 ? rr <= lvl : rr >= lvl), nm = ev.env === "live" ? "sàn thật" : "Demo";
+    ev.miss = { hi, lo, rH, rL, lvl };
+    this.say(`🔍 ${ev.sym}: ${nm} ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+reach.toPrecision(6)} – còn cách mức chờ gần nhất ${+lvl.toPrecision(6)} ${gap.toFixed(2)}%${rr != null ? ` · giá Binance thật (sàn thử dùng) ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+rr.toPrecision(6)}${realHit ? " – ĐÃ chạm mức chờ" : " – cũng chưa chạm"}` : ""}${realHit && ev.env !== "live" ? ". Sàn Demo có sổ lệnh riêng, râu nến lúc sốc thường ngắn hơn sàn thật → lệnh chờ sâu khó khớp trên Demo." : ""}`);
   }
   addFill(ev, q, px) {
     const c = this.cfg(), P = ev.pos, nq = P.q + q;
