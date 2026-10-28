@@ -605,20 +605,41 @@ function pnRoute(r, arg) {
   PN.r = r || "market"; PN.q = ""; PN.cur = null; PN.focus = !!pnLS("focus_" + PN.r);
   const q = $("#pnq"); if (q) q.value = "";
   $("#pnav")?.classList.remove("pn-searching");
+  if ((PN.r === "c" || PN.r === "plan" || PN.r === "paper") && PN.arg[0]) pnRecent(PN.arg[0].toUpperCase());
   pnCheck(true);
+  pnTab(PN.tab || pnLS("tab") || "sum", true);
   sbRender();
+  pcRoute();
+}
+// ---- bảng phụ: 4 thẻ cố định trên mọi trang – Tóm tắt (trang này nói gì) · Đi tới (mục lục + lọc) · Của tôi (theo dõi, vị thế, bot) · Tính lệnh
+function pnTab(t, quiet) {
+  const nav = $("#pnav"); if (!nav) return;
+  if (t === "toc" && $('#pnav [data-t="toc"]')?.hidden) t = "sum";
+  PN.tab = t; if (!quiet) pnLS("tab", t);
+  nav.dataset.tab = t;
+  $$("#pnav [data-t]").forEach((b) => { const on = b.dataset.t === t; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  if (!quiet) $("#pnav .pn-scroll").scrollTop = 0;
+  if (t !== "toc" && PN.q) { PN.q = ""; $("#pnq").value = ""; nav.classList.remove("pn-searching"); pnApply(); }
+}
+function pnTocBadge(n) {
+  const b = $('#pnav [data-t="toc"]'); if (!b) return;
+  b.hidden = !n; $("#pnbToc").textContent = n || "";
+  if (!n && PN.tab === "toc") pnTab("sum", true);
+}
+function pnRecent(k) {
+  if (!k) return; const a = (pnLS("recent") || []).filter((x) => x !== k); a.unshift(k); pnLS("recent", a.slice(0, 12));
 }
 function pnCheck(force) {
   const nav = $("#pnav"); if (!nav) return;
   const its = PN.skip.has(PN.r) ? [] : pnCollect();
   const named = its.filter((p) => pnTitle(p));
-  const full = !PN.skip.has(PN.r) && !PN.narrow.has(PN.r), mini = !full && its.some((p) => pnRows(p).length >= 20), on = full || mini;
+  const full = !PN.skip.has(PN.r) && !PN.narrow.has(PN.r), mini = !full && !PN.skip.has(PN.r), on = full || mini;
   document.body.classList.toggle("pn-on", full && pnLS("open") !== false);
   document.body.classList.toggle("pn-has", on);
   document.body.classList.toggle("pn-mini", mini);
   nav.hidden = !on;
   if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
-  $("#pnsec").hidden = !named.length;
+  pnTocBadge(named.length);
   const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
   const nr = its.reduce((n, p) => n + pnRows(p).length, 0);
   if (same) { if (PN.q && nr !== PN.nr) { PN.nr = nr; pnApply(); } return; }
@@ -729,6 +750,8 @@ function pnInit() {
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
   $("#pnFocus").onclick = () => { PN.focus = !PN.focus; pnLS("focus_" + PN.r, PN.focus); $("#pnFocus").classList.toggle("on", PN.focus); pnApply(); if (PN.focus) pnGo(PN.cur); else window.dispatchEvent(new Event("resize")); };
   $("#pnHide").onclick = () => pnOpen(false);
+  $$("#pnav [data-t]").forEach((b) => b.onclick = () => pnTab(b.dataset.t));
+  if (!$("#pnCoins")) document.body.insertAdjacentHTML("beforeend", `<datalist id="pnCoins"></datalist>`);
   $("#pnFab").onclick = () => pnOpen(innerWidth < 1180 || document.body.classList.contains("pn-mini") ? !document.body.classList.contains("pn-sheet") : true);
   $("#pnShade").onclick = () => pnOpen(false);
   let raf = 0; addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; pnSpy(); }); }, { passive: true });
@@ -855,28 +878,122 @@ async function sbBot() {
   const a = ss?.acct, sup = ss ? sbRow(`🛡️ Bot giám sát`, ss.halt ? `<span class="down">khoá</span>` : isNum(a?.dd) ? `sụt ${nf(a.dd, 1)}%` : "—", esc((ss.think?.head || "").slice(0, 90)), "#/bot/sup") : "";
   return rows + sup;
 }
-const sbTier = (n, t, body) => (body ? `<section class="pn-layer"><h4 class="pn-tier"><i>${n}</i>${t}</h4>${body}</section>` : "");
+// nhịp thị trường – một dải cố định trên đầu bảng phụ, giống nhau ở mọi trang
+function sbPulse(M) {
+  if (!M) return "";
+  const l = M.light || {}, F = M.fng || {}, b = BYK?.BTC;
+  return `<a class="pp" href="#/" title="${esc(l.text || "")}"><small>Đèn</small><b>${sbDot(l.color)}${LIGHT_VI[l.color] || "—"}</b></a>
+    <a class="pp" href="#/c/BTC"><small>BTC <i data-lr="BTC" class="${cls(b?.r1)}">${pct(b?.r1, 1)}</i></small><b data-lk="BTC">${px(b?.p)}</b></a>
+    <span class="pp" title="Sợ hãi & Tham lam (0–100)"><small>Tâm lý</small><b>${nf(F.now, 0)} <i>${esc(F.zone || "")}</i></b></span>
+    <a class="pp" href="#/futures" title="Funding trung bình 8 giờ"><small>Funding</small><b class="${f8c(M.agg?.f8)}">${f8s(M.agg?.f8)}</b></a>`;
+}
+async function sbWatch2(items) {
+  let ok = true; try { await WL.load(); } catch (e) { ok = false; }
+  if (!ok) return `<p class="sbp faint">Đăng nhập để lưu danh sách coin theo dõi.</p>`;
+  const ks = [...WL.set].filter((k) => BYK?.[k]);
+  const rows = ks.map((k) => { const y = items.find((z) => z.k === k && z.edge), S = y ? sbIdeaSt(y) : null;
+    return `<div class="sbw2"><a class="sbw" href="#/c/${enc(k)}"><b>${esc(k)}</b>${y ? `<small class="${y.side === "long" ? "up" : "down"}" title="${esc(S?.lbl || "")}">${y.side === "long" ? "Long" : "Short"} ${y.tf === "d" ? "ngày" : "4h"}${S?.k === "go" ? " ●" : ""}</small>` : "<small></small>"}<span>${sbPx(k)}</span></a><button type="button" class="sbw-x" data-sbw="${k}" title="Bỏ theo dõi">✕</button></div>`; }).join("");
+  return `${rows || `<p class="sbp faint">Chưa theo dõi coin nào. Gõ mã bên dưới hoặc bấm ☆ ở trang coin.</p>`}
+    <form class="sbw-add" id="sbwAdd"><input list="pnCoins" placeholder="+ Thêm coin (vd SOL)" autocomplete="off" aria-label="Thêm coin theo dõi"><button class="btn sm" type="submit">Thêm</button></form>`;
+}
+function sbRecent() {
+  const ks = (pnLS("recent") || []).filter((k) => BYK?.[k]).slice(0, 10);
+  return ks.length ? `<div class="sbchips">${ks.map((k) => `<a href="#/c/${enc(k)}">${esc(k)} <i data-lr="${k}" class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></a>`).join("")}</div>` : "";
+}
 async function sbRender() {
   const top = $("#pninfo"), bot = $("#pninfo2"), low = $("#pninfo3"); if (!top || !bot) return;
   const my = ++SB.seq, r = PN.r, a = PN.arg;
   try {
     if (!BYK) await coins();
+    const dl = $("#pnCoins"); if (dl && !dl.childElementCount && COINS?.rows) dl.innerHTML = COINS.rows.slice(0, 800).map((x) => `<option value="${esc(x.k)}">`).join("");
     try { await WL.load(); } catch (e) { /* chưa đăng nhập */ }
     const [M, pg, { items }] = await Promise.all([tryLoad("data/market.json"), sbPage(r, a).catch(() => ""), sbIdeas()]);
     if (r !== "paper") { try { await papLoad(); } catch (e) { /* chưa đăng nhập */ } }
-    const [wl, bt] = await Promise.all([sbWatch(items), sbBot().catch(() => "")]);
+    const [wl, bt] = await Promise.all([sbWatch2(items), sbBot().catch(() => "")]);
     if (my !== SB.seq) return;
     const T0 = { market: "Nên làm gì lúc này", ideas: "Tóm tắt cơ hội", c: "Nhanh về coin", sector: "Nhóm này lúc này", sectors: "Nhóm theo góc luân chuyển", futures: "Phái sinh đáng chú ý", plan: "Quản trị rủi ro của anh", tools: "Quản trị rủi ro của anh", pairs: "Giao dịch cặp" }[r] || "Điểm chính";
-    // 3 tầng: (1) trang này – điểm chính, mục lục, khái niệm · (2) thị trường lúc này · (3) của anh – theo dõi, bot, sàn thử
-    top.innerHTML = sbBlk("page", "📍 " + T0, pg);
-    bot.innerHTML = sbBlk("cpt", "📚 Khái niệm trên trang này", sbConcepts(r));
-    if (low) low.innerHTML = sbTier(2, "Thị trường", sbBlk("mkt", r === "market" ? "🌡️ Chỉ số nhanh" : "🌡️ Thị trường lúc này", sbMarket(M), `<span class="live-dot"></span>`))
-      + sbTier(3, "Của anh", sbBlk("wl", "★ Đang theo dõi", wl) + sbBlk("bot", "🤖 Bot của anh", bt) + sbBlk("pap", "🧪 Sàn thử", sbPaper()));
+    $("#pnpulse").innerHTML = sbPulse(M);
+    // Tóm tắt: điểm chính của trang → cảnh báo thị trường → khái niệm (thu gọn sẵn)
+    const al = (M?.alerts || []).slice(0, 3).map((x) => `<a class="sbal" href="#/c/${enc(x.k)}"><b>⚠️ ${esc(x.k)}</b> ${esc(x.t)}${x.d ? `<small>${esc(x.d)}</small>` : ""}</a>`).join("");
+    top.innerHTML = pg ? `<h4 class="pn-h">${T0}</h4>${pg}` : `<p class="sbp">Trang này chưa có tóm tắt riêng.</p>${PN.items.length ? `<div class="sbacts"><button class="btn sm" type="button" data-go="toc">Xem các mục trong trang →</button></div>` : ""}`;
+    const cp = sbConcepts(r);
+    bot.innerHTML = (r !== "market" && r !== "futures" && al ? `<details class="sb" data-b="al" ${sbOpen().al === true ? "open" : ""}><summary><span>⚠️ Cảnh báo thị trường</span><em>${(M.alerts || []).length}</em></summary><div class="sb-b">${al}</div></details>` : "")
+      + (cp ? `<details class="sb" data-b="cpt" ${sbOpen().cpt === true ? "open" : ""}><summary><span>📚 Thuật ngữ trên trang</span></summary><div class="sb-b">${cp}</div></details>` : "");
+    // Của tôi: theo dõi → xem gần đây → vị thế sàn thử → bot
+    const rc = sbRecent(), pp = sbPaper();
+    low.innerHTML = `<h4 class="pn-h">★ Đang theo dõi <em>${WL.set.size || ""}</em></h4>${wl}`
+      + (rc ? `<h4 class="pn-h">🕘 Xem gần đây</h4>${rc}` : "")
+      + `<h4 class="pn-h">🧪 Sàn thử</h4>${pp || `<p class="sbp faint">Chưa có vị thế. <a href="#/paper">Mở sàn thử</a> để tập vào lệnh bằng tiền ảo.</p>`}`
+      + (bt ? `<h4 class="pn-h">🤖 Bot của anh</h4>${bt}` : "");
+    const nPos = (PAP?.pos?.length || 0) + Object.values(PAP?.spot || {}).filter((h) => h.q > 1e-12).length;
+    $("#pnbMe").textContent = nPos || "";
     $$("#pnav details.sb").forEach((d) => d.ontoggle = () => { sbOpen()[d.dataset.b] = d.open; pnLS("blk", sbOpen()); });
     $$("#pnav [data-pl]").forEach((x) => x.onclick = () => { const [tf, sd] = x.dataset.pl.split("|"); lsSet("pltf", tf); lsSet("plside", sd); });
-    $$("#pnav [data-sbw]").forEach((b) => b.onclick = async () => { await WL.toggle(b.dataset.sbw); sbRender(); });
+    $$("#pnav [data-sbw]").forEach((b) => b.onclick = async (e) => { e.preventDefault(); await WL.toggle(b.dataset.sbw); sbRender(); });
+    $$("#pnav [data-go]").forEach((b) => b.onclick = () => pnTab(b.dataset.go));
+    const f = $("#sbwAdd"); if (f) f.onsubmit = async (e) => { e.preventDefault(); const k = f.querySelector("input").value.trim().toUpperCase(); if (!BYK?.[k]) { toast(`Không tìm thấy coin ${k}`, { type: "warn" }); return; } if (!WL.has(k)) await WL.toggle(k); sbRender(); };
     sbWs();
   } catch (e) { console.warn(e); }
+}
+// ---- Tính lệnh: khối lượng theo vốn & % rủi ro của anh, tự điền theo coin đang xem
+const PC = { k: "" };
+function pcRoute() {
+  const el = $("#pncalc"); if (!el) return;
+  if (!el.childElementCount) pcBuild();
+  const K = (PN.r === "c" || PN.r === "plan" || PN.r === "paper") && PN.arg[0] ? PN.arg[0].toUpperCase() : "";
+  if (K && K !== PC.k) pcFill(K);
+}
+function pcBuild() {
+  const v = pnLS("calc") || {};
+  $("#pncalc").innerHTML = `<p class="pn-what">Khối lượng lệnh theo vốn & cắt lỗ – lỗ tối đa đúng % rủi ro anh đặt</p>
+    <div class="pc-g"><label class="pc-k">Coin<input id="pcK" list="pnCoins" placeholder="BTC" autocomplete="off" value="${esc(v.k || "")}"></label><label>Đòn bẩy<input id="pcL" type="number" step="any" min="1" value="${esc(v.l || setting("maxlev", 3))}"></label>
+      <label>Giá vào<input id="pcE" type="number" step="any" value="${esc(v.e || "")}"></label><label>Cắt lỗ<input id="pcS" type="number" step="any" value="${esc(v.s || "")}"></label>
+      <label class="pc-w">Chốt lời <small>(tuỳ chọn)</small><input id="pcT" type="number" step="any" value="${esc(v.t || "")}"></label></div>
+    <div class="pc-q"><button type="button" class="mchip" data-pq="px">Giá hiện tại</button><button type="button" class="mchip" data-pq="atrL">SL 1× biến động (Long)</button><button type="button" class="mchip" data-pq="atrS">(Short)</button><button type="button" class="mchip" data-pq="idea" hidden>Theo thiết lập</button></div>
+    <div id="pcOut"></div>
+    <p class="pc-f">Vốn <b>${usd(setting("acct", 10000))}</b> · rủi ro <b>${nf(setting("risk", 1), 1)}%</b>/lệnh · <a href="#/tools">đổi</a></p>`;
+  PC.k = (v.k || "").toUpperCase();
+  ["#pcE", "#pcS", "#pcT", "#pcL"].forEach((id) => $(id).addEventListener("input", pcCalc));
+  $("#pcK").addEventListener("change", () => pcFill($("#pcK").value.trim().toUpperCase()));
+  $$("#pncalc [data-pq]").forEach((b) => b.onclick = () => pcQuick(b.dataset.pq));
+  pcCalc();
+}
+function pcIdea(K) { const L = LIVE && LIVE.ideas ? LIVE.ideas : null; return (L || SB.ideas || []).find((x) => x.k === K && x.edge); }
+async function pcFill(K) {
+  if (!BYK) await coins();
+  const r = BYK?.[K]; if (!r) { pcCalc(); return; }
+  PC.k = K; $("#pcK").value = K;
+  try { if (!SB.ideas) SB.ideas = (await sbIdeas()).items; } catch (e) { /* không có */ }
+  const y = pcIdea(K); $('#pncalc [data-pq="idea"]').hidden = !y;
+  if (y) pcQuick("idea"); else { $("#pcE").value = +r.p.toPrecision(6); pcQuick("atrL"); }
+}
+function pcQuick(q) {
+  const K = $("#pcK").value.trim().toUpperCase(), r = BYK?.[K]; if (!r) return;
+  const e = Number($("#pcE").value) || r.p, atr = isNum(r.atr) ? r.atr : 4, y = pcIdea(K), P = (x) => +Number(x).toPrecision(6);
+  if (q === "px") $("#pcE").value = P(r.p);
+  if (q === "atrL") { $("#pcE").value = P(e); $("#pcS").value = P(e * (1 - atr / 100)); $("#pcT").value = P(e * (1 + 2 * atr / 100)); }
+  if (q === "atrS") { $("#pcE").value = P(e); $("#pcS").value = P(e * (1 + atr / 100)); $("#pcT").value = P(e * (1 - 2 * atr / 100)); }
+  if (q === "idea" && y) { $("#pcE").value = P(y.e); $("#pcS").value = P(y.s); $("#pcT").value = P(y.t1); }
+  pcCalc();
+}
+function pcCalc() {
+  const out = $("#pcOut"); if (!out) return;
+  const K = $("#pcK").value.trim().toUpperCase(), e = Number($("#pcE").value), s = Number($("#pcS").value), t = Number($("#pcT").value), l = Math.max(1, Number($("#pcL").value) || 1);
+  pnLS("calc", { k: K, e: $("#pcE").value, s: $("#pcS").value, t: $("#pcT").value, l: $("#pcL").value });
+  const acct = Number(setting("acct", 10000)), z = e > 0 && s > 0 && s !== e ? sizing(acct, Number(setting("risk", 1)), e, s, l) : null;
+  if (!z) { out.innerHTML = `<p class="sbp faint">Nhập giá vào và cắt lỗ (hoặc bấm một nút gợi ý ở trên).</p>`; return; }
+  const sp = Math.abs(e - s) / e * 100, okT = t > 0 && (z.side === "long" ? t > e : t < e), win = okT ? z.q * Math.abs(t - e) : null, rr = okT ? Math.abs(t - e) / Math.abs(e - s) : null;
+  const tile = (k, v, x = "", c = "") => `<div class="pc-t ${c}"><small>${k}</small><b>${v}</b>${x ? `<i>${x}</i>` : ""}</div>`;
+  let h = `<div class="pc-o">${tile("Chiều", z.side === "long" ? '<span class="up">Long</span>' : '<span class="down">Short</span>', `cắt lỗ cách ${nf(sp, 2)}%`)}${tile("Khối lượng", `${qty(z.q)} <small>${esc(K)}</small>`, `giá trị ${usd(z.notional)}`)}
+    ${tile("Ký quỹ", usd(z.margin), `${nf(z.marginPct, 0)}% vốn · x${nf(l, 0)}`, z.marginPct > 50 ? "bad" : "")}${tile("Lỗ nếu chạm SL", `<span class="down">−${usd(z.riskUsd)}</span>`, `${nf(setting("risk", 1), 1)}% vốn`)}
+    ${okT ? tile("Lời nếu chạm TP", `<span class="up">+${usd(win)}</span>`, `R:R ${nf(rr, 2)}`, rr < 1.5 ? "bad" : "") : ""}${tile("Thanh lý", px(z.liq), `cách ${nf(Math.abs(e - z.liq) / e * 100, 1)}%`, z.liqBeforeStop ? "bad" : "")}</div>`;
+  if (z.liqBeforeStop) h += `<p class="pc-w2 down">⚠️ Thanh lý trước cắt lỗ – giảm đòn bẩy xuống ≤ x${nf(Math.floor(1 / (sp / 100 + MMR + 0.003)), 0)}.</p>`;
+  if (z.marginPct > 100) h += `<p class="pc-w2 down">Ký quỹ vượt vốn – cắt lỗ quá gần so với vốn.</p>`;
+  if (okT && rr < 1.5) h += `<p class="pc-w2">R:R dưới 1,5 – lời không đủ bù rủi ro nếu tỉ lệ thắng dưới 40%.</p>`;
+  const r = BYK?.[K];
+  if (r) { const G = levGov(r, z.side, "d", sp); h += l > G.cap ? `<p class="pc-w2 down">🚫 Hệ thống chỉ cho tối đa x${G.cap} với ${esc(K)} lúc này.</p>` : `<p class="pc-w2 up">✓ Trong mức đòn bẩy cho phép (tối đa x${G.cap}).</p>`; }
+  if (r) h += `<div class="sbacts"><a class="btn sm primary" href="#/plan/${enc(K)}">Lên kế hoạch</a><a class="btn sm" href="#/paper/${enc(K)}">Thử trên sàn thử</a></div>`;
+  out.innerHTML = h;
 }
 function sbWs() {
   const tick = new Set(["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"]);
@@ -5004,7 +5121,7 @@ function initSearch() {
   document.addEventListener("keydown", (e) => {
     const typing = /input|textarea|select/i.test(document.activeElement.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); q.focus(); return; }
-    if (e.key === "/" && !typing) { e.preventDefault(); const p = $("#mq") || (!$("#pnav").hidden && $("#pnq")); if (p) { if (p.id === "pnq") pnOpen(true); p.focus(); } else q.focus(); }
+    if (e.key === "/" && !typing) { e.preventDefault(); const p = $("#mq") || (!$("#pnav").hidden && $("#pnq")); if (p) { if (p.id === "pnq") { pnOpen(true); pnTab("toc"); } p.focus(); } else q.focus(); }
   });
 }
 async function drawTicker() {

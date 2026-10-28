@@ -64,22 +64,29 @@
 <div class="shell">
 <aside id="pnav" class="pnav" hidden>
   <div class="pn-in">
-    <div class="pn-top"><b>Bảng thông tin</b><span><button id="pnFocus" class="pn-btn" type="button" title="Chỉ hiện mục đang chọn (như trang Phương pháp)">Từng mục</button><button id="pnHide" class="pn-btn" type="button" title="Thu gọn mục lục">«</button></span></div>
-    <label class="msearch sbx-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="pnq" type="search" autocomplete="off" placeholder="Tìm trong trang…" aria-label="Tìm trong trang"><kbd>/</kbd></label>
-    <small id="pncnt" class="mcnt"></small>
+    <div id="pnpulse" class="pn-pulse"></div>
+    <div class="pn-tabs2" role="tablist" aria-label="Bảng phụ">
+      <button type="button" role="tab" data-t="sum" title="Điểm chính của trang này: nên làm gì, con số quan trọng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg><span>Tóm tắt</span></button>
+      <button type="button" role="tab" data-t="toc" title="Nhảy tới mục trong trang, lọc dòng (phím /)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Đi tới</span><em id="pnbToc"></em></button>
+      <button type="button" role="tab" data-t="me" title="Coin đang theo dõi, vị thế sàn thử, bot của anh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/></svg><span>Của tôi</span><em id="pnbMe"></em></button>
+      <button type="button" role="tab" data-t="calc" title="Tính nhanh khối lượng lệnh theo vốn & cắt lỗ"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h4"/></svg><span>Tính lệnh</span></button>
+      <button id="pnHide" class="pn-btn pn-hide" type="button" title="Thu gọn bảng phụ">«</button>
+    </div>
     <div class="pn-scroll">
-      <section class="pn-layer" data-l="page"><h4 class="pn-tier"><i>1</i>Trang này</h4>
-        <div id="pninfo" class="pn-info"></div>
-        <details class="sb" id="pnsec" data-b="sec" open><summary><span>🧭 Mục lục trang</span></summary><div class="sb-b"><div id="pntabs" class="mchips pn-tabs"></div><nav id="pnlist" class="mlist pn-list"></nav></div></details>
-        <div id="pninfo2" class="pn-info"></div>
+      <section class="pn-pane" data-p="sum"><div id="pninfo" class="pn-info"></div><div id="pninfo2" class="pn-info"></div></section>
+      <section class="pn-pane" data-p="toc">
+        <div class="pn-srow"><label class="msearch sbx-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="pnq" type="search" autocomplete="off" placeholder="Lọc trong trang…" aria-label="Tìm trong trang"><kbd>/</kbd></label><button id="pnFocus" class="pn-btn" type="button" title="Chỉ hiện mục đang chọn, ẩn các mục khác">Từng mục</button></div>
+        <small id="pncnt" class="mcnt"></small>
+        <div id="pnsec"><div id="pntabs" class="mchips pn-tabs"></div><nav id="pnlist" class="mlist pn-list"></nav></div>
       </section>
-      <div id="pninfo3"></div>
+      <section class="pn-pane" data-p="me"><div id="pninfo3"></div></section>
+      <section class="pn-pane" data-p="calc"><div id="pncalc"></div></section>
     </div>
   </div>
 </aside>
 <main id="app" tabindex="-1"><p class="muted">Đang tải…</p></main>
 </div>
-<button id="pnFab" class="pnfab" type="button" title="Mục lục & tìm trong trang">☰ <span>Mục lục</span></button>
+<button id="pnFab" class="pnfab" type="button" title="Bảng phụ: tóm tắt, đi tới mục, của tôi, tính lệnh">☰ <span>Bảng phụ</span></button>
 <div id="pnShade" class="pnshade"></div>
 <script src="vendor/lightweight-charts.standalone.production.js"></script>
 <script src="app.js"></script>
