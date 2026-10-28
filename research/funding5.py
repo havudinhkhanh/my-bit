@@ -68,7 +68,7 @@ if __name__ == "__main__":
     with cf.ThreadPoolExecutor(48) as ex:
         res = dict(zip(jobs, ex.map(lambda j: fund_month(*j), jobs)))
     cur_syms = sorted(set(d.s[d.m == cur]))
-    t_cur = int(d[d.m == cur].T.min()) - 600 if len(cur_syms) else 0
+    t_cur = int(d[d.m == cur]["T"].min()) - 600 if len(cur_syms) else 0
     with cf.ThreadPoolExecutor(16) as ex:
         api = dict(zip(cur_syms, ex.map(lambda s: fund_api(s, t_cur), cur_syms)))
     log(f"funding: {sum(v is not None for v in res.values())}/{len(res)} mã-tháng từ kho dữ liệu · tháng này qua API: {sum(v is not None for v in api.values())}/{len(cur_syms)} mã")
