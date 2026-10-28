@@ -2607,3 +2607,4 @@ body.pn-sheet #pnHide{display:inline-flex!important;align-items:center;justify-c
 body.pn-sheet #pnHide::before{content:"✕";font-size:.8rem}
 .pp b{font-size:.72rem}
 body.pn-mini .pnfab{left:auto!important}
+@media (min-width:1180px){body.pn-on:not(.pn-sheet) .pp{flex-direction:column;align-items:flex-start;gap:1px}body.pn-on:not(.pn-sheet) .pp b{text-align:left;max-width:100%}}
