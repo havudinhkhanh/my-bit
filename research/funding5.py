@@ -20,7 +20,7 @@ os.environ.setdefault("RS_LOG", "funding5.log")
 import events as E  # noqa: E402
 
 log = E.log
-SRC = os.environ.get("RS_R5", "https://raw.githubusercontent.com/havudinhkhanh/my-bit/status/research/research_out/round5.json.gz")
+SRC = os.environ.get("RS_R5", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "round5.json.gz"))      # kết quả vòng 5 lưu trong repo (nhánh status bị ghi đè mỗi lần chạy)
 W, H = 8, 60
 
 
