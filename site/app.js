@@ -324,28 +324,30 @@ function navCtx(r) {
 }
 function navDecor(r) {
   const app_ = $("#app"); if (!app_) return;
-  app_.querySelectorAll(":scope > .crumb, :scope > .nextstep").forEach((x) => x.remove());
+  app_.querySelectorAll(".crumb[data-nd], .nextstep[data-nd]").forEach((x) => x.remove());
   const X = navCtx(r); if (!X) return;
   const gname = X.cur.g?.querySelector("b")?.textContent || "", name = X.cur.a.querySelector(".nav-t")?.textContent || "";
   const ph = app_.querySelector(".ph");
-  const crumb = `<div class="crumb"><i>${X.cur.gi}</i>${esc(gname)} <span>›</span> ${esc(name)}</div>`;
+  const crumb = `<div class="crumb" data-nd><i>${X.cur.gi}</i>${esc(gname)} <span>›</span> ${esc(name)}</div>`;
   if (ph) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);
   if (X.next) {
     const n = X.next, nn = n.a.querySelector(".nav-t")?.textContent || "", ng = n.g?.querySelector("b")?.textContent || "";
-    app_.insertAdjacentHTML("beforeend", `<a class="nextstep" href="${n.a.getAttribute("href")}"><small>${n.gi !== X.cur.gi ? `Bước tiếp theo · ${esc(ng)}` : "Tiếp trong nhóm"}</small>
+    app_.insertAdjacentHTML("beforeend", `<a class="nextstep" data-nd href="${n.a.getAttribute("href")}"><small>${n.gi !== X.cur.gi ? `Bước tiếp theo · ${esc(ng)}` : "Tiếp trong nhóm"}</small>
       <span>${n.a.querySelector("svg")?.outerHTML || ""}<b>${esc(nn)}</b><em>${esc(n.a.getAttribute("title") || "")}</em><i>→</i></span></a>`);
   }
 }
 let CUR_TAB = "";
 (() => {   // trang vẽ lại (đổi tab con, tự làm mới) → gắn lại "vị trí trong quy trình" & "bước tiếp theo"
   let t = 0; const el = document.getElementById("app");
-  if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(":scope > .crumb")) navDecor(CUR_TAB); }, 60); }).observe(el, { childList: true });
+  if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB); }, 60); }).observe(el, { childList: true });
 })();
 function setTab(r) {
   CUR_TAB = r;
   $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.remove("par"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
+  // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
+  if (innerWidth >= 980 && innerWidth < 1180) { const on = $("#tabs a.on"), t = $("#tabs"); if (on && t) requestAnimationFrame(() => { const L = on.offsetLeft - t.scrollLeft; if (L < 0 || L + on.offsetWidth > t.clientWidth) t.scrollTo({ left: on.offsetLeft - 40, behavior: "smooth" }); }); }
 }
 // ---------------------------------------------------------------- điện thoại: bảng "Thêm" = mọi trang, chia 5 nhóm (dựng từ chính thanh điều hướng → luôn khớp)
 function mSheet(open) {
@@ -869,6 +871,35 @@ async function sbPage(r, a) {
     const P = await tryLoad("data/pairs.json"), ok = (P?.pairs || []).filter((x) => x.ok).slice(0, 4);
     return ok.length ? `<p class="sbh">Cặp đạt chuẩn lúc này</p>${ok.map((x) => sbRow(esc(x.side), `z ${nf(x.z, 1)}`, `quay về ${nf(x.win, 0)}% · ${x.n} lần`)).join("")}` : `<p class="sbp">Chưa có cặp nào lệch đủ để giao dịch.</p>`;
   }
+  if (r === "bot") {      // Đội bot / Bot Phản Xạ / Bot giám sát / Kết quả theo ngày: tình trạng các bot của anh
+    let X = null; try { X = (await Store.get("scalpstate")).data; } catch (e) { /* chưa có */ }
+    const bt = await sbBot().catch(() => "");
+    let sc = "";
+    if (X && X.at) {
+      const day = X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null, ret = X.start ? (X.eq / X.start - 1) * 100 : null;
+      const pend = Object.keys(X.hk || {}).length, hold = Object.values(X.pos || {}).filter((q) => q.strat === "hook").length;
+      sc = `<p class="sbh">⚡ Bot Phản Xạ</p>${sbRow("Sàn thử", `<b>${usd2(X.eq)}</b>`, `từ đầu <span class="${cls(ret)}">${pct(ret, 2)}</span> · hôm nay <span class="${cls(day)}">${pct(day, 2)}</span>`, "#/bot/scalp")}
+        ${sbRow("🪝 Bắt râu sập", pend || hold ? `${pend} chờ · ${hold} giữ` : "chưa có", `${X.hkStat?.seen || 0} cú sốc hôm nay`, "#/ideas")}
+        ${X.live?.on ? sbRow("Binance " + (X.live.env === "live" ? "thật" : "Demo"), `<span class="${cls(X.live.day?.pnl)}">${X.live.day?.pnl >= 0 ? "+" : ""}${usd2(X.live.day?.pnl || 0)}</span>`, "lời/lỗ hôm nay", "#/bot/scalp") : ""}
+        ${X.pause ? `<p class="sbtip">⏸ ${esc(X.pause.why || "đang tạm dừng")}</p>` : ""}`;
+    }
+    return bt || sc ? `${bt ? `<p class="sbh">🤖 Bot phút</p>${bt}` : ""}${sc}` : `<p class="sbp">Chưa có bot nào chạy. Bật bot ở trang Đội bot hoặc Bot Phản Xạ – bot chạy trên máy chủ kể cả khi tắt trình duyệt.</p>`;
+  }
+  if (r === "paper") {
+    try { await papLoad(); } catch (e) { /* chưa đăng nhập */ }
+    const pp = sbPaper();
+    return pp || `<p class="sbp">Chưa có lệnh nào. Chọn coin, đặt lệnh như trên sàn thật (giá trực tiếp, phí, funding, thanh lý) – không đụng tới tiền thật.</p>`;
+  }
+  if (r === "portfolio") {
+    try { if (!PF) await pfLoad(); } catch (e) { /* chưa đăng nhập */ }
+    const X = pfExposure(); if (!X || !(X.eq > 0)) return `<p class="sbp">Chưa nhập danh mục. Nhập coin đang giữ theo số tiền đã bỏ ra – hệ thống tính lời/lỗ, đòn bẩy và rủi ro cho anh.</p>`;
+    return `${sbRow("Tổng tài sản", `<b>${usd(X.eq)}</b>`)}${sbRow("Đòn bẩy ròng", `x${nf(X.eff, 2)}`, `hệ thống cho tối đa x${nf(X.cap, 1)}`, "", )}${sbRow("Vị thế futures", String(X.n))}
+      ${X.eff > X.cap ? `<p class="sbtip">⚠️ Đòn bẩy ròng vượt mức cho phép – giảm vị thế futures.</p>` : ""}`;
+  }
+  if (r === "backtest") {
+    return `<p class="sbp">• Theo xu hướng không để <b>lãi nhiều nhất</b> mà để <b>né các đợt sụt 70–90%</b> của altcoin.</p><p class="sbp">• Mua khi "sợ hãi tột độ" lịch sử lời hơn mua khi "tham lam".</p><p class="sbp">• MVRV &lt; 1 (BTC rẻ hơn giá vốn toàn mạng) gần như luôn lời sau 1 năm.</p>
+      <div class="sbacts"><a class="btn sm" href="#/methods">Xem phương pháp</a></div>`;
+  }
   const note = app().querySelector(".note p, .note")?.textContent?.trim();
   return note ? `<p class="sbp">${esc(note.slice(0, 260))}${note.length > 260 ? "…" : ""}</p>` : "";
 }
@@ -950,7 +981,7 @@ async function sbRender() {
     if (r !== "paper") { try { await papLoad(); } catch (e) { /* chưa đăng nhập */ } }
     const [wl, bt] = await Promise.all([sbWatch2(items), sbBot().catch(() => "")]);
     if (my !== SB.seq) return;
-    const T0 = { market: "Nên làm gì lúc này", ideas: "Tóm tắt cơ hội", c: "Nhanh về coin", sector: "Nhóm này lúc này", sectors: "Nhóm theo góc luân chuyển", futures: "Phái sinh đáng chú ý", plan: "Quản trị rủi ro của anh", tools: "Quản trị rủi ro của anh", pairs: "Giao dịch cặp" }[r] || "Điểm chính";
+    const T0 = { bot: "Bot của anh lúc này", paper: "Sàn thử của anh", portfolio: "Danh mục của anh", backtest: "Kiểm chứng cho thấy", market: "Nên làm gì lúc này", ideas: "Tóm tắt cơ hội", c: "Nhanh về coin", sector: "Nhóm này lúc này", sectors: "Nhóm theo góc luân chuyển", futures: "Phái sinh đáng chú ý", plan: "Quản trị rủi ro của anh", tools: "Quản trị rủi ro của anh", pairs: "Giao dịch cặp" }[r] || "Điểm chính";
     $("#pnpulse").innerHTML = sbPulse(M);
     // Tóm tắt: điểm chính của trang → cảnh báo thị trường → khái niệm (thu gọn sẵn)
     const al = (M?.alerts || []).slice(0, 3).map((x) => `<a class="sbal" href="#/c/${enc(x.k)}"><b>⚠️ ${esc(x.k)}</b> ${esc(x.t)}${x.d ? `<small>${esc(x.d)}</small>` : ""}</a>`).join("");
