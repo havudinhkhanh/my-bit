@@ -1,11 +1,11 @@
-# Bot lướt giây MyBit trên máy chủ riêng
+# Bot Phản Xạ MyBit trên máy chủ riêng
 
-Bản này chạy cùng bộ não với bot lướt giây trên trang MyBit, nhưng đặt trên một máy chủ thuê riêng (VPS) để:
+Bản này chạy cùng bộ não với bot Phản Xạ trên trang MyBit, nhưng đặt trên một máy chủ thuê riêng (VPS) để:
 
 - **Nối thẳng Binance futures và Binance spot.** Binance đang chặn máy chủ Cloudflare (lỗi 403), nên bản Cloudflare phải dùng dữ liệu Bybit hoặc OKX.
 - **Chạy liên tục 24/7, không giới hạn số tin nhắn.** Gói Cloudflare miễn phí hết hạn mức sau khoảng nửa giờ quét toàn thị trường.
 
-Mặc định bot chỉ đánh trên **sàn thử**. Muốn phương pháp 🪝 Bắt râu sập đặt lệnh thật trên Binance, xem mục 6. Nó chỉ đọc dữ liệu thị trường công khai, rồi gửi trạng thái về trang MyBit. Anh vẫn xem và chỉnh bot ở trang **Bot → Bot lướt giây** như bình thường.
+Mặc định bot chỉ đánh trên **sàn thử**. Muốn phương pháp 🪝 Bắt râu sập đặt lệnh thật trên Binance, xem mục 6. Nó chỉ đọc dữ liệu thị trường công khai, rồi gửi trạng thái về trang MyBit. Anh vẫn xem và chỉnh bot ở trang **Bot → Bot Phản Xạ** như bình thường.
 
 ## 1. Thuê máy chủ (khoảng 5–6 USD/tháng)
 
@@ -17,7 +17,7 @@ Mặc định bot chỉ đánh trên **sàn thử**. Muốn phương pháp 🪝 
 
 ## 2. Tạo khoá trên trang MyBit
 
-1. Mở **Bot lướt giây → Thiết lập → Nơi chạy**.
+1. Mở **Bot Phản Xạ → Thiết lập → Nơi chạy**.
 2. Chọn **Máy chủ riêng (VPS)**.
 3. Bấm **🔑 Tạo khoá máy chủ riêng**, rồi bấm **📋 Chép**.
    - Khoá chỉ hiện **một lần**. Trang chỉ lưu mã băm của khoá, không lưu khoá thật.
@@ -67,7 +67,7 @@ Nút **Làm lại tài khoản** chỉ xoá lịch sử lệnh và giữ nguyên
 
 ## 5. An toàn
 
-- Khoá chỉ có hai quyền: đọc thiết lập bot lướt giây và ghi trạng thái bot lướt giây của chính anh. Nó không đọc hay ghi được dữ liệu nào khác.
+- Khoá chỉ có hai quyền: đọc thiết lập bot Phản Xạ và ghi trạng thái bot Phản Xạ của chính anh. Nó không đọc hay ghi được dữ liệu nào khác.
 - Mất khoá thì anh chỉ cần tạo khoá mới trên trang, khoá cũ hết hiệu lực ngay.
 - Tệp `.env` chỉ người dùng hệ thống `mybit` đọc được (quyền 600). Dịch vụ chạy với quyền tối thiểu: không ghi được ra ngoài thư mục `data`.
 - Muốn quay về chạy trên Cloudflare: chọn lại **Cloudflare** ở mục **Nơi chạy** rồi Lưu. Máy chủ sẽ tự đứng chờ.
@@ -89,7 +89,7 @@ Nên chạy trên **Binance Demo Trading** (tiền ảo, giá thật) vài ngày
    ```
 
    Chọn 1 (Demo) hoặc 2 (Thật), rồi dán API Key và Secret Key. Khoá chỉ nằm trong `/opt/my-bit/scalper/.env` (quyền 600), không gửi lên trang MyBit.
-4. **Bật trên trang:** Bot lướt giây → Thiết lập → **💵 Tài khoản Binance thật**.
+4. **Bật trên trang:** Bot Phản Xạ → Thiết lập → **💵 Tài khoản Binance thật**.
    - Bật công tắc.
    - Chọn Demo hoặc THẬT. Chọn THẬT phải gõ `TIEN THAT` để xác nhận.
    - Đặt **Vốn tối đa**, **Đòn bẩy** và **Ngừng khi lỗ trong ngày**. Đổi lúc nào cũng được.
@@ -101,4 +101,4 @@ Nên chạy trên **Binance Demo Trading** (tiền ảo, giá thật) vài ngày
 - Hết giờ giữ thì đóng bằng lệnh MARKET chỉ-giảm-vị-thế (reduce-only).
 - Bot không đụng vào coin anh đang có vị thế.
 - Có 5 lỗi API liên tiếp, hoặc lỗ quá giới hạn ngày, thì bot ngừng mở lệnh mới. Lệnh đang mở vẫn được quản lý tới khi đóng.
-- Mọi lần khớp và đóng lệnh đều đẩy thông báo về điện thoại. Trạng thái xem ở khung 💵 trên trang Bot lướt giây.
+- Mọi lần khớp và đóng lệnh đều đẩy thông báo về điện thoại. Trạng thái xem ở khung 💵 trên trang Bot Phản Xạ.

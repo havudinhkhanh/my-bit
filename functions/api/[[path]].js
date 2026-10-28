@@ -79,9 +79,9 @@ function checkLimits(key, body, lim) {
   return null;
 }
 
-// ---------------------------------------------------------------- cổng cho bot lướt giây chạy ở MÁY CHỦ RIÊNG (VPS)
+// ---------------------------------------------------------------- cổng cho bot Phản Xạ chạy ở MÁY CHỦ RIÊNG (VPS)
 // Xác thực bằng khoá riêng anh tạo trên trang (chỉ lưu mã băm SHA-256 trong D1 – khoá thật chỉ nằm trên VPS).
-// GET  → thiết lập bot lướt giây của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
+// GET  → thiết lập bot Phản Xạ của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
 async function scalpRunner({ request, env }, sub) {
   const key = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[0-9a-f]{64}$/.test(key)) return err("Thiếu hoặc sai khoá máy chủ riêng", 401);
@@ -89,8 +89,8 @@ async function scalpRunner({ request, env }, sub) {
   const u = await env.DB.prepare("SELECT d.user_id AS id, u.role, u.plan, u.plan_until, u.status FROM user_data d JOIN users u ON u.id = d.user_id WHERE d.key = 'scalpkey' AND json_extract(d.value, '$.h') = ?").bind(h).first();
   if (!u || u.status !== "active") return err("Khoá không hợp lệ hoặc đã bị thay", 401);
   const p = u.plan_until && u.plan_until < nowIso().slice(0, 10) ? "free" : u.plan;
-  if (!can({ r: u.role, p }, "bot")) return err("Bot lướt giây dành cho gói Pro", 402);
-  if (sub === "notify") {    // thông báo từ bot lướt giây: ghi chuông + đẩy ngay tới điện thoại
+  if (!can({ r: u.role, p }, "bot")) return err("Bot Phản Xạ dành cho gói Pro", 402);
+  if (sub === "notify") {    // thông báo từ bot Phản Xạ: ghi chuông + đẩy ngay tới điện thoại
     if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
     let j; try { j = await request.json(); } catch (e) { return err("Dữ liệu không hợp lệ"); }
     const items = (j.items || []).filter((x) => x && x.key && x.title).slice(0, 20).map((x) => ({ key: "sc:" + String(x.key).slice(0, 180), sev: Math.max(0, Math.min(3, +x.sev || 0)), title: x.title, body: x.body, url: x.url || "#/bot/scalp", sym: x.sym || null }));

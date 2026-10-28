@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cài bot lướt giây MyBit lên máy chủ Ubuntu/Debian mới (chạy bằng quyền root: sudo bash install.sh)
+# Cài bot Phản Xạ MyBit lên máy chủ Ubuntu/Debian mới (chạy bằng quyền root: sudo bash install.sh)
 # Thay khoá mới (sau khi tạo lại khoá trên trang): sudo bash install.sh --key
 # Cài khoá API Binance (Demo hoặc thật) cho Bắt râu sập: sudo bash install.sh --binance
 # Làm gì: cài Node.js 22 (nếu thiếu) + git, tải mã MyBit về /opt/my-bit, hỏi khoá, tạo dịch vụ tự chạy lại khi máy khởi động / lỗi.
@@ -26,7 +26,7 @@ ENVF=/opt/my-bit/scalper/.env; touch "$ENVF"; chmod 600 "$ENVF"
 setenv() { local k="$1" v="$2"; grep -v "^$k=" "$ENVF" > "$ENVF.tmp" || true; echo "$k=$v" >> "$ENVF.tmp"; mv "$ENVF.tmp" "$ENVF"; chmod 600 "$ENVF"; }   # thay đúng 1 dòng, giữ các dòng khác
 NEWKEY=0; BINANCE=0; for a in "$@"; do [ "$a" = "--key" ] && NEWKEY=1; [ "$a" = "--binance" ] && BINANCE=1; done
 if [ "$NEWKEY" = 1 ] || ! grep -q '^MYBIT_SCALP_KEY=[0-9a-f]\{64\}' "$ENVF" 2>/dev/null; then
-  echo "   Trên trang MyBit: Bot lướt giây → Thiết lập → Nơi chạy → Máy chủ riêng → Tạo khoá → Chép."
+  echo "   Trên trang MyBit: Bot Phản Xạ → Thiết lập → Nơi chạy → Máy chủ riêng → Tạo khoá → Chép."
   read -r -p "   Dán dòng MYBIT_SCALP_KEY=... vào đây rồi Enter: " LINE < /dev/tty
   LINE="$(echo "$LINE" | tr -d '[:space:]')"; LINE="${LINE#MYBIT_SCALP_KEY=}"
   echo "$LINE" | grep -q '^[0-9a-f]\{64\}$' || { echo "   Khoá không đúng dạng (64 ký tự 0-9a-f)"; exit 1; }
@@ -45,7 +45,7 @@ if [ "$BINANCE" = 1 ]; then
   read -r -s -p "   Secret Key (không hiện khi gõ/dán): " SK < /dev/tty; echo; SK="$(echo "$SK" | tr -d '[:space:]')"
   echo "$AK" | grep -q '^[A-Za-z0-9]\{20,128\}$' && echo "$SK" | grep -q '^[A-Za-z0-9]\{20,128\}$' || { echo "   Khoá không đúng dạng"; exit 1; }
   setenv "${P}_KEY" "$AK"; setenv "${P}_SECRET" "$SK"; unset AK SK
-  echo "   Đã lưu ${P}_KEY / ${P}_SECRET vào $ENVF. Bật trên trang: Bot lướt giây → Thiết lập → Tài khoản Binance thật."
+  echo "   Đã lưu ${P}_KEY / ${P}_SECRET vào $ENVF. Bật trên trang: Bot Phản Xạ → Thiết lập → Tài khoản Binance thật."
 fi
 chown -R mybit:mybit /opt/my-bit/scalper/data "$ENVF" && chmod 600 "$ENVF"
 echo "== 4/5 Kiểm tra kết nối Binance từ máy này"

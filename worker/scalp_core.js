@@ -229,7 +229,7 @@ export class ScalpCore {
       else if (S) this.upgraded = true;
     }
     await this.loadCfg(true);
-    if (!this.here()) { this.closeAll("bot lướt giây đang tắt / chạy ở nơi khác"); if (!this.cfg?.enabled) await this.snapshot(); return false; }
+    if (!this.here()) { this.closeAll("bot Phản Xạ đang tắt / chạy ở nơi khác"); if (!this.cfg?.enabled) await this.snapshot(); return false; }
     await this.ensureFeeds();
     return true;
   }
@@ -434,8 +434,8 @@ export class ScalpCore {
     await this.ensureFeeds();
     for (const f of Object.values(this.F)) {        // mất dữ liệu > 2 phút → báo; có lại → báo
       const now2 = Date.now(), nm = f.t === "F" ? "futures" : "spot";
-      if (!f.ws || now2 - f.last > 60000) { f.downAt ||= now2; if (now2 - f.downAt > 120000 && !f.downNoted) { f.downNoted = true; this.note(`down:${nm}:${f.downAt}`, 2, `⚠️ Bot lướt giây mất dữ liệu ${nm}`, `Không nhận được dữ liệu từ ${f.src || "sàn"} hơn 2 phút – bot đang thử kết nối lại.`); } }
-      else { if (f.downNoted) this.note(`up:${nm}:${now2}`, 1, `✅ Bot lướt giây có lại dữ liệu ${nm}`, `Đã kết nối lại ${f.src}.`); f.downAt = 0; f.downNoted = false; }
+      if (!f.ws || now2 - f.last > 60000) { f.downAt ||= now2; if (now2 - f.downAt > 120000 && !f.downNoted) { f.downNoted = true; this.note(`down:${nm}:${f.downAt}`, 2, `⚠️ Bot Phản Xạ mất dữ liệu ${nm}`, `Không nhận được dữ liệu từ ${f.src || "sàn"} hơn 2 phút – bot đang thử kết nối lại.`); } }
+      else { if (f.downNoted) this.note(`up:${nm}:${now2}`, 1, `✅ Bot Phản Xạ có lại dữ liệu ${nm}`, `Đã kết nối lại ${f.src}.`); f.downAt = 0; f.downNoted = false; }
     }
     for (const f of Object.values(this.F)) { f.rate = (f.n - f.n0) / 10; f.n0 = f.n; if (SRC[f.src]?.ping) for (const w of f.wss || []) { try { w.send(SRC[f.src].ping); } catch (e) { /* bỏ qua */ } } }
     if (this.where === "cf") await this.probeBinance().catch(() => {});
@@ -463,7 +463,7 @@ export class ScalpCore {
     const c = this.cfg, S = this.S;
     const day = vnDay(now), eqNow = this.equity();
     if (S.day.d !== day) {
-      const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot lướt giây – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
+      const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot Phản Xạ – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
       if (S.days) { const P = this.dayRec(0, S.day.d); P.eq0 ??= r2(S.day.eq0, 2); P.eq1 = r2(eqNow, 2); }
       S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
@@ -480,11 +480,11 @@ export class ScalpCore {
     try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
     try { this.hkvTick(now); } catch (e) { this.err("kiểm chứng bộ lọc " + e.message); }
     const dayPct = (eqNow / S.day.eq0 - 1) * 100;
-    if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
+    if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot Phản Xạ dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
     if (!S.pause && c.day_lock && c.day_target > 0 && dayPct >= c.day_target && !Object.keys(S.pos).length) {     // CHỐT NGÀY: đạt mục tiêu → giữ thành quả
       S.pause = { kind: "target", why: `đạt mục tiêu ngày +${dayPct.toFixed(2)}% (mục tiêu ${c.day_target}%) – chốt lời, ngừng mở lệnh thật tới hết ngày; lệnh ảo vẫn chạy để học`, until: null };
-      this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot lướt giây đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
+      this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot Phản Xạ đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
     }
     S.hk ||= {}; S.hkc ||= {}; S.byS ||= {};
     for (const [id, H] of Object.entries(S.hk)) if (now > H.exp) { delete S.hk[id]; if (!H.lv.some((l) => l.f)) this.say(now, `🪝 ${id.split(":")[0]}: hết ${c.hk_w} phút giá không xuống tới lệnh chờ – huỷ`, "info"); }
@@ -635,12 +635,12 @@ export class ScalpCore {
     if (!S.pause && R8.length >= 8 && R8.filter((t) => t.net < 0).length >= 6 && s8 < 0 && (!S.brk2 || now - S.brk2 > 3 * 3600e3)) {
       S.brk2 = now;
       S.pause = { kind: "brk", why: `${R8.filter((t) => t.net < 0).length}/8 lệnh lướt giây gần nhất thua (ròng ${s8.toFixed(0)} bps) trong 2 giờ – thị trường vừa đổi tính chất; nghỉ 60 phút (Bắt râu sập vẫn chạy)`, until: now + 3600e3 };
-      this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk2:${now}`, 2, "⛔ Bot lướt giây nghỉ 60 phút", S.pause.why);
+      this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk2:${now}`, 2, "⛔ Bot Phản Xạ nghỉ 60 phút", S.pause.why);
     }
     if (!S.pause && T.length >= 50 && T.reduce((a, t) => a + t.net, 0) < 0 && (!S.brk || now - S.brk > 3600e3)) {
       S.brk = now; S.kadd = Math.min(1, (S.kadd || 0) + 0.2);
       S.pause = { kind: "brk", why: `50 lệnh gần nhất ròng ${T.reduce((a, t) => a + t.net, 0).toFixed(1)} bps (âm) – phí đang ăn hết biên lời; nghỉ 30 phút, nâng ngưỡng vào lệnh lên ${(c.k + S.kadd).toFixed(1)}× chi phí khứ hồi`, until: now + 1800e3 };
-      this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk:${now}`, 2, "⛔ Bot lướt giây nghỉ 30 phút", S.pause.why);
+      this.say(now, `⛔ ${S.pause.why}`, "stop"); this.note(`brk:${now}`, 2, "⛔ Bot Phản Xạ nghỉ 30 phút", S.pause.why);
     }
   }
   // ---------------------------------------------------------------- RỦI RO TƯƠNG QUAN CỦA DANH MỤC

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // MyBit – BOT LƯỚT GIÂY chạy trên MÁY CHỦ RIÊNG (VPS), nối thẳng Binance futures + Binance spot.
 // Dùng chung bộ não với bản Cloudflare (../worker/scalp_core.js). Thiết lập đọc từ trang MyBit, trạng thái gửi về trang MyBit
-// qua cổng /api/scalp-runner, xác thực bằng khoá anh tạo trên trang (Bot lướt giây → Thiết lập → Nơi chạy → Tạo khoá).
+// qua cổng /api/scalp-runner, xác thực bằng khoá anh tạo trên trang (Bot Phản Xạ → Thiết lập → Nơi chạy → Tạo khoá).
 // Mặc định là SÀN THỬ. Chỉ khi anh tự cài khoá Binance (install.sh --binance) VÀ bật "Tài khoản Binance thật" trên trang thì
 // phương pháp Bắt râu sập mới đặt lệnh thật – xem scalper/live.mjs.
 //
@@ -26,7 +26,7 @@ const SITE = (process.env.MYBIT_SITE || "https://my-bit.pages.dev").replace(/\/+
 const KEY = (process.env.MYBIT_SCALP_KEY || "").trim().toLowerCase();
 const DIR = process.env.MYBIT_DATA || path.join(HERE, "data");
 const log = (...a) => console.log(new Date().toISOString().slice(0, 19).replace("T", " "), ...a);
-if (!/^[0-9a-f]{64}$/.test(KEY)) { log("❌ Thiếu MYBIT_SCALP_KEY (64 ký tự) trong scalper/.env – tạo khoá trên trang: Bot lướt giây → Thiết lập → Nơi chạy → Máy chủ riêng → Tạo khoá"); process.exit(1); }
+if (!/^[0-9a-f]{64}$/.test(KEY)) { log("❌ Thiếu MYBIT_SCALP_KEY (64 ký tự) trong scalper/.env – tạo khoá trên trang: Bot Phản Xạ → Thiết lập → Nơi chạy → Máy chủ riêng → Tạo khoá"); process.exit(1); }
 if (typeof WebSocket === "undefined") { log("❌ Cần Node.js ≥ 22 (có sẵn WebSocket)"); process.exit(1); }
 fs.mkdirSync(DIR, { recursive: true });
 
@@ -109,7 +109,7 @@ async function tick(first) {
   } catch (e) { log("⚠️", e.message); } finally { busy = false; }
 }
 async function main() {
-  log(`MyBit bot lướt giây – máy chủ riêng ${os.hostname()} · trang ${SITE}`);
+  log(`MyBit bot Phản Xạ – máy chủ riêng ${os.hostname()} · trang ${SITE}`);
   for (let i = 0; ; i++) {     // chờ trang MyBit trả lời (khoá đúng, gói Pro)
     try { await readCfg(); break; } catch (e) { log("⚠️ chưa kết nối được trang MyBit:", e.message); if (/HTTP 40[12]/.test(e.message) && i > 2) log("   → kiểm tra lại khoá trong scalper/.env (tạo khoá mới trên trang nếu cần)"); await new Promise((r) => setTimeout(r, 30000)); }
   }
