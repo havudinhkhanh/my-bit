@@ -38,23 +38,34 @@ async function load(path) {
 }
 async function tryLoad(path) { try { return await load(path); } catch (e) { return null; } }
 // thông báo nhỏ: điện thoại = banner thả xuống từ trên như iPhone (vuốt lên để ẩn, chạm để mở); máy tính = viên nhỏ phía dưới
+// thông báo nhỏ: thẻ kính mờ có biểu tượng theo loại (✓ xong · ! cảnh báo · ✕ lỗi · i thông tin), thanh thời gian, nút đóng, xếp chồng tối đa 3;
+// máy tính: góc dưới phải · điện thoại: trên cùng như iOS (vuốt lên để tắt). Rê chuột vào thì dừng đếm giờ.
 function toast(msg, o = {}) {
-  document.querySelectorAll(".toast").forEach((x) => x.__out?.());
-  const t = document.createElement("div");
-  t.className = "toast" + (o.title ? " ban" : ""); t.setAttribute("role", "status");
-  if (o.title) {
-    t.innerHTML = `<span class="ti"></span><span class="tb"><b></b><small></small></span><time>bây giờ</time>`;
-    t.querySelector(".ti").textContent = o.icon || "🔔"; t.querySelector("b").textContent = o.title; t.querySelector("small").textContent = msg || "";
-  } else t.textContent = msg;
-  document.body.appendChild(t);
-  let gone = false, y0 = null;
-  const out = () => { if (gone) return; gone = true; t.classList.add("out"); setTimeout(() => t.remove(), 340); };
+  msg = String(msg ?? "");
+  const tp = o.type || (/^(⛔|❌|Lỗi|Error|Không lưu|Chưa lưu được)/i.test(msg) ? "err" : /^(⚠️|Chưa|Không|Cần|Hãy)/.test(msg) ? "warn" : /^(✅|Đã|Đang lưu|Saved)/.test(msg) ? "ok" : "info");
+  const ICO = { ok: "✓", warn: "!", err: "✕", info: "i" };
+  let box = document.getElementById("toasts");
+  if (!box) { box = document.createElement("div"); box.id = "toasts"; box.setAttribute("aria-live", "polite"); document.body.appendChild(box); }
+  [...box.children].filter((x) => !x.classList.contains("out")).slice(0, -2).forEach((x) => x.__out?.());      // giữ tối đa 3 thẻ
+  const body = msg.replace(/^(✅|⚠️|⛔|❌)\s*/u, "");
+  const t = document.createElement("div"), ms = o.ms || (o.title ? 6500 : tp === "err" ? 6000 : tp === "warn" ? 4500 : 3200);
+  t.className = `toast t-${tp}${o.title ? " ban" : ""}${o.href ? " lnk" : ""}`; t.setAttribute("role", tp === "err" ? "alert" : "status");
+  t.innerHTML = `<span class="ti"></span><span class="tb"><b></b>${o.title ? "<small></small>" : ""}</span>${o.title ? `<time>${EN ? "now" : "bây giờ"}</time>` : ""}<button type="button" class="tx" aria-label="${EN ? "Close" : "Đóng"}">✕</button><i class="tp" style="animation-duration:${ms}ms"></i>`;
+  t.querySelector(".ti").textContent = o.icon || ICO[tp];
+  t.querySelector("b").textContent = o.title ? (o.icon && o.title.startsWith(o.icon) ? o.title.slice(o.icon.length).trim() : o.title) : body; if (o.title) t.querySelector("small").textContent = body;
+  box.appendChild(t);
+  let gone = false, y0 = null, left = ms, t0 = Date.now(), tm = 0;
+  const out = () => { if (gone) return; gone = true; clearTimeout(tm); t.classList.add("out"); setTimeout(() => t.remove(), 320); };
+  const run = () => { t0 = Date.now(); clearTimeout(tm); tm = setTimeout(out, left); t.classList.remove("hold"); };
   t.__out = out;
+  t.addEventListener("mouseenter", () => { left = Math.max(800, left - (Date.now() - t0)); clearTimeout(tm); t.classList.add("hold"); });
+  t.addEventListener("mouseleave", run);
+  t.querySelector(".tx").addEventListener("click", (e) => { e.stopPropagation(); out(); });
   t.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; t.style.transition = "none"; }, { passive: true });
   t.addEventListener("touchmove", (e) => { if (y0 != null) t.style.transform = `translateY(${Math.min(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
   t.addEventListener("touchend", (e) => { if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; t.style.transition = ""; t.style.transform = ""; if (dy < -24) { t.__swiped = 1; out(); } });
   t.addEventListener("click", () => { if (t.__swiped) return; out(); if (o.href) location.hash = o.href.replace(/^[^#]*#/, "#"); });
-  setTimeout(out, o.ms || (o.title ? 6000 : 2600));
+  run();
 }
 function scoreColor(v) {
   if (!isNum(v)) return "var(--sunk)";
