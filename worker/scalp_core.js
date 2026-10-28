@@ -20,7 +20,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_fund: 50, hk_rev: 2,
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 2,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
@@ -72,7 +72,7 @@ function norm(c) {
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
-  c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot;
+  c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_env = c.lv_env === "live" ? "live" : "demo";
   if (!c.fut && !c.spot) c.fut = true;
   return c;
@@ -797,7 +797,9 @@ export class ScalpCore {
     SK.push(now); S.hkShk[x.id] = SK.slice(-30);
     // "xả sau bơm": 15 phút trước cú sốc giá đã chạy CÙNG hướng lệnh > hk_r15 bps (vd. vừa bơm +1% rồi sập) → cú sốc là xả hàng, ít bật lại.
     // Vòng 5: nhóm này TB −56 bps/lệnh, thua 3/4 nửa năm; bỏ đi (cùng chờ ≤ 8p, khối lượng ≥ 8×) → lợi nhuận 22 tháng +23% → +51%, sụt tối đa −20% → −9%.
-    if (c.hk_r15 && n >= 18 && L[n - 17][1] > 0) {
+    // Vòng 7 (research/r7_port.py, 01/2025–10/2026, mô phỏng tối đa 6 lệnh cùng lúc): với Long, các lệnh bộ lọc này chặn TB +91 bps (chặn nhầm lệnh lời),
+    // với Short TB −109 bps (chặn đúng) → chỉ áp cho Short: lợi nhuận 22 tháng +40% → +49%, sụt tối đa 13,4% → 12,8%. hk_r15L = true để áp lại cho cả Long.
+    if (c.hk_r15 && (side < 0 || c.hk_r15L) && n >= 18 && L[n - 17][1] > 0) {
       const r15 = side * (prev[1] / L[n - 17][1] - 1) * 1e4;
       if (r15 > c.hk_r15) { H.r15 = (H.r15 || 0) + 1; this.dayRec(now).r15 = (this.dayRec(now).r15 || 0) + 1; H.last.why = `15 phút trước đó giá vừa ${side > 0 ? "tăng" : "giảm"} ${(r15 / 100).toFixed(1)}% – cú sốc là xả sau bơm, ít bật lại, không bắt`; V("r15"); this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
     }

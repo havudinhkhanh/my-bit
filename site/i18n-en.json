@@ -4350,5 +4350,7 @@
 "R:R dưới 1,5 – lời không đủ bù rủi ro nếu tỉ lệ thắng dưới 40%.": "R:R below 1.5 – profit won't cover risk if win rate is under 40%.",
 "Trong mức đòn bẩy cho phép": "Within allowed leverage",
 "Sợ hãi & Tham lam (0–100)": "Fear & Greed (0–100)",
-"Funding trung bình 8 giờ": "Average 8h funding"
+"Funding trung bình 8 giờ": "Average 8h funding",
+"Bỏ \"xả sau bơm\" (chỉ lệnh Short): 15 phút đã chạy cùng hướng >": "Skip \"dump after pump\" (Short only): 15 min already moved same way >",
+"0 = tắt · Long không lọc vì kiểm chứng cho thấy chặn nhầm lệnh lời": "0 = off · Longs not filtered – testing showed it blocked winning trades"
 }
