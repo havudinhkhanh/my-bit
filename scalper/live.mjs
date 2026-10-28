@@ -90,7 +90,13 @@ export class LiveExec {
     return W;
   }
   async wallets() {
-    for (const env of ["demo", "live"]) { if (!this.keys(env)) continue; try { const W = await this.wallet(env); if (W) (this.S.wal ||= {})[env] = W; } catch (e) { ((this.S.wal ||= {})[env] ||= {}).err = [e.message]; } }
+    for (const env of ["demo", "live"]) {
+      if (!this.keys(env)) continue;
+      try {
+        const W = await this.wallet(env); if (W) (this.S.wal ||= {})[env] = W;
+        if (W?.fut?.margin > 0) { const E = ((this.S.eqH ||= {})[env] ||= []); E.push([Math.floor(Date.now() / 60000), W.fut.margin]); if (E.length > 2100) E.splice(0, E.length - 2100); }      // tài sản futures (gồm lãi/lỗ đang mở), 7 ngày
+      } catch (e) { ((this.S.wal ||= {})[env] ||= {}).err = [e.message]; }
+    }
     this.save();
   }
   // ---------------------------------------------------------------- kiểm tra tài khoản (mỗi 5 phút)
@@ -135,7 +141,7 @@ export class LiveExec {
   onHook(h) { this.q.push(h); }
   async place(h) {
     const c = this.cfg(), env = this.env(), now = Date.now(), base = h.id.split(":")[0];
-    const skip = (why) => this.say(`Bỏ qua ${base}: ${why}`);
+    const skip = (why) => { this.say(`Bỏ qua ${base}: ${why}`); this.missAdd({ k: h.id, side: h.side, R: h.R, t0: iso(now), what: "skip", why }); };
     if (!this.enabled()) return;
     if (!h.id.endsWith(":F")) return skip("chỉ đánh futures");
     if (!this.st.ok) return skip(`tài khoản chưa sẵn sàng – ${this.st.why}`);
@@ -161,7 +167,7 @@ export class LiveExec {
       await this.req("POST", "/fapi/v1/leverage", { symbol: sym, leverage: c.lv_lev }); this.lev[sym] = c.lv_lev;
     }
     const id = `${this.S.seq++}`, side = h.side;
-    const ev = { id, k: h.id, sym, side, t0: now, exp: h.exp, hold: h.hold, stopPct: h.stop, R: h.R, env, done: false, pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0,
+    const ev = { id, k: h.id, sym, side, t0: now, exp: h.exp, hold: h.hold, stopPct: h.stop, R: h.R, c0: h.c0, env, done: false, pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0,
       lv: lv.map((l, i) => { const px = side > 0 ? fl(l.px, F.tick) : ce(l.px, F.tick), q = Math.max(fl(per / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
     if (!ev.lv.length) return skip("khối lượng sau làm tròn nhỏ hơn mức tối thiểu của sàn");
     this.S.ev[id] = ev; this.save();
@@ -233,8 +239,10 @@ export class LiveExec {
     const rH = B.length ? Math.max(...B.map((b) => b[2])) : null, rL = B.length ? Math.min(...B.map((b) => b[3])) : null, rr = ev.side > 0 ? rL : rH;
     const realHit = rr != null && (ev.side > 0 ? rr <= lvl : rr >= lvl), nm = ev.env === "live" ? "sàn thật" : "Demo";
     ev.miss = { hi, lo, rH, rL, lvl };
+    this.missAdd({ k: ev.k, side: ev.side, R: ev.R, t0: iso(ev.t0), what: "nofill", reach: +reach.toPrecision(6), lvl: +lvl.toPrecision(6), gap: +gap.toFixed(2), real: rr != null ? +rr.toPrecision(6) : null, realHit });
     this.say(`🔍 ${ev.sym}: ${nm} ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+reach.toPrecision(6)} – còn cách mức chờ gần nhất ${+lvl.toPrecision(6)} ${gap.toFixed(2)}%${rr != null ? ` · giá Binance thật (sàn thử dùng) ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+rr.toPrecision(6)}${realHit ? " – ĐÃ chạm mức chờ" : " – cũng chưa chạm"}` : ""}${realHit && ev.env !== "live" ? ". Sàn Demo có sổ lệnh riêng, râu nến lúc sốc thường ngắn hơn sàn thật → lệnh chờ sâu khó khớp trên Demo." : ""}`);
   }
+  missAdd(m) { const env = this.env(); this.S.miss = [...(this.S.miss || []).slice(-79), { ...m, env }]; }
   addFill(ev, q, px) {
     const c = this.cfg(), P = ev.pos, nq = P.q + q;
     P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.fees += q * px * c.fee_m / 100; ev.needStop = true;
@@ -300,7 +308,7 @@ export class LiveExec {
     ev.done = true; ev.exit = px; ev.pnl = +pnl.toFixed(4); ev.fund = +fund.toFixed(4); ev.why = why; ev.t2 = Date.now();
     this.S.day.pnl += pnl; this.S.tot.n++; this.S.tot.pnl += pnl; this.S.tot.fees += fee; if (pnl > 0) this.S.tot.win++;
     this.dayAdd(ev, pnl, fee, px, why);
-    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env }];
+    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env }];
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `💵 ${ev.env === "live" ? "LỆNH THẬT" : "Demo"}: ${ev.sym} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`);
@@ -333,7 +341,7 @@ export class LiveExec {
   summary() {
     const c = this.cfg();
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) }, tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
-      ev: this.active().map((e) => ({ id: e.id, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-30), log: this.S.log.slice(-30), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])) };
+      ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.fees || 0).toFixed(4), sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
+      hist: this.S.hist.slice(-80), log: this.S.log.slice(-40), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])) };
   }
 }
