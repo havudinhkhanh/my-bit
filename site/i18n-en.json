@@ -4352,5 +4352,7 @@
 "Sợ hãi & Tham lam (0–100)": "Fear & Greed (0–100)",
 "Funding trung bình 8 giờ": "Average 8h funding",
 "Bỏ \"xả sau bơm\" (chỉ lệnh Short): 15 phút đã chạy cùng hướng >": "Skip \"dump after pump\" (Short only): 15 min already moved same way >",
-"0 = tắt · Long không lọc vì kiểm chứng cho thấy chặn nhầm lệnh lời": "0 = off · Longs not filtered – testing showed it blocked winning trades"
+"0 = tắt · Long không lọc vì kiểm chứng cho thấy chặn nhầm lệnh lời": "0 = off · Longs not filtered – testing showed it blocked winning trades",
+"↑ tăng tốc / ↓ chậm lại": "↑ speeding up / ↓ slowing",
+"mạnh hơn BTC →": "stronger than BTC →"
 }

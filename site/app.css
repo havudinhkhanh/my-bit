@@ -1996,6 +1996,10 @@ table.ot .oc-bar{width:60px;margin-left:auto}
 table.ot tr.dim{opacity:.45}
 .omap .ob text.obn{fill:#fff;font-size:9px}
 .omap-w{grid-template-columns:minmax(0,1fr) 340px}
+/* bản đồ cơ hội: khung hẹp (điện thoại, máy tính bảng, máy tính có mở bảng phụ) → bản đồ trên, xếp hạng dưới, không ép bản đồ quá hẹp */
+.panel:has(> .omap-w){container-type:inline-size}
+@container (max-width:720px){.omap-w{grid-template-columns:minmax(0,1fr)}}
+@supports not (container-type:inline-size){@media (max-width:760px){.omap-w{grid-template-columns:minmax(0,1fr)}}}
 .otr{grid-template-columns:18px minmax(0,1fr) auto 62px;gap:6px;padding:5px 8px}
 .otk{min-width:0}.otk small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .otr .pill{font-size:.58rem;white-space:nowrap}
