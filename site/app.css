@@ -2641,3 +2641,17 @@ body.pn-mini .pnfab{left:auto!important}
   .tabs .nav-g:first-child{display:none!important}
   .tabs .nav-g i,.tabs .nav-g b,.tabs .nav-g em,.tabs .nav-g::after{display:none!important}
 }
+/* bảng tự gọn khi rộng hơn khung (xem twFit trong app.js) */
+.tw.fit>table th{white-space:normal;line-height:1.2;vertical-align:bottom}
+.tw.fit>table th,.tw.fit>table td{padding-left:6px;padding-right:6px}
+.tw.fit2>table{font-size:.94em}
+.tw.over:not(.end){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+.tw.fit2 .ck small{display:none}.tw.fit2>table td{white-space:nowrap}
+.tw-stack{grid-template-columns:minmax(0,1fr)!important}.tw-stack>*{grid-column:auto!important}
+
+/* giao diện sáng: tấm bảng (Đèn thị trường ở Tổng quan, ô tóm tắt Cơ hội…) theo nền sáng thay vì giữ nền tối */
+:root[data-theme="light"] .deck,:root[data-theme="light"] .panel.hero{--surface:inherit;--sunk:inherit;--sunk-2:inherit;--ink:inherit;--ink-2:inherit;--ink-3:inherit;--line:inherit;--line-2:inherit;--brand:inherit;--brand-2:inherit;--brand-ink:inherit;--up:inherit;--down:inherit;--ref:inherit;--ceil:inherit;--floor:inherit;--up-bg:inherit;--down-bg:inherit;--ref-bg:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line-2)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .deck,:root:not([data-theme="dark"]) .panel.hero{--surface:inherit;--sunk:inherit;--sunk-2:inherit;--ink:inherit;--ink-2:inherit;--ink-3:inherit;--line:inherit;--line-2:inherit;--brand:inherit;--brand-2:inherit;--brand-ink:inherit;--up:inherit;--down:inherit;--ref:inherit;--ceil:inherit;--floor:inherit;--up-bg:inherit;--down-bg:inherit;--ref-bg:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line-2)}}
+:root[data-theme="light"] .deck .dk.hlb,:root[data-theme="light"] .panel.hero .big.hlb{background:var(--brand-2)}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .deck .dk.hlb,:root:not([data-theme="dark"]) .panel.hero .big.hlb{background:var(--brand-2)}}
+.mguide{margin:0 0 12px}.mguide summary{cursor:pointer;font-weight:600;padding:2px 0;list-style:none}.mguide summary::-webkit-details-marker{display:none}.mguide .why{margin:8px 0 0}.mguide kbd{font-size:.72rem;padding:0 4px;border:1px solid var(--line);border-radius:4px}

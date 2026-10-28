@@ -4369,5 +4369,22 @@
 "hết hạn": "expired",
 "cách mức gần": "from nearest level",
 "đóng sau": "closes in",
-"bot chưa gửi số liệu": "bot hasn't reported for"
+"bot chưa gửi số liệu": "bot hasn't reported for",
+"⚙️ Cài đặt chung": "⚙️ General settings",
+"dùng cho Lên kế hoạch lệnh, Tính lệnh, Sàn thử, bảng phụ": "used by Trade plan, Size calc, Paper trading, side panel",
+"Rủi ro mỗi lệnh (% vốn, tối đa 2)": "Risk per trade (% of capital, max 2)",
+"Giao diện": "Theme",
+"Tối": "Dark",
+"Sáng": "Light",
+"Ngôn ngữ": "Language",
+"Lưu cài đặt": "Save settings",
+"Đã lưu cài đặt": "Settings saved",
+"⚡ Nhật ký Bot Phản Xạ": "⚡ Reflex Bot log",
+"Lỗ tối đa mỗi lệnh = vốn × % rủi ro. Đòn bẩy do hệ thống kiểm soát theo đèn thị trường & biến động – xem ở": "Max loss per trade = capital × risk %. Leverage is capped by the system from the market light & volatility – see",
+"Đã nhập danh mục thì hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.": "Once your portfolio is entered, real total equity is used instead of trading capital.",
+"Bot của anh lúc này": "Your bots now",
+"Sàn thử của anh": "Your paper account",
+"Danh mục của anh": "Your portfolio",
+"Kiểm chứng cho thấy": "Backtests show",
+"Bot phút": "Minute bots"
 }

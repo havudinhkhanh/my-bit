@@ -231,6 +231,49 @@ function czToggle(box, mode) {
 }
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cz]"); if (!b) return; e.preventDefault(); czToggle(b.closest(".cbox, .lwbox"), b.dataset.cz); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czToggle(f, "full"); } });
+// ---------------------------------------------------------------- BẢNG TỰ GỌN: bảng rộng hơn khung (máy tính có mở bảng phụ, máy tính bảng…)
+// Bước 1: tiêu đề được xuống dòng + bớt khoảng cách · Bước 2: chữ nhỏ hơn chút · Bước 3: ẩn cột phụ (theo tên cột) · còn tràn thì mờ mép phải để biết còn cột.
+// Màn hình rộng không tràn → bảng y như cũ.
+const TW_OPT = [/^Phân vị/, /^Funding TB/, /^OI 24h/, /^Kỳ$/, /^Mua & giữ sụt/, /^Lệnh$/, /^Thắng$/, /^2 năm gần/, /^Số ngày$/, /^180 ngày sau/, /^Xấu nhất/, /^Bán rã/, /^Giữ$/, /^Lẽ ra/, /^Trễ tốt nhất/, /^Mạnh nhất 7n/, /^Đang tăng$/, /^KL 24h$/, /^Số lần/, /^Tới MT1/, /^90 ngày$/, /^Giá \/ BTC/, /^Funding năm/, /^Percentile/, /^Avg funding/];
+let TWN = 0;
+function twFit(tw) {
+  const t = tw.querySelector(":scope > table"); if (!t || !t.offsetWidth) return;
+  tw.classList.remove("fit", "fit2", "over", "end"); t.removeAttribute("data-tfh");
+  const ov = () => t.scrollWidth - tw.clientWidth > 2;
+  if (!ov()) return;
+  tw.classList.add("fit"); if (!ov()) return;
+  tw.classList.add("fit2"); if (!ov()) return;
+  const hs = [...t.querySelectorAll(":scope > thead > tr:last-child > th")];
+  if (hs.length && !hs.some((h) => h.colSpan > 1)) {
+    const idx = hs.map((h, i) => (TW_OPT.some((rx) => rx.test(h.textContent.trim())) ? i + 1 : 0)).filter(Boolean);
+    if (idx.length) {
+      t.dataset.tf ||= String(++TWN);
+      let st = $("#twfit-" + t.dataset.tf); if (!st) { st = document.createElement("style"); st.id = "twfit-" + t.dataset.tf; document.head.appendChild(st); }
+      // ẩn từng cột phụ (từ phải sang) tới khi vừa
+      for (let k = idx.length; k >= 1; k--) {
+        const hide = idx.slice(k - 1);
+        st.textContent = hide.map((n) => `table[data-tf="${t.dataset.tf}"][data-tfh] tr>:nth-child(${n})`).join(",") + "{display:none}";
+        t.setAttribute("data-tfh", ""); if (!ov()) break;
+      }
+    }
+  }
+  if (ov()) { tw.classList.add("over"); const f = () => tw.classList.toggle("end", tw.scrollLeft + tw.clientWidth >= tw.scrollWidth - 4); f(); tw.onscroll = f; }
+}
+let twRq = 0;
+// vẫn tràn sau khi gọn & ẩn cột phụ, và bảng nằm trong lưới 2 cột (vd. 2 bảng funding cạnh nhau khi mở bảng phụ) → lưới đó xếp 1 cột cho bảng đủ chỗ
+const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
+  twRq = 0;
+  $$("#app .tw-stack").forEach((g) => g.classList.remove("tw-stack"));
+  const tws = $$("#app .tw"); tws.forEach(twFit);
+  const grids = new Set();
+  tws.forEach((tw) => { if (!tw.classList.contains("over")) return; let g = tw.closest(".panel")?.parentElement;
+    for (let k = 0; g && g.id !== "app" && k < 3; k++, g = g.parentElement) { const cs = getComputedStyle(g); if (cs.display === "grid" && cs.gridTemplateColumns.split(" ").length === 2) { grids.add(g); return; } } });
+  if (!grids.size) return;
+  grids.forEach((g) => g.classList.add("tw-stack"));
+  grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit));
+}); };
+new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches?.(".tw, table") || n.querySelector?.(".tw"))))) twAll(); }).observe(document.documentElement, { childList: true, subtree: true });
+{ let tr = 0; addEventListener("resize", () => { clearTimeout(tr); tr = setTimeout(twAll, 150); }); }
 // biểu đồ mới chèn vào trang → gắn ngay trong khung hình kế tiếp (gộp nhiều lần chèn liền nhau thành 1 lần quét)
 let cbRq = 0;
 new MutationObserver((ms) => { if (!cbRq && ms.some((m) => m.addedNodes.length && [...m.addedNodes].some((n) => n.nodeType === 1))) cbRq = requestAnimationFrame(() => { cbRq = 0; cbMount(); }); }).observe(document.documentElement, { childList: true, subtree: true });
@@ -604,7 +647,7 @@ async function route() {
     else if (r === "portfolio") { setTab("portfolio"); await viewPortfolio(); }
     else if (r === "tools") { setTab("tools"); await viewTools(arg[0]); }
     else if (r === "backtest") { setTab("backtest"); await viewBacktest(); }
-    else if (r === "help") { setTab(""); await viewHelp(); }
+    else if (r === "help") { window.__openHelp = true; location.replace("#/methods"); return; }      // Hướng dẫn đã gộp vào Phương pháp
     else if (r === "methods") { setTab("methods"); await viewMethods(arg[0]); }
     else if (r === "account") { setTab(""); await viewAccount(); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
@@ -4114,6 +4157,21 @@ async function viewMethods(id) {
   const IDX = METHODS.map((m) => ({ m, n: fold(m[2] + " " + m[3] + " " + m[0]), b: fold(Object.values(m[4]).join(" ") + " " + Object.values(m[5]).join(" ")) }));
   let cur = METHODS.find((m) => m[0] === id) || METHODS[0], q = "", grp = "", PH = [];
   app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Phương pháp – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
+    ${en ? `<section class="panel mguide"><details id="mHelp"><summary>🧭 What MyBit does – overview & how to use it</summary><ul class="why">
+      <li><b>Market</b>: market light, sentiment, on-chain, derivatives, sectors – data every 4 hours, live prices every second from Binance.</li>
+      <li><b>Find opportunities</b>: <a href="#/ideas">Today's opportunities</a> – historically tested SMC/trend setups on 4h & daily, plus 🪝 wick catcher (1-minute shocks found by Reflex Bot); live <a href="#/radar">Radar</a>; <a href="#/pairs">Coins moving together</a>.</li>
+      <li><b>Place trades</b>: <a href="#/plan">Trade plan</a> computes entry, stop and size; <b>leverage is capped by the system</b> from the market light & volatility. <a href="#/paper">Paper trading</a> works like a real exchange with virtual money; <a href="#/portfolio">Portfolio</a> tracks real holdings.</li>
+      <li><b>Bots</b>: minute bots on paper; <a href="#/bot/scalp">Reflex Bot</a> on your own server (scalping + wick catcher) – only the wick catcher connects to Binance Demo/live, API keys stay on the server with no withdrawal rights; <a href="#/bot/sup">Supervisor</a> manages overall risk.</li>
+      <li><b>Learn & test</b>: this page explains each concept; <a href="#/backtest">Backtests</a> replay rules on history (fees, slippage, funding included).</li>
+      <li><b>Side panel</b> (right column / ☰ on phones): Summary · Jump to (key <kbd>/</kbd>) · Mine (watchlist, positions, bots) · Size calc. Set capital & risk in <a href="#/account">Account</a>.</li>
+      <li>All signals come from fixed rules & past statistics – not investment advice, no guaranteed results. Always place a stop on the exchange.</li></ul></details></section>` : `<section class="panel mguide"><details id="mHelp"><summary>🧭 MyBit làm gì – tổng quan & cách dùng</summary><ul class="why">
+      <li><b>Thị trường</b> (đang ra sao?): đèn thị trường, tâm lý, on-chain, phái sinh, nhóm ngành – số liệu cập nhật mỗi 4 giờ, giá trực tiếp từng giây từ Binance.</li>
+      <li><b>Tìm cơ hội</b> (lệnh nào?): <a href="#/ideas">Cơ hội hôm nay</a> – thiết lập SMC/xu hướng khung 4 giờ & ngày đã kiểm chứng lịch sử, kèm 🪝 Bắt râu sập (cú sốc 1 phút do Bot Phản Xạ phát hiện); <a href="#/radar">Radar</a> quét trực tiếp; <a href="#/pairs">Coin cùng nhịp</a>.</li>
+      <li><b>Vào lệnh</b> (vào thế nào?): <a href="#/plan">Lên kế hoạch lệnh</a> tính giá vào, cắt lỗ, khối lượng; <b>đòn bẩy do hệ thống kiểm soát</b> theo đèn thị trường & biến động. <a href="#/paper">Sàn thử</a> đặt lệnh y như sàn thật bằng tiền ảo; <a href="#/portfolio">Danh mục</a> theo dõi tài sản thật.</li>
+      <li><b>Bot tự động</b>: bot phút chạy trên sàn thử; <a href="#/bot/scalp">Bot Phản Xạ</a> chạy trên máy chủ riêng (lướt giây + Bắt râu sập) – chỉ Bắt râu sập được nối Binance Demo/thật, khoá API chỉ nằm trên máy chủ và không có quyền rút tiền; <a href="#/bot/sup">Bot giám sát</a> quản rủi ro chung.</li>
+      <li><b>Học & kiểm chứng</b>: trang này giải thích từng khái niệm; <a href="#/backtest">Kiểm chứng</a> chạy lại quy tắc trên dữ liệu lịch sử (đã trừ phí, trượt giá, funding).</li>
+      <li><b>Bảng phụ</b> (cột phải / nút ☰ trên điện thoại): Tóm tắt trang · Đi tới mục (phím <kbd>/</kbd>) · Của tôi (theo dõi, vị thế, bot) · Tính lệnh. Cài vốn & rủi ro ở <a href="#/account">Tài khoản</a>.</li>
+      <li>Mọi tín hiệu đến từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn.</li></ul></details></section>`}
     <div class="mlay">
       <aside class="mside panel">
         <label class="msearch sbx-s"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="mq" type="search" autocomplete="off" placeholder="${en ? "Search: BOS, funding, MVRV…" : "Tìm: BOS, funding, định giá…"}"><kbd>/</kbd></label><small id="mcnt" class="mcnt"></small>
@@ -4122,6 +4180,7 @@ async function viewMethods(id) {
       </aside>
       <article id="mdet" class="mdet"></article>
     </div></div>`;
+  if (window.__openHelp) { window.__openHelp = false; const d = $("#mHelp"); if (d) d.open = true; }
   const list = () => {
     const f = fold(q).trim().replace(/\s+/g, " "), words = f.split(" ").filter(Boolean);
     const wb = (t, w) => new RegExp("(^|[^a-z0-9])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).test(t);
@@ -4469,15 +4528,6 @@ async function viewBacktest() {
   </div>`;
 }
 
-async function viewHelp() {
-  app().innerHTML = `<div class="ph"><h1>Hướng dẫn</h1></div>${panel("Hệ thống làm gì", `<ul class="why">
-    <li><b>Định giá thực tế:</b> dùng phí/doanh thu on-chain (DefiLlama), phần về tay người giữ token, áp lực mở khoá và lạm phát cung, so với nhóm cùng ngành; hỏi ngược "giá hiện tại cần dòng tiền tăng bao nhiêu %/năm". Bitcoin định giá bằng MVRV, giá vốn toàn mạng, mô hình luỹ thừa.</li>
-    <li><b>Theo xu hướng (đòn bẩy thấp):</b> tín hiệu khung ngày, cắt lỗ 2×ATR, kiểm chứng lịch sử từng coin.</li>
-    <li><b>Lướt trong ngày:</b> xu hướng 4h, điểm vào 1h quanh EMA20, cắt lỗ 1,5×ATR, chốt 1,5R/2,5R.</li>
-    <li><b>Phòng hộ / basis:</b> beta với BTC, funding khi bán perp, cơ hội carry (mua spot + bán perp).</li>
-    <li><b>Futures:</b> funding, OI, basis gộp Bitget/OKX/Gate/Hyperliquid; OI & long/short Binance theo ngày.</li>
-    <li>Cập nhật mỗi 4 giờ. Hệ thống <b>không</b> kết nối tài khoản sàn, không đặt lệnh.</li></ul>`)}`;
-}
 
 // ================================================================ khung: giao diện, tìm kiếm, dải giá
 function initTheme() {
@@ -4606,7 +4656,7 @@ function bindNtf(root) {
   $$("[data-nid]", root).forEach((a) => a.addEventListener("click", () => { if (a.classList.contains("new")) api("notifications/read", "POST", { ids: [Number(a.dataset.nid)] }).then(bellCount).catch(() => {}); $("#bellBox")?.remove(); }));
 }
 async function viewNotifications() {
-  if (!multiUser()) { app().innerHTML = `<div class="empty">Thông báo trên web có khi trang chạy chế độ nhiều người dùng. Hiện thông báo gửi qua Telegram (nếu đã cài).</div>`; return; }
+  if (!multiUser()) { app().innerHTML = `<div class="ph"><h1>Thông báo</h1></div><div class="panel"><p>Thông báo trên web (chuông, đẩy về điện thoại, email) có khi trang chạy chế độ nhiều người dùng. Hiện thông báo gửi qua Telegram (nếu đã cài).</p><p><a class="btn" href="#/account">⚙️ Cài đặt chung</a> <a class="btn" href="#/bot/scalp">⚡ Nhật ký Bot Phản Xạ</a></p></div>`; return; }
   let items = [], more = true;
   const draw = () => {
     const by = {};
@@ -4647,9 +4697,32 @@ async function pushDisable() {
 }
 
 // ---- trang tài khoản
+// cài đặt chung dùng cho cả web: vốn & rủi ro (Lên lệnh, Tính lệnh, Sàn thử…), giao diện, ngôn ngữ
+function acTradeHtml() {
+  const th = document.documentElement.dataset.theme === "light" ? "light" : "dark", en = I18N.lang === "en";
+  return `<section class="panel sec" id="acTrade"><div class="ph"><h2>⚙️ Cài đặt chung</h2><span class="meta">dùng cho Lên kế hoạch lệnh, Tính lệnh, Sàn thử, bảng phụ</span></div>
+    <div class="filters">
+      <div class="field"><label for="acA">Vốn giao dịch (USD)</label><input id="acA" type="number" min="10" step="any" value="${esc(setting("acct", 10000))}"></div>
+      <div class="field"><label for="acR">Rủi ro mỗi lệnh (% vốn, tối đa 2)</label><input id="acR" type="number" min="0.1" max="2" step="0.1" value="${esc(setting("risk", 1))}"></div>
+      <div class="field"><label for="acTh">Giao diện</label><select id="acTh"><option value="dark" ${th === "dark" ? "selected" : ""}>Tối</option><option value="light" ${th === "light" ? "selected" : ""}>Sáng</option></select></div>
+      <div class="field"><label for="acLg">Ngôn ngữ</label><select id="acLg"><option value="vi" ${!en ? "selected" : ""}>Tiếng Việt</option><option value="en" ${en ? "selected" : ""}>English</option></select></div>
+      <button class="btn primary" id="acTS">Lưu cài đặt</button></div>
+    <p class="faint" style="font-size:.74rem">Lỗ tối đa mỗi lệnh = vốn × % rủi ro. Đòn bẩy do hệ thống kiểm soát theo đèn thị trường & biến động – xem ở <a href="#/portfolio">Danh mục</a>. Đã nhập danh mục thì hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</p></section>`;
+}
+function acTradeBind() {
+  const b = $("#acTS"); if (!b) return;
+  b.onclick = async () => {
+    const a = Math.max(10, Number($("#acA").value) || 10000), r0 = Number($("#acR").value) || 1, r = Math.min(2, Math.max(0.1, r0));
+    try { await saveSettings({ acct: a, risk: r }); } catch (e) { toast("Chưa lưu được: " + e.message); return; }
+    const th = $("#acTh").value; if (th !== (document.documentElement.dataset.theme === "light" ? "light" : "dark")) { lsSet("theme", th); document.documentElement.dataset.theme = th; themeMeta(); setTimeout(route, 60); }
+    toast(r < r0 ? "Rủi ro tối đa 2%/lệnh – đã giới hạn" : "Đã lưu cài đặt");
+    if ($("#acLg").value !== I18N.lang) { lsSet("lang", $("#acLg").value); setTimeout(() => location.reload(), 400); }
+    $("#pncalc") && ($("#pncalc").innerHTML = "", pcRoute());
+  };
+}
 async function viewAccount() {
-  await plansData();
-  if (!multiUser()) { app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; return; }
+  await Promise.all([plansData(), loadSettings()]);
+  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div>${acTradeHtml()}<div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); return; }
   const [np, ps, subs] = await Promise.all([api("notify").catch(() => ({})), pushState(), api("push/list").catch(() => ({ subs: [] }))]);
   const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
@@ -4664,6 +4737,7 @@ async function viewAccount() {
         <div class="field"><label for="pwNew">Mật khẩu mới (≥ 8 ký tự)</label><input id="pwNew" type="password" autocomplete="new-password"></div><button class="btn" id="pwSave">${ME.has_pw ? "Đổi mật khẩu" : "Đặt mật khẩu"}</button></div>
       <p style="margin-top:10px"><button class="btn" id="acOut">Đăng xuất</button> <button class="btn" id="acOutAll">Đăng xuất mọi thiết bị</button></p></section>
   </div>
+  ${acTradeHtml()}
   <section class="panel sec"><div class="ph"><h2>Nhận thông báo</h2><span class="meta">chuông trên web luôn bật</span></div>
     <div class="g g2">
       <div><h3>Thông báo đẩy (điện thoại / máy tính)</h3>
@@ -4682,6 +4756,7 @@ async function viewAccount() {
   <section class="panel sec">${planTable()}<p class="muted" style="margin-top:6px">Muốn nâng cấp hoặc gia hạn gói, liên hệ quản trị viên.</p></section>`;
   $("#acSave").onclick = async () => { try { const j = await api("auth/profile", "POST", { name: $("#acName").value }); ME = { ...ME, ...j.me }; toast("Đã lưu"); } catch (e) { toast(e.message); } };
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
+  acTradeBind();
   $("#acOut").onclick = logout;
   $("#acOutAll").onclick = async () => { await api("auth/logout_all", "POST").catch(() => {}); clearLocal(); location.href = "/login"; };
   if ($("#puOn")) $("#puOn").onclick = async () => { try { await pushEnable(); toast("Đã bật thông báo đẩy"); viewAccount(); } catch (e) { toast(e.message); } };
@@ -4776,7 +4851,7 @@ function initAccountUI() {
     m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu";
     m.style.top = Math.round(meb.getBoundingClientRect().bottom + 6) + "px";
     m.innerHTML = `<div class="mh"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small><span class="pill ${ME.eff_plan === "pro" ? "buy" : ""}">Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? " · đến " + esc(ME.plan_until) : ""}</span></div>
-      <a href="#/notifications">🔔 Thông báo</a><a href="#/account">⚙️ Tài khoản & cài đặt</a><a href="#/help">❓ Hướng dẫn & FAQ</a>${ME.role === "admin" ? '<a href="#/admin">🛠️ Quản trị</a>' : ""}<button id="meOut">↩ Đăng xuất</button>`;
+      <a href="#/notifications">🔔 Thông báo</a><a href="#/account">⚙️ Tài khoản & cài đặt</a><a href="#/methods">❓ Hướng dẫn & FAQ</a>${ME.role === "admin" ? '<a href="#/admin">🛠️ Quản trị</a>' : ""}<button id="meOut">↩ Đăng xuất</button>`;
     document.body.appendChild(m);
     $("#meOut").onclick = logout;
     m.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => m.remove()));
