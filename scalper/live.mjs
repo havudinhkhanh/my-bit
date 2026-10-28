@@ -219,16 +219,34 @@ export class LiveExec {
     await this.cancelStop(ev);
     await this.finish(ev, why, px, q > 0 ? "" : "vị thế đã đóng trước đó");
   }
+  // Lời/lỗ THẬT từ sổ thu chi của sàn (income): lời lỗ giá đã chốt, phí giao dịch, phí FUNDING trong lúc giữ lệnh. Không đọc được → dùng ước tính.
+  async income(ev) {
+    try {
+      await new Promise((r) => setTimeout(r, 1500));      // sàn ghi sổ chậm vài trăm ms sau lệnh đóng
+      const L = await this.req("GET", "/fapi/v1/income", { symbol: ev.sym, startTime: String((ev.t0 || Date.now()) - 5000), endTime: String(Date.now() + 5000), limit: "1000" });
+      const o = { rp: 0, com: 0, fund: 0, n: 0, other: false };
+      for (const x of L || []) {
+        const v = +x.income; if (!Number.isFinite(v)) continue;
+        if (x.incomeType === "FUNDING_FEE" && x.asset === "USDT") { o.fund += v; o.n++; }
+        else if (x.incomeType === "REALIZED_PNL" && x.asset === "USDT") { o.rp += v; o.n++; }
+        else if (x.incomeType === "COMMISSION") { if (x.asset === "USDT") { o.com += v; o.n++; } else o.other = true; }      // phí trả bằng BNB → giữ ước tính phí
+      }
+      return o.n ? o : null;
+    } catch (e) { return null; }
+  }
   async finish(ev, why, px, extra = "") {
     const c = this.cfg(), P = ev.pos;
     if (ev.stop?.id) await this.cancelStop(ev);
-    const fee = ev.fees + P.q * px * c.fee_t / 100, pnl = ev.side * P.q * (px - P.ap) - fee;
-    ev.done = true; ev.exit = px; ev.pnl = +pnl.toFixed(4); ev.why = why; ev.t2 = Date.now();
+    let fee = ev.fees + P.q * px * c.fee_t / 100, gp = ev.side * P.q * (px - P.ap), fund = 0, src = "ước tính";
+    const I = P.q > 0 ? await this.income(ev) : null;
+    if (I) { fund = I.fund; if (I.rp) gp = I.rp; if (I.com && !I.other) fee = -I.com; src = "theo sổ thu chi Binance"; }
+    const pnl = gp - fee + fund;
+    ev.done = true; ev.exit = px; ev.pnl = +pnl.toFixed(4); ev.fund = +fund.toFixed(4); ev.why = why; ev.t2 = Date.now();
     this.S.day.pnl += pnl; this.S.tot.n++; this.S.tot.pnl += pnl; this.S.tot.fees += fee; if (pnl > 0) this.S.tot.win++;
     this.dayAdd(ev, pnl, fee, px, why);
-    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env }];
+    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env }];
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
-    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps, đã trừ phí ước tính) ${extra}`, pnl >= 0 ? "win" : "loss");
+    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `💵 ${ev.env === "live" ? "LỆNH THẬT" : "Demo"}: ${ev.sym} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`);
     if (this.S.day.pnl <= -c.lv_cap * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
@@ -236,8 +254,8 @@ export class LiveExec {
   // ---------------------------------------------------------------- kết quả theo ngày, tách riêng Demo / Thật
   dayAdd(ev, pnl, fee, px, why) {
     const env = ev.env, d = vnDay(Date.now()), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] });
-    const bps = ev.pos.ap ? ev.side * (px / ev.pos.ap - 1) * 1e4 - (fee / Math.max(1e-9, ev.pos.q * ev.pos.ap)) * 1e4 : 0, coin = ev.sym.replace(/USDT$/, "");
-    D.n++; D.usd += pnl; D.bps += bps; D.fees += fee; if (pnl > 0) D.win++;
+    const n0 = Math.max(1e-9, ev.pos.q * ev.pos.ap), bps = ev.pos.ap ? pnl / n0 * 1e4 : 0, coin = ev.sym.replace(/USDT$/, "");      // bps ròng: giá + phí + funding thật
+    D.n++; D.usd += pnl; D.bps += bps; D.fees += fee; if (pnl > 0) D.win++; if (ev.fund) D.fund = +((D.fund || 0) + ev.fund).toFixed(4);
     const b = (D.by.hook ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += pnl; if (pnl > 0) b.win++;
     const k = (D.coins[coin] ||= [0, 0]); k[0]++; k[1] += pnl;
     const w = (D.why[why] ||= [0, 0]); w[0]++; w[1] += pnl;

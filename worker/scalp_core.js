@@ -20,7 +20,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_rev: 2,
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_fund: 50, hk_rev: 2,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
@@ -71,7 +71,7 @@ function norm(c) {
   n("hmax", 2, 1800); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
-  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
+  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_env = c.lv_env === "live" ? "live" : "demo";
   if (!c.fut && !c.spot) c.fut = true;
@@ -127,6 +127,12 @@ const SRC = {
       }
       return out;
     },
+    // tỉ lệ funding sắp chốt của mọi hợp đồng: { sym: { r, next } } (r = số thập phân, next = ms)
+    async fund() {
+      const r = await get("https://api.bybit.com/v5/market/tickers?category=linear"); if (!r.ok) return null;
+      const o = {}; for (const x of (await r.json()).result?.list || []) if (x.fundingRate !== "" && +x.nextFundingTime > 0) o[x.symbol] = { r: +x.fundingRate, next: +x.nextFundingTime };
+      return o;
+    },
     url: (t) => `wss://stream.bybit.com/v5/public/${t === "F" ? "linear" : "spot"}`,
     subs: (t, L) => { const a = L.flatMap((m) => [t === "F" ? `tickers.${m.sym}` : `orderbook.1.${m.sym}`, `publicTrade.${m.sym}`]), n = t === "F" ? 100 : 10, out = []; for (let i = 0; i < a.length; i += n) out.push(JSON.stringify({ op: "subscribe", args: a.slice(i, i + n) })); return out; },
     ping: JSON.stringify({ op: "ping" }),
@@ -159,6 +165,11 @@ SRC.binance = {      // spot: data-stream.binance.vision (kết nối được c
 SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy được ở máy chủ riêng (Binance trả 403 cho Cloudflare)
   only: "F",
   bars: (sym) => `https://fapi.binance.com/fapi/v1/klines?symbol=${sym}&interval=1m&limit=62`,
+  async fund() {      // 1 lần gọi cho mọi hợp đồng: tỉ lệ funding của kỳ đang chạy + giờ chốt kế tiếp
+    const r = await get("https://fapi.binance.com/fapi/v1/premiumIndex"); if (!r.ok) return null;
+    const o = {}; for (const x of (await r.json()) || []) if (+x.nextFundingTime > 0) o[x.symbol] = { r: +x.lastFundingRate || 0, next: +x.nextFundingTime };
+    return o;
+  },
   async universe() {
     const [ri, rt] = await Promise.all([get("https://fapi.binance.com/fapi/v1/exchangeInfo"), get("https://fapi.binance.com/fapi/v1/ticker/24hr")]);
     if (!ri.ok || !rt.ok) throw new Error(`HTTP ${ri.status}/${rt.status}`);
@@ -318,6 +329,7 @@ export class ScalpCore {
   dayAdd(t, feeUsd) {
     const d = vnDay(Date.parse(t.t1 + "Z")), D = this.dayRec(0, d), st = t.strat || "sec", coin = t.k.split(":")[0];
     D.n++; D.usd += t.usd || 0; D.bps += t.net || 0; D.fees += feeUsd || 0; if (t.usd > 0) D.win++;
+    if (t.fu) D.fund = r2((D.fund || 0) + t.fu, 4);      // funding USDT (+ nhận / − trả) đã nằm trong t.usd
     const b = (D.by[st] ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += t.usd || 0; if (t.usd > 0) b.win++;
     const k = (D.coins[coin] ||= [0, 0]); k[0]++; k[1] += t.usd || 0;
     const w = (D.why[t.why] ||= [0, 0]); w[0]++; w[1] += t.usd || 0;
@@ -465,6 +477,7 @@ export class ScalpCore {
       const bx = this.M["BTC:F"] || this.M["BTC:S"]; if (bx?.bid) { const m = (bx.bid + bx.ask) / 2; D.btc0 ??= r2(m, 2); D.btc1 = r2(m, 2); }
       if (m1 % 60 === 0) D.pos = Object.keys(S.pos).length;
     }
+    try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
     const dayPct = (eqNow / S.day.eq0 - 1) * 100;
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
@@ -715,14 +728,34 @@ export class ScalpCore {
     else if (P && now - P.t0 >= P.h * 1000) this.close1(x, P.side > 0 ? x.bid : x.ask, "TIME", now);
     else if (P && now - x.tb > 30000) this.close1(x, P.side > 0 ? x.bid : x.ask, "STALE", now);   // mất dữ liệu coin này > 30 giây → đóng ở giá cuối
   }
+  // PHÍ FUNDING (futures): lệnh còn mở đúng giờ chốt funding thì trả/nhận funding như trên sàn thật – Long trả khi tỉ lệ > 0, Short trả khi < 0.
+  // Tỉ lệ lấy từ sàn (premiumIndex Binance / tickers Bybit), làm mới 5 phút/lần, 1 phút/lần khi sắp tới giờ chốt. Không lấy được tỉ lệ → không tính (ghi nhận nguồn).
+  fundTick(now) {
+    const S = this.S, src = SRC[this.F?.F?.src];
+    const open = Object.entries(S.pos).filter(([, P]) => P.t === "F"); if (!open.length || !src?.fund) return;
+    const due = open.some(([, P]) => P.fnext && P.fnext - now < 180e3);
+    if (!this.frBusy && (!this.frAt || now - this.frAt > (due ? 60e3 : 300e3))) {
+      this.frBusy = true;
+      src.fund().then((m) => { if (m && Object.keys(m).length) { this.FR = m; this.frAt = Date.now(); } }).catch(() => {}).finally(() => { this.frBusy = false; });
+    }
+    for (const [id, P] of open) {
+      const x = this.M[id], fr = this.FR?.[x?.sym]; if (!fr) continue;
+      if (!P.fnext) { if (fr.next > now) { P.fnext = fr.next; P.frate = fr.r; } continue; }
+      if (now < P.fnext) { if (fr.next === P.fnext) P.frate = fr.r; continue; }
+      const px = x.bid && x.ask ? (x.bid + x.ask) / 2 : P.e, amt = -P.side * (P.frate || 0) * P.q * px;      // + = nhận, − = trả
+      S.cash += amt; P.fund = (P.fund || 0) + amt; P.fn = (P.fn || 0) + 1;
+      if (P.strat === "hook" && Math.abs(amt) >= 0.01) this.say(now, `💸 Funding ${id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"}: ${amt >= 0 ? "nhận" : "trả"} ${Math.abs(amt).toFixed(3)} USDT (tỉ lệ ${((P.frate || 0) * 100).toFixed(4)}%)`, "info");
+      P.fnext = fr.next > now ? fr.next : null; P.frate = fr.next > now ? fr.r : null;
+    }
+  }
   close1(x, px, why, now) {
     const c = this.cfg, S = this.S, P = S.pos[x.id]; if (!P) return;
     const fee = P.q * px * (P.t === "F" ? c.fee_t : c.fee_ts) / 100, gross = P.side * P.q * (px - P.e);
     S.cash += gross - fee;
     delete S.pos[x.id];
     if (c.cool) S.cool[x.id] = now + c.cool * 1000;
-    const n0 = P.q * P.e, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, net = grossB - feeB, usd = gross - fee - P.fee;
-    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
+    const n0 = P.q * P.e, fund = P.fund || 0, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, fundB = fund / n0 * 1e4, net = grossB - feeB + fundB, usd = gross - fee - P.fee + fund;      // funding đã cộng/trừ vào tiền mặt lúc chốt
+    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, fund: fund ? r2(fundB, 2) : undefined, fu: fund ? r2(fund, 4) : undefined, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
     if (!S.days) this.daysInit(); else this.dayAdd(t, P.fee + fee);
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
@@ -774,6 +807,12 @@ export class ScalpCore {
     this.hookHist(x, side, b[1], b[0]).then(async (hh) => {
       const t1 = Date.now(), prior = Math.max(mem, hh.prior || 0);
       if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(t1).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      // phí funding: lệnh sẽ còn mở lúc chốt funding và phải TRẢ ≥ hk_fund bps → bỏ. Kiểm chứng (research/funding5.py): TB funding chỉ −0,6 bps/lệnh,
+      // nhưng 0,6% số lệnh mất 0,5–2% vì funding – hầu hết là Short coin đang bị ép giá (funding âm sâu), giá cũng thường chạy ngược.
+      if (c.hk_fund && hh.fr && hh.fr.next > t1 && hh.fr.next < t1 + (c.hk_w + c.hk_h + 1) * 60e3) {
+        const pay = side * hh.fr.r * 1e4;      // > 0: lệnh phải trả
+        if (pay >= c.hk_fund) { H.fund = (H.fund || 0) + 1; H.last.why = `sắp chốt funding ${(hh.fr.r * 100).toFixed(3)}% – lệnh ${side > 0 ? "Long" : "Short"} sẽ phải trả ${(pay / 100).toFixed(2)}%, không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      }
       const r4 = hh.r4 != null ? hh.r4 : await this.hookKnife(x, side, b[1]);
       if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(t1).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
       if (S.hk[x.id] || S.pos[x.id]) return;
@@ -802,6 +841,10 @@ export class ScalpCore {
         if (Math.abs(lr[i]) / sd >= c.hk_z && B[i][2] >= c.hk_v * vs[30]) { cnt++; i += 29; }      // gộp các nến sốc liền nhau (30 phút) thành 1 lần
       }
       out.prior = cnt;
+      if (u.includes("fapi.binance.com")) {      // funding sắp chốt có rơi vào lúc chờ + giữ lệnh không, tỉ lệ bao nhiêu
+        const q = await get(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${x.sym}`);
+        if (q.ok) { const j = await q.json(); if (+j.nextFundingTime > 0) out.fr = { r: +j.lastFundingRate || 0, next: +j.nextFundingTime }; }
+      }
     } catch (e) { /* dùng dự phòng */ }
     return out;
   }
