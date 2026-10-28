@@ -478,6 +478,7 @@ export class ScalpCore {
       if (m1 % 60 === 0) D.pos = Object.keys(S.pos).length;
     }
     try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
+    try { this.hkvTick(now); } catch (e) { this.err("kiểm chứng bộ lọc " + e.message); }
     const dayPct = (eqNow / S.day.eq0 - 1) * 100;
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot lướt giây dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
@@ -712,6 +713,7 @@ export class ScalpCore {
     }
     this.shTrade(x, p, q, side, now);
     if (this.S?.hk?.[x.id]) this.hookTrade(x, p, now);
+    if (this.S?.hkv?.[x.id]) this.hkvTrade(x, p, now);
   }
   onBook(x, now) {
     if (x.sh?.length) this.shBook(x, now);
@@ -755,7 +757,7 @@ export class ScalpCore {
     delete S.pos[x.id];
     if (c.cool) S.cool[x.id] = now + c.cool * 1000;
     const n0 = P.q * P.e, fund = P.fund || 0, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, fundB = fund / n0 * 1e4, net = grossB - feeB + fundB, usd = gross - fee - P.fee + fund;      // funding đã cộng/trừ vào tiền mặt lúc chốt
-    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, fund: fund ? r2(fundB, 2) : undefined, fu: fund ? r2(fund, 4) : undefined, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
+    const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, fund: fund ? r2(fundB, 2) : undefined, fu: fund ? r2(fund, 4) : undefined, c0: P.c0 ? +P.c0.toPrecision(8) : undefined, ts: P.ts ? iso(P.ts) : undefined, lvp: P.lvp || undefined, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
     if (!S.days) this.daysInit(); else this.dayAdd(t, P.fee + fee);
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
@@ -785,7 +787,8 @@ export class ScalpCore {
     vs.sort((a, q) => a - q); const med = vs.length >= 20 ? vs[vs.length >> 1] : 0;
     const base = x.id.split(":")[0], side = r < 0 ? 1 : -1;
     H.last = { k: x.id, at: iso(now), R: r2(r * 1e4, 0), z: r2(z, 1), vx: med > 0 ? r2((b[4] || 0) / med, 1) : null };
-    if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; return; }
+    const V = (why) => this.hkvAdd(x, side, b, r, R, why, now);      // đi theo ẢO cú sốc bị bộ lọc chặn → kiểm chứng bộ lọc bằng số liệu thật
+    if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; if (med > 0) V("vol"); return; }
     H.vol++;
     // BỘ LỌC (kiểm chứng 01/2025–10/2026, ~900 mã, 45.800 cú sốc – research/round4.py; sau lỗ 27/10 ở Q, BULLA bắt 2–3 lần liền):
     // coin đã có cú sốc khác trong hk_f6 giờ = đang bơm/xả liên tục → bỏ. (Kết hợp với lọc "dao rơi" bên dưới: TB +26 → +91 bps/lệnh, đuôi lỗ nhỏ hơn)
@@ -796,7 +799,7 @@ export class ScalpCore {
     // Vòng 5: nhóm này TB −56 bps/lệnh, thua 3/4 nửa năm; bỏ đi (cùng chờ ≤ 8p, khối lượng ≥ 8×) → lợi nhuận 22 tháng +23% → +51%, sụt tối đa −20% → −9%.
     if (c.hk_r15 && n >= 18 && L[n - 17][1] > 0) {
       const r15 = side * (prev[1] / L[n - 17][1] - 1) * 1e4;
-      if (r15 > c.hk_r15) { H.r15 = (H.r15 || 0) + 1; this.dayRec(now).r15 = (this.dayRec(now).r15 || 0) + 1; H.last.why = `15 phút trước đó giá vừa ${side > 0 ? "tăng" : "giảm"} ${(r15 / 100).toFixed(1)}% – cú sốc là xả sau bơm, ít bật lại, không bắt`; this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      if (r15 > c.hk_r15) { H.r15 = (H.r15 || 0) + 1; this.dayRec(now).r15 = (this.dayRec(now).r15 || 0) + 1; H.last.why = `15 phút trước đó giá vừa ${side > 0 ? "tăng" : "giảm"} ${(r15 / 100).toFixed(1)}% – cú sốc là xả sau bơm, ít bật lại, không bắt`; V("r15"); this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
     }
     if (x.t === "S" && side < 0) { H.last.why = "spot không bán khống"; return; }
     if (S.hk[x.id] || S.pos[x.id] || S.hkc[x.id] > now) { H.last.why = "đang có lệnh / vừa bắt coin này"; return; }
@@ -806,18 +809,47 @@ export class ScalpCore {
     // lọc "dao rơi": giá 4 giờ qua đã đi NGƯỢC hướng lệnh > hk_knife % (bắt đáy trong xu hướng sập / bán đỉnh trong xu hướng bơm) → bỏ. Lấy nến 15 phút từ sàn (cú sốc hiếm nên gọi thêm không tốn)
     this.hookHist(x, side, b[1], b[0]).then(async (hh) => {
       const t1 = Date.now(), prior = Math.max(mem, hh.prior || 0);
-      if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(t1).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      if (c.hk_f6 && prior) { H.f6 = (H.f6 || 0) + 1; this.dayRec(t1).f6++; H.last.why = `coin đã có ${prior} cú sốc khác trong ${c.hk_f6} giờ qua – đang bơm/xả liên tục, không bắt`; V("f6"); this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
       // phí funding: lệnh sẽ còn mở lúc chốt funding và phải TRẢ ≥ hk_fund bps → bỏ. Kiểm chứng (research/funding5.py): TB funding chỉ −0,6 bps/lệnh,
       // nhưng 0,6% số lệnh mất 0,5–2% vì funding – hầu hết là Short coin đang bị ép giá (funding âm sâu), giá cũng thường chạy ngược.
       if (c.hk_fund && hh.fr && hh.fr.next > t1 && hh.fr.next < t1 + (c.hk_w + c.hk_h + 1) * 60e3) {
         const pay = side * hh.fr.r * 1e4;      // > 0: lệnh phải trả
-        if (pay >= c.hk_fund) { H.fund = (H.fund || 0) + 1; H.last.why = `sắp chốt funding ${(hh.fr.r * 100).toFixed(3)}% – lệnh ${side > 0 ? "Long" : "Short"} sẽ phải trả ${(pay / 100).toFixed(2)}%, không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+        if (pay >= c.hk_fund) { H.fund = (H.fund || 0) + 1; H.last.why = `sắp chốt funding ${(hh.fr.r * 100).toFixed(3)}% – lệnh ${side > 0 ? "Long" : "Short"} sẽ phải trả ${(pay / 100).toFixed(2)}%, không bắt`; V("fund"); this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
       }
       const r4 = hh.r4 != null ? hh.r4 : await this.hookKnife(x, side, b[1]);
-      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(t1).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
+      if (r4 != null && c.hk_knife && r4 <= -c.hk_knife * 100) { H.knife = (H.knife || 0) + 1; this.dayRec(t1).knife++; H.last.why = `dao rơi: 4 giờ qua giá đã đi ngược hướng lệnh ${(r4 / 100).toFixed(1)}% – không bắt`; V("knife"); this.say(t1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${R.toFixed(0)} bps – BỎ QUA: ${H.last.why}`, "info"); return; }
       if (S.hk[x.id] || S.pos[x.id]) return;
       this.hookPlace(x, side, b, r, R, z, med, now);
     }).catch((e) => this.err("hook " + e.message));
+  }
+  // ---- KIỂM CHỨNG BỘ LỌC: cú sốc bị chặn vẫn được "đặt" 2 lệnh chờ ẢO y hệt (không tốn tiền), khớp & thoát theo giá thật, cùng phí như lệnh thật.
+  // Bộ lọc đúng khi các lệnh ảo nó chặn TB lỗ (hoặc kém hẳn lệnh thật). Kết quả: S.hkvS[lý do] = {n cú sốc, f lệnh khớp, sum bps, win}, S.hkvL = 40 lần gần nhất.
+  hkvAdd(x, side, b, r, R, why, now) {
+    const c = this.cfg, S = this.S, V = (S.hkv ||= {}); if (V[x.id] || (x.t === "S" && side < 0)) return;
+    const mv = Math.abs(Math.expm1(r)), c0 = b[1], lvs = [c.hk_d1, c.hk_d2].filter((d) => d > 0); if (!lvs.length) return;
+    V[x.id] = { why, side, t0: now, exp: now + c.hk_w * 60000, R: r2(R, 0), c0, lv: lvs.map((d) => ({ d, px: c0 * (1 - side * d * mv), f: 0, t: 0 })) };
+    const st = ((S.hkvS ||= {})[why] ||= { n: 0, f: 0, sum: 0, win: 0 }); st.n++;
+  }
+  hkvTrade(x, p, now) {
+    const v = this.S.hkv[x.id]; if (!v || now > v.exp) return;
+    for (const l of v.lv) { if (l.f) continue; const th = l.px * (1 - v.side * 5 / 1e4); if (v.side > 0 ? p < th : p > th) { l.f = 1; l.t = now; v.tf ||= now; } }
+  }
+  hkvTick(now) {
+    const S = this.S, c = this.cfg; if (!S?.hkv) return;
+    for (const [id, v] of Object.entries(S.hkv)) {
+      const x = this.M[id];
+      if (!v.tf) { if (now > v.exp) { delete S.hkv[id]; this.hkvDone(id, v, null); } continue; }
+      if (now < v.tf + c.hk_h * 60e3) continue;
+      if (!x?.bid || !x?.ask) { if (now > v.tf + (c.hk_h + 10) * 60e3) delete S.hkv[id]; continue; }
+      const xp = v.side > 0 ? x.bid : x.ask, cost = (x.t === "F" ? c.fee_m + c.fee_t : c.fee_ms + c.fee_ts) * 100;
+      const L = v.lv.filter((l) => l.f).map((l) => v.side * (xp / l.px - 1) * 1e4 - cost);
+      delete S.hkv[id]; this.hkvDone(id, v, L);
+    }
+  }
+  hkvDone(id, v, L) {
+    const S = this.S, st = ((S.hkvS ||= {})[v.why] ||= { n: 0, f: 0, sum: 0, win: 0 });
+    if (L?.length) { for (const b of L) { st.f++; st.sum += b; if (b > 0) st.win++; } }
+    S.hkvL = [...(S.hkvL || []).slice(-39), { k: id, why: v.why, side: v.side, R: v.R, at: iso(v.t0), nf: L?.length || 0, net: L?.length ? r2(L.reduce((a, q) => a + q, 0) / L.length, 1) : null }];
   }
   // Lịch sử 1 phút ~8 giờ ngay trước cú sốc, lấy thẳng từ sàn (1 lần gọi, cú sốc hiếm): số cú sốc khác trong hk_f6 giờ (cùng chuẩn: ≥ hk_r bps, z ≥ hk_z, khối lượng ≥ hk_v×)
   // và giá 4 giờ qua đi theo/ngược hướng lệnh. Không phụ thuộc bộ nhớ trong máy → khởi động lại / cập nhật xong vẫn lọc đúng ngay. Lỗi mạng → {null} (dùng dự phòng).
@@ -880,7 +912,7 @@ export class ScalpCore {
     S.cash -= fee;
     if (P) { const q = P.q + l.q; P.e = (P.e * P.q + l.px * l.q) / q; P.q = q; P.fee += fee; P.lv = (P.lv || 1) + 1; P.sl = stop(P.e); }
     else S.pos[x.id] = { id: S.seq++, t: x.t, side: H.side, e: l.px, q: l.q, fee, how: "maker", strat: "hook", t0: now, h: c.hk_h * 60, sl: stop(l.px), tp: H.side > 0 ? 1e18 : 0,
-      exp: null, raw: null, cost: r2((fr + (x.t === "F" ? c.fee_t : c.fee_ts)) * 100, 1), slb: c.hk_stop * 100, tpb: null, R: H.R, z: H.z, lv: 1, c0: H.c0 };
+      exp: null, raw: null, cost: r2((fr + (x.t === "F" ? c.fee_t : c.fee_ts)) * 100, 1), slb: c.hk_stop * 100, tpb: null, R: H.R, z: H.z, lv: 1, c0: H.c0, ts: H.t0, lvp: H.lv.map((q) => +q.px.toPrecision(8)) };
     const base = x.id.split(":")[0], away = (l.px / H.c0 - 1) * 100;
     this.say(now, `🪝 Khớp ${H.side > 0 ? "mua" : "bán"} ${base} ở ${+l.px.toPrecision(6)} (${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá đóng nến sốc) · giữ ${c.hk_h} phút`, "info");
     this.note(`hkf:${x.id}:${H.t0}:${l.d}`, 2, `🪝 Khớp ${H.side > 0 ? "Long" : "Short"} ${base} ở ${+l.px.toPrecision(6)}`, `${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá sau cú ${H.side > 0 ? "sập" : "vọt"} · sàn thử · tự đóng sau ${c.hk_h} phút${c.hk_stop ? `, cắt lỗ thảm hoạ ${c.hk_stop}%` : ""}.`);
@@ -1082,7 +1114,7 @@ export class ScalpCore {
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
-      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, trades: T.slice(-80),
+      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
