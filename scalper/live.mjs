@@ -13,7 +13,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const BASE = { live: "https://fapi.binance.com", demo: process.env.MYBIT_DEMO_BASE || "https://demo-fapi.binance.com" };     // MYBIT_DEMO_BASE: chỉ để kiểm thử với sàn giả lập
-const SAPI = "https://api.binance.com";
+const SAPI = process.env.MYBIT_SAPI || "https://api.binance.com";      // MYBIT_SAPI: chỉ để kiểm thử
+const SPOT = { live: "https://api.binance.com", demo: process.env.MYBIT_DEMO_SPOT || "https://demo-api.binance.com" };     // ví Spot (Demo có cổng spot riêng)
+const STABLE = { USDT: 1, USDC: 1, FDUSD: 1, BUSD: 1, TUSD: 1, DAI: 1, USD1: 1 };
 const vnDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
 const iso = (t) => new Date(t).toISOString().slice(0, 19);
 const dec = (s) => { const t = String(s); const i = t.indexOf("."); return i < 0 ? 0 : t.replace(/0+$/, "").length - i - 1; };
@@ -41,14 +43,55 @@ export class LiveExec {
   note(key, sev, title, body) { try { this.core.note(`lv:${key}`, sev, title, body); } catch (e) { /* bỏ qua */ } }
   save() { try { const tmp = this.file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(this.S)); fs.renameSync(tmp, this.file); } catch (e) { this.log("lưu live.json lỗi", e.message); } }
   // ---------------------------------------------------------------- gọi API Binance (ký HMAC-SHA256)
-  async req(method, p, params = {}, signed = true, base = BASE[this.env()]) {
-    const K = this.keys(); if (signed && !K) throw new Error("chưa có khoá API trên máy chủ");
+  async req(method, p, params = {}, signed = true, base = BASE[this.env()], env = this.env()) {
+    const K = this.keys(env); if (signed && !K) throw new Error("chưa có khoá API trên máy chủ");
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
     if (signed) { q.set("recvWindow", "5000"); q.set("timestamp", String(Date.now() + this.off)); q.set("signature", crypto.createHmac("sha256", K.s).update(q.toString()).digest("hex")); }
     const r = await fetch(`${base}${p}${q.toString() ? "?" + q : ""}`, { method, headers: K ? { "X-MBX-APIKEY": K.k } : {}, signal: AbortSignal.timeout(10000) });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch (e) { /* không phải JSON */ }
     if (!r.ok || (j && j.code && j.code < 0)) { const e = new Error(`${j?.code ?? r.status} ${j?.msg || t.slice(0, 160)}`); e.code = j?.code; throw e; }
     return j;
+  }
+  // ---------------------------------------------------------------- TỔNG TÀI SẢN trên Binance (chỉ ĐỌC): mọi ví quy ra USDT, theo từng coin, lịch sử theo giờ
+  // Thật: /sapi/v1/asset/wallet/balance (số dư từng ví – Spot, Funding, Earn, Futures, Margin, Bot…, đã quy USDT) + chi tiết coin ở Spot / Funding / Earn / Futures.
+  // Demo: sàn Demo không có cổng ví tổng → cộng Spot + Futures. Giá quy đổi: giá Binance spot (1 lần gọi cho mọi coin).
+  async prices() {
+    if (this.pxm && Date.now() - this.pxAt < 60e3) return this.pxm;
+    const r = await fetch("https://api.binance.com/api/v3/ticker/price", { signal: AbortSignal.timeout(10000) }), L = await r.json(), m = { ...STABLE };
+    for (const x of L || []) if (x.symbol.endsWith("USDT") && !(x.symbol.slice(0, -4) in STABLE)) m[x.symbol.slice(0, -4)] = +x.price;
+    this.pxm = m; this.pxAt = Date.now(); return m;
+  }
+  async wallet(env) {
+    if (!this.keys(env)) return null;
+    const P = await this.prices().catch(() => ({ ...STABLE })), W = { env, at: iso(Date.now()), wallets: [], assets: {}, err: [] };
+    const pr = (a) => P[a] ?? (a.startsWith("LD") ? P[a.slice(2)] : undefined);
+    const add = (where, a0, q) => { if (!(q > 0)) return; const a = a0.startsWith("LD") && pr(a0) != null && P[a0] == null ? a0.slice(2) : a0, u = (pr(a0) || 0) * q; const A = (W.assets[a] ||= { q: 0, usd: 0, w: {} }); A.q += q; A.usd += u; A.w[where] = (A.w[where] || 0) + u; if (pr(a0) == null) W.nopx = [...new Set([...(W.nopx || []), a])]; };
+    let earnOk = false;
+    if (env === "live") {
+      try { const L = await this.req("GET", "/sapi/v1/asset/wallet/balance", { quoteAsset: "USDT" }, true, SAPI, env); W.wallets = (L || []).filter((x) => +x.balance > 0.005).map((x) => [x.walletName, +(+x.balance).toFixed(2)]).sort((a, b) => b[1] - a[1]); } catch (e) { W.err.push("ví tổng: " + e.message); }
+      try { const F = await this.req("POST", "/sapi/v1/asset/get-funding-asset", {}, true, SAPI, env); for (const b of F || []) add("Funding", b.asset, +b.free + +b.locked + +b.freeze); } catch (e) { W.err.push("Funding: " + e.message); }
+      try { const E = await this.req("GET", "/sapi/v1/simple-earn/flexible/position", { size: 100 }, true, SAPI, env); for (const r of E?.rows || []) add("Earn", r.asset, +r.totalAmount); earnOk = true; } catch (e) { W.err.push("Earn linh hoạt: " + e.message); }
+      try { const E = await this.req("GET", "/sapi/v1/simple-earn/locked/position", { size: 100 }, true, SAPI, env); for (const r of E?.rows || []) add("Earn", r.asset, +r.amount); } catch (e) { W.err.push("Earn cố định: " + e.message); }
+    }
+    try { const a = await this.req("GET", "/api/v3/account", { omitZeroBalances: "true" }, true, SPOT[env], env); for (const b of a.balances || []) { if (earnOk && b.asset.startsWith("LD")) continue; add("Spot", b.asset, +b.free + +b.locked); } } catch (e) { W.err.push("Spot: " + e.message); }
+    try {
+      const f = await this.req("GET", "/fapi/v3/account", {}, true, BASE[env], env).catch(() => this.req("GET", "/fapi/v2/account", {}, true, BASE[env], env));
+      for (const b of f.assets || []) add("Futures", b.asset, +b.marginBalance);
+      W.fut = { wallet: +(+f.totalWalletBalance || 0).toFixed(2), upnl: +(+f.totalUnrealizedProfit || 0).toFixed(2), margin: +(+f.totalMarginBalance || 0).toFixed(2), avail: +(+f.availableBalance || 0).toFixed(2) };
+    } catch (e) { W.err.push("Futures: " + e.message); }
+    const sumA = Object.values(W.assets).reduce((s2, a) => s2 + a.usd, 0);
+    W.total = +(W.wallets.length ? W.wallets.reduce((s2, w) => s2 + w[1], 0) : sumA).toFixed(2);
+    if (!W.wallets.length) { const by = {}; for (const a of Object.values(W.assets)) for (const [k, v] of Object.entries(a.w)) by[k] = (by[k] || 0) + v; W.wallets = Object.entries(by).map(([k, v]) => [k, +v.toFixed(2)]).sort((a, b) => b[1] - a[1]); }
+    W.assets = Object.entries(W.assets).map(([a, x]) => [a, +x.q.toPrecision(8), +x.usd.toFixed(2), Object.fromEntries(Object.entries(x.w).map(([k, v]) => [k, +v.toFixed(2)]))]).sort((a, b) => b[2] - a[2]).slice(0, 40);
+    if (!(W.total > 0) && W.err.length) return W;
+    const H = ((this.S.walH ||= {})[env] ||= []), m = Math.floor(Date.now() / 60000);      // lịch sử theo giờ, 60 ngày
+    if (H.length && m - H[H.length - 1][0] < 55) H[H.length - 1] = [H[H.length - 1][0], W.total]; else H.push([m, W.total]);
+    if (H.length > 1440) H.splice(0, H.length - 1440);
+    return W;
+  }
+  async wallets() {
+    for (const env of ["demo", "live"]) { if (!this.keys(env)) continue; try { const W = await this.wallet(env); if (W) (this.S.wal ||= {})[env] = W; } catch (e) { ((this.S.wal ||= {})[env] ||= {}).err = [e.message]; } }
+    this.save();
   }
   // ---------------------------------------------------------------- kiểm tra tài khoản (mỗi 5 phút)
   async check() {
@@ -278,6 +321,6 @@ export class LiveExec {
     const c = this.cfg();
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) }, tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-30), log: this.S.log.slice(-30) };
+      hist: this.S.hist.slice(-30), log: this.S.log.slice(-30), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])) };
   }
 }
