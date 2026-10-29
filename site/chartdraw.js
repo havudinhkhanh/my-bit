@@ -20,6 +20,135 @@
     ["text", "Ghi chú chữ", ic('<path d="M5 6V4h14v2M12 4v16M9 20h6"/>')],
   ];
   const TWO = new Set(["trend", "ray", "fib", "rect", "measure"]);
+  // ================================================================ MẪU HÌNH ĐÃ XẢY RA (Fibonacci · tam giác / nêm · Elliott) – tìm lại trên dữ liệu cũ & chấm đúng / sai
+  // Mọi mẫu hình đều được tìm bằng cùng một quy tắc cố định (không chọn tay) và chấm kết quả bằng giá SAU khi mẫu hình hoàn thành,
+  // nên vừa thấy được lần khớp đẹp, vừa thấy cả lần sai – tỉ lệ đúng mới là con số đáng tin.
+  function atrOf(o, n = 14) {
+    const N = o.c.length, a = new Array(N).fill(null); let v = null;
+    for (let i = 0; i < N; i++) {
+      const tr = i ? Math.max(o.h[i] - o.l[i], Math.abs(o.h[i] - o.c[i - 1]), Math.abs(o.l[i] - o.c[i - 1])) : o.h[i] - o.l[i];
+      v = v == null ? tr : v + (tr - v) / n; a[i] = v;
+    }
+    return a;
+  }
+  function zigzag(o, thr) {
+    const h = o.h, l = o.l, N = h.length, P = []; let tr = 0, hi = 0, lo = 0;
+    for (let i = 1; i < N; i++) {
+      if (tr >= 0 && h[i] >= h[hi]) hi = i;
+      if (tr <= 0 && l[i] <= l[lo]) lo = i;
+      if (tr === 0) {
+        if (h[hi] - l[lo] >= thr[i]) { if (hi < lo) { P.push({ i: hi, p: h[hi], k: "H" }); tr = -1; } else { P.push({ i: lo, p: l[lo], k: "L" }); tr = 1; } }
+      } else if (tr === 1) {
+        if (i > hi && h[hi] - l[i] >= thr[i]) { P.push({ i: hi, p: h[hi], k: "H" }); tr = -1; lo = i; for (let j = hi + 1; j <= i; j++) if (l[j] <= l[lo]) lo = j; }
+      } else if (i > lo && h[i] - l[lo] >= thr[i]) { P.push({ i: lo, p: l[lo], k: "L" }); tr = 1; hi = i; for (let j = lo + 1; j <= i; j++) if (h[j] >= h[hi]) hi = j; }
+    }
+    return P;
+  }
+  const FIBL = [0.382, 0.5, 0.618, 0.786];
+  function scanPatterns(o) {
+    const N = o.c.length; if (N < 60 || !o.h || !o.l) return { items: [], st: {} };
+    const A = atrOf(o), med = A.slice(14).sort((a, b) => a - b)[Math.floor((N - 14) / 2)] || A[N - 1];
+    const thr = A.map((v) => 2.6 * Math.max(v || med, med * 0.5));
+    const P = zigzag(o, thr), items = [];
+    // ---- 1) Fibonacci: sóng đẩy A→B rồi điều chỉnh B→C. "Khớp" khi C dừng trong ±3,5% quanh 0,382 / 0,5 / 0,618 / 0,786.
+    //      "Đúng" khi sau đó giá vượt lại B trước khi thủng A (xu hướng tiếp diễn). So với điều chỉnh dừng ở chỗ khác để biết Fibonacci có thêm giá trị không.
+    const fs = { hit: 0, hitOk: 0, miss: 0, missOk: 0 };
+    for (let k = 0; k + 2 < P.length; k++) {
+      const a = P[k], b = P[k + 1], c = P[k + 2], up = a.k === "L", leg = Math.abs(b.p - a.p);
+      if (leg < 5 * (A[b.i] || med)) continue;
+      const r = Math.abs(b.p - c.p) / leg; if (r > 1.05) continue;
+      let lv = null, dd = 1; for (const L of FIBL) if (Math.abs(r - L) < dd) { dd = Math.abs(r - L); lv = L; }
+      let res = null, end = null;
+      for (let j = c.i + 1; j < N; j++) {
+        if (up ? o.l[j] < a.p : o.h[j] > a.p) { res = false; end = j; break; }
+        if (up ? o.h[j] > b.p : o.l[j] < b.p) { res = true; end = j; break; }
+      }
+      const near = dd <= 0.035;
+      if (res !== null) { if (near) { fs.hit++; if (res) fs.hitOk++; } else { fs.miss++; if (res) fs.missOk++; } }
+      if (near) items.push({ k: "fib", a, b, c, up, lv, r, res, end, i0: a.i, i1: end ?? Math.min(N - 1, c.i + Math.round((c.i - a.i) * 0.6)) });
+    }
+    // ---- 2) Tam giác / nêm (hội tụ) & tam giác mở rộng (ngược): 5 đỉnh/đáy luân phiên nằm gọn giữa 2 đường.
+    //      Phá vỡ = giá đóng cửa ra ngoài đường; mục tiêu = chiều cao lúc mở đầu, tính từ điểm phá vỡ. "Đúng" khi chạm mục tiêu trước khi quay lại đường bên kia.
+    const ts = { n: 0, ok: 0 };
+    const line = (p, q) => { const m = (q.p - p.p) / (q.i - p.i); return (i) => p.p + m * (i - p.i); };
+    let lastEnd = -1;
+    for (let k = 0; k + 4 < P.length; k++) {
+      const w = P.slice(k, k + 5); if (w[0].i <= lastEnd) continue;
+      const H = w.filter((x) => x.k === "H"), L = w.filter((x) => x.k === "L");
+      const U = line(H[0], H[H.length - 1]), D = line(L[0], L[L.length - 1]);
+      const i0 = w[0].i, i4 = w[4].i, len = i4 - i0, at = A[i4] || med;
+      if (len < 12) continue;
+      const w0 = U(i0) - D(i0), w4 = U(i4) - D(i4);
+      if (w0 <= 0 || w4 <= 0) continue;
+      const tol = 0.6 * at;
+      if (H.some((x) => Math.abs(x.p - U(x.i)) > Math.max(tol, 0.18 * w0)) || L.some((x) => Math.abs(x.p - D(x.i)) > Math.max(tol, 0.18 * w0))) continue;
+      let out = 0; for (let j = i0; j <= i4; j++) if (o.c[j] > U(j) + tol || o.c[j] < D(j) - tol) out++;
+      if (out > 0.08 * len) continue;
+      const conv = w4 / w0;
+      const su = (U(i4) - U(i0)) / len / at, sl = (D(i4) - D(i0)) / len / at, fl = 0.025;
+      let kind, exp = 0;
+      if (conv < 0.62) {
+        if (su < -fl && sl > fl) kind = "Tam giác cân";
+        else if (Math.abs(su) <= fl && sl > fl) { kind = "Tam giác tăng"; exp = 1; }
+        else if (su < -fl && Math.abs(sl) <= fl) { kind = "Tam giác giảm"; exp = -1; }
+        else if (su > 0 && sl > 0) { kind = "Nêm tăng"; exp = -1; }
+        else if (su < 0 && sl < 0) { kind = "Nêm giảm"; exp = 1; }
+        else continue;
+      } else if (conv > 1.6) kind = "Tam giác mở rộng (ngược)";
+      else continue;
+      // phá vỡ trong khoảng 1 lần độ dài mẫu hình (và trước đỉnh tam giác)
+      let bi = null, dir = 0;
+      for (let j = i4 + 1; j < Math.min(N, i4 + len + 1); j++) {
+        if (U(j) - D(j) <= 0) break;
+        if (o.c[j] > U(j) + 0.15 * at) { bi = j; dir = 1; break; }
+        if (o.c[j] < D(j) - 0.15 * at) { bi = j; dir = -1; break; }
+      }
+      const it = { k: "tri", kind, exp, U0: { i: H[0].i, p: H[0].p }, U1: { i: i4, p: U(i4) }, D0: { i: L[0].i, p: L[0].p }, D1: { i: i4, p: D(i4) }, piv: w, i0, i1: i4, res: null, bi, dir };
+      if (bi != null) {
+        const opp = w.filter((x) => x.k === (dir > 0 ? "L" : "H")).pop(), bp = o.c[bi], tgt = bp + dir * (kind.startsWith("Tam giác mở") ? w4 : w0) * 1, stop = opp.p;
+        it.tgt = tgt; it.stop = stop; it.bp = bp;
+        for (let j = bi + 1; j < N; j++) {
+          if (dir > 0 ? o.l[j] < stop : o.h[j] > stop) { it.res = false; it.end = j; break; }
+          if (dir > 0 ? o.h[j] >= tgt : o.l[j] <= tgt) { it.res = true; it.end = j; break; }
+        }
+        if (it.res !== null && exp && dir !== exp) it.res = false;     // phá sai hướng sách vở cũng tính là sai
+        it.i1 = it.end ?? bi;
+        if (it.res !== null) { ts.n++; if (it.res) ts.ok++; }
+      }
+      items.push(it); lastEnd = i4;
+    }
+    // ---- 3) Elliott 5 sóng: đúng 3 quy tắc cứng (sóng 2 không về quá gốc, sóng 3 không ngắn nhất, sóng 4 không chồng sóng 1)
+    //      + điểm "khớp" theo tỉ lệ Fibonacci kinh điển. "Đúng" khi sau sóng 5 giá điều chỉnh ≥ 38,2% cả 5 sóng trước khi vượt đỉnh sóng 5 thêm 23,6%.
+    const es = { n: 0, ok: 0, bn: 0, bok: 0 }; let eEnd = -1;
+    // kết quả sau sóng 5: điều chỉnh ≥ 38,2% cả đoạn 0→5 trước khi vượt đỉnh 5 thêm 23,6% (idx: trả về chỉ số nến, dương = đúng, âm = sai)
+    const outcome = (w, s, v, idx) => {
+      const tot = v[5] - v[0], back = v[5] - 0.382 * tot, over = v[5] + 0.236 * tot;
+      for (let j = w[5].i + 1; j < N; j++) {
+        const lo = s > 0 ? o.l[j] : -o.h[j], hi = s > 0 ? o.h[j] : -o.l[j];
+        if (hi > over) return idx ? -j : false;
+        if (lo <= back) return idx ? j : true;
+      }
+      return null;
+    };
+    const near = (x, t, s) => Math.max(0, 1 - Math.abs(x - t) / s);
+    for (let k = 0; k + 5 < P.length; k++) {
+      const w = P.slice(k, k + 6); if (w[0].i <= eEnd) continue;
+      const up = w[0].k === "L", s = up ? 1 : -1, v = w.map((x) => s * x.p);
+      const w1 = v[1] - v[0], w3 = v[3] - v[2], w5 = v[5] - v[4];
+      const okR = v[2] > v[0] && v[3] > v[1] && v[4] > v[1] && v[5] > v[3] && !(w3 < w1 && w3 < w5);
+      if (!okR) { if (v[5] > v[0]) { const r0 = outcome(w, s, v); if (r0 !== null) { es.bn++; if (r0) es.bok++; } } continue; }
+      const r2 = (v[1] - v[2]) / w1, e3 = w3 / w1, r4 = (v[3] - v[4]) / w3, e5 = w5 / w1;
+      const sc = Math.round(100 * (0.3 * Math.max(near(r2, 0.5, 0.25), near(r2, 0.618, 0.25)) + 0.3 * near(e3, 1.618, 0.8) + 0.2 * Math.max(near(r4, 0.382, 0.2), near(r4, 0.236, 0.15)) + 0.2 * Math.max(near(e5, 1, 0.45), near(e5, 0.618, 0.3))));
+      if (sc < 45) continue;
+      const tot = v[5] - v[0], back = v[5] - 0.382 * tot;
+      const end = outcome(w, s, v, true), res = end == null ? null : end > 0;
+      if (res !== null) { es.n++; if (res) es.ok++; }
+      items.push({ k: "ell", w, up, sc, r2, e3, r4, e5, res, end: end == null ? null : Math.abs(end), back: s * back, i0: w[0].i, i1: end == null ? w[5].i : Math.abs(end) });
+      eEnd = w[5].i;
+    }
+    items.sort((a, b) => b.i0 - a.i0);
+    return { items, st: { fib: fs, tri: ts, ell: es }, piv: P.length };
+  }
   const tnum = (t) => (typeof t === "number" ? t : typeof t === "string" ? Date.parse(t.length <= 10 ? t + "T00:00:00Z" : t) / 1000 : t && t.year ? Date.UTC(t.year, t.month - 1, t.day) / 1000 : NaN);
   const el2 = (tag, at = {}, par) => { const e = document.createElementNS(NS, tag); for (const k in at) e.setAttribute(k, at[k]); if (par) par.appendChild(e); return e; };
   const dseg = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy; let u = L ? ((px - ax) * dx + (py - ay) * dy) / L : 0; u = Math.max(0, Math.min(1, u)); return Math.hypot(px - ax - u * dx, py - ay - u * dy); };
@@ -43,6 +172,7 @@
       + `<span class="cd-sep"></span><button type="button" class="cd-col" data-a="col" title="Màu nét vẽ"><i style="background:${st.color}"></i></button>`
       + `<button type="button" data-a="mag" title="Nam châm – điểm vẽ tự bám vào giá mở / cao / thấp / đóng của nến gần nhất" class="${st.mag ? "on" : ""}">${ic('<path d="M6 3v8a6 6 0 0 0 12 0V3"/><path d="M6 7h4M14 7h4"/>')}</button>`
       + `<button type="button" data-a="hide" title="Ẩn / hiện hình đã vẽ">${ic('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>')}</button>`
+      + `<button type="button" data-a="ap" title="Mẫu hình đã xảy ra: tìm lại Fibonacci, tam giác / nêm, Elliott trên dữ liệu cũ và chấm đúng / sai">${ic('<path d="M3 20 9 8l4 7 3-5 5 10"/><path d="M3 20h18"/>')}</button>`
       + `<button type="button" data-a="del" title="Xoá hình đang chọn (phím Delete) – không chọn gì thì xoá hết">${ic('<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>')}</button>`
       + `<div class="cd-pal" hidden>${COLORS.map((x) => `<button type="button" data-c="${x}" style="background:${x}" aria-label="màu ${x}"></button>`).join("")}</div>`;
     el.appendChild(tb);
@@ -74,6 +204,7 @@
       svg.textContent = "";
       const defs = el2("defs", {}, svg), cp = el2("clipPath", { id: "cdc" + uid }, defs); el2("rect", { x: 0, y: 0, width: P.w, height: P.h }, cp);
       const root = el2("g", { "clip-path": `url(#cdc${uid})` }, svg);
+      if (AP.on && AP.R) drawAP(root, P);
       const list = st.hide ? [] : D.slice(); if (st.draft) list.push(st.draft);
       for (const d of list) {
         const g = el2("g", { class: "cd-o" + (d === st.sel ? " sel" : "") }, root), col = d.c || COLORS[0], W = d === st.sel ? 2 : 1.4;
@@ -114,7 +245,7 @@
       }
     };
     const uid = Math.random().toString(36).slice(2, 8);
-    const draw = () => { try { render(); } catch (e) { cleanup(); svg.remove(); tb.remove(); } };
+    const draw = () => { try { render(); } catch (e) { cleanup(); svg.remove(); tb.remove(); AP.box?.remove(); } };
     let rq = 0; const req = () => { if (!rq && !dead) rq = requestAnimationFrame(() => { rq = 0; draw(); }); };
     let pumpT = 0; const pump = (ms = 450) => { const end = performance.now() + ms; pumpT = Math.max(pumpT, end); const f = () => { if (dead) return; draw(); if (performance.now() < pumpT) requestAnimationFrame(f); }; requestAnimationFrame(f); };
     // ---- chọn hình
@@ -206,6 +337,7 @@
       if (a === "col") tb.querySelector(".cd-pal").hidden = !tb.querySelector(".cd-pal").hidden;
       else if (a === "mag") { st.mag = !st.mag; cfg.set("draw_mag", st.mag); b.classList.toggle("on", st.mag); }
       else if (a === "hide") { st.hide = !st.hide; b.classList.toggle("on", st.hide); req(); }
+      else if (a === "ap") apOn(!AP.on);
       else if (a === "del") {
         if (st.sel) { D = D.filter((d) => d !== st.sel); st.sel = null; }
         else if (D.length && confirm(`Xoá hết ${D.length} hình đã vẽ trên biểu đồ này?`)) D = [];
@@ -223,9 +355,96 @@
     ts.subscribeVisibleLogicalRangeChange(onRange); c.subscribeCrosshairMove(onCross);
     const ro = new ResizeObserver(() => pump(200)); ro.observe(el);
     const wake = () => pump(); el.addEventListener("wheel", wake, { passive: true }); el.addEventListener("pointerdown", wake); el.addEventListener("pointerup", wake);
+    // ---- lớp "mẫu hình đã xảy ra" (tự tìm, không lưu vào hình vẽ của anh)
+    const AP = { on: false, R: null, sh: { fib: true, tri: true, ell: true }, focus: null, box: null };
+    const CO = { ok: "#2FBF71", bad: "#F0525F", pend: "#8793A4", fib: "#E0B252", tri: "#5B8DEF", ell: "#B07CF0" };
+    const XI = (i) => { const v = ts.logicalToCoordinate(i); return v == null ? NaN : v; };
+    const rc = (it) => (it.res === true ? CO.ok : it.res === false ? CO.bad : CO.pend), rs = (it) => (it.res === true ? "✓" : it.res === false ? "✗" : "…");
+    const f2 = (v) => String(+v.toFixed(3)).replace(".", ",");
+    function drawAP(root, P) {
+      const G = el2("g", { class: "cd-ap-g" }, root);
+      for (const it of AP.R.items) {
+        if (!AP.sh[it.k]) continue;
+        const g = el2("g", { opacity: AP.focus && AP.focus !== it ? 0.22 : 1 }, G), x0 = XI(it.i0), x1 = XI(it.i1);
+        if (!isFinite(x0) || !isFinite(x1) || x1 < -40 || x0 > P.w + 40) continue;
+        const rcol = rc(it);
+        if (it.k === "fib") {
+          const { a, b, c } = it, xe = XI(Math.max(it.i1, c.i + 3)), xa = XI(a.i), xc = XI(c.i);
+          el2("line", { x1: xa, y1: Y(a.p), x2: XI(b.i), y2: Y(b.p), stroke: CO.fib, "stroke-width": 1, "stroke-dasharray": "3 3", "stroke-opacity": 0.7 }, g);
+          for (const L of [0, 0.382, 0.5, 0.618, 0.786, 1]) {
+            const y = Y(b.p + (a.p - b.p) * L), hit = L === it.lv;
+            el2("line", { x1: xa, y1: y, x2: xe, y2: y, stroke: hit ? rcol : CO.fib, "stroke-width": hit ? 1.8 : 0.8, "stroke-opacity": hit ? 1 : 0.55 }, g);
+            if (hit || L === 0 || L === 1) lbl(g, xa + 3, y - 7, f2(L), hit ? rcol : CO.fib, "start", false);
+          }
+          el2("circle", { cx: xc, cy: Y(c.p), r: 4, fill: rcol, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
+          if (it.end != null) el2("line", { x1: xc, y1: Y(c.p), x2: XI(it.end), y2: Y(it.res ? b.p : a.p), stroke: rcol, "stroke-width": 1.2, "stroke-dasharray": "2 3" }, g);
+          lbl(g, xc, Y(c.p) + (it.up ? 16 : -16), `${rs(it)} Fib ${f2(it.lv)}`, rcol, "middle");
+        } else if (it.k === "tri") {
+          const ie = it.bi ?? it.i1, xe = XI(ie), la = (A, B, i) => A.p + (B.p - A.p) * (i - A.i) / ((B.i - A.i) || 1);
+          const Ue = la(it.U0, it.U1, ie), De = la(it.D0, it.D1, ie), xu = XI(it.U0.i), xd = XI(it.D0.i);
+          el2("polygon", { points: `${xu},${Y(it.U0.p)} ${xe},${Y(Ue)} ${xe},${Y(De)} ${xd},${Y(it.D0.p)}`, fill: CO.tri, "fill-opacity": 0.09, stroke: "none" }, g);
+          el2("line", { x1: xu, y1: Y(it.U0.p), x2: xe, y2: Y(Ue), stroke: CO.tri, "stroke-width": 1.5 }, g);
+          el2("line", { x1: xd, y1: Y(it.D0.p), x2: xe, y2: Y(De), stroke: CO.tri, "stroke-width": 1.5 }, g);
+          if (it.bi != null) {
+            const xb = XI(it.bi), yb = Y(it.bp);
+            el2("circle", { cx: xb, cy: yb, r: 4, fill: rcol, stroke: "var(--surface)", "stroke-width": 1.5 }, g);
+            const xt = XI(it.end ?? Math.min(it.bi + (it.i1 - it.i0), o.t.length - 1));
+            el2("line", { x1: xb, y1: Y(it.tgt), x2: Math.max(xt, xb + 20), y2: Y(it.tgt), stroke: rcol, "stroke-width": 1, "stroke-dasharray": "4 3" }, g);
+            el2("line", { x1: xb, y1: yb, x2: xb, y2: Y(it.tgt), stroke: rcol, "stroke-width": 1, "stroke-dasharray": "2 3", "stroke-opacity": 0.7 }, g);
+            lbl(g, xb + 4, Y(it.tgt) + (it.dir > 0 ? -9 : 9), `${rs(it)} ${it.kind} · phá ${it.dir > 0 ? "lên" : "xuống"}`, rcol);
+          } else lbl(g, XI(it.U0.i) + 4, Y(it.U0.p) - 9, `${it.kind} · chưa phá vỡ`, CO.pend);
+        } else if (it.k === "ell") {
+          const pts = it.w.map((q) => [XI(q.i), Y(q.p)]);
+          el2("polyline", { points: pts.map((q) => q.join(",")).join(" "), fill: "none", stroke: CO.ell, "stroke-width": 1.6 }, g);
+          it.w.forEach((q, i) => { const [x, y] = pts[i], top = q.k === "H"; el2("circle", { cx: x, cy: y, r: 2.6, fill: CO.ell }, g); if (i) lbl(g, x, y + (top ? -11 : 11), String(i), CO.ell, "middle"); });
+          const [x5, y5] = pts[5];
+          if (it.end != null) el2("line", { x1: x5, y1: y5, x2: XI(it.end), y2: Y(it.res ? it.back : it.w[5].p), stroke: rcol, "stroke-width": 1.2, "stroke-dasharray": "2 3" }, g);
+          lbl(g, pts[0][0] + 4, pts[0][1] + (it.up ? 14 : -14), `${rs(it)} Elliott · khớp ${it.sc}/100`, rcol);
+        }
+      }
+    }
+    const dstr = (i) => { const t = tnum(o.t[Math.max(0, Math.min(o.t.length - 1, i))]); return isFinite(t) ? new Date(t * 1000).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "2-digit" }) : ""; };
+    const pc = (a, b) => (b ? Math.round((a / b) * 100) + "%" : "—");
+    function apPanel() {
+      if (!AP.on) { AP.box?.remove(); AP.box = null; return; }
+      if (!AP.box || !AP.box.isConnected) { AP.box = document.createElement("div"); AP.box.className = "cd-ap"; (el.closest(".lwbox") || el).after(AP.box); AP.box.addEventListener("click", apClick); }
+      const S = AP.R.st, f = S.fib, T = S.tri, E = S.ell, it = AP.R.items.filter((x) => AP.sh[x.k]);
+      const nm = (x) => (x.k === "fib" ? `Fib ${f2(x.lv)}` : x.k === "tri" ? x.kind : `Elliott ${x.sc}/100`);
+      AP.box.innerHTML = `<div class="cd-ap-h"><b>📐 Mẫu hình đã xảy ra trên biểu đồ này</b>
+        ${[["fib", "Fibonacci"], ["tri", "Tam giác / nêm"], ["ell", "Elliott"]].map(([k, n]) => `<button type="button" class="cd-chip ${AP.sh[k] ? "on" : ""}" data-sh="${k}" style="--cc:${CO[k]}">${n}</button>`).join("")}
+        <button type="button" class="cd-x" data-x title="Tắt lớp mẫu hình">✕</button></div>
+        <div class="cd-ap-s">
+          ${AP.sh.fib ? `<p><i style="background:${CO.fib}"></i><span><b>Fibonacci:</b> ${f.hit} lần điều chỉnh dừng sát mức Fib → <b>${f.hitOk} lần</b> giá đi tiếp vượt đỉnh / đáy cũ (<b>${pc(f.hitOk, f.hit)}</b>). Điều chỉnh dừng ở chỗ khác: ${f.missOk}/${f.miss} (${pc(f.missOk, f.miss)}).</span></p>` : ""}
+          ${AP.sh.tri ? `<p><i style="background:${CO.tri}"></i><span><b>Tam giác / nêm:</b> ${T.n} lần phá vỡ đã có kết quả → <b>${T.ok} lần</b> chạm mục tiêu sách vở (<b>${pc(T.ok, T.n)}</b>).</span></p>` : ""}
+          ${AP.sh.ell ? `<p><i style="background:${CO.ell}"></i><span><b>Elliott 5 sóng:</b> ${E.n} lần đếm đủ 5 sóng → <b>${E.ok} lần</b> sau đó điều chỉnh ≥ 38,2% (<b>${pc(E.ok, E.n)}</b>). Mọi chuỗi 5 nhịp không đúng luật Elliott: ${pc(E.bok, E.bn)}.</span></p>` : ""}
+        </div>
+        ${it.length ? `<div class="cd-ap-l">${it.slice(0, 40).map((x) => `<button type="button" class="cd-it ${AP.focus === x ? "on" : ""}" data-i="${AP.R.items.indexOf(x)}" style="--rc:${rc(x)}"><b>${rs(x)}</b> ${esc(nm(x))} <small>${dstr(x.i0)}</small></button>`).join("")}</div>` : `<p class="cd-ap-e">Chưa thấy mẫu hình nào trong dữ liệu đang có của khung này – thử khung thời gian dài hơn.</p>`}
+        <details class="cd-ap-d"><summary>Cách tìm & chấm đúng / sai</summary><ul>
+          <li><b>Chọn đỉnh / đáy</b> tự động: một nhịp mới được tính khi giá đảo chiều ≥ 2,6 lần biên độ trung bình (ATR) – mọi mẫu hình đều tìm bằng cùng quy tắc, không chọn tay.</li>
+          <li><b>Fibonacci:</b> sóng đẩy ≥ 5 ATR, điều chỉnh dừng trong ±3,5% quanh 0,382 / 0,5 / 0,618 / 0,786. <span style="color:${CO.ok}">✓</span> khi giá sau đó vượt lại đỉnh (đáy) của sóng đẩy trước khi thủng gốc sóng.</li>
+          <li><b>Tam giác / nêm:</b> 5 đỉnh / đáy luân phiên nằm gọn giữa 2 đường hội tụ (hoặc mở rộng). Phá vỡ = giá đóng cửa ra ngoài. <span style="color:${CO.ok}">✓</span> khi chạm mục tiêu = chiều cao lúc mở đầu, trước khi về lại đáy / đỉnh cuối bên kia; nêm & tam giác tăng / giảm phá sai hướng sách vở cũng tính ✗.</li>
+          <li><b>Elliott:</b> đủ 3 luật cứng (sóng 2 không về quá gốc, sóng 3 không ngắn nhất, sóng 4 không chồng sóng 1); điểm khớp chấm theo tỉ lệ Fibonacci kinh điển của từng sóng. <span style="color:${CO.ok}">✓</span> khi sau sóng 5 giá điều chỉnh ≥ 38,2% cả đoạn trước khi vượt đỉnh sóng 5 thêm 23,6%.</li>
+          <li><b>…</b> = chưa đủ dữ liệu sau mẫu hình để chấm. Nhìn lại quá khứ thì mẫu hình nào cũng dễ thấy "rất khớp" – hãy so tỉ lệ đúng với dòng "chỗ khác / không đúng luật" để biết mẫu hình có thật sự giúp dự đoán hay không.</li></ul></details>`;
+    }
+    function apClick(e) {
+      const b = e.target.closest("button"); if (!b) return;
+      if (b.dataset.x != null) return apOn(false);
+      if (b.dataset.sh) { AP.sh[b.dataset.sh] = !AP.sh[b.dataset.sh]; AP.focus = null; apPanel(); return req(); }
+      if (b.dataset.i != null) {
+        const x = AP.R.items[+b.dataset.i]; AP.focus = AP.focus === x ? null : x;
+        if (AP.focus) { const pad = Math.max(8, Math.round((x.i1 - x.i0) * 0.35)); ts.setVisibleLogicalRange({ from: x.i0 - pad, to: x.i1 + pad }); }
+        apPanel(); pump(300);
+      }
+    }
+    function apOn(v) {
+      AP.on = v; try { cfg.set("draw_ap", v); } catch (e) { /* bỏ qua */ }
+      if (v && !AP.R) AP.R = scanPatterns(o);
+      tb.querySelector('[data-a="ap"]')?.classList.toggle("on", v); cfg.btn2?.classList.toggle("on", v);
+      AP.focus = null; apPanel(); req();
+    }
     let dead = false;
-    function cleanup() { if (dead) return; dead = true; el.removeEventListener("pointerdown", down, true); el.removeEventListener("mousedown", block, true); el.removeEventListener("touchstart", block, true); try { ro.disconnect(); ts.unsubscribeVisibleLogicalRangeChange(onRange); c.unsubscribeCrosshairMove(onCross); } catch (e) { /* biểu đồ đã huỷ */ } document.removeEventListener("keydown", key, true); if (OPEN_TB === inst) OPEN_TB = null; }
-    const inst = { c, toggle, render: req, alive: () => svg.isConnected, destroy: () => { cleanup(); svg.remove(); tb.remove(); }, get count() { return D.length; } };
+    function cleanup() { if (dead) return; dead = true; AP.box?.remove(); el.removeEventListener("pointerdown", down, true); el.removeEventListener("mousedown", block, true); el.removeEventListener("touchstart", block, true); try { ro.disconnect(); ts.unsubscribeVisibleLogicalRangeChange(onRange); c.unsubscribeCrosshairMove(onCross); } catch (e) { /* biểu đồ đã huỷ */ } document.removeEventListener("keydown", key, true); if (OPEN_TB === inst) OPEN_TB = null; }
+    const inst = { c, toggle, render: req, alive: () => svg.isConnected, destroy: () => { cleanup(); svg.remove(); tb.remove(); AP.box?.remove(); }, ap: (v) => apOn(v ?? !AP.on), get count() { return D.length; } };
     el._cd = inst;
     setTool("cur"); draw(); setTimeout(req, 60); setTimeout(req, 400);
     if (cfg.open) openTb(true);

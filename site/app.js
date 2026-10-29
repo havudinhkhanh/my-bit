@@ -48,10 +48,15 @@ function drawHook(el, c, s, o, dkey) {
   const b = document.createElement("button"); b.type = "button"; b.className = "cd-tg"; b.title = "Công cụ vẽ: đường xu hướng, Fibonacci, đường ngang, vùng, thước đo, ghi chú";
   b.setAttribute("aria-label", "Công cụ vẽ"); b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>`;
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
-  el.appendChild(b);
-  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => toast(e.message));
+  const b2 = document.createElement("button"); b2.type = "button"; b2.className = "cd-tg cd-tg2"; b2.title = "Mẫu hình đã xảy ra: Fibonacci, tam giác / nêm, Elliott trên dữ liệu cũ – kèm đúng / sai";
+  b2.setAttribute("aria-label", "Mẫu hình đã xảy ra"); b2.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-5 5 10"/><path d="M3 20h18"/></svg>`;
+  el.querySelector(":scope > .cd-tg2")?.remove();
+  el.append(b, b2);
+  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, btn2: b2, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => { toast(e.message); return null; });
   b.onclick = (e) => { e.stopPropagation(); go(true); };
-  if ((lsGet(key, []) || []).length) { b.classList.add("has"); go(false); }
+  b2.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.ap()); };
+  if (lsGet("draw_ap", false)) go(false).then((x) => x && x.ap(true));
+  else if ((lsGet(key, []) || []).length) { b.classList.add("has"); go(false); }
 }
 const cache = {};
 // cùng 1 tệp được nhiều phần trang gọi cùng lúc → chỉ tải 1 lần (giữ lời hứa đang tải; lỗi thì xoá để lần sau thử lại)
