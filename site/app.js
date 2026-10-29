@@ -4572,7 +4572,7 @@ function popOpen(host, items, pick, sel = 0) {
   POP.host = host; POP.items = items; POP.pick = pick; POP.sel = Math.max(0, sel);
   if (!items.length) { POP.el = null; return; }
   const el = document.createElement("div"); el.className = "pop"; el.setAttribute("role", "listbox");
-  el.innerHTML = items.map((it, i) => `<button type="button" class="pop-i${i === POP.sel ? " on" : ""}${it.cur ? " cur" : ""}" data-i="${i}" role="option"><span class="pop-l">${it.html || esc(it.label)}</span>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}${it.right ? `<em>${it.right}</em>` : ""}</button>`).join("");
+  let gg = ""; el.innerHTML = items.map((it, i) => `${it.g && it.g !== gg ? `<p class="pop-g">${esc((gg = it.g))}</p>` : ""}<button type="button" class="pop-i${i === POP.sel ? " on" : ""}${it.cur ? " cur" : ""}" data-i="${i}" role="option"><span class="pop-l">${it.html || esc(it.label)}</span>${it.sub ? `<small>${esc(it.sub)}</small>` : ""}${it.right ? `<em>${it.right}</em>` : ""}</button>`).join("");
   document.body.appendChild(el); POP.el = el; host.setAttribute("aria-expanded", "true");
   const R = host.getBoundingClientRect(), w = Math.max(R.width, 200), H = Math.min(el.scrollHeight, 320), below = innerHeight - R.bottom - 8;
   Object.assign(el.style, { left: Math.max(8, Math.min(R.left, innerWidth - w - 8)) + "px", minWidth: w + "px", maxHeight: (below < H && R.top > below ? Math.min(320, R.top - 12) : Math.min(320, Math.max(140, below))) + "px" });
@@ -4583,7 +4583,7 @@ function popOpen(host, items, pick, sel = 0) {
 }
 const coarse = () => matchMedia("(pointer:coarse)").matches;
 function popSelect(s) {
-  const items = [...s.options].filter((o) => !o.hidden).map((o) => ({ v: o.value, label: o.textContent.trim(), cur: o.selected, dis: o.disabled }));
+  const items = [...s.options].filter((o) => !o.hidden).map((o) => ({ v: o.value, label: o.textContent.trim(), cur: o.selected, dis: o.disabled, g: o.parentElement?.tagName === "OPTGROUP" ? o.parentElement.label : "" }));
   popOpen(s, items.filter((x) => !x.dis), (it) => { if (s.value === it.v) return; s.value = it.v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, items.filter((x) => !x.dis).findIndex((x) => x.cur));
 }
 function popList(inp) {

@@ -2690,3 +2690,4 @@ kbd{display:inline-block;min-width:18px;padding:1px 5px;border:1px solid var(--l
 @media (max-width:600px){.cmdk{padding:8px}.cmdk-in{max-height:calc(100vh - 16px)}.cmdk-f{display:none}}
 body.cmdk-on{overflow:hidden}
 @media (min-width:901px) and (pointer:fine){.search input{padding-right:62px}}
+.pop-g{margin:6px 10px 2px;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
