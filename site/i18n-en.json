@@ -4491,5 +4491,13 @@
 "Mẫu hình đã xảy ra: Fibonacci, tam giác / nêm, Elliott trên dữ liệu cũ – kèm đúng / sai": "Past patterns: Fibonacci, triangles / wedges, Elliott on historical data – with hit / miss",
 "Mẫu hình đã xảy ra": "Past patterns",
 "Mẫu hình đã xảy ra: tìm lại Fibonacci, tam giác / nêm, Elliott trên dữ liệu cũ và chấm đúng / sai": "Past patterns: find Fibonacci, triangles / wedges, Elliott in history and score hit / miss",
-"Chưa thấy mẫu hình nào trong dữ liệu đang có của khung này – thử khung thời gian dài hơn.": "No patterns found in this timeframe's data – try a longer timeframe."
+"Chưa thấy mẫu hình nào trong dữ liệu đang có của khung này – thử khung thời gian dài hơn.": "No patterns found in this timeframe's data – try a longer timeframe.",
+"Mua ngay khi cú sập đến sau 15 phút đã giảm ≥": "Buy immediately when the crash follows a 15-minute drop of ≥",
+"tháo chạy → bật lại nhanh; kiểm chứng vòng 8: TB +119 bps/lệnh": "capitulation → quick rebound; round-8 test: avg +119 bps/trade",
+"… mua ngay bằng": "… buy immediately with",
+"phần tài sản, lệnh thị trường; 0 = tắt": "of equity, market order; 0 = off",
+"Riêng cú": "For crashes that",
+"sập đến khi 15 phút trước giá đã giảm ≥": "come after a 15-minute drop of ≥",
+"(tháo chạy): bot": "(capitulation), the bot",
+"bằng lệnh thị trường, không chờ giá xuống sâu.": "at market instead of waiting for a deeper price."
 }

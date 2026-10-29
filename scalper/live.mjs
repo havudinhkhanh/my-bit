@@ -155,11 +155,16 @@ export class LiveExec {
     const F = await this.filters(sym); if (!F) return skip(`${sym} không giao dịch được trên ${env === "live" ? "Binance" : "Binance Demo"}`);
     // vốn: tổng ký quỹ đang dùng + lần này ≤ vốn tối đa
     const used = A.reduce((a, e) => a + e.lv.reduce((b, l) => b + (l.st === "cxl" ? 0 : l.px * l.q), 0), 0) / c.lv_lev;
-    let per = Math.max(c.lv_cap * c.hk_size / 100 / h.lv.length, F.minN * 1.1), lv = h.lv;
-    if (per * lv.length > c.lv_cap * 0.25) { lv = h.lv.slice(0, 1); per = Math.max(c.lv_cap * c.hk_size / 100, F.minN * 1.1); }
-    if (per * lv.length > c.lv_cap * 0.25) return skip(`lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 25% vốn tối đa – tăng "Vốn tối đa"`);
-    if (used + per * lv.length / c.lv_lev > c.lv_cap) return skip(`đã dùng ${used.toFixed(2)} / ${c.lv_cap} USDT ký quỹ`);
-    if (this.st.avail != null && per * lv.length / c.lv_lev > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ`);
+    // mức "vào ngay" (mk, lệnh thị trường) dùng hk_mkS % vốn; các mức chờ chia đều hk_size %
+    const lim = h.lv.filter((l) => !l.mk), mkL = h.lv.filter((l) => l.mk);
+    let per = Math.max(c.lv_cap * c.hk_size / 100 / Math.max(1, lim.length), F.minN * 1.1), lv = h.lv;
+    const perMk = Math.max(c.lv_cap * (h.mkS || 0) / 100, F.minN * 1.1);
+    const tot = (L) => L.reduce((a, l) => a + (l.mk ? perMk : per), 0);
+    if (tot(lv) > c.lv_cap * 0.25) { lv = [...mkL, ...lim.slice(0, 1)]; per = Math.max(c.lv_cap * c.hk_size / 100, F.minN * 1.1); }
+    if (tot(lv) > c.lv_cap * 0.25) lv = lim.slice(0, 1);
+    if (tot(lv) > c.lv_cap * 0.25) return skip(`lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 25% vốn tối đa – tăng "Vốn tối đa"`);
+    if (used + tot(lv) / c.lv_lev > c.lv_cap) return skip(`đã dùng ${used.toFixed(2)} / ${c.lv_cap} USDT ký quỹ`);
+    if (this.st.avail != null && tot(lv) / c.lv_lev > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ`);
     // không đụng coin anh đang có vị thế
     const pr = await this.pos(sym); if (pr && Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${sym} (${pr.amt}) – bot không đụng vào`);
     if (!this.lev[sym]) {
@@ -168,10 +173,10 @@ export class LiveExec {
     }
     const id = `${this.S.seq++}`, side = h.side;
     const ev = { id, k: h.id, sym, side, t0: now, exp: h.exp, hold: h.hold, stopPct: h.stop, R: h.R, c0: h.c0, env, done: false, pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0,
-      lv: lv.map((l, i) => { const px = side > 0 ? fl(l.px, F.tick) : ce(l.px, F.tick), q = Math.max(fl(per / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
+      lv: lv.map((l, i) => { const m0 = l.mk ? this.mark(h.id) || l.px : l.px, px = side > 0 ? fl(m0, F.tick) : ce(m0, F.tick), q = Math.max(fl((l.mk ? perMk : per) / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, mk: l.mk ? 1 : 0, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
     if (!ev.lv.length) return skip("khối lượng sau làm tròn nhỏ hơn mức tối thiểu của sàn");
     this.S.ev[id] = ev; this.save();
-    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => `${l.q} @ ${l.px}`).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev})`);
+    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => (l.mk ? `${l.q} NGAY (giá thị trường ~${l.px})` : `${l.q} @ ${l.px}`)).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev})`);
     await this.submitDue(ev);
   }
   // lệnh chờ quá xa giá hiện tại bị sàn từ chối (giới hạn PERCENT_PRICE) → chỉ gửi khi giá tới gần
@@ -180,6 +185,13 @@ export class LiveExec {
     for (const l of ev.lv) {
       if (l.st !== "wait") continue;
       if (Date.now() > ev.exp) { l.st = "cxl"; continue; }
+      if (l.mk) {      // vào ngay: lệnh thị trường, gửi 1 lần
+        try {
+          const o = await this.req("POST", "/fapi/v1/order", { symbol: ev.sym, side: ev.side > 0 ? "BUY" : "SELL", type: "MARKET", quantity: l.qs, newClientOrderId: l.cid, newOrderRespType: "RESULT" });
+          l.st = "open"; this.S.errs = 0; this.say(`Đã ${ev.side > 0 ? "mua" : "bán"} ngay ${ev.sym} ${l.q} (lệnh thị trường${+o.avgPrice > 0 ? `, giá TB ${+o.avgPrice}` : ""})`);
+        } catch (e) { this.err(`vào ngay ${ev.sym}`, e); l.st = "cxl"; }
+        continue;
+      }
       if (!m) continue;
       const okBand = ev.side > 0 ? l.px >= m * (F.dn + 0.003) : l.px <= m * (F.up - 0.003);
       if (!okBand) continue;
@@ -209,7 +221,7 @@ export class LiveExec {
         if (l.st !== "open") continue;
         const o = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid });
         const fq = +o.executedQty, ap = +o.avgPrice;
-        if (fq > l.fq) { this.addFill(ev, fq - l.fq, (ap * fq - l.ap * l.fq) / Math.max(1e-12, fq - l.fq)); l.fq = fq; l.ap = ap; }
+        if (fq > l.fq) { this.addFill(ev, fq - l.fq, (ap * fq - l.ap * l.fq) / Math.max(1e-12, fq - l.fq), l.mk); l.fq = fq; l.ap = ap; }
         if (o.status === "FILLED") l.st = "filled"; else if (["CANCELED", "EXPIRED", "REJECTED"].includes(o.status)) l.st = l.fq > 0 ? "filled" : "cxl";
       }
     }
@@ -233,7 +245,7 @@ export class LiveExec {
   async missWhy(ev) {
     const K = await this.req("GET", "/fapi/v1/klines", { symbol: ev.sym, interval: "1m", startTime: ev.t0 - 60e3, endTime: ev.exp }, false);
     if (!Array.isArray(K) || !K.length) return;
-    const hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), lvl = ev.side > 0 ? Math.max(...ev.lv.map((l) => l.px)) : Math.min(...ev.lv.map((l) => l.px));
+    const hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), LL = ev.lv.filter((l) => !l.mk), lvl = ev.side > 0 ? Math.max(...LL.map((l) => l.px)) : Math.min(...LL.map((l) => l.px));
     const reach = ev.side > 0 ? lo : hi, gap = ev.side > 0 ? (reach / lvl - 1) * 100 : (lvl / reach - 1) * 100;
     const x = this.core.M?.[ev.k], m0 = Math.floor(ev.t0 / 60000) - 1, m1 = Math.floor(ev.exp / 60000), B = (x?.m1 || []).filter((b) => b[0] >= m0 && b[0] <= m1);
     const rH = B.length ? Math.max(...B.map((b) => b[2])) : null, rL = B.length ? Math.min(...B.map((b) => b[3])) : null, rr = ev.side > 0 ? rL : rH;
@@ -243,9 +255,9 @@ export class LiveExec {
     this.say(`🔍 ${ev.sym}: ${nm} ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+reach.toPrecision(6)} – còn cách mức chờ gần nhất ${+lvl.toPrecision(6)} ${gap.toFixed(2)}%${rr != null ? ` · giá Binance thật (sàn thử dùng) ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+rr.toPrecision(6)}${realHit ? " – ĐÃ chạm mức chờ" : " – cũng chưa chạm"}` : ""}${realHit && ev.env !== "live" ? ". Sàn Demo có sổ lệnh riêng, râu nến lúc sốc thường ngắn hơn sàn thật → lệnh chờ sâu khó khớp trên Demo." : ""}`);
   }
   missAdd(m) { const env = this.env(); this.S.miss = [...(this.S.miss || []).slice(-79), { ...m, env }]; }
-  addFill(ev, q, px) {
+  addFill(ev, q, px, mk = 0) {
     const c = this.cfg(), P = ev.pos, nq = P.q + q;
-    P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.fees += q * px * c.fee_m / 100; ev.needStop = true;
+    P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.fees += q * px * (mk ? c.fee_t : c.fee_m) / 100; ev.needStop = true;
     this.say(`✅ Khớp ${ev.side > 0 ? "MUA" : "BÁN"} ${ev.sym} ${+q.toFixed(8)} @ ${+px.toPrecision(8)} · vị thế ${+P.q.toFixed(8)} giá TB ${+P.ap.toPrecision(8)} · tự đóng sau ${ev.hold} phút`, "win");
     this.note(`fill:${ev.id}:${P.q}`, 2, `💵 ${ev.env === "live" ? "LỆNH THẬT" : "Demo"}: khớp ${ev.side > 0 ? "Long" : "Short"} ${ev.sym}`, `${+q.toFixed(8)} @ ${+px.toPrecision(8)} – tự đóng sau ${ev.hold} phút, cắt lỗ trên sàn ${ev.stopPct}%`);
   }

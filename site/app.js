@@ -3313,10 +3313,10 @@ async function viewSup(...a) { await lazyJs("app-bot.js"); return viewSup(...a);
 
 // ================================================================ BOT LƯỚT GIÂY (scalping) – quét toàn thị trường spot + futures, chạy liên tục trên máy chủ (Durable Object); trang này chỉ hiển thị & cài đặt
 const SCALP_DEF = { enabled: false, where: "cf", capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "auto", fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.5, hk_d2: 2, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 2,
+  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.25, hk_d2: 1.5, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 3, hk_mk: true, hk_mk15: 300, hk_mkS: 2,
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_lev: 2, lv_daily: 10 };
 // thiết lập cũ (chưa có hk_rev) → nâng lên bản kiểm chứng vòng 5 đúng như máy chủ làm (worker/scalp_core.js hkMigrate)
-const scMig = (c) => { c = { ...(c || {}) }; if (!(+c.hk_rev >= 2)) { c.hk_v = Math.max(+c.hk_v || 8, 8); c.hk_w = Math.min(+c.hk_w || 8, 8); if (c.hk_r15 == null) c.hk_r15 = 100; c.hk_rev = 2; } return c; };
+const scMig = (c) => { c = { ...(c || {}) }; if (!(+c.hk_rev >= 2)) { c.hk_v = Math.max(+c.hk_v || 8, 8); c.hk_w = Math.min(+c.hk_w || 8, 8); if (c.hk_r15 == null) c.hk_r15 = 100; c.hk_rev = 2; } if (!(+c.hk_rev >= 3)) { if (+c.hk_d1 === 1.5 && +c.hk_d2 === 2) { c.hk_d1 = 1.25; c.hk_d2 = 1.5; } c.hk_rev = 3; } return c; };
 const SCV = { go: ["ĐẠT CHUẨN", "buy"], hold: ["ĐANG GIỮ", "brand"], order: ["CHỜ KHỚP", "brand"], fee: ["CHƯA ĐỦ BIÊN", "warn"], learn: ["ĐANG HỌC", ""], verify: ["ĐÁNH ẢO", "brand"], skip: ["BỎ QUA", ""], pause: ["TẠM DỪNG", "sell"] };
 const ZN = { W: ["sau quét thanh khoản", "up"], A: ["vùng giá tốt", "up"], M: ["giữa biên", ""], B: ["vùng giá xấu", "down"], X: ["phá biên", ""], "?": ["", ""] };
 const ZONE_TXT = { W: "Vừa quét thanh khoản rồi quay đầu", A: "Vùng giá tốt (mua rẻ / bán đắt)", M: "Giữa biên 60 phút", B: "Vùng giá xấu (mua đắt / bán rẻ)", X: "Đang phá biên 60 phút" };
