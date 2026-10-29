@@ -39,7 +39,20 @@ function lazyJs(name) {
     document.head.appendChild(el);
   }));
 }
-const JSV = { "app-bot.js": "__JSV_APPBOT__" };
+const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__" };
+// công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
+function drawHook(el, c, s, o, dkey) {
+  if (!el || !dkey || el.clientHeight < 200) return;
+  const key = "draw_" + dkey;
+  if (el._cd && el._cd.c !== c) el._cd.destroy();
+  const b = document.createElement("button"); b.type = "button"; b.className = "cd-tg"; b.title = "Công cụ vẽ: đường xu hướng, Fibonacci, đường ngang, vùng, thước đo, ghi chú";
+  b.setAttribute("aria-label", "Công cụ vẽ"); b.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>`;
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+  el.appendChild(b);
+  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => toast(e.message));
+  b.onclick = (e) => { e.stopPropagation(); go(true); };
+  if ((lsGet(key, []) || []).length) { b.classList.add("has"); go(false); }
+}
 const cache = {};
 // cùng 1 tệp được nhiều phần trang gọi cùng lúc → chỉ tải 1 lần (giữ lời hứa đang tải; lỗi thì xoá để lần sau thử lại)
 const inflight = {};
@@ -166,6 +179,7 @@ function candleChart(el, o, opts = {}) {
   });
   (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: T(l.title || "") }); });
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
+  if (opts.dkey) drawHook(el, c, cs, o, opts.dkey);
   return { c, cs };
 }
 // ---------------------------------------------------------------- khung biểu đồ: vẽ đúng kích thước thật (chữ không phóng to), nhỏ mặc định, có "Mở rộng" & "Toàn màn hình"
@@ -1421,7 +1435,7 @@ function drawO(D, el, o, tf, src) {
   if (intra && I.entry) { lines.push({ price: I.entry, color: css("--brand"), title: "vào (lướt)" }, { price: I.stop, color: css("--down"), title: "cắt lỗ" }, { price: I.t1, color: css("--up"), title: "chốt 1" }); }
   if (lsGet("showZones", true)) (LV.sup || []).slice(0, 2).concat((LV.res || []).slice(0, 2)).forEach((z) => lines.push({ price: z.p, color: z.n >= 3 ? css("--ref") : css("--ink-3"), title: `${z.side} (${z.n})`, style: 1 }));
   const n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
-  const ch = candleChart(el, o, { ma: ["1d", "1w"].includes(tf) ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)] });
+  const ch = candleChart(el, o, { ma: ["1d", "1w"].includes(tf) ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)], dkey: D.row?.k });
   $("#csrc") && ($("#csrc").textContent = src);
   return ch;
 }

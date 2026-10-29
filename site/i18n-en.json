@@ -4446,5 +4446,22 @@
 "Không thấy": "Nothing found for",
 "Tìm nhanh": "Quick search",
 "Bảng tìm nhanh: coin, trang, thao tác": "Quick search: coins, pages, actions",
-"Mở bảng tìm nhanh": "Open quick search"
+"Mở bảng tìm nhanh": "Open quick search",
+"Con trỏ – chọn, kéo, xoá hình đã vẽ": "Cursor – select, drag, delete drawings",
+"Đường xu hướng (2 điểm)": "Trend line (2 points)",
+"Tia – kéo dài về bên phải": "Ray – extends to the right",
+"Đường ngang (1 điểm) – hỗ trợ / kháng cự": "Horizontal line (1 point) – support / resistance",
+"Đường dọc (1 điểm) – đánh dấu ngày / sự kiện": "Vertical line (1 point) – mark a date / event",
+"Fibonacci thoái lui (kéo từ đáy lên đỉnh hoặc ngược lại)": "Fibonacci retracement (drag from low to high or vice versa)",
+"Vùng giá (hình chữ nhật)": "Price zone (rectangle)",
+"Thước đo – % thay đổi, số nến": "Measure – % change, bar count",
+"Bút vẽ tự do": "Freehand pen",
+"Ghi chú chữ": "Text note",
+"Màu nét vẽ": "Stroke colour",
+"Nam châm – điểm vẽ tự bám vào giá mở / cao / thấp / đóng của nến gần nhất": "Magnet – snap points to the nearest candle's open / high / low / close",
+"Ẩn / hiện hình đã vẽ": "Hide / show drawings",
+"Xoá hình đang chọn (phím Delete) – không chọn gì thì xoá hết": "Delete the selected drawing (Delete key) – with nothing selected, clear all",
+"Công cụ vẽ: đường xu hướng, Fibonacci, đường ngang, vùng, thước đo, ghi chú": "Drawing tools: trend line, Fibonacci, horizontal line, zone, measure, note",
+"Công cụ vẽ": "Drawing tools",
+"Ghi chú… (Enter)": "Note… (Enter)"
 }
