@@ -4430,5 +4430,21 @@
 "Mục tiêu chốt lời đã tối ưu riêng cho mã (mặc định 1,5R)": "Take-profit target tuned for this coin (default 1.5R)",
 "Lịch sử riêng của mã với đúng cách vào lệnh này": "This coin's own history with this exact entry type",
 "Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này": "Chance of hitting TP1 estimated by the ML model for this exact signal",
-"mã": "coins"
+"mã": "coins",
+"Tìm coin, trang hoặc thao tác…": "Search coins, pages or actions…",
+"Trang": "Pages",
+"Thao tác": "Actions",
+"Tài khoản & cài đặt": "Account & settings",
+"Gói, khoá Binance, cài đặt vốn & rủi ro": "Plan, Binance keys, capital & risk settings",
+"Chuyển giao diện sáng": "Switch to light mode",
+"Chuyển giao diện tối": "Switch to dark mode",
+"Mở / đóng bảng phụ": "Open / close side panel",
+"điểm chính, mục lục, coin theo dõi, tính lệnh": "key points, contents, watchlist, size calculator",
+"Lên kế hoạch lệnh cho": "Plan a trade for",
+"chọn": "select",
+"mở / đóng": "open / close",
+"Không thấy": "Nothing found for",
+"Tìm nhanh": "Quick search",
+"Bảng tìm nhanh: coin, trang, thao tác": "Quick search: coins, pages, actions",
+"Mở bảng tìm nhanh": "Open quick search"
 }
