@@ -564,24 +564,48 @@ async function viewBot(sel) {
     $("#bSave").onclick = async () => { rd(); Object.assign(B.find((b) => b.id === id), C); await putAll(); toast("Đã lưu thiết lập bot"); viewBot(id); };
   };
   form();
-  // ---- mô hình học theo từng mã
+  // ---- mô hình học theo từng mã: 1 câu kết luận · 3 con số dễ hiểu · bảng 1 dòng / mã · chi tiết kỹ thuật thu gọn
   tryLoad("data/coinmodel.json").then((CM) => {
     if (!CM || !$("#bModel")) return;
     const ml = CM.ml || {}, FN = { r1: "R:R tới MT1", prior_win: "trí nhớ của mã (thắng quá khứ)", setup_i: "loại thiết lập", compress: "độ nén giá (tam giác)", dslow: "khoảng cách MA200", mom10: "đà 10 nến", mom30: "đà 30 nến", stop_atr: "độ rộng cắt lỗ (ATR)", d20: "khoảng cách EMA20", d50: "khoảng cách EMA50", volz: "khối lượng bất thường", tri: "tam giác hội tụ", lo_slope: "độ dốc đáy", hi_slope: "độ dốc đỉnh", fibpos: "vị trí Fibonacci", rsi: "RSI", atrp: "biến động (ATR%)", slope50: "độ dốc EMA50", htf: "khung lớn", btc: "BTC trên/dưới MA200", mf: "dòng tiền chủ động", side: "chiều Long/Short", tf_d: "khung ngày/4h", prior_n: "số lần mã đã có tín hiệu" };
-    const imp = Object.entries(ml.importance || {}), mx = Math.max(1e-9, ...imp.map(([, v]) => v));
-    const keys = [...new Set([...(st?.think?.cands || []).map((t) => t.k), ...(st?.pos || []).map((p) => p.k)])].slice(0, 12);
-    const NM = Object.fromEntries(Object.entries(I?.names || {}));
-    $("#bModel").innerHTML = panel("🧬 Mô hình học theo từng mã", `<div class="bm-g"><div>
-        <p class="sbp">Bộ nhớ: <b>${nf(CM.n_rows, 0)}</b> tín hiệu lịch sử · học lại mỗi tuần (lần gần nhất ${CM.trained_at ? esc(new Date(CM.trained_at).toLocaleDateString(LOC)) : "—"})</p>
-        ${ml.auc ? `<div class="bexp"><div><i>Độ phân biệt (AUC, ngoài mẫu)</i><b class="${ml.ok ? "up" : "down"}">${nf(ml.auc, 3)}</b><small>thống kê thuần: ${nf(ml.auc_base, 3)} · 0,5 = đoán mò</small></div>
-          <div><i>Lãi TB 30% tín hiệu mô hình chấm cao nhất</i><b class="${cls(ml.avgR_top30)}">${nf(ml.avgR_top30, 2)}R</b><small>so với tất cả: ${nf(ml.avgR_all, 2)}R</small></div></div>
-          <p class="faint" style="font-size:.74rem">${ml.ok ? "✅ Mô hình tốt hơn thống kê thuần trên dữ liệu chưa từng thấy → bot dùng xác suất của mô hình." : "⚠️ Mô hình chưa tốt hơn thống kê thuần → bot chỉ dùng sổ tay từng mã, chưa dùng xác suất học máy."} Kiểm tra trên 20% dữ liệu gần nhất (${nf(ml.n_test, 0)} tín hiệu) mà mô hình không được học.</p>` : `<p class="muted">${esc(ml.why || "Chưa huấn luyện")}</p>`}
-        ${imp.length ? `<p class="sbh">Mô hình dựa vào gì nhiều nhất</p>${imp.map(([f, v]) => `<div class="bm-i"><span>${esc(FN[f] || f)}</span><i><i style="width:${(v / mx * 100).toFixed(0)}%"></i></i></div>`).join("")}` : ""}</div>
-      <div><p class="sbh">Sổ tay của các mã bot đang xét</p>${keys.length ? keys.map((k) => { const c = CM.coins?.[k] || {}, tn = CM.tune?.[k] || {};
-          const rows2 = ["d", "h4"].flatMap((tf) => Object.entries(c[tf] || {}).map(([st2, v]) => ({ tf, st: st2, ...v }))).sort((a, b) => b.shr - a.shr);
-          return `<div class="bm-c"><b>${coinLink(k)}</b>${rows2.length ? `<div class="bm-r">${rows2.slice(0, 5).map((v) => `<span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[v.play]}" title="${esc(NM[v.st] || v.st)} · ${v.n} lần · thắng ${nf(v.win, 0)}% · lãi TB ${nf(v.avgR, 2)}R (đã co về trung bình: ${nf(v.shr, 2)}R)">${esc((NM[v.st] || v.st).replace(/^SMC: /, "").slice(0, 26))} ${v.tf === "d" ? "ngày" : "4h"} ${nf(v.shr, 2)}R</span>`).join("")}</div>` : `<small class="faint">chưa đủ lịch sử – dùng thống kê chung</small>`}
-            ${tn.d?.m || tn.h4?.m ? `<small class="faint">mục tiêu tối ưu: ${tn.d?.m ? `ngày ${tn.d.m}R` : ""} ${tn.h4?.m ? `4h ${tn.h4.m}R` : ""} (mặc định 1,5R)</small>` : ""}</div>`; }).join("") : `<p class="muted">Bật bot để xem sổ tay các mã bot đang xét.</p>`}</div></div>
-      <p class="faint" style="font-size:.72rem">Các phương pháp hình học như "định lý Pytago", tam giác cân / đều trên biểu đồ chưa có bằng chứng thống kê; mô hình chỉ dùng những gì đo được (độ nén tam giác, Fibonacci, khối lượng, xu hướng…) và giữ lại cái nào thực sự giúp dự đoán trên dữ liệu chưa từng thấy. Dự đoán là xác suất, không phải chắc chắn.</p>`, "mỗi mã một cách chơi");
+    const imp = Object.entries(ml.importance || {}).filter(([, v]) => v > 0), mx = Math.max(1e-9, ...imp.map(([, v]) => v));
+    const NM = I?.names || {}, NMr = Object.fromEntries(Object.entries(NM).map(([a, b]) => [b, a]));
+    const sn = (s) => esc(String(NM[s] || s).replace(/^SMC: /, "")), tfn = (tf) => (tf === "d" ? "ngày" : "4h");
+    const PL = { prefer: ["buy", "Hợp"], ok: ["", "Được"], weak: ["warn", "Yếu"], avoid: ["sell", "Tránh"] };
+    const on = C.use_model !== false, useML = on && ml.ok, pos = st?.pos || [], cands = st?.think?.cands || [];
+    const keys = [...new Set([...pos.map((p) => p.k), ...cands.map((t) => t.k)])].slice(0, 12);
+    const book = (k) => ["d", "h4"].flatMap((tf) => Object.entries(CM.coins?.[k]?.[tf] || {}).map(([s, v]) => ({ tf, s, ...v }))).sort((a, b) => b.shr - a.shr);
+    const one = (v) => v ? `<span>${sn(v.s)} · ${tfn(v.tf)}</span><small class="faint">thắng ${nf(v.win, 0)}% · ${v.n} lần · ${v.shr >= 0 ? "+" : ""}${nf(v.shr, 2)}R/lệnh</small>` : `<small class="faint">—</small>`;
+    const verdict = !on ? ["", "⏸", "Anh đang tắt phần này trong thiết lập bot – bot không dùng sổ tay từng mã, cũng không dùng điểm học máy."]
+      : useML ? ["up", "✅", `Bot đang dùng cả hai lớp: <b>bỏ cách vào lệnh mà mã đó hay thua</b> (sổ tay) và <b>bỏ tín hiệu mô hình chấm dưới ${nf(C.min_win, 0)}%</b> khả năng chạm MT1.`]
+      : ["warn", "⚠️", `Bot chỉ dùng <b>sổ tay từng mã</b> (bỏ cách vào lệnh mà mã đó hay thua). Điểm học máy <b>tạm chưa dùng</b> vì ${ml.auc ? "chưa đoán tốt hơn cách thống kê đơn giản" : esc(ml.why || "chưa huấn luyện")}.`];
+    const rows = keys.map((k) => {
+      const B = book(k), best = B.find((v) => v.play === "prefer" || v.play === "ok"), worst = [...B].reverse().find((v) => v.play === "avoid");
+      const p = pos.find((x) => x.k === k), t = cands.find((x) => x.k === k), tn = CM.tune?.[k] || {};
+      const now = p ? `<span class="pill brand">đang giữ</span> ${p.sd > 0 ? "Long" : "Short"} · ${tfn(p.tf)}` : t ? `${t.side === "long" ? "Long" : "Short"} · ${esc(String(t.name || "").replace(/^SMC: /, ""))} · ${tfn(t.tf)}${t.play && PL[t.play] ? ` <span class="pill ${PL[t.play][0]}" title="Lịch sử riêng của mã với đúng cách vào lệnh này">${PL[t.play][1]}</span>` : ""}` : "—";
+      const pm = p?.pm ?? t?.pm, pass = isNum(pm) && pm >= C.min_win;
+      const tg = [tn.d?.m ? `ngày ${nf(tn.d.m, 1)}R` : "", tn.h4?.m ? `4h ${nf(tn.h4.m, 1)}R` : ""].filter(Boolean).join(" · ");
+      return `<div class="bm-row"><div class="bm-k1">${coinLink(k)}${tg ? `<small class="faint" title="Mục tiêu chốt lời đã tối ưu riêng cho mã (mặc định 1,5R)">🎯 ${tg}</small>` : ""}</div>
+        <div class="bm-k2"><small class="faint bm-lb">Bot đang xét</small>${now}</div>
+        <div class="bm-k3" title="Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này">${isNum(pm) ? `<b class="${pass ? "up" : "down"}">🧬 ${nf(pm, 0)}%</b><small class="faint">${pass ? "đạt" : "dưới"} ngưỡng ${nf(C.min_win, 0)}%</small>` : `<small class="faint">chưa chấm</small>`}</div>
+        <div class="bm-k4"><small class="faint bm-lb">✅ Hợp</small>${B.length ? one(best) : `<small class="faint">chưa đủ lịch sử</small>`}</div><div class="bm-k5"><small class="faint bm-lb">⛔ Tránh</small>${one(worst)}</div></div>`;
+    });
+    const full = keys.map((k) => { const B = book(k); return B.length ? `<div class="bm-c"><b>${coinLink(k)}</b><div class="bm-r">${B.map((v) => `<span class="pill ${PL[v.play]?.[0] || ""}" title="${esc(NM[v.s] || v.s)} · ${v.n} lần · thắng ${nf(v.win, 0)}% · lãi TB thực ${nf(v.avgR, 2)}R">${sn(v.s).slice(0, 26)} ${tfn(v.tf)} ${nf(v.shr, 2)}R</span>`).join("")}</div></div>` : ""; }).join("");
+    $("#bModel").innerHTML = panel("🧬 Mô hình học theo từng mã", `<p class="bm-v ${verdict[0]}"><span>${verdict[1]}</span><span>${verdict[2]}</span></p>
+      ${ml.auc ? `<div class="bexp bm-k">
+        <div title="AUC trên dữ liệu mô hình chưa từng học: lấy ngẫu nhiên 1 tín hiệu thắng và 1 tín hiệu thua, mô hình chấm tín hiệu thắng cao hơn bao nhiêu % số lần"><i>Nhận ra tín hiệu thắng</i><b class="${ml.ok ? "up" : "down"}">${nf(ml.auc * 100, 0)}/100</b><small>đoán mò 50 · thống kê đơn giản ${nf(ml.auc_base * 100, 0)}</small></div>
+        <div><i>Chỉ vào 30% tín hiệu điểm cao nhất</i><b class="${cls(ml.avgR_top30)}">${ml.avgR_top30 >= 0 ? "+" : ""}${nf(ml.avgR_top30, 2)}R/lệnh</b><small>vào tất cả: ${ml.avgR_all >= 0 ? "+" : ""}${nf(ml.avgR_all, 2)}R/lệnh</small></div>
+</div>` : ""}
+      <p class="faint bm-n" style="margin:-6px 0 10px">Học từ ${nf(CM.n_rows, 0)} tín hiệu cũ · học lại mỗi tuần · lần cuối ${CM.trained_at ? esc(new Date(CM.trained_at).toLocaleDateString(LOC)) : "—"}</p>
+      <p class="sbh">Các mã bot đang xét</p>
+      ${keys.length ? `<div class="bm-l"><div class="bm-row bm-hd"><div>Coin</div><div>Bot đang xét</div><div>Mô hình chấm</div><div>✅ Mã này hợp nhất với</div><div>⛔ Mã này nên tránh</div></div>${rows.slice(0, 6).join("")}${rows.length > 6 ? `<details class="bm-more"><summary>Xem thêm ${rows.length - 6} mã</summary>${rows.slice(6).join("")}</details>` : ""}</div>
+        <p class="faint bm-n"><b>Hợp / Được / Yếu / Tránh</b> = lịch sử riêng của mã với cách vào lệnh đó (đã cân với trung bình chung để mã ít dữ liệu không bị chấm quá tay). <b>R</b> = bội số của mức rủi ro: +1R là lời đúng bằng số tiền chấp nhận mất.</p>`
+        : `<p class="muted">Bật bot để thấy sổ tay của các mã bot đang xét.</p>`}
+      <details class="bm-d"><summary>Chi tiết kỹ thuật – mô hình dựa vào gì, sổ tay đầy đủ</summary>
+        ${ml.auc ? `<p class="faint">Kiểm tra trên ${nf(ml.n_test, 0)} tín hiệu gần nhất (20% dữ liệu) mà mô hình không được học · AUC ${nf(ml.auc, 3)} (thống kê thuần ${nf(ml.auc_base, 3)}) · Brier ${nf(ml.brier, 4)} (thống kê thuần ${nf(ml.brier_base, 4)}, càng thấp càng tốt) · tỉ lệ chạm MT1 chung ${nf(ml.base_rate, 0)}%. Chỉ dùng mô hình khi cả hai chỉ số đều tốt hơn thống kê thuần.</p>` : ""}
+        ${imp.length ? `<p class="sbh">Mô hình dựa vào gì nhiều nhất</p><div class="bm-ig">${imp.map(([f, v]) => `<div class="bm-i"><span>${esc(FN[f] || f)}</span><i><i style="width:${(v / mx * 100).toFixed(0)}%"></i></i></div>`).join("")}</div>` : ""}
+        ${full ? `<p class="sbh">Sổ tay đầy đủ (mọi cách vào lệnh, lãi TB đã cân / lệnh)</p>${full}` : ""}
+        <p class="faint" style="font-size:.72rem">Các phương pháp hình học như "định lý Pytago", tam giác cân / đều trên biểu đồ chưa có bằng chứng thống kê; mô hình chỉ dùng những gì đo được (độ nén tam giác, Fibonacci, khối lượng, xu hướng…) và giữ lại cái nào thực sự giúp dự đoán trên dữ liệu chưa từng thấy. Dự đoán là xác suất, không phải chắc chắn.</p></details>`, "mỗi mã một cách chơi");
   });
   const save = async (patch, msg) => { Object.assign(C, patch); Object.assign(B.find((b) => b.id === id), C); await putAll(); toast(msg); viewBot(id); };
   $("#bOn").onclick = () => save({ enabled: !C.enabled }, C.enabled ? "Đã tắt bot – lệnh đang mở vẫn được quản lý tới khi đóng" : "Đã bật bot – bot bắt đầu theo dõi trong vòng 1–2 phút");
