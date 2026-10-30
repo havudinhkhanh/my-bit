@@ -10,6 +10,9 @@ WorkingDirectory=/opt/my-bit
 ExecStart=/usr/bin/node /opt/my-bit/scalper/runner.mjs
 Restart=always
 RestartSec=5
+# giới hạn CPU cứng: tối đa 50% một nhân (nhà cung cấp VPS bóp CPU cả tài khoản nếu máy chạy cao liên tục); ưu tiên thấp hơn các chương trình khác
+CPUQuota=50%
+Nice=5
 # giới hạn an toàn: bot chỉ đọc dữ liệu thị trường công khai và gọi trang MyBit
 NoNewPrivileges=true
 ProtectSystem=strict

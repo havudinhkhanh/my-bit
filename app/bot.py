@@ -564,7 +564,7 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
                      "json_extract(value, '$.cfg.mode') AS mode, json_extract(value, '$.cfg.hmax') AS hmax, json_extract(value, '$.cfg.sh_min') AS shmin, json_extract(value, '$.pause') AS pause, json_extract(value, '$.sys') AS sys, "
                      "json_extract(value, '$.log') AS lg FROM user_data WHERE key = 'scalpstate'", [])
         for r in rs or []:
-            log.info("Bot lướt giây – cài đặt: cách khớp %s · giữ tối đa %s · lệnh ảo tối thiểu %s · tạm dừng %s · máy %s", r.get("mode"), r.get("hmax"), r.get("shmin"), str(r.get("pause"))[:200], str(r.get("sys"))[:200])
+            log.info("Bot lướt giây – cài đặt: cách khớp %s · giữ tối đa %s · lệnh ảo tối thiểu %s · tạm dừng %s · máy %s", r.get("mode"), r.get("hmax"), r.get("shmin"), str(r.get("pause"))[:200], str(r.get("sys"))[:700])
             log.info("Bot lướt giây – vì sao: %s", str(r.get("why"))[:900])
             log.info("Bot lướt giây – lệnh ảo đang chạy %s · tổng: %s", r.get("sho"), str(r.get("sha"))[:1500])
             log.info("Bot lướt giây – lệnh ảo tốt nhất: %s", str(r.get("shb"))[:1500])

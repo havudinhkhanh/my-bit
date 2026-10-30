@@ -69,12 +69,37 @@ const openWS = (url) => new Promise((res, rej) => {
 const CAP = { F: +(process.env.MYBIT_CAP || 400), S: +(process.env.MYBIT_CAP || 400) }, LAG = [];
 let lagT = performance.now(), capAt = Date.now();
 setInterval(() => { const n = performance.now(); LAG.push(Math.max(0, n - lagT - 1000)); lagT = n; if (LAG.length > 60) LAG.shift(); }, 1000);
+// ---- đo CPU mỗi phút: bot dùng bao nhiêu % một nhân, cả máy bận bao nhiêu, "steal" (nhà cung cấp đang bóp CPU), chờ ổ đĩa, 5 chương trình ăn CPU nhất.
+// Nhà cung cấp VPS (vd. Vultr) giới hạn CPU cả tài khoản nếu máy chạy cao liên tục → bot tự bớt thị trường khi vượt MYBIT_CPU_MAX % (mặc định 40).
+const CPU_MAX = +(process.env.MYBIT_CPU_MAX || 40), CPU = { me: null, sys: null, steal: null, io: null, top: [], hist: [] };
+let cpuPrev = process.cpuUsage(), cpuT = performance.now(), statPrev = null, procPrev = new Map();
+const rd = (f) => { try { return fs.readFileSync(f, "utf8"); } catch (e) { return null; } };
+function cpuSample() {
+  const u = process.cpuUsage(cpuPrev), t = performance.now(); CPU.me = Math.round((u.user + u.system) / 1000 / Math.max(1, t - cpuT) * 1000) / 10; cpuPrev = process.cpuUsage(); cpuT = t;
+  CPU.hist = [...CPU.hist.slice(-9), CPU.me];
+  const st = rd("/proc/stat")?.split("\n")[0].trim().split(/\s+/).slice(1).map(Number);
+  if (st && statPrev) { const d = st.map((v, i) => v - (statPrev[i] || 0)), tot = d.reduce((a, b) => a + b, 0) || 1; CPU.sys = Math.round((tot - d[3] - (d[4] || 0)) / tot * 100); CPU.io = Math.round((d[4] || 0) / tot * 100); CPU.steal = Math.round((d[7] || 0) / tot * 100); }
+  if (st) statPrev = st;
+  try {      // chương trình nào ăn CPU nhất trong phút qua (đọc /proc, không cần quyền root)
+    const now = new Map(), dt = 60 * 100 * Math.max(1, os.cpus().length);
+    for (const pid of fs.readdirSync("/proc")) {
+      if (!/^\d+$/.test(pid)) continue;
+      const x = rd(`/proc/${pid}/stat`); if (!x) continue;
+      const a = x.lastIndexOf(")"), name = x.slice(x.indexOf("(") + 1, a), f = x.slice(a + 2).split(" "), ticks = +f[11] + +f[12];
+      now.set(pid, [name, ticks]);
+    }
+    CPU.top = [...now].map(([pid, [name, tk]]) => [name, pid, procPrev.has(pid) ? tk - procPrev.get(pid)[1] : 0]).filter((q) => q[2] > 0).sort((a, b) => b[2] - a[2]).slice(0, 5).map(([n, pid, d]) => [n, +pid, Math.round(d / dt * 1000) / 10]);
+    procPrev = now;
+  } catch (e) { /* không đọc được /proc */ }
+}
+setInterval(cpuSample, 60000);
 const lagP = (q) => { const a = [...LAG].sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(a.length * q))] : 0; };
 function adapt() {
   if (LAG.length < 30 || Date.now() - capAt < 60000) return;
-  const p90 = lagP(0.9), mem = process.memoryUsage().rss / 1048576;
+  const p90 = lagP(0.9), mem = process.memoryUsage().rss / 1048576, H = CPU.hist.slice(-2), cpu = H.length === 2 ? (H[0] + H[1]) / 2 : null;
   let ch = 0;
-  if (p90 > 300 || mem > 700) ch = 0.7; else if (p90 < 40 && mem < 400 && Date.now() - capAt > 600000) ch = 1.15;
+  if (p90 > 300 || mem > 700 || (cpu != null && cpu > CPU_MAX)) ch = cpu != null && cpu > CPU_MAX * 1.5 ? 0.6 : 0.75;
+  else if (p90 < 40 && mem < 400 && (cpu == null || cpu < CPU_MAX * 0.5) && Date.now() - capAt > 600000) ch = 1.15;
   if (!ch) return;
   // chỉ kết nối lại luồng nào mà danh sách thị trường thật sự đổi (trước đây cứ 10 phút lại kết nối lại cả hai luồng – mất dữ liệu vài giây mỗi lần)
   const redo = [];
@@ -86,10 +111,10 @@ function adapt() {
   }
   capAt = Date.now();
   if (!redo.length) return;
-  log(ch < 1 ? `⚠️ máy quá tải (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB) → giảm còn tối đa ${CAP.F} futures / ${CAP.S} spot` : `máy còn dư sức → nâng lên tối đa ${CAP.F} futures / ${CAP.S} spot`);
+  log(ch < 1 ? `⚠️ máy quá tải (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB, CPU bot ${cpu != null ? cpu.toFixed(0) + "%" : "?"} / giới hạn ${CPU_MAX}%) → giảm còn tối đa ${CAP.F} futures / ${CAP.S} spot` : `máy còn dư sức → nâng lên tối đa ${CAP.F} futures / ${CAP.S} spot`);
   for (const f of redo) f.at = 0;    // kết nối lại với danh sách mới ở vòng sau
 }
-const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP } });
+const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP }, cpu: CPU.me, cpuMax: CPU_MAX, sysCpu: CPU.sys, steal: CPU.steal, iow: CPU.io, top: CPU.top });
 
 // ---------------------------------------------------------------- chạy
 const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, saveDays, notify, cap: (t) => CAP[t], sys });
@@ -103,7 +128,7 @@ async function tick(first) {
     adapt();
     const F = Object.values(core.F).map((f) => `${f.t === "F" ? "futures" : "spot"} ${f.src || "—"} ${f.list.length} thị trường ${Math.round(f.rate || 0)} tin/giây${f.ws ? "" : " (mất kết nối)"}`).join(" · ");
     const e = core.diag.err.slice(-1)[0] || "";
-    if (first || Date.now() % 60000 < 10000 || e !== lastErr) log(on ? "● chạy" : "○ chờ (bot đang tắt hoặc chọn chạy ở Cloudflare)", "·", F || "chưa kết nối", "·", `trễ ${Math.round(lagP(0.9))} ms · RAM ${Math.round(process.memoryUsage().rss / 1048576)} MB`, "·", core.S ? `tài sản ${core.equity().toFixed(2)} · ${core.S.stats.n} lệnh` : "", e && e !== lastErr ? `· lỗi: ${e}` : "");
+    if (first || Date.now() % 60000 < 10000 || e !== lastErr) log(on ? "● chạy" : "○ chờ (bot đang tắt hoặc chọn chạy ở Cloudflare)", "·", F || "chưa kết nối", "·", `trễ ${Math.round(lagP(0.9))} ms · RAM ${Math.round(process.memoryUsage().rss / 1048576)} MB · CPU bot ${CPU.me ?? "?"}% · cả máy ${CPU.sys ?? "?"}%${CPU.steal ? ` (bị bóp ${CPU.steal}%)` : ""}`, "·", core.S ? `tài sản ${core.equity().toFixed(2)} · ${core.S.stats.n} lệnh` : "", e && e !== lastErr ? `· lỗi: ${e}` : "");
     if (/HTTP 401/.test(e) && (!tick.h || Date.now() - tick.h > 300000)) { tick.h = Date.now(); log("🔑 Khoá trên máy chủ KHÔNG khớp khoá trên trang (đã tạo khoá mới?). Trên trang: Tạo khoá → Chép; trên máy chủ chạy:  curl -fsSL https://raw.githubusercontent.com/havudinhkhanh/my-bit/main/scalper/install.sh | sudo bash -s -- --key"); }
     lastErr = e;
   } catch (e) { log("⚠️", e.message); } finally { busy = false; }
