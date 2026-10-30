@@ -157,7 +157,8 @@ SRC.binance = {      // spot: data-stream.binance.vision (kết nối được c
   url: () => "wss://data-stream.binance.vision/stream?streams=!miniTicker@arr",
   uniFrom: (arr, t) => arr.filter((x) => /^[A-Z0-9]+USDT$/.test(x.s)).map((x) => ({ id: `${x.s.replace(/USDT$/, "")}:${t}`, sym: x.s, ct: 1, qv: +x.q / 1e6 })),
   // sổ lệnh 5 mức chụp mỗi 100ms (thay cho bookTicker: coin lớn đổ về hàng nghìn tin/giây, máy chủ nhỏ không kham nổi) + khớp lệnh gộp
-  subs: (t, L) => { const a = L.slice(0, 500).flatMap((m) => [`${m.sym.toLowerCase()}@depth5@100ms`, `${m.sym.toLowerCase()}@aggTrade`]), out = []; for (let i = 0; i < a.length; i += 100) out.push(JSON.stringify({ method: "SUBSCRIBE", params: a.slice(i, i + 100), id: i / 100 + 1 })); return out; },
+  subs: (t, L) => { const a = L.slice(0, 500).flatMap((m, i) => [`${m.sym.toLowerCase()}@depth5${i < 60 ? "@100ms" : ""}`, `${m.sym.toLowerCase()}@aggTrade`]), out = [];      // 60 coin lớn nhất 100 ms, còn lại 1 giây (đỡ CPU)
+      for (let i = 0; i < a.length; i += 100) out.push(JSON.stringify({ method: "SUBSCRIBE", params: a.slice(i, i + 100), id: i / 100 + 1 })); return out; },
   ping: null,
   parse(m, F, on) {
     const d = m.data; if (!d) return;
@@ -382,7 +383,8 @@ export class ScalpCore {
           });
           U0 = S.uniFrom(arr, t);
         } else U0 = await S.universe(t);
-        let U = U0.filter((m) => !STABLE.has(m.id.split(":")[0]) && m.qv >= c.min_vol);
+        // máy chủ riêng: theo dõi MỌI hợp đồng futures USDT của Binance (anh chủ yếu chơi sàn này); ngưỡng khối lượng chỉ dùng để chọn coin được VÀO LỆNH
+        let U = U0.filter((m) => !STABLE.has(m.id.split(":")[0]) && (m.qv >= c.min_vol || (t === "F" && this.where === "vps")));
         const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, Math.min(S.uniFrom ? 500 : 1e9, c.max_mk, this.io.cap ? this.io.cap(t) : 1e9));
         if (!U.length) throw new Error("danh sách thị trường rỗng");
         // một nguồn có thể cần nhiều kết nối (Binance futures: sổ lệnh và khớp lệnh ở 2 đường dẫn, 100 coin mỗi kết nối)
@@ -390,7 +392,7 @@ export class ScalpCore {
         const wss = [];
         for (let i = 0; i < plan.length; i++) { const w = i === 0 && first ? first : await this.io.openWS(plan[i].url); if (w !== first) opened.push(w); wss.push(w); }
         f.bySym = new Map(); f.list = U;
-        for (const u of U) { const m = this.mk(u.id, t); m.sym = u.sym; m.ct = u.ct; m.qv = u.qv; m.g = t + tierOf(u.qv); f.bySym.set(u.sym, m); }
+        U.forEach((u, i) => { const m = this.mk(u.id, t); m.sym = u.sym; m.ct = u.ct; m.qv = u.qv; m.rk = i; m.g = t + tierOf(u.qv); f.bySym.set(u.sym, m); });
         const keep = new Set(U.map((u) => u.id)); for (const k of Object.keys(this.M)) if (this.M[k].t === t && !keep.has(k) && !this.S.pos[k]) delete this.M[k];
         for (const w of wss) {
           w.addEventListener("message", (ev) => this.onMsg(f, w, ev.data));
@@ -511,6 +513,9 @@ export class ScalpCore {
       } else { lb[1] = mid; if (!(lb[2] >= mid)) lb[2] = mid; if (!(lb[3] <= mid)) lb[3] = mid; }
       this.manageTime(x, now); this.shTime(x, now);
       if (now - x.tb > 10000) { cnt.stale++; x.pend.length = 0; x.ptr = null; if (!S.pos[id]) continue; }
+      // coin dưới ngưỡng khối lượng: chỉ theo dõi giá (Bắt râu vẫn quét), không học / không vào lệnh lướt giây.
+      // Máy quá tải CPU (this.lite do máy chủ đặt): 1 = lướt giây chỉ học 150 coin lớn nhất, 2 = tạm dừng phần lướt giây – KHÔNG bớt coin theo dõi.
+      if ((x.qv < c.min_vol || this.lite >= 2 || (this.lite === 1 && x.rk >= 150)) && !S.pos[id]) { cnt.thin = (cnt.thin || 0) + 1; continue; }
       if (x.mids.length < 20) continue;
       // đặc trưng
       let b5 = 0, s5 = 0; for (let i = Math.max(0, x.flow.length - 5); i < x.flow.length; i++) { b5 += x.flow[i][0]; s5 += x.flow[i][1]; }
@@ -779,7 +784,7 @@ export class ScalpCore {
   // Kiểm chứng (research/round3.py, ~900 mã Binance futures, khối lượng đúng thời điểm, khớp phải xuyên qua giá chờ 5 bps, thoát taker + trượt 10 bps):
   // trong mẫu 7–9/2026 và ngoài mẫu 10/2026 đều ròng dương sau phí; lời dồn vào các cú sập lớn cả thị trường, đuôi lỗ dày → cỡ lệnh nhỏ, có cắt lỗ thảm hoạ.
   hookBar(x, b, now) {
-    const c = this.cfg, S = this.S; if (!c?.hk_on || !S || (x.t === "S" && !c.hk_spot)) return;
+    const c = this.cfg, S = this.S; if (!c?.hk_on || !S || (x.t === "S" && !c.hk_spot) || !(x.qv >= Math.max(2, c.min_vol))) return;      // kiểm chứng chỉ trên coin khối lượng 24h ≥ 2 triệu USD
     const L = x.m1, n = L.length; if (n < 42 || L[n - 1] !== b) return;
     const prev = L[n - 2]; if (!(prev[1] > 0 && b[1] > 0)) return;
     const r = Math.log(b[1] / prev[1]);

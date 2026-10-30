@@ -66,7 +66,7 @@ const openWS = (url) => new Promise((res, rej) => {
 
 // ---------------------------------------------------------------- tự đo sức máy: độ trễ vòng lặp sự kiện (event loop) → tự giảm / tăng số thị trường quét
 // Máy nhỏ (1 vCPU) mà dữ liệu đổ về nhiều hơn sức xử lý thì tin nhắn xếp hàng, trễ tăng dần, bộ nhớ phình ra → phải bớt thị trường.
-const CAP = { F: +(process.env.MYBIT_CAP || 400), S: +(process.env.MYBIT_CAP || 400) }, LAG = [];
+const CAP = { F: +(process.env.MYBIT_CAP || 1000), S: +(process.env.MYBIT_CAP || 1000) }, LAG = [];
 let lagT = performance.now(), capAt = Date.now();
 setInterval(() => { const n = performance.now(); LAG.push(Math.max(0, n - lagT - 1000)); lagT = n; if (LAG.length > 60) LAG.shift(); }, 1000);
 // ---- đo CPU mỗi phút: bot dùng bao nhiêu % một nhân, cả máy bận bao nhiêu, "steal" (nhà cung cấp đang bóp CPU), chờ ổ đĩa, 5 chương trình ăn CPU nhất.
@@ -94,27 +94,18 @@ function cpuSample() {
 }
 setInterval(cpuSample, 60000);
 const lagP = (q) => { const a = [...LAG].sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.floor(a.length * q))] : 0; };
+// Không bao giờ bớt coin theo dõi (anh muốn MỌI mã Binance luôn được cập nhật) – quá tải thì giảm phần việc tốn CPU của "lướt giây":
+// mức 1: lướt giây chỉ học 150 coin lớn nhất · mức 2: tạm dừng lướt giây. Bắt râu sập, quản lý lệnh, giá luôn chạy trên toàn bộ thị trường.
+let liteAt = 0;
 function adapt() {
   if (LAG.length < 30 || Date.now() - capAt < 60000) return;
-  const p90 = lagP(0.9), mem = process.memoryUsage().rss / 1048576, H = CPU.hist.slice(-2), cpu = H.length === 2 ? (H[0] + H[1]) / 2 : null;
-  let ch = 0;
-  if (p90 > 300 || mem > 700 || (cpu != null && cpu > CPU_MAX)) ch = cpu != null && cpu > CPU_MAX * 1.5 ? 0.6 : 0.75;
-  else if (p90 < 40 && mem < 400 && (cpu == null || cpu < CPU_MAX * 0.5) && Date.now() - capAt > 600000) ch = 1.15;
-  if (!ch) return;
-  // chỉ kết nối lại luồng nào mà danh sách thị trường thật sự đổi (trước đây cứ 10 phút lại kết nối lại cả hai luồng – mất dữ liệu vài giây mỗi lần)
-  const redo = [];
-  for (const f of Object.values(core.F)) {
-    const t = f.t, n = f.list.length, old = CAP[t];
-    if (ch < 1) CAP[t] = Math.max(40, Math.round(Math.min(old, n) * ch));
-    else if (n >= old) CAP[t] = Math.min(1000, Math.round(old * ch));      // chỉ nâng khi đang bị giới hạn bởi trần
-    if (CAP[t] < n || (CAP[t] > old && n >= old)) redo.push(f);
-  }
+  const p90 = lagP(0.9), mem = process.memoryUsage().rss / 1048576, H = CPU.hist.slice(-2), cpu = H.length === 2 ? (H[0] + H[1]) / 2 : null, lv = core.lite || 0;
+  const hot = p90 > 300 || mem > 700 || (cpu != null && cpu > CPU_MAX), cool = p90 < 40 && mem < 450 && cpu != null && cpu < CPU_MAX * 0.5;
   capAt = Date.now();
-  if (!redo.length) return;
-  log(ch < 1 ? `⚠️ máy quá tải (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB, CPU bot ${cpu != null ? cpu.toFixed(0) + "%" : "?"} / giới hạn ${CPU_MAX}%) → giảm còn tối đa ${CAP.F} futures / ${CAP.S} spot` : `máy còn dư sức → nâng lên tối đa ${CAP.F} futures / ${CAP.S} spot`);
-  for (const f of redo) f.at = 0;    // kết nối lại với danh sách mới ở vòng sau
+  if (hot && lv < 2) { core.lite = lv + 1; liteAt = Date.now(); log(`⚠️ máy bận (trễ ${p90.toFixed(0)} ms, RAM ${mem.toFixed(0)} MB, CPU bot ${cpu != null ? cpu.toFixed(0) + "%" : "?"} / giới hạn ${CPU_MAX}%) → ${core.lite === 1 ? "lướt giây chỉ học 150 coin lớn nhất" : "tạm dừng lướt giây"} · vẫn theo dõi đủ mọi coin`); }
+  else if (cool && lv > 0 && Date.now() - liteAt > 900000) { core.lite = lv - 1; liteAt = Date.now(); log(`máy rảnh (CPU bot ${cpu.toFixed(0)}%) → ${core.lite ? "lướt giây học 150 coin lớn nhất" : "lướt giây chạy đầy đủ"}`); }
 }
-const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP }, cpu: CPU.me, cpuMax: CPU_MAX, sysCpu: CPU.sys, steal: CPU.steal, iow: CPU.io, top: CPU.top });
+const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)), rss: Math.round(process.memoryUsage().rss / 1048576), load: os.loadavg()[0].toFixed(2), cpus: os.cpus().length, mem: Math.round(os.totalmem() / 1048576), cap: { ...CAP }, lite: core.lite || 0, cpu: CPU.me, cpuMax: CPU_MAX, sysCpu: CPU.sys, steal: CPU.steal, iow: CPU.io, top: CPU.top });
 
 // ---------------------------------------------------------------- chạy
 const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, saveDays, notify, cap: (t) => CAP[t], sys });
