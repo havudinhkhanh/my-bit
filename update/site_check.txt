@@ -1,0 +1,12 @@
+302 https://my-bit.pages.dev/login?next=%2F
+data 401
+api 401
+{"error":"Khoá không hợp lệ hoặc đã bị thay"} runner 401
+thu gọn app.js: 587 KB → 479 KB
+thu gọn app-bot.js: 176 KB → 155 KB
+thu gọn chartdraw.js: 40 KB → 26 KB
+thu gọn app.css: 230 KB → 216 KB
+gắn phiên bản app-bot.js?v=00f0897324 vào app.js
+gắn phiên bản chartdraw.js?v=e21ac7c62f vào app.js
+gắn phiên bản index.html: app.css?v=c3e95f481a, vendor/lightweight-charts.standalone.production.js?v=7c9b722eb4, app.js?v=af23de9821
+gắn phiên bản login.html: app.css?v=c3e95f481a

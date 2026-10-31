@@ -1,0 +1,4 @@
+16:05:56 INFO build: Mô hình từng mã: 65647 tín hiệu trong bộ nhớ, học máy True
+16:05:56 INFO build: Vùng nam châm: 2689936 quan sát, AUC 0.8051 (chỉ khoảng cách 0.803)
+16:06:07 INFO build: Xuất 530 coin trong 188s
+16:06:09 INFO notify: Thông báo: {'users': 1, 'new': 0}

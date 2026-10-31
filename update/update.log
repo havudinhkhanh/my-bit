@@ -1,0 +1,19 @@
+OK   futures_snapshot (5s) {'bitget': 868, 'okx': 519, 'gate': 1070, 'hl': 235}
+OK   universe (41s) {'coins': 602, 'spot': 394, 'fut': 410, 'excl': 72, 'orphans': 66}
+OK   macro (0s) {'fng': 'skip', 'mvrv': 'skip', 'dvol_btc': 401, 'dvol_eth': 401, 'cg_cats': 'skip'}
+OK   cg_global (11s) {'dom_btc': 59.23510112084258}
+OK   prices_daily (16s) {'coins': 530, 'updated': 472, 'errors': 0}
+OK   prices_intraday (12s) {'4h': {'updated': 149, 'errors': 0}, '1h': {'updated': 149, 'errors': 0}}
+OK   funding_hist (1s) {'todo': 18, 'ok': 14, 'errors': 0}
+16:02:37 WARNING urllib3.connectionpool: Connection pool is full, discarding connection: data.binance.vision. Connection pool size: 10
+16:02:37 WARNING urllib3.connectionpool: Connection pool is full, discarding connection: data.binance.vision. Connection pool size: 10
+OK   binance_metrics (4s) {'pairs': 120, 'jobs': 90, 'got': 45, 'errors': 0}
+/home/runner/work/my-bit/my-bit/app/data/cnews.py:179: UserWarning: This pattern is interpreted as a regular expression, and has match groups. To actually get the groups, use str.extract.
+  all_ = all_[~all_["src"].astype(str).str.contains(SPAM_SRC) & ~all_["title"].astype(str).str.contains(SPAM_TITLE)]
+OK   news (16s) {'new': 1653, 'total': 12635, 'src': {'The Block': 20, 'Decrypt': 39, 'Cointelegraph': 30, 'CoinDesk': 25, 'Bitcoin Magazine': 10, 'Google News': 1403, 'Binance': 40}}
+OK   defillama (0s) skip (đã cập nhật trong ngày)
+OK   cg_groups (0s) skip
+OK   unlocks (0s) {'list': 373, 'todo': 0, 'ok': 0, 'errors': 0}
+OK   supply_hist (0s) {'todo': 0, 'ok': 0, 'have': 309}
+
+Tải dữ liệu xong. Bước lỗi: không

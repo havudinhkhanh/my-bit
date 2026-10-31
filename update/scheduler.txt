@@ -1,0 +1,30 @@
+npm warn deprecated rollup-plugin-inject@3.0.2: This package has been deprecated and is no longer maintained. Please use @rollup/plugin-inject.
+npm warn deprecated sourcemap-codec@1.4.8: Please use @jridgewell/sourcemap-codec instead
+
+ ⛅️ wrangler 3.114.17 (update available 4.156.0)
+------------------------------------------------
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mThe version of Wrangler you are using is now out-of-date.[0m
+
+  Please update to the latest version to prevent critical errors.
+  Run `npm install --save-dev wrangler@4` to update to the latest version.
+  After installation, run Wrangler with `npx wrangler`.
+
+
+Total Upload: 210.04 KiB / gzip: 63.91 KiB
+Your worker has access to the following bindings:
+- Durable Objects:
+  - SCALP: Scalper
+- D1 Databases:
+  - DB: mybit (016a8532-cf42-42a7-84c4-6cc5a680605b)
+- Vars:
+  - GH_REPO: "(hidden)"
+Uploaded my-bit-scheduler (2.35 sec)
+Deployed my-bit-scheduler triggers (0.50 sec)
+  schedule: * * * * *
+Current Version ID: 44b69d09-3322-4d89-bf33-50018117c718
+
+Cloudflare collects anonymous telemetry about your usage of Wrangler. Learn more at https://github.com/cloudflare/workers-sdk/tree/main/packages/wrangler/telemetry.md
+
+🌀 Creating the secret for the Worker "my-bit-scheduler" 
+✨ Success! Uploaded secret GH_TOKEN

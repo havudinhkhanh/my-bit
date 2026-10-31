@@ -1,0 +1,133 @@
+{
+ "steps": {
+  "futures_snapshot": {
+   "ok": true,
+   "sec": 4.6,
+   "info": {
+    "bitget": 868,
+    "okx": 519,
+    "gate": 1070,
+    "hl": 235
+   }
+  },
+  "universe": {
+   "ok": true,
+   "sec": 41.0,
+   "info": {
+    "coins": 602,
+    "spot": 394,
+    "fut": 410,
+    "excl": 72,
+    "orphans": 66
+   }
+  },
+  "macro": {
+   "ok": true,
+   "sec": 0.5,
+   "info": {
+    "fng": "skip",
+    "mvrv": "skip",
+    "dvol_btc": 401,
+    "dvol_eth": 401,
+    "cg_cats": "skip"
+   }
+  },
+  "cg_global": {
+   "ok": true,
+   "sec": 10.6,
+   "info": {
+    "dom_btc": 59.23510112084258
+   }
+  },
+  "prices_daily": {
+   "ok": true,
+   "sec": 16.4,
+   "info": {
+    "coins": 530,
+    "updated": 472,
+    "errors": 0
+   }
+  },
+  "prices_intraday": {
+   "ok": true,
+   "sec": 12.2,
+   "info": {
+    "4h": {
+     "updated": 149,
+     "errors": 0
+    },
+    "1h": {
+     "updated": 149,
+     "errors": 0
+    }
+   }
+  },
+  "funding_hist": {
+   "ok": true,
+   "sec": 1.3,
+   "info": {
+    "todo": 18,
+    "ok": 14,
+    "errors": 0
+   }
+  },
+  "binance_metrics": {
+   "ok": true,
+   "sec": 4.2,
+   "info": {
+    "pairs": 120,
+    "jobs": 90,
+    "got": 45,
+    "errors": 0
+   }
+  },
+  "news": {
+   "ok": true,
+   "sec": 16.2,
+   "info": {
+    "new": 1653,
+    "total": 12635,
+    "src": {
+     "The Block": 20,
+     "Decrypt": 39,
+     "Cointelegraph": 30,
+     "CoinDesk": 25,
+     "Bitcoin Magazine": 10,
+     "Google News": 1403,
+     "Binance": 40
+    }
+   }
+  },
+  "defillama": {
+   "ok": true,
+   "sec": 0.0,
+   "info": "skip (đã cập nhật trong ngày)"
+  },
+  "cg_groups": {
+   "ok": true,
+   "sec": 0.0,
+   "info": "skip"
+  },
+  "unlocks": {
+   "ok": true,
+   "sec": 0.1,
+   "info": {
+    "list": 373,
+    "todo": 0,
+    "ok": 0,
+    "errors": 0
+   }
+  },
+  "supply_hist": {
+   "ok": true,
+   "sec": 0.0,
+   "info": {
+    "todo": 0,
+    "ok": 0,
+    "have": 309
+   }
+  }
+ },
+ "errors": [],
+ "at": "2026-10-31T16:01:06.729069"
+}

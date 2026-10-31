@@ -1,0 +1,247 @@
+{
+ "cm_mvrv": {
+  "status": 200,
+  "sec": 0.23,
+  "bytes": 519,
+  "head": "{\"data\":[{\"asset\":\"btc\",\"time\":\"2026-10-17T00:00:00.000000000Z\",\"CapMVRVCur\":\"1.508664400799187316\"},{\"asset\":\"btc\",\"time\":\"2026-10-18T00:00:00.000000000Z\",\"CapMVRVCur\":\"1.520801782580787928\"},{\"asset\":\"btc\",\"time\":\"2026-10-19T00:00:00.000000000Z\",\"CapMVRVCur\":\"1.52007359055895611\"}],\"next_page_token\":\"0.MjAyNi0xMC0xN1QwMDowMDowMFo\",\"next_page_url\":\"https://community-api.coinmetrics.io/v4/timeseries/asset-metrics?assets=btc&metrics=CapMVRVCur&frequency=1d&page_size=3&next_page_token=0.MjAyNi0xMC",
+  "ctype": "application/json"
+ },
+ "cm_multi": {
+  "status": 403,
+  "sec": 0.15,
+  "bytes": 151,
+  "head": "{\"error\":{\"type\":\"forbidden\",\"message\":\"Requested metric 'FeeTotUSD' with frequency '1d' for asset 'btc' is not available with supplied credentials.\"}}",
+  "ctype": "application/json"
+ },
+ "cm_long": {
+  "status": 200,
+  "sec": 0.69,
+  "bytes": 535069,
+  "head": "{\"data\":[{\"asset\":\"btc\",\"time\":\"2014-01-01T00:00:00.000000000Z\",\"CapMVRVCur\":\"2.79859382\",\"PriceUSD\":\"752.404549944594\"},{\"asset\":\"btc\",\"time\":\"2014-01-02T00:00:00.000000000Z\",\"CapMVRVCur\":\"2.90688604\",\"PriceUSD\":\"784.954921314436\"},{\"asset\":\"btc\",\"time\":\"2014-01-03T00:00:00.000000000Z\",\"CapMVRVCur\":\"2.97276592\",\"PriceUSD\":\"807.222939029807\"},{\"asset\":\"btc\",\"time\":\"2014-01-04T00:00:00.000000000Z\",\"CapMVRVCur\":\"3.00082617\",\"PriceUSD\":\"828.602062618352\"},{\"asset\":\"btc\",\"time\":\"2014-01-05T00:00:00.",
+  "ctype": "application/json"
+ },
+ "cm_sol": {
+  "status": 403,
+  "sec": 0.14,
+  "bytes": 149,
+  "head": "{\"error\":{\"type\":\"forbidden\",\"message\":\"Requested metric 'SplyCur' with frequency '1d' for asset 'sol' is not available with supplied credentials.\"}}",
+  "ctype": "application/json"
+ },
+ "cm_assets": {
+  "status": 200,
+  "sec": 0.28,
+  "bytes": 6007,
+  "head": "{\n  \"data\" : [ {\n  \"asset\" : \"00\",\n  \"metrics\" : [ {\n    \"metric\" : \"volume_reported_spot_usd_1d\",\n    \"frequencies\" : [ {\n      \"frequency\" : \"1d\",\n      \"min_time\" : \"2026-07-08T00:00:00.000000000Z\",\n      \"max_time\" : \"2026-10-20T00:00:00.000000000Z\",\n      \"community\" : true\n    } ]\n  } ]\n}, {\n  \"asset\" : \"0g\",\n  \"metrics\" : [ {\n    \"metric\" : \"CapMrktEstUSD\",\n    \"frequencies\" : [ {\n      \"frequency\" : \"1d\",\n      \"min_time\" : \"2025-09-26T00:00:00.000000000Z\",\n      \"max_time\" : \"2026-10-20",
+  "ctype": "application/json"
+ },
+ "llama_ds_arb": {
+  "status": 200,
+  "sec": 0.2,
+  "bytes": 821667,
+  "head": "{\"documentedData\":{\"data\":[{\"label\":\"Airdrop\",\"data\":[{\"timestamp\":1679529600,\"unlocked\":0,\"rawEmission\":0,\"burned\":0},{\"timestamp\":1679616000,\"unlocked\":1162000000,\"rawEmission\":1162000000,\"burned\":0},{\"timestamp\":1679702400,\"unlocked\":1162000000,\"rawEmission\":1162000000,\"burned\":0},{\"timestamp\":1679788800,\"unlocked\":1162000000,\"rawEmission\":1162000000,\"burned\":0},{\"timestamp\":1679875200,\"unlocked\":1162000000,\"rawEmission\":1162000000,\"burned\":0},{\"timestamp\":1679961600,\"unlocked\":1162000000,\"ra",
+  "ctype": "application/json"
+ },
+ "llama_ds_arb2": {
+  "status": 404,
+  "sec": 0.27,
+  "bytes": 27150,
+  "head": "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <link rel=\"icon\" href=\"https://www.cloudflare.com/favicon.ico\" />\n    <title>Not Found</title>\n    <style>\n      body {\n        font-family: system-ui;\n        font-weight: 300;\n        font-size: 1.25rem;\n        color: #36393a;\n        display: flex;\n        align-items: center;\n        justify-content: center;\n      }\n      main {\n        max-",
+  "ctype": "text/html"
+ },
+ "llama_ds_list": {
+  "status": 200,
+  "sec": 0.15,
+  "bytes": 4319,
+  "head": "[\"basic-attention\",\"tezos\",\"arkham\",\"acala\",\"celestia\",\"falcon-finance\",\"tranchess\",\"dogecoin\",\"stakestone\",\"justlend\",\"aura\",\"walrus-protocol\",\"across\",\"hedera\",\"grvt\",\"solv-protocol\",\"solana\",\"spectra\",\"the-graph\",\"heyelsa\",\"dune-protocol\",\"maha.xyz\",\"sky\",\"sonic\",\"data-network\",\"delysium\",\"synthetix\",\"suilend-protocol\",\"abracadabra\",\"kaito\",\"common-wealth\",\"stargate-finance\",\"flowswap\",\"slvr\",\"baseswap\",\"based\",\"tectonic\",\"internet-computer\",\"tokenlon\",\"sosovalue\",\"claimrush\",\"streamflow\",\"hy",
+  "ctype": "application/json"
+ },
+ "llama_summary_fees": {
+  "status": 200,
+  "sec": 0.91,
+  "bytes": 1444767,
+  "head": "{\"id\":\"parent#uniswap\",\"name\":\"Uniswap\",\"url\":\"https://app.uniswap.org/\",\"description\":\"Swap, earn, and build on the leading decentralized crypto trading protocol.\",\"logo\":\"https://icons.llamao.fi/icons/protocols/uniswap\",\"gecko_id\":\"uniswap\",\"cmcId\":\"7083\",\"chains\":[\"Ethereum\",\"Arbitrum\",\"OP Mainnet\",\"Polygon\",\"Celo\",\"BSC\",\"ZKsync Era\",\"Sei\",\"Taiko\",\"Scroll\",\"Rootstock\",\"Filecoin\",\"Boba\",\"Moonbeam\",\"Manta\",\"Mantle\",\"Linea\",\"Avalanche\",\"Base\",\"Zora\",\"Blast\",\"Polygon zkEVM\",\"Gnosis\",\"BOB\",\"Lisk\",",
+  "ctype": "application/json"
+ },
+ "llama_prices": {
+  "status": 200,
+  "sec": 2.26,
+  "bytes": 219,
+  "head": "{\"coins\":{\"coingecko:ethereum\":{\"price\":2451.31062412243,\"symbol\":\"ETH\",\"timestamp\":1792548724,\"confidence\":0.99},\"coingecko:bitcoin\":{\"price\":82865.03872561449,\"symbol\":\"BTC\",\"timestamp\":1792548724,\"confidence\":0.99}}}",
+  "ctype": "application/json; charset=utf-8"
+ },
+ "llama_unlock_page": {
+  "status": 404,
+  "sec": 0.74,
+  "bytes": 72419,
+  "head": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\" data-next-head=\"\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content\" data-next-head=\"\"/><link rel=\"canonical\" href=\"https://defillama.com/404\" data-next-head=\"\"/><title data-next-head=\"\">Page not found - DefiLlama</title><meta name=\"description\" content=\"DefiLlama is committed to providing accurate data without ads or sponsored content, as well as transparency.\" da",
+  "ctype": "text/html; charset=utf-8"
+ },
+ "cg_chart": {
+  "status": 200,
+  "sec": 0.26,
+  "bytes": 38188,
+  "head": "{\"prices\":[[1761091200000,0.3110947279000603],[1761177600000,0.30128045569892087],[1761264000000,0.3139805496039891],[1761350400000,0.32023460376539503],[1761436800000,0.3202386414410921],[1761523200000,0.33467324959786743],[1761609600000,0.3305424179219917],[1761696000000,0.3151472966395931],[1761782400000,0.31752090875483463],[1761868800000,0.28985735789948364],[1761955200000,0.29522870224710945],[1762041600000,0.30667557258464007],[1762128000000,0.3077489201447482],[1762214400000,0.2610180222",
+  "ctype": "application/json; charset=utf-8"
+ },
+ "cg_chart2": {
+  "status": 200,
+  "sec": 0.13,
+  "bytes": 37643,
+  "head": "{\"prices\":[[1761091200000,185.72442261780827],[1761177600000,180.0884506434004],[1761264000000,191.4105154932252],[1761350400000,193.5224673498789],[1761436800000,193.93319201308577],[1761523200000,200.0215931980344],[1761609600000,198.77163279922976],[1761696000000,194.29867849889453],[1761782400000,194.0726847621732],[1761868800000,184.49846534649268],[1761955200000,187.1659046571601],[1762041600000,186.31885199348687],[1762128000000,187.67222619735156],[1762214400000,165.88821459720248],[1762",
+  "ctype": "application/json; charset=utf-8"
+ },
+ "cg_markets_p2": {
+  "status": 200,
+  "sec": 0.12,
+  "bytes": 196030,
+  "head": "[{\"id\":\"midas-fasanara-global-open\",\"symbol\":\"mglo\",\"name\":\"Midas Fasanara Global Open\",\"image\":\"https://coin-images.coingecko.com/coins/images/102174031/large/mglobal-Cm4yjVTI.png?1781967852\",\"current_price\":1.006,\"market_cap\":119015917,\"market_cap_rank\":251,\"fully_diluted_valuation\":119015917,\"total_volume\":0.0,\"high_24h\":1.006,\"low_24h\":1.006,\"price_change_24h\":0.0,\"price_change_percentage_24h\":0.0,\"market_cap_change_24h\":0.0,\"market_cap_change_percentage_24h\":0.0,\"circulating_supply\":1183335",
+  "ctype": "application/json; charset=utf-8"
+ },
+ "cg_cat_market": {
+  "status": 200,
+  "sec": 0.16,
+  "bytes": 355886,
+  "head": "[{\"id\":\"smart-contract-platform\",\"name\":\"Smart Contract Platform\",\"market_cap\":2409904539049.0776,\"market_cap_change_24h\":1.9800504440363624,\"content\":\"Smart contract platforms are usually blockchains that host smart contracts or decentralized applications. Users can interact with different smart contracts on these platforms to perform various actions such as lending and borrowing funds, staking their assets or minting NFTs. Smart contracts are programs that are stored on the blockchain and are ",
+  "ctype": "application/json; charset=utf-8"
+ },
+ "bv_ticker_all": {
+  "status": 200,
+  "sec": 1.3,
+  "bytes": 1910646,
+  "head": "[{\"symbol\":\"ETHBTC\",\"priceChange\":\"0.00029000\",\"priceChangePercent\":\"0.990\",\"weightedAvgPrice\":\"0.02953660\",\"prevClosePrice\":\"0.02931000\",\"lastPrice\":\"0.02959000\",\"lastQty\":\"1.00760000\",\"bidPrice\":\"0.02958000\",\"bidQty\":\"68.06680000\",\"askPrice\":\"0.02959000\",\"askQty\":\"0.00720000\",\"openPrice\":\"0.02930000\",\"highPrice\":\"0.02974000\",\"lowPrice\":\"0.02922000\",\"volume\":\"8998.98030000\",\"quoteVolume\":\"265.79925493\",\"openTime\":1792462338178,\"closeTime\":1792548738178,\"firstId\":533489958,\"lastId\":533513206,\"co",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "bv_klines_2017": {
+  "status": 200,
+  "sec": 0.85,
+  "bytes": 180357,
+  "head": "[[1502928000000,\"4261.48000000\",\"4485.39000000\",\"4200.74000000\",\"4285.08000000\",\"795.15037700\",1503014399999,\"3454770.05073206\",3427,\"616.24854100\",\"2678216.40060401\",\"0\"],[1503014400000,\"4285.08000000\",\"4371.52000000\",\"3938.77000000\",\"4108.37000000\",\"1199.88826400\",1503100799999,\"5086958.30617151\",5233,\"972.86871000\",\"4129123.31651808\",\"0\"],[1503100800000,\"4108.37000000\",\"4184.69000000\",\"3850.00000000\",\"4139.98000000\",\"381.30976300\",1503187199999,\"1549483.73542151\",2153,\"274.33604200\",\"1118001.",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "bv_um_klines_zip": {
+  "status": 200,
+  "sec": 0.23,
+  "bytes": 352,
+  "head": "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000I8S]��y��\u0000\u0000\u0000�\u0000\u0000\u0000\u0019\u0000\u001c\u0000BTCUSDT-1d-2026-10-18.csvUT\t\u0000\u0003y��jy��jux\u000b\u0000\u0001\u0004�\u0003\u0000\u0000\u0004�\u0003\u0000\u0000U��\u000e� \f��}����J�4�\u001a�-Ρ\u00134��0�\u0018��w��-.}��\u0011R%\u0018�a�9��<�G�g�K�6�]�Kʱ��T�\f�x�k*�=�\u0005�iX�\u001a\u000f6(�X�&\u0010��H\u0005\"\u0016\u0013* \u0013�V\u0011\u0006i�,\u000e\r\u0007\u000f��8�&\b\"�JHb�P\u0011�Y+N���7�\fN%\b���ϝG��\u0007PK\u0001\u0002\u001e\u0003\u0014\u0000\u0000\u0000\b\u0000I8S]��y��\u0000\u0000\u0000�\u0000\u0000\u0000\u0019\u0000\u0018\u0000\u0000\u0000\u0000\u0000\u0001\u0000\u0000\u0000��\u0000\u0000\u0000\u0000BTCUSDT-1d-2026-10-18.csvUT\u0005\u0000\u0003y��jux\u000b\u0000\u0001\u0004�\u0003\u0000\u0000\u0004�\u0003\u0000\u0000PK\u0005\u0006\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000_\u0000\u0000\u0000�\u0000\u0000\u0000\u0000\u0000",
+  "ctype": "binary/octet-stream"
+ },
+ "bv_um_metrics_zip": {
+  "status": 200,
+  "sec": 0.24,
+  "bytes": 11942,
+  "head": "PK\u0003\u0004\u0014\u0000\u0000\u0000\b\u0000\u00122T]K�W�-\u0000\u0000S�\u0000\u0000\u001e\u0000\u001c\u0000ETHUSDT-metrics-2026-10-19.csvUT\t\u0000\u0003D\u0007�jD\u0007�jux\u000b\u0000\u0001\u0004�\u0003\u0000\u0000\u0004�\u0003\u0000\u0000}]��e�m��+�\u0001�\u000bI�Di�\t�}�uc�4\u0012#�ic�m �sH�J_�\"N�\u0019wu=>I\u0014yH\u001eR����߿~���|�������~���o����_���_�������|��Ͽ���ǟ�����_�����~����}��ۯ���������/�������\u0017��\u001f�������������\u000f����Z�P�?��S\u001f?����������Gk���k\u000f)?��c�1e�=�5���ǟ���Vu��Q�Y�\u0016�?���զ�O��{�R\u001e��O\u0012����j�\u0006�}�\"\u0003�z���|\n��1G7�Z�p��\u0015߶W��Zv\t��O�<�/\u001dU��{\u0010>(y�����[O�M�hZ6Ŭ*}؟.�E氿0�\\#\t\u001fQ�Llm]\u001aW�Et`)�\u0015mI��_؍�w\u001d��!Q�~�k\u0015�\u001a��ԟj\u0010�e�\\SZ����Ά\u000f�ks\u0015?\b��/�M �g��0\u001f³S�m�n����5)\u001c�]",
+  "ctype": "binary/octet-stream"
+ },
+ "bv_um_list": {
+  "status": 200,
+  "sec": 0.91,
+  "bytes": 89614,
+  "head": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<ListBucketResult xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\"><Name>data.binance.vision</Name><Prefix>data/futures/um/daily/metrics/</Prefix><Marker></Marker><NextMarker>data/futures/um/daily/metrics/XPTUSDT/</NextMarker><MaxKeys>1000</MaxKeys><Delimiter>/</Delimiter><IsTruncated>true</IsTruncated><CommonPrefixes><Prefix>data/futures/um/daily/metrics/0GUSDT/</Prefix></CommonPrefixes><CommonPrefixes><Prefix>data/futures/um/daily/metrics/1000000BOBUSDT/</",
+  "ctype": "application/xml"
+ },
+ "okx_funding_hist": {
+  "status": 200,
+  "sec": 0.28,
+  "bytes": 19454,
+  "head": "{\"code\":\"0\",\"data\":[{\"formulaType\":\"withRate\",\"fundingRate\":\"0.0000549513036005\",\"fundingTime\":\"1792540800000\",\"instId\":\"BTC-USDT-SWAP\",\"instType\":\"SWAP\",\"method\":\"current_period\",\"realizedRate\":\"0.0000549513036005\"},{\"formulaType\":\"withRate\",\"fundingRate\":\"0.0000523593657805\",\"fundingTime\":\"1792512000000\",\"instId\":\"BTC-USDT-SWAP\",\"instType\":\"SWAP\",\"method\":\"current_period\",\"realizedRate\":\"0.0000523593657805\"},{\"formulaType\":\"withRate\",\"fundingRate\":\"0.0000519278180174\",\"fundingTime\":\"1792483200",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "okx_inst": {
+  "status": 200,
+  "sec": 0.24,
+  "bytes": 552791,
+  "head": "{\"code\":\"0\",\"data\":[{\"alias\":\"\",\"auctionEndTime\":\"\",\"baseCcy\":\"\",\"category\":\"1\",\"contTdSwTime\":\"1611916860000\",\"ctMult\":\"1\",\"ctType\":\"inverse\",\"ctVal\":\"100\",\"ctValCcy\":\"USD\",\"expTime\":\"\",\"floatPxLmtPct\":\"0.005\",\"freq\":\"\",\"futureSettlement\":false,\"groupId\":\"4\",\"initPxLmtPct\":\"0.02\",\"instCategory\":\"1\",\"instFamily\":\"BTC-USD\",\"instId\":\"BTC-USD-SWAP\",\"instIdCode\":10458,\"instType\":\"SWAP\",\"lever\":\"100\",\"listTime\":\"1535424203000\",\"longPosRemainingQuota\":\"\",\"lotSz\":\"0.1\",\"maxIcebergSz\":\"100000000.0000000",
+  "ctype": "application/json"
+ },
+ "okx_oi_hist": {
+  "status": 200,
+  "sec": 0.25,
+  "bytes": 9725,
+  "head": "{\"code\":\"0\",\"data\":[[\"1792512000000\",\"3189769410.5172\",\"6876578377.2892\"],[\"1792425600000\",\"3298941704.4658\",\"6675366962.0553\"],[\"1792339200000\",\"3331604926.8558\",\"3891005791.191\"],[\"1792252800000\",\"3330882020.9391\",\"3317714504.7317\"],[\"1792166400000\",\"3304950827.5273\",\"5548942064.8515\"],[\"1792080000000\",\"3360346608.1533\",\"10377958761.1502\"],[\"1791993600000\",\"3320207856.3113\",\"7114724839.269\"],[\"1791907200000\",\"3233355903.5503\",\"7622297698.0584\"],[\"1791820800000\",\"3294439613.6181\",\"5557829324.84",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "okx_taker": {
+  "status": 200,
+  "sec": 0.23,
+  "bytes": 3895,
+  "head": "{\"code\":\"0\",\"data\":[[\"1792512000000\",\"3475722303.8904\",\"3390817435.7881\"],[\"1792425600000\",\"3308818512.8558\",\"3360631535.2242\"],[\"1792339200000\",\"2020592701.8994\",\"1859759121.3674\"],[\"1792252800000\",\"1714339097.6577\",\"1597691968.7564\"],[\"1792166400000\",\"2849518370.4446\",\"2692529792.2944\"],[\"1792080000000\",\"5276187023.955\",\"5019962001.0863\"],[\"1791993600000\",\"3556422448.8681\",\"3539670460.837\"],[\"1791907200000\",\"3847514294.1022\",\"3746993423.9518\"],[\"1791820800000\",\"2833654092.611\",\"2710052917.2724",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "okx_liq": {
+  "status": 200,
+  "sec": 0.28,
+  "bytes": 773,
+  "head": "{\"code\":\"0\",\"data\":[{\"details\":[{\"bkLoss\":\"0\",\"bkPx\":\"83173.5\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"8.74\",\"time\":1792547461615,\"ts\":\"1792547461615\"},{\"bkLoss\":\"0\",\"bkPx\":\"83141.3\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"100\",\"time\":1792547403628,\"ts\":\"1792547403628\"},{\"bkLoss\":\"0\",\"bkPx\":\"83057.6\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"1.32\",\"time\":1792547333944,\"ts\":\"1792547333944\"},{\"bkLoss\":\"0\",\"bkPx\":\"83057.6\",\"ccy\":\"\",\"posSide\":\"short\",\"side\":\"buy\",\"sz\":\"2.54\",\"time\":1",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "bitget_funding_hist": {
+  "status": 200,
+  "sec": 0.44,
+  "bytes": 446,
+  "head": "{\"code\":\"00000\",\"msg\":\"success\",\"requestTime\":1792548744711,\"data\":[{\"symbol\":\"BTCUSDT\",\"fundingRate\":\"0.000027\",\"fundingTime\":\"1792540800000\"},{\"symbol\":\"BTCUSDT\",\"fundingRate\":\"0.00006\",\"fundingTime\":\"1792512000000\"},{\"symbol\":\"BTCUSDT\",\"fundingRate\":\"0.000096\",\"fundingTime\":\"1792483200000\"},{\"symbol\":\"BTCUSDT\",\"fundingRate\":\"0.0001\",\"fundingTime\":\"1792454400000\"},{\"symbol\":\"BTCUSDT\",\"fundingRate\":\"0.000079\",\"fundingTime\":\"1792425600000\"}]}",
+  "ctype": "application/json"
+ },
+ "gate_tickers": {
+  "status": 200,
+  "sec": 1.33,
+  "bytes": 493236,
+  "head": "[{\"last\":\"0.6465\",\"low_24h\":\"0.622\",\"high_24h\":\"0.6804\",\"volume_24h\":\"178796\",\"change_percentage\":\"1.70\",\"change_price\":\"0.0108\",\"funding_rate_indicative\":\"-0.000087\",\"index_price\":\"0.648\",\"volume_24h_base\":\"178796\",\"volume_24h_quote\":\"116482\",\"contract\":\"ENSO_USDT\",\"volume_24h_settle\":\"116482\",\"funding_rate\":\"-0.000087\",\"mark_price\":\"0.6479\",\"total_size\":\"207272\",\"highest_bid\":\"0.6482\",\"highest_size\":\"4444\",\"lowest_ask\":\"0.6485\",\"lowest_size\":\"4444\",\"quanto_multiplier\":\"1\"},{\"last\":\"0.0503\",\"lo",
+  "ctype": "application/json"
+ },
+ "fng_all": {
+  "status": 200,
+  "sec": 0.22,
+  "bytes": 300053,
+  "head": "{\n\t\"name\": \"Fear and Greed Index\",\n\t\"data\": [\n\t\t{\n\t\t\t\"value\": \"63\",\n\t\t\t\"value_classification\": \"Greed\",\n\t\t\t\"timestamp\": \"1792540800\",\n\t\t\t\"time_until_update\": \"78454\"\n\t\t},\n\t\t{\n\t\t\t\"value\": \"55\",\n\t\t\t\"value_classification\": \"Greed\",\n\t\t\t\"timestamp\": \"1792454400\"\n\t\t},\n\t\t{\n\t\t\t\"value\": \"59\",\n\t\t\t\"value_classification\": \"Greed\",\n\t\t\t\"timestamp\": \"1792368000\"\n\t\t},\n\t\t{\n\t\t\t\"value\": \"53\",\n\t\t\t\"value_classification\": \"Neutral\",\n\t\t\t\"timestamp\": \"1792281600\"\n\t\t},\n\t\t{\n\t\t\t\"value\": \"55\",\n\t\t\t\"value_classification\": \"G",
+  "ctype": "application/json"
+ },
+ "stable_mcap": {
+  "status": 200,
+  "sec": 0.38,
+  "bytes": 1326259,
+  "head": "[{\"date\":\"1511913600\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512000000\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512086400\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512172800\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingUSD\":{\"peggedUSD\":110105}},{\"date\":\"1512259200\",\"totalCirculating\":{\"peggedUSD\":109970},\"totalCirculatingU",
+  "ctype": "application/json"
+ },
+ "llama_dex_vol": {
+  "status": 200,
+  "sec": 0.97,
+  "bytes": 2262940,
+  "head": "{\"totalDataChart\":[],\"totalDataChartBreakdown\":[],\"breakdown24h\":null,\"breakdown30d\":null,\"chain\":null,\"allChains\":[\"Solana\",\"Ethereum\",\"BSC\",\"Base\",\"Robinhood Chain\",\"Polygon\",\"Hyperliquid L1\",\"Arbitrum\",\"Near\",\"Avalanche\",\"Tron\",\"Monad\",\"Spark\",\"Native Core\",\"edgeX L1\",\"OP Mainnet\",\"X Layer\",\"Sui\",\"Chainflip\",\"THORChain\",\"Arc\",\"Dexalot\",\"Mayachain\",\"Canton\",\"Provenance\",\"Starknet\",\"XO\",\"zkLighter\",\"Unichain\",\"Plasma\",\"Injective\",\"Sei\",\"Mantle\",\"Ink\",\"Gnosis\",\"Flare\",\"Aptos\",\"PulseChain\",\"SX Ro",
+  "ctype": "application/json"
+ },
+ "etf_flows_farside": {
+  "status": 403,
+  "sec": 0.13,
+  "bytes": 5428,
+  "head": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-njW3ZwWIW0hRnRiDyLhGjV&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s",
+  "ctype": "text/html; charset=UTF-8"
+ },
+ "binance_ann": {
+  "status": 200,
+  "sec": 0.18,
+  "bytes": 1398,
+  "head": "{\"code\":\"000000\",\"message\":null,\"messageDetail\":null,\"data\":{\"catalogs\":[{\"catalogId\":48,\"parentCatalogId\":null,\"icon\":\"https://public.bnbstatic.com/image/cms/content/body/202505/d3201bf0be35bb246b65a767221410e0.png\",\"catalogName\":\"New Cryptocurrency Listing\",\"description\":null,\"catalogType\":1,\"total\":2283,\"articles\":[{\"id\":287560,\"code\":\"e52ef13311eb4e1a96f07099152e61d5\",\"title\":\"Binance Will Add 4 bStocks Tokenized Securities as Collateral Asset - 2026-10-14\",\"type\":1,\"releaseDate\":17919486083",
+  "ctype": "application/json;charset=UTF-8"
+ },
+ "hl_funding_hist": {
+  "status": 200,
+  "sec": 0.5,
+  "bytes": 44279,
+  "head": "[{\"coin\":\"BTC\",\"fundingRate\":\"0.0000104236\",\"premium\":\"-0.0004166109\",\"time\":1759003200008},{\"coin\":\"BTC\",\"fundingRate\":\"0.0000092503\",\"premium\":\"-0.0004259974\",\"time\":1759006800004},{\"coin\":\"BTC\",\"fundingRate\":\"0.0000125\",\"premium\":\"-0.0003345734\",\"time\":1759010400086},{\"coin\":\"BTC\",\"fundingRate\":\"0.0000125\",\"premium\":\"-0.0003477006\",\"time\":1759014000005},{\"coin\":\"BTC\",\"fundingRate\":\"0.0000125\",\"premium\":\"-0.0003278891\",\"time\":1759017600025},{\"coin\":\"BTC\",\"fundingRate\":\"0.0000125\",\"premium\":\"-0",
+  "ctype": "application/json"
+ },
+ "hyperliquid_meta": {
+  "status": 200,
+  "sec": 0.2,
+  "bytes": 72017,
+  "head": "[{\"universe\":[{\"szDecimals\":5,\"name\":\"BTC\",\"maxLeverage\":40,\"marginTableId\":56},{\"szDecimals\":4,\"name\":\"ETH\",\"maxLeverage\":25,\"marginTableId\":55},{\"szDecimals\":2,\"name\":\"ATOM\",\"maxLeverage\":5,\"marginTableId\":5},{\"szDecimals\":1,\"name\":\"MATIC\",\"maxLeverage\":20,\"marginTableId\":20,\"isDelisted\":true},{\"szDecimals\":1,\"name\":\"DYDX\",\"maxLeverage\":5,\"marginTableId\":5},{\"szDecimals\":2,\"name\":\"SOL\",\"maxLeverage\":20,\"marginTableId\":54},{\"szDecimals\":2,\"name\":\"AVAX\",\"maxLeverage\":10,\"marginTableId\":52},{\"szD",
+  "ctype": "application/json"
+ },
+ "hyperliquid_candles": {
+  "status": 200,
+  "sec": 0.21,
+  "bytes": 3356,
+  "head": "[{\"t\":1758931200000,\"T\":1759017599999,\"s\":\"BTC\",\"i\":\"1d\",\"o\":\"109615.0\",\"c\":\"109599.0\",\"h\":\"109688.0\",\"l\":\"109060.0\",\"v\":\"5919.12207\",\"n\":85092},{\"t\":1759017600000,\"T\":1759103999999,\"s\":\"BTC\",\"i\":\"1d\",\"o\":\"109600.0\",\"c\":\"112130.0\",\"h\":\"112316.0\",\"l\":\"109145.0\",\"v\":\"15334.19847\",\"n\":158954},{\"t\":1759104000000,\"T\":1759190399999,\"s\":\"BTC\",\"i\":\"1d\",\"o\":\"112130.0\",\"c\":\"114274.0\",\"h\":\"114379.0\",\"l\":\"111490.0\",\"v\":\"21589.03286\",\"n\":239112},{\"t\":1759190400000,\"T\":1759276799999,\"s\":\"BTC\",\"i\":\"1d\",\"o\":\"11",
+  "ctype": "application/json"
+ }
+}
