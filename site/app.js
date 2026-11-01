@@ -440,7 +440,7 @@ let CUR_TAB = "";
   if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB); }, 60); }).observe(el, { childList: true });
 })();
 function setTab(r) {
-  CUR_TAB = r;
+  CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
   $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", a.dataset.r === "bot" && a.classList.contains("nav-m") && /^bot./.test(r || "")); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
@@ -454,7 +454,7 @@ function mSheet(open) {
     let html = "", grp = "";
     for (const n of $("#tabs").children) {
       if (n.classList.contains("nav-g")) { if (grp) html += `</div>`; html += `<h4 class="msheet-g">${n.innerHTML}</h4><div class="msheet-l">`; grp = 1; }
-      else if (n.tagName === "A") {
+      else if (n.tagName === "A" && !n.classList.contains("nav-cus")) {
         const svg = n.querySelector("svg")?.outerHTML || "", t = n.querySelector(".nav-t")?.textContent || n.textContent, h = n.getAttribute("title") || "";
         html += `<a href="${n.getAttribute("href")}" class="${n.classList.contains("on") ? "on" : ""}">${svg}<span class="ms-t"><b>${esc(t)}</b>${h ? `<small>${esc(h)}</small>` : ""}</span></a>`;
       }
@@ -477,6 +477,60 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msh
 if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
 const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"]];
+// ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
+const CUS_SUB = [["ov", "Tổng quan"], ["hook", "Bắt râu sập"], ["sec", "Lướt giây"], ["live", "Binance thật"], ["lab", "Thử nghiệm"], ["learn", "Học & kiểm chứng"], ["ev", "Sự kiện"], ["set", "Thiết lập"]];
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Theo ngày", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Đội bot", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const SC_ICON = { ov: "📊", hook: "🪝", sec: "⚡", live: "💵", lab: "🧪", learn: "🧠", ev: "📜", set: "⚙️" };
+function cusOpts() {
+  const out = []; let g = "";
+  for (const n of $("#tabs").children) {
+    if (n.classList.contains("nav-g")) { g = n.querySelector("b")?.textContent || ""; continue; }
+    if (n.tagName !== "A" || n.classList.contains("nav-cus")) continue;
+    const href = n.getAttribute("href"), t = n.querySelector(".nav-t")?.textContent || n.textContent.trim();
+    out.push({ g, href, r: n.dataset.r, t, short: CUS_SHORT[href] || t, svg: n.querySelector("svg")?.outerHTML || "" });
+    if (href === "#/bot/scalp") CUS_SUB.forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, short: st.replace("Binance thật", "Binance").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
+  }
+  out.push({ g: "Khác", href: "#/notifications", r: "", t: "Thông báo", short: "Thông báo", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' },
+    { g: "Khác", href: "#/account", r: "", t: "Tài khoản & cài đặt", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' });
+  return out;
+}
+const cusKey = (o) => o.href + (o.sc ? "|" + o.sc : "");
+function cusCur() { const k = lsGet("navcus", "#/portfolio"), L = cusOpts(); return L.find((o) => cusKey(o) === k) || L.find((o) => o.href === "#/portfolio") || L[0]; }
+function cusDraw() {
+  const nav = $("#tabs"), more = $("#navMore"); if (!nav || !more) return;
+  let a = $("#navCus"); if (!a) { a = document.createElement("a"); a.id = "navCus"; a.className = "nav-m nav-cus"; nav.insertBefore(a, more); cusBind(a); }
+  const o = cusCur(); a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `${o.t} – giữ lâu để đổi nút này`;
+  a.innerHTML = `${o.emo ? `<span class="nav-emo">${o.emo}</span>` : o.svg}<span class="nav-s">${esc(o.short)}</span>`;
+  if (o.sc) a.classList.toggle("on", location.hash.startsWith("#/bot/scalp") && window.__scTab === o.sc);
+}
+function cusBind(a) {
+  let t = 0, long = false;
+  a.addEventListener("touchstart", () => { long = false; t = setTimeout(() => { long = true; navigator.vibrate?.(10); cusPick(a); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  a.addEventListener("contextmenu", (e) => { e.preventDefault(); cusPick(a); });
+  a.addEventListener("click", (e) => {
+    if (long) { e.preventDefault(); long = false; return; }
+    const sc = a.dataset.sc; if (!sc) return;
+    window.__scTab = sc; lsSet("sctab", sc);
+    if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); else route(); cusDraw(); }
+  });
+}
+document.addEventListener("click", (e) => { if (!e.target.closest?.("[data-cusedit]")) return; mSheet(false); setTimeout(() => { const a = $("#navCus"); if (a) cusPick(a); }, 300); });
+function cusPick(anchor) {
+  if ($("#iosMenu")) iosMenuClose();
+  const cur = cusKey(cusCur()), L = cusOpts(), r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16);
+  const left = Math.max(8, Math.min(vw - W - 8, r.left + r.width / 2 - W / 2));
+  let g = "", rows = "";
+  for (const o of L) { if (o.g !== g) { g = o.g; rows += `<div class="ios-menu-h">${esc(g)}</div>`; }
+    const k = cusKey(o); rows += `<button type="button" role="menuitemradio" aria-checked="${k === cur}" data-cus="${esc(k)}" class="${o.sc ? "cus-sub" : ""}"><span class="ios-ck">${k === cur ? "✓" : ""}</span><span class="ios-t">${esc(o.t)}</span><span class="ios-ic">${o.emo || o.svg}</span></button>`; }
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in cus-menu" role="menu" aria-label="Chọn trang cho nút tuỳ chọn" style="left:${left}px;width:${W}px;bottom:${Math.round(innerHeight - r.top + 8)}px;transform-origin:${r.left + r.width / 2 - left}px calc(100% + 8px)"><div class="ios-menu-h cus-top">Nút tuỳ chọn – chọn trang hiện ở đây</div>${rows}</div>`;
+  document.body.appendChild(m);
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("[data-cus]", m).forEach((b) => (b.onclick = () => { lsSet("navcus", b.dataset.cus); iosMenuClose(); cusDraw(); toast("Đã đổi nút tuỳ chọn – giữ lâu nút đó để đổi lại"); }));
+  m.querySelector('[aria-checked="true"]')?.scrollIntoView({ block: "center" });
+  addEventListener("hashchange", iosMenuClose, { once: true });
+}
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
 const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot" };
 const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
@@ -498,7 +552,7 @@ function botMenu(anchor, up) {
   addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
 }
 // nút Bot ở thanh dưới (điện thoại) → menu thay vì nhảy thẳng vào Đội bot
-document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bot"]'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
+document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bot"]:not(.nav-cus)'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
 function botSeg() {
   if (!botCur()) return;
   const h = $("#app > .ph h1"); if (!h || h.classList.contains("ttl-m")) return;
@@ -4782,7 +4836,7 @@ function initPop() {
 // ================================================================ Ctrl K – bảng lệnh nhanh: tìm coin, nhảy tới mọi trang, đổi giao diện / ngôn ngữ
 function cmdkItems(q) {
   const t = fold(q.trim()), T = q.trim().toUpperCase(), out = [];
-  const pages = $$("#tabs a[href^='#/']").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "" }));
+  const pages = $$("#tabs a[href^='#/']:not(.nav-cus)").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "" }));
   pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; } });
   const acts = [...TH_OPT.filter(([k]) => k !== thPref()).map(([k, t]) => ({ g: "Thao tác", label: `Giao diện: ${t}`, go: () => thApply(k) })),
     { g: "Thao tác", label: I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English", go: () => langToggle() },

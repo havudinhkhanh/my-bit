@@ -3130,3 +3130,24 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
   .cmdk-t{flex-direction:column;align-items:flex-start;gap:1px;flex:1}
   .cmdk-t small{max-width:100%;font-size:.72rem}
 }
+
+/* nút thứ 6 tuỳ chọn trên thanh dưới (điện thoại) */
+.nav-cus{display:none}
+@media (max-width:979px){
+  .tabs{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  .tabs a.nav-cus{display:flex!important;position:relative}
+  .tabs a.nav-cus .nav-s{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabs a.nav-cus::after{content:"";position:absolute;top:5px;right:calc(50% - 15px);width:5px;height:5px;border-radius:50%;background:var(--brass,var(--brand));opacity:.75}
+  .tabs a .nav-s{white-space:nowrap}
+  .nav-emo{font-size:19px;line-height:21px;height:21px}
+}
+.cus-menu{max-height:min(70vh,560px);max-height:min(70dvh,560px);overflow:auto;overscroll-behavior:contain}
+.cus-menu .ios-menu-h{padding-top:12px}
+.cus-menu .cus-top{font-weight:600;color:var(--ink-2)}
+.cus-menu .cus-sub .ios-t{padding-left:14px;font-size:.95em}
+.cus-menu>button{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;min-height:44px;padding:9px 16px 9px 12px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.cus-menu>button+button{border-top:.5px solid rgba(60,60,67,.29)}
+:root[data-theme="dark"] .cus-menu>button+button{border-color:rgba(84,84,88,.6)}
+.cus-menu>button:active{background:rgba(127,127,127,.15)}
+.cus-menu .ios-ic svg{width:18px;height:18px}
+.msheet-cus{margin-left:auto;margin-right:8px;border:0;background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent);color:var(--brass,var(--brand));font:inherit;font-size:.76rem;font-weight:600;padding:6px 10px;border-radius:999px;cursor:pointer}
