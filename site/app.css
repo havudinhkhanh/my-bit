@@ -3116,3 +3116,17 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
 .hz2 .sc-menu .btn+.btn{border-top:.5px solid color-mix(in srgb,var(--ink) 14%,transparent)}
 .hz2 .sc-menu #scReset{color:var(--down)}
 .sc-hero.hz2>.sc-i:not([open]){border:0!important;padding:0!important;margin:0!important}.hz2 .sc-more>summary.hz2-ic{min-width:0;width:26px;height:26px;padding:0}
+
+/* bảng tìm nhanh trên điện thoại: nút "Huỷ" kiểu iOS thay phím Esc, mỗi mục 2 dòng (tên · mô tả) */
+.cmdk-x{display:none;flex:none;border:0;background:none;padding:6px 2px 6px 8px;font:inherit;font-size:1rem;color:var(--brass,var(--brand));cursor:pointer;-webkit-tap-highlight-color:transparent}
+@media (pointer:coarse),(max-width:600px){
+  .cmdk-q kbd{display:none}.cmdk-x{display:inline-block}
+  .cmdk{padding:0!important}
+  .cmdk-in{width:100%;max-height:none!important;height:var(--vvh,100dvh);border-radius:0;border:0;padding-top:env(safe-area-inset-top,0px)}
+  .cmdk-q{padding:10px 14px}.cmdk-q input{font-size:16px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--ink) 8%,transparent)}
+  .cmdk-q>svg{display:none}
+  .cmdk-l{padding:4px 8px calc(12px + env(safe-area-inset-bottom,0px))}
+  .cmdk-i{padding:9px 10px;align-items:center}
+  .cmdk-t{flex-direction:column;align-items:flex-start;gap:1px;flex:1}
+  .cmdk-t small{max-width:100%;font-size:.72rem}
+}
