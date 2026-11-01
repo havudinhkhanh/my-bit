@@ -2964,3 +2964,7 @@ html[data-vt="back"]::view-transition-new(root){animation-name:vtInL}
 .sc-hero>.sc-i{margin-top:14px;padding-top:10px;border-top:1px solid var(--line-2)}
 .sc-hero>.sc-i>summary{display:flex;align-items:center;min-height:40px;width:100%;padding:0 2px;font-size:.8rem}
 .sc-hero>.sc-i>summary::before{margin-right:6px}
+
+/* biểu đồ tài sản Binance thật: chọn khoảng & cách xem */
+.lv-ctl{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin:0 0 8px}
+.lv-sum{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0 0 6px;font-size:.8rem;font-variant-numeric:tabular-nums}.lv-sum b{margin-left:3px}

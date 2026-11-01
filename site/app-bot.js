@@ -11,6 +11,10 @@ async function scTabGo(k) {
   await viewScalp();
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
+function lvEqBind() {
+  $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
+  $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
+}
 async function viewScalp() {
   window.__scDirty = false;
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
@@ -248,9 +252,43 @@ async function viewScalp() {
       ${e.lv.map((l) => `<div class="sc-lvl"><span>${{ open: "⏳", wait: "🕒", filled: "✅", cxl: "✖" }[l.st] || ""} ${qty(l.q)} @ <b>${px(l.px)}</b>${l.fq > 0 && l.st !== "filled" ? ` <small>(${bi("khớp", "filled")} ${qty(l.fq)})</small>` : ""}</span><small class="faint" data-lgap="${esc(k)}" data-px="${l.px}" data-sd="${e.side}" data-f="${l.st === "open" || l.st === "wait" ? 0 : 1}">${l.st === "filled" ? bi("đã khớp", "filled") : l.st === "cxl" ? bi("đã huỷ", "cancelled") : l.st === "wait" ? bi("chờ giá tới gần mới gửi", "sent when price is near") : ""}</small></div>`).join("")}
       ${pend.length && Date.now() < ex ? `<div class="r4" data-lt0="${t0}" data-lh="${(ex - t0) / 1000}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("còn chờ khớp", "waiting to fill")}</small></div>` : ""}</div>`; }).join("");
   const LVEV = (LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "bot" })).map((e) => ({ ...e, c: /🔍/.test(e.m) ? "skip" : evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
-  const EQ2 = EQL, mk2 = EQ2.map(() => null), mc2 = EQ2.map(() => null);
-  LH.forEach((h) => { const m = Math.floor(Date.parse(h.t2 + "Z") / 60000); let i = -1; for (let j = 0; j < EQ2.length; j++) if (EQ2[j][0] <= m) i = j; if (i >= 0) { mk2[i] = EQ2[i][1]; mc2[i] = h.pnl >= 0 ? css("--up") : css("--down"); } });
-  const lvEqChart = EQ2.length > 2 ? lineSvg([{ name: bi("Tài sản futures (USDT)", "Futures equity (USDT)"), color: css("--brand"), width: 2, pts: EQ2.map(([m, v]) => ({ x: new Date(m * 60000).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }), y: v })) }, { name: bi("Đóng lệnh", "Trade close"), dots: true, color: css("--ink-2"), pts: mk2.map((y, i) => ({ x: "", y, c: mc2[i] })) }], { h: 200, dec: 2 }) : empty(bi("Đường tài sản hiện sau khi máy chủ riêng cập nhật bản mới (5 phút 1 điểm).", "The equity line appears once your server runs the new version (one point every 5 minutes)."));
+  // ---- 📈 tài sản futures: chọn khoảng (24 giờ / 7 ngày / 30 ngày / từ đầu) & cách xem (Tài sản · Lời/lỗ thật = bỏ tiền nạp/rút)
+  const EQ5 = EQL, EQHR = LV?.eqHr?.[LVE] || [], EQDY = LV?.eqDay?.[LVE] || [], FLW = (LV?.flow?.[LVE] || []).slice().sort((a, b) => a[0] - b[0]);
+  const LVR = [["1d", bi("24 giờ", "24h"), 1440], ["7d", bi("7 ngày", "7D"), 10080], ["30d", bi("30 ngày", "30D"), 43200], ["all", bi("Từ đầu", "All"), Infinity]];
+  const lvSeries = (rk) => {      // ghép: ngày (cũ) → giờ → 5 phút (mới nhất), mỗi phần chỉ dùng trước điểm đầu của phần chi tiết hơn
+    const span = (LVR.find((r) => r[0] === rk) || LVR[1])[2], f0 = EQ5[0]?.[0] ?? Infinity, h0 = EQHR[0]?.[0] ?? f0;
+    let A = [...EQDY.filter((q) => q[0] < Math.min(h0, f0)), ...EQHR.filter((q) => q[0] < f0), ...EQ5];
+    const now = A.length ? A[A.length - 1][0] : 0; A = A.filter((q) => q[0] >= now - span);
+    if (span >= 43200 && A.length > 800) { const k = Math.ceil(A.length / 800); A = A.filter((_, i) => i % k === 0 || i === A.length - 1); }
+    return A;
+  };
+  const lvEqHtml = () => {
+    const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : lsGet("lvrng", "7d"), md = window.__lvMd || lsGet("lvmd", "eq"), A = lvSeries(rk);
+    const seg = `<div class="lv-ctl"><div class="bseg" role="tablist">${LVR.map(([k, t]) => `<button type="button" data-lvr="${k}" class="${k === rk ? "on" : ""}">${t}</button>`).join("")}</div>
+      <div class="bseg">${[["eq", bi("Tài sản", "Equity")], ["pl", bi("Lời/lỗ thật", "Real P/L")]].map(([k, t]) => `<button type="button" data-lvm="${k}" class="${k === md ? "on" : ""}">${t}</button>`).join("")}</div></div>`;
+    if (A.length < 3) return seg + empty(bi("Đường tài sản hiện sau khi máy chủ riêng cập nhật bản mới (5 phút 1 điểm).", "The equity line appears once your server runs the new version."));
+    // nạp/rút trong từng đoạn → lời/lỗ thật (tài sản − tiền nạp ròng) và % lời/lỗ theo thời gian (TWR: nối % từng đoạn, tiền nạp/rút không tính là lời)
+    let fi = 0; while (fi < FLW.length && FLW[fi][0] <= A[0][0]) fi++;
+    let net = 0, tw = 1; const PL = [0], NETS = [0], FLAT = A.map(() => null), FLC = A.map(() => null);
+    for (let i = 1; i < A.length; i++) {
+      let f = 0; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) f += FLW[fi++][1];
+      if (f) { FLAT[i] = A[i][1]; FLC[i] = f > 0 ? "#3B82F6" : "#F59E0B"; }
+      net += f; NETS.push(net); PL.push(A[i][1] - A[0][1] - net);
+      if (A[i - 1][1] > 0) tw *= (A[i][1] - f) / A[i - 1][1];
+    }
+    const E0 = A[0][1], E1 = A[A.length - 1][1], pl = E1 - E0 - net, twr = (tw - 1) * 100;
+    const fmtX = (m) => new Date(m * 60000).toLocaleString(LOC, rk === "1d" ? { hour: "2-digit", minute: "2-digit" } : rk === "7d" ? { day: "2-digit", month: "2-digit", hour: "2-digit" } : { day: "2-digit", month: "2-digit" });
+    const mk = A.map(() => null), mc = A.map(() => null);
+    LH.forEach((h) => { const m = Math.floor(Date.parse(h.t2 + "Z") / 60000); if (m < A[0][0]) return; let i = -1; for (let j = 0; j < A.length; j++) if (A[j][0] <= m) i = j; if (i >= 0) { mk[i] = md === "pl" ? PL[i] : A[i][1]; mc[i] = h.pnl >= 0 ? css("--up") : css("--down"); } });
+    const main = md === "pl" ? { name: bi("Lời/lỗ thật (USDT, bỏ nạp/rút)", "Real P/L (USDT, excl. transfers)"), color: css("--brass") || css("--brand"), width: 2, pts: A.map(([m], i) => ({ x: fmtX(m), y: +PL[i].toFixed(3) })) }
+      : { name: bi("Tài sản futures (USDT)", "Futures equity (USDT)"), color: css("--brand"), width: 2, pts: A.map(([m, v]) => ({ x: fmtX(m), y: v })) };
+    const S = [main, { name: bi("Đóng lệnh", "Trade close"), dots: true, color: css("--ink-2"), pts: mk.map((y, i) => ({ x: "", y, c: mc[i] })) }];
+    if (FLAT.some((v) => v != null)) S.push({ name: bi("Nạp (xanh) / rút (cam)", "Deposit (blue) / withdraw (orange)"), dots: true, color: "#3B82F6", pts: FLAT.map((y, i) => ({ x: "", y: y == null ? null : md === "pl" ? PL[i] : y, c: FLC[i] })) });
+    const sum = `<p class="lv-sum"><span>${bi("Lời/lỗ thật", "Real P/L")} <b class="${cls(pl)}">${sg$(pl)}</b> <b class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</b></span><span>${bi("Nạp/rút ròng", "Net transfers")} <b>${net ? sg$(net) : "$0"}</b></span><span class="faint">${u$(E0)} → ${u$(E1)}</span></p>`;
+    return seg + sum + lineSvg(S, { h: 200, dec: 2, zero: md === "pl" });
+  };
+  const lvEqChart = `<div id="lvEqBox">${lvEqHtml()}</div>`;
+  window.__lvEqRedraw = () => { const b = $("#lvEqBox"); if (b) { b.innerHTML = lvEqHtml(); lvEqBind(); } };
   let lc = 0; const lvCum = LHs.length > 1 ? lineSvg([{ name: bi("🪝 Lời/lỗ cộng dồn (USDT)", "🪝 Cumulative P/L (USDT)"), color: css("--brass") || css("--brand"), width: 2, pts: LHs.map((h) => ({ x: hms(h.t2), y: +(lc += h.pnl).toFixed(3) })) }], { h: 160, dec: 2, zero: true }) : empty(bi("Chưa đủ lệnh đã đóng để vẽ.", "Not enough closed trades to chart."));
   // so với sàn thử: cùng cú sốc (cùng coin, cách nhau ≤ 20 phút)
   const PH = AT.filter((t) => t.strat === "hook"), tms = (x) => Date.parse((x || "") + "Z");
@@ -290,7 +328,7 @@ async function viewScalp() {
       ${panel("⚖️ Futures vs Spot", `<div class="tw"><table><thead><tr><th class="l">Loại</th><th>Số lệnh</th><th>Thắng</th><th>Ròng sau phí</th><th>Phí</th></tr></thead><tbody>${byRow("F", "Futures")}${byRow("S", "Spot")}</tbody></table></div>`)}`;
   else if (TB === "live") body = !C.lv_on && !LV?.hist?.length && !LV?.ev?.length && !wEnv ? panel("💵 Tài khoản Binance", empty(`Tài khoản Binance đang tắt. Bật trong tab <button type="button" class="btn sm" data-sctab="set">⚙️ Thiết lập</button> → mục 💵 Tiền thật (nên chạy Demo trước).`)) : `${LV?.halt ? `<p class="sc-pause">⛔ ${esc(LV.halt)} – ${bi("bấm ▶ Chạy lại ở khung trạng thái bên dưới", "press ▶ Resume in the status box below")}</p>` : ""}${lvCards}
       <div class="sc-g2">${panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), lvOpen ? `<div class="sc-ocs">${lvOpen}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), feed(LVEV.slice(0, 12), false))}</div>
-      <div class="sc-g2">${panel(bi(`📈 Tài sản futures ${LVN}`, `📈 ${LVN} futures equity`), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · 5 phút 1 điểm · chấm = lúc đóng lệnh.", "Includes unrealized P/L · one point every 5 minutes · dots = trade closes.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
+      <div class="sc-g2">${panel(bi(`📈 Tài sản futures ${LVN}`, `📈 ${LVN} futures equity`), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh. <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền anh nạp vào / rút ra ví futures; <b>%</b> tính kiểu quỹ đầu tư (nối % lời/lỗ từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm % tăng giả.", "Includes unrealized P/L · dots = trade closes. <b>Real P/L</b> = equity change minus transfers in/out of the futures wallet; <b>%</b> is time-weighted, so deposits don't inflate it.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
       ${cmpPanel}${panel(bi(`🧾 Lệnh đã đóng trên ${LVN}`, `🧾 Closed trades on ${LVN}`), `${lvTrades}<p class="faint sc-cap">${bi(`Lời/lỗ, phí và funding lấy từ sổ thu chi của sàn. Bấm 📈 để xem nến 1 phút${LVE === "demo" ? " của sàn Demo" : ""} quanh lệnh.`, `P/L, fees and funding come from the exchange's income history. Press 📈 for the 1-minute candles${LVE === "demo" ? " on Demo" : ""} around the trade.`)}</p>`, `${LH.length} ${bi("lệnh", "trades")}`)}
       ${walPanel || ""}${lvPanel || ""}`;
   else if (TB === "lab") {
@@ -455,6 +493,7 @@ async function viewScalp() {
   if ($("#lvRes")) $("#lvRes").onclick = async () => { C.lv_resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Tài khoản thật chạy lại trong ≤ 5 phút"); viewScalp(); };
   if ($("#scRes")) $("#scRes").onclick = async () => { C.resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot sẽ chạy tiếp trong ≤ 30 giây"); viewScalp(); };
   $("#scAuto").onclick = () => { const off = !autoOff("scalp"); try { localStorage.setItem("mybit_auto_scalp", off ? "0" : "1"); } catch (e) { /* bỏ qua */ } toast(off ? "Đã dừng tự cập nhật – bấm lại để chạy tiếp" : "Trang tự cập nhật lại"); if (off) $("#scAuto").textContent = "▶ Tự cập nhật"; else softRender(() => viewScalp()); };
+  lvEqBind();
   $("#scOn").onclick = async () => {
     if (C.enabled && !confirm(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`)) return;
     C.enabled = !C.enabled; delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };

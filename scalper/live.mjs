@@ -99,7 +99,17 @@ export class LiveExec {
       if (!this.keys(env)) continue;
       try {
         const W = await this.wallet(env); if (W) (this.S.wal ||= {})[env] = W;
-        if (W?.fut?.margin > 0) { const E = ((this.S.eqH ||= {})[env] ||= []); E.push([Math.floor(Date.now() / 60000), W.fut.margin]); if (E.length > 2100) E.splice(0, E.length - 2100); }      // tài sản futures (gồm lãi/lỗ đang mở), 7 ngày
+        if (W?.fut?.margin > 0) {
+          const m = Math.floor(Date.now() / 60000), v = W.fut.margin, E = ((this.S.eqH ||= {})[env] ||= []);
+          E.push([m, v]); if (E.length > 2100) E.splice(0, E.length - 2100);      // tài sản futures (gồm lãi/lỗ đang mở), 5 phút 1 điểm, 7 ngày
+          // lịch sử dài: mỗi giờ 1 điểm (~400 ngày) + mỗi ngày 1 điểm (10 năm) – điểm cuối của giờ/ngày = số mới nhất
+          const put = (A, k, cap) => { if (A.length && A[A.length - 1][0] === k) A[A.length - 1][1] = v; else A.push([k, v]); if (A.length > cap) A.splice(0, A.length - cap); };
+          const Hr = ((this.S.eqHr ||= {})[env] ||= []), Dy = ((this.S.eqDay ||= {})[env] ||= []);
+          if (!Hr.length && E.length > 1) for (const [m0, v0] of E.slice(0, -1)) { const k = Math.floor(m0 / 60) * 60; if (Hr.length && Hr[Hr.length - 1][0] === k) Hr[Hr.length - 1][1] = v0; else Hr.push([k, v0]); }      // lần đầu: lấy từ lịch sử 5 phút có sẵn
+          if (!Dy.length && Hr.length) for (const [m0, v0] of Hr) { const k = Math.floor((m0 + 420) / 1440) * 1440 - 420; if (Dy.length && Dy[Dy.length - 1][0] === k) Dy[Dy.length - 1][1] = v0; else Dy.push([k, v0]); }
+          put(Hr, Math.floor(m / 60) * 60, 9600); put(Dy, Math.floor((m + 420) / 1440) * 1440 - 420, 3650);      // ngày theo giờ Việt Nam
+          await this.flows(env);
+        }
       } catch (e) { ((this.S.wal ||= {})[env] ||= {}).err = [e.message]; }
     }
     this.save();
@@ -325,6 +335,20 @@ export class LiveExec {
     await this.finish(ev, why, px, q > 0 ? "" : "vị thế đã đóng trước đó");
   }
   // Lời/lỗ THẬT từ sổ thu chi của sàn (income): lời lỗ giá đã chốt, phí giao dịch, phí FUNDING trong lúc giữ lệnh. Không đọc được → dùng ước tính.
+  // nạp / rút vào ví futures (chuyển từ Spot/Funding sang, hoặc ngược lại) – để biểu đồ & % lời/lỗ KHÔNG tính tiền nạp là tiền lời
+  async flows(env) {
+    const F = ((this.S.flow ||= {})[env] ||= { at: 0, last: 0, L: [] });
+    if (Date.now() - F.at < 280e3) return;
+    F.at = Date.now();
+    try {
+      const L = await this.req("GET", "/fapi/v1/income", { incomeType: "TRANSFER", startTime: String(F.last ? F.last + 1 : Date.now() - 89 * 864e5), limit: "1000" }, true, BASE[env], env);
+      for (const x of L || []) {
+        const v = +x.income, t = +x.time; if (!Number.isFinite(v) || !t || !/^(USDT|USDC|FDUSD|BUSD)$/.test(x.asset)) continue;
+        F.L.push([Math.floor(t / 60000), +v.toFixed(4)]); if (t > F.last) F.last = t;
+      }
+      if (F.L.length > 1000) F.L.splice(0, F.L.length - 1000);
+    } catch (e) { /* lần sau thử lại */ }
+  }
   async income(ev) {
     try {
       await new Promise((r) => setTimeout(r, 1500));      // sàn ghi sổ chậm vài trăm ms sau lệnh đóng
@@ -385,6 +409,7 @@ export class LiveExec {
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) }, tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.fees || 0).toFixed(4), sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-80), log: this.S.log.slice(-40), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])) };
+      hist: this.S.hist.slice(-80), log: this.S.log.slice(-40), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
+      eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
 }
