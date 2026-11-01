@@ -1,8 +1,23 @@
 /* MyBit – các trang bot, tải khi cần (xem lazyJs trong app.js). Dùng chung hàm & biến toàn cục của app.js. */
+// đổi tab con của Bot Phản Xạ MƯỢT: sáng tab ngay khi chạm, vẽ lại bằng dữ liệu đã có, giữ thanh tab đứng yên đúng chỗ trên màn hình,
+// giữ chiều cao trang trong lúc vẽ (không bị kéo cuộn), gắn lại thanh vị trí ngay trong cùng khung hình
+async function scTabGo(k) {
+  if (k === window.__scTab) return;
+  $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+  window.__scTab = k; lsSet("sctab", k);
+  const root = $("#app"), bar0 = $(".sc-tabs")?.getBoundingClientRect().top;
+  root.style.minHeight = root.offsetHeight + "px"; window.__scUseCache = true;
+  window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
+  await viewScalp();
+  setTimeout(() => { root.style.minHeight = ""; }, 400);
+}
 async function viewScalp() {
   window.__scDirty = false;
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
-  const [rq, rv, rk] = await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
+  // đổi tab con: dùng lại dữ liệu vừa tải (< 20 giây) → vẽ ngay, không chờ mạng (trang không "giật")
+  const cc = window.__scCache, useC = window.__scUseCache && cc && Date.now() - cc.t < 20000; window.__scUseCache = false;
+  const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
+  if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần
   const KEYH = rk.data?.h ? rk.data : null;
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X0 = rv.data || {}, X = X0.v === 2 ? X0 : { at: X0.at };
@@ -303,12 +318,17 @@ async function viewScalp() {
   else if (TB === "set") body = `<div class="sc-setp" id="scForm"></div>`;
   app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1><span class="meta"><a href="#/bot">← Đội bot</a> · 🪝 Bắt râu sập + ⚡ lướt giây · sàn thử dùng giá & khớp lệnh thật, phí thật · <a href="#/bot/days">📅 Kết quả theo ngày</a></span></div>
     ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TB)[1])}${body}</div>`;
-  $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; window.__scTab = b.dataset.sctab; lsSet("sctab", window.__scTab); viewScalp().then(() => { const t = $(".sc-tabs"); if (t && t.getBoundingClientRect().top < 0) scrollTo(0, scrollY + t.getBoundingClientRect().top - 60); }); }));
+  $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; scTabGo(b.dataset.sctab); }));
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
   $$("[data-scev]").forEach((b) => (b.onclick = () => { window.__scEvF = b.dataset.scev; $$("[data-scev]").forEach((x) => x.classList.toggle("on", x === b)); $$(".sc-feed li[data-c]").forEach((li) => (li.hidden = b.dataset.scev !== "all" && li.dataset.c !== b.dataset.scev)); }));
   $$("[data-hkc]").forEach((b) => (b.onclick = () => hkChartOpen(HT[+b.dataset.hkc], $("#hkc" + b.dataset.hkc))));
   $$("[data-lvc]").forEach((b) => (b.onclick = () => { const h = LHr[+b.dataset.lvc]; hkChartOpen({ k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase }, $("#lvc" + b.dataset.lvc)); }));
   rsTables($("#app"));
+  if (window.__scKeep != null) {      // đổi tab con: đặt lại cuộn NGAY sau khi vẽ (trước khi trình duyệt kịp hiện khung hình lệch) + thanh vị trí
+    const k0 = window.__scKeep; window.__scKeep = null;
+    if (typeof CUR_TAB !== "undefined" && CUR_TAB && $("#app .ph") && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB);
+    const bar = $(".sc-tabs"); if (bar) scrollTo(0, Math.max(0, scrollY + bar.getBoundingClientRect().top - k0));
+  }
   // độ mới của số liệu (đếm từng giây, không vẽ lại trang)
   clearInterval(window.__scAgeT);
   window.__scAgeT = setInterval(() => { const el = $("#scAge"); if (!el) { clearInterval(window.__scAgeT); return; } const a = (Date.now() - Date.parse(el.dataset.at + "Z")) / 1000; el.textContent = `${LANG === "en" ? "data at" : "số liệu lúc"} ${hms(el.dataset.at)} · ${LANG === "en" ? `${Math.max(0, Math.round(a))}s ago` : `cách đây ${Math.max(0, Math.round(a))} giây`}`; el.className = a > 30 ? "warn" : "faint"; }, 1000);
