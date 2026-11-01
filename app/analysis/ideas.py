@@ -297,7 +297,7 @@ def current(key: str, tf: str, df: pd.DataFrame, book: Book, btc_up: bool, ctx: 
         HB = {"h+": "khung lớn cùng chiều", "h-": "khung lớn NGƯỢC chiều", "h0": "khung lớn lẫn lộn"}
         if hb:
             if Ph.get("n", 0) >= 60:
-                notes.append(f"{HB[hb]}: lịch sử {Ph['n']} lần, chạm MT1 {Ph.get('win1')}%, lãi TB {Ph.get('avgR')}R")
+                notes.append(f"{HB[hb]}: lịch sử {Ph['n']} lần, chạm MT1 {str(Ph.get('win1')).replace('.', ',')}%, lãi TB {str(Ph.get('avgR')).replace('.', ',')}R")      # số kiểu Việt (dấu phẩy)
                 score += ((Ph.get("avgR") or 0) - (P.get("avgR") or 0)) * 100
             else:
                 notes.append(HB[hb])

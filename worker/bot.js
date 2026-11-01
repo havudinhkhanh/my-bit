@@ -190,7 +190,7 @@ function report(st, cfg, th, plan, price, now, eq, dayPct, monPct, dd, mwhy, hal
   const cnt = (v) => th.filter((t) => t.v === v).length, btc = price("BTC");
   const lines = [
     `💰 Tài sản ${vn(eq, 2)} USDT · hôm nay ${f(dayPct)}% · tháng ${f(monPct)}% (mục tiêu ${cfg.target_month}%) · sụt ${vn(dd, 1)}%/${cfg.max_dd}%`,
-    `🛡️ Rủi ro đang mở ${vn((S.heat ?? 0), 1)}%/${cfg.max_heat}% · ${st.pos.length}/${cfg.max_pos} lệnh · tổng vị thế ${vn((S.gross ?? 0), 2)}×/${cfg.max_gross}× · tiền mặt ${vn((S.cash_pct ?? 0), 0)}% (giữ ≥ ${cfg.cash_min}%) · rủi ro/lệnh ${vn((cfg.risk * (S.risk_mult || 1)), 2)}%${mwhy.length ? " (điều chỉnh: " + mwhy.join(", ") + ")" : ""}`,
+    `🛡️ Rủi ro đang mở ${vn((S.heat ?? 0), 1)}%/${cfg.max_heat}% · ${st.pos.length}/${cfg.max_pos} lệnh · tổng vị thế ${vn((S.gross ?? 0), 2)}×/${vn(cfg.max_gross, cfg.max_gross % 1 ? 1 : 0)}× · tiền mặt ${vn((S.cash_pct ?? 0), 0)}% (giữ ≥ ${cfg.cash_min}%) · rủi ro/lệnh ${vn((cfg.risk * (S.risk_mult || 1)), 2)}%${mwhy.length ? " (điều chỉnh: " + mwhy.join(", ") + ")" : ""}`,
     `🌡️ Thị trường: đèn ${L}${btc ? ` · BTC ${sigS(btc)}` : ""} · ${Object.values(st.pxsrc || {}).length ? `giá mới từ ${[...new Set(Object.values(st.pxsrc))].join(", ")}` : ""}`,
     `🔎 ${th.length} ứng viên đang xét: ${cnt("go")} vào · ${cnt("wait")} chờ giá · ${cnt("heat") + cnt("sector") + cnt("cash")} bị kỷ luật vốn chặn · ${cnt("model")} mô hình loại · ${cnt("dead") + cnt("miss")} hỏng/lỡ`,
   ];

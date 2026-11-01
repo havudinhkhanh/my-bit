@@ -12,14 +12,19 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const isNum = (x) => x !== null && x !== undefined && x !== "" && typeof x !== "boolean" && !Number.isNaN(Number(x));
 const NF = {};
-const nf = (x, d = 2) => (isNum(x) ? (NF[d] || (NF[d] = new Intl.NumberFormat(LOC, { minimumFractionDigits: d, maximumFractionDigits: d }))).format(Number(x)) : "—");
-const pct = (x, d = 1, sign = true) => (isNum(x) ? (sign && x > 0 ? "+" : "") + nf(x, d) + "%" : "—");
+// số làm tròn ra 0 thì không có dấu trừ ("-0,0%" → "0,0%")
+const nz = (x, d) => { const v = Number(x), k = 10 ** Math.min(d, 12); return Math.round(Math.abs(v) * k) === 0 ? 0 : v; };
+const nf = (x, d = 2) => (isNum(x) ? (NF[d] || (NF[d] = new Intl.NumberFormat(LOC, { minimumFractionDigits: d, maximumFractionDigits: d }))).format(nz(x, d)) : "—");
+const pct = (x, d = 1, sign = true) => (isNum(x) ? (sign && nz(x, d) > 0 ? "+" : "") + nf(x, d) + "%" : "—");
+// chữ do máy chủ / bot viết sẵn (nhật ký, thông báo): số thập phân kiểu Anh 0.0675 · 46.4× · 3.1% → kiểu Việt 0,0675 · 46,4× · 3,1%
+// (bỏ qua số có đúng 3 chữ số sau dấu chấm mà phần nguyên khác 0, vì có thể là hàng nghìn kiểu Việt như 1.256)
+const viDec = (s) => (typeof LANG !== "undefined" && LANG === "en") ? String(s ?? "") : String(s ?? "").replace(/(^|[^\d.,\w])(\d{1,9})\.(\d+)(?!\d|[.,]\d)/g, (m, a, i, f, o, str) => (i === "0" || f.length !== 3 || /^[%×xR]/.test(str.slice(o + m.length)) ? `${a}${i},${f}` : m));
 const cls = (x) => (!isNum(x) ? "" : x > 0 ? "up" : x < 0 ? "down" : "ref");
 // giá crypto: từ 0,00000123 đến 100.000 → số chữ số thập phân theo độ lớn
 const pdec = (x) => { const a = Math.abs(Number(x)); return a >= 1000 ? 2 : a >= 100 ? 2 : a >= 1 ? 4 : a >= 0.01 ? 5 : a > 0 ? Math.min(10, Math.ceil(-Math.log10(a)) + 3) : 2; };
 const px = (x) => (isNum(x) ? nf(x, pdec(x)) : "—");
 const UNIT = LANG === "en" ? ["T", "B", "M", "k"] : [" nghìn tỷ", " tỷ", " tr", " k"];
-const usd = (x, d = 1) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return a >= 1e12 ? `${s}$${nf(a / 1e12, 2)}${UNIT[0]}` : a >= 1e9 ? `${s}$${nf(a / 1e9, d + 1)}${UNIT[1]}` : a >= 1e6 ? `${s}$${nf(a / 1e6, d)}${UNIT[2]}` : a >= 1e3 ? `${s}$${nf(a / 1e3, d)}${UNIT[3]}` : `${s}$${nf(a, 0)}`; };
+const usd = (x, d = 1) => { if (!isNum(x)) return "—"; const a = Math.abs(x), s = x < 0 ? "-" : ""; return a >= 1e12 ? `${s}$${nf(a / 1e12, 2)}${UNIT[0]}` : a >= 1e9 ? `${s}$${nf(a / 1e9, d + 1)}${UNIT[1]}` : a >= 1e6 ? `${s}$${nf(a / 1e6, d)}${UNIT[2]}` : a >= 1e5 ? `${s}$${nf(a / 1e3, d)}${UNIT[3]}` : `${s}$${nf(a, 0)}`; };
 const QF = {};
 const qty = (x) => { if (!isNum(x)) return "—"; const a = Math.abs(x), d = a >= 1000 ? 0 : a >= 1 ? 3 : 6; return (QF[d] || (QF[d] = new Intl.NumberFormat(LOC, { minimumFractionDigits: 0, maximumFractionDigits: d }))).format(Number(x)); };
 const CSSV = {};
@@ -2302,7 +2307,7 @@ function hookRender() {
       <span class="hk-m">đang giữ · vào ${px(P.e)}${(P.lv || 1) > 1 ? ` (khớp ${P.lv} mức)` : ""}${demo.has(P.id) ? ` <span class="pill">Binance Demo</span>` : ""}</span>
       <span class="hk-p" data-hkp>—</span><span class="hk-c" data-hkc>đóng sau ${hkMMSS(P.t0 + P.h * 1000 - now)}</span></div>`)).join("");
   const last = done.map((t) => `<li>${coin(t.k)} ${t.side > 0 ? "Long" : "Short"} <b class="${cls(t.net)}">${t.net >= 0 ? "+" : ""}${nf(t.net / 100, 1)}%</b> <small>${{ TIME: "hết 60 phút", SL: "cắt lỗ thảm hoạ", TP: "chốt lời" }[t.why] || esc(t.why || "")} · ${agoShort(new Date(hkT(t.t1 || t.t0)).toISOString())} trước</small></li>`)
-    .concat(logs.map((l) => `<li class="faint"><small>${esc(l.m.replace(/^🪝\s*/, ""))} · ${agoShort(new Date(hkT(l.t)).toISOString())} trước</small></li>`)).slice(0, 10).join("");
+    .concat(logs.map((l) => `<li class="faint"><small>${esc(viDec(l.m.replace(/^🪝\s*/, "")))} · ${agoShort(new Date(hkT(l.t)).toISOString())} trước</small></li>`)).slice(0, 10).join("");
   const st = X.hkStat || {};
   el.innerHTML = `<section class="panel hk-p"><div class="ph"><h2>🪝 Bắt râu sập – cú sốc 1 phút <small class="faint">${pend.length + hold.length || ""}</small></h2><span class="meta">${stale ? `<span class="down">bot chưa gửi số liệu ${Math.round(age / 60)} phút</span>` : `từ Bot Phản Xạ · ${Math.round(age)}s trước <span class="live-dot"></span>`} · <a href="#/bot/scalp">mở bot →</a></span></div>
     ${rows ? `<div class="hk-rows">${rows}</div>` : `<p class="hk-none">Chưa có cú sốc nào đang chờ khớp. Bot quét liên tục ~300 hợp đồng futures; hôm nay thấy ${st.seen || 0} cú sốc, ${st.placed || 0} lần đặt lệnh chờ, còn lại bị bộ lọc chặn.</p>`}
@@ -4891,7 +4896,7 @@ function ntfRow(n) {
   // lệnh bot: TIỀN THẬT (viền vàng + nhãn) / DEMO / SÀN THỬ (mờ hơn) – nhìn là biết lệnh nào là tiền thật
   const T = n.title || "", acc = /^💰 TIỀN THẬT|LỆNH THẬT/.test(T) ? "real" : /^🟡 DEMO|^💵 Demo/.test(T) ? "demo" : /^🧪 SÀN THỬ/.test(T) || (/^scalp/.test(n.kind || "") && /^[🪝⚡]/u.test(T)) ? "paper" : "";
   return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
-    <span class="nt-b"><b>${esc(title)}</b>${n.body ? `<span class="nt-t">${esc(n.body)}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
+    <span class="nt-b"><b>${esc(viDec(title))}</b>${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
     ${n.read_at ? "" : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
 }
 // danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm

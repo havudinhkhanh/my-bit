@@ -2988,3 +2988,13 @@ html[data-fdsz="l"] .sc-feed{max-height:none;overflow:visible}
 .ca-b{grid-column:1/-1;display:block;height:3px;margin:4px 0 2px;border-radius:2px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}
 .ca-b b{display:block;height:100%;border-radius:2px;background:var(--brass,var(--brand))}
 .ca-w{grid-column:1/-1;color:var(--ink-3);font-size:.66rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- soát "OCD": thẻ số không cắt chữ "…", đường mini không đè chữ, thẻ lẻ cuối hàng không để trống nửa hàng */
+.stgs .st dt{white-space:normal;align-items:flex-start;line-height:1.3}
+.stgs .st dd,.sc-kp .st dd{white-space:normal;overflow-wrap:anywhere}
+.sc-kp .st .spk{top:10px;bottom:auto;height:16px}.sc-kp .st:has(.spk) dt{padding-right:40%}
+.st:not(.stgs .st):not(.sc-kp .st):has(.spk)>small{display:block;padding-right:62px}
+.sc-li>span{max-width:none!important;white-space:normal}
+@media (max-width:700px){.stats>.st:nth-child(odd):last-child{grid-column:1/-1}}
+@media (max-width:700px){.sc-menu{left:0;right:auto}}
+.stgs .stats{grid-auto-rows:auto!important}      /* mỗi hàng cao theo thẻ cao nhất của hàng đó – không kéo mọi hàng cao bằng hàng cao nhất (để trống nhiều) */
