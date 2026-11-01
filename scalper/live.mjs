@@ -252,7 +252,8 @@ export class LiveExec {
       const hitSoft = m && sp && (ev.side > 0 ? m <= sp * 0.995 : m >= sp * 1.005);      // sàn lẽ ra đã cắt – kiểm tra & đóng dự phòng
       if (now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");
       else if (hitSoft) await this.close(ev, "SL");
-      else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && this.trail(ev, m, c)) await this.close(ev, "TRAIL");
+      // cắt lỗ đuổi chỉ cho lệnh CHỜ: với "mua ngay" nó cắt mất cú hồi lớn (vòng 9, 1.863 lệnh: giữ 60 phút +125 bps/lệnh, đuổi 1,5%/1% chỉ +60) – tiền thật giữ đủ giờ
+      else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !(ev.env === "live" && ev.lv.some((l) => l.mk && l.fq > 0)) && this.trail(ev, m, c)) await this.close(ev, "TRAIL");
       else if (!ev.pAt || now - ev.pAt > 20000) {      // vị thế còn không? (cắt lỗ trên sàn đã chạy / anh tự đóng)
         ev.pAt = now; const p = await this.pos(ev.sym);
         if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) await this.finish(ev, "SL", sp || ev.pos.ap, "vị thế đã được đóng trên sàn (cắt lỗ chạy hoặc anh tự đóng)");
