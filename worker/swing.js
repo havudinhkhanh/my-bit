@@ -1,4 +1,6 @@
-// 🧪 PHÒNG THỬ NGHIỆM (sàn thử, tiền ảo – KHÔNG đặt lệnh thật): 2 phương pháp giữ nhiều ngày, chạy song song với Bắt râu sập, sổ sách riêng.
+// 🧪 PHÒNG THỬ NGHIỆM (sàn thử, tiền ảo – KHÔNG đặt lệnh thật): 2 phương pháp giữ nhiều ngày, chạy song song với Bắt râu sập
+// trên CÙNG tài sản sàn thử (vốn lấy từ S.cash, lời/lỗ & phí & funding vào thẳng tài sản; ký quỹ x1 tính vào vốn đang dùng).
+// Riêng cầu dao "lỗ trong ngày" của lướt giây / Bắt râu sập KHÔNG tính phần lời/lỗ ĐANG MỞ của 2 phương pháp này (giữ nhiều ngày, dao động lớn).
 // Kiểm chứng: research/round10.py + r10_analyze.py + r10_port.py (nến 1 giờ Binance futures 01/2022–10/2026, 918 mã kể cả mã đã huỷ niêm yết).
 //   list – SHORT COIN MỚI NIÊM YẾT futures: 24 giờ sau giờ niêm yết (onboardDate) → Short theo giá đánh dấu, giữ 14 ngày, KHÔNG cắt lỗ,
 //          ký quỹ cô lập x1 (giá ×2 = mất trắng phần tiền của lệnh). 10% vốn ảo/lệnh, tối đa 5 lệnh cùng lúc.
@@ -12,20 +14,22 @@ const iso = (t) => new Date(t).toISOString().slice(0, 19);
 const r2 = (x, d = 2) => (Number.isFinite(x) ? +x.toFixed(d) : null);
 const FEE = 0.15;     // % mỗi chiều
 export const SW = {
-  list: { name: "Short coin mới niêm yết", sz: 10, max: 5, hold: 14 * 24, rule: "24 giờ sau khi niêm yết futures → Short, giữ 14 ngày, không cắt lỗ, x1, 10% vốn/lệnh, tối đa 5 lệnh" },
-  pump: { name: "Short coin vừa bơm ≥ 100%", sz: 5, max: 5, hold: 7 * 24, rule: "7:00 sáng (00:00 UTC) coin tăng ≥ 100%/24h, khối lượng ≥ 10 triệu USD → Short, giữ 7 ngày, không cắt lỗ, x1, 5% vốn/lệnh, tối đa 5 lệnh" },
+  list: { name: "Short coin mới niêm yết", sz: 10, max: 5, hold: 14 * 24, rule: "24 giờ sau khi niêm yết futures → Short, giữ 14 ngày, không cắt lỗ, x1, 10% tài sản sàn thử/lệnh, tối đa 5 lệnh" },
+  pump: { name: "Short coin vừa bơm ≥ 100%", sz: 5, max: 5, hold: 7 * 24, rule: "7:00 sáng (00:00 UTC) coin tăng ≥ 100%/24h, khối lượng ≥ 10 triệu USD → Short, giữ 7 ngày, không cắt lỗ, x1, 5% tài sản sàn thử/lệnh, tối đa 5 lệnh" },
 };
-const CAP0 = 1000;
 
 export class SwingLab {
   constructor(core) { this.core = core; this.busy = false; this.pxAt = 0; this.obAt = 0; this.px = {}; this.ob = {}; }
   st() {
-    const S = this.core.S; S.sw ||= { v: 1 };
-    for (const k of Object.keys(SW)) S.sw[k] ||= { cash: CAP0, pos: {}, hist: [], st: { n: 0, win: 0, pnl: 0, fee: 0, fund: 0, skip: 0 }, seen: {} };
+    const S = this.core.S; S.sw ||= { v: 2 };
+    if (S.sw.v !== 2) { for (const k of Object.keys(SW)) if (S.sw[k]) { delete S.sw[k].cash; S.sw[k].pos = {}; } S.sw.v = 2; }     // bản cũ (sổ riêng) → dùng chung tài sản sàn thử
+    for (const k of Object.keys(SW)) S.sw[k] ||= { pos: {}, hist: [], st: { n: 0, win: 0, pnl: 0, fee: 0, fund: 0, skip: 0 }, seen: {} };
     return S.sw;
   }
   get(u) { return fetch(u, { signal: AbortSignal.timeout(15000) }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} ${u.split("/").pop()}`); return r.json(); }); }
-  eq(k, B = this.st()[k]) { let e = B.cash; for (const P of Object.values(B.pos)) e += P.side * P.q * ((this.px[P.sym]?.m || P.e) - P.e); return e; }
+  // lời/lỗ đang mở & ký quỹ (x1 = giá trị lệnh) của mọi lệnh thử nghiệm – ScalpCore.equity() / used() cộng vào
+  upnl() { let u = 0; const W = this.core.S?.sw; if (!W) return 0; for (const k of Object.keys(SW)) for (const P of Object.values(W[k]?.pos || {})) u += P.side * P.q * ((this.px[P.sym]?.m || P.last || P.e) - P.e); return u; }
+  margin() { let m = 0; const W = this.core.S?.sw; if (!W) return 0; for (const k of Object.keys(SW)) for (const P of Object.values(W[k]?.pos || {})) m += P.N; return m; }
   say(m, kind = "info") { try { this.core.say(Date.now(), `🧪 ${m}`, kind); } catch (e) { /* bỏ qua */ } }
   note(key, title, body) { try { this.core.note(`sw:${key}`, 2, title, body); } catch (e) { /* bỏ qua */ } }
   async tick(now = Date.now()) {
@@ -67,9 +71,10 @@ export class SwingLab {
     if (!(p > 0)) { this.say(`${R.name}: ${base} chưa có giá – bỏ qua`); B.st.skip++; return; }
     if (Object.keys(B.pos).length >= R.max) { this.say(`${R.name}: ${base} (${why}) – đã đủ ${R.max} lệnh, bỏ qua`); B.st.skip++; return; }
     if (Object.values(B.pos).some((P) => P.sym === sym)) { B.st.skip++; return; }
-    const eq = this.eq(k, B), N = eq * R.sz / 100, q = N / p, fee = N * FEE / 100;
+    const S = this.core.S, eq = this.core.equity(), N = eq * R.sz / 100, q = N / p, fee = N * FEE / 100;
+    if (eq - this.core.used() < N) { this.say(`${R.name}: ${base} – tài sản sàn thử còn trống không đủ ${r2(N, 2)} USDT, bỏ qua`); B.st.skip++; return; }
     const id = `${k}${Date.now() % 1e9}`;
-    B.cash -= fee; B.st.fee += fee;
+    S.cash -= fee; B.st.fee += fee;
     B.pos[id] = { id, sym, side: -1, e: p, q, N: r2(N, 2), t0: iso(now), t1: iso(now + R.hold * 3600e3), why, fee, fund: 0, fnext: this.px[sym]?.next || 0, frate: this.px[sym]?.r || 0, hi: p, lo: p };
     this.say(`${R.name}: SHORT ${base} ${r2(N, 2)} USDT @ ${+p.toPrecision(6)} (${why}) · giữ tới ${iso(now + R.hold * 3600e3).replace("T", " ")} UTC`);
     this.note(`o:${id}`, `🧪 Thử nghiệm: Short ${base}`, `${R.name} · ${why} · ${r2(N, 2)} USDT ảo @ ${+p.toPrecision(6)}, giữ ${R.hold / 24} ngày, không cắt lỗ.`);
@@ -83,7 +88,7 @@ export class SwingLab {
       }
       const m = x.m; P.last = m; P.hi = Math.max(P.hi, m); P.lo = Math.min(P.lo, m);
       if (P.fnext && now >= P.fnext) {      // kỳ chốt funding: Short nhận khi funding dương, trả khi âm
-        const amt = -P.side * (P.frate || 0) * P.q * m; B.cash += amt; P.fund += amt; B.st.fund += amt; P.fnext = x.next > now ? x.next : 0; P.frate = x.r;
+        const amt = -P.side * (P.frate || 0) * P.q * m; this.core.S.cash += amt; P.fund += amt; B.st.fund += amt; P.fnext = x.next > now ? x.next : 0; P.frate = x.r;
       } else if (!P.fnext && x.next > now) { P.fnext = x.next; P.frate = x.r; }
       else if (x.next === P.fnext) P.frate = x.r;
       if (P.side < 0 && m >= 2 * P.e) this.close(k, B, P, 2 * P.e, "LIQ", now);           // x1: giá ×2 → mất trắng phần ký quỹ
@@ -92,7 +97,7 @@ export class SwingLab {
   }
   close(k, B, P, px, why, now) {
     const R = SW[k], gross = P.side * P.q * (px - P.e), fee = P.q * px * FEE / 100;
-    B.cash += gross - fee; B.st.fee += fee;
+    this.core.S.cash += gross - fee; B.st.fee += fee;
     const net = gross - P.fee - fee + P.fund, pct = net / P.N * 100;
     B.st.n++; B.st.pnl += net; if (net > 0) B.st.win++;
     B.hist = [...B.hist.slice(-199), { sym: P.sym, side: P.side, e: P.e, x: px, N: P.N, t0: P.t0, t2: iso(now), why, net: r2(net, 3), pct: r2(pct, 2), fund: r2(P.fund, 3), fee: r2(P.fee + fee, 3), hi: P.hi, lo: P.lo, note: P.why }];
@@ -103,10 +108,10 @@ export class SwingLab {
   }
   out() {
     const W = this.core.S?.sw; if (!W) return null;
-    const o = { at: this.pxAt ? iso(this.pxAt) : null, cap0: CAP0, on: this.core.where === "vps" };
+    const o = { at: this.pxAt ? iso(this.pxAt) : null, shared: true, on: this.core.where === "vps", upnl: r2(this.upnl(), 2), margin: r2(this.margin(), 2) };
     for (const k of Object.keys(SW)) {
       const B = W[k]; if (!B) continue;
-      o[k] = { ...SW[k], eq: r2(this.eq(k, B), 2), cash: r2(B.cash, 2), st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
+      o[k] = { ...SW[k], st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
         pos: Object.values(B.pos).map((P) => { const m = this.px[P.sym]?.m || P.e, u = P.side * P.q * (m - P.e); return { ...P, m, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
         hist: B.hist.slice(-60), day: B.day || null };
     }

@@ -481,7 +481,7 @@ export class ScalpCore {
       const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot Phản Xạ – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
       if (S.days) { const P = this.dayRec(0, S.day.d); P.eq0 ??= r2(S.day.eq0, 2); P.eq1 = r2(eqNow, 2); }
-      S.day = { d: day, eq0: eqNow }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
+      S.day = { d: day, eq0: eqNow, sw0: this.sw.upnl() }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
     }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
@@ -494,7 +494,8 @@ export class ScalpCore {
     }
     try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
     try { this.hkvTick(now); } catch (e) { this.err("kiểm chứng bộ lọc " + e.message); }
-    const dayPct = (eqNow / S.day.eq0 - 1) * 100;
+    const dayPct = ((eqNow - (this.sw.upnl() - (S.day.sw0 ?? this.sw.upnl()))) / S.day.eq0 - 1) * 100;     // cầu dao ngày: bỏ phần lời/lỗ ĐANG MỞ của 🧪 (giữ nhiều ngày)
+    S.day.sw0 ??= this.sw.upnl();
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot Phản Xạ dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
     if (!S.pause && c.day_lock && c.day_target > 0 && dayPct >= c.day_target && !Object.keys(S.pos).length) {     // CHỐT NGÀY: đạt mục tiêu → giữ thành quả
@@ -701,7 +702,7 @@ export class ScalpCore {
   tradesLastHour(now) { let n = 0; for (let i = this.S.trades.length - 1; i >= 0 && now - Date.parse(this.S.trades[i].t1 + "Z") < 3600e3; i--) n++; return n; }
 
   // ---------------------------------------------------------------- vào / ra lệnh (sàn thử, khớp theo sổ lệnh thật)
-  used() { let u = 0; for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
+  used() { let u = this.sw ? this.sw.margin() : 0; for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
   enter(x, side, best, cost, vol, now, mode) {
     const c = this.cfg, S = this.S, eq = this.equity(), lev = x.t === "F" ? c.lev : 1;
     // thoát chủ yếu theo thời gian (bộ học đo kỳ vọng ở đúng h giây); cắt lỗ chặn rủi ro bất thường (4 lần biến động); chốt sớm khi giá chạy gấp đôi kỳ vọng
@@ -1126,7 +1127,7 @@ export class ScalpCore {
     if (x.sh.some((o) => o.done)) x.sh = x.sh.filter((o) => !o.done);
   }
   equity() {
-    const S = this.S; let e = S.cash;
+    const S = this.S; let e = S.cash + (this.sw ? this.sw.upnl() : 0);      // gồm lời/lỗ đang mở của 🧪 thử nghiệm (cùng tài sản sàn thử)
     for (const [k, P] of Object.entries(S.pos || {})) { const x = this.M[k]; const m = x?.bid ? (P.side > 0 ? x.bid : x.ask) : P.e; e += P.side * P.q * (m - P.e); }
     return e;
   }
