@@ -5108,3 +5108,18 @@ function initAccountUI() {
   document.addEventListener("focusout", () => setTimeout(() => { if (!isTxt(document.activeElement)) document.body.classList.remove("kb-on"); }, 150));
   vv?.addEventListener("resize", fit); fit();
 })();
+
+// ================================================================ MENU BẬT RA KHÔNG TRÀN MÀN HÌNH: mọi <details> mở ra một khung nổi (⋯, bộ lọc, chọn…) → đẩy khung vào trong màn hình
+function fitPop(d) {
+  const vw = document.documentElement.clientWidth;
+  for (const m of d.querySelectorAll(":scope > :not(summary)")) {
+    const cs = getComputedStyle(m); if (cs.position !== "absolute" && cs.position !== "fixed") continue;
+    m.style.translate = ""; m.style.maxWidth = "";
+    if (m.offsetWidth > vw - 16) m.style.maxWidth = vw - 16 + "px";
+    const r = m.getBoundingClientRect(); let dx = 0;
+    if (r.left < 8) dx = 8 - r.left; else if (r.right > vw - 8) dx = vw - 8 - r.right;
+    if (dx) m.style.translate = `${Math.round(dx)}px 0`;
+  }
+}
+document.addEventListener("toggle", (e) => { const d = e.target; if (d instanceof HTMLDetailsElement && d.open) requestAnimationFrame(() => fitPop(d)); }, true);
+addEventListener("resize", () => document.querySelectorAll("details[open]").forEach(fitPop));
