@@ -3040,3 +3040,10 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
 .cmp-l[data-f="p"] .cmp-r:not([data-p]),.cmp-l[data-f="d"] .cmp-r:not([data-d]),.cmp-l[data-f="b"] .cmp-r:not([data-b]),.cmp-l[data-f="m"] .cmp-r:not([data-m]){display:none}
 .cmp-none{display:none;margin:6px 2px;font-size:.78rem}
 .cmp-l[data-f="p"]:not(:has(.cmp-r[data-p])) .cmp-none,.cmp-l[data-f="d"]:not(:has(.cmp-r[data-d])) .cmp-none,.cmp-l[data-f="b"]:not(:has(.cmp-r[data-b])) .cmp-none,.cmp-l[data-f="m"]:not(:has(.cmp-r[data-m])) .cmp-none{display:block}
+
+/* hàng tiêu đề khung sự kiện: tên khung bên trái, Gọn / Vừa / Đầy đủ bên phải */
+.ph.ph-fd{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+.ph.ph-fd>h2{flex:1;min-width:0}
+.ph.ph-fd>.meta{order:2}
+.ph.ph-fd>.fd-sz{order:3;margin:0;flex:none}
+@media (max-width:420px){.ph.ph-fd>.fd-sz button{padding:4px 8px}}
