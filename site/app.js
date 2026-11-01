@@ -3321,7 +3321,7 @@ const SCV = { go: ["ĐẠT CHUẨN", "buy"], hold: ["ĐANG GIỮ", "brand"], ord
 const ZN = { W: ["sau quét thanh khoản", "up"], A: ["vùng giá tốt", "up"], M: ["giữa biên", ""], B: ["vùng giá xấu", "down"], X: ["phá biên", ""], "?": ["", ""] };
 const ZONE_TXT = { W: "Vừa quét thanh khoản rồi quay đầu", A: "Vùng giá tốt (mua rẻ / bán đắt)", M: "Giữa biên 60 phút", B: "Vùng giá xấu (mua đắt / bán rẻ)", X: "Đang phá biên 60 phút" };
 const shLab = (k) => { const [m, g, h] = String(k).split("|"); const base = g === "*" ? "Tất cả" : `${g[0] === "F" ? "Futures" : "Spot"} ${g[1]}`; const cx = g.length >= 4 ? " · " + scC(g.slice(2, 4)) : ""; const z = g.length >= 5 && ZN[g[4]]?.[0] ? " · " + ZN[g[4]][0] : ""; return `${m[0] === "M" ? "Maker" : "Taker"} · ${base}${cx}${z} · ${m[1] === "D" ? `thoát linh hoạt quanh ${h}s` : `giữ ${h}s`}`; };
-const hms = (t) => (t ? new Date(t + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");
+const hms = (t) => (t ? new Date(/(Z|[+-]\d\d:?\d\d)$/i.test(t) ? t : t + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "");      // giờ UTC không đuôi (máy chủ) hoặc ISO đã có Z
 const bps = (x, d = 1) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, d)}` : "—");
 const scK = (id) => { const [b, t] = String(id).split(":"); return `<b>${esc(b)}</b> <span class="sc-t ${t === "F" ? "f" : "s"}">${t === "F" ? "Futures" : "Spot"}</span>`; };
 const scC = (c) => `${{ T: "Thuận xu hướng", 0: "Coin đi ngang", N: "Ngược xu hướng" }[c[0]] || c[0]} · ${c[1] === "-" ? "ngược BTC" : "cùng BTC"}`;
