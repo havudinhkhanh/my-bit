@@ -432,7 +432,7 @@ let CUR_TAB = "";
 })();
 function setTab(r) {
   CUR_TAB = r;
-  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.remove("par"); });
+  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", a.dataset.r === "bot" && a.classList.contains("nav-m") && /^bot./.test(r || "")); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
@@ -468,11 +468,34 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msh
 if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
 const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"]];
+// menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
+const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot" };
+const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $$("[aria-expanded=true][data-iosm]").forEach((b) => b.setAttribute("aria-expanded", "false")); }
+function botMenu(anchor, up) {
+  if ($("#iosMenu")) { iosMenuClose(); return; }
+  botWarm();      // tải sẵn mọi trang bot trong lúc anh chọn → bấm là hiện ngay
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(290, vw - 16), cur = botCur();
+  const left = Math.max(8, Math.min(vw - W - 8, up ? r.left + r.width / 2 - W / 2 : r.left)), ox = r.left + r.width / 2 - left;
+  const pos = up ? `bottom:${Math.round(innerHeight - r.top + 8)}px;transform-origin:${ox}px calc(100% + 8px)` : `top:${Math.round(r.bottom + 6)}px;transform-origin:${Math.min(ox, 40)}px -8px`;
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="Các bot" style="left:${left}px;width:${W}px;${pos}">
+    <div class="ios-menu-h">Bot tự động</div>
+    ${BOTSEG.map(([k, href, ic, t]) => `<a role="menuitemradio" aria-checked="${k === cur}" href="${href}"><span class="ios-ck">${k === cur ? "✓" : ""}</span><span class="ios-t">${t}<small>${BOTSUB[k]}</small></span><span class="ios-ic">${ic}</span></a>`).join("")}</div>`;
+  document.body.appendChild(m); anchor.setAttribute("aria-expanded", "true"); anchor.dataset.iosm = "1";
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("a", m).forEach((a) => a.addEventListener("click", (e) => { if (a.getAttribute("href") === location.hash) e.preventDefault(); iosMenuClose(); }));
+  const k = (e) => { if (e.key === "Escape") { iosMenuClose(); removeEventListener("keydown", k); } }; addEventListener("keydown", k);
+  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
+}
+// nút Bot ở thanh dưới (điện thoại) → menu thay vì nhảy thẳng vào Đội bot
+document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bot"]'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
 function botSeg() {
-  if (!/^#\/bot(\/|$)/.test(location.hash) || $("#app .botseg")) return;
-  const k = location.hash.startsWith("#/bot/sup") ? "botsup" : location.hash.startsWith("#/bot/scalp") ? "botscalp" : location.hash.startsWith("#/bot/days") ? "botdays" : "bot";
-  const ph = $("#app > .ph"); if (!ph) return;
-  ph.insertAdjacentHTML("afterend", `<nav class="botseg" aria-label="Các bot">${BOTSEG.map(([r, href, ic, t]) => `<a href="${href}" class="${r === k ? "on" : ""}"><span>${ic}</span>${t}</a>`).join("")}</nav>`);
+  if (!botCur()) return;
+  const h = $("#app > .ph h1"); if (!h || h.classList.contains("ttl-m")) return;
+  h.classList.add("ttl-m"); h.setAttribute("role", "button"); h.tabIndex = 0; h.setAttribute("aria-haspopup", "menu"); h.title = "Chuyển sang bot khác";
+  h.insertAdjacentHTML("beforeend", '<svg class="ttl-cv" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+  h.onclick = () => botMenu(h, false); h.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); botMenu(h, false); } };
 }
 new MutationObserver(() => botSeg()).observe(document.getElementById("app"), { childList: true });
 
@@ -554,7 +577,20 @@ function botWarm(only) {
   only ? go() : (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(go, { timeout: 2500 });
 }
 document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
+let VT_PREV = location.hash;
+function navRoute() {
+  const prev = VT_PREV, next = location.hash; VT_PREV = next;
+  if (!document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return route();
+  const bi = (h) => BOTSEG.findIndex(([k]) => k === botCur(h)), a = bi(prev), b = bi(next), d = document.documentElement;
+  d.dataset.vt = a >= 0 && b >= 0 && a !== b ? (b > a ? "fwd" : "back") : "fade"; window.__vt = true;
+  // chờ trang mới tối đa 0,45 giây (thường dữ liệu đã có sẵn) – lâu hơn thì chuyển luôn, nội dung hiện tiếp khi tải xong
+  try {
+    const t = document.startViewTransition(() => Promise.race([route(), new Promise((r) => setTimeout(r, 450))]));
+    t.finished.finally(() => { delete d.dataset.vt; window.__vt = false; });
+  } catch (e) { window.__vt = false; route(); }
+}
 function pageIn() {
+  if (window.__vt) return;
   const a = document.getElementById("app"); if (!a) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); return; } catch (e) { /* trình duyệt cũ */ } }
@@ -5180,7 +5216,7 @@ function initAccountUI() {
   setInterval(() => liveData(true), 120000);
   WL.load().catch(() => {});
   coins().then(() => papLoad()).then(() => { if (PAP.orders.length || PAP.pos.length || Object.keys(PAP.spot).length) papReplay().then(papEngine); }).catch(() => {});
-  window.addEventListener("hashchange", route);
+  window.addEventListener("hashchange", navRoute);
   pnInit();
   route();
 })();

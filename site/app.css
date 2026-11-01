@@ -2914,3 +2914,35 @@ body.cmdk-on{overflow:hidden}
 
 /* đo độ rộng bảng dài: chỉ dàn 30 dòng đầu trong lúc đo (đo xong gỡ ngay, cùng khung hình) */
 table.tw-meas>tbody>tr:nth-child(n+31){display:none}
+
+/* ---- menu chọn trang bot (dùng chung kiểu iOS với menu Giao diện) */
+.ios-menu-in>a{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:6px;min-height:50px;padding:10px 16px 10px 12px;color:inherit;text-decoration:none;-webkit-tap-highlight-color:transparent}
+.ios-menu-in>a+a{border-top:.5px solid rgba(60,60,67,.29)}
+:root[data-theme="dark"] .ios-menu-in>a+a{border-color:rgba(84,84,88,.6)}
+.ios-menu-in>a:hover,.ios-menu-in>a:active,.ios-menu-in>a:focus-visible{background:rgba(0,0,0,.08);outline:0}
+:root[data-theme="dark"] .ios-menu-in>a:hover,:root[data-theme="dark"] .ios-menu-in>a:active,:root[data-theme="dark"] .ios-menu-in>a:focus-visible{background:rgba(255,255,255,.1)}
+.ios-ic{font-size:19px;line-height:1}
+/* tiêu đề trang bot = nút mở menu (kiểu tiêu đề có menu của iOS 16+) */
+.ph h1.ttl-m{cursor:pointer;border-radius:10px;-webkit-tap-highlight-color:transparent;user-select:none}
+.ph h1.ttl-m .ttl-cv{display:inline-block;vertical-align:middle;margin:-3px 0 0 6px;opacity:.55;transition:transform .2s}
+.ph h1.ttl-m[aria-expanded="true"] .ttl-cv{transform:rotate(180deg)}
+.ph h1.ttl-m:active{opacity:.6}
+/* thanh tab con cũ ở đầu trang bot: thay bằng menu */
+.botseg{display:none!important}
+/* ---- chuyển trang (View Transitions): thanh trên & thanh dưới đứng yên, nội dung trượt / mờ chéo */
+.top{view-transition-name:vt-top}
+.tabs{view-transition-name:vt-tabs}
+::view-transition-group(vt-top),::view-transition-group(vt-tabs){animation:none}
+::view-transition-old(vt-top),::view-transition-old(vt-tabs){display:none}
+::view-transition-new(vt-top),::view-transition-new(vt-tabs){animation:none}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.24s;animation-timing-function:cubic-bezier(.25,.8,.25,1)}
+html[data-vt="fade"]::view-transition-old(root){animation-duration:.14s}
+html[data-vt="fade"]::view-transition-new(root){animation-duration:.2s}
+html[data-vt="fwd"]::view-transition-old(root){animation-name:vtOutL}
+html[data-vt="fwd"]::view-transition-new(root){animation-name:vtInR}
+html[data-vt="back"]::view-transition-old(root){animation-name:vtOutR}
+html[data-vt="back"]::view-transition-new(root){animation-name:vtInL}
+@keyframes vtOutL{to{opacity:0;transform:translateX(-36px)}}
+@keyframes vtInR{from{opacity:0;transform:translateX(36px)}}
+@keyframes vtOutR{to{opacity:0;transform:translateX(36px)}}
+@keyframes vtInL{from{opacity:0;transform:translateX(-36px)}}
