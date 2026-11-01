@@ -39,6 +39,9 @@ export class LiveExec {
     if (this.env() === "live" && !c.lv_live_ok) return false;          // môi trường thật: phải gõ xác nhận trên trang
     return true;
   }
+  // vốn để tính cỡ lệnh & giới hạn lỗ ngày. Thật: min(Vốn tối đa, số dư ví futures) → tiền tăng thì cỡ lệnh tự tăng theo, tiền giảm thì tự nhỏ lại.
+  // Demo: giữ nguyên như cũ (Vốn tối đa).
+  base() { const c = this.cfg(); return this.env() === "live" && this.st.bal > 0 ? Math.min(c.lv_cap, this.st.bal) : c.lv_cap; }
   say(m, kind = "info") { this.S.log = [...this.S.log.slice(-79), { t: iso(Date.now()), k: kind, m }]; this.log(`💵 ${m}`); this.save(); }
   note(key, sev, title, body) { try { this.core.note(`lv:${key}`, sev, title, body); } catch (e) { /* bỏ qua */ } }
   save() { try { const tmp = this.file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(this.S)); fs.renameSync(tmp, this.file); } catch (e) { this.log("lưu live.json lỗi", e.message); } }
@@ -147,7 +150,8 @@ export class LiveExec {
     if (!this.st.ok) return skip(`tài khoản chưa sẵn sàng – ${this.st.why}`);
     if (this.S.halt) return skip(`đang ngừng mở mới – ${this.S.halt}`);
     if (this.S.day.d !== vnDay(now)) this.S.day = { d: vnDay(now), pnl: 0 };
-    if (this.S.day.pnl <= -c.lv_cap * c.lv_daily / 100) return skip(`đã lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay (giới hạn ${c.lv_daily}% của ${c.lv_cap} USDT)`);
+    const B = this.base();
+    if (this.S.day.pnl <= -B * c.lv_daily / 100) return skip(`đã lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay (giới hạn ${c.lv_daily}% của ${+B.toFixed(2)} USDT)`);
     const A = this.active();
     if (A.length >= c.hk_max) return skip(`đã có ${A.length} lần bắt đang mở (tối đa ${c.hk_max})`);
     const sym = this.core.M?.[h.id]?.sym; if (!sym) return skip("không rõ mã hợp đồng");
@@ -157,12 +161,26 @@ export class LiveExec {
     const used = A.reduce((a, e) => a + e.lv.reduce((b, l) => b + (l.st === "cxl" ? 0 : l.px * l.q), 0), 0) / c.lv_lev;
     // mức "vào ngay" (mk, lệnh thị trường) dùng hk_mkS % vốn; các mức chờ chia đều hk_size %
     const lim = h.lv.filter((l) => !l.mk), mkL = h.lv.filter((l) => l.mk);
-    let per = Math.max(c.lv_cap * c.hk_size / 100 / Math.max(1, lim.length), F.minN * 1.1), lv = h.lv;
-    const perMk = Math.max(c.lv_cap * (h.mkS || 0) / 100, F.minN * 1.1);
+    let per = Math.max(B * c.hk_size / 100 / Math.max(1, lim.length), F.minN * 1.1), lv = h.lv, small = false;
+    const perMk = Math.max(B * (h.mkS || 0) / 100, F.minN * 1.1);
     const tot = (L) => L.reduce((a, l) => a + (l.mk ? perMk : per), 0);
-    if (tot(lv) > c.lv_cap * 0.25) { lv = [...mkL, ...lim.slice(0, 1)]; per = Math.max(c.lv_cap * c.hk_size / 100, F.minN * 1.1); }
-    if (tot(lv) > c.lv_cap * 0.25) lv = lim.slice(0, 1);
-    if (tot(lv) > c.lv_cap * 0.25) return skip(`lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 25% vốn tối đa – tăng "Vốn tối đa"`);
+    if (env === "live") {
+      // VỐN NHỎ (chỉ tiền thật): sàn bắt mỗi lệnh ≥ ~5 USDT nên không chia đủ các mức theo 5% được → giữ các mức có lời kỳ vọng cao nhất
+      // (kiểm chứng 664 ngày, đã trừ phí & trượt giá): "mua ngay" khi đủ điều kiện +119 bps/lệnh, thắng 73%; lệnh chờ sâu 1,5× +145 bps; 1,25× +108 bps.
+      // Ưu tiên: mua ngay → mức chờ sâu hơn → mức nông hơn; mỗi mức cỡ tối thiểu của sàn; cả lần bắt ≤ 25% vốn (1 mức duy nhất: ≤ 30%).
+      if (tot(lv) > B * 0.25) {
+        small = true; per = F.minN * 1.1; lv = [];
+        for (const l of [...mkL, ...[...lim].sort((a, b) => b.d - a.d)]) if (tot([...lv, l]) <= B * (lv.length ? 0.25 : 0.3)) lv.push(l);
+        if (!lv.length) return skip(`vốn ${+B.toFixed(2)} USDT: lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 30% vốn – cần số dư futures ≥ ${Math.ceil(F.minN * 1.1 / 0.3)} USDT`);
+      }
+      // tổng giá trị các lần bắt đang mở ≤ 1× vốn (cú sập toàn thị trường làm nhiều coin cùng chạm cắt lỗ)
+      const openN = A.reduce((a, e) => a + e.lv.reduce((b, l) => b + (l.st === "cxl" ? 0 : l.px * l.q), 0), 0);
+      if (openN + tot(lv) > B) return skip(`đang mở ${openN.toFixed(2)} USDT giá trị lệnh – thêm lần này vượt 1× vốn ${+B.toFixed(2)} USDT`);
+    } else {
+      if (tot(lv) > c.lv_cap * 0.25) { lv = [...mkL, ...lim.slice(0, 1)]; per = Math.max(c.lv_cap * c.hk_size / 100, F.minN * 1.1); }
+      if (tot(lv) > c.lv_cap * 0.25) lv = lim.slice(0, 1);
+      if (tot(lv) > c.lv_cap * 0.25) return skip(`lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 25% vốn tối đa – tăng "Vốn tối đa"`);
+    }
     if (used + tot(lv) / c.lv_lev > c.lv_cap) return skip(`đã dùng ${used.toFixed(2)} / ${c.lv_cap} USDT ký quỹ`);
     if (this.st.avail != null && tot(lv) / c.lv_lev > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ`);
     // không đụng coin anh đang có vị thế
@@ -176,7 +194,7 @@ export class LiveExec {
       lv: lv.map((l, i) => { const m0 = l.mk ? this.mark(h.id) || l.px : l.px, px = side > 0 ? fl(m0, F.tick) : ce(m0, F.tick), q = Math.max(fl((l.mk ? perMk : per) / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, mk: l.mk ? 1 : 0, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
     if (!ev.lv.length) return skip("khối lượng sau làm tròn nhỏ hơn mức tối thiểu của sàn");
     this.S.ev[id] = ev; this.save();
-    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => (l.mk ? `${l.q} NGAY (giá thị trường ~${l.px})` : `${l.q} @ ${l.px}`)).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev})`);
+    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => (l.mk ? `${l.q} NGAY (giá thị trường ~${l.px})` : `${l.q} @ ${l.px}`)).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev}${small ? `, vốn nhỏ ${+B.toFixed(2)} USDT: chỉ giữ mức tốt nhất, cỡ tối thiểu của sàn` : ""})`);
     await this.submitDue(ev);
   }
   // lệnh chờ quá xa giá hiện tại bị sàn từ chối (giới hạn PERCENT_PRICE) → chỉ gửi khi giá tới gần
@@ -324,7 +342,7 @@ export class LiveExec {
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `💵 ${ev.env === "live" ? "LỆNH THẬT" : "Demo"}: ${ev.sym} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`);
-    if (this.S.day.pnl <= -c.lv_cap * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
+    if (this.S.day.pnl <= -this.base() * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
   }
   // ---------------------------------------------------------------- kết quả theo ngày, tách riêng Demo / Thật
@@ -352,7 +370,8 @@ export class LiveExec {
   resume(at) { if (at && at !== this.S.resumeSeen) { this.S.resumeSeen = at; this.S.halt = null; this.S.errs = 0; this.say("Anh cho chạy lại tài khoản thật"); } }
   summary() {
     const c = this.cfg();
-    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) }, tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
+    const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
+    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) }, tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.fees || 0).toFixed(4), sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
       hist: this.S.hist.slice(-80), log: this.S.log.slice(-40), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])) };
   }
