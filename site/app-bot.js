@@ -628,7 +628,7 @@ async function viewBot(sel) {
   // tự làm mới trạng thái mỗi phút khi anh đang xem (không đụng vào form đang sửa)
   clearInterval(window.__botT); let dirty = false; $("#bForm").addEventListener("input", () => (dirty = true));
   window.__botT = setInterval(async () => {
-    if (!location.hash.startsWith("#/bot")) { clearInterval(window.__botT); return; }
+    if (!/^#\/bot(\/(?!scalp|sup|days)[^/]*)?$/.test(location.hash)) { clearInterval(window.__botT); return; }     // chỉ trang Đội bot (trước đây cả #/bot/scalp → thỉnh thoảng vẽ trang Đội bot đè lên Bot Phản Xạ)
     if (document.hidden || dirty || userBusy() || document.activeElement?.closest?.("#bForm")) return;
     try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) softRender(() => viewBot(id)); } catch (e) { /* bỏ qua */ }
   }, 60000);

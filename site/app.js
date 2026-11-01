@@ -363,19 +363,31 @@ const UI = { t: 0 };
 ["touchstart", "touchmove", "wheel", "pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => (UI.t = Date.now()), { passive: true, capture: true }));
 const userBusy = (ms = 6000) => Date.now() - UI.t < ms;
 const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) === "0"; } catch (e) { return false; } };
+// Tự làm mới trang (mỗi vài giây) mà KHÔNG làm trang nhảy:
+//  • chỉ vẽ khi vẫn đang ở đúng trang lúc bắt đầu (anh đã chuyển trang trong lúc tải dữ liệu → bỏ, không vẽ đè trang mới)
+//  • gắn lại "vị trí trong quy trình" / "bước tiếp theo" NGAY trong cùng khung hình (trước đây gắn sau 60 ms → nội dung tụt xuống rồi nhảy lại)
+//  • giữ chiều cao trang trong lúc vẽ để trình duyệt không kéo cuộn lên khi trang tạm ngắn lại
+let SR_H = null, SR_DUMMY = null;
 async function softRender(fn) {
   const root = $("#app"); if (!root) return fn();
+  if (SR_H) return;                                  // đang vẽ lại dở → bỏ lượt này
+  const h0 = location.hash, tab0 = CUR_TAB;
   const panels = [...root.querySelectorAll("section.panel, .panel")];
   let ai = -1, aoff = 0;
   for (let i = 0; i < panels.length; i++) { const r = panels[i].getBoundingClientRect(); if (r.bottom > 60) { ai = i; aoff = r.top; break; } }
   const sc = [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].map((el) => [el.scrollTop, el.scrollLeft]);
   const open = [...root.querySelectorAll("details")].map((d) => d.open);
   const y = scrollY;
-  await fn();
+  root.style.minHeight = root.offsetHeight + "px";
+  SR_H = h0;
+  try { await fn(); } finally { SR_H = null; SR_DUMMY = null; }
+  if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
+  if (CUR_TAB && root.querySelector(".ph") && !root.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB);
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
   if (ai >= 0 && P2[ai]) scrollTo(0, Math.max(0, scrollY + P2[ai].getBoundingClientRect().top - aoff)); else scrollTo(0, y);
   [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].forEach((el, i) => { if (sc[i]) { el.scrollTop = sc[i][0]; el.scrollLeft = sc[i][1]; } });
   [...root.querySelectorAll("details")].forEach((d, i) => { if (open[i] != null) d.open = open[i]; });
+  setTimeout(() => { root.style.minHeight = ""; }, 1200);
 }
 // vị trí trong quy trình: "2 · Tìm cơ hội › Radar tín hiệu" trên đầu trang + "Bước tiếp theo" ở cuối trang (theo đúng thứ tự menu)
 function navCtx(r) {
@@ -641,7 +653,7 @@ function hkSvg(K, t, ts, tf, tx) {
 }
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
-const app = () => $("#app");
+const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
 async function route() {
   disposeCharts();
   const h = location.hash.replace(/^#\/?/, "");
