@@ -4761,15 +4761,105 @@ function planTable() {
 }
 
 
-// ---- chuông thông báo
-const NK = { idea: "🎯", liq: "🚨", stop: "🛑", trend: "🔀", crowd: "👥", unlock: "🔓", alert: "🔔", light: "🚦", carry: "💱", system: "ℹ️", admin: "🛠️" };
+// ---- chuông thông báo – GIỐNG HỆT ở MyBit & VN-Stock: máy tính = bảng thả xuống dưới chuông, điện thoại = bảng trượt từ dưới lên
+//      (chiều cao theo phần màn hình ĐANG THẤY – không khuất sau thanh địa chỉ Safari). Lọc theo nhóm / chưa đọc, gom theo ngày,
+//      mỗi dòng: biểu tượng · tiêu đề · nội dung đầy đủ · nhóm · mã · giờ, nút ✓ đánh dấu đã đọc không cần mở.
+const NK = { idea: "🎯", liq: "🚨", stop: "🛑", trend: "🔀", crowd: "👥", unlock: "🔓", alert: "🔔", light: "🚦", carry: "💱", system: "ℹ️", admin: "🛠️", scalp: "⚡", botw: "🤖" };
 const NKIND = { idea: "Cơ hội có lợi thế mới (coin đang giữ/theo dõi + mạnh nhất)", liq: "Vị thế futures gần giá thanh lý / vượt đòn bẩy", stop: "Giá chạm mức cắt lỗ của vị thế", trend: "Xu hướng coin đang giữ đảo chiều", crowd: "Đám đông futures cực đoan ở coin đang giữ",
   unlock: "Mở khoá token lớn ở coin đang giữ", alert: "Cảnh báo giá", light: "Đèn thị trường đổi màu", carry: "Cơ hội chênh lệch funding mới" };
-const agoShort = (iso) => { const m = (Date.now() - new Date(iso)) / 60000; return m < 1 ? "vừa xong" : m < 60 ? `${Math.round(m)} phút` : m < 1440 ? `${Math.round(m / 60)} giờ` : new Date(iso).toLocaleDateString(LOC); };
+const NGRP = [["bot", "🤖 Bot", (k) => /^(scalp|bot)/.test(k)], ["pos", "📌 Vị thế & giá", (k) => ["alert", "stop", "liq", "trend", "crowd", "unlock"].includes(k)], ["opp", "🎯 Cơ hội", (k) => ["idea", "carry"].includes(k)],
+  ["mkt", "🚦 Thị trường", (k) => ["light"].includes(k)], ["sys", "ℹ️ Hệ thống", (k) => ["system", "admin"].includes(k)]];
+const NEMPTY = "Chưa có thông báo nào. MyBit báo khi bot vào / đóng lệnh, giá chạm cảnh báo, vị thế gần thanh lý, có cơ hội mới…";
+const NLEGACY = `<div class="ph"><h1>Thông báo</h1></div><div class="panel"><p>Thông báo trên web (chuông, đẩy về điện thoại, email) có khi trang chạy chế độ nhiều người dùng. Hiện thông báo gửi qua Telegram (nếu đã cài).</p><p><a class="btn" href="#/account">⚙️ Cài đặt chung</a> <a class="btn" href="#/bot/scalp">⚡ Nhật ký Bot Phản Xạ</a></p></div>`;
+const NLOC = typeof LOC !== "undefined" ? LOC : "vi-VN";
+const agoShort = (iso) => { const m = (Date.now() - new Date(iso)) / 60000; return m < 1 ? "vừa xong" : m < 60 ? `${Math.round(m)} phút` : m < 1440 ? `${Math.round(m / 60)} giờ` : new Date(iso).toLocaleDateString(NLOC); };
+const ntfIcon = (k = "") => NK[k] || (/^scalp/.test(k) ? "⚡" : /^bot/.test(k) ? "🤖" : "🔔");
+const ntfGrp = (k = "") => NGRP.find((g) => g[2](k)) || ["other", "Khác", () => true];
+const ntfDay = (iso) => {
+  const d = new Date(iso), t = new Date(), same = (a, b) => a.toDateString() === b.toDateString();
+  return same(d, t) ? "Hôm nay" : same(d, new Date(t - 864e5)) ? "Hôm qua" : d.toLocaleDateString(NLOC, { weekday: "long", day: "2-digit", month: "2-digit" });
+};
 function ntfRow(n) {
   const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt
-  return `<a class="ntf ${n.read_at ? "" : "new"} sev${n.sev || 0}" href="${esc(url || "#/notifications")}" data-nid="${n.id}"><span class="ni">${NK[n.kind] || "•"}</span>
-    <span class="nb"><b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}</span><time>${agoShort(n.created_at)}</time></a>`;
+  const tm = new Date(n.created_at).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" }), g = ntfGrp(n.kind);
+  const em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);      // tiêu đề có sẵn biểu tượng → dùng làm biểu tượng, không lặp 2 lần
+  const ic = em ? em[1] : ntfIcon(n.kind), title = em ? n.title.slice(em[0].length) : n.title;
+  return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
+    <span class="nt-b"><b>${esc(title)}</b>${n.body ? `<span class="nt-t">${esc(n.body)}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
+    ${n.read_at ? "" : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
+}
+// danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm
+function ntfList(items, f) {
+  const L = items.filter((n) => f === "all" || (f === "new" ? !n.read_at : ntfGrp(n.kind)[0] === f));
+  if (!L.length) return `<p class="nt-empty">${items.length ? "Không có thông báo nào trong mục này." : NEMPTY}</p>`;
+  const by = []; for (const n of L) { const d = ntfDay(n.created_at); if (!by.length || by[by.length - 1][0] !== d) by.push([d, []]); by[by.length - 1][1].push(n); }
+  return by.map(([d, X]) => `<h4 class="nt-d">${esc(d)}</h4>${X.map(ntfRow).join("")}`).join("");
+}
+function ntfChips(items, f) {
+  const cnt = {}; for (const n of items) { const g = ntfGrp(n.kind)[0]; cnt[g] = (cnt[g] || 0) + 1; }
+  const un = items.filter((n) => !n.read_at).length;
+  const C = [["all", "Tất cả", items.length], ["new", "Chưa đọc", un], ...NGRP.filter((g) => cnt[g[0]]).map((g) => [g[0], g[1], cnt[g[0]]]), ...(cnt.other ? [["other", "Khác", cnt.other]] : [])];
+  return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
+}
+function bindNtf(root, items, redraw) {
+  $$("[data-nid] .nt-a", root).forEach((a) => a.addEventListener("click", () => {
+    const it = a.closest("[data-nid]"), id = Number(it.dataset.nid);
+    if (it.classList.contains("new")) { api("notifications/read", "POST", { ids: [id] }).then(bellCount).catch(() => {}); const n = items?.find((x) => x.id === id); if (n) n.read_at = "x"; }
+    bellClose();
+  }));
+  $$("[data-rd]", root).forEach((b) => (b.onclick = (e) => {
+    e.preventDefault(); e.stopPropagation(); const id = Number(b.dataset.rd);
+    api("notifications/read", "POST", { ids: [id] }).then(bellCount).catch(() => {});
+    const n = items?.find((x) => x.id === id); if (n) n.read_at = "x";
+    const it = b.closest("[data-nid]"); it.classList.remove("new"); b.remove(); redraw?.(false);
+  }));
+}
+function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
+async function bellOpen() {
+  if ($("#bellBox")) { bellClose(); return; }
+  const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp";
+  const bb = $("#bell")?.getBoundingClientRect();
+  box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
+    <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
+    <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div>
+    <div class="ntp-f"><button type="button" class="btn sm" id="bellAll">✓ Đã đọc hết</button><a class="btn sm" href="#/notifications">Xem tất cả →</a></div></div>`;
+  document.body.appendChild(box); document.body.classList.add("nt-on");
+  let items = [], f = "all";
+  const draw = (chips = true) => {
+    const un = items.filter((n) => !n.read_at).length;
+    box.querySelector(".ntp-n").textContent = un ? `${un} chưa đọc` : "đã đọc hết";
+    if (chips) box.querySelector(".nt-cs").innerHTML = ntfChips(items, f);
+    box.querySelector(".ntp-l").innerHTML = ntfList(items, f);
+    bindNtf(box, items, () => { box.querySelector(".ntp-n").textContent = items.some((n) => !n.read_at) ? `${items.filter((n) => !n.read_at).length} chưa đọc` : "đã đọc hết"; box.querySelector(".nt-cs").innerHTML = ntfChips(items, f); bindChips(); });
+    bindChips();
+  };
+  const bindChips = () => $$("[data-nf]", box).forEach((b) => (b.onclick = () => { f = b.dataset.nf; draw(); }));
+  $$("[data-x]", box).forEach((x) => (x.onclick = bellClose));
+  box.querySelector(".ntp-set").addEventListener("click", bellClose);
+  box.querySelector('a[href="#/notifications"]').addEventListener("click", bellClose);
+  $("#bellAll", box).onclick = async () => { await api("notifications/read", "POST", { all: true }).catch(() => {}); items.forEach((n) => (n.read_at ||= "x")); draw(); bellCount(); };
+  const esc_ = (e) => { if (e.key === "Escape") { bellClose(); document.removeEventListener("keydown", esc_); } }; document.addEventListener("keydown", esc_);
+  addEventListener("hashchange", bellClose, { once: true });
+  const j = await api("notifications?limit=60").catch(() => ({ items: [] }));
+  items = j.items || []; if (box.isConnected) draw();
+}
+async function viewNotifications() {
+  if (!multiUser()) { app().innerHTML = NLEGACY; return; }
+  let items = [], more = true, f = lsGet("ntf_f", "all");
+  const draw = () => {
+    const un = items.filter((n) => !n.read_at).length;
+    app().innerHTML = `<div class="ph"><h1>🔔 Thông báo</h1><span class="meta">${un ? `${un} chưa đọc` : "đã đọc hết"} · ${items.length}${more ? "+" : ""} thông báo gần nhất</span></div>
+      <div class="nt-bar"><button class="btn" id="nAll">✓ Đánh dấu tất cả đã đọc</button><button class="btn" id="nDel">🗑 Xoá thông báo đã đọc</button><a class="btn" href="#/account">⚙️ Cài đặt nhận thông báo</a></div>
+      <section class="panel nt-page"><div class="nt-cs">${ntfChips(items, f)}</div><div class="ntp-l">${ntfList(items, f)}</div>
+      ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}</section>`;
+    bindNtf(app(), items, draw);
+    $$("[data-nf]", app()).forEach((b) => (b.onclick = () => { f = b.dataset.nf; lsSet("ntf_f", f); draw(); }));
+    $("#nAll").onclick = async () => { await api("notifications/read", "POST", { all: true }); items.forEach((n) => (n.read_at ||= "x")); draw(); bellCount(); };
+    $("#nDel").onclick = async () => { if (!confirm("Xoá mọi thông báo đã đọc?")) return; await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
+    if ($("#nMore")) $("#nMore").onclick = load_;
+  };
+  const load_ = async () => { const j = await api(`notifications?limit=50${items.length ? "&before=" + items[items.length - 1].id : ""}`); items = items.concat(j.items || []); more = (j.items || []).length === 50; draw(); };
+  await load_();
 }
 let __bellN = 0;
 let __bellTop = null;
@@ -4785,39 +4875,6 @@ async function bellCount() {
       __bellTop = Math.max(__bellTop || 0, top);
     }
   } catch (e) { /* bỏ qua */ }
-}
-async function bellOpen() {
-  let box = $("#bellBox");
-  if (box) { box.remove(); return; }
-  box = document.createElement("div"); box.id = "bellBox"; box.className = "menu bellbox";
-  box.style.top = Math.round(($("#bell")?.getBoundingClientRect().bottom || 40) + 6) + "px";
-  box.innerHTML = `<div class="ph"><h3>Thông báo</h3><button class="chip" id="bellAll">Đánh dấu đã đọc</button></div><div class="ntfs"><p class="muted">Đang tải…</p></div><a class="more" href="#/notifications">Xem tất cả</a>`;
-  document.body.appendChild(box);
-  const j = await api("notifications?limit=15").catch(() => ({ items: [] }));
-  box.querySelector(".ntfs").innerHTML = (j.items || []).map(ntfRow).join("") || `<p class="muted">Chưa có thông báo nào. Hệ thống báo khi mã của anh/chị chạm mức thoát, cảnh báo giá, có tín hiệu mới…</p>`;
-  bindNtf(box);
-  $("#bellAll").onclick = async () => { await api("notifications/read", "POST", { all: true }); box.remove(); bellCount(); };
-  setTimeout(() => document.addEventListener("click", function off(e) { if (!box.contains(e.target) && e.target.closest("#bell") == null) { box.remove(); document.removeEventListener("click", off); } }), 0);
-}
-function bindNtf(root) {
-  $$("[data-nid]", root).forEach((a) => a.addEventListener("click", () => { if (a.classList.contains("new")) api("notifications/read", "POST", { ids: [Number(a.dataset.nid)] }).then(bellCount).catch(() => {}); $("#bellBox")?.remove(); }));
-}
-async function viewNotifications() {
-  if (!multiUser()) { app().innerHTML = `<div class="ph"><h1>Thông báo</h1></div><div class="panel"><p>Thông báo trên web (chuông, đẩy về điện thoại, email) có khi trang chạy chế độ nhiều người dùng. Hiện thông báo gửi qua Telegram (nếu đã cài).</p><p><a class="btn" href="#/account">⚙️ Cài đặt chung</a> <a class="btn" href="#/bot/scalp">⚡ Nhật ký Bot Phản Xạ</a></p></div>`; return; }
-  let items = [], more = true;
-  const draw = () => {
-    const by = {};
-    items.forEach((n) => { const d = new Date(n.created_at).toLocaleDateString(LOC, { weekday: "long", day: "2-digit", month: "2-digit" }); (by[d] = by[d] || []).push(n); });
-    app().innerHTML = `<div class="ph"><h1>Thông báo</h1><span class="meta"><button class="btn" id="nAll">Đánh dấu tất cả đã đọc</button> <button class="btn" id="nDel">Xoá thông báo đã đọc</button> <a class="btn" href="#/account">Cài đặt nhận thông báo</a></span></div>
-      ${Object.entries(by).map(([d, L]) => `<section class="panel sec"><div class="ph"><h3>${esc(d)}</h3></div><div class="ntfs">${L.map(ntfRow).join("")}</div></section>`).join("") || '<div class="empty">Chưa có thông báo nào.</div>'}
-      ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}`;
-    bindNtf(app());
-    $("#nAll").onclick = async () => { await api("notifications/read", "POST", { all: true }); items.forEach((n) => (n.read_at = n.read_at || "x")); draw(); bellCount(); };
-    $("#nDel").onclick = async () => { await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
-    if ($("#nMore")) $("#nMore").onclick = load_;
-  };
-  const load_ = async () => { const j = await api(`notifications?limit=50${items.length ? "&before=" + items[items.length - 1].id : ""}`); items = items.concat(j.items || []); more = (j.items || []).length === 50; draw(); };
-  await load_();
 }
 
 // ---- thông báo đẩy
