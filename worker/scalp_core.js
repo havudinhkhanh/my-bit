@@ -16,6 +16,8 @@
 // File này là LÕI dùng chung: Cloudflare Durable Object (worker/scalp.js) và chương trình chạy trên VPS (scalper/runner.mjs)
 // đều tạo ScalpCore với bộ I/O riêng: io = { kv, readCfg(uid), writeState(uid, out), openWS(url), where: "cf" | "vps", ord }.
 
+import { SwingLab } from "./swing.js";
+
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
@@ -226,6 +228,7 @@ export class ScalpCore {
     this.LM = {};         // bộ học riêng từng coin (bps): {id: NB × HS × [n, mean]}
     this.notes = [];      // thông báo chờ gửi (chuông + đẩy điện thoại)
     this.lastSec = 0; this.diag = { err: [], conn: 0 }; this.bn = null; this.live = {}; this.cnt = {};
+    this.sw = new SwingLab(this);      // 🧪 thử nghiệm giữ nhiều ngày (short coin mới niêm yết / vừa bơm) – sàn thử, sổ riêng
   }
   err(m) { this.diag.err = [...this.diag.err.slice(-11), `${new Date().toISOString().slice(11, 19)} ${String(m).slice(0, 140)}`]; }
   async boot(uid) {
@@ -450,6 +453,7 @@ export class ScalpCore {
     }
     for (const f of Object.values(this.F)) { f.rate = (f.n - f.n0) / 10; f.n0 = f.n; if (SRC[f.src]?.ping) for (const w of f.wss || []) { try { w.send(SRC[f.src].ping); } catch (e) { /* bỏ qua */ } } }
     if (this.where === "cf") await this.probeBinance().catch(() => {});
+    if (this.S) this.sw.tick(Date.now()).catch((e) => this.err("thử nghiệm " + e.message));     // không chờ: gọi REST chậm không làm trễ vòng chính
     await this.snapshot();
     return true;
   }
@@ -1142,7 +1146,7 @@ export class ScalpCore {
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
       radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
-      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg };
+      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg, sw: this.sw.out() };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;
