@@ -5261,7 +5261,7 @@ function initAccountUI() {
   coins().then(() => papLoad()).then(() => { if (PAP.orders.length || PAP.pos.length || Object.keys(PAP.spot).length) papReplay().then(papEngine); }).catch(() => {});
   window.addEventListener("hashchange", navRoute);
   pnInit();
-  route();
+  Promise.resolve(route()).finally(() => window.__splashOut?.());      // trang đầu vẽ xong → tắt màn hình mở app
 })();
 
 // ================================================================ BÀN PHÍM ĐIỆN THOẠI: ô đang gõ không bị thanh tab dưới / nút nổi che, tự cuộn ô vào giữa vùng còn thấy
