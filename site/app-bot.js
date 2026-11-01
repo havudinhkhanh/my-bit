@@ -83,7 +83,8 @@ async function viewScalp() {
   const lvRows = (LV?.ev || []).map((e) => `<tr><td class="l"><b>${esc(e.sym)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span></td><td>${e.lv.map((l) => `${{ open: "⏳", wait: "🕒", filled: "✅", cxl: "✖" }[l.st] || ""} ${l.q} @ ${px(l.px)}`).join("<br>")}</td><td>${e.pos.q ? `${nf(e.pos.q, 4)} @ ${px(e.pos.ap)}` : "—"}</td><td class="down">${e.stop ? px(e.stop) : "—"}${e.stopKind === "soft" ? " <small>(dự phòng)</small>" : ""}</td><td><small>${hms(e.t0)}</small></td></tr>`).join("");
   const LVE0 = LV?.env || C.lv_env || "demo", LVH0 = (LV?.hist || []).filter((h) => (h.env || "demo") === LVE0);
   const LVT0 = LV?.totE?.[LVE0] || LVH0.reduce((T, h) => { T.n++; T.pnl += h.pnl || 0; T.fees += h.fee || 0; if (h.pnl > 0) T.win++; return T; }, { n: 0, pnl: 0, win: 0, fees: 0 });
-  const LVD0 = LV?.dayE ? (LV.dayE[LVE0]?.d === vnToday() ? LV.dayE[LVE0].pnl : 0) : LVH0.filter((h) => vnDayOf(h.t2) === vnToday()).reduce((a, h) => a + (h.pnl || 0), 0);
+  // hôm nay = cộng lời/lỗ các lệnh ĐÃ ĐÓNG hôm nay (giờ VN) của đúng tài khoản này – lấy thẳng từ danh sách lệnh nên luôn khớp bảng bên dưới
+  const LVD0 = LVH0.filter((h) => vnDayOf(h.t2) === vnToday()).reduce((a, h) => a + (h.pnl || 0), 0);
   const lvHist = LVH0.slice().reverse().map((h) => `<tr><td class="l"><small>${hms(h.t2)}</small></td><td class="l"><b>${esc(h.sym)}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "L" : "S"}</span></td><td>${px(h.e)} → ${px(h.x)}</td><td class="${cls(h.pnl)}"><b>${h.pnl >= 0 ? "+" : ""}${usd2(h.pnl)}</b></td><td>${h.why === "TIME" ? "hết giờ" : h.why === "SL" ? "cắt lỗ" : h.why === "TRAIL" ? "cắt lỗ đuổi" : esc(h.why)}</td></tr>`).join("");
   const lvPanel = !C.lv_on && !LV?.ev?.length && !LV?.hist?.length ? "" : panel(`💵 Tài khoản Binance ${LV?.env === "live" ? "THẬT" : "Demo"} – Bắt râu sập`, !LV ? `<p class="muted">Máy chủ riêng chưa gửi trạng thái tài khoản – chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code> để cập nhật, rồi <code>sudo bash /opt/my-bit/scalper/install.sh --binance</code> để cài khoá.</p>` : `
     <p style="margin-top:0">${LV.ready && lvSt.ok && !LV.halt ? `<span class="pill buy">Sẵn sàng</span>` : `<span class="pill warn">Chưa chạy</span>`} ${LV.env === "live" ? `<span class="pill sell">TIỀN THẬT</span>` : `<span class="pill">Demo</span>`}
@@ -234,8 +235,13 @@ async function viewScalp() {
   const LVE = LV?.env || C.lv_env || "demo", LVN = LVE === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", u$ = (v) => (v < 0 ? "−$" : "$") + nf(Math.abs(v), 2), sg$ = (v) => (v >= 0 ? "+" : "") + usd2(v);
   const LH = (LV?.hist || []).filter((h) => (h.env || LVE) === LVE), LHs = LH.slice().sort((a, b) => (a.t2 < b.t2 ? -1 : 1)), EQL = LV?.eqH?.[LVE] || [], WL = WAL[LVE];
   const lvEq = WL?.fut?.margin ?? lvSt.bal, tdLV = vnToday(), nTd = LH.filter((h) => vnDayOf(h.t2) === tdLV).length;
-  const LDD = { ...(window.__scDays?.data?.[LVE]?.days || {}) }; if (LV?.day?.d) LDD[LV.day.d] = { ...LDD[LV.day.d], usd: LV.day.pnl };
-  const lk7 = Object.keys(LDD).sort().slice(-7), l7 = lk7.map((k) => LDD[k].usd || 0), ls7 = l7.reduce((a, v) => a + v, 0), LT = LV?.totE?.[LVE] || LH.reduce((T, h) => { T.n++; T.pnl += h.pnl || 0; T.fees += h.fee || 0; if (h.pnl > 0) T.win++; return T; }, { n: 0, pnl: 0, win: 0, fees: 0 });      // chỉ tài khoản đang xem (thật / Demo)
+  // 7 ngày = 7 NGÀY LỊCH gần nhất (giờ VN, tính cả hôm nay), mỗi ngày = tổng lời/lỗ lệnh đã đóng trong ngày đó.
+  // Lấy từ danh sách lệnh (đủ & khớp bảng); ngày cũ hơn lệnh xa nhất còn trong danh sách thì dùng số máy chủ lưu theo ngày.
+  const LDD = {}, dSrv = window.__scDays?.data?.[LVE]?.days || {}, hMin = LH.length ? LH.map((h) => vnDayOf(h.t2)).sort()[0] : "9999";
+  for (const h of LH) { const d = vnDayOf(h.t2); LDD[d] = { usd: (LDD[d]?.usd || 0) + (h.pnl || 0) }; }
+  for (const [d, v] of Object.entries(dSrv)) if (d < hMin && !(d in LDD) && isNum(v?.usd) && (v.n || v.usd)) LDD[d] = { usd: v.usd };
+  const lvD7 = new Date(Date.parse(vnToday() + "T00:00:00Z") - 6 * 864e5).toISOString().slice(0, 10);
+  const lk7 = Object.keys(LDD).filter((k) => k >= lvD7).sort(), l7 = lk7.map((k) => LDD[k].usd || 0), ls7 = l7.reduce((a, v) => a + v, 0), LT = LV?.totE?.[LVE] || LH.reduce((T, h) => { T.n++; T.pnl += h.pnl || 0; T.fees += h.fee || 0; if (h.pnl > 0) T.win++; return T; }, { n: 0, pnl: 0, win: 0, fees: 0 });      // chỉ tài khoản đang xem (thật / Demo)
   // lời/lỗ theo % TỔNG TÀI SẢN Binance (mọi ví) lúc đầu kỳ = tổng hiện tại − lời/lỗ của kỳ
   const TOTL = WL?.total, pTot = (v) => (isNum(v) && TOTL > 0 && TOTL - v > 0 ? v / (TOTL - v) * 100 : null);
   const pTag = (v) => { const q = pTot(v); return q == null ? "" : ` <em class="sc-ptot ${cls(q)}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>`; };
