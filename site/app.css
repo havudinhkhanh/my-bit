@@ -2998,3 +2998,16 @@ html[data-fdsz="l"] .sc-feed{max-height:none;overflow:visible}
 @media (max-width:700px){.stats>.st:nth-child(odd):last-child{grid-column:1/-1}}
 @media (max-width:700px){.sc-menu{left:0;right:auto}}
 .stgs .stats{grid-auto-rows:auto!important}      /* mỗi hàng cao theo thẻ cao nhất của hàng đó – không kéo mọi hàng cao bằng hàng cao nhất (để trống nhiều) */
+
+/* nút ☰ nổi: ẩn trong lúc cuộn (không che số), hiện lại khi dừng */
+.pnfab{transition:opacity .2s ease,transform .2s ease}
+body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-events:none}
+/* bảng dạng thẻ trên điện thoại: dòng ghi chú (1 ô trải hết bảng) dính liền thẻ phía trên */
+@media (max-width:760px){
+  table.rs td[colspan]{grid-column:1/-1}
+  table.rs tr:has(+ tr > td[colspan]:only-child){margin-bottom:0;border-radius:10px 10px 0 0}
+  table.rs tr:has(> td[colspan]:only-child){margin-top:-1px;border-radius:0 0 10px 10px;padding-top:2px}
+  table.rs tr:has(> td[colspan]:only-child) td::before{display:none}
+  .tw:has(> table.rs){overflow-x:hidden}
+}
+@media (max-width:760px){table.rs td[data-nil]{display:none}}      /* thẻ trên điện thoại: bỏ ô trống "—" cho gọn */

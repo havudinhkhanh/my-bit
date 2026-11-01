@@ -229,7 +229,7 @@
           if (isFinite(yy[4]) && isFinite(yy[3])) el2("rect", { x: x1, y: Math.min(yy[3], yy[4]), width: Math.max(1, P.w - x1), height: Math.abs(yy[4] - yy[3]), fill: col, "fill-opacity": 0.1 }, g);
           FIB.forEach((l, i) => { const y = yy[i]; if (!isFinite(y)) return; const key = l === 0.5 || l === 0.618 || l === 0 || l === 1;
             el2("line", { x1, y1: y, x2: Math.max(x2, P.w), y2: y, stroke: col, "stroke-width": key ? 1.3 : 0.9, "stroke-opacity": key ? 0.95 : 0.6 }, g);
-            lbl(g, x1 + 4, y - 7, `${l} · ${fmt(p2 + (p1 - p2) * l)}`, col, "start", false); });
+            lbl(g, x1 + 4, y - 7, `${String(l).replace(".", ",")} · ${fmt(p2 + (p1 - p2) * l)}`, col, "start", false); });
         } else if (d.k === "measure") {
           const up = d.p[1].p >= d.p[0].p, cc = up ? "#2FBF71" : "#F0525F";
           el2("rect", { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y), fill: cc, "fill-opacity": 0.13, stroke: cc, "stroke-width": 1 }, g);

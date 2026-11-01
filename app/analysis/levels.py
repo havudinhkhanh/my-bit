@@ -197,7 +197,7 @@ def analyze(df: pd.DataFrame, tf_days: float = 1.0) -> dict:
         out["fib"] = f
         rng = sw["hi"] - sw["lo"]
         out["retr_now"] = round((sw["hi"] - price) / rng, 3) if sw["dir"] == 1 and rng > 0 else (round((price - sw["lo"]) / rng, 3) if rng > 0 else None)
-        levels += [(v, f"Fib {k}") for k, v in f["ret"].items()] + [(v, f"Fib mở rộng {k}") for k, v in f["ext"].items()]
+        levels += [(v, f"Fib {str(k).replace('.', ',')}") for k, v in f["ret"].items()] + [(v, f"Fib mở rộng {str(k).replace('.', ',')}") for k, v in f["ext"].items()]      # tỉ lệ kiểu Việt: 0,618
     out["pivots"] = [{"t": d["date"].iloc[i].strftime("%Y-%m-%d"), "p": sig(p), "k": k} for i, p, k, _ in pv[-8:]]
     levels += [(p, "Đỉnh cũ" if k == 1 else "Đáy cũ") for _, p, k, _ in pv[-8:]]
     g = sq9(price)

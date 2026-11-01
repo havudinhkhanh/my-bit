@@ -301,6 +301,7 @@ let twRq = 0;
 // vẫn tràn sau khi gọn & ẩn cột phụ, và bảng nằm trong lưới 2 cột (vd. 2 bảng funding cạnh nhau khi mở bảng phụ) → lưới đó xếp 1 cột cho bảng đủ chỗ
 const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
   twRq = 0;
+  rsTables($("#app"));      // bảng .rs: điện thoại hiện dạng thẻ (mỗi dòng 1 thẻ, nhãn cột ở trên giá trị) – không phải vuốt ngang
   $$("#app .tw-stack").forEach((g) => g.classList.remove("tw-stack"));
   const tws = $$("#app .tw"); const big = tws.map((tw) => tw.querySelector(":scope > table")).filter((t) => t && t.tBodies[0]?.rows.length > 40);
   big.forEach((t) => t.classList.add("tw-meas")); tws.forEach(twFit); big.forEach((t) => t.classList.remove("tw-meas"));
@@ -312,6 +313,9 @@ const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
   big.forEach((t) => t.classList.add("tw-meas")); grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit)); big.forEach((t) => t.classList.remove("tw-meas"));
 }); };
 new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches?.(".tw, table") || n.querySelector?.(".tw"))))) twAll(); }).observe(document.documentElement, { childList: true, subtree: true });
+// dòng mới chèn vào bảng .rs (vd. Radar quét xong) → gắn nhãn cột cho dòng đó
+let rsRq = 0;
+new MutationObserver((ms) => { if (!rsRq && ms.some((m) => m.target.closest?.("table.rs") && [...m.addedNodes].some((n) => n.nodeType === 1))) rsRq = requestAnimationFrame(() => { rsRq = 0; rsTables($("#app")); }); }).observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
 { let tr = 0; addEventListener("resize", () => { clearTimeout(tr); tr = setTimeout(twAll, 150); }); }
 // biểu đồ mới chèn vào trang → gắn ngay trong khung hình kế tiếp (gộp nhiều lần chèn liền nhau thành 1 lần quét)
 let cbRq = 0;
@@ -681,7 +685,7 @@ function sclApply() {
 function rsTables(root) {
   root?.querySelectorAll("table.rs").forEach((t) => {
     const H = [...t.querySelectorAll("thead th")].map((th) => th.textContent.trim());
-    t.querySelectorAll("tbody tr, tfoot tr").forEach((tr) => [...tr.children].forEach((td, i) => { if (H[i] && !td.dataset.l) td.dataset.l = H[i]; }));
+    t.querySelectorAll("tbody tr, tfoot tr").forEach((tr) => [...tr.children].forEach((td, i) => { if (H[i] && !td.dataset.l) td.dataset.l = H[i]; td.toggleAttribute("data-nil", i > 0 && /^[—–-]?$/.test(td.textContent.trim()) && !td.querySelector("button, input, a")); }));
   });
 }
 // 🪝 nến 1 phút quanh một lệnh Bắt râu sập (lấy thẳng từ Binance trong trình duyệt): cú sốc, giá sau sốc, 2 mức chờ, điểm vào / ra
@@ -933,6 +937,7 @@ function pnInit() {
   $("#pnHide").onclick = () => pnOpen(false);
   $$("#pnav [data-t]").forEach((b) => b.onclick = () => pnTab(b.dataset.t));
   if (!$("#pnCoins")) document.body.insertAdjacentHTML("beforeend", `<datalist id="pnCoins"></datalist>`);
+  { let ft = 0; addEventListener("scroll", () => { document.body.classList.add("fab-hide"); clearTimeout(ft); ft = setTimeout(() => document.body.classList.remove("fab-hide"), 650); }, { passive: true }); }
   $("#pnFab").onclick = () => pnOpen(innerWidth < 1180 || document.body.classList.contains("pn-mini") ? !document.body.classList.contains("pn-sheet") : true);
   $("#pnShade").onclick = () => pnOpen(false);
   let raf = 0; addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; pnSpy(); }); }, { passive: true });
@@ -1724,7 +1729,7 @@ BIND.plan = (D) => {
 // ---- mức giá & thời gian (Fibonacci, Gann, hồ sơ khối lượng, dòng tiền)
 const TFV = { d: "Ngày", h4: "4 giờ" };
 function zoneRows(L, cur) {
-  return (L || []).map((z) => `<tr><td class="l">${px(z.p)}${z.lo !== z.hi ? `<br><small class="faint">${px(z.lo)} – ${px(z.hi)}</small>` : ""}</td><td class="${z.dist > 0 ? "down" : "up"}">${pct(z.dist, 1)}</td><td>${"●".repeat(Math.min(5, z.n))}</td><td class="l"><small>${esc(z.src.join(" · "))}</small></td></tr>`).join("");
+  return (L || []).map((z) => `<tr><td class="l">${px(z.p)}${z.lo !== z.hi ? `<br><small class="faint">${px(z.lo)} – ${px(z.hi)}</small>` : ""}</td><td class="${z.dist > 0 ? "down" : "up"}">${pct(z.dist, 1)}</td><td>${"●".repeat(Math.min(5, z.n))}</td><td class="l"><small>${esc(viDec(z.src.join(" · ")))}</small></td></tr>`).join("");
 }
 function lvBlock(L, tf) {
   if (!L || !L.price) return `<p class="muted">Chưa đủ dữ liệu khung ${TFV[tf]}.</p>`;
@@ -1771,7 +1776,7 @@ function ideaCards(list) {
     ${kpis([["Vào", px(x.e)], ["Cắt lỗ", px(x.s), "down", `${nf(x.risk_pct, 2)}%`], ["Mục tiêu 1", `${px(x.t1)} <small>(${pct(x.t1_pct, 1)} · ${nf(x.r1, 1)}R)</small>`, "up"], ["Mục tiêu 2", `${px(x.t2)} <small>(${pct(x.t2_pct, 1)} · ${nf(x.r2, 1)}R)</small>`, "up"],
       ["Xác suất MT1", isNum(x.win1) ? nf(x.win1, 0) + "%" : "—", "", `MT2: ${nf(x.win2, 0)}% · trên ${nf(x.n, 0)} lần lịch sử`], ["Thời gian tới MT1", isNum(x.d1) ? `${durTxt(x.d1, x.bd)}` : "—", "", isNum(x.d1_lo) ? `50% số lần chạm MT1 trong ${durTxt(x.d1_lo, x.bd)} – ${durTxt(x.d1_hi, x.bd)}; MT2 ~${durTxt(x.d2, x.bd)}` : ""],
       ["Dự kiến", etaTxt(x.eta1), "", "Theo thời gian trung vị lịch sử"], ["Lãi TB/lệnh", isNum(x.avgR) ? `${nf(x.avgR, 2)}R` : "—", cls(x.avgR), `R = khoảng cắt lỗ. 2 năm gần nhất: ${isNum(x.avgR_2y) ? nf(x.avgR_2y, 2) + "R" : "—"}`]])}
-    ${(x.notes || []).length ? `<small class="muted">${x.notes.map(esc).join(" · ")}</small>` : ""}
+    ${(x.notes || []).length ? `<small class="muted">${x.notes.map((x) => esc(viDec(x))).join(" · ")}</small>` : ""}
     <small class="faint">Độ tin cậy: ${esc(x.conf)} · tín hiệu nến ${etaTxt(x.at)} · cách đánh: chốt 50% ở MT1, dời cắt lỗ về giá vào, phần còn lại chờ MT2</small>
     <a class="btn" href="#/plan/${enc(x.k)}">Lên lệnh: khối lượng & đòn bẩy →</a></div>`).join("")}</div>`;
 }
@@ -1899,7 +1904,7 @@ function makeTicket(D, IJ, opt = {}) {
     const ema20 = tf === "d" ? T.ema20 : I.ema20_4h;
     if (near.length && near[0].n >= 2) {
       const edge = sd === 1 ? near[0].hi : near[0].lo;
-      zsrc = near[0].src.slice(0, 3).join(", ");
+      zsrc = viDec(near[0].src.slice(0, 3).join(", "));
       if (sd * (price - edge) > 0.3 * atr) { e = edge; order = "limit"; }      // giá còn cách vùng đỡ → chờ hồi về vùng
     }
     else if (ema20 && sd * (price - ema20) > 1.2 * atr) { e = ema20; order = "limit"; zsrc = "EMA20"; }
@@ -1969,7 +1974,7 @@ function ticketCard(t, opts = {}) {
     </div>
     <details class="tk-gov"><summary>Vì sao hệ thống cho đòn bẩy tối đa x${t.Lmax} và rủi ro ${nf(t.govRisk, 2)}%/lệnh?</summary><ul>${(t.gov?.why || []).map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>
     <div class="tk-plan"><b>Cách đánh:</b> ${t.order === "market" ? "Vào" : "Đặt lệnh chờ"} ${qty(t.q)} ${esc(t.k)} ở ${px(t.e)}, đặt sẵn cắt lỗ ${px(t.s)} trên sàn. Chạm ${px(t.t1)} → chốt 50% và dời cắt lỗ về ${px(t.e)} (hoà vốn). Phần còn lại chốt ở ${px(t.t2)}${t.tf === "d" ? " hoặc khi đóng cửa ngày dưới EMA20" : " hoặc khi nến 4h đóng ngược EMA20"}. ${t.order === "limit" ? `Huỷ lệnh chờ nếu giá chạy tới ${px(t.t1)} trước khi khớp.` : ""}</div>
-    <small class="muted">Cơ sở: ${esc(t.src)}${t.notes.length ? " · " + t.notes.map(esc).join(" · ") : ""}</small>
+    <small class="muted">Cơ sở: ${esc(t.src)}${t.notes.length ? " · " + t.notes.map((x) => esc(viDec(x))).join(" · ") : ""}</small>
     ${t.warn.length ? `<ul class="tk-w">${t.warn.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
     ${opts.save !== false ? `<div class="tk-a">${(() => { const J = esc(JSON.stringify({ k: t.k, side: t.side, tf: t.tf, e: t.e, s: t.s, t1: t.t1, t2: t.t2, lev: t.lev, mode: t.mode, q: t.q, eta1: t.eta1, tstop: t.tstop, order: t.order }));
       return `<button class="btn primary" data-tsave='${J}'>Lưu kế hoạch & nhắc tôi</button><button class="btn" data-tpaper='${J}'>🧪 Đặt vào sàn giả lập</button><button class="btn" data-tbx='${J}'>🔗 Đặt lên Binance</button><small class="faint">giả lập: lệnh vào + cắt lỗ + 2 mức chốt lời tự động · Binance: gửi đúng bộ lệnh đó lên tài khoản đã kết nối (Demo / thật)</small><div class="tk-log"></div>`; })()}</div>` : ""}
@@ -3124,7 +3129,7 @@ async function viewRadar() {
       <div class="field"><label>Trạng thái</label><select id="rdF"><option value="">Tất cả</option><option value="ready" ${O.st === "ready" ? "selected" : ""}>Chuẩn bị trở lên</option><option value="go" ${O.st === "go" ? "selected" : ""}>Chỉ VÀO ĐƯỢC</option></select></div>
       <label class="chk"><input type="checkbox" id="rdNt" ${lsGet("rtNtf", false) ? "checked" : ""}> Báo trên trình duyệt khi có coin chuyển trạng thái</label>
       <button class="btn" id="rdGo">Quét lại ngay</button></div>
-    <div class="tw"><table class="rdt"><thead><tr><th class="l">Coin</th><th>Giá</th><th>24h</th><th class="l">Trạng thái</th><th>Điểm</th><th>Vào</th><th>Cắt lỗ</th><th>MT1</th><th>R:R</th><th class="l">Lý do chính</th></tr></thead><tbody id="rdB"><tr><td colspan="10" class="muted">Đang quét…</td></tr></tbody></table></div>
+    <div class="tw"><table class="rdt rs"><thead><tr><th class="l">Coin</th><th>Giá</th><th>24h</th><th class="l">Trạng thái</th><th>Điểm</th><th>Vào</th><th>Cắt lỗ</th><th>MT1</th><th>R:R</th><th class="l">Lý do chính</th></tr></thead><tbody id="rdB"><tr><td colspan="10" class="muted">Đang quét…</td></tr></tbody></table></div>
     <p class="faint disclaimer">Radar chấm điểm theo quy tắc cố định, không phải lời khuyên đầu tư. Điểm cao = nhiều yếu tố kỹ thuật cùng chiều, không đảm bảo giá chạy. Bấm vào coin để xem biểu đồ SMC và tạo phiếu lệnh (đòn bẩy do hệ thống kiểm soát).</p>`;
   await WL.load().catch(() => {});
   const mine = new Set([...WL.set, ...(PF?.holdings || []).map((h) => h.symbol), ...(PF?.futures || []).map((f) => f.symbol)]);
@@ -3390,7 +3395,7 @@ function engPanel(ss, C, B) {
       ["Kỳ vọng 12 tháng", isNum(E.exp) ? P(E.exp) : "chưa đo được", cls(E.exp), isNum(E.exp) ? `thận trọng ${P(E.con)} – theo lợi thế đo được và cỡ lệnh hiện tại` : "cần ít nhất 1 bot có lợi thế đã chứng minh"]])}
     ${lineSvg(ser, { h: 210, dec: 0, zero: true, fmt: (v) => nf(v, 0) + "%" })}
     <ul class="mg-why">${E.why.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-    <div class="tw"><table><thead><tr><th class="l">Bot</th><th class="l">Chế độ</th><th>Lệnh</th><th title="Lãi TB mỗi lệnh đo được / cận dưới 80% (thận trọng – dùng để đặt cược)">Lợi thế đo / thận trọng</th><th>Lệnh/năm</th>
+    <div class="tw"><table class="rs"><thead><tr><th class="l">Bot</th><th class="l">Chế độ</th><th>Lệnh</th><th title="Lãi TB mỗi lệnh đo được / cận dưới 80% (thận trọng – dùng để đặt cược)">Lợi thế đo / thận trọng</th><th>Lệnh/năm</th>
       <th title="Rủi ro mỗi lệnh vừa đủ để đạt mục tiêu vào cuối năm">Cần cho mục tiêu</th><th title="Rủi ro lớn nhất để xác suất sụt quá giới hạn ≤ 10%">Trần an toàn sụt</th><th title="Vượt mức này tăng rủi ro lại làm giảm tăng trưởng dài hạn">${nf(c.kelly, 1)}×Kelly</th><th>→ Đặt</th><th>So với cài đặt</th><th title="Lợi nhuận 12 tháng ước tính – theo lợi thế đo / thận trọng">Kỳ vọng năm</th></tr></thead><tbody>${rows}</tbody></table></div>
     <h4 class="bfh">🎲 Mô phỏng phần còn lại của năm</h4>${mc}
     <p class="faint" style="font-size:.74rem">Thật thà: không cỗ máy nào đảm bảo "luôn luôn ≥ ${nf(c.goal_floor, 0)}%/năm" – thị trường có thể làm mọi lợi thế biến mất. Cỗ máy làm được ba việc: (1) chỉ đặt cược lớn khi lợi thế đã được chứng minh bằng số liệu (dùng cận dưới, không dùng con số đẹp), (2) chỉ lấy đúng mức rủi ro cần cho mục tiêu, không hơn, và không bao giờ vượt trần an toàn sụt / Kelly / 2%/lệnh, (3) khi lãi đủ đệm thì khoá sàn +${nf(c.goal_floor, 0)}%, càng gần sàn càng đánh nhỏ, chạm sàn là dừng. Mục tiêu ×${nf(c.goal_x, 0)}–×${nf(c.goal_x2, 0)} chỉ đạt được nếu các bot có lợi thế thật và đủ nhiều lệnh – bảng trên cho thấy từng bot còn thiếu gì.</p>`;
@@ -3876,7 +3881,7 @@ async function viewPaper(k0) {
   };
   const tab = () => {
     const el = $("#pvTab"); if (!el) return;
-    const T = PV.tab, row = (cells) => `<tr>${cells.map((c, i) => `<td class="${i ? "" : "l"}">${c}</td>`).join("")}</tr>`, tbl = (h, rs, empty) => `<div class="tw"><table><thead><tr>${h.map((x, i) => `<th class="${i ? "" : "l"}">${x}</th>`).join("")}</tr></thead><tbody>${rs.join("") || `<tr><td colspan="${h.length}" class="muted">${empty}</td></tr>`}</tbody></table></div>`;
+    const T = PV.tab, row = (cells) => `<tr>${cells.map((c, i) => `<td class="${i ? "" : "l"}">${c}</td>`).join("")}</tr>`, tbl = (h, rs, empty) => `<div class="tw"><table class="rs"><thead><tr>${h.map((x, i) => `<th class="${i ? "" : "l"}">${x}</th>`).join("")}</tr></thead><tbody>${rs.join("") || `<tr><td colspan="${h.length}" class="muted">${empty}</td></tr>`}</tbody></table></div>`;
     if (T === "pos") el.innerHTML = tbl(["Coin", "Chiều", "Số lượng", "Giá vào", "Giá mark", "Đòn bẩy", "Ký quỹ", "Lãi/lỗ", "% ký quỹ", "Thanh lý", "Funding", ""], PAP.pos.map((p) => { const m = papPx(p.k, "fut") || p.e, u = p.q * (m - p.e);
       return row([coinLink(p.k), `<span class="pill ${p.q > 0 ? "buy" : "sell"}">${p.q > 0 ? "LONG" : "SHORT"}</span>`, qty(Math.abs(p.q)), px(p.e), px(m), `x${p.lev}`, usd2(p.margin), `<b class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</b>`, `<span class="${cls(u)}">${pct(u / p.margin * 100, 1)}</span>`, `<span class="down">${px(papLiq(p))}</span>`, usd2(p.fund || 0), `<button class="btn sm" data-cl="${esc(p.k)}">Đóng thị trường</button>`]); }), "Chưa có vị thế futures giả lập.");
     if (T === "spot") el.innerHTML = tbl(["Coin", "Số lượng", "Giá vốn TB", "Giá hiện tại", "Giá trị", "Lãi/lỗ", "%", ""], Object.entries(PAP.spot).map(([k, h]) => { const p = papPx(k, "spot") || 0, avg = h.cost / h.q, u = h.q * p - h.cost;
@@ -4446,7 +4451,7 @@ async function viewPortfolio() {
       ["Độ phơi nhiễm ròng", usd(netDelta), "", "Spot + Long − Short (USD). Gần 0 = đã phòng hộ"], ["Đòn bẩy ròng", eq > 0 ? "x" + nf(Math.abs(netDelta) / eq, 2) : "—"]], true)}</section>
     ${govBox}
     ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${k ? coinLink(k) : ""} ${esc(t)}</li>`).join("")}</ul>`) : ""}
-    ${PG("Vị thế đang giữ")}${panel("Spot", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
+    ${PG("Vị thế đang giữ")}${panel("Spot", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
       <div class="pf-add" id="pfAdd"><h4>➕ Thêm coin – nhập theo cách anh nhớ</h4>
         <div class="seg pf-modes" id="hM">${HM.map(([k, t]) => `<button type="button" data-m="${k}" class="${k === lsGet("hmode", "usdt") ? "on" : ""}">${t}</button>`).join("")}</div>
         <div class="filters pf-f"><div class="field"><label>Coin</label><input id="hS" list="coinlist" placeholder="BTC" autocomplete="off"></div>
@@ -4459,16 +4464,16 @@ async function viewPortfolio() {
         <div class="field"><label>Tổng tiền đã nạp vào sàn (VND) <small>tuỳ chọn</small></label><input id="pDep" inputmode="numeric" placeholder="vd 50.000.000" value="${PF.depVnd ? nf(PF.depVnd, 0) : ""}"></div>
         <div class="field"><label>Tỷ giá USDT/VND <small>${esc(fxSrc)}: ${nf(fx, 0)}</small></label><input id="pFx" inputmode="numeric" placeholder="${nf(fx, 0)}" value="${PF.fx ? nf(PF.fx, 0) : ""}" title="Để trống = tự lấy theo CoinGecko. Nhập giá P2P anh mua thực tế nếu muốn chính xác hơn."></div>
         <button class="btn" id="cSave">Lưu</button></div>`, `1 USDT ≈ ${nf(fx, 0)} ₫`)}
-    ${panel("Futures (perp)", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Số lượng</th><th>Giá vào</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Thanh lý (ước)</th><th>Cắt lỗ</th><th>Funding</th><th></th></tr></thead><tbody>${fu || '<tr><td colspan="11" class="muted">Chưa có vị thế.</td></tr>'}</tbody></table></div>
+    ${panel("Futures (perp)", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Số lượng</th><th>Giá vào</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Thanh lý (ước)</th><th>Cắt lỗ</th><th>Funding</th><th></th></tr></thead><tbody>${fu || '<tr><td colspan="11" class="muted">Chưa có vị thế.</td></tr>'}</tbody></table></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="fS" list="coinlist" placeholder="ETH"></div><div class="field"><label>Chiều</label><select id="fSide"><option value="long">Long</option><option value="short">Short</option></select></div>
       <div class="field"><label>Giá vào <small>(Binance › Vị thế › Giá vào)</small></label><input id="fE" inputmode="decimal"></div><div class="field"><label>Đòn bẩy</label><input id="fL" inputmode="decimal" value="3"></div><div class="field"><label>Ký quỹ (USDT)</label><input id="fM" inputmode="decimal" placeholder="vd 100"></div><div class="field"><label>hoặc Số lượng (coin)</label><input id="fQ" inputmode="decimal"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
       <p class="faint" style="font-size:.72rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. Hệ thống chỉ theo dõi, không kết nối tài khoản sàn.</p>`)}
-    ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
+    ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
       const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
       return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
     ${panel("📒 Sổ lệnh đã đóng", (PF.journal || []).length ? (() => { const J = PF.journal.slice().reverse(), w = J.filter((j) => j.pnl > 0).length, tot = J.reduce((a, j) => a + (j.pnl || 0), 0);
       return `${kpis([["Số lệnh", nf(J.length, 0)], ["Thắng", nf(w / J.length * 100, 0) + "%"], ["Tổng lãi/lỗ", usd(tot), cls(tot)], ["TB mỗi lệnh (R)", (() => { const R = J.filter((j) => isNum(j.r)); return R.length ? nf(R.reduce((a, j) => a + j.r, 0) / R.length, 2) + "R" : "—"; })()]])}
-      <div class="tw" style="max-height:320px"><table><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString(LOC)}</small></td></tr>`).join("")}</tbody></table></div>`; })()
+      <div class="tw" style="max-height:320px"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString(LOC)}</small></td></tr>`).join("")}</tbody></table></div>`; })()
       : `<p class="muted">Bấm "Đóng" / "Bán hết" ở vị thế để ghi lãi/lỗ thực – hệ thống dùng sổ này để tính lỗ trong ngày và chuỗi thua.</p>`)}
     ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`)}
     <datalist id="coinlist">${C.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>`;
