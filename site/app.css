@@ -2878,3 +2878,36 @@ body.cmdk-on{overflow:hidden}
 .nt-i.nt-demo{box-shadow:inset 3px 0 0 color-mix(in srgb,#E8B931 45%,transparent)}
 .nt-i.nt-paper .nt-b>b{font-weight:600}.nt-i.nt-paper .nt-ic,.nt-i.nt-paper .nt-t{opacity:.72}
 [data-theme=light] .nt-i.nt-real .nt-b>b{color:#8A5A00}
+
+/* ---- menu kéo xuống kiểu iOS (UIMenu) & nút chọn kiểu iOS (UISegmentedControl) */
+.ios-menu{position:fixed;inset:0;z-index:1200}
+.ios-menu-bg{position:absolute;inset:0}
+.ios-menu-in{position:absolute;border-radius:14px;overflow:hidden;padding:0;
+  background:rgba(242,242,247,.78);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+  box-shadow:0 10px 40px rgba(0,0,0,.28),0 0 0 .5px rgba(0,0,0,.12);color:#000;
+  font:400 17px/1.25 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;letter-spacing:-.2px;
+  animation:iosIn .28s cubic-bezier(.2,.9,.25,1.15) both}
+.ios-menu.out .ios-menu-in{animation:iosOut .18s ease-in both}
+@keyframes iosIn{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+@keyframes iosOut{to{opacity:0;transform:scale(.8)}}
+.ios-menu-h{padding:10px 16px 8px;font-size:13px;color:rgba(60,60,67,.6);border-bottom:.5px solid rgba(60,60,67,.29)}
+.ios-menu-in>button{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:6px;width:100%;min-height:44px;padding:11px 16px 11px 12px;
+  border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ios-menu-in>button+button{border-top:.5px solid rgba(60,60,67,.29)}
+.ios-menu-in>button:hover,.ios-menu-in>button:active,.ios-menu-in>button:focus-visible{background:rgba(0,0,0,.08);outline:0}
+.ios-ck{font-weight:600;font-size:16px;text-align:center}
+.ios-t small{display:block;font-size:13px;color:rgba(60,60,67,.6);margin-top:1px}
+.ios-menu-in>button svg{opacity:.9}
+:root[data-theme="dark"] .ios-menu-in{background:rgba(37,37,37,.72);color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.55),0 0 0 .5px rgba(255,255,255,.1)}
+:root[data-theme="dark"] .ios-menu-h,:root[data-theme="dark"] .ios-t small{color:rgba(235,235,245,.6)}
+:root[data-theme="dark"] .ios-menu-h,:root[data-theme="dark"] .ios-menu-in>button+button{border-color:rgba(84,84,88,.6)}
+:root[data-theme="dark"] .ios-menu-in>button:hover,:root[data-theme="dark"] .ios-menu-in>button:active,:root[data-theme="dark"] .ios-menu-in>button:focus-visible{background:rgba(255,255,255,.1)}
+.th-seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:2px;border-radius:9px;background:rgba(118,118,128,.12);min-width:min(300px,100%)}
+:root[data-theme="dark"] .th-seg{background:rgba(118,118,128,.24)}
+.th-seg>button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:4px 10px;border:0;border-radius:7px;background:none;color:var(--ink);
+  font:500 13px/1 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;cursor:pointer;transition:background .2s,box-shadow .2s;-webkit-tap-highlight-color:transparent}
+.th-seg>button[aria-checked="true"]{background:#fff;color:#000;font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04),0 0 0 .5px rgba(0,0,0,.04)}
+:root[data-theme="dark"] .th-seg>button[aria-checked="true"]{background:#636366;color:#fff}
+/* đổi giao diện: chuyển màu êm (chỉ trong lúc đổi) */
+.th-x,.th-x *{transition:background-color .25s ease,color .25s ease,border-color .25s ease!important}
+@media (prefers-reduced-motion:reduce){.ios-menu-in,.ios-menu.out .ios-menu-in{animation:none}}

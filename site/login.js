@@ -37,8 +37,8 @@
   if (lb) { lb.textContent = LANG === "en" ? "VI" : "EN"; lb.onclick = () => { try { localStorage.setItem("mybit_lang", JSON.stringify(LANG === "en" ? "vi" : "en")); } catch (e) { /* bỏ qua */ } location.reload(); }; }
   const msg = (t, ok) => { const m = $("#msg"); m.textContent = T(t) || ""; m.className = "msg " + (ok ? "ok" : t ? "bad" : ""); };
   try {
-    const th = localStorage.getItem("mybit_theme");
-    if (th) document.documentElement.dataset.theme = JSON.parse(th);
+    const th = JSON.parse(localStorage.getItem("mybit_theme") || "null");
+    if (th) document.documentElement.dataset.theme = th === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : th;
   } catch (e) { /* bỏ qua */ }
 
   function show(pane) {

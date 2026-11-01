@@ -13,7 +13,7 @@
 <title>Đăng nhập · MyBit</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2315202B'/><circle cx='9' cy='16' r='4' fill='%23F0444B' opacity='.4'/><circle cx='16' cy='16' r='4' fill='%23F4C32F' opacity='.4'/><circle cx='23' cy='16' r='4' fill='%232FD08F'/></svg>">
 <link rel="manifest" href="manifest.webmanifest">
-<script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script>
+<script>(function(){var d=document.documentElement,p="dark";try{p=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){}var t=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p==="light"?"light":"dark";d.dataset.theme=t;d.dataset.thp=p;if(t==="light"){var m=document.getElementById("thc")||document.querySelector('meta[name="theme-color"]');if(m)m.content="#FFFFFF"}})()</script>
 <link rel="stylesheet" href="app.css">
 <link rel="stylesheet" href="auth.css">
 </head>

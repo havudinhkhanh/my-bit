@@ -14,7 +14,7 @@
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
-<script>try{document.documentElement.dataset.theme=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){document.documentElement.dataset.theme="dark"}if(document.documentElement.dataset.theme==="light")document.getElementById("thc").content="#FFFFFF"</script>
+<script>(function(){var d=document.documentElement,p="dark";try{p=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){}var t=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p==="light"?"light":"dark";d.dataset.theme=t;d.dataset.thp=p;if(t==="light"){var m=document.getElementById("thc")||document.querySelector('meta[name="theme-color"]');if(m)m.content="#FFFFFF"}})()</script>
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
