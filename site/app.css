@@ -3090,3 +3090,29 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
 .hz .sc-menu .btn+.btn{border-top:.5px solid color-mix(in srgb,var(--ink) 14%,transparent)}
 .hz .sc-menu .btn:active,.hz .sc-menu .btn:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 .hz .sc-menu #scReset{color:var(--down)}
+
+/* ---- dải trạng thái gọn Bot Phản Xạ */
+.sc-hero.hz2{padding:8px 10px}
+.hz2-r{display:flex;align-items:center;gap:10px}
+.hz2-l{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:.72rem;line-height:1.35;color:var(--ink-3)}
+.hz2-s{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;color:var(--ink)}.hz2-s b{font-weight:650}
+.hz2-s i,.hz2-c i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--ink-3);position:relative}
+.hz2-s.ok i,.hz2-c.ok i{background:var(--up)}.hz2-s.warn i,.hz2-c.warn i{background:var(--brass,#d9a23a)}.hz2-s.bad i,.hz2-c.bad i{background:var(--down)}
+.hz2-s.ok i::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1.5px solid var(--up);opacity:.5;animation:hzPing 2s ease-out infinite}
+.hz2-c{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}.hz2-c i{width:5px;height:5px}
+.hz2-lv{font-size:.7rem;margin:0}.hz2-lv:empty{display:none}
+.hz2-a{flex:none;display:flex;align-items:center;gap:6px}
+.ios-sw.sm{width:38px;height:23px;border-radius:12px}.ios-sw.sm i{top:2px;left:2px;width:19px;height:19px}
+.ios-sw.sm[aria-checked="true"] i{transform:translateX(15px)}.ios-sw.sm:active i{width:22px}.ios-sw.sm[aria-checked="true"]:active i{transform:translateX(12px)}
+.hz2-ic{list-style:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;border:0;padding:0;color:var(--ink-3);background:color-mix(in srgb,var(--ink) 7%,transparent);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hz2-ic[aria-expanded="true"]{color:var(--ink);background:color-mix(in srgb,var(--ink) 15%,transparent)}
+.hz2 .sc-act{margin:0}.hz2 .sc-menu{right:0;left:auto}
+.sc-hero.hz2>.sc-i{margin:0}.sc-hero.hz2>.sc-i>summary{display:none}
+.sc-hero.hz2>.sc-i[open]{margin-top:8px;padding-top:8px;border-top:.5px solid var(--line-2)}
+.sc-hero.hz2 .hz-pause{margin-top:8px;padding:6px 9px;font-size:.74rem}
+/* menu ⋯ kiểu iOS cũng dùng cho dải gọn */
+.hz2 .sc-menu{padding:0;gap:0;min-width:250px;border-radius:14px;overflow:hidden;border:0;background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 10px 36px rgba(0,0,0,.35),0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent)}
+.hz2 .sc-menu .btn{border:0;border-radius:0;background:none;min-height:46px;padding:0 16px;font-size:.92rem;font-weight:500;color:var(--ink);justify-content:flex-start;box-shadow:none}
+.hz2 .sc-menu .btn+.btn{border-top:.5px solid color-mix(in srgb,var(--ink) 14%,transparent)}
+.hz2 .sc-menu #scReset{color:var(--down)}
+.sc-hero.hz2>.sc-i:not([open]){border:0!important;padding:0!important;margin:0!important}.hz2 .sc-more>summary.hz2-ic{min-width:0;width:26px;height:26px;padding:0}

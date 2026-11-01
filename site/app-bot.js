@@ -25,6 +25,7 @@ const cmpMark = () => { const f = window.__cmpF || "all"; $$("[data-cmpf]").forE
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cmpf]"); if (!b) return; const f = b.dataset.cmpf; window.__cmpF = f === "all" || window.__cmpF === f ? "all" : f; cmpMark(); });
 // nút Gọn / Vừa / Đầy đủ: đặt lên hàng tiêu đề của khung sự kiện (cùng dòng với tên khung) cho đỡ tốn chỗ
 function fdPlace() { $$("#app .fd-sz").forEach((c) => { const h = c.closest(".panel")?.querySelector(":scope > .ph"); if (h && c.parentElement !== h) { h.appendChild(c); h.classList.add("ph-fd"); } }); }
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-hzinfo]"); if (!b) return; const d = b.closest(".hz2")?.querySelector(":scope > .sc-i"); if (d) { d.open = !d.open; window.__hzInfo = d.open; b.setAttribute("aria-expanded", String(d.open)); } });
 function lvEqBind() {
   $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
@@ -164,17 +165,18 @@ async function viewScalp() {
   const bS = st[1] === "buy" ? "ok" : st[1] === "sell" ? "bad" : st[1] === "warn" ? "warn" : "off";
   const tile = (c, lab, val, tip) => `<div class="hz-tl ${c}"${tip ? ` title="${esc(tip)}"` : ""}><small><i></i>${lab}</small><b>${val}</b></div>`;
   const hzSub = dataOk ? bi(`${nf(nMk, 0)} thị trường · ${nf(rate, 0)} tin/giây`, `${nf(nMk, 0)} markets · ${nf(rate, 0)} msg/s`) : X.at ? bi(`dữ liệu cũ ${durVi(age)}`, `data ${nf(age, 0)}s old`) : bi("chưa có dữ liệu", "no data yet");
-  const hero = `<section class="panel sc-hero hz">
-    <div class="hz-top"><span class="hz-dot ${bS}" aria-hidden="true"></span>
-      <div class="hz-t"><b>${esc(String(st[0]).replace(/^[●⏸]\s*/, ""))}</b><small>${hzSub} <span id="scLive" class="sc-lv"></span></small></div>
-      <button type="button" class="ios-sw" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
-      <div class="sc-act"><details class="sc-more"><summary class="hz-ic" aria-label="Thêm thao tác"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div>
+  // ---- dải trạng thái gọn (chữ nhỏ): đèn + trạng thái · Dữ liệu · Sàn · Binance · giá trực tiếp | công tắc nhỏ · ⓘ · ⋯
+  const chip = (c, txt, tip) => `<span class="hz2-c ${c}"${tip ? ` title="${esc(tip)}"` : ""}><i></i>${txt}</span>`;
+  const hero = `<section class="panel sc-hero hz2">
+    <div class="hz2-r"><div class="hz2-l"><span class="hz2-s ${bS}"><i></i><b>${esc(String(st[0]).replace(/^[●⏸]\s*/, ""))}</b></span>
+      ${chip(dataOk ? "ok" : X.at ? "warn" : "off", dataOk ? bi(`${nf(nMk, 0)} thị trường · ${nf(rate, 0)}/s`, `${nf(nMk, 0)} mkts · ${nf(rate, 0)}/s`) : X.at ? bi(`dữ liệu cũ ${durVi(age)}`, `data ${nf(age, 0)}s old`) : bi("chưa có dữ liệu", "no data"), bi("Dữ liệu thị trường bot đang nghe", "Market data feed"))}
+      ${chip(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", Object.entries(FD).map(([t, f]) => `${t === "F" ? "F" : "S"}·${esc(String(f.src || "—").replace(/f$/, ""))}`).join(" ") || bi("sàn —", "feeds —"), Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${f.src || "—"}`).join(" · "))}
+      ${chip(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", `${LV?.env === "live" || C.lv_env === "live" ? bi("Thật", "Live") : "Demo"} ${!C.lv_on ? bi("tắt", "off") : LV?.halt ? bi("ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : "—"}`, lvSt.why || LV?.halt || bi("Tài khoản Binance của bot", "Bot's Binance account"))}
+      <span id="scLive" class="sc-lv hz2-lv"></span></div>
+      <div class="hz2-a"><button type="button" class="ios-sw sm" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
+        <button type="button" class="hz2-ic" data-hzinfo aria-label="Chi tiết kỹ thuật" title="Chi tiết kỹ thuật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
+        <div class="sc-act"><details class="sc-more"><summary class="hz-ic hz2-ic" aria-label="Thêm thao tác"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div></div>
     ${X.pause ? `<div class="hz-pause"><span>⏸ ${esc(X.pause.why)}</span>${C.enabled ? `<button class="btn sm primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Chạy tiếp</button>` : ""}</div>` : ""}
-    <div class="hz-g">
-      ${tile(dataOk ? "ok" : X.at ? "warn" : "off", bi("Dữ liệu", "Data"), dataOk ? bi(`${nf(nMk, 0)} thị trường`, `${nf(nMk, 0)} markets`) : X.at ? bi(`cũ ${durVi(age)}`, `${nf(age, 0)}s old`) : "—")}
-      ${tile(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", bi("Sàn", "Feeds"), Object.entries(FD).map(([t, f]) => `${t === "F" ? "F" : "S"} ${esc(String(f.src || "—").replace(/f$/, ""))}`).join(" · ") || "—", Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${f.src || "—"}`).join(" · "))}
-      ${tile(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", LV?.env === "live" || C.lv_env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", !C.lv_on ? bi("đang tắt", "off") : LV?.halt ? bi("đang ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : lvSt.why ? bi("cần xem", "check") : "—", lvSt.why || LV?.halt || "")}
-    </div>
     ${info(`<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}${feedTxt}${bn}<small class="faint">${esc(st[2])}</small></div>`, "Chi tiết kỹ thuật")}</section>`;
   // ---------------------------------------------------------------- 💰 TỔNG TÀI SẢN BINANCE (máy chủ riêng đọc mỗi 5 phút, chỉ quyền ĐỌC)
   const WAL = LV?.wal || {}, WALH = LV?.walH || {}, wEnvs = ["live", "demo"].filter((e) => WAL[e]?.at);
@@ -541,7 +543,7 @@ async function viewScalp() {
   if ($("#lvRes")) $("#lvRes").onclick = async () => { C.lv_resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Tài khoản thật chạy lại trong ≤ 5 phút"); viewScalp(); };
   if ($("#scRes")) $("#scRes").onclick = async () => { C.resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot sẽ chạy tiếp trong ≤ 30 giây"); viewScalp(); };
   $("#scAuto").onclick = () => { const off = !autoOff("scalp"); try { localStorage.setItem("mybit_auto_scalp", off ? "0" : "1"); } catch (e) { /* bỏ qua */ } toast(off ? "Đã dừng tự cập nhật – bấm lại để chạy tiếp" : "Trang tự cập nhật lại"); if (off) $("#scAuto").textContent = "▶ Tự cập nhật"; else softRender(() => viewScalp()); };
-  lvEqBind(); cmpMark(); fdPlace();
+  lvEqBind(); cmpMark(); fdPlace(); if (window.__hzInfo) { const d = $(".hz2 > .sc-i"); if (d) d.open = true; }
   $("#scOn").onclick = async () => {
     if (C.enabled && !confirm(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`)) return;
     C.enabled = !C.enabled; $("#scOn")?.setAttribute("aria-checked", String(C.enabled)); delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
