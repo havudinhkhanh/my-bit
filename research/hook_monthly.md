@@ -59,3 +59,8 @@ round6: 1 817 cú sốc qua bộ lọc · 2 953 lệnh (2025H1 411 · 2025H2 945
 Đạt cả 3 điều kiện: TỔNG +60,9% vs +34,9%; chỉ kém 1 nửa năm (2025H2 +18% vs +19%); sụt tối đa 5,0% vs 14,1%.
 Rủi ro: theo từng lệnh tr150 kém hơn ở 2026H2 (−57 bps/lệnh); mô phỏng nến 1 phút, thực tế khớp lệnh đuổi có thể trượt nhiều hơn 20 bps.
 Bộ lọc giữ nguyên. Chưa đổi gì trên bot – chờ Jason quyết.
+
+**2026-11-01 – ĐÃ ÁP DỤNG** (Jason đồng ý): thêm `hk_tra: 150, hk_trg: 100` (cắt lỗ đuổi) vào `SCALP_DEF` – sàn thử (worker/scalp_core.js),
+tài khoản Binance Demo/thật (scalper/live.mjs, kiểm tra mỗi 2 giây theo giá giữa) và trang thiết lập (2 thanh trượt, 0 = tắt).
+Khác mô phỏng: bot gộp 2 mức khớp thành 1 vị thế giá TB (đỉnh lời tính lại khi khớp thêm mức); trên tài khoản thật, đóng đuổi thì huỷ luôn mức chưa khớp.
+Tháng sau so sánh với mốc này: dòng "tr150 – thiết lập đang chạy" là thiết lập hiện tại.
