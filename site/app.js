@@ -4751,14 +4751,6 @@ async function lockView(feature) {
   await plansData();
   app().innerHTML = lockBox(feature) + `<section class="panel sec">${planTable()}</section>`;
 }
-function planTable() {
-  const P = PLANS || { plans: {}, order: [] }, ks = P.order || Object.keys(P.plans);
-  const feats = [...new Set(ks.flatMap((k) => P.plans[k].features))];
-  return `<div class="ph"><h2>Quyền lợi theo gói</h2></div><div class="tw"><table><thead><tr><th class="l">Tính năng</th>${ks.map((k) => `<th class="${ME?.eff_plan === k ? "brand" : ""}">${esc(P.plans[k].name)}${ME?.eff_plan === k ? " ✓" : ""}</th>`).join("")}</tr></thead><tbody>
-    ${feats.map((f) => `<tr><td class="l">${esc(featName(f))}</td>${ks.map((k) => `<td>${P.plans[k].features.includes(f) ? '<b class="up">✓</b>' : '<span class="faint">—</span>'}</td>`).join("")}</tr>`).join("")}
-    <tr><td class="l">Số mã trong danh mục / theo dõi / cảnh báo đang bật</td>${ks.map((k) => { const L = P.plans[k].limits || {}; return `<td>${L.holdings} / ${L.watch} / ${L.alerts}</td>`; }).join("")}</tr>
-  </tbody></table></div>`;
-}
 
 
 // ---- chuông thông báo – GIỐNG HỆT ở MyBit & VN-Stock: máy tính = bảng thả xuống dưới chuông, điện thoại = bảng trượt từ dưới lên
@@ -4904,14 +4896,12 @@ async function pushDisable() {
 // cài đặt chung dùng cho cả web: vốn & rủi ro (Lên lệnh, Tính lệnh, Sàn thử…), giao diện, ngôn ngữ
 function acTradeHtml() {
   const th = document.documentElement.dataset.theme === "light" ? "light" : "dark", en = I18N.lang === "en";
-  return `<section class="panel sec" id="acTrade"><div class="ph"><h2>⚙️ Cài đặt chung</h2><span class="meta">dùng cho Lên kế hoạch lệnh, Tính lệnh, Sàn thử, bảng phụ</span></div>
-    <div class="filters">
-      <div class="field"><label for="acA">Vốn giao dịch (USD)</label><input id="acA" type="number" min="10" step="any" value="${esc(setting("acct", 10000))}"></div>
-      <div class="field"><label for="acR">Rủi ro mỗi lệnh (% vốn, tối đa 2)</label><input id="acR" type="number" min="0.1" max="2" step="0.1" value="${esc(setting("risk", 1))}"></div>
-      <div class="field"><label for="acTh">Giao diện</label><select id="acTh"><option value="dark" ${th === "dark" ? "selected" : ""}>Tối</option><option value="light" ${th === "light" ? "selected" : ""}>Sáng</option></select></div>
-      <div class="field"><label for="acLg">Ngôn ngữ</label><select id="acLg"><option value="vi" ${!en ? "selected" : ""}>Tiếng Việt</option><option value="en" ${en ? "selected" : ""}>English</option></select></div>
-      <button class="btn primary" id="acTS">Lưu cài đặt</button></div>
-    <p class="faint" style="font-size:.74rem">Lỗ tối đa mỗi lệnh = vốn × % rủi ro. Đòn bẩy do hệ thống kiểm soát theo đèn thị trường & biến động – xem ở <a href="#/portfolio">Danh mục</a>. Đã nhập danh mục thì hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</p></section>`;
+  return `<section class="acp-card" id="acTrade"><h2>Cài đặt chung</h2><p class="acp-d">Dùng cho Lên kế hoạch lệnh, Tính lệnh, Sàn thử, bảng phụ.</p>
+    ${acRow("Vốn giao dịch", "USD", `<input id="acA" type="number" min="10" step="any" inputmode="decimal" value="${esc(setting("acct", 10000))}">`)}
+    ${acRow("Rủi ro mỗi lệnh", "% vốn, tối đa 2", `<input id="acR" type="number" min="0.1" max="2" step="0.1" inputmode="decimal" value="${esc(setting("risk", 1))}">`)}
+    ${acRow("Giao diện", "", `<select id="acTh"><option value="dark" ${th === "dark" ? "selected" : ""}>Tối</option><option value="light" ${th === "light" ? "selected" : ""}>Sáng</option></select>`)}
+    ${acRow("Ngôn ngữ", "", `<select id="acLg"><option value="vi" ${!en ? "selected" : ""}>Tiếng Việt</option><option value="en" ${en ? "selected" : ""}>English</option></select>`)}
+    <div class="acp-foot"><button class="btn primary" id="acTS">Lưu cài đặt</button><small>Lỗ tối đa mỗi lệnh = vốn × % rủi ro. Đòn bẩy do hệ thống kiểm soát theo đèn thị trường & biến động – xem ở <a href="#/portfolio">Danh mục</a>. Đã nhập danh mục thì hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</small></div></section>`;
 }
 function acTradeBind() {
   const b = $("#acTS"); if (!b) return;
@@ -4924,40 +4914,60 @@ function acTradeBind() {
     $("#pncalc") && ($("#pncalc").innerHTML = "", pcRoute());
   };
 }
+// ---- trang Tài khoản – CÙNG MỘT GIAO DIỆN ở MyBit & VN-Stock: thẻ hồ sơ, các nhóm cài đặt dạng hàng (nhãn + mô tả bên trái, điều khiển bên phải),
+//      cỡ chữ thống nhất, công tắc cho loại thông báo, bảng gói căn giữa. Giữ nguyên id các ô để phần lưu không đổi.
+const acRow = (label, help, ctl, cls = "") => `<div class="acp-row ${cls}"><div class="acp-l"><b>${label}</b>${help ? `<small>${help}</small>` : ""}</div><div class="acp-c">${ctl}</div></div>`;
+function acPage(o) {
+  const ini = esc(((ME.name || ME.email || "?").trim()[0] || "?").toUpperCase()), pro = ME.eff_plan === "pro";
+  const login = [ME.has_pw ? "Mật khẩu" : "", ME.google ? "Google" : ""].filter(Boolean).join(" + ") || "—";
+  const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
+  const { N, ps, subs } = o;
+  const push = !can("notify_push") ? `<span class="acp-lock">🔒 Gói Pro</span>` : !ps.ok ? `<span class="acp-warn">${esc(ps.why)}</span>`
+    : `<span class="acp-st ${ps.on ? "on" : ""}">${ps.on ? "● Đang bật" : ps.perm === "denied" ? "Bị chặn trong trình duyệt" : "Chưa bật"}</span>${ps.on ? '<button class="btn" id="puTest">Gửi thử</button><button class="btn" id="puOff">Tắt</button>' : '<button class="btn primary" id="puOn">Bật</button>'}`;
+  return `<div class="acp">
+  <header class="acp-hero"><div class="acp-av" aria-hidden="true">${ini}</div><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
+    <div class="acp-tags"><span class="acp-tag ${pro ? "pro" : ""}">${pro ? "★ " : ""}Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? ` · đến ${esc(ME.plan_until)}` : ""}</span><span class="acp-tag">${ME.role === "admin" ? "Quản trị viên" : "Thành viên"}</span><span class="acp-tag">Đăng nhập: ${esc(login)}</span></div></div></header>
+  <div class="acp-grid">
+  <section class="acp-card"><h2>Hồ sơ</h2>
+    ${acRow("Tên hiển thị", "Hiện trên đầu trang & trong thông báo", `<input id="acName" value="${esc(ME.name || "")}" placeholder="Tên của anh/chị"><button class="btn" id="acSave">Lưu</button>`)}
+    ${acRow("Email đăng nhập", "", `<span class="acp-v">${esc(ME.email)}</span>`)}
+  </section>
+  <section class="acp-card"><h2>Bảo mật</h2>
+    ${ME.has_pw ? acRow("Mật khẩu hiện tại", "", `<input id="pwOld" type="password" autocomplete="current-password" placeholder="••••••••">`) : ""}
+    ${acRow(ME.has_pw ? "Mật khẩu mới" : "Đặt mật khẩu", "Ít nhất 8 ký tự", `<input id="pwNew" type="password" autocomplete="new-password" placeholder="••••••••"><button class="btn" id="pwSave">${ME.has_pw ? "Đổi" : "Đặt"}</button>`)}
+    ${acRow("Phiên đăng nhập", "Đăng xuất mọi thiết bị nếu nghi bị lộ mật khẩu", `<button class="btn" id="acOut">Đăng xuất</button><button class="btn danger" id="acOutAll">Mọi thiết bị</button>`)}
+  </section>
+  </div>
+  ${o.extra || ""}
+  <section class="acp-card"><h2>Thông báo</h2><p class="acp-d">Chuông trên web luôn bật. Chọn thêm kênh và mức gửi.</p>
+    ${acRow("Thông báo đẩy", `Điện thoại / máy tính này${ps.ok && can("notify_push") ? ` · đang bật trên ${nf((subs.subs || []).length, 0)} thiết bị · ${o.pushWhen}` : ""}`, push)}
+    ${acRow("Mức gửi đẩy", "", lv("nPush", N.push))}
+    ${acRow("Email", !can("notify_email") ? "🔒 Gói Pro" : "", lv("nEmail", N.email))}
+    ${acRow("Gửi email tới", "Để trống = email đăng nhập", `<input id="nTo" type="email" placeholder="${esc(ME.email)}" value="${esc(N.email_to)}">`)}
+    <h3 class="acp-sub">Loại thông báo</h3>
+    <div class="acp-kinds">${Object.entries(NKIND).map(([k, t]) => `<label class="acp-kind"><span class="acp-ki">${NK[k] || "🔔"}</span><span class="acp-kt">${esc(t)}</span><input type="checkbox" class="acp-sw" data-nk="${k}" ${N.kinds[k] === false ? "" : "checked"}></label>`).join("")}</div>
+    <div class="acp-foot"><button class="btn primary" id="nSave">Lưu cài đặt thông báo</button><small>${o.levels}</small></div>
+  </section>
+  <section class="acp-card">${planTable()}<p class="acp-d" style="margin:10px 0 0">Muốn nâng cấp hoặc gia hạn gói, liên hệ quản trị viên.</p></section>
+  </div>`;
+}
+function planTable() {
+  const P = PLANS || { plans: {}, order: [] }, ks = P.order || Object.keys(P.plans);
+  const feats = [...new Set(ks.flatMap((k) => P.plans[k].features))], cur = ME?.eff_plan;
+  const col = (k) => (k === cur ? ' class="cur"' : "");
+  return `<h2>Gói & quyền lợi</h2><div class="acp-pt-w"><table class="acp-pt"><thead><tr><th class="f">Tính năng</th>${ks.map((k) => `<th${col(k)}><span>${esc(P.plans[k].name)}</span>${k === cur ? "<i>Đang dùng</i>" : ""}</th>`).join("")}</tr></thead><tbody>
+    ${feats.map((f) => `<tr><td class="f">${esc(featName(f))}</td>${ks.map((k) => `<td${col(k)}>${P.plans[k].features.includes(f) ? '<span class="ok" aria-label="có">✓</span>' : '<span class="no" aria-label="không">–</span>'}</td>`).join("")}</tr>`).join("")}
+    <tr><td class="f">Danh mục / theo dõi / cảnh báo</td>${ks.map((k) => { const L = P.plans[k].limits || {}; return `<td${col(k)}><span class="lim">${L.holdings} / ${L.watch} / ${L.alerts}</span></td>`; }).join("")}</tr>
+  </tbody></table></div>`;
+}
+
 async function viewAccount() {
   await Promise.all([plansData(), loadSettings()]);
-  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div>${acTradeHtml()}<div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); return; }
+  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="acp">${acTradeHtml()}</div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); return; }
   const [np, ps, subs] = await Promise.all([api("notify").catch(() => ({})), pushState(), api("push/list").catch(() => ({ subs: [] }))]);
   const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
-  app().innerHTML = `<div class="ph"><h1>Tài khoản</h1><span class="meta">${esc(ME.email)}</span></div>
-  <div class="g g2">
-    <section class="panel"><div class="ph"><h2>Thông tin</h2><span class="pill ${ME.eff_plan === "pro" ? "buy" : ""}">Gói ${esc(ME.plan_name || ME.eff_plan)}</span></div>
-      ${kpis([["Email", esc(ME.email)], ["Gói", esc(ME.plan_name || ME.eff_plan) + (ME.plan_until ? ` <small>đến ${esc(ME.plan_until)}</small>` : "")], ["Vai trò", ME.role === "admin" ? "Quản trị" : "Thành viên"],
-        ["Đăng nhập", [ME.has_pw ? "mật khẩu" : "", ME.google ? "Google" : ""].filter(Boolean).join(" + ") || "—"]], false, "c2")}
-      <div class="filters" style="margin-top:8px"><div class="field"><label for="acName">Tên hiển thị</label><input id="acName" value="${esc(ME.name || "")}"></div><button class="btn" id="acSave">Lưu tên</button></div></section>
-    <section class="panel"><div class="ph"><h2>Bảo mật</h2></div>
-      <div class="filters">${ME.has_pw ? `<div class="field"><label for="pwOld">Mật khẩu hiện tại</label><input id="pwOld" type="password" autocomplete="current-password"></div>` : ""}
-        <div class="field"><label for="pwNew">Mật khẩu mới (≥ 8 ký tự)</label><input id="pwNew" type="password" autocomplete="new-password"></div><button class="btn" id="pwSave">${ME.has_pw ? "Đổi mật khẩu" : "Đặt mật khẩu"}</button></div>
-      <p style="margin-top:10px"><button class="btn" id="acOut">Đăng xuất</button> <button class="btn" id="acOutAll">Đăng xuất mọi thiết bị</button></p></section>
-  </div>
-  ${acTradeHtml()}
-  <section class="panel sec"><div class="ph"><h2>Nhận thông báo</h2><span class="meta">chuông trên web luôn bật</span></div>
-    <div class="g g2">
-      <div><h3>Thông báo đẩy (điện thoại / máy tính)</h3>
-        ${!can("notify_push") ? `<p class="muted">🔒 Thông báo đẩy dành cho gói Pro.</p>` : !ps.ok ? `<p class="note">${esc(ps.why)}</p>`
-          : `<p>Trên thiết bị này: <b class="${ps.on ? "up" : "muted"}">${ps.on ? "đang bật" : ps.perm === "denied" ? "bị chặn trong cài đặt trình duyệt" : "chưa bật"}</b> ${ps.on ? '<button class="btn" id="puOff">Tắt</button> <button class="btn" id="puTest">Gửi thử</button>' : '<button class="btn primary" id="puOn">Bật trên thiết bị này</button>'}</p>
-          <p class="faint" style="font-size:.74rem">Đang bật trên ${nf((subs.subs || []).length, 0)} thiết bị. Thông báo đẩy được gửi ngay sau mỗi lượt cập nhật (4 giờ/lần).</p>`}
-        <div class="field"><label for="nPush">Mức gửi đẩy</label>${lv("nPush", N.push)}</div></div>
-      <div><h3>Email</h3>${!can("notify_email") ? `<p class="muted">🔒 Thông báo qua email dành cho gói Pro.</p>` : ""}
-        <div class="field"><label for="nEmail">Mức gửi email</label>${lv("nEmail", N.email)}</div>
-        <div class="field"><label for="nTo">Gửi tới</label><input id="nTo" type="email" placeholder="${esc(ME.email)}" value="${esc(N.email_to)}"></div></div>
-    </div>
-    <h3 style="margin-top:10px">Loại thông báo</h3>
-    <div class="nkinds">${Object.entries(NKIND).map(([k, t]) => `<label><input type="checkbox" data-nk="${k}" ${N.kinds[k] === false ? "" : "checked"}> ${NK[k] || ""} ${esc(t)}</label>`).join("")}</div>
-    <p style="margin-top:8px"><button class="btn primary" id="nSave">Lưu cài đặt thông báo</button></p>
-    <p class="faint" style="font-size:.72rem">“Quan trọng” = vị thế gần giá thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường.</p></section>
-  <section class="panel sec">${planTable()}<p class="muted" style="margin-top:6px">Muốn nâng cấp hoặc gia hạn gói, liên hệ quản trị viên.</p></section>`;
+  app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml(), pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
   $("#acSave").onclick = async () => { try { const j = await api("auth/profile", "POST", { name: $("#acName").value }); ME = { ...ME, ...j.me }; toast("Đã lưu"); } catch (e) { toast(e.message); } };
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();
