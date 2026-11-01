@@ -127,11 +127,21 @@ const f8c = (x) => (!isNum(x) ? "" : x >= 0.05 ? "down" : x <= -0.03 ? "up" : x 
 const f8s = (x) => (isNum(x) ? `${x > 0 ? "+" : ""}${nf(x, 4)}%` : "—");
 
 // ================================================================ lưu dữ liệu riêng (Cloudflare D1 / KV, dự phòng localStorage)
+// đệm ngắn dữ liệu tài khoản: chuyển qua lại các trang Bot (Đội bot / Bot Phản Xạ / Bot giám sát / Kết quả ngày) VẼ NGAY bằng bản vừa tải
+// (≤ 90 giây), đồng thời tải bản mới ở nền – trang tự cập nhật khi có số mới (mỗi trang bot đã tự hỏi lại vài giây/lần).
+const SCACHE = {}, SPEND = {};
 const Store = {
+  fast: false,
   async get(key) {
+    const c = SCACHE[key];
+    if (Store.fast && c && Date.now() - c.t < 90e3) { if (Date.now() - c.t > 4e3) Store.warm([key]); return c.v; }
+    return Store.net(key);
+  },
+  warm(keys) { for (const k of keys) if (!SPEND[k] && !(SCACHE[k] && Date.now() - SCACHE[k].t < 4e3)) SPEND[k] = Store.net(k).catch(() => {}).finally(() => { delete SPEND[k]; }); },
+  async net(key) {
     try {
       const r = await fetch(`api/${key}`, { cache: "no-store" });
-      if (r.ok && (r.headers.get("content-type") || "").includes("json")) return { data: await r.json(), remote: true };
+      if (r.ok && (r.headers.get("content-type") || "").includes("json")) { const v = { data: await r.json(), remote: true }; SCACHE[key] = { t: Date.now(), v }; return v; }
     } catch (e) { /* chạy trên máy: không có API */ }
     if (ME && !ME.legacy) return { data: null, remote: false };
     return { data: lsGet(key, null), remote: false };
@@ -139,9 +149,10 @@ const Store = {
   async put(key, data) {
     const multi = ME && !ME.legacy;
     if (!multi) lsSet(key, data);
+    delete SCACHE[key];
     try {
       const r = await fetch(`api/${key}`, { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
-      if (r.ok) return true;
+      if (r.ok) { SCACHE[key] = { t: Date.now(), v: { data, remote: true } }; return true; }
       if (multi) { let m = `Chưa lưu được (HTTP ${r.status})`; try { m = (await r.json()).error || m; } catch (e) { /* rỗng */ } setTimeout(() => toast("⚠️ " + m), 60); }
     } catch (e) { /* bỏ qua */ }
     return multi ? false : true;
@@ -533,6 +544,14 @@ const SHEETS = [
 const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.content = document.documentElement.dataset.theme === "light" ? "#FFFFFF" : "#151C22"; };
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
+// tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn
+const BOT_KEYS = { "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"] };
+function botWarm(only) {
+  if (!multiUser() || (ME && typeof can === "function" && !can("bot"))) return;
+  const go = () => { lazyJs("app-bot.js").catch(() => {}); Store.warm(only ? BOT_KEYS[only] || [] : [...new Set(Object.values(BOT_KEYS).flat())]); };
+  only ? go() : (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(go, { timeout: 2500 });
+}
+document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
 function pageIn() {
   const a = document.getElementById("app"); if (!a) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -669,7 +688,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { Store.fast = true; if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -690,7 +709,10 @@ async function route() {
     console.error(e);
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
-  { const pk = r + "/" + (arg[0] || ""); if (pk !== window.__pgR) { window.__pgR = pk; pageIn(); } }
+  Store.fast = false;
+  // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
+  { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
+  if (r === "bot") botWarm();
   requestAnimationFrame(() => app().focus({ preventScroll: true }));
   pnRoute(r, arg);
 }
