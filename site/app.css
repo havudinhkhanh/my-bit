@@ -3151,3 +3151,8 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
 .cus-menu>button:active{background:rgba(127,127,127,.15)}
 .cus-menu .ios-ic svg{width:18px;height:18px}
 .msheet-cus{margin-left:auto;margin-right:8px;border:0;background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent);color:var(--brass,var(--brand));font:inherit;font-size:.76rem;font-weight:600;padding:6px 10px;border-radius:999px;cursor:pointer}
+
+/* thanh dưới: không bao giờ bôi đen chữ / hiện menu sao chép khi giữ lâu */
+.tabs,.tabs *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+.tabs a{touch-action:manipulation}
+html.lp-on,html.lp-on *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}

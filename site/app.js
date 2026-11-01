@@ -505,8 +505,10 @@ function cusDraw() {
 }
 function cusBind(a) {
   let t = 0, long = false;
-  a.addEventListener("touchstart", () => { long = false; t = setTimeout(() => { long = true; navigator.vibrate?.(10); cusPick(a); }, 480); }, { passive: true });
-  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  // giữ lâu: tạm cấm chọn chữ trên cả trang (iPhone hay bôi đen hết trang khi giữ ngón tay), mở menu, xoá vùng chọn nếu lỡ có
+  const lpEnd = () => { clearTimeout(t); setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); };
+  a.addEventListener("touchstart", () => { long = false; document.documentElement.classList.add("lp-on"); t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (e) { /* bỏ qua */ } cusPick(a); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, lpEnd, { passive: true }));
   a.addEventListener("contextmenu", (e) => { e.preventDefault(); cusPick(a); });
   a.addEventListener("click", (e) => {
     if (long) { e.preventDefault(); long = false; return; }
