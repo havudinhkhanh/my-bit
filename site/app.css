@@ -2956,3 +2956,11 @@ html[data-vt="back"]::view-transition-new(root){animation-name:vtInL}
   .ntp-in::before{margin:8px auto 2px;width:40px}
   .ntp-h{cursor:grab}
 }
+
+/* % so với tổng tài sản cạnh số tiền */
+.sc-ptot{font-style:normal;font-size:.62em;font-weight:650;margin-left:4px;vertical-align:.12em}
+/* đầu trang Bot Phản Xạ: tách hẳn nút Tắt bot khỏi "Chi tiết kỹ thuật" (tay to khỏi bấm nhầm) */
+.sc-hero .sc-act{margin-top:4px}
+.sc-hero>.sc-i{margin-top:14px;padding-top:10px;border-top:1px solid var(--line-2)}
+.sc-hero>.sc-i>summary{display:flex;align-items:center;min-height:40px;width:100%;padding:0 2px;font-size:.8rem}
+.sc-hero>.sc-i>summary::before{margin-right:6px}
