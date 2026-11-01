@@ -1183,7 +1183,8 @@ function spark(vals, o = {}) {
 // thẻ số liệu: [nhãn, giá trị, dòng phụ, tín hiệu (+1 tốt / -1 xấu / 0), chú thích, sparkline, id]
 const stc = ([k, v, sub, sg, tip, sp, id], grp) => `<div class="st ${sg > 0 ? "g" : sg < 0 ? "b" : ""}" ${tip ? `title="${esc(tip)}"` : ""}><dt>${grp ? `<i class="sgp">${esc(grp)}</i>` : ""}${k}</dt><dd ${id ? `id="${id}"` : ""}>${v ?? "—"}</dd>${sub ? `<small>${sub}</small>` : ""}${sp || ""}</div>`;
 const STG_TAG = { "Xu hướng": "Xu hướng", "Độ rộng thị trường": "Độ rộng", "Định giá Bitcoin (on-chain)": "On-chain", "Tâm lý & đòn bẩy": "Đòn bẩy", "Thanh khoản": "Thanh khoản" };
-const stGroup = (title, items) => `<div class="stg"><h3>${title}</h3><dl class="stats">${items.filter(Boolean).map((x) => stc(x, STG_TAG[title])).join("")}</dl></div>`;
+const stGroup = (title, items) => { const L = items.filter(Boolean), g = L.filter((x) => x[3] > 0).length, r = L.filter((x) => x[3] < 0).length;
+  return `<div class="stg"><h3><span>${title}</span><small>${g ? `<i class="sg-g">● ${g} tốt</i>` : ""}${r ? `<i class="sg-b">● ${r} xấu</i>` : ""}</small></h3><dl class="stats">${L.map((x) => stc(x)).join("")}</dl></div>`; };
 const sgn = (x, good = 1, th = 0) => (!isNum(x) ? 0 : x > th ? good : x < -th ? -good : 0);
 async function viewMarket() {
   const [M, IJ] = await Promise.all([load("data/market.json"), tryLoad("data/ideas.json"), coins()]);

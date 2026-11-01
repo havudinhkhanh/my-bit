@@ -2848,3 +2848,23 @@ body.cmdk-on{overflow:hidden}
 .acp-pt-w{overflow:visible;margin:8px 0 0}
 @media (max-width:760px){.acp-pt th.f,.acp-pt td.f{width:46%}.acp-pt thead th:not(.f) span{font-size:.86rem}.acp-pt thead th i{font-size:.58rem;padding:2px 6px}}
 .acp-id h1{font-family:inherit!important}@media (max-width:760px){.acp-pt .lim{font-size:.74rem;white-space:normal}}
+
+/* ================= 🚦 Ô SỐ LIỆU TỔNG QUAN – chia nhóm có tiêu đề, ô cùng kích thước, bố cục bên trong cố định ================= */
+.stgs{display:flex!important;flex-direction:column;gap:18px}
+.stgs .stg{display:block!important}
+.stgs .stg h3{display:flex!important;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3)}
+.stgs .stg h3 small{display:flex;gap:10px;font-size:.68rem;font-weight:600;letter-spacing:0;text-transform:none}
+.stgs .stg h3 i{font-style:normal}.sg-g{color:var(--up)}.sg-b{color:var(--down)}
+.stgs .stats{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));grid-auto-rows:1fr;gap:8px;align-items:stretch;margin:0}
+.stgs .st{display:flex;flex-direction:column;min-height:100px;padding:12px 13px 11px;border-radius:12px;background:var(--sunk);border:1px solid var(--line-2);box-shadow:none!important}
+.stgs .st dt{display:flex;align-items:center;gap:6px;font-size:.76rem;font-weight:500;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stgs .st dt::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--line)}
+.stgs .st.g dt::before{background:var(--up)}.stgs .st.b dt::before{background:var(--down)}
+.stgs .st dd{margin:8px 0 6px;font-size:1.32rem!important;line-height:1.15;font-weight:650;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stgs .st small{margin-top:auto;font-size:.72rem;line-height:1.35;color:var(--ink-3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.stgs .st .spk{position:absolute;right:10px;top:12px;bottom:auto;width:64px;height:20px;opacity:.85}
+.stgs .st:has(.spk) dt{padding-right:70px}
+@media (max-width:700px){.stgs{gap:14px}.stgs .stats{grid-template-columns:1fr 1fr;gap:6px}.stgs .st{min-height:92px;padding:10px 11px 9px}.stgs .st dd{font-size:1.12rem!important;margin:6px 0 4px}
+  .stgs .st .spk{width:44px;height:16px;right:8px;top:10px}.stgs .st:has(.spk) dt{padding-right:48px}}
+.st.g,.st.b,.stats>.st{margin:0}   /* lớp "g" (tốt) của ô trùng tên lớp lưới ".g + .g" → bị đẩy lệch 14px */
+.stgs .st,.stats .st{gap:0!important;grid-template-columns:none!important}
