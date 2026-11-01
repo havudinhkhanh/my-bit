@@ -2728,3 +2728,11 @@ body.cmdk-on{overflow:hidden}
 @media (max-width:979px){.top-in .search{display:none!important}.qbtn{display:inline-flex!important}.top-in{gap:6px!important;padding:6px 10px!important;min-width:0}.top-in .iconbtn{flex:none}.top-in .brand{flex:none}.top-in .upd{min-width:0;overflow:hidden;margin-right:auto}}
 @media (max-width:700px){#lang{display:none!important}}
 @media (max-width:420px){.top-in .upd{display:none}.top-in .brand{margin-right:auto}.top-in .iconbtn{width:34px;height:34px}}
+
+/* iPhone (Safari): 1vh = màn hình KHI ẨN thanh địa chỉ → bảng trượt cao 82vh bị đẩy lên khuất sau thanh địa chỉ (mất các mục trên cùng).
+   Dùng dvh = chiều cao đang thực sự nhìn thấy */
+@supports (height:1dvh){
+  .msheet .ms-in,.msheet-in{max-height:82dvh!important}
+  .tb-in{max-height:90dvh}.tbox .tb-in{max-height:92dvh}.bellbox{max-height:min(70vh,70dvh)}
+
+}
