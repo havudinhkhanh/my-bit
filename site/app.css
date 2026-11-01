@@ -2911,3 +2911,6 @@ body.cmdk-on{overflow:hidden}
 /* đổi giao diện: chuyển màu êm (chỉ trong lúc đổi) */
 .th-x,.th-x *{transition:background-color .25s ease,color .25s ease,border-color .25s ease!important}
 @media (prefers-reduced-motion:reduce){.ios-menu-in,.ios-menu.out .ios-menu-in{animation:none}}
+
+/* đo độ rộng bảng dài: chỉ dàn 30 dòng đầu trong lúc đo (đo xong gỡ ngay, cùng khung hình) */
+table.tw-meas>tbody>tr:nth-child(n+31){display:none}

@@ -270,7 +270,8 @@ const TW_OPT = [/^Phân vị/, /^Funding TB/, /^OI 24h/, /^Kỳ$/, /^Mua & giữ
 let TWN = 0;
 function twFit(tw) {
   const t = tw.querySelector(":scope > table"); if (!t || !t.offsetWidth) return;
-  tw.classList.remove("fit", "fit2", "over", "end"); t.removeAttribute("data-tfh");
+  // chỉ gỡ lớp đang có (gỡ lớp không có vẫn bắt trình duyệt tính lại cả bảng)
+  for (const c of ["fit", "fit2", "over", "end"]) if (tw.classList.contains(c)) tw.classList.remove(c); if (t.hasAttribute("data-tfh")) t.removeAttribute("data-tfh");
   const ov = () => t.scrollWidth - tw.clientWidth > 2;
   if (!ov()) return;
   tw.classList.add("fit"); if (!ov()) return;
@@ -296,13 +297,14 @@ let twRq = 0;
 const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
   twRq = 0;
   $$("#app .tw-stack").forEach((g) => g.classList.remove("tw-stack"));
-  const tws = $$("#app .tw"); tws.forEach(twFit);
+  const tws = $$("#app .tw"); const big = tws.map((tw) => tw.querySelector(":scope > table")).filter((t) => t && t.tBodies[0]?.rows.length > 40);
+  big.forEach((t) => t.classList.add("tw-meas")); tws.forEach(twFit); big.forEach((t) => t.classList.remove("tw-meas"));
   const grids = new Set();
   tws.forEach((tw) => { if (!tw.classList.contains("over")) return; let g = tw.closest(".panel")?.parentElement;
     for (let k = 0; g && g.id !== "app" && k < 3; k++, g = g.parentElement) { const cs = getComputedStyle(g); if (cs.display === "grid" && cs.gridTemplateColumns.split(" ").length === 2) { grids.add(g); return; } } });
   if (!grids.size) return;
   grids.forEach((g) => g.classList.add("tw-stack"));
-  grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit));
+  big.forEach((t) => t.classList.add("tw-meas")); grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit)); big.forEach((t) => t.classList.remove("tw-meas"));
 }); };
 new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches?.(".tw, table") || n.querySelector?.(".tw"))))) twAll(); }).observe(document.documentElement, { childList: true, subtree: true });
 { let tr = 0; addEventListener("resize", () => { clearTimeout(tr); tr = setTimeout(twAll, 150); }); }
@@ -555,7 +557,7 @@ document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('
 function pageIn() {
   const a = document.getElementById("app"); if (!a) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: "ease-out" }); return; } catch (e) { /* trình duyệt cũ */ } }
+  if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); return; } catch (e) { /* trình duyệt cũ */ } }
   a.classList.remove("pg-in"); requestAnimationFrame(() => a.classList.add("pg-in"));
 }
 
@@ -681,6 +683,7 @@ async function route() {
   const parts = h.split("/");
   const r = parts[0], arg = parts.slice(1).map((x) => decodeURIComponent(x));
   window.scrollTo(0, 0);
+  Store.fast = true;      // chuyển trang: dữ liệu tài khoản vừa tải (≤ 90 giây) dùng lại ngay, bản mới tải ở nền
   if (!app().querySelector(".panel")) app().innerHTML = `<div class="skel"><i></i><i></i><i></i><i class="w"></i><i class="w"></i></div>`;
   try {
     if (!r) { setTab("market"); await viewMarket(); }
@@ -688,7 +691,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { Store.fast = true; if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -699,7 +702,7 @@ async function route() {
     else if (r === "portfolio") { setTab("portfolio"); await viewPortfolio(); }
     else if (r === "tools") { setTab("tools"); await viewTools(arg[0]); }
     else if (r === "backtest") { setTab("backtest"); await viewBacktest(); }
-    else if (r === "help") { window.__openHelp = true; location.replace("#/methods"); return; }      // Hướng dẫn đã gộp vào Phương pháp
+    else if (r === "help") { window.__openHelp = true; Store.fast = false; location.replace("#/methods"); return; }      // Hướng dẫn đã gộp vào Phương pháp
     else if (r === "methods") { setTab("methods"); await viewMethods(arg[0]); }
     else if (r === "account") { setTab(""); await viewAccount(); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
@@ -1366,9 +1369,12 @@ async function viewCoins(view0) {
     const k = sort.k, d = sort.d;
     rows.sort((a, b) => { const x = a[k], y = b[k]; if (!isNum(x) && !isNum(y)) return 0; if (!isNum(x)) return 1; if (!isNum(y)) return -1; return (x - y) * d; });
     const cols = VIEWS[view][1];
-    const show = rows.slice(0, 400);
+    const show = rows.slice(0, 400), tok = (draw.t = (draw.t || 0) + 1);
+    // vẽ 50 dòng đầu ngay (trang hiện tức thì), phần còn lại chèn sau khi khung hình đầu đã hiện – mở trang không còn khựng
+    const rowH = (r) => `<tr>${cols.map((c) => `<td class="${COLS[c][2] || ""}">${COLS[c][1](r)}</td>`).join("")}</tr>`;
+    if (show.length > 50) requestAnimationFrame(() => setTimeout(() => { if (draw.t !== tok) return; const tb = $("#ctab tbody"); if (tb) tb.insertAdjacentHTML("beforeend", show.slice(50).map(rowH).join("")); }, 0));
     $("#ctab").innerHTML = `<div class="tw sticky"><table class="sortable"><thead><tr>${cols.map((c) => `<th data-s="${c}" class="${COLS[c][2] || ""} ${sort.k === c ? "on" : ""}" ${COLS[c][3] ? `title="${esc(COLS[c][3])}"` : ""}>${COLS[c][0]}${sort.k === c ? (d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
-      <tbody>${show.map((r) => `<tr>${cols.map((c) => `<td class="${COLS[c][2] || ""}">${COLS[c][1](r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <tbody>${show.slice(0, 50).map(rowH).join("")}</tbody></table></div>
       <p class="faint">${nf(rows.length, 0)} coin khớp bộ lọc${rows.length > 400 ? " (hiện 400 dòng đầu)" : ""}.</p>`;
     $$("th[data-s]", $("#ctab")).forEach((th) => th.onclick = () => { const c = th.dataset.s; sort = { k: c, d: sort.k === c ? -sort.d : (c === "k" ? 1 : -1) }; if (c === "k") sort.k = "rk"; lsSet("csort", sort); draw(); });
   };
@@ -2622,6 +2628,8 @@ let LIVE = null, LIVE_AT = 0;
 let LIVE_P = null;
 function liveData(force = false) {
   if (!force && LIVE && Date.now() - LIVE_AT < 60000) return Promise.resolve(LIVE);
+  // số liệu lượt nhanh chỉ đổi 15 phút/lần → chuyển trang dùng ngay bản đang có (≤ 15 phút), tải bản mới ở nền cho lần sau
+  if (!force && LIVE && Date.now() - LIVE_AT < 900e3) { if (!LIVE_P) LIVE_P = liveData1().catch(() => LIVE).finally(() => { LIVE_P = null; }); return Promise.resolve(LIVE); }
   if (LIVE_P) return LIVE_P;      // đang tải → dùng chung, không gọi máy chủ 2 lần
   return (LIVE_P = liveData1().finally(() => { LIVE_P = null; }));
 }
