@@ -11,6 +11,15 @@ async function scTabGo(k) {
   await viewScalp();
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
+// khung sự kiện: Gọn (ít dòng, mỗi sự kiện 1 dòng) · Vừa (mặc định) · Đầy đủ (hiện hết, không cuộn trong khung) – áp dụng cho mọi khung sự kiện, nhớ lựa chọn
+const fdSz = () => { const v = lsGet("feedsz", "m"); return ["s", "m", "l"].includes(v) ? v : "m"; };
+document.documentElement.dataset.fdsz = fdSz();
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.("[data-fdsz]");
+  if (b) { const v = b.dataset.fdsz; lsSet("feedsz", v); document.documentElement.dataset.fdsz = v; $$("[data-fdsz]").forEach((x) => x.setAttribute("aria-checked", String(x.dataset.fdsz === v))); return; }
+  const li = e.target.closest?.(".sc-feed li");      // chế độ Gọn / Vừa: chạm 1 sự kiện để xem đủ chữ
+  if (li && document.documentElement.dataset.fdsz !== "l" && !e.target.closest("a, button")) li.classList.toggle("open");
+});
 function lvEqBind() {
   $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
@@ -218,6 +227,7 @@ async function viewScalp() {
   const EVF = EVC.some(([k]) => k === window.__scEvF) ? window.__scEvF : "all";
   const evIco = { trade: "🔔", skip: "🚫", fix: "🔁", lv: "💵", fund: "💸", err: "⚠️", sys: "⚙️" };
   const feed = (L, chips) => `${chips ? `<div class="bseg sc-evf">${EVC.map(([k, t]) => { const n = k === "all" ? L.length : L.filter((e) => e.c === k).length; return n || k === "all" ? `<button type="button" data-scev="${k}" class="${k === EVF ? "on" : ""}">${t} <small class="faint" data-noi18n>${n}</small></button>` : ""; }).join("")}</div>` : ""}
+    <div class="fd-sz" role="radiogroup" aria-label="Độ dài khung sự kiện">${[["s", bi("Gọn", "Short")], ["m", bi("Vừa", "Medium")], ["l", bi("Đầy đủ", "Full")]].map(([k, t]) => `<button type="button" role="radio" data-fdsz="${k}" aria-checked="${k === fdSz()}">${t}</button>`).join("")}</div>
     <ul class="sc-feed" data-f="${chips ? EVF : "all"}">${L.map((e) => `<li data-c="${e.c}" class="${e.k || ""}" ${chips && EVF !== "all" && e.c !== EVF ? "hidden" : ""}><span class="sc-fi">${evIco[e.c]}</span><span class="sc-ft">${hms(e.t)}</span><span class="sc-fm">${esc(e.m)}</span></li>`).join("") || `<li class="faint">Chưa có sự kiện.</li>`}</ul>`;
   // ---------------------------------------------------------------- (D) Bắt râu sập: lệnh đã đóng + biểu đồ cú sốc, kiểm chứng bộ lọc bằng lệnh ảo
   const HT = AT.filter((t) => t.strat === "hook").slice().reverse();
