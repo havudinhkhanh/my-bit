@@ -160,10 +160,21 @@ async function viewScalp() {
     lt(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", "Sàn", Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${esc(f.src || "—")}`).join(" · ") || "—", ""),
     lt(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", LV?.env === "live" || C.lv_env === "live" ? "Binance THẬT" : "Binance Demo", !C.lv_on ? bi("đang tắt", "off") : LV?.halt ? bi("đang ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : lvSt.why ? bi("cần xem", "check") : "—", lvSt.why || LV?.halt || ""),
   ].join("");
-  const hero = `<section class="panel sc-hero"><div class="sc-hr1"><div class="sc-lights">${lights}<small id="scLive" class="sc-lv"></small></div>
-      <div class="sc-act">${C.enabled && X.pause ? `<button class="btn primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Bỏ nghỉ</button>` : ""}<button class="btn ${C.enabled ? "" : "primary"}" id="scOn">${C.enabled ? "⏸ Tắt bot" : "▶ Bật bot"}</button>
-        <details class="sc-more"><summary class="btn" aria-label="Thêm thao tác">⋯</summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div>
-    ${X.pause ? `<p class="sc-pause">⏸ ${esc(X.pause.why)}</p>` : ""}
+  // ---- khung trạng thái (kiểu thẻ iOS): đèn + trạng thái lớn · công tắc bật/tắt · ⋯ ; dưới là 3 ô Dữ liệu / Sàn / Binance ; cuối là dòng "Chi tiết kỹ thuật ›"
+  const bS = st[1] === "buy" ? "ok" : st[1] === "sell" ? "bad" : st[1] === "warn" ? "warn" : "off";
+  const tile = (c, lab, val, tip) => `<div class="hz-tl ${c}"${tip ? ` title="${esc(tip)}"` : ""}><small><i></i>${lab}</small><b>${val}</b></div>`;
+  const hzSub = dataOk ? bi(`${nf(nMk, 0)} thị trường · ${nf(rate, 0)} tin/giây`, `${nf(nMk, 0)} markets · ${nf(rate, 0)} msg/s`) : X.at ? bi(`dữ liệu cũ ${durVi(age)}`, `data ${nf(age, 0)}s old`) : bi("chưa có dữ liệu", "no data yet");
+  const hero = `<section class="panel sc-hero hz">
+    <div class="hz-top"><span class="hz-dot ${bS}" aria-hidden="true"></span>
+      <div class="hz-t"><b>${esc(String(st[0]).replace(/^[●⏸]\s*/, ""))}</b><small>${hzSub} <span id="scLive" class="sc-lv"></span></small></div>
+      <button type="button" class="ios-sw" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
+      <div class="sc-act"><details class="sc-more"><summary class="hz-ic" aria-label="Thêm thao tác"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div>
+    ${X.pause ? `<div class="hz-pause"><span>⏸ ${esc(X.pause.why)}</span>${C.enabled ? `<button class="btn sm primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Chạy tiếp</button>` : ""}</div>` : ""}
+    <div class="hz-g">
+      ${tile(dataOk ? "ok" : X.at ? "warn" : "off", bi("Dữ liệu", "Data"), dataOk ? bi(`${nf(nMk, 0)} thị trường`, `${nf(nMk, 0)} markets`) : X.at ? bi(`cũ ${durVi(age)}`, `${nf(age, 0)}s old`) : "—")}
+      ${tile(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", bi("Sàn", "Feeds"), Object.entries(FD).map(([t, f]) => `${t === "F" ? "F" : "S"} ${esc(String(f.src || "—").replace(/f$/, ""))}`).join(" · ") || "—", Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${f.src || "—"}`).join(" · "))}
+      ${tile(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", LV?.env === "live" || C.lv_env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", !C.lv_on ? bi("đang tắt", "off") : LV?.halt ? bi("đang ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : lvSt.why ? bi("cần xem", "check") : "—", lvSt.why || LV?.halt || "")}
+    </div>
     ${info(`<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}${feedTxt}${bn}<small class="faint">${esc(st[2])}</small></div>`, "Chi tiết kỹ thuật")}</section>`;
   // ---------------------------------------------------------------- 💰 TỔNG TÀI SẢN BINANCE (máy chủ riêng đọc mỗi 5 phút, chỉ quyền ĐỌC)
   const WAL = LV?.wal || {}, WALH = LV?.walH || {}, wEnvs = ["live", "demo"].filter((e) => WAL[e]?.at);
@@ -263,7 +274,7 @@ async function viewScalp() {
   const lk7 = Object.keys(LDD).filter((k) => k >= lvD7).sort(), l7 = lk7.map((k) => LDD[k].usd || 0), ls7 = l7.reduce((a, v) => a + v, 0), LT = LV?.totE?.[LVE] || LH.reduce((T, h) => { T.n++; T.pnl += h.pnl || 0; T.fees += h.fee || 0; if (h.pnl > 0) T.win++; return T; }, { n: 0, pnl: 0, win: 0, fees: 0 });      // chỉ tài khoản đang xem (thật / Demo)
   // lời/lỗ theo % TỔNG TÀI SẢN Binance (mọi ví) lúc đầu kỳ = tổng hiện tại − lời/lỗ của kỳ
   const TOTL = WL?.total, pTot = (v) => (isNum(v) && TOTL > 0 && TOTL - v > 0 ? v / (TOTL - v) * 100 : null);
-  const pTag = (v) => { const q = pTot(v); return q == null ? "" : ` <em class="sc-ptot ${cls(q)}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>`; };
+  const pTag = (v) => { const q = pTot(v); return q == null ? "" : ` <em class="sc-ptot ${cls(q)}">${nz(q, 2) > 0 ? "+" : ""}${nf(q, 2)}%</em>`; };
   const lvCards = `<dl class="stats sc-kp">${[
     [bi(`Tài sản futures ${LVN}`, `${LVN} futures equity`), isNum(lvEq) ? u$(lvEq) : "—", `${bi("ví", "wallet")} ${isNum(WL?.fut?.wallet ?? lvSt.bal) ? usd2(WL?.fut?.wallet ?? lvSt.bal) : "—"} · ${bi("khả dụng", "available")} ${isNum(lvSt.avail) ? usd2(lvSt.avail) : "—"}`, WL?.fut ? sgn(WL.fut.upnl) : 0, "", spark(EQL.map((q) => q[1]), { w: 150, h: 30 })],
     [bi("Hôm nay", "Today"), LV?.day ? sg$(LVD0) + pTag(LVD0) : "—", `${nTd} ${bi("lệnh", "trades")} · ${bi("ngừng khi lỗ ", "stops at −")}${usd2(LV?.size?.dayLim ?? C.lv_cap * C.lv_daily / 100)}`, sgn(LVD0)],
@@ -533,7 +544,7 @@ async function viewScalp() {
   lvEqBind(); cmpMark(); fdPlace();
   $("#scOn").onclick = async () => {
     if (C.enabled && !confirm(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`)) return;
-    C.enabled = !C.enabled; delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
+    C.enabled = !C.enabled; $("#scOn")?.setAttribute("aria-checked", String(C.enabled)); delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
   $("#scReset").onclick = async () => { if (!confirm(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`)) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
   if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };

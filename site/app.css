@@ -3047,3 +3047,46 @@ body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-eve
 .ph.ph-fd>.meta{order:2}
 .ph.ph-fd>.fd-sz{order:3;margin:0;flex:none}
 @media (max-width:420px){.ph.ph-fd>.fd-sz button{padding:4px 8px}}
+
+/* ---- khung trạng thái Bot Phản Xạ (thiết kế lại) */
+.sc-hero.hz{padding:14px 14px 4px}
+.hz-top{display:flex;align-items:center;gap:12px}
+.hz-dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--ink-3);position:relative}
+.hz-dot.ok{background:var(--up)}.hz-dot.warn{background:var(--brass,#d9a23a)}.hz-dot.bad{background:var(--down)}
+.hz-dot.ok::after,.hz-dot.bad::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid currentColor;color:var(--up);opacity:.5;animation:hzPing 2s ease-out infinite}
+.hz-dot.bad::after{color:var(--down)}
+@keyframes hzPing{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.5);opacity:0}}
+.hz-t{flex:1;min-width:0;display:grid;gap:2px}
+.hz-t b{font-size:1.06rem;font-weight:650;letter-spacing:-.01em;line-height:1.2}
+.hz-t small{font-size:.74rem;color:var(--ink-3);line-height:1.3}.hz-t .sc-lv{margin:0;font-size:inherit}
+/* công tắc kiểu iOS */
+.ios-sw{flex:none;position:relative;width:51px;height:31px;border-radius:16px;border:0;padding:0;cursor:pointer;background:color-mix(in srgb,var(--ink) 18%,transparent);transition:background .25s ease;-webkit-tap-highlight-color:transparent}
+.ios-sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.18),0 1px 1px rgba(0,0,0,.12);transition:transform .25s cubic-bezier(.3,.7,.4,1.1)}
+.ios-sw[aria-checked="true"]{background:#34C759}.ios-sw[aria-checked="true"] i{transform:translateX(20px)}
+.ios-sw:active i{width:31px}.ios-sw[aria-checked="true"]:active i{transform:translateX(16px)}
+.hz .sc-act{margin:0}
+.hz-ic{list-style:none;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;color:var(--ink-2);background:color-mix(in srgb,var(--ink) 8%,transparent);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hz-ic::-webkit-details-marker{display:none}.hz-ic::before,.hz-ic::after{content:none!important}
+.sc-more[open] .hz-ic{background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.hz .sc-menu{right:0;left:auto}
+.hz-pause{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--brass,#d9a23a) 12%,transparent);font-size:.8rem}
+.hz-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0 4px}
+.hz-tl{display:grid;gap:3px;padding:8px 10px;border-radius:11px;background:var(--sunk);min-width:0}
+.hz-tl small{display:flex;align-items:center;gap:5px;font-size:.66rem;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hz-tl small i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--ink-3)}
+.hz-tl.ok small i{background:var(--up)}.hz-tl.warn small i{background:var(--brass,#d9a23a)}.hz-tl.bad small i{background:var(--down)}
+.hz-tl b{font-size:.84rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.sc-hero.hz>.sc-i{margin-top:6px;padding-top:2px;border-top:.5px solid var(--line-2)}
+.sc-hero.hz>.sc-i>summary{min-height:42px;color:var(--ink-3);font-size:.78rem}
+.sc-hero.hz>.sc-i>summary::before{content:none}
+.sc-hero.hz>.sc-i>summary::after{content:"›";margin-left:auto;font-size:1.15rem;line-height:1;color:var(--ink-3);transition:transform .2s}
+.sc-hero.hz>.sc-i[open]>summary::after{transform:rotate(90deg)}
+
+.hz-tl{background:color-mix(in srgb,var(--ink) 5%,transparent)}
+.hz-t b{font-size:1rem}
+/* menu ⋯ của khung trạng thái: kiểu menu iOS (hàng chữ, kẻ mảnh), không phải nút viền */
+.hz .sc-menu{padding:0;gap:0;min-width:250px;border-radius:14px;overflow:hidden;border:0;background:color-mix(in srgb,var(--surface) 82%,transparent);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);box-shadow:0 10px 36px rgba(0,0,0,.35),0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent)}
+.hz .sc-menu .btn{border:0;border-radius:0;background:none;min-height:46px;padding:0 16px;font-size:.92rem;font-weight:500;color:var(--ink);justify-content:flex-start;box-shadow:none}
+.hz .sc-menu .btn+.btn{border-top:.5px solid color-mix(in srgb,var(--ink) 14%,transparent)}
+.hz .sc-menu .btn:active,.hz .sc-menu .btn:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.hz .sc-menu #scReset{color:var(--down)}
