@@ -4862,6 +4862,8 @@ async function bellCount() {
   if (!multiUser() || document.hidden) return;
   try {
     const j = await api("notifications/count"), n0 = __bellN; __bellN = j.unread || 0; const b = $("#bellN"); if (b) { b.textContent = __bellN > 99 ? "99+" : __bellN; b.hidden = !__bellN; }
+    // số trên biểu tượng app = số lệnh bot đang chờ khớp + đang mở (bot không chạy → xoá số)
+    if (navigator.setAppBadge && "act" in j) { const n = j.act?.n || 0; (n > 0 ? navigator.setAppBadge(Math.min(99, n)) : navigator.clearAppBadge()).catch(() => {}); }
     // có thông báo mới trong lúc đang mở trang → banner kiểu iPhone (chạm để mở đúng chỗ)
     if (__bellN > n0 || __bellTop == null) {
       const L = (await api("notifications?limit=3").catch(() => ({ items: [] }))).items || [];

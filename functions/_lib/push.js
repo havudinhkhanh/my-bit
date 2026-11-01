@@ -31,7 +31,7 @@ async function vapid(jwk, endpoint, sub) {
 }
 const SEV_MIN = { all: 0, normal: 1, important: 2, off: 99 };
 // items: [{ key, sev, title, body, url, kind }] – đã được ghi vào bảng thông báo; hàm này chỉ ĐẨY tới điện thoại theo tuỳ chọn của người dùng
-export async function pushNotify(env, uid, items) {
+export async function pushNotify(env, uid, items, opt = {}) {
   if (!env.DB || !items?.length) return 0;
   const [cfgR, prefR, subR] = await Promise.all([
     env.DB.prepare("SELECT key, value FROM config WHERE key IN ('vapid_private_jwk', 'site_url', 'smtp_user')").all(),
@@ -44,15 +44,24 @@ export async function pushNotify(env, uid, items) {
   const lvl = SEV_MIN[pr.push || "normal"] ?? 1, off = new Set(Object.entries(pr.kinds || {}).filter(([, v]) => v === false).map(([k]) => k));
   const want = items.filter((x) => (x.sev || 0) >= lvl && !off.has(x.kind) && !off.has(String(x.kind || "").replace(/w$/, "")));
   if (!want.length) return 0;
-  const top = [...want].sort((a, b) => (b.sev || 0) - (a.sev || 0)), one = top.length === 1;
   const base = (cfg.site_url || "").replace(/\/+$/, "") + "/";
-  const data = JSON.stringify({ title: one ? top[0].title : `MyBit: ${top.length} việc mới`, body: (one ? top[0].body || "" : top.slice(0, 4).map((x) => x.title).join(" · ")).slice(0, 180),
-    url: base + (one ? top[0].url || "#/" : "#/notifications"), tag: "mybit-" + String(top[0].key).slice(0, 40) });
+  // mỗi lệnh (grp) → 1 thông báo riêng trên điện thoại, tự ĐÈ bản cũ của chính lệnh đó (chờ khớp → đã khớp → đã đóng);
+  // việc lẻ khác gộp thành 1 thông báo. Trên chuông web vẫn giữ đủ lịch sử.
+  const bySev = (L) => [...L].sort((a, b) => (b.sev || 0) - (a.sev || 0)), G = new Map(), loose = [];
+  for (const x of want) { if (x.grp) { if (!G.has(x.grp)) G.set(x.grp, []); G.get(x.grp).push(x); } else loose.push(x); }
+  const msgs = [...G.entries()].slice(0, 4).map(([g, L]) => { const t = bySev(L)[0]; return { sev: t.sev || 0, title: t.title, body: t.body || "", url: t.url || "#/", tag: "mybit-o-" + String(g).slice(0, 60) }; });
+  if (loose.length) {
+    const top = bySev(loose), one = top.length === 1;
+    msgs.push({ sev: top[0].sev || 0, title: one ? top[0].title : `MyBit: ${top.length} việc mới`, body: one ? top[0].body || "" : top.slice(0, 4).map((x) => x.title).join(" · "),
+      url: one ? top[0].url || "#/" : "#/notifications", tag: "mybit-" + String(top[0].key).slice(0, 40) });
+  }
+  const badge = Number.isFinite(opt.badge) ? { badge: opt.badge } : {};
   const jwk = JSON.parse(cfg.vapid_private_jwk), subject = "mailto:" + (cfg.smtp_user || "admin@example.com");
   let ok = 0;
-  for (const s of subs) {
+  for (const s of subs) for (const m of msgs) {
     try {
-      const r = await fetch(s.endpoint, { method: "POST", body: await encrypt(data, s.p256dh, s.auth), headers: { Authorization: await vapid(jwk, s.endpoint, subject), "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream", TTL: "43200", Urgency: top[0].sev >= 2 ? "high" : "normal" } });
+      const data = JSON.stringify({ title: m.title, body: String(m.body).slice(0, 180), url: base + m.url, tag: m.tag, ...badge });
+      const r = await fetch(s.endpoint, { method: "POST", body: await encrypt(data, s.p256dh, s.auth), headers: { Authorization: await vapid(jwk, s.endpoint, subject), "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream", TTL: "43200", Urgency: m.sev >= 2 ? "high" : "normal" } });
       if (r.status >= 200 && r.status < 300) { ok++; await env.DB.prepare("UPDATE push_subs SET last_ok = ?, fails = 0 WHERE id = ?").bind(new Date().toISOString(), s.id).run(); }
       else if (r.status === 404 || r.status === 410) await env.DB.prepare("DELETE FROM push_subs WHERE id = ?").bind(s.id).run();
       else await env.DB.prepare("UPDATE push_subs SET fails = fails + 1 WHERE id = ?").bind(s.id).run();
@@ -61,12 +70,12 @@ export async function pushNotify(env, uid, items) {
   return ok;
 }
 // ghi vào bảng thông báo (chuông) + đẩy ngay những cái MỚI
-export async function notifyNow(env, uid, kind, items) {
+export async function notifyNow(env, uid, kind, items, opt = {}) {
   if (!items?.length) return 0;
   const now = new Date().toISOString();
   const res = await env.DB.batch(items.map((x) => env.DB.prepare("INSERT OR IGNORE INTO notifications(user_id, key, kind, sev, title, body, url, sym, created_at) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(Number(uid), String(x.key).slice(0, 200), kind, x.sev || 0, String(x.title).slice(0, 200), String(x.body || "").slice(0, 1500), x.url || "#/", x.sym || null, now)));
   const fresh = items.filter((x, i) => res[i]?.meta?.changes > 0).map((x) => ({ ...x, kind }));
-  try { await pushNotify(env, uid, fresh); } catch (e) { console.log("push", e.message); }
+  try { await pushNotify(env, uid, fresh, opt); } catch (e) { console.log("push", e.message); }
   return fresh.length;
 }

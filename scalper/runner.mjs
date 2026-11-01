@@ -52,10 +52,17 @@ async function api(method, body, sub = "") {
 let UID = null;
 const readCfg = async () => { const j = await api("GET"); UID = j.uid; return j.cfg; };
 let live = null;
-const writeState = async (uid, out) => api("POST", JSON.stringify(live ? { ...out, live: live.summary() } : out));
+// số lệnh đang chờ khớp + đang mở → số trên biểu tượng app (điện thoại). Đang chạy lệnh thật/Demo → đếm lệnh đó, không thì đếm Bắt râu sập sàn thử.
+let ACT = null;
+const actOf = (out) => {
+  const ids = new Set([...Object.keys(out.hk || {}), ...Object.entries(out.pos || {}).filter(([, p]) => p.strat === "hook").map(([k]) => k)]);
+  const L = live ? live.active() : [], lo = L.filter((e) => e.pos?.q > 0).length, onL = !!(core?.cfg?.lv_on && live);
+  return { n: onL ? L.length : ids.size, paper: ids.size, lw: L.length - lo, lo, src: onL ? live.env() : "paper", at: new Date().toISOString() };
+};
+const writeState = async (uid, out) => { try { ACT = actOf(out); } catch (e) { ACT = null; } return api("POST", JSON.stringify(live ? { ...out, live: live.summary(), act: ACT } : { ...out, act: ACT })); };
 const loadBrain = async () => api("GET", undefined, "/brain");
 const saveDays = async (uid, paper) => api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), paper, demo: live?.daysOut("demo"), live: live?.daysOut("live") }), "/days");
-const notify = async (uid, items) => api("POST", JSON.stringify({ items }), "/notify");
+const notify = async (uid, items) => api("POST", JSON.stringify({ items, act: ACT }), "/notify");
 const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
 const openWS = (url) => new Promise((res, rej) => {
   const ws = new WebSocket(url);

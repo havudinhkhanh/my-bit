@@ -80,7 +80,11 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: APP, body: e.data ? e.data.text() : "" }; }
+  // số trên biểu tượng app (vd. số lệnh bot đang chờ + đang mở) – iPhone (iOS 16.4+, app đã thêm vào màn hình chính), Android, máy tính
+  const nb = self.navigator;
+  const badge = typeof d.badge === "number" && nb && nb.setAppBadge ? (d.badge > 0 ? nb.setAppBadge(d.badge) : nb.clearAppBadge()).catch(() => {}) : null;
   e.waitUntil(Promise.all([
+    badge,
     self.registration.showNotification(d.title || APP, {
       body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag, icon: "/apple-touch-icon.png", badge: "/icon-192.png", data: { url: d.url || "/" },
     }),

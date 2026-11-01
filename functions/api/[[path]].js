@@ -93,9 +93,10 @@ async function scalpRunner({ request, env }, sub) {
   if (sub === "notify") {    // thông báo từ bot Phản Xạ: ghi chuông + đẩy ngay tới điện thoại
     if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
     let j; try { j = await request.json(); } catch (e) { return err("Dữ liệu không hợp lệ"); }
-    const items = (j.items || []).filter((x) => x && x.key && x.title).slice(0, 20).map((x) => ({ key: "sc:" + String(x.key).slice(0, 180), sev: Math.max(0, Math.min(3, +x.sev || 0)), title: x.title, body: x.body, url: x.url || "#/bot/scalp", sym: x.sym || null }));
+    const items = (j.items || []).filter((x) => x && x.key && x.title).slice(0, 20).map((x) => ({ key: "sc:" + String(x.key).slice(0, 180), sev: Math.max(0, Math.min(3, +x.sev || 0)), title: x.title, body: x.body, url: x.url || "#/bot/scalp", sym: x.sym || null, ...(x.grp ? { grp: String(x.grp).slice(0, 80) } : {}) }));
     const items2 = can({ r: u.role, p }, "notify_push") ? items : items.map((x) => ({ ...x, sev: Math.min(x.sev, 0) }));
-    return json({ ok: true, n: await notifyNow(env, u.id, "scalp", items2) });
+    const n = Number(j.act?.n);      // số lệnh đang chờ + đang mở → số trên biểu tượng app
+    return json({ ok: true, n: await notifyNow(env, u.id, "scalp", items2, Number.isFinite(n) && n >= 0 ? { badge: Math.min(99, Math.round(n)) } : {}) });
   }
   if (sub === "px") {        // bảng giá Binance thật cho các bot phút (Binance chặn Cloudflare) – chỉ máy chủ của quản trị viên được ghi
     if (u.role !== "admin") return err("Chỉ máy chủ của quản trị viên được chuyển tiếp giá", 403);
@@ -121,8 +122,14 @@ async function scalpRunner({ request, env }, sub) {
   if (request.method === "POST") {
     const text = await request.text();
     if (text.length > 1500000) return err("Dữ liệu quá lớn", 413);
-    try { JSON.parse(text); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    let st; try { st = JSON.parse(text); } catch (e) { return err("Dữ liệu không hợp lệ"); }
     await putData(env, u.id, "scalpstate", text);
+    // bản tóm tắt nhỏ số lệnh đang chờ / đang mở – chuông đọc mỗi phút để cập nhật số trên biểu tượng app (chỉ ghi khi số đổi)
+    if (st && st.act && typeof st.act === "object") {
+      const a = JSON.stringify({ n: +st.act.n || 0, paper: +st.act.paper || 0, lw: +st.act.lw || 0, lo: +st.act.lo || 0, src: String(st.act.src || "").slice(0, 8) });
+      await env.DB.prepare("INSERT INTO user_data(user_id, key, value, updated_at) VALUES(?, 'scalpact', ?, ?) ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at WHERE user_data.value IS NOT excluded.value OR user_data.updated_at < ?")
+        .bind(u.id, a, nowIso(), new Date(Date.now() - 300e3).toISOString()).run();
+    }
     return json({ ok: true });
   }
   return err("Phương thức không hỗ trợ", 405);
@@ -161,7 +168,12 @@ export async function onRequest(ctx) {
         const url = new URL(request.url);
         const before = Number(url.searchParams.get("before") || 0) || 1e15, limit = Math.min(100, Number(url.searchParams.get("limit") || 40));
         const unread = (await env.DB.prepare("SELECT COUNT(*) n FROM notifications WHERE user_id = ? AND read_at IS NULL").bind(uid).first()).n;
-        if (sub === "count") return json({ unread });
+        if (sub === "count") {
+          // kèm số lệnh bot đang chờ + đang mở (cho số trên biểu tượng app); máy chủ bot im > 15 phút → coi như không có
+          const a = await env.DB.prepare("SELECT value, updated_at FROM user_data WHERE user_id = ? AND key = 'scalpact'").bind(uid).first();
+          let act = null; try { if (a && Date.now() - Date.parse(a.updated_at) < 900e3) act = JSON.parse(a.value); } catch (e) { /* bỏ qua */ }
+          return json({ unread, act });
+        }
         const { results } = await env.DB.prepare("SELECT id, kind, sev, title, body, url, sym, created_at, read_at FROM notifications WHERE user_id = ? AND id < ? ORDER BY id DESC LIMIT ?")
           .bind(uid, before, limit).all();
         return json({ items: results, unread });
