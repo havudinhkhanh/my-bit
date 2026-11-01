@@ -39,9 +39,9 @@ export class LiveExec {
     if (this.env() === "live" && !c.lv_live_ok) return false;          // môi trường thật: phải gõ xác nhận trên trang
     return true;
   }
-  // vốn để tính cỡ lệnh & giới hạn lỗ ngày. Thật: min(Vốn tối đa, số dư ví futures) → tiền tăng thì cỡ lệnh tự tăng theo, tiền giảm thì tự nhỏ lại.
-  // Demo: giữ nguyên như cũ (Vốn tối đa).
-  base() { const c = this.cfg(); return this.env() === "live" && this.st.bal > 0 ? Math.min(c.lv_cap, this.st.bal) : c.lv_cap; }
+  // vốn để tính cỡ lệnh & giới hạn lỗ ngày. Thật: min(Vốn tối đa, số dư ví futures) – hoặc TOÀN BỘ số dư khi bật "Dùng toàn bộ số dư" (lv_all)
+  // → lời thì cỡ lệnh tự tăng theo (lãi kép), lỗ thì tự nhỏ lại. Demo: giữ nguyên như cũ (Vốn tối đa).
+  base() { const c = this.cfg(); return this.env() === "live" && this.st.bal > 0 ? (c.lv_all ? this.st.bal : Math.min(c.lv_cap, this.st.bal)) : c.lv_cap; }
   say(m, kind = "info") { this.S.log = [...this.S.log.slice(-79), { t: iso(Date.now()), k: kind, m }]; this.log(`💵 ${m}`); this.save(); }
   note(key, sev, title, body) { try { this.core.note(`lv:${key}`, sev, title, body); } catch (e) { /* bỏ qua */ } }
   save() { try { const tmp = this.file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(this.S)); fs.renameSync(tmp, this.file); } catch (e) { this.log("lưu live.json lỗi", e.message); } }
@@ -181,7 +181,8 @@ export class LiveExec {
       if (tot(lv) > c.lv_cap * 0.25) lv = lim.slice(0, 1);
       if (tot(lv) > c.lv_cap * 0.25) return skip(`lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 25% vốn tối đa – tăng "Vốn tối đa"`);
     }
-    if (used + tot(lv) / c.lv_lev > c.lv_cap) return skip(`đã dùng ${used.toFixed(2)} / ${c.lv_cap} USDT ký quỹ`);
+    const capM = env === "live" ? B : c.lv_cap;
+    if (used + tot(lv) / c.lv_lev > capM) return skip(`đã dùng ${used.toFixed(2)} / ${+capM.toFixed(2)} USDT ký quỹ`);
     if (this.st.avail != null && tot(lv) / c.lv_lev > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ`);
     // không đụng coin anh đang có vị thế
     const pr = await this.pos(sym); if (pr && Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${sym} (${pr.amt}) – bot không đụng vào`);
