@@ -2946,3 +2946,13 @@ html[data-vt="back"]::view-transition-new(root){animation-name:vtInL}
 @keyframes vtInR{from{opacity:0;transform:translateX(36px)}}
 @keyframes vtOutR{to{opacity:0;transform:translateX(36px)}}
 @keyframes vtInL{from{opacity:0;transform:translateX(-36px)}}
+
+/* bảng thông báo: kéo lên = cao hết màn hình; không cho cuộn lan ra trang phía sau */
+@media (max-width:979px){
+  .ntp{touch-action:none}
+  .ntp-l{touch-action:pan-y}
+  .ntp-in{transition:max-height .3s cubic-bezier(.32,.72,0,1)}
+  .ntp-in.full{max-height:calc(100vh - env(safe-area-inset-top,0px) - 10px);max-height:calc(100dvh - env(safe-area-inset-top,0px) - 10px)}
+  .ntp-in::before{margin:8px auto 2px;width:40px}
+  .ntp-h{cursor:grab}
+}

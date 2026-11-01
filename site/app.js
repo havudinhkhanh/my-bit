@@ -4920,6 +4920,49 @@ function bindNtf(root, items, redraw) {
     const it = b.closest("[data-nid]"); it.classList.remove("new"); b.remove(); redraw?.(false);
   }));
 }
+// bảng thông báo trên điện thoại: kéo thanh nắm (hoặc đầu bảng) xuống để đóng, kéo lên để mở cao hết màn hình;
+// trong danh sách: đang ở đầu danh sách mà kéo xuống cũng kéo cả bảng (như iOS). Chạm vào bảng / nền mờ KHÔNG cuộn trang phía sau.
+function ntpDrag(box) {
+  const sh = box.querySelector(".ntp-in"), list = box.querySelector(".ntp-l"), mq = matchMedia("(max-width:979px)");
+  let D = null;
+  const ease = "transform .34s cubic-bezier(.32,.72,0,1)";
+  box.addEventListener("touchstart", (e) => {
+    D = null; if (!mq.matches || e.touches.length !== 1 || e.target.closest(".nt-cs")) return;      // hàng lọc vuốt ngang: để nguyên
+    const y = e.touches[0].clientY, inSh = sh.contains(e.target), head = inSh && y - sh.getBoundingClientRect().top < 64 && !e.target.closest("button, a, input, select");
+    const inList = list && list.contains(e.target);
+    D = { y0: y, yl: y, t0: Date.now(), dy: 0, head, inList, inSh, on: false };
+  }, { passive: true });
+  box.addEventListener("touchmove", (e) => {
+    if (!D) return;
+    const y = e.touches[0].clientY, dy = y - D.y0, step = y - D.yl; D.yl = y;
+    if (!D.inSh) { if (e.cancelable) e.preventDefault(); return; }              // chạm nền mờ: không cuộn trang dưới
+    if (!D.on) {
+      // trong danh sách: cuộn danh sách bình thường; chỉ kéo bảng khi đã ở đầu danh sách và kéo xuống
+      if (D.inList && !D.head && !(list.scrollTop <= 0 && dy > 0)) {
+        const atEnd = list.scrollTop + list.clientHeight >= list.scrollHeight - 1, atTop = list.scrollTop <= 0;
+        if ((atTop && step > 0) || (atEnd && step < 0) || list.scrollHeight <= list.clientHeight + 1) { if (e.cancelable) e.preventDefault(); }   // tới mép: không lan sang trang
+        return;
+      }
+      if (Math.abs(dy) < 6) { if (e.cancelable) e.preventDefault(); return; }
+      D.on = true; sh.style.transition = "none";
+    }
+    if (e.cancelable) e.preventDefault();
+    D.dy = dy;
+    // kéo lên: cao thêm tối đa tới gần đỉnh màn hình (có lực cản), kéo xuống: bảng đi theo ngón tay
+    sh.style.transform = dy >= 0 ? `translateY(${dy}px)` : "";
+    if (dy < 0 && !sh.classList.contains("full")) sh.style.marginTop = "0";
+    if (dy < -36) sh.classList.add("full");
+  }, { passive: false });
+  box.addEventListener("touchend", () => {
+    if (!D) return; const d = D; D = null; if (!d.on) return;
+    const v = d.dy / Math.max(1, Date.now() - d.t0);
+    sh.style.transition = ease;
+    if (d.dy > Math.min(150, sh.offsetHeight * 0.3) || (v > 0.5 && d.dy > 40)) {
+      if (sh.classList.contains("full") && d.dy < sh.offsetHeight * 0.45 && v < 0.9) { sh.classList.remove("full"); sh.style.transform = ""; return; }   // đang mở cao → kéo xuống vừa: về cỡ thường
+      sh.style.transform = "translateY(105%)"; setTimeout(() => { bellClose(); }, 240);
+    } else { sh.style.transform = ""; setTimeout(() => (sh.style.transition = ""), 360); }
+  }, { passive: true });
+}
 function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
 async function bellOpen() {
   if ($("#bellBox")) { bellClose(); return; }
@@ -4929,7 +4972,7 @@ async function bellOpen() {
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
     <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div>
     <div class="ntp-f"><button type="button" class="btn sm" id="bellAll">✓ Đã đọc hết</button><a class="btn sm" href="#/notifications">Xem tất cả →</a></div></div>`;
-  document.body.appendChild(box); document.body.classList.add("nt-on");
+  document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box);
   let items = [], f = "all";
   const draw = (chips = true) => {
     const un = items.filter((n) => !n.read_at).length;
