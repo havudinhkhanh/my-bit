@@ -4779,7 +4779,9 @@ function ntfRow(n) {
   const tm = new Date(n.created_at).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" }), g = ntfGrp(n.kind);
   const em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);      // tiêu đề có sẵn biểu tượng → dùng làm biểu tượng, không lặp 2 lần
   const ic = em ? em[1] : ntfIcon(n.kind), title = em ? n.title.slice(em[0].length) : n.title;
-  return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
+  // lệnh bot: TIỀN THẬT (viền vàng + nhãn) / DEMO / SÀN THỬ (mờ hơn) – nhìn là biết lệnh nào là tiền thật
+  const T = n.title || "", acc = /^💰 TIỀN THẬT|LỆNH THẬT/.test(T) ? "real" : /^🟡 DEMO|^💵 Demo/.test(T) ? "demo" : /^🧪 SÀN THỬ/.test(T) || (/^scalp/.test(n.kind || "") && /^[🪝⚡]/u.test(T)) ? "paper" : "";
+  return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
     <span class="nt-b"><b>${esc(title)}</b>${n.body ? `<span class="nt-t">${esc(n.body)}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
     ${n.read_at ? "" : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
 }

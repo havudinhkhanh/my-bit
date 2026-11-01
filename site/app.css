@@ -2441,7 +2441,10 @@ body{touch-action:manipulation}
 .sc-evf{margin-bottom:8px}
 .sc-hl{display:grid;gap:4px;max-height:620px;overflow:auto;overscroll-behavior:contain}
 .sc-ht{border-radius:10px;background:var(--sunk)}
-.sc-htr{display:grid;grid-template-columns:62px minmax(110px,auto) minmax(0,1fr) auto auto auto;gap:8px;align-items:center;padding:7px 10px;font-size:.82rem}
+.sc-htr{display:grid;grid-template-columns:62px minmax(110px,auto) minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 10px;font-size:.82rem}
+.sc-hres{display:grid;justify-items:end;gap:1px;line-height:1.2;text-align:right;font-variant-numeric:tabular-nums}
+.sc-hres>b{font-size:.95rem}.sc-hres>em{font-style:normal;font-weight:650;font-size:.78rem}.sc-hres>small{font-size:.72rem;opacity:.85}
+.sc-htr>.btn.sm{width:34px;min-width:34px;padding:0;justify-self:end}
 .sc-hc{padding:4px 10px 10px}.sc-hk .svgchart{width:100%;height:auto}.sc-hk .leg{margin-top:4px}
 .sc-fr li{font-size:.8rem}
 /* thiết lập */
@@ -2482,7 +2485,7 @@ details.sc-adv[open]>summary{margin-bottom:8px}
   .sc-sls{grid-template-columns:minmax(0,1fr)}
   .sc-li>span{max-width:150px}
   .sc-tabs{top:0;margin-left:-4px;margin-right:-4px;border-radius:0 0 12px 12px}
-  .sc-htr{grid-template-columns:auto minmax(0,1fr) auto;row-gap:2px}
+  .sc-htr{grid-template-columns:auto minmax(0,1fr) auto auto;row-gap:2px}
   .sc-htr>small:nth-of-type(2){grid-column:1/-1;order:5}
   .sc-feed li{grid-template-columns:20px 54px minmax(0,1fr)}
   table.rs,table.rs tbody,table.rs tfoot,table.rs tr,table.rs td{display:block;width:auto}
@@ -2868,3 +2871,10 @@ body.cmdk-on{overflow:hidden}
   .stgs .st .spk{width:44px;height:16px;right:8px;top:10px}.stgs .st:has(.spk) dt{padding-right:48px}}
 .st.g,.st.b,.stats>.st{margin:0}   /* lớp "g" (tốt) của ô trùng tên lớp lưới ".g + .g" → bị đẩy lệch 14px */
 .stgs .st,.stats .st{gap:0!important;grid-template-columns:none!important}
+
+/* thông báo lệnh bot: tiền thật nổi bật, sàn thử mờ hơn */
+.nt-i.nt-real{box-shadow:inset 3px 0 0 #E8B931;background:color-mix(in srgb,#E8B931 9%,transparent)}
+.nt-i.nt-real .nt-b>b{color:#F2C94C}
+.nt-i.nt-demo{box-shadow:inset 3px 0 0 color-mix(in srgb,#E8B931 45%,transparent)}
+.nt-i.nt-paper .nt-b>b{font-weight:600}.nt-i.nt-paper .nt-ic,.nt-i.nt-paper .nt-t{opacity:.72}
+[data-theme=light] .nt-i.nt-real .nt-b>b{color:#8A5A00}

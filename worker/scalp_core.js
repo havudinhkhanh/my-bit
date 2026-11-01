@@ -789,7 +789,7 @@ export class ScalpCore {
     if (P.shk) this.shAdd(P.shk, net, true, now);
     if (P.bx && why !== "BTC") this.bxAdd(P.bx.ep, clamp(P.side * (P.bx.px - px) / P.e * 1e4, -1000, 1000));      // lệnh thật giữ qua cú sốc BTC: thoát lúc đó thì hơn/kém bao nhiêu      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
     const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
-    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", "TIME+": "hết giờ (đã giữ thêm vì tín hiệu còn thuận)", REV: "tín hiệu đảo chiều – thoát sớm", BTC: "BTC sốc ngược chiều – thoát ngay", STALE: "mất dữ liệu", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`, "#/bot/scalp", P.strat === "hook" ? `hk:${x.id}:${P.ts}` : null);
+    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `🧪 SÀN THỬ · ${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", "TIME+": "hết giờ (đã giữ thêm vì tín hiệu còn thuận)", REV: "tín hiệu đảo chiều – thoát sớm", BTC: "BTC sốc ngược chiều – thoát ngay", STALE: "mất dữ liệu", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)" }[why] || why} · ${net >= 0 ? "+" : ""}${net.toFixed(1)} bps sau phí · giữ ${((now - P.t0) / 1000).toFixed(0)}s · tài sản ${this.equity().toFixed(2)} USDT`, "#/bot/scalp", P.strat === "hook" ? `hk:${x.id}:${P.ts}` : null);
   }
 
   // ---------------------------------------------------------------- 🪝 BẮT RÂU SẬP – đặt lệnh chờ sâu sau cú sốc 1 phút
@@ -928,7 +928,7 @@ export class ScalpCore {
     const pxs = LV.filter((l) => !l.mk).map((l) => +l.px.toPrecision(6)).join(" / ");
     const mkTx = LV[0].mk ? ` + MUA NGAY ${+x.ask.toPrecision(6)} (15 phút trước đã giảm ${(-r15 / 100).toFixed(1)}%)` : "";
     this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps trong 1 phút (z ${z.toFixed(1)}, khối lượng ${(b[4] / med).toFixed(1)}×) → chờ ${side > 0 ? "mua" : "bán"} ở ${pxs}${mkTx}`, "info");
-    this.note(`hk:${x.id}:${b[0]}`, 1, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 100).toFixed(1)}% trong 1 phút`, `${LV[0].mk ? "Mua ngay + đ" : "Đ"}ặt lệnh chờ ${side > 0 ? "mua" : "bán"} ở ${pxs} (sàn thử) – chờ tối đa ${c.hk_w} phút, khớp thì giữ ${c.hk_h} phút.`, "#/bot/scalp", `hk:${x.id}:${now}`);
+    this.note(`hk:${x.id}:${b[0]}`, 1, `🧪 SÀN THỬ · 🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 100).toFixed(1)}% trong 1 phút`, `${LV[0].mk ? "Mua ngay + đ" : "Đ"}ặt lệnh chờ ${side > 0 ? "mua" : "bán"} ở ${pxs} (sàn thử) – chờ tối đa ${c.hk_w} phút, khớp thì giữ ${c.hk_h} phút.`, "#/bot/scalp", `hk:${x.id}:${now}`);
     if (LV[0].mk) { LV[0].f = 1; this.hookFill(x, S.hk[x.id], LV[0], now); }
   }
   hookTrade(x, p, now) {
@@ -946,7 +946,7 @@ export class ScalpCore {
       exp: null, raw: null, cost: r2((fr + (x.t === "F" ? c.fee_t : c.fee_ts)) * 100, 1), slb: c.hk_stop * 100, tpb: null, R: H.R, z: H.z, lv: 1, c0: H.c0, ts: H.t0, lvp: H.lv.map((q) => +q.px.toPrecision(8)) };
     const base = x.id.split(":")[0], away = (l.px / H.c0 - 1) * 100;
     this.say(now, `🪝 ${l.mk ? "Mua ngay" : "Khớp " + (H.side > 0 ? "mua" : "bán")} ${base} ở ${+l.px.toPrecision(6)} (${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá đóng nến sốc) · giữ ${c.hk_h} phút`, "info");
-    this.note(`hkf:${x.id}:${H.t0}:${l.d}`, 2, `🪝 Khớp ${H.side > 0 ? "Long" : "Short"} ${base} ở ${+l.px.toPrecision(6)}`, `${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá sau cú ${H.side > 0 ? "sập" : "vọt"} · sàn thử · tự đóng sau ${c.hk_h} phút${c.hk_tra ? ` (lời ≥ ${(c.hk_tra / 100).toFixed(1)}% thì đóng khi trả lại ${(c.hk_trg / 100).toFixed(1)}%)` : ""}${c.hk_stop ? `, cắt lỗ thảm hoạ ${c.hk_stop}%` : ""}.`, "#/bot/scalp", `hk:${x.id}:${H.t0}`);
+    this.note(`hkf:${x.id}:${H.t0}:${l.d}`, 2, `🧪 SÀN THỬ · 🪝 Khớp ${H.side > 0 ? "Long" : "Short"} ${base} ở ${+l.px.toPrecision(6)}`, `${away >= 0 ? "+" : ""}${away.toFixed(1)}% so với giá sau cú ${H.side > 0 ? "sập" : "vọt"} · sàn thử · tự đóng sau ${c.hk_h} phút${c.hk_tra ? ` (lời ≥ ${(c.hk_tra / 100).toFixed(1)}% thì đóng khi trả lại ${(c.hk_trg / 100).toFixed(1)}%)` : ""}${c.hk_stop ? `, cắt lỗ thảm hoạ ${c.hk_stop}%` : ""}.`, "#/bot/scalp", `hk:${x.id}:${H.t0}`);
   }
 
   // ---------------------------------------------------------------- VÙNG GIÁ (SMC) & LỆNH ẢO
