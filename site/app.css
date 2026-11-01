@@ -2723,3 +2723,8 @@ body.cmdk-on{overflow:hidden}
 /* nút tìm nhanh trên đầu trang khi màn hình hẹp (ô tìm bị ẩn) → mở bảng tìm nhanh toàn màn hình */
 .qbtn{display:none}@media (max-width:480px){.qbtn{display:inline-flex}}
 @media (pointer:coarse){.cmdk-in{max-height:calc(var(--vvh,100vh) - 16px)!important}.cmdk{padding-top:8px!important}}
+
+/* đầu trang điện thoại (kể cả khi Safari thu nhỏ trang → màn hình "rộng" 480–979): bỏ ô tìm bị ép hẹp, dùng nút 🔍 mở bảng tìm nhanh toàn màn hình; không tràn ngang */
+@media (max-width:979px){.top-in .search{display:none!important}.qbtn{display:inline-flex!important}.top-in{gap:6px!important;padding:6px 10px!important;min-width:0}.top-in .iconbtn{flex:none}.top-in .brand{flex:none}.top-in .upd{min-width:0;overflow:hidden;margin-right:auto}}
+@media (max-width:700px){#lang{display:none!important}}
+@media (max-width:420px){.top-in .upd{display:none}.top-in .brand{margin-right:auto}.top-in .iconbtn{width:34px;height:34px}}
