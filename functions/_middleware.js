@@ -2,7 +2,7 @@
 // Chưa gắn D1 (DB) → giữ nguyên chế độ cũ (Cloudflare Access bảo vệ cả trang).
 import { can, ensureSchema, getSession, PLANS, withCookie } from "./_lib/core.js";
 
-const PUBLIC = [/^\/login(\.html)?$/, /^\/login\.js$/, /^\/auth\.css$/, /^\/app\.css$/, /^\/icon\.svg$/, /^\/manifest\.webmanifest$/, /^\/sw\.js$/,
+const PUBLIC = [/^\/login(\.html)?$/, /^\/login\.js$/, /^\/auth\.css$/, /^\/app\.css$/, /^\/icon\.svg$/, /^\/(apple-touch-icon|icon-192|icon-512|icon-mask-512)\.png$/, /^\/manifest\.webmanifest$/, /^\/sw\.js$/,
   /^\/vendor\//, /^\/favicon\.ico$/, /^\/ban-tin(\/|$)/, /^\/(robots\.txt|sitemap\.xml|rss\.xml)$/, /^\/api\//];
 const RULES = PLANS.paths.map((r) => ({ ...r, rx: new RegExp(r.re) }));
 const STRIP = PLANS.strip.map((r) => ({ ...r, rx: new RegExp(r.re) }));

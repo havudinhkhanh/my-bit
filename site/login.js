@@ -107,3 +107,5 @@
     document.head.appendChild(s);
   }).catch(() => {});
 })();
+// PWA: đăng ký service worker ngay khi tải trang (cài lên màn hình chính, mở được khi mất mạng, thông báo đẩy)
+if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {}); document.readyState === "complete" ? swReg() : addEventListener("load", swReg); }

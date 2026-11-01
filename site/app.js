@@ -1,4 +1,6 @@
 /* MyBit – phân tích crypto spot & futures (vanilla JS, không cần build). Chỉ phân tích & cảnh báo, không đặt lệnh. */
+// PWA: đăng ký service worker ngay khi tải trang (cài lên màn hình chính, mở được khi mất mạng, thông báo đẩy)
+if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {}); document.readyState === "complete" ? swReg() : addEventListener("load", swReg); }
 "use strict";
 
 // ================================================================ tiện ích
@@ -4973,7 +4975,7 @@ async function viewAccount() {
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();
   $("#acOut").onclick = logout;
-  $("#acOutAll").onclick = async () => { await api("auth/logout_all", "POST").catch(() => {}); clearLocal(); location.href = "/login"; };
+  $("#acOutAll").onclick = async () => { await api("auth/logout_all", "POST").catch(() => {}); clearLocal(); await clearCaches(); location.href = "/login"; };
   if ($("#puOn")) $("#puOn").onclick = async () => { try { await pushEnable(); toast("Đã bật thông báo đẩy"); viewAccount(); } catch (e) { toast(e.message); } };
   if ($("#puOff")) $("#puOff").onclick = async () => { await pushDisable(); toast("Đã tắt trên thiết bị này"); viewAccount(); };
   if ($("#puTest")) $("#puTest").onclick = async () => { const reg = await navigator.serviceWorker.getRegistration("/"); reg?.showNotification("MyBit", { body: "Thông báo đẩy hoạt động trên thiết bị này.", icon: "/icon.svg" }); };
@@ -4982,8 +4984,10 @@ async function viewAccount() {
     try { await api("notify", "PUT", { push: $("#nPush").value, email: $("#nEmail").value, email_to: $("#nTo").value.trim(), kinds, updated: new Date().toISOString() }); toast("Đã lưu cài đặt thông báo"); } catch (e) { toast(e.message); }
   };
 }
+// đăng xuất → xoá đệm ngoại tuyến (dữ liệu theo gói của tài khoản) trước khi chuyển trang
+async function clearCaches() { try { navigator.serviceWorker?.controller?.postMessage({ t: "clear" }); const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); } catch (e) { /* bỏ qua */ } }
 function clearLocal() { ["portfolio", "watchlist", "cfilter"].forEach((k) => { try { localStorage.removeItem("mybit_" + k); } catch (e) { /* bỏ qua */ } }); }
-async function logout() { await api("auth/logout", "POST").catch(() => {}); clearLocal(); location.href = "/login"; }
+async function logout() { await api("auth/logout", "POST").catch(() => {}); clearLocal(); await clearCaches(); location.href = "/login"; }
 
 // ---- trang quản trị
 async function viewAdmin(sub = "users") {
