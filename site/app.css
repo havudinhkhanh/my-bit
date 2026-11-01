@@ -2717,3 +2717,9 @@ body.cmdk-on{overflow:hidden}
 .cd-it b{color:var(--rc)}.cd-it small{color:var(--ink-3);font-size:.66rem}.cd-it.on{background:color-mix(in srgb,var(--rc) 16%,var(--surface))}
 .cd-ap-d summary{cursor:pointer;color:var(--ink-3);font-size:.72rem}.cd-ap-d ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2);font-size:.72rem}.cd-ap-d li{margin:3px 0}.cd-ap-e{color:var(--ink-3);margin:6px 0}
 
+
+/* bàn phím điện thoại đang mở: ẩn thanh tab dưới & nút nổi để không che ô đang gõ */
+@media (pointer:coarse) and (max-width:979px){body.kb-on .tabs,body.kb-on .pnfab,body.kb-on .sc-setfab,body.kb-on .selbar,body.kb-on .mtabbar{display:none!important}}
+/* nút tìm nhanh trên đầu trang khi màn hình hẹp (ô tìm bị ẩn) → mở bảng tìm nhanh toàn màn hình */
+.qbtn{display:none}@media (max-width:480px){.qbtn{display:inline-flex}}
+@media (pointer:coarse){.cmdk-in{max-height:calc(var(--vvh,100vh) - 16px)!important}.cmdk{padding-top:8px!important}}
