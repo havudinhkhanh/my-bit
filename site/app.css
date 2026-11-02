@@ -3198,3 +3198,5 @@ body.nt-pk{overflow:hidden}
 }
 @media (min-width:1500px){.sc-hl.lvt{grid-template-columns:1fr 1fr;column-gap:6px}}
 .sc-hl.lvt{gap:3px}
+@media (min-width:980px){.tabs .nav-g{min-width:0;overflow:hidden}.tabs .nav-g b{flex:none}.tabs .nav-g em{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-left:auto;padding-left:6px}}      /* nhãn nhóm menu trái: phần phụ "có đáng tin?" không tràn khung */
+@media (min-width:980px){.tabs .nav-g{flex-wrap:wrap;row-gap:3px;overflow:visible;white-space:normal}.tabs .nav-g em{overflow:visible;text-overflow:clip;font-size:.86em;padding-left:0}}
