@@ -113,6 +113,13 @@ jobs:
           set -o pipefail
           python run.py build $ARGS 2>&1 | tee data/build.log
 
+      - name: Lưu phần web đã dựng (để đăng web nhanh khi chỉ sửa giao diện – web.yml)
+        if: steps.m.outputs.mode == 'full' && steps.m.outputs.build == 'true' && hashFiles('site/data/meta.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: site
+          key: site-built-${{ github.run_id }}
+
       - name: Lưu dữ liệu cho lần chạy sau
         if: always()
         uses: actions/cache/save@v4
@@ -152,6 +159,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
         run: |
+          # lượt này chạy lâu – trong lúc đó có thể đã có bản giao diện mới: luôn đăng mã giao diện MỚI NHẤT (dữ liệu site/data vẫn của lượt này)
+          git fetch -q origin main && git checkout FETCH_HEAD -- site functions || true
           python scripts/cloudflare.py wrangler-toml > wrangler.toml
           python scripts/optimize_site.py site 2>&1 | grep -v "npm notice" | tee data/optimize.txt || true
           npx --yes wrangler@3 pages project create my-bit --production-branch main || true

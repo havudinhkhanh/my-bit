@@ -1,0 +1,71 @@
+name: Đăng web nhanh
+# Chỉ sửa giao diện (site/, functions/) → đăng lên Cloudflare Pages ngay (~1–2 phút): dùng phần web ĐÃ DỰNG của lượt đầy đủ gần nhất
+# (dữ liệu, bản tin…) rồi chép đè mã giao diện mới nhất. Không tải lại dữ liệu / không phân tích lại.
+# Sửa phần phân tích (app/, run.py…) thì vẫn cần lượt đầy đủ.
+run-name: "Đăng web nhanh"
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "functions/**"]
+  workflow_dispatch: {}
+
+concurrency:
+  group: web
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Lấy phần web đã dựng của lượt đầy đủ gần nhất
+        uses: actions/cache/restore@v4
+        with:
+          path: site
+          key: site-built-${{ github.run_id }}
+          restore-keys: site-built-
+
+      - name: Chép đè mã giao diện mới nhất & kiểm tra đủ dữ liệu
+        run: |
+          git checkout -- site functions
+          if [ ! -f site/data/meta.json ] || [ ! -f site/data/market.json ]; then
+            echo "Chưa có phần web đã dựng – chờ lượt đầy đủ kế tiếp rồi mới đăng nhanh được."; exit 1
+          fi
+          git status --short --ignored site | head -20
+
+      - name: Kết nối Cloudflare
+        run: |
+          mkdir -p data
+          python scripts/cloudflare.py kv >> "$GITHUB_ENV" 2> data/cf.txt
+          python scripts/cloudflare.py d1 >> "$GITHUB_ENV" 2>> data/cf.txt || true
+
+      - name: Đăng web lên Cloudflare Pages
+        env:
+          OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+          GH_REPO: ${{ github.repository }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+        run: |
+          python scripts/cloudflare.py wrangler-toml > wrangler.toml
+          python scripts/optimize_site.py site 2>&1 | grep -v "npm notice" | tee data/optimize.txt || true
+          npx --yes wrangler@3 pages deploy --project-name my-bit --branch main --commit-dirty=true 2>&1 | tail -25 | tee data/deploy.txt
+          sleep 15
+          curl -s -o /dev/null -w "%{http_code} %{redirect_url}\n" https://my-bit.pages.dev/ > data/site_check.txt || true
+
+      - name: Đẩy log lên nhánh status
+        if: always()
+        run: bash scripts/publish_status.sh web data/deploy.txt data/site_check.txt data/optimize.txt data/cf.txt
