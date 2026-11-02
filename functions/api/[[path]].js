@@ -185,6 +185,12 @@ export async function onRequest(ctx) {
         else for (const id of (b.ids || []).slice(0, 200)) await env.DB.prepare("UPDATE notifications SET read_at = ? WHERE user_id = ? AND id = ? AND read_at IS NULL").bind(nowIso(), uid, Number(id)).run();
         return json({ ok: true });
       }
+      if (m === "POST" && sub === "unread") {      // đánh dấu CHƯA đọc lại
+        let b = {};
+        try { b = await request.json(); } catch (e) { /* rỗng */ }
+        for (const id of (b.ids || []).slice(0, 200)) await env.DB.prepare("UPDATE notifications SET read_at = NULL WHERE user_id = ? AND id = ?").bind(uid, Number(id)).run();
+        return json({ ok: true });
+      }
       if (m === "DELETE") {
         await env.DB.prepare("DELETE FROM notifications WHERE user_id = ? AND read_at IS NOT NULL").bind(uid).run();
         return json({ ok: true });

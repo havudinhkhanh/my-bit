@@ -3261,3 +3261,14 @@ td .sc-mxr{margin:0}
 .mxw.ok{background:rgba(52,199,89,.13);color:#1e7a37}.mxw.inf{background:rgba(0,122,255,.1);color:#0a5ccc}
 :root[data-theme="dark"] .mxw{color:#ff8a80}:root[data-theme="dark"] .mxw.ok{color:#6fe08e}:root[data-theme="dark"] .mxw.inf{color:#7ab8ff}
 .mxn{margin:6px 0 0;font-size:11px;opacity:.65}
+
+/* thông báo: nút "đánh dấu chưa đọc" (chấm tròn rỗng – hiện khi rê chuột / luôn hiện trên điện thoại) + menu chuột phải */
+.nt-ur{display:inline-flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s}
+.nt-ur i{width:9px;height:9px;border-radius:50%;border:1.5px solid currentColor}
+.nt-i:hover .nt-ur,.nt-ur:focus-visible{opacity:1}.nt-ur:hover{color:var(--brand);border-color:var(--brand)}.nt-ur:hover i{background:currentColor}
+@media (hover:none){.nt-ur{display:none}}
+.nt-ctx{z-index:1400}.nt-ctx .ios-menu-in{position:fixed;font-size:14px;border-radius:10px;animation:ntCtxIn .14s ease-out both}
+.nt-ctx .ios-menu-in>button{min-height:34px;padding:6px 12px 6px 6px;grid-template-columns:8px minmax(0,1fr) auto;font-size:14px}
+.nt-ctx.out .ios-menu-in{animation:ntCtxOut .12s ease-in both}
+@keyframes ntCtxIn{from{opacity:0;transform:scale(.96)}}@keyframes ntCtxOut{to{opacity:0}}
+@media (pointer:fine){.ntpk-bg{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);background:rgba(0,0,0,.45)}.ntpk-in{animation-duration:.2s;animation-timing-function:cubic-bezier(.2,.8,.3,1)}@keyframes pkIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}}

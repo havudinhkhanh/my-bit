@@ -4982,7 +4982,7 @@ function ntfRow(n) {
   const T = n.title || "", acc = /^💰 TIỀN THẬT|LỆNH THẬT/.test(T) ? "real" : /^🟡 DEMO|^💵 Demo/.test(T) ? "demo" : /^🧪 SÀN THỬ/.test(T) || (/^scalp/.test(n.kind || "") && /^[🪝⚡]/u.test(T)) ? "paper" : "";
   return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
     <span class="nt-b"><b>${esc(viDec(title))}</b>${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
-    ${n.read_at ? "" : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
+    ${n.read_at ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
 }
 // danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm
 function ntfList(items, f) {
@@ -4997,19 +4997,23 @@ function ntfChips(items, f) {
   const C = [["all", "Tất cả", items.length], ["new", "Chưa đọc", un], ...NGRP.filter((g) => cnt[g[0]]).map((g) => [g[0], g[1], cnt[g[0]]]), ...(cnt.other ? [["other", "Khác", cnt.other]] : [])];
   return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
 }
-function bindNtf(root, items, redraw) {
-  ntPeekBind(root, items);
-  $$("[data-nid] .nt-a", root).forEach((a) => a.addEventListener("click", () => {
-    const it = a.closest("[data-nid]"), id = Number(it.dataset.nid);
-    if (it.classList.contains("new")) { api("notifications/read", "POST", { ids: [id] }).then(bellCount).catch(() => {}); const n = items?.find((x) => x.id === id); if (n) n.read_at = "x"; }
-    bellClose();
-  }));
-  $$("[data-rd]", root).forEach((b) => (b.onclick = (e) => {
-    e.preventDefault(); e.stopPropagation(); const id = Number(b.dataset.rd);
-    api("notifications/read", "POST", { ids: [id] }).then(bellCount).catch(() => {});
-    const n = items?.find((x) => x.id === id); if (n) n.read_at = "x";
-    const it = b.closest("[data-nid]"); it.classList.remove("new"); b.remove(); redraw?.(false);
-  }));
+function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => ntBindRow(it, items, redraw)); }
+function ntBindRow(it, items, redraw) {
+  if (it._b) return; it._b = { items, redraw };
+  const n = () => items?.find((x) => x.id === Number(it.dataset.nid));
+  it.querySelector(".nt-a")?.addEventListener("click", () => { const x = n(); if (x && !x.read_at) ntSetRead(x, true, it._b, false); bellClose(); });
+  const rd = it.querySelector("[data-rd]"), ur = it.querySelector("[data-ur]");
+  if (rd) rd.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, true, it._b); };
+  if (ur) ur.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, false, it._b); };
+  ntPeekBind(it, items);
+}
+// đánh dấu đã đọc / CHƯA đọc 1 thông báo: gọi máy chủ, vẽ lại đúng dòng đó (mọi nơi đang hiện), cập nhật số trên chuông
+function ntSetRead(n, read, ctx, rerow = true) {
+  if (!!n.read_at === read) return;
+  api(read ? "notifications/read" : "notifications/unread", "POST", { ids: [n.id] }).then(bellCount).catch(() => {});
+  n.read_at = read ? new Date().toISOString() : null;
+  if (rerow) $$(`[data-nid="${n.id}"]`).forEach((it) => { const t = document.createElement("div"); t.innerHTML = ntfRow(n); const nw = t.firstElementChild; const c = it._b || ctx; it.replaceWith(nw); ntBindRow(nw, c?.items, c?.redraw); });
+  ctx?.redraw?.(false);
 }
 // bảng thông báo trên điện thoại: kéo thanh nắm (hoặc đầu bảng) xuống để đóng, kéo lên để mở cao hết màn hình;
 // trong danh sách: đang ở đầu danh sách mà kéo xuống cũng kéo cả bảng (như iOS). Chạm vào bảng / nền mờ KHÔNG cuộn trang phía sau.
@@ -5055,21 +5059,47 @@ function ntpDrag(box) {
   }, { passive: true });
 }
 // giữ lâu 1 thông báo → XEM NHANH (kiểu iOS): đủ nội dung, không cần mở trang; thông báo tin tức → tải bài gốc (chữ + ảnh chính) ngay trong app
-function ntPeekBind(root, items) {
-  $$("[data-nid]", root).forEach((it) => {
+function ntPeekBind(it, items) {
+  {
     if (it._pk) return; it._pk = 1;
-    let t = 0, long = false, x0 = 0, y0 = 0;
+    let t = 0, long = false, x0 = 0, y0 = 0, tch = false;
     const open = (touch) => { const n = items?.find((x) => x.id === Number(it.dataset.nid)); if (n) ntPeek(n, touch); };
-    const end = () => { clearTimeout(t); setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); };
+    const end = () => { clearTimeout(t); setTimeout(() => { document.documentElement.classList.remove("lp-on"); tch = false; }, 400); };
     it.addEventListener("touchstart", (e) => {
-      long = false; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; document.documentElement.classList.add("lp-on");
+      long = false; tch = true; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; document.documentElement.classList.add("lp-on");
       t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (x) { /* bỏ qua */ } it.classList.add("pk-press"); setTimeout(() => it.classList.remove("pk-press"), 250); open(true); }, 450);
     }, { passive: true });
     it.addEventListener("touchmove", (e) => { if (Math.hypot(e.touches[0].clientX - x0, e.touches[0].clientY - y0) > 10) end(); }, { passive: true });
     it.addEventListener("touchend", end, { passive: true }); it.addEventListener("touchcancel", end, { passive: true });
     it.addEventListener("click", (e) => { if (long) { e.preventDefault(); e.stopPropagation(); long = false; } }, true);
-    it.addEventListener("contextmenu", (e) => { e.preventDefault(); open(); });      // máy tính: chuột phải
-  });
+    // máy tính: chuột phải → menu nhỏ ngay tại con trỏ (Xem nhanh · Mở · Đã đọc/Chưa đọc), không bật cả bảng lớn
+    it.addEventListener("contextmenu", (e) => { if (long || tch || e.pointerType === "touch") return e.preventDefault(); const n = items?.find((x) => x.id === Number(it.dataset.nid)); if (!n || getSelection()?.toString()) return; e.preventDefault(); ntCtx(n, e.clientX, e.clientY, it); });
+  }
+}
+function ntCtxClose() { const m = document.getElementById("ntCtx"); if (!m || m.classList.contains("out")) return; m.classList.add("out"); setTimeout(() => m.remove(), 150); }
+function ntCtx(n, x, y, it) {
+  document.getElementById("ntCtx")?.remove();
+  const ctx = it._b, url = n.url && n.url !== "#/notifications" ? n.url.replace(/^.*?(#\/)/, "#/") : "";
+  const A = [["peek", "Xem nhanh", "👁"], ...(url ? [["open", "Mở trong ứng dụng", "→"]] : []), n.read_at ? ["unread", "Đánh dấu chưa đọc", "●"] : ["read", "Đánh dấu đã đọc", "✓"]];
+  const m = document.createElement("div"); m.id = "ntCtx"; m.className = "ios-menu nt-ctx";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="Thao tác thông báo">${A.map(([k, t, ic]) => `<button type="button" role="menuitem" data-a="${k}"><span class="ios-ck"></span><span class="ios-t">${t}</span><span class="ios-ic">${ic}</span></button>`).join("")}</div>`;
+  document.body.appendChild(m);
+  const box = m.querySelector(".ios-menu-in"), W = 230, H = box.offsetHeight || A.length * 44, vw = document.documentElement.clientWidth;
+  const L = Math.max(8, Math.min(vw - W - 8, x)), T = y + H + 8 > innerHeight ? Math.max(8, y - H) : y;
+  Object.assign(box.style, { left: L + "px", top: T + "px", width: W + "px", transformOrigin: `${x - L}px ${y - T}px` });
+  const kd = (e) => { if (e.key === "Escape") { ntCtxClose(); removeEventListener("keydown", kd); } };
+  addEventListener("keydown", kd); addEventListener("scroll", ntCtxClose, { once: true, capture: true }); addEventListener("resize", ntCtxClose, { once: true });
+  m.querySelector("[data-x]").addEventListener("mousedown", ntCtxClose);
+  m.querySelector("[data-x]").addEventListener("contextmenu", (e) => { e.preventDefault(); ntCtxClose(); });
+  m.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => { const a = b.dataset.a; ntCtxClose(); removeEventListener("keydown", kd);
+    if (a === "peek") ntPeek(n); else if (a === "open") { ntSetRead(n, true, ctx, false); bellClose(); location.hash = url; } else ntSetRead(n, a === "read", ctx); }));
+  box.querySelector("button")?.focus({ preventScroll: true });
+}
+// khoá cuộn trang khi mở bảng: bù đúng bề rộng thanh cuộn → trang phía sau không bị giật sang ngang
+function ntLock(cls, on) {
+  const b = document.body;
+  if (on) { const sw = innerWidth - document.documentElement.clientWidth; if (sw > 0 && !b.style.paddingRight) { b.style.paddingRight = sw + "px"; b.dataset.lockPad = "1"; } b.classList.add(cls); }
+  else { b.classList.remove(cls); if (b.dataset.lockPad && !b.classList.contains("nt-on") && !b.classList.contains("nt-pk")) { b.style.paddingRight = ""; delete b.dataset.lockPad; } }
 }
 function ntPeekClose() { const b = $("#ntPeek"); if (!b) return; b.classList.add("out"); setTimeout(() => b.remove(), 200); }
 async function ntPeek(n, touch = false) {
@@ -5082,16 +5112,17 @@ async function ntPeek(n, touch = false) {
       <small class="ntpk-m"><span>${ic}</span><span>${esc(g[1])}</span>${n.sym ? `<b>${esc(n.sym)}</b>` : ""}<span>${when}</span></small>
       <h3>${esc(viDec(title))}</h3>${n.body ? `<p class="ntpk-t">${esc(viDec(n.body))}</p>` : ""}<div class="ntpk-art"></div></div></article>
     <div class="ntpk-act"></div></div>`;
-  document.body.appendChild(box); document.body.classList.add("nt-pk");
+  document.body.appendChild(box); ntLock("nt-pk", true);
   // mở bằng giữ lâu: ngón tay vẫn đang đặt trên màn hình → chưa nhận chạm cho tới khi nhấc tay (không bấm nhầm nút ngay dưới ngón)
   if (touch) { box.style.pointerEvents = "none"; const arm = () => setTimeout(() => { box.style.pointerEvents = ""; }, 120); addEventListener("touchend", arm, { once: true, capture: true }); setTimeout(arm, 2500); }
-  const act = box.querySelector(".ntpk-act"), artEl = box.querySelector(".ntpk-art"), close = () => { ntPeekClose(); document.body.classList.remove("nt-pk"); };
+  const act = box.querySelector(".ntpk-act"), artEl = box.querySelector(".ntpk-art"), close = () => { ntPeekClose(); ntLock("nt-pk", false); };
   const btn = (label, ic2, fn, cls = "") => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.innerHTML = `<span>${label}</span><i>${ic2}</i>`; b.onclick = fn; act.appendChild(b); return b; };
-  const markRead = () => { if (n.read_at) return; api("notifications/read", "POST", { ids: [n.id] }).then(bellCount).catch(() => {}); n.read_at = "x"; const it = $(`[data-nid="${n.id}"]`); it?.classList.remove("new"); it?.querySelector(".nt-rd")?.remove(); };
+  const ctx = $(`[data-nid="${n.id}"]`)?._b, markRead = () => ntSetRead(n, true, ctx);
   let link = null;
   if (n.url && n.url !== "#/notifications") btn("Mở trong ứng dụng", "→", () => { markRead(); close(); bellClose(); location.hash = n.url.replace(/^.*?(#\/)/, "#/"); });
   const srcBtn = btn("Mở bài gốc", "↗", () => { if (link) { markRead(); open(link, "_blank", "noopener"); } }); srcBtn.hidden = true;
   if (!n.read_at) btn("Đánh dấu đã đọc", "✓", () => { markRead(); close(); });
+  else btn("Đánh dấu chưa đọc", "●", () => { ntSetRead(n, false, ctx); close(); });
   btn("Đóng", "✕", close, "ntpk-x");
   $$("[data-x]", box).forEach((x) => (x.onclick = close));
   const k = (e) => { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } }; addEventListener("keydown", k);
