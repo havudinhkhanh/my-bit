@@ -60,7 +60,11 @@ export class SwingLab {
         const T = await this.get(`${FAPI}/ticker/24hr`);
         const C = (T || []).filter((x) => x.symbol.endsWith("USDT") && this.ob[x.symbol] && +x.priceChangePercent >= 100 && +x.quoteVolume >= 10e6).sort((a, b) => +b.priceChangePercent - +a.priceChangePercent);
         if (!C.length) this.say(`Short coin vừa bơm: ${day} không có coin nào tăng ≥ 100%/24h – không vào lệnh`);
-        for (const x of C) this.open("pump", W.pump, x.symbol, now, `24h +${(+x.priceChangePercent).toFixed(0)}% · khối lượng ${(+x.quoteVolume / 1e6).toFixed(0)} triệu USD`);
+        for (const x of C) {
+          const why = `24h +${(+x.priceChangePercent).toFixed(0)}% · khối lượng ${(+x.quoteVolume / 1e6).toFixed(0)} triệu USD`;
+          this.open("pump", W.pump, x.symbol, now, why);
+          try { this.core.io.onSwing?.({ k: "pump", sym: x.symbol, px: this.px[x.symbol]?.m || +x.lastPrice, hold: SW.pump.hold, why, chg: +x.priceChangePercent }); } catch (e) { this.core.err("thử nghiệm → tiền thật: " + e.message); }
+        }
       }
       // seen: chỉ giữ 60 ngày
       for (const [s, t] of Object.entries(W.list.seen)) if (now - Date.parse(t + "Z") > 60 * 864e5) delete W.list.seen[s];
