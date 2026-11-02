@@ -3273,8 +3273,24 @@ td .sc-mxr{margin:0}
 @keyframes ntCtxIn{from{opacity:0;transform:scale(.96)}}@keyframes ntCtxOut{to{opacity:0}}
 @media (pointer:fine){.ntpk-bg{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);background:rgba(0,0,0,.45)}.ntpk-in{animation-duration:.2s;animation-timing-function:cubic-bezier(.2,.8,.3,1)}@keyframes pkIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}}
 
-/* Danh mục: thanh đồng bộ Binance thật */
-.pf-sync{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
-.pf-sync-t{flex:1 1 260px;display:flex;flex-direction:column;gap:2px;min-width:0}.pf-sync-t small{color:var(--ink-3);font-size:.74rem}
-.pf-sync .chk{font-size:.8rem;color:var(--ink-2);display:inline-flex;gap:6px;align-items:center}
-@media (max-width:760px){.pf-sync .btn{flex:1 1 100%}}
+/* thẻ số kiểu mới (Danh mục, kiểm soát rủi ro): chữ thường, số tabular, không cắt chữ */
+.stg{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:8px;margin:0}
+.stg>div{min-width:0;padding:10px 12px 11px;border-radius:10px;background:var(--sunk);display:flex;flex-direction:column;gap:3px}
+.stg dt{font-size:.72rem;line-height:1.3;color:var(--ink-3);font-weight:500}
+.stg dd{margin:0;font:600 1.14rem/1.25 "Be Vietnam Pro",system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.01em;overflow-wrap:anywhere}
+.stg dd small{font-size:.68rem;font-weight:500;color:var(--ink-3)}
+.stg>div>small{font-size:.7rem;line-height:1.35;color:var(--ink-3)}
+.stg dd.up{color:var(--up)}.stg dd.down{color:var(--down)}.stg dd.ref{color:var(--ref,#d9a400)}
+/* Danh mục: tổng tài sản + tỉ trọng + thanh đồng bộ Binance thật */
+.pf-hero{display:flex;flex-direction:column;gap:12px}
+.pf-top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px}
+.pf-tot{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pf-tot small{font-size:.74rem;color:var(--ink-3);font-weight:500}
+.pf-tot b{font:650 2.1rem/1.1 "Be Vietnam Pro",system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.pf-tot span{font-size:.8rem;color:var(--ink-2)}.pf-tot em{font-style:normal;font-weight:600}.pf-tot em.up{color:var(--up)}.pf-tot em.down{color:var(--down)}
+.pf-mix{flex:0 1 300px;display:flex;gap:3px;min-width:0}
+.pf-mix span{display:flex;flex-direction:column;gap:4px;min-width:48px}.pf-mix i{display:block;height:8px;border-radius:99px}.pf-mix small{font-size:.68rem;color:var(--ink-3);white-space:nowrap}
+.pf-sync{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding-top:10px;border-top:1px solid var(--line-2)}
+.pf-sync-t{flex:1 1 260px;min-width:0;font-size:.82rem}.pf-sync-t small{color:var(--ink-3);font-size:.74rem}
+.pf-auto{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-2);cursor:pointer}
+@media (max-width:760px){.stg{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-tot b{font-size:1.8rem}.pf-mix{flex-basis:100%}.pf-sync #pfSync{flex:1 1 auto}}
