@@ -3188,3 +3188,4 @@ body.nt-pk{overflow:hidden}
 .ntpk-in{max-height:calc(100vh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
 .ntpk-img{aspect-ratio:auto;height:min(34vh,240px)}
 @media (max-width:760px){table.rs td[colspan]::before{display:none!important}}
+@media (min-width:980px){.tabs a.nav-cus,#navCus{display:none!important}}      /* nút tuỳ chọn chỉ dành cho thanh dưới điện thoại */
