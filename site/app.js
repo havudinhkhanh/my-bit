@@ -4974,6 +4974,7 @@ function ntfChips(items, f) {
   return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
 }
 function bindNtf(root, items, redraw) {
+  ntPeekBind(root, items);
   $$("[data-nid] .nt-a", root).forEach((a) => a.addEventListener("click", () => {
     const it = a.closest("[data-nid]"), id = Number(it.dataset.nid);
     if (it.classList.contains("new")) { api("notifications/read", "POST", { ids: [id] }).then(bellCount).catch(() => {}); const n = items?.find((x) => x.id === id); if (n) n.read_at = "x"; }
@@ -5028,6 +5029,63 @@ function ntpDrag(box) {
       sh.style.transform = "translateY(105%)"; setTimeout(() => { bellClose(); }, 240);
     } else { sh.style.transform = ""; setTimeout(() => (sh.style.transition = ""), 360); }
   }, { passive: true });
+}
+// giữ lâu 1 thông báo → XEM NHANH (kiểu iOS): đủ nội dung, không cần mở trang; thông báo tin tức → tải bài gốc (chữ + ảnh chính) ngay trong app
+function ntPeekBind(root, items) {
+  $$("[data-nid]", root).forEach((it) => {
+    if (it._pk) return; it._pk = 1;
+    let t = 0, long = false, x0 = 0, y0 = 0;
+    const open = (touch) => { const n = items?.find((x) => x.id === Number(it.dataset.nid)); if (n) ntPeek(n, touch); };
+    const end = () => { clearTimeout(t); setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); };
+    it.addEventListener("touchstart", (e) => {
+      long = false; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; document.documentElement.classList.add("lp-on");
+      t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (x) { /* bỏ qua */ } it.classList.add("pk-press"); setTimeout(() => it.classList.remove("pk-press"), 250); open(true); }, 450);
+    }, { passive: true });
+    it.addEventListener("touchmove", (e) => { if (Math.hypot(e.touches[0].clientX - x0, e.touches[0].clientY - y0) > 10) end(); }, { passive: true });
+    it.addEventListener("touchend", end, { passive: true }); it.addEventListener("touchcancel", end, { passive: true });
+    it.addEventListener("click", (e) => { if (long) { e.preventDefault(); e.stopPropagation(); long = false; } }, true);
+    it.addEventListener("contextmenu", (e) => { e.preventDefault(); open(); });      // máy tính: chuột phải
+  });
+}
+function ntPeekClose() { const b = $("#ntPeek"); if (!b) return; b.classList.add("out"); setTimeout(() => b.remove(), 200); }
+async function ntPeek(n, touch = false) {
+  $("#ntPeek")?.remove();
+  const g = ntfGrp(n.kind), em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|‍|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);
+  const ic = em ? em[1] : ntfIcon(n.kind), title = em ? n.title.slice(em[0].length) : n.title, when = new Date(n.created_at).toLocaleString(NLOC, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+  const box = document.createElement("div"); box.id = "ntPeek"; box.className = "ntpk";
+  box.innerHTML = `<div class="ntpk-bg" data-x></div><div class="ntpk-in" role="dialog" aria-label="Xem nhanh thông báo">
+    <article class="ntpk-card"><div class="ntpk-img" hidden></div><div class="ntpk-b">
+      <small class="ntpk-m"><span>${ic}</span><span>${esc(g[1])}</span>${n.sym ? `<b>${esc(n.sym)}</b>` : ""}<span>${when}</span></small>
+      <h3>${esc(viDec(title))}</h3>${n.body ? `<p class="ntpk-t">${esc(viDec(n.body))}</p>` : ""}<div class="ntpk-art"></div></div></article>
+    <div class="ntpk-act"></div></div>`;
+  document.body.appendChild(box); document.body.classList.add("nt-pk");
+  // mở bằng giữ lâu: ngón tay vẫn đang đặt trên màn hình → chưa nhận chạm cho tới khi nhấc tay (không bấm nhầm nút ngay dưới ngón)
+  if (touch) { box.style.pointerEvents = "none"; const arm = () => setTimeout(() => { box.style.pointerEvents = ""; }, 120); addEventListener("touchend", arm, { once: true, capture: true }); setTimeout(arm, 2500); }
+  const act = box.querySelector(".ntpk-act"), artEl = box.querySelector(".ntpk-art"), close = () => { ntPeekClose(); document.body.classList.remove("nt-pk"); };
+  const btn = (label, ic2, fn, cls = "") => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.innerHTML = `<span>${label}</span><i>${ic2}</i>`; b.onclick = fn; act.appendChild(b); return b; };
+  const markRead = () => { if (n.read_at) return; api("notifications/read", "POST", { ids: [n.id] }).then(bellCount).catch(() => {}); n.read_at = "x"; const it = $(`[data-nid="${n.id}"]`); it?.classList.remove("new"); it?.querySelector(".nt-rd")?.remove(); };
+  let link = null;
+  if (n.url && n.url !== "#/notifications") btn("Mở trong ứng dụng", "→", () => { markRead(); close(); bellClose(); location.hash = n.url.replace(/^.*?(#\/)/, "#/"); });
+  const srcBtn = btn("Mở bài gốc", "↗", () => { if (link) { markRead(); open(link, "_blank", "noopener"); } }); srcBtn.hidden = true;
+  if (!n.read_at) btn("Đánh dấu đã đọc", "✓", () => { markRead(); close(); });
+  btn("Đóng", "✕", close, "ntpk-x");
+  $$("[data-x]", box).forEach((x) => (x.onclick = close));
+  const k = (e) => { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } }; addEventListener("keydown", k);
+  addEventListener("hashchange", close, { once: true });
+  // thông báo tin tức: tìm link bài & tải bài (máy chủ lọc lấy chữ + ảnh chính)
+  try { link = typeof window.ntLink === "function" ? await window.ntLink(n) : null; } catch (e) { link = null; }
+  if (!link || !box.isConnected) return;
+  srcBtn.hidden = false;
+  artEl.innerHTML = `<div class="ntpk-ld"><i></i><i></i><i></i><i class="w"></i></div>`;
+  let A = null; try { A = await api("article?u=" + encodeURIComponent(link)); } catch (e) { A = null; }
+  if (!box.isConnected) return;
+  if (!A?.ok || !A.paras?.length) { artEl.innerHTML = `<p class="ntpk-no">${A?.desc ? esc(A.desc) + "<br>" : ""}Không đọc được nội dung bài này trong ứng dụng – bấm <b>Mở bài gốc</b> để xem trên trang báo.</p>`; if (A?.url) link = A.url; return; }
+  link = A.url || link;
+  if (A.img) { const im = box.querySelector(".ntpk-img"); im.innerHTML = `<img src="${esc(A.img)}" alt="" referrerpolicy="no-referrer" loading="eager">`; im.hidden = false; im.querySelector("img").onerror = () => { im.hidden = true; }; }
+  let host = ""; try { host = new URL(link).hostname.replace(/^www\./, ""); } catch (e) { /* bỏ qua */ }
+  artEl.innerHTML = `<div class="ntpk-src">📰 <b>${esc(A.site || host)}</b>${A.time ? ` · ${esc(new Date(A.time).toString() !== "Invalid Date" ? new Date(A.time).toLocaleString(NLOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : A.time)}` : ""}</div>
+    ${A.title ? `<h4>${esc(A.title)}</h4>` : ""}${A.paras.map((x) => (x.h ? `<h5>${esc(x.h)}</h5>` : `<p>${esc(x.p)}</p>`)).join("")}`;
+  box.querySelector(".ntpk-t")?.classList.add("dim");
 }
 function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
 async function bellOpen() {
