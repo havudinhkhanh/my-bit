@@ -30,7 +30,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   // (vẫn tối đa hk_h phút). Danh mục thật: lời +34,9% → +60,9%, sụt tối đa 14,1% → 5,0%, thắng 63% → 88%. hk_tra = 0 → tắt (giữ đủ giờ như cũ).
   hk_tra: 150, hk_trg: 100,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
-  lv_on: false, lv_env: "demo", lv_cap: 100, lv_all: false, lv_lev: 2, lv_daily: 10, sw_lv_pump: false, sw_lv_sz: 5, sw_lv_max: 2 };
+  lv_on: false, lv_env: "demo", lv_cap: 100, lv_all: false, lv_lev: 2, lv_daily: 10, lv_small: "near", sw_lv_pump: false, sw_lv_sz: 5, sw_lv_max: 2 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
@@ -84,7 +84,7 @@ function norm(c) {
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
-  n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo";
+  n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   if (!c.fut && !c.spot) c.fut = true;
   return c;
 }

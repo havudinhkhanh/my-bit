@@ -201,10 +201,11 @@ export class LiveExec {
     if (env === "live") {
       // VỐN NHỎ (chỉ tiền thật): sàn bắt mỗi lệnh ≥ ~5 USDT nên không chia đủ các mức theo 5% được → giữ các mức có lời kỳ vọng cao nhất
       // (kiểm chứng 664 ngày, đã trừ phí & trượt giá): "mua ngay" khi đủ điều kiện +119 bps/lệnh, thắng 73%; lệnh chờ sâu 1,5× +145 bps; 1,25× +108 bps.
-      // Ưu tiên: mua ngay → mức chờ sâu hơn → mức nông hơn; mỗi mức cỡ tối thiểu của sàn; cả lần bắt ≤ 25% vốn (1 mức duy nhất: ≤ 30%).
+      // Ưu tiên: mua ngay → mức chờ theo lựa chọn của anh (lv_small): "near" = mức GẦN trước (khớp nhiều hơn, lời mỗi lệnh thấp hơn),
+      // "far" = mức XA trước (lời mỗi lệnh cao hơn, nhiều lần không khớp); mỗi mức cỡ tối thiểu của sàn; cả lần bắt ≤ 25% vốn (1 mức duy nhất: ≤ 30%).
       if (tot(lv) > B * 0.25) {
         small = true; per = F.minN * 1.1; lv = [];
-        for (const l of [...mkL, ...[...lim].sort((a, b) => b.d - a.d)]) if (tot([...lv, l]) <= B * (lv.length ? 0.25 : 0.3)) lv.push(l);
+        for (const l of [...mkL, ...[...lim].sort((a, b) => (c.lv_small === "far" ? b.d - a.d : a.d - b.d))]) if (tot([...lv, l]) <= B * (lv.length ? 0.25 : 0.3)) lv.push(l);
         if (!lv.length) return skip(`vốn ${+B.toFixed(2)} USDT: lệnh nhỏ nhất của ${sym} (${F.minN} USDT) lớn hơn 30% vốn – cần số dư futures ≥ ${Math.ceil(F.minN * 1.1 / 0.3)} USDT`);
       }
       // tổng giá trị các lần bắt đang mở ≤ 1× vốn (cú sập toàn thị trường làm nhiều coin cùng chạm cắt lỗ)
@@ -230,7 +231,7 @@ export class LiveExec {
       lv: lv.map((l, i) => { const m0 = l.mk ? this.mark(h.id) || l.px : l.px, px = side > 0 ? fl(m0, F.tick) : ce(m0, F.tick), q = Math.max(fl((l.mk ? perMk : per) / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, mk: l.mk ? 1 : 0, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
     if (!ev.lv.length) return skip("khối lượng sau làm tròn nhỏ hơn mức tối thiểu của sàn");
     this.S.ev[id] = ev; this.save();
-    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => (l.mk ? `${l.q} NGAY (giá thị trường ~${l.px})` : `${l.q} @ ${l.px}`)).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev}${small ? `, vốn nhỏ ${+B.toFixed(2)} USDT: chỉ giữ mức tốt nhất, cỡ tối thiểu của sàn` : ""})`);
+    this.say(`🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(h.R / 100).toFixed(1)}% → chuẩn bị ${side > 0 ? "MUA" : "BÁN"} ${ev.lv.map((l) => (l.mk ? `${l.q} NGAY (giá thị trường ~${l.px})` : `${l.q} @ ${l.px}`)).join(" và ")} (${env === "live" ? "TIỀN THẬT" : "Demo"}, ký quỹ cô lập x${c.lv_lev}${small ? `, vốn nhỏ ${+B.toFixed(2)} USDT: chỉ giữ mức ${c.lv_small === "far" ? "xa (lời cao hơn)" : "gần (khớp nhiều hơn)"}, cỡ tối thiểu của sàn` : ""})`);
     await this.submitDue(ev);
     // điện thoại: 1 thông báo cho lần bắt này, các lần khớp / đóng sau sẽ ĐÈ lên (cùng nhóm lv:<id>)
     const wl = ev.lv.filter((l) => !l.mk && l.st !== "cxl"), mkx = ev.lv.find((l) => l.mk);

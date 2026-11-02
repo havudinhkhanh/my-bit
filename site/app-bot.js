@@ -552,6 +552,8 @@ async function viewScalp() {
         <div class="bseg">${[["demo", "Demo – tiền ảo, giá thật"], ["live", "THẬT – tiền thật"]].map(([v, t]) => `<button type="button" data-sce="${v}" class="${(C.lv_env || "demo") === v ? "on" : ""}">${t}</button>`).join("")}</div>
         <div class="bseg"><button type="button" data-sca="0" class="${!C.lv_all ? "on" : ""}">Giới hạn theo "Vốn tối đa"</button><button type="button" data-sca="1" class="${C.lv_all ? "on" : ""}">Dùng toàn bộ số dư futures</button></div>
         ${C.lv_all ? `<p class="faint">Bot tính cỡ lệnh theo TOÀN BỘ số dư ví USDⓈ-M Futures (chỉ tiền thật) – lời thêm thì lệnh tự lớn dần, lỗ thì tự nhỏ lại. Vẫn giữ: mỗi lần bắt ≤ 25% số dư, tổng lệnh mở ≤ 1× số dư, ngừng khi lỗ ngày ${C.lv_daily}% số dư. Ô "Vốn tối đa" không dùng.</p>` : ""}
+        <div class="bseg">${[["near", "Vốn nhỏ: ưu tiên mức GẦN – khớp nhiều hơn"], ["far", "Vốn nhỏ: ưu tiên mức XA – lời mỗi lệnh cao hơn"]].map(([v, t]) => `<button type="button" data-scn="${v}" class="${(C.lv_small || "near") === v ? "on" : ""}">${t}</button>`).join("")}</div>
+        <p class="faint">Chỉ áp dụng khi số dư quá nhỏ để đặt đủ 2 mức chờ (mỗi lệnh sàn bắt tối thiểu ~5,5 USDT – dưới khoảng 44 USDT${LV?.size?.mode && LV.size.mode !== "pct" ? `, hiện bot đang ở chế độ vốn nhỏ: ${LV.size.mode === "min1" ? "1 mức" : LV.size.mode === "min2" ? "2 mức" : "3 mức"}/lần bắt` : ""}). Kiểm chứng: mức gần 1,25× ~+108 bps/lệnh, khớp nhiều hơn; mức xa 1,5× ~+145 bps/lệnh nhưng nhiều lần giá không tới. Tổng lời 2 cách gần bằng nhau; mức gần đều tay hơn.</p>
         <div class="filters bff">${num("lv_cap", C.lv_all ? "Vốn tối đa (đang không dùng – bot dùng toàn bộ số dư)" : "Vốn tối đa bot được dùng (USDT ký quỹ)")}</div>
         <div class="sc-sls">${sl("lv_lev", "Đòn bẩy (ký quỹ cô lập)", 1, 5, 1, "", "×")}${sl("lv_daily", "Ngừng mở mới khi lỗ trong ngày", 1, 30, 1, LVL ? "% vốn (số dư, tối đa = Vốn tối đa)" : "% vốn tối đa", "%")}</div>
         <h4 class="bfh">🧪 Short coin vừa bơm ≥ 100% – đặt lệnh trên tài khoản này</h4>
@@ -576,6 +578,7 @@ async function viewScalp() {
       C.sw_lv_pump = !C.sw_lv_pump; dirty(); f();
     }));
     $$("#scForm [data-sca]").forEach((b) => (b.onclick = () => { rd(); C.lv_all = b.dataset.sca === "1"; dirty(); f(); }));
+    $$("#scForm [data-scn]").forEach((b) => (b.onclick = () => { rd(); C.lv_small = b.dataset.scn; dirty(); f(); }));
     $$("#scForm [data-sce]").forEach((b) => (b.onclick = () => {
       rd();
       if (b.dataset.sce === "live" && C.lv_env !== "live") {
