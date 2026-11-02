@@ -24,6 +24,13 @@ const ce = (x, step) => Math.ceil(x / step - 1e-9) * step;
 
 // nhãn đầu mọi thông báo của lệnh trên Binance – phân biệt ngay với 🧪 SÀN THỬ
 const LTAG = (env) => (env === "live" ? "💰 TIỀN THẬT" : "🟡 DEMO"), coin = (sym) => String(sym || "").replace(/USDT$/, "");
+// 🛡️ GIỚI HẠN AN TOÀN CHUNG – cứng trong mã, KHÔNG chỉnh trên trang: cộng MỌI phương pháp (Bắt râu sập + Short coin vừa bơm…).
+// Dù thiết lập đặt nhầm (vốn, đòn bẩy, cỡ lệnh, số lệnh) bot cũng không vượt: vượt → bỏ qua lệnh MỚI, lệnh đang mở vẫn được quản lý bình thường.
+//   margin  – tổng ký quỹ đang dùng ≤ 80% số dư ví futures (chừa 20% cho phí, funding, dao động)
+//   notional– tổng giá trị lệnh ≤ 2× số dư
+//   worst   – nếu MỌI lệnh đang mở cùng chạm cắt lỗ / bị thanh lý cùng lúc, mất tối đa 35% số dư
+//   dd      – số dư thấp hơn đỉnh cao nhất 30% → ngừng mở mới tới khi anh bấm "Chạy lại" trên trang
+const RISK = { margin: 0.8, notional: 2, worst: 0.35, dd: 0.3 };
 export class LiveExec {
   constructor({ core, dir, log }) {
     this.core = core; this.log = log; this.file = path.join(dir, "live.json");
@@ -127,6 +134,13 @@ export class LiveExec {
       const bal = await this.req("GET", "/fapi/v2/balance").catch(() => this.req("GET", "/fapi/v3/balance"));
       const u = (bal || []).find((b) => b.asset === "USDT"); st.bal = u ? +(+u.balance).toFixed(2) : 0; st.avail = u ? +(+u.availableBalance).toFixed(2) : 0;
       { const B = ((this.S.bal ||= {})[env] ||= {}), d = vnDay(Date.now()); B[d] = [B[d]?.[0] ?? st.bal, st.bal]; this.save(); }      // số dư đầu / cuối ngày
+      { // 🛡️ số dư thấp hơn đỉnh 30% → ngừng mở mới (rút tiền / chuyển ví cũng làm số dư giảm: bấm "Chạy lại" để đặt lại đỉnh)
+        const P = (this.S.peak ||= {}); if (st.bal > 0 && !(P[env] >= st.bal)) P[env] = st.bal;
+        if (st.bal > 0 && P[env] > 0 && st.bal < P[env] * (1 - RISK.dd) && !this.S.halt) {
+          this.S.halt = `số dư ${st.bal} USDT thấp hơn mức cao nhất ${P[env].toFixed(2)} USDT quá ${RISK.dd * 100}% – ngừng mở lệnh mới để anh xem lại (nếu do rút / chuyển tiền: bấm "Chạy lại")`;
+          this.say(`⛔ ${this.S.halt}`, "stop"); this.note(`dd:${vnDay(Date.now())}`, 3, `${LTAG(env)} · ⛔ Ngừng mở lệnh mới`, this.S.halt);
+        }
+      }
       if (env === "live") {
         const R = await this.req("GET", "/sapi/v1/account/apiRestrictions", {}, true, SAPI);
         st.restr = { withdraw: !!R.enableWithdrawals, futures: !!R.enableFutures, ip: !!R.ipRestrict };
@@ -199,6 +213,7 @@ export class LiveExec {
     const capM = env === "live" ? B : c.lv_cap;
     if (used + tot(lv) / c.lv_lev > capM) return skip(`đã dùng ${used.toFixed(2)} / ${+capM.toFixed(2)} USDT ký quỹ`);
     if (this.st.avail != null && tot(lv) / c.lv_lev > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ`);
+    { const why = this.riskOk(tot(lv), c.lv_lev, +h.stop > 0 ? (+h.stop + 0.5) / 100 : 1); if (why) return skip(`🛡️ giới hạn an toàn chung: ${why}`); }
     // không đụng coin anh đang có vị thế
     const pr = await this.pos(sym); if (pr && Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${sym} (${pr.amt}) – bot không đụng vào`);
     if (!this.lev[sym]) {
@@ -344,6 +359,25 @@ export class LiveExec {
   // giữ 7 ngày, KHÔNG cắt lỗ (kiểm chứng: cắt lỗ +15/+30% làm mất lợi thế). Giá ×2 → sàn thanh lý = mất đúng phần tiền của lệnh, không hơn.
   // Cỡ: sw_lv_sz % vốn (tối thiểu = lệnh nhỏ nhất của sàn), ≤ 25% vốn/lệnh, tổng ≤ 60% vốn, tối đa sw_lv_max lệnh cùng lúc.
   onSwing(s) { (this.qs ||= []).push(s); }
+  // rủi ro đang mở của tài khoản đang dùng: giá trị lệnh, ký quỹ, mức mất tối đa (cắt lỗ đặt trên sàn / thanh lý ký quỹ cô lập)
+  riskNow() {
+    const c = this.cfg(), lev = Math.max(1, +c.lv_lev || 1), env = this.env(); let N = 0, M = 0, W = 0;
+    for (const e of this.active()) {
+      if ((e.env || env) !== env) continue;
+      const n = e.lv.reduce((a, l) => a + (l.st === "cxl" ? 0 : l.px * l.q), 0); N += n; M += n / lev;
+      W += Math.min(n / lev, n * (+e.stopPct > 0 ? (+e.stopPct + 0.5) / 100 : 1));      // +0,5% trượt giá khi chạm cắt lỗ
+    }
+    for (const p of this.swOpen()) { N += p.N; M += p.N; W += p.N; }      // x1 không cắt lỗ: mất tối đa = cả phần lệnh
+    return { B: this.st.bal > 0 ? this.st.bal : this.base(), N, M, W };
+  }
+  riskOk(n, lev, worstPct) {
+    const r = this.riskNow(), m = n / Math.max(1, lev), w = Math.min(m, n * worstPct), f = (x) => x.toFixed(2);
+    if (!(r.B > 0)) return "chưa biết số dư tài khoản";
+    if (r.M + m > r.B * RISK.margin) return `ký quỹ ${f(r.M)} + ${f(m)} USDT sẽ vượt ${RISK.margin * 100}% số dư ${f(r.B)} USDT`;
+    if (r.N + n > r.B * RISK.notional) return `tổng giá trị lệnh ${f(r.N)} + ${f(n)} USDT sẽ vượt ${RISK.notional}× số dư`;
+    if (r.W + w > r.B * RISK.worst) return `nếu mọi lệnh cùng chạm cắt lỗ / bị thanh lý sẽ mất ${f(r.W + w)} USDT – quá ${RISK.worst * 100}% số dư ${f(r.B)} USDT`;
+    return null;
+  }
   swOpen() { return Object.values(this.S.swp || {}).filter((p) => !p.done && p.env === this.env()); }
   async swPlace(s) {
     const c = this.cfg(), env = this.env(), base = coin(s.sym), skip = (w) => { this.say(`🧪 Short bơm ${base} (${s.why}): bỏ qua – ${w}`, "skip"); };
@@ -360,6 +394,7 @@ export class LiveExec {
     if (N > B * 0.25) return skip(`lệnh nhỏ nhất của sàn ${minN.toFixed(2)} USDT lớn hơn 25% vốn ${B.toFixed(2)} USDT`);
     const usedSw = O.reduce((a, p) => a + p.N, 0); if (usedSw + N > B * 0.6) return skip(`tổng Short bơm đang mở ${usedSw.toFixed(2)} USDT – thêm lệnh này vượt 60% vốn`);
     if (this.st.avail != null && N > this.st.avail * 0.9) return skip(`số dư khả dụng ${this.st.avail} USDT không đủ cho ${N.toFixed(2)} USDT ký quỹ x1`);
+    { const why = this.riskOk(N, 1, 1); if (why) return skip(`🛡️ giới hạn an toàn chung: ${why}`); }
     await this.req("POST", "/fapi/v1/marginType", { symbol: s.sym, marginType: "ISOLATED" }).catch((e) => { if (e.code !== -4046) throw e; });
     await this.req("POST", "/fapi/v1/leverage", { symbol: s.sym, leverage: 1 }); delete this.lev[s.sym];      // Bắt râu sập sau này trên coin này tự đặt lại đòn bẩy của nó
     const px0 = s.px > 0 ? s.px : (await this.req("GET", "/fapi/v1/premiumIndex", { symbol: s.sym }, false)).markPrice;
@@ -477,11 +512,12 @@ export class LiveExec {
     this.S.errs++; this.say(`⚠️ ${what}: ${e.message}`, "stop");
     if (this.S.errs >= 5 && !this.S.halt) { this.S.halt = `${this.S.errs} lỗi API liên tiếp (gần nhất: ${e.message.slice(0, 80)}) – ngừng mở mới, lệnh đang mở vẫn được quản lý; bấm "Chạy lại" trên trang sau khi xử lý`; this.note(`err:${Date.now()}`, 3, "⚠️ Tài khoản Binance thật: tạm ngừng do lỗi", this.S.halt); }
   }
-  resume(at) { if (at && at !== this.S.resumeSeen) { this.S.resumeSeen = at; this.S.halt = null; this.S.errs = 0; this.say("Anh cho chạy lại tài khoản thật"); } }
+  resume(at) { if (at && at !== this.S.resumeSeen) { this.S.resumeSeen = at; this.S.halt = null; this.S.errs = 0; if (this.st.bal > 0) (this.S.peak ||= {})[this.env()] = this.st.bal; this.say("Anh cho chạy lại tài khoản thật"); } }
   summary() {
     const c = this.cfg();
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
+      risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
       swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why }; }) },
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: D.d, pnl: +D.pnl.toFixed(2) }])), tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },

@@ -3209,3 +3209,10 @@ body.nt-pk{overflow:hidden}
 .nt-i:hover .nt-b>b{color:var(--brass,var(--brand))}
 .nt-i.nt-real:hover .nt-b>b{color:#F2C94C}
 .nt-a:focus-visible{outline:2px solid color-mix(in srgb,var(--brand) 55%,transparent);outline-offset:-2px;border-radius:10px}
+
+/* 🛡️ giới hạn an toàn chung */
+.rk{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 14px;margin:0 0 12px;padding:9px 11px;border-radius:11px;background:var(--sunk)}
+.rk-h{grid-column:1/-1;font-size:.78rem;font-weight:600;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline}.rk-h small{font-weight:400;font-size:.68rem}
+.rk-b{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.72rem;color:var(--ink-2)}
+.rk-b i{display:block;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}.rk-b i b{display:block;height:100%;border-radius:3px;background:var(--up)}
+.rk-b.hi i b{background:var(--brass,#d9a23a)}.rk-b.full i b{background:var(--down)}.rk-b small{font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap}
