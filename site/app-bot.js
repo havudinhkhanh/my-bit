@@ -241,7 +241,13 @@ async function viewScalp() {
   const ATs = AT.slice().sort((a, b) => (a.t1 < b.t1 ? -1 : 1));
   let ch = 0, cs = 0; const stp = ATs.map((t) => { if (t.strat === "hook") ch += t.usd || 0; else cs += t.usd || 0; return { x: hms(t.t1), h: +ch.toFixed(3), s: +cs.toFixed(3) }; });
   const stChart = stp.length > 1 ? lineSvg([{ name: "🪝 Bắt râu sập", color: css("--brass") || css("--brand"), width: 2, pts: stp.map((p) => ({ x: p.x, y: p.h })) }, { name: "⚡ Lướt giây", color: css("--ink-2"), width: 1.5, pts: stp.map((p) => ({ x: p.x, y: p.s })) }], { h: 160, dec: 2, zero: true }) : empty("Chưa đủ lệnh để vẽ.");
-  const stTable = `<div class="tw"><table class="rs"><thead><tr><th class="l">Phương pháp</th><th>Lệnh</th><th>Thắng</th><th>Ròng (USDT)</th><th>TB / lệnh (bps)</th></tr></thead><tbody>${sRow("🪝 Bắt râu sập", bh)}${sRow("⚡ Lướt giây", bsec)}</tbody></table></div>`;
+  // 🧪 Thử nghiệm (SwingLab – Short niêm yết / Short bơm): giữ nhiều ngày nên tính riêng, kèm lệnh đang mở & lãi/lỗ tạm tính
+  const swRows = () => {
+    if (!SWX) return `<tr><td class="l">🧪 Thử nghiệm</td><td colspan="4" class="faint">${bi("chưa chạy – máy chủ riêng cần cập nhật bản mới (sudo bash /opt/my-bit/scalper/install.sh)", "not running – update your server")}</td></tr>`;
+    return ["list", "pump"].filter((k) => SWX[k]).map((k) => { const B = SWX[k], H = B.hist || [], st = B.st || {}, op = (B.pos || []).length, up = (B.pos || []).reduce((a, x) => a + (x.upnl || 0), 0);
+      return `${sRow(`🧪 ${k === "list" ? bi("Short niêm yết", "Short listings") : bi("Short bơm", "Short pumps")}`, { n: st.n || 0, win: st.win || 0, net: st.pnl || 0, bps: H.reduce((a, x) => a + (x.pct || 0) * 100, 0) * ((st.n || 0) / Math.max(1, H.length)) })}${op ? `<tr><td class="l faint" colspan="5"><small>↳ ${op} ${bi("lệnh đang mở", "open")} · ${bi("tạm tính", "unrealized")} <b class="${cls(up)}">${nz(up, 2) > 0 ? "+" : ""}${usd2(up)}</b></small></td></tr>` : ""}`; }).join("");
+  };
+  const stTable = `<div class="tw"><table class="rs"><thead><tr><th class="l">Phương pháp</th><th>Lệnh</th><th>Thắng</th><th>Ròng (USDT)</th><th>TB / lệnh (bps)</th></tr></thead><tbody>${sRow("🪝 Bắt râu sập", bh)}${sRow("⚡ Lướt giây", bsec)}${swRows()}</tbody></table></div>`;
   // ---------------------------------------------------------------- (C) dòng sự kiện trực tiếp, phân loại & lọc
   const EVC = [["all", "Tất cả"], ["trade", "🔔 Lệnh"], ["skip", "🚫 Bộ lọc chặn"], ["fix", "🔁 Tự sửa & dừng"], ["lv", "💵 Binance"], ["fund", "💸 Funding"], ["err", "⚠️ Lỗi"], ["sys", "⚙️ Hệ thống"]];
   const evCat = (e) => (e.s === "lv" ? (/⚠️|lỗi/i.test(e.m) ? "err" : "lv") : /BỎ QUA/.test(e.m) ? "skip" : /💸|funding/i.test(e.m) ? "fund" : /⛔|🔁|nghỉ|Dừng|chạy lại|chạy tiếp|Sang ngày|mục tiêu/i.test(e.m) ? "fix" : /⚠️|lỗi/i.test(e.m) || e.k === "err" ? "err" : /Khớp|Đóng|chờ (mua|bán)|đặt lệnh|đã huỷ|💰|🔻|🪝|⚡|Long|Short/.test(e.m) ? "trade" : "sys");

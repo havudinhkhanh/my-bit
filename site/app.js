@@ -275,6 +275,7 @@ const TW_OPT = [/^Phân vị/, /^Funding TB/, /^OI 24h/, /^Kỳ$/, /^Mua & giữ
 let TWN = 0;
 function twFit(tw) {
   const t = tw.querySelector(":scope > table"); if (!t || !t.offsetWidth) return;
+  if (t.classList.contains("rs") && innerWidth <= 760) { tw.classList.remove("fit", "fit2", "over", "end"); t.removeAttribute("data-tfh"); return; }      // bảng dạng thẻ trên điện thoại: không ẩn cột
   // chỉ gỡ lớp đang có (gỡ lớp không có vẫn bắt trình duyệt tính lại cả bảng)
   for (const c of ["fit", "fit2", "over", "end"]) if (tw.classList.contains(c)) tw.classList.remove(c); if (t.hasAttribute("data-tfh")) t.removeAttribute("data-tfh");
   const ov = () => t.scrollWidth - tw.clientWidth > 2;
