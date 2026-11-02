@@ -94,6 +94,11 @@ export class LiveExec {
       for (const b of f.assets || []) add("Futures", b.asset, +b.marginBalance);
       W.fut = { wallet: +(+f.totalWalletBalance || 0).toFixed(2), upnl: +(+f.totalUnrealizedProfit || 0).toFixed(2), margin: +(+f.totalMarginBalance || 0).toFixed(2), avail: +(+f.availableBalance || 0).toFixed(2) };
     } catch (e) { W.err.push("Futures: " + e.message); }
+    // vị thế futures đang mở (để trang Danh mục đồng bộ): [mã, số lượng (+Long/−Short), giá vào, giá mark, đòn bẩy, lời/lỗ đang mở, giá thanh lý, cross/isolated, ký quỹ]
+    try {
+      const L = await this.req("GET", "/fapi/v2/positionRisk", {}, true, BASE[env], env);
+      W.pos = (L || []).filter((x) => +x.positionAmt !== 0).map((x) => [x.symbol, +x.positionAmt, +x.entryPrice, +x.markPrice, +x.leverage || 1, +(+x.unRealizedProfit || 0).toFixed(4), +x.liquidationPrice || 0, x.marginType === "isolated" ? "iso" : "cross", +(+x.isolatedMargin || 0).toFixed(4)]);
+    } catch (e) { W.err.push("Vị thế futures: " + e.message); }
     const sumA = Object.values(W.assets).reduce((s2, a) => s2 + a.usd, 0);
     W.total = +(W.wallets.length ? W.wallets.reduce((s2, w) => s2 + w[1], 0) : sumA).toFixed(2);
     if (!W.wallets.length) { const by = {}; for (const a of Object.values(W.assets)) for (const [k, v] of Object.entries(a.w)) by[k] = (by[k] || 0) + v; W.wallets = Object.entries(by).map(([k, v]) => [k, +v.toFixed(2)]).sort((a, b) => b[1] - a[1]); }

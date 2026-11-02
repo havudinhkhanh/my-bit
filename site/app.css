@@ -3252,7 +3252,7 @@ td .sc-mxr{margin:0}
 @media (prefers-reduced-motion:reduce){.ios-sheet-w,.ios-sheet-bg,.ios-sheet.out .ios-sheet-w{animation:none}}
 /* bảng ước tính lời/lỗ khi đóng tay */
 .mxe{width:100%;min-width:0;table-layout:auto;border-collapse:collapse;font-variant-numeric:tabular-nums;margin-top:6px;font-size:13px}
-.mxe td{padding:5px 0;border-bottom:.5px solid rgba(60,60,67,.18);vertical-align:top;background:none}.mxe td:first-child{text-align:left;white-space:normal;width:100%}.mxe td:last-child{text-align:right;white-space:nowrap;padding-left:10px;width:auto}
+.mxe td,.mxe tr:hover td{padding:5px 0;border-bottom:.5px solid rgba(60,60,67,.18);vertical-align:top;background:none}.mxe td:first-child{text-align:left;white-space:normal;width:100%}.mxe td:last-child{text-align:right;white-space:nowrap;padding-left:10px;width:auto}
 .mxe td small{display:block;opacity:.65;font-size:11px}
 .mxe tr.tot td{border-bottom:0;padding-top:8px;font-size:15px;font-weight:600;color:inherit}
 :root[data-theme="dark"] .mxe td{border-color:rgba(84,84,88,.45)}
@@ -3272,3 +3272,9 @@ td .sc-mxr{margin:0}
 .nt-ctx.out .ios-menu-in{animation:ntCtxOut .12s ease-in both}
 @keyframes ntCtxIn{from{opacity:0;transform:scale(.96)}}@keyframes ntCtxOut{to{opacity:0}}
 @media (pointer:fine){.ntpk-bg{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);background:rgba(0,0,0,.45)}.ntpk-in{animation-duration:.2s;animation-timing-function:cubic-bezier(.2,.8,.3,1)}@keyframes pkIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}}
+
+/* Danh mục: thanh đồng bộ Binance thật */
+.pf-sync{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.pf-sync-t{flex:1 1 260px;display:flex;flex-direction:column;gap:2px;min-width:0}.pf-sync-t small{color:var(--ink-3);font-size:.74rem}
+.pf-sync .chk{font-size:.8rem;color:var(--ink-2);display:inline-flex;gap:6px;align-items:center}
+@media (max-width:760px){.pf-sync .btn{flex:1 1 100%}}

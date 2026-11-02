@@ -280,6 +280,8 @@ export class ScalpCore {
       } catch (e) { this.err("đóng tay " + k + ": " + e.message); }
     }
     for (const k of Object.keys(this.S.close_seen || {})) if (!(c.close_req || {})[k]) delete this.S.close_seen[k];
+    // 🔄 trang Danh mục bấm "Cập nhật từ Binance" → đọc lại số dư ví ngay (không chờ lượt 5 phút)
+    if (c.wal_req && c.wal_req !== this.S.wal_seen) { this.S.wal_seen = c.wal_req; if (Date.now() - Date.parse(c.wal_req) < 10 * 60e3) try { this.io.onWalReq?.(); } catch (e) { /* bỏ qua */ } }
     if (c.resume_at && c.resume_at !== this.S.resume_seen) {   // anh bấm "bỏ nghỉ, chạy tiếp"
       this.S.resume_seen = c.resume_at;
       if (this.S.pause) {

@@ -4469,8 +4469,65 @@ async function pxOnDate(k, date) {
   return null;
 }
 const HM = [["usdt", "💵 Số USDT đã bỏ ra"], ["vnd", "₫ Số tiền VND đã bỏ ra"], ["date", "📅 Theo ngày mua"], ["price", "Giá mua / coin"], ["now", "Không nhớ – tính từ hôm nay"]];
+// ---- 🔄 đồng bộ Danh mục từ tài khoản Binance THẬT (số dư do máy chủ riêng đọc; khoá không có quyền rút)
+//   spot = mọi coin ở mọi ví (Spot, Funding, Earn, Futures), stablecoin → tiền mặt, vị thế futures đang mở → bảng Futures.
+//   Giữ giá vốn anh đã nhập: số lượng đổi thì giữ giá vốn/coin, vốn bỏ ra đổi theo tỉ lệ; coin mới chưa có giá vốn → tạm lấy giá lúc đồng bộ.
+const PF_STABLE = new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI", "USD1", "USDP", "PYUSD"]);
+async function pfWal(fresh) { try { const r = fresh ? await Store.net("scalpstate") : await Store.get("scalpstate"); const W = r.data?.live?.wal?.live; return W && W.at && Array.isArray(W.assets) ? W : null; } catch (e) { return null; } }
+function pfSyncPlan(W) {
+  const fbf = {}; for (const r of Object.values(BYK || {})) if (r.bf) fbf[r.bf] = r;
+  const old = new Map(PF.holdings.map((h) => [h.symbol, h])), H = [], skip = [], ch = [];
+  let stab = 0;
+  for (const [a, q, usd] of W.assets) {
+    if (PF_STABLE.has(a)) { stab += usd; continue; }
+    if (!(q > 0) || !(usd >= 1)) continue;                                  // bỏ bụi < 1 USD
+    const r = BYK?.[a]; if (!r) { skip.push(`${a} ($${nf(usd, 2)})`); continue; }
+    const p = isNum(r.p) ? r.p : usd / q, o = old.get(a);
+    if (o && o.cost > 0) {
+      const k = o.qty > 0 ? q / o.qty : 1, same = Math.abs(k - 1) < 0.005;
+      H.push({ ...o, qty: q, usdt: isNum(o.usdt) ? (same ? o.usdt : o.usdt * k) : undefined, vnd: isNum(o.vnd) ? (same ? o.vnd : o.vnd * k) : undefined });
+      ch.push([a, same ? "same" : "upd", o.qty, q, usd]);
+    } else { H.push({ symbol: a, qty: q, cost: p, usdt: q * p, how: "từ Binance · giá vốn tạm = giá lúc đồng bộ (bấm Sửa nếu nhớ giá mua)" }); ch.push([a, "new", 0, q, usd]); }
+  }
+  const gone = PF.holdings.filter((h) => !H.some((x) => x.symbol === h.symbol));
+  let F = null, fm = 0, fu = 0; const fskip = [];
+  if (Array.isArray(W.pos)) {
+    const oldF = PF.futures || []; F = [];
+    for (const [sym, amt, ep, mk, lev, up] of W.pos) {
+      const r = fbf[sym] || BYK?.[sym.replace(/USDT$|USDC$/, "")], m = r?.bfm || 1; if (!r) { fskip.push(sym); continue; }
+      const side = amt > 0 ? "long" : "short", qn = Math.abs(amt) * m, e = ep / m, o = oldF.find((x) => x.symbol === r.k && x.side === side);
+      F.push({ symbol: r.k, side, qty: qn, entry: e, lev: lev || 1, stop: o?.stop || undefined, tf: o?.tf || "d", src: "binance" });
+      fm += qn * e / (lev || 1); fu += up || 0;
+    }
+  }
+  const cash = Math.max(0, stab - fm - fu);
+  return { H, gone, ch, skip, F, fskip, cash, stab, at: W.at, total: W.total };
+}
+function pfSyncApply(P, drop = true) {
+  PF.holdings = drop ? P.H : [...P.H, ...P.gone];
+  if (P.F) PF.futures = P.F;
+  PF.cash = +P.cash.toFixed(2); PF.syncAt = new Date().toISOString(); PF.syncWalAt = P.at;
+}
+async function pfSyncAsk(P) {
+  let drop = true;
+  const t = (iso) => new Date(iso + "Z").toLocaleString(LOC, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
+  const L = { new: "➕ thêm", upd: "✏️ cập nhật", same: "= giữ nguyên" };
+  const rows = P.ch.map(([a, k, q0, q, usd]) => `<tr><td><b>${esc(a)}</b><small>${L[k]}</small></td><td>${k === "upd" ? `${qty(q0)} → ` : ""}<b>${qty(q)}</b><small>$${nf(usd, 2)}</small></td></tr>`).join("");
+  const body = `<p style="margin:0 0 6px;text-align:center">Số dư Binance thật đọc lúc <b>${t(P.at)}</b> · tổng ≈ <b>$${nf(P.total, 2)}</b></p>
+    <table class="mxe"><tbody>${rows || '<tr><td>Không có coin nào (≥ $1) ngoài stablecoin</td><td></td></tr>'}
+    <tr><td>💵 Tiền mặt / stablecoin<small>${P.F?.length ? "đã trừ ký quỹ & lời/lỗ vị thế futures (tính riêng ở bảng Futures)" : "USDT, USDC, FDUSD… ở mọi ví"}</small></td><td><b>$${nf(P.cash, 2)}</b><small>trước: $${nf(+PF.cash || 0, 2)}</small></td></tr>
+    <tr><td>📈 Vị thế futures</td><td>${P.F ? `<b>${P.F.length}</b> vị thế<small>${P.F.map((f) => `${f.symbol} ${f.side === "long" ? "Long" : "Short"} x${nf(f.lev, 0)}`).join(", ") || "không có"}</small>` : `<small>máy chủ chưa gửi – giữ như cũ</small>`}</td></tr></tbody></table>
+    ${P.gone.length ? `<label class="chk" style="display:flex;gap:8px;margin-top:8px;font-size:13px"><input type="checkbox" id="pfDrop" checked> Xoá ${P.gone.length} coin không còn trên Binance: ${P.gone.map((h) => esc(h.symbol)).join(", ")}</label>` : ""}
+    ${P.skip.length || P.fskip.length ? `<p class="mxn">Bỏ qua (không có trong danh sách coin của MyBit): ${esc([...P.skip, ...P.fskip].join(", "))}</p>` : ""}
+    <p class="mxn">Giá vốn anh đã nhập được giữ. Coin mới tạm lấy giá vốn = giá bây giờ – bấm "Sửa" ở dòng đó nếu nhớ giá mua. Bụi dưới $1 không đưa vào.</p>`;
+  const go = iosSheet({ title: "Cập nhật danh mục từ Binance thật?", body, ok: "Cập nhật danh mục", cancel: "Huỷ" });
+  setTimeout(() => { const c = document.getElementById("pfDrop"); if (c) c.onchange = () => { drop = c.checked; }; }, 50);
+  return (await go) ? { drop } : null;
+}
 async function viewPortfolio() {
   const C = await coins(); await pfLoad(); await WL.load();
+  let BW = await pfWal(false);
+  if (BW && PF.autoSync && BW.at !== PF.syncWalAt && (PF.holdings.length || BW.total > 0)) { const P = pfSyncPlan(BW); pfSyncApply(P, true); await pfSave(); toast(`🔄 Đã tự cập nhật danh mục từ Binance thật (số dư lúc ${new Date(BW.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })})`); }
   const fx = await fxVnd(), fxSrc = PF.fx > 0 ? "anh tự đặt" : FX.src;
   const P = (k) => BYK[k]?.p;
   let spotV = 0, spotC = 0, futN = 0, futPnl = 0, futMargin = 0, fundDay = 0, netDelta = 0;
@@ -4529,6 +4586,8 @@ async function viewPortfolio() {
       ["Spot", usd(spotV), "", `Đã bỏ ra ${usd(spotC)}`], ["Lãi/lỗ spot", usd(spotV - spotC), cls(spotV - spotC), `≈ ${vndF((spotV - spotC) * fx)}`], ["Tiền mặt / stablecoin", usd(cash)],
       ["Futures: giá trị vị thế", usd(futN)], ["Lãi/lỗ futures", usd(futPnl), cls(futPnl)], ["Ký quỹ đang dùng", usd(futMargin)], ["Funding mỗi ngày", usd(fundDay), cls(fundDay), "Dương = nhận, âm = trả (ước theo funding hiện tại)"],
       ["Độ phơi nhiễm ròng", usd(netDelta), "", "Spot + Long − Short (USD). Gần 0 = đã phòng hộ"], ["Đòn bẩy ròng", eq > 0 ? "x" + nf(Math.abs(netDelta) / eq, 2) : "—"]], true)}</section>
+    ${BW ? `<section class="panel pf-sync"><div class="pf-sync-t"><b>💵 Binance thật</b><small>tổng ≈ $${nf(BW.total, 2)} · số dư đọc lúc ${new Date(BW.at + "Z").toLocaleString(LOC, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}${PF.syncAt ? ` · danh mục cập nhật lần cuối ${new Date(PF.syncAt).toLocaleString(LOC, { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}` : " · danh mục chưa đồng bộ lần nào"}</small></div>
+      <button class="btn primary" id="pfSync">🔄 Cập nhật từ Binance</button><label class="chk" title="Mỗi lần mở trang Danh mục, tự lấy số dư mới nhất (máy chủ đọc 5 phút/lần) – giữ giá vốn anh đã nhập, xoá coin không còn trên Binance"><input type="checkbox" id="pfAuto"${PF.autoSync ? " checked" : ""}> Tự cập nhật khi mở trang</label></section>` : ""}
     ${govBox}
     ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${k ? coinLink(k) : ""} ${esc(t)}</li>`).join("")}</ul>`) : ""}
     ${PG("Vị thế đang giữ")}${panel("Spot", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
@@ -4547,7 +4606,7 @@ async function viewPortfolio() {
     ${panel("Futures (perp)", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Số lượng</th><th>Giá vào</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Thanh lý (ước)</th><th>Cắt lỗ</th><th>Funding</th><th></th></tr></thead><tbody>${fu || '<tr><td colspan="11" class="muted">Chưa có vị thế.</td></tr>'}</tbody></table></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="fS" list="coinlist" placeholder="ETH"></div><div class="field"><label>Chiều</label><select id="fSide"><option value="long">Long</option><option value="short">Short</option></select></div>
       <div class="field"><label>Giá vào <small>(Binance › Vị thế › Giá vào)</small></label><input id="fE" inputmode="decimal"></div><div class="field"><label>Đòn bẩy</label><input id="fL" inputmode="decimal" value="3"></div><div class="field"><label>Ký quỹ (USDT)</label><input id="fM" inputmode="decimal" placeholder="vd 100"></div><div class="field"><label>hoặc Số lượng (coin)</label><input id="fQ" inputmode="decimal"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
-      <p class="faint" style="font-size:.72rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. Hệ thống chỉ theo dõi, không kết nối tài khoản sàn.</p>`)}
+      <p class="faint" style="font-size:.72rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. ${BW ? "Bấm 🔄 Cập nhật từ Binance ở trên để lấy vị thế thật; trang này chỉ đọc, không đặt lệnh." : "Hệ thống chỉ theo dõi, không kết nối tài khoản sàn."}</p>`)}
     ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
       const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
       return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
@@ -4610,6 +4669,17 @@ async function viewPortfolio() {
     if (hm === "vnd") $("#hV").value = nf(h.vnd, 0); else $("#hU").value = String(+(isNum(h.usdt) ? h.usdt : h.qty * h.cost).toFixed(2));
     $("#hRep").checked = true; calc(); $("#pfAdd").scrollIntoView({ behavior: "smooth", block: "center" }); $("#pfAdd").classList.add("flash");
   });
+  if ($("#pfSync")) $("#pfSync").onclick = async () => {
+    const b = $("#pfSync"), t0 = Date.now(); b.disabled = true; b.textContent = "⏳ Đang đọc số dư Binance…";
+    try { const r = await Store.net("scalp"), Cq = r.data && typeof r.data === "object" ? r.data : null; if (Cq) { Cq.wal_req = new Date().toISOString(); delete Cq.syms; await Store.put("scalp", Cq); } } catch (e) { /* vẫn dùng số dư gần nhất */ }
+    let W = null; for (let i = 0; i < 14; i++) { await new Promise((r) => setTimeout(r, i ? 4000 : 1500)); W = await pfWal(true); if (W && Date.parse(W.at + "Z") > t0 - 5000) break; }
+    W ||= BW; b.disabled = false; b.textContent = "🔄 Cập nhật từ Binance";
+    if (!W) { toast("Chưa đọc được số dư Binance – máy chủ riêng có đang chạy không?"); return; }
+    if (Date.parse(W.at + "Z") < t0 - 5000) toast(`Máy chủ chưa đọc lại kịp – dùng số dư lúc ${new Date(W.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}`);
+    const P = pfSyncPlan(W), a = await pfSyncAsk(P); if (!a) return;
+    pfSyncApply(P, a.drop); await pfSave(); toast("✅ Đã cập nhật danh mục theo Binance thật"); viewPortfolio();
+  };
+  if ($("#pfAuto")) $("#pfAuto").onchange = async (e) => { PF.autoSync = e.target.checked; await pfSave(); toast(PF.autoSync ? "Mỗi lần mở Danh mục sẽ tự lấy số dư Binance mới nhất" : "Đã tắt tự cập nhật"); };
   $("#cSave").onclick = async () => { PF.cash = numIn($("#pCash").value) || 0; PF.depVnd = numIn($("#pDep").value) || 0; const f = numIn($("#pFx").value); PF.fx = f > 1000 ? f : 0; await pfSave(); viewPortfolio(); };
   $("#fAdd").onclick = async () => {
     const s = $("#fS").value.trim().toUpperCase(), e = numIn($("#fE").value) || BYK[s]?.p, l = numIn($("#fL").value) || 1, sl = numIn($("#fSL").value) || null, mg = numIn($("#fM").value);
