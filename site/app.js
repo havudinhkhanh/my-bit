@@ -3466,7 +3466,7 @@ function engPanel(ss, C, B) {
     return `<tr><td class="l"><b>${nm(id)}</b></td><td class="l"><span class="pill ${m[1]}">${m[0]}</span></td><td>${x.n}</td><td>${isNum(x.mu) ? `${supSg(x.mu)} / <b>${supSg(x.muc)}</b>` : "—"}</td><td>${isNum(x.freq) ? nf(x.freq, 0) : "—"}</td>
       <td>${isNum(x.fq) ? nf(x.fq, 2) + "%" : "—"}</td><td>${isNum(x.fdd) ? nf(x.fdd, 2) + "%" : "—"}</td><td>${isNum(x.fk) ? nf(x.fk, 2) + "%" : "—"}</td><td><b>${nf(x.f, 2)}%</b></td><td class="${x.mult > 1 ? "up" : x.mult < 1 ? "down" : ""}">×${nf(x.mult, 2)} <small class="faint">(${nf(x.base, 1)}%)</small></td>
       <td>${isNum(x.exp) ? `${P(x.exp)} <small class="faint">/ ${P(x.con)}</small>` : "—"}</td></tr><tr class="sup-why"><td colspan="11"><small>${x.why.map(esc).join(" · ")}</small></td></tr>`; }).join("");
-  const M = E.mc || {}, pb = (v, cl) => `<div class="mgb"><i style="width:${(v * 100).toFixed(0)}%;background:${cl}"></i><b>${nf(v * 100, 0)}%</b></div>`;
+  const M = E.mc || {}, pb = (v, cl) => `<div class="mgb"><i style="width:${(v * 100).toFixed(0)}%;background:${cl}"></i><b${v >= 0.4 ? ' style="color:#fff"' : ""}>${nf(v * 100, 0)}%</b></div>`;
   const mc = M.none ? `<p class="muted">Mô phỏng cần ít nhất 1 bot có ≥ 10 lệnh đã đóng.</p>` : M.n ? `<div class="eng-mc">
       <div><span>Cuối năm ≥ sàn +${nf(c.goal_floor, 0)}%</span>${pb(M.p_floor, css("--ref"))}</div><div><span>Cuối năm ≥ ×${nf(c.goal_x, 0)}</span>${pb(M.p_x, css("--up"))}</div>
       <div><span>Cuối năm ≥ ×${nf(c.goal_x2, 0)}</span>${pb(M.p_x2, css("--floor"))}</div><div><span>Lỗ so với đầu năm</span>${pb(M.p_loss, css("--down"))}</div><div><span>Có lúc sụt ≥ ${nf(C.acct_dd, 0)}%</span>${pb(M.p_dd, css("--down"))}</div></div>
