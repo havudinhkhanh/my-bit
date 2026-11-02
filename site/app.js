@@ -537,6 +537,29 @@ function cusPick(anchor) {
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
 const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot" };
 const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+// bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
+// body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
+function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
+  return new Promise((res) => {
+    document.getElementById("iosSheet")?.remove();
+    const m = document.createElement("div"), live = typeof body === "function" || typeof ok === "function", B = () => { try { return typeof body === "function" ? body() : body; } catch (e) { return ""; } };
+    const O = () => { try { return typeof ok === "function" ? ok() : [ok, danger]; } catch (e) { return ["OK", danger]; } }, o0 = O();
+    m.id = "iosSheet"; m.className = "ios-sheet";
+    m.innerHTML = `<div class="ios-sheet-bg" data-x></div><div class="ios-sheet-w" role="alertdialog" aria-modal="true"><div class="ios-sheet-c"><div class="ios-sheet-h">${title}</div><div class="ios-sheet-b">${B()}</div>
+      <button type="button" class="ios-sheet-ok${o0[1] ? " red" : ""}" data-ok${wait ? " disabled" : ""}><span>${o0[0]}</span>${wait ? '<i class="ios-sheet-wt"></i>' : ""}</button></div><button type="button" class="ios-sheet-x" data-x>${cancel}</button></div>`;
+    document.body.appendChild(m);
+    const okB = m.querySelector("[data-ok]"), bd = m.querySelector(".ios-sheet-b"); let done = false;
+    if (wait) { const w = m.querySelector(".ios-sheet-wt"); w.style.animationDuration = wait + "ms"; setTimeout(() => { okB.disabled = false; w.remove(); }, wait); }
+    const iv = live ? setInterval(() => { if (!document.body.contains(m)) return clearInterval(iv); bd.innerHTML = B(); const o = O(); okB.firstChild.innerHTML = o[0]; okB.classList.toggle("red", !!o[1]); }, 1000) : 0;
+    const fin = (v) => { if (done) return; done = true; clearInterval(iv); removeEventListener("keydown", kd); m.classList.add("out"); setTimeout(() => m.remove(), 200); res(v); };
+    const kd = (e) => { if (e.key === "Escape") fin(false); };
+    addEventListener("keydown", kd); addEventListener("hashchange", () => fin(false), { once: true });
+    m.querySelectorAll("[data-x]").forEach((x) => (x.onclick = () => fin(false)));
+    okB.onclick = () => { if (!okB.disabled) fin(true); };
+    m.querySelector(".ios-sheet-bg").addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+    m.querySelector(".ios-sheet-x").focus({ preventScroll: true });
+  });
+}
 function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $$("[aria-expanded=true][data-iosm]").forEach((b) => b.setAttribute("aria-expanded", "false")); }
 function botMenu(anchor, up) {
   if ($("#iosMenu")) { iosMenuClose(); return; }

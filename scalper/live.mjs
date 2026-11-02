@@ -264,6 +264,7 @@ export class LiveExec {
       while (this.qs?.length) { const x = this.qs.shift(); try { await this.swPlace(x); } catch (e) { this.err(`Short bơm ${x.sym}`, e); } }
       await this.swManage();
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
+      await this.accrue();
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
   }
@@ -315,7 +316,7 @@ export class LiveExec {
   missAdd(m) { const env = this.env(); this.S.miss = [...(this.S.miss || []).slice(-79), { ...m, env }]; }
   addFill(ev, q, px, mk = 0) {
     const c = this.cfg(), P = ev.pos, nq = P.q + q;
-    P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.pk = 0; ev.fees += q * px * (mk ? c.fee_t : c.fee_m) / 100; ev.needStop = true;
+    P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.pk = 0; ev.fees += q * px * (mk ? c.fee_t : c.fee_m) / 100; ev.needStop = true; ev.ichk = 0;
     this.say(`✅ Khớp ${ev.side > 0 ? "MUA" : "BÁN"} ${ev.sym} ${+q.toFixed(8)} @ ${+px.toPrecision(8)} · vị thế ${+P.q.toFixed(8)} giá TB ${+P.ap.toPrecision(8)} · tự đóng sau ${ev.hold} phút`, "win");
     this.note(`fill:${ev.id}:${P.q}`, 2, `${LTAG(ev.env)} · ✅ Khớp ${ev.side > 0 ? "Long" : "Short"} ${coin(ev.sym)}`, `${+q.toFixed(8)} @ ${+px.toPrecision(8)} – tự đóng sau ${ev.hold} phút, cắt lỗ trên sàn ${ev.stopPct}%`, `lv:${ev.id}`);
   }
@@ -431,6 +432,14 @@ export class LiveExec {
       } catch (e) { this.err(`Short bơm ${p.sym}`, e); }
     }
   }
+  // funding & phí ĐÃ TRẢ THẬT của lệnh đang mở (sổ thu chi Binance, 10 phút/lần) → trang ước tính lời/lỗ ròng nếu đóng tay ngay
+  async accrue() {
+    const now = Date.now(), L = [...this.swOpen().map((p) => [p, p.t0]), ...this.active().filter((e) => e.pos?.q > 0).map((e) => [e, e.t0])];
+    for (const [x, t0] of L) {
+      if (now - (x.ichk || 0) < 10 * 60e3) continue; x.ichk = now;
+      try { const I = await this.income({ sym: x.sym, t0 }); if (I) { x.fundA = +I.fund.toFixed(4); if (I.com && !I.other) x.feeA = +(-I.com).toFixed(4); } } catch (e) { /* lần sau thử lại */ }
+    }
+  }
   async swClose(p, why) {
     const c = this.cfg(), pr = await this.pos(p.sym), q = Math.abs(pr.amt);
     let px = null;
@@ -532,10 +541,10 @@ export class LiveExec {
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
-      swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why }; }) },
+      swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +(p.feeA ?? p.fees ?? 0).toFixed(4), fund: p.fundA ?? null }; }) },
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: D.d, pnl: +D.pnl.toFixed(2) }])), tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
-      ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.fees || 0).toFixed(4), sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
+      ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
       hist: this.S.hist.slice(-80), log: this.S.log.slice(-40), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
       eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
