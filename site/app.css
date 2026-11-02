@@ -3216,3 +3216,10 @@ body.nt-pk{overflow:hidden}
 .rk-b{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.72rem;color:var(--ink-2)}
 .rk-b i{display:block;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 10%,transparent);overflow:hidden}.rk-b i b{display:block;height:100%;border-radius:3px;background:var(--up)}
 .rk-b.hi i b{background:var(--brass,#d9a23a)}.rk-b.full i b{background:var(--down)}.rk-b small{font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap}
+
+/* ✋ nút đóng tay trên lệnh đang mở */
+.sc-mxr{display:flex;justify-content:flex-end;margin-top:6px}
+.sc-mx{border:1px solid color-mix(in srgb,var(--down) 45%,transparent);background:color-mix(in srgb,var(--down) 8%,transparent);color:var(--down);font:inherit;font-size:.74rem;font-weight:600;padding:4px 10px;border-radius:999px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.sc-mx:active{transform:scale(.96)}.sc-mx.real{border-color:var(--down);background:color-mix(in srgb,var(--down) 14%,transparent)}
+.sc-mx.busy,.sc-mx:disabled{opacity:.6;cursor:default;color:var(--ink-3);border-color:var(--line);background:none}
+td .sc-mxr{margin:0}

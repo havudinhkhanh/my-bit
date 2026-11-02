@@ -733,7 +733,7 @@ function sclApply() {
   document.querySelectorAll("[data-lt0]").forEach((el) => {
     const t0 = +el.dataset.lt0, h = +el.dataset.lh, left = Math.max(0, h - (now - t0) / 1000), f = el.querySelector(".sc-cd i"), s = el.querySelector("small");
     if (f) f.style.width = `${(100 - left / h * 100).toFixed(1)}%`;
-    if (s) s.textContent = left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`;
+    if (s) s.textContent = left >= 86400 ? `${Math.floor(left / 86400)} ngày ${Math.floor((left % 86400) / 3600)} giờ` : left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor((left % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(left % 60)).padStart(2, "0")}` : left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`;
   });
   const lv = document.getElementById("scLive"), last = Math.max(0, ...Object.values(SCL.at));
   if (lv) { const ok = last && now - last < 5000; lv.className = "sc-lv " + (ok ? "on" : ""); lv.textContent = ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""; }

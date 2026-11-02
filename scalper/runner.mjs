@@ -118,7 +118,8 @@ const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)),
 const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, saveDays, notify, cap: (t) => CAP[t], sys });
 live = new LiveExec({ core, dir: DIR, log });
 core.io.onHook = (h) => live.onHook(h);
-core.io.onSwing = (s) => live.onSwing(s);      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
+core.io.onSwing = (s) => live.onSwing(s);
+core.io.onManual = (k) => live.onManual(k);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
 let busy = false, lastErr = "";
 async function tick(first) {
   if (busy) return; busy = true;

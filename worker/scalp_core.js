@@ -268,6 +268,18 @@ export class ScalpCore {
     }
     this.migrate(now);
     if (!this.brainTried) { this.brainTried = true; await this.loadBrain(now); }
+    // ĐÓNG LỆNH TAY: trang ghi close_req = { "<mã lệnh>": giờ bấm } → xử lý 1 lần mỗi yêu cầu (đọc thiết lập ≤ 30 giây/lần)
+    //   pp:<thị trường> = lệnh sàn thử (lướt giây / Bắt râu sập) · sw:<pp>:<id> = lệnh thử nghiệm · lv:<id> / swp:<id> = lệnh trên Binance (chuyển cho máy chủ riêng)
+    for (const [k, at] of Object.entries(c.close_req || {})) {
+      const seen = (this.S.close_seen ||= {}); if (seen[k] === at) continue; seen[k] = at;
+      if (Date.now() - Date.parse(at) > 15 * 60e3) continue;      // yêu cầu quá cũ (máy chủ tắt lâu) → bỏ, không đóng bất ngờ
+      try {
+        if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
+        else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
+        else if (k.startsWith("lv:") || k.startsWith("swp:")) this.io.onManual?.(k);
+      } catch (e) { this.err("đóng tay " + k + ": " + e.message); }
+    }
+    for (const k of Object.keys(this.S.close_seen || {})) if (!(c.close_req || {})[k]) delete this.S.close_seen[k];
     if (c.resume_at && c.resume_at !== this.S.resume_seen) {   // anh bấm "bỏ nghỉ, chạy tiếp"
       this.S.resume_seen = c.resume_at;
       if (this.S.pause) {
