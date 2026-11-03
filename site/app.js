@@ -5550,3 +5550,20 @@ function fitPop(d) {
 }
 document.addEventListener("toggle", (e) => { const d = e.target; if (d instanceof HTMLDetailsElement && d.open) requestAnimationFrame(() => fitPop(d)); }, true);
 addEventListener("resize", () => document.querySelectorAll("details[open]").forEach(fitPop));
+
+// ---- thanh bên máy tính: 📌 ghim (luôn mở) / tự thu gọn (chỉ hiện biểu tượng; rê chuột ~0,3 giây thì mở đè lên trang). Phím [ để đổi.
+(function railInit() {
+  const nav = document.getElementById("tabs"), btn = document.getElementById("railPin"); if (!nav || !btn) return;
+  const wide = matchMedia("(min-width:1180px)"), lbl = btn.querySelector(".nav-t");
+  let t = 0, u = 0;
+  const set = (auto, save) => { document.body.classList.toggle("rail-auto", auto); nav.classList.remove("open"); btn.setAttribute("aria-pressed", String(!auto)); lbl.textContent = auto ? "Ghim thanh bên" : "Thu gọn thanh bên"; btn.title = auto ? "Ghim thanh bên – luôn mở (phím [ )" : "Thu gọn thanh bên – rê chuột vào để mở (phím [ )"; if (save) lsSet("rail", auto ? "auto" : "pin"); };
+  set(lsGet("rail", "pin") === "auto", false);
+  const open = () => { clearTimeout(u); if (!document.body.classList.contains("rail-auto") || !wide.matches) return; clearTimeout(t); t = setTimeout(() => nav.classList.add("open"), 280); };
+  const shut = (now) => { clearTimeout(t); clearTimeout(u); if (now) nav.classList.remove("open"); else u = setTimeout(() => nav.classList.remove("open"), 180); };
+  nav.addEventListener("mouseenter", open); nav.addEventListener("mouseleave", () => shut(false));
+  nav.addEventListener("focusin", () => { if (document.body.classList.contains("rail-auto")) { clearTimeout(u); nav.classList.add("open"); } });
+  nav.addEventListener("focusout", (e) => { if (!nav.contains(e.relatedTarget)) shut(true); });
+  nav.addEventListener("click", (e) => { if (e.target.closest("a")) shut(true); });
+  btn.addEventListener("click", (e) => { e.preventDefault(); const auto = !document.body.classList.contains("rail-auto"); set(auto, true); if (!auto) return; nav.classList.add("open"); });
+  addEventListener("keydown", (e) => { if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey || !wide.matches || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable) return; e.preventDefault(); set(!document.body.classList.contains("rail-auto"), true); });
+})();

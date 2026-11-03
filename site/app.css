@@ -3314,3 +3314,30 @@ td .sc-mxr{margin:0}
 .jd summary .up{color:var(--up)}.jd summary .down{color:var(--down)}.jd-a{margin-left:auto;font-size:.74rem}
 .jd-n{margin:6px 0 0;font-size:.8rem;color:var(--ink-2);background:var(--sunk);border-radius:8px;padding:6px 10px}
 .sc-acc.paper{background:var(--line-2);color:var(--ink-2)}
+
+/* ---- thanh bên máy tính: ghim (luôn mở) hoặc tự thu gọn – rê chuột ~0,3 giây thì mở đè lên trang, rời chuột thì thu lại */
+.tabs .rail-pin{display:none}
+@media (min-width:1180px){
+  :root{--rail-w:224px;--rail-c:64px}
+  body{--rail:var(--rail-w)}body.rail-auto{--rail:var(--rail-c)}
+  body{transition:padding-left .22s cubic-bezier(.3,.7,.2,1)}
+  .tabs{width:var(--rail);padding:12px 10px 10px;overflow-x:hidden;scrollbar-width:none;transition:width .22s cubic-bezier(.3,.7,.2,1),box-shadow .22s ease,background-color .22s}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs a{border-radius:10px;overflow:hidden}
+  .tabs .nav-t{transition:opacity .16s ease;overflow:hidden;text-overflow:ellipsis}
+  .tabs .nav-g b,.tabs .nav-g em,.tabs .nav-g i{transition:opacity .16s ease}
+  .tabs a.nav-sub{transition:margin-left .22s cubic-bezier(.3,.7,.2,1)}
+  body.rail-auto .tabs.open{width:var(--rail-w);box-shadow:12px 0 40px -8px rgba(0,0,0,.28);background:var(--surface)}
+  body.rail-auto .tabs:not(.open) .nav-t,body.rail-auto .tabs:not(.open) .nav-g b,body.rail-auto .tabs:not(.open) .nav-g em,body.rail-auto .tabs:not(.open) .nav-g i,body.rail-auto .tabs:not(.open) .rail-pin kbd{opacity:0}
+  body.rail-auto .tabs:not(.open) a.nav-sub{margin-left:0}body.rail-auto .tabs:not(.open) a.nav-sub::after{opacity:0}
+  body.rail-auto .tabs:not(.open) .nav-g{border-top-color:var(--line-2)}
+  .tabs .rail-pin{display:flex;align-items:center;gap:12px;margin-top:auto;flex:none;padding:9px 12px;border:0;border-radius:10px;background:none;color:var(--ink-3);cursor:pointer;
+    font:500 .8rem/1.1 "Be Vietnam Pro",system-ui,sans-serif;white-space:nowrap;text-align:left;position:sticky;bottom:0}
+  .tabs .rail-pin::before{content:"";position:absolute;inset:-10px -10px 0;z-index:-1;background:linear-gradient(transparent,var(--rail-bg,color-mix(in srgb,var(--surface) 70%,var(--bg))) 40%)}
+  body.rail-auto .tabs.open .rail-pin::before{--rail-bg:var(--surface)}
+  .tabs .rail-pin:hover{background:var(--sunk);color:var(--ink)}
+  .tabs .rail-pin svg{width:18px;height:18px;flex:none}.tabs .rail-pin .rp-a{transition:transform .22s ease;transform-origin:14px 12px}
+  body.rail-auto .tabs .rail-pin .rp-a{transform:scaleX(-1)}
+  .tabs .rail-pin kbd{margin-left:auto;font:600 .66rem/1 ui-monospace,monospace;padding:2px 5px;border-radius:4px;border:1px solid var(--line);color:var(--ink-3);transition:opacity .16s}
+}
+@media (prefers-reduced-motion:reduce){.tabs,.tabs .nav-t,body,.tabs a.nav-sub{transition:none!important}}
