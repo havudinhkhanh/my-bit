@@ -972,7 +972,7 @@ function pnGo(p) {
   if (!p) return;
   const isItem = PN.items.includes(p); if (isItem) PN.cur = p;
   if (isItem && PN.focus && !PN.q) { PN.items.forEach((x) => x.classList.toggle("pn-x", x !== p)); window.dispatchEvent(new Event("resize")); window.scrollTo({ top: Math.max(0, app().getBoundingClientRect().top + scrollY - 70), behavior: "smooth" }); }
-  else window.scrollTo({ top: p.getBoundingClientRect().top + scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--toph")) || 60) - 12, behavior: "smooth" });
+  else window.scrollTo({ top: p.getBoundingClientRect().top + scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) - 12, behavior: "smooth" });
   p.classList.remove("flash"); void p.offsetWidth; p.classList.add("flash");
   if (isItem) $$("#pnlist a[data-i]").forEach((a) => a.classList.toggle("on", PN.items[+a.dataset.i] === p));
   if (innerWidth < 1180 || document.body.classList.contains("pn-mini")) pnOpen(false);
@@ -996,7 +996,7 @@ function pnMark(f) {
 }
 function pnSpy() {
   if (!PN.items.length || PN.focus || PN.q) return;
-  const top = (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--toph")) || 60) + 40;
+  const top = (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) + 40;
   let cur = null;
   for (const p of PN.items) { if (p.classList.contains("pn-x") || !pnTitle(p)) continue; if (p.getBoundingClientRect().top <= top) cur = p; else if (cur) break; }
   cur = cur || PN.items.find((p) => pnTitle(p));
@@ -1010,10 +1010,16 @@ function pnOpen(v) {
   pnLS("open", v); document.body.classList.toggle("pn-on", v && document.body.classList.contains("pn-has"));
   window.dispatchEvent(new Event("resize"));
 }
+// chiều cao phần dính trên cùng: --toph = thanh đầu trang; --stick = thanh đầu + thanh menu ngang (màn 980–1199px) → mọi thứ "dính" bên dưới (tab Bot Phản Xạ, khung bên) không bị che
+function stickH() {
+  const d = document.documentElement, top = $(".top"), tb = $("#tabs");
+  const h = top?.offsetHeight || 51, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
+  d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick", h + tbs + "px");
+}
+if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
 function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
-  const setH = () => document.documentElement.style.setProperty("--toph", ($(".top")?.offsetHeight || 56) + "px");
-  setH(); addEventListener("resize", setH);
+  stickH();
   $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
   let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
