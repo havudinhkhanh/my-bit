@@ -445,7 +445,7 @@ let CUR_TAB = "";
 })();
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
-  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r); a.classList.toggle("par", a.dataset.r === "bot" && a.classList.contains("nav-m") && /^bot./.test(r || "")); });
+  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.dataset.r === "bothome" && /^bot/.test(r || "") && r !== "bothome"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
@@ -480,11 +480,12 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msheet")?.hidden) mSheet(false); });
 if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
-const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"], ["botjournal", "#/bot/journal", "📒", "Sổ lệnh & bài học"]];
+// nhóm Bot: 1 cửa vào (Bot của tôi) → từng bot → báo cáo chung. Giám sát rủi ro & sổ lệnh vẫn có trang riêng nhưng đi vào từ trang tổng / trang kết quả.
+const BOTSEG = [["bothome", "#/bot/home", "🤖", "Bot của tôi"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["bot", "#/bot", "📈", "Bot xu hướng"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botsup", "#/bot/sup", "🛡️", "Giám sát rủi ro"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
-const CUS_SUB = [["ov", "Tổng quan"], ["live", "Binance thật"], ["hook", "Bắt râu sập"], ["sec", "Lướt giây"], ["lab", "Thử nghiệm"], ["learn", "Học & kiểm chứng"], ["ev", "Sự kiện"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Theo ngày", "#/bot/journal": "Sổ lệnh", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Đội bot", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
-const SC_ICON = { ov: "📊", hook: "🪝", sec: "⚡", live: "💵", lab: "🧪", learn: "🧠", ev: "📜", set: "⚙️" };
+const CUS_SUB = [["ov", "Tổng quan"], ["live", "Binance thật"], ["pm", "Phương pháp"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const SC_ICON = { ov: "📊", live: "💵", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
   const out = []; let g = "";
   for (const n of $("#tabs").children) {
@@ -538,8 +539,8 @@ function cusPick(anchor) {
   addEventListener("hashchange", iosMenuClose, { once: true });
 }
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
-const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp" };
-const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+const BOTSUB = { bothome: "Mọi bot: đang chạy, lời/lỗ hôm nay, lệnh mở, rủi ro chung", bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày · sổ mọi lệnh · bài học", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp" };
+const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/journal") ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
 function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
@@ -581,7 +582,7 @@ function botMenu(anchor, up) {
   addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
 }
 // nút Bot ở thanh dưới (điện thoại) → menu thay vì nhảy thẳng vào Đội bot
-document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bot"]:not(.nav-cus)'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
+document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bothome"]:not(.nav-cus)'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
 function botSeg() {
   if (!botCur()) return;
   const h = $("#app > .ph h1"); if (!h || h.classList.contains("ttl-m")) return;
@@ -662,13 +663,13 @@ const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.con
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
 // tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn
-const BOT_KEYS = { "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"], journal: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"] };
+const BOT_KEYS = { home: ["bot", "botstate", "sup", "supstate", "scalp", "scalpstate"], "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"], journal: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"] };
 function botWarm(only) {
   if (!multiUser() || (ME && typeof can === "function" && !can("bot"))) return;
   const go = () => { lazyJs("app-bot.js").catch(() => {}); Store.warm(only ? BOT_KEYS[only] || [] : [...new Set(Object.values(BOT_KEYS).flat())]); };
   only ? go() : (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(go, { timeout: 2500 });
 }
-document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
+document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days|home|journal))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
 let VT_PREV = location.hash;
 function navRoute() {
   const prev = VT_PREV, next = location.hash; VT_PREV = next;
@@ -819,7 +820,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -3430,6 +3431,7 @@ const statesOf = (s) => (s?.bots && typeof s.bots === "object" ? s.bots : s && s
 const botEq = (st, pxNow) => (st ? st.cash + (st.pos || []).reduce((a, p) => { const m = pxNow(p.k) || p.e; return a + (p.mkt === "spot" ? p.q * m : p.margin + p.sd * p.q * (m - p.e)); }, 0) : null);
 const BOT_V = { tight: ["CẮT LỖ QUÁ SÁT", "warn"], vol: ["ĐANG GIẬT MẠNH", "warn"], go: ["VÀO", "buy"], wait: ["CHỜ GIÁ", "brand"], full: ["ĐỦ LỆNH", "warn"], halt: ["DỪNG", "warn"], hold: ["ĐANG GIỮ", ""], done: ["ĐÃ ĐÁNH", ""], cool: ["NGHỈ 24H", ""], dead: ["BỎ", "sell"], miss: ["LỠ NHỊP", ""], nopx: ["CHƯA CÓ GIÁ", ""], cash: ["KỶ LUẬT VỐN", "warn"], heat: ["KỶ LUẬT VỐN", "warn"], sector: ["KỶ LUẬT VỐN", "warn"], model: ["MÔ HÌNH LOẠI", "sell"], lesson: ["BÀI HỌC CHẶN", "sell"] };
 async function viewBot(...a) { await lazyJs("app-bot.js"); return viewBot(...a); }
+async function viewBotHome(...a) { await lazyJs("app-bot.js"); return viewBotHome(...a); }
 
 // ================================================================ BOT GIÁM SÁT (quản lý danh mục) – đứng trên mọi bot, chạy mỗi phút trên máy chủ
 const SUP_DEF = { enabled: true, mode: "auto", acct_dd: 20, acct_day: 6, cut: true, rotate: true, lessons: true, pause_bots: true, be1: "auto", min_edge: 0.25, min_trades: 15, off: [],

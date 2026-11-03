@@ -3510,3 +3510,24 @@ a:not([class]):hover{color:color-mix(in srgb,var(--brand) 72%,var(--ink))}
 }
 .sc-rows .sc-nv,.sc-row .sc-nin{min-width:128px;justify-content:flex-end}
 .sc-rows .sc-nv:not(:has(small))::after,.sc-row .sc-nin:not(:has(small))::after{content:"";width:22px;flex:none}
+/* 🤖 Bot của tôi */
+.bh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:12px}
+.bh-card{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;transition:background .15s,border-color .15s,transform .08s}
+@media (hover:hover){.bh-card:hover{background:var(--sunk);border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}}
+.bh-card:active{transform:scale(.995)}
+.bh-card header{display:flex;align-items:center;justify-content:space-between;gap:8px}.bh-card header b{font-size:1rem}
+.bh-card dl{margin:0;display:grid;gap:6px}.bh-card dl div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px;font-size:.82rem}
+.bh-card dt{color:var(--ink-3)}.bh-card dd{margin:0}
+.bh-card footer{margin-top:auto;padding-top:8px;border-top:1px dashed var(--line-2);font-size:.78rem;color:var(--brand);font-weight:600}
+.bh-help{margin:12px 2px 0;font-size:.78rem}
+.bot-seg{margin:0 0 12px}
+/* tab con (Phương pháp / Nhật ký / Kết quả & sổ lệnh): nút phân đoạn 2 dòng – tên + mô tả nhỏ */
+.sc-sub2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px;margin:0 0 12px}
+.sc-sub2>button,.sc-sub2>a{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);border-radius:10px;padding:9px 12px;cursor:pointer;font:600 .86rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;transition:border-color .15s,background .15s,color .15s;text-decoration:none}
+.sc-sub2>button:hover,.sc-sub2>a:hover{border-color:var(--line);color:var(--ink)}
+.sc-sub2>button>span,.sc-sub2>a>span{display:inline-flex;align-items:center;gap:6px}
+.sc-sub2 small{font-weight:400;font-size:.72rem;color:var(--ink-3,var(--ink-2));opacity:.85}
+.sc-sub2>.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,var(--surface));color:var(--ink);box-shadow:inset 0 0 0 1px var(--brand)}
+.sc-sub2>.on small{opacity:1}
+@media (max-width:560px){.sc-sub2{grid-template-columns:repeat(2,minmax(0,1fr))}.sc-sub2>button,.sc-sub2>a{padding:8px 10px;font-size:.8rem}.sc-sub2 small{font-size:.68rem}}
+.dj-seg{max-width:560px}
