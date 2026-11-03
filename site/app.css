@@ -50,7 +50,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:400 13px/1.45 "Be Vietn
   font-variant-numeric:tabular-nums;padding-bottom:64px}
 @media (max-width:700px){body{font-size:13.5px}}
 a{color:var(--brand);text-decoration:none}
-a:hover{text-decoration:underline}
+a:hover{text-decoration:none}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--brand);outline-offset:1px;border-radius:3px}
 h1,h2,h3{line-height:1.25;margin:0;text-wrap:balance}
@@ -1384,7 +1384,7 @@ main{padding:16px 22px 48px}
 .oi .oi-h b::after{content:"  ›";color:var(--brass,var(--brand));opacity:.55;font-weight:700}
 .oi:hover .oi-h b::after{opacity:1}
 .oi:hover{transform:translateX(2px)}
-.pb-row{cursor:pointer}.pb-row:hover .nm{color:var(--brass,var(--brand));text-decoration:underline}
+.pb-row{cursor:pointer}.pb-row:hover .nm{color:var(--brass,var(--brand))}
 #cmp td.sym a,#secTbl td.sym a{font-weight:600;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px}
 .secov > .ph:first-child{margin-top:0}
 /* ---------- trang ngành 3 cột + cột dính khi cuộn ---------- */
@@ -3463,3 +3463,5 @@ td .sc-mxr{margin:0}
 .sc-lsub{margin:10px 0 4px;font-size:.84rem}
 .sc-sbody .bfh{margin:14px 0 6px;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-3)}
 @media (min-width:980px){.sc-tabs button{padding:9px 11px;font-size:.82rem}}
+/* liên kết: không gạch chân khi rê chuột – chỉ đổi màu nhẹ (liên kết chữ thường); thẻ / nút có hiệu ứng nền riêng */
+a:not([class]):hover{color:color-mix(in srgb,var(--brand) 72%,var(--ink))}
