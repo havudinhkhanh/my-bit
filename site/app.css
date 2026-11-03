@@ -3406,3 +3406,5 @@ td .sc-mxr{margin:0}
 .btn:focus-visible{outline:2px solid var(--brass,var(--brand));outline-offset:2px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .sc-setfab{background:var(--brand)!important;color:var(--brand-ink)!important;border-color:var(--brand)!important}
+/* máy tính: hộp cuộn trong trang tới đầu/cuối thì cuộn tiếp cả trang (không "kẹt" chuột trong hộp) */
+@media (hover:hover) and (pointer:fine){.ntp-l,.sc-hl,.sc-cal,.cmp-l,.g-side>.secaside,.stack.sticky,.sc-set{overscroll-behavior:auto}}

@@ -5221,6 +5221,19 @@ async function ntPeek(n, touch = false) {
   box.querySelector(".ntpk-t")?.classList.add("dim");
 }
 function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
+// cuộn chuột / bàn di (máy tính): trong bảng nổi, danh sách cuộn được thì cuộn danh sách; tới đầu/cuối hoặc chuột đang ở phần
+// không cuộn được (tiêu đề, nền, hàng lọc) thì cuộn luôn trang phía sau – không bắt phải đưa chuột ra ngoài bảng mới cuộn được trang
+function wheelChain(root) {
+  root.addEventListener("wheel", (e) => {
+    if (matchMedia("(max-width:979px)").matches || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1); if (!dy) return;
+    for (let el = e.target; el && el !== root.parentNode; el = el.parentElement) {
+      const s = getComputedStyle(el); if (!/(auto|scroll)/.test(s.overflowY) || el.scrollHeight <= el.clientHeight + 1) continue;
+      if (dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return;      // phần này còn cuộn được → để trình duyệt cuộn
+    }
+    e.preventDefault(); scrollBy({ top: dy, behavior: "instant" });
+  }, { passive: false });
+}
 async function bellOpen() {
   if ($("#bellBox")) { bellClose(); return; }
   const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp";
@@ -5229,7 +5242,7 @@ async function bellOpen() {
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
     <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div>
     <div class="ntp-f"><button type="button" class="btn sm" id="bellAll">✓ Đã đọc hết</button><a class="btn sm" href="#/notifications">Xem tất cả →</a></div></div>`;
-  document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box);
+  document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";
   const draw = (chips = true) => {
     const un = items.filter((n) => !n.read_at).length;
