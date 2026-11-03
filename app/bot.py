@@ -602,7 +602,7 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
             for r in rs or []:
                 v = json.loads(r.get("value") or "{}")
                 if key == "scalpstate":
-                    v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "pos", "trades", "eqs", "log", "cfg", "sh", "why", "live", "bx", "guard")}
+                    v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "hkv", "pos", "trades", "eqs", "log", "cfg", "sh", "why", "live", "bx", "guard")}
                     # nhánh status công khai: bỏ số dư / tài sản ví / nạp-rút / đường tài sản của tài khoản Binance THẬT (chỉ giữ lệnh & nhật ký để chẩn đoán)
                     L = v.get("live")
                     if isinstance(L, dict):
