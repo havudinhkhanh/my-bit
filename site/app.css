@@ -3398,3 +3398,11 @@ td .sc-mxr{margin:0}
 .sc-flt td.sc-fwait{text-align:left;font-style:italic;white-space:normal}
 .sc-flt tfoot td{background:color-mix(in srgb,var(--brand) 6%,transparent);border-top:1px solid var(--line)}
 @media (max-width:760px){.sc-flt .sc-fsub td.l{padding-left:10px!important}.sc-flt td.l{min-width:0}}
+/* nút & ô chọn đang bật: đủ tương phản – sáng: nền xanh đậm chữ trắng; tối: nền vàng đồng chữ đậm (dùng --brand/--brand-ink theo theme) */
+.btn{color:var(--ink);background:var(--surface);border:1px solid color-mix(in srgb,var(--ink) 22%,var(--line))}
+.btn:hover{background:var(--sunk-2,var(--sunk));border-color:color-mix(in srgb,var(--ink) 38%,var(--line))}
+.btn.primary,.views .btn.primary,.views button.on,.seg button.on,.lay.editing .lbar{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
+.btn.primary:hover{background:color-mix(in srgb,var(--brand) 86%,var(--ink-2));border-color:transparent}
+.btn:focus-visible{outline:2px solid var(--brass,var(--brand));outline-offset:2px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.sc-setfab{background:var(--brand)!important;color:var(--brand-ink)!important;border-color:var(--brand)!important}
