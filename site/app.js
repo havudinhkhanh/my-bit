@@ -482,7 +482,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
 const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"], ["botjournal", "#/bot/journal", "📒", "Sổ lệnh & bài học"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
-const CUS_SUB = [["ov", "Tổng quan"], ["hook", "Bắt râu sập"], ["sec", "Lướt giây"], ["live", "Binance thật"], ["lab", "Thử nghiệm"], ["learn", "Học & kiểm chứng"], ["ev", "Sự kiện"], ["set", "Thiết lập"]];
+const CUS_SUB = [["ov", "Tổng quan"], ["live", "Binance thật"], ["hook", "Bắt râu sập"], ["sec", "Lướt giây"], ["lab", "Thử nghiệm"], ["learn", "Học & kiểm chứng"], ["ev", "Sự kiện"], ["set", "Thiết lập"]];
 const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Theo ngày", "#/bot/journal": "Sổ lệnh", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Đội bot", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 const SC_ICON = { ov: "📊", hook: "🪝", sec: "⚡", live: "💵", lab: "🧪", learn: "🧠", ev: "📜", set: "⚙️" };
 function cusOpts() {
