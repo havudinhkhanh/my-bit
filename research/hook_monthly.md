@@ -64,3 +64,14 @@ Bộ lọc giữ nguyên. Chưa đổi gì trên bot – chờ Jason quyết.
 tài khoản Binance Demo/thật (scalper/live.mjs, kiểm tra mỗi 2 giây theo giá giữa) và trang thiết lập (2 thanh trượt, 0 = tắt).
 Khác mô phỏng: bot gộp 2 mức khớp thành 1 vị thế giá TB (đỉnh lời tính lại khi khớp thêm mức); trên tài khoản thật, đóng đuổi thì huỷ luôn mức chưa khớp.
 Tháng sau so sánh với mốc này: dòng "tr150 – thiết lập đang chạy" là thiết lập hiện tại.
+
+---
+
+## Ghi chú cho lượt kiểm chứng tháng sau (Jason dặn 2026-11-03)
+
+- Bảng "🧪 Bộ lọc có đúng không?" (lệnh ẢO đi theo cú sốc bị chặn) lúc 03/11: khối lượng < 8× 34 lệnh ảo TB +233 bps (lệnh thật +221);
+  dao rơi 12 lệnh ảo TB +562 bps, thắng 10/12. Sai số ±1.000 bps/lệnh → **chưa phân biệt được với may rủi** → giữ nguyên cả hai bộ lọc.
+- **Xem lại khi đủ mẫu**: dao rơi ≥ 50 lệnh ảo khớp, khối lượng ≥ 100 lệnh ảo khớp. Chỉ đề xuất đổi khi chênh với lệnh thật vượt 2 lần sai số chuẩn
+  VÀ r7_port (danh mục thật) xác nhận theo quy tắc ở đầu tệp.
+- Khối lượng: xem riêng nhóm 5×–8× (`hkv.S.vol_hi`) và < 5× (`vol_lo`). Nếu chỉ nhóm 5×–8× lời đều → bước hợp lý là hạ `hk_v` xuống ~6×, KHÔNG bỏ hẳn bộ lọc.
+- Bot chỉ được đổi khi Jason quyết định.
