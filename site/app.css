@@ -3408,3 +3408,21 @@ td .sc-mxr{margin:0}
 .sc-setfab{background:var(--brand)!important;color:var(--brand-ink)!important;border-color:var(--brand)!important}
 /* máy tính: hộp cuộn trong trang tới đầu/cuối thì cuộn tiếp cả trang (không "kẹt" chuột trong hộp) */
 @media (hover:hover) and (pointer:fine){.ntp-l,.sc-hl,.sc-cal,.cmp-l,.g-side>.secaside,.stack.sticky,.sc-set{overscroll-behavior:auto}}
+/* 📐 định lượng: bảng 6 phương pháp + công tắc */
+.sc-qtab td,.sc-qtab th{vertical-align:middle;padding:8px 10px!important}
+.sc-qtab td.l{min-width:220px;white-space:normal}
+.sc-qtab td small{font-size:.72rem}
+.sc-qt{min-width:86px;height:30px;padding:0 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--ink) 22%,var(--line));background:var(--surface);color:var(--ink-2);font:600 .76rem/1 inherit;cursor:pointer;white-space:nowrap}
+.sc-qt.on{background:var(--up);border-color:var(--up);color:#fff}
+.sc-qt.real.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.sc-qt:focus-visible{outline:2px solid var(--brass,var(--brand));outline-offset:2px}
+.sc-qcfg{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:10px 0 4px;font-size:.8rem;color:var(--ink-2)}
+.sc-qpos td{vertical-align:top}
+.sc-qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:8px}
+.sc-qc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.sc-qc.off{opacity:.65}
+.sc-qc header{display:flex;align-items:center;justify-content:space-between;gap:8px}.sc-qc header b{font-size:.92rem}
+.sc-qc .sc-qp{margin:0;font-size:.74rem;color:var(--ink-3)}
+.sc-qc dl{margin:0;display:grid;gap:4px}.sc-qc dl div{display:grid;gap:1px}.sc-qc dt{font-size:.68rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em}.sc-qc dd{margin:0;font-size:.8rem}
+.sc-qc footer{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line-2)}
+.sc-qc footer label{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--ink-2)}

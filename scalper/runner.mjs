@@ -152,6 +152,7 @@ const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname()
 live = new LiveExec({ core, dir: DIR, log });
 core.io.onHook = (h) => live.onHook(h);
 core.io.onSwing = (s) => live.onSwing(s);
+core.io.onQuant = (x) => live.onQuant(x);      // 📐 định lượng: sàn thử mở/đóng → lệnh thật theo công tắc từng phương pháp
 core.io.onTrade = (t) => { try { ledAdd(t); } catch (e) { log("📒", e.message); } };
 let walBusy = 0; core.io.onWalReq = () => { if (Date.now() - walBusy < 20e3) return; walBusy = Date.now(); live.wallets().then(() => core.snapshot?.()).catch((e) => log("💵 đọc ví:", e.message)); };      // 🔄 Danh mục: đọc ví ngay
 core.io.onManual = (k) => live.onManual(k);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)

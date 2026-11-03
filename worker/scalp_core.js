@@ -17,6 +17,7 @@
 // đều tạo ScalpCore với bộ I/O riêng: io = { kv, readCfg(uid), writeState(uid, out), openWS(url), where: "cf" | "vps", ord }.
 
 import { SwingLab } from "./swing.js";
+import { QuantLab, QS } from "./quant.js";
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
@@ -30,7 +31,11 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   // (vẫn tối đa hk_h phút). Danh mục thật: lời +34,9% → +60,9%, sụt tối đa 14,1% → 5,0%, thắng 63% → 88%. hk_tra = 0 → tắt (giữ đủ giờ như cũ).
   hk_tra: 150, hk_trg: 100,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
-  lv_on: false, lv_env: "demo", lv_cap: 100, lv_all: false, lv_lev: 2, lv_daily: 10, lv_small: "near", sw_lv_pump: false, sw_lv_sz: 5, sw_lv_max: 2 };
+  lv_on: false, lv_env: "demo", lv_cap: 100, lv_all: false, lv_lev: 2, lv_daily: 10, lv_small: "near", sw_lv_pump: false, sw_lv_sz: 5, sw_lv_max: 2,
+  // 📐 ĐỊNH LƯỢNG (worker/quant.js): q_on = cả nhóm trên sàn thử; q_<k> = từng phương pháp trên sàn thử (mặc định bật);
+  // lq_<k> = đánh bằng tiền thật / Demo (mặc định TẮT), lq_sz % vốn mỗi lệnh, lq_max lệnh cùng lúc mỗi phương pháp
+  q_on: true, q_ou: true, q_rsi2: true, q_fund: true, q_orb: true, q_vwap: true, q_liq: true,
+  lq_ou: false, lq_rsi2: false, lq_fund: false, lq_orb: false, lq_vwap: false, lq_liq: false, lq_sz: 5, lq_max: 2 };
 const HS = [2, 5, 15, 30, 60, 120, 180, 240, 300, 450, 600, 900];      // các mốc thời gian giữ (giây) bộ học đo – giữ tối đa tới 15 phút
 const NB = 6, BW = 0.15, N0 = 150;
 const TIERS = [500, 50, 5];                  // triệu USD khối lượng 24h: ≥500 → hạng 0, ≥50 → 1, ≥5 → 2, còn lại 3
@@ -85,6 +90,7 @@ function norm(c) {
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
+  c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5);
   if (!c.fut && !c.spot) c.fut = true;
   return c;
 }
@@ -229,6 +235,7 @@ export class ScalpCore {
     this.notes = [];      // thông báo chờ gửi (chuông + đẩy điện thoại)
     this.lastSec = 0; this.diag = { err: [], conn: 0 }; this.bn = null; this.live = {}; this.cnt = {};
     this.sw = new SwingLab(this);      // 🧪 thử nghiệm giữ nhiều ngày (short coin mới niêm yết / vừa bơm) – sàn thử, sổ riêng
+    this.q = new QuantLab(this);       // 📐 6 phương pháp định lượng – sàn thử (mặc định bật), tiền thật theo công tắc từng phương pháp
   }
   err(m) { this.diag.err = [...this.diag.err.slice(-11), `${new Date().toISOString().slice(11, 19)} ${String(m).slice(0, 140)}`]; }
   async boot(uid) {
@@ -276,7 +283,8 @@ export class ScalpCore {
       try {
         if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
         else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
-        else if (k.startsWith("lv:") || k.startsWith("swp:")) this.io.onManual?.(k);
+        else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
+        else if (k.startsWith("lv:") || k.startsWith("swp:") || k.startsWith("lq:")) this.io.onManual?.(k);
       } catch (e) { this.err("đóng tay " + k + ": " + e.message); }
     }
     for (const k of Object.keys(this.S.close_seen || {})) if (!(c.close_req || {})[k]) delete this.S.close_seen[k];
@@ -490,12 +498,13 @@ export class ScalpCore {
   // ---------------------------------------------------------------- mỗi giây: tín hiệu → bộ học → chọn cơ hội tốt nhất toàn thị trường
   second(now) {
     const c = this.cfg, S = this.S;
+    try { this.q.tick(now); } catch (e) { this.err("định lượng " + e.message); }      // 📐 chốt/cắt bằng giá trực tiếp mỗi giây; tải dữ liệu chạy nền
     const day = vnDay(now), eqNow = this.equity();
     if (S.day.d !== day) {
       const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot Phản Xạ – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
       if (S.days) { const P = this.dayRec(0, S.day.d); P.eq0 ??= r2(S.day.eq0, 2); P.eq1 = r2(eqNow, 2); }
-      S.day = { d: day, eq0: eqNow, sw0: this.sw.upnl() }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
+      S.day = { d: day, eq0: eqNow, sw0: this.sw.upnl() + this.q.upnl() }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
     }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
@@ -508,8 +517,9 @@ export class ScalpCore {
     }
     try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
     try { this.hkvTick(now); } catch (e) { this.err("kiểm chứng bộ lọc " + e.message); }
-    const dayPct = ((eqNow - (this.sw.upnl() - (S.day.sw0 ?? this.sw.upnl()))) / S.day.eq0 - 1) * 100;     // cầu dao ngày: bỏ phần lời/lỗ ĐANG MỞ của 🧪 (giữ nhiều ngày)
-    S.day.sw0 ??= this.sw.upnl();
+    const swU = this.sw.upnl() + this.q.upnl();
+    const dayPct = ((eqNow - (swU - (S.day.sw0 ?? swU))) / S.day.eq0 - 1) * 100;     // cầu dao ngày: bỏ phần lời/lỗ ĐANG MỞ của 🧪 và 📐 (giữ nhiều giờ / ngày)
+    S.day.sw0 ??= swU;
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot Phản Xạ dừng tới hết ngày", S.pause.why); }
     if (S.pause?.until && now >= S.pause.until) { this.say(now, "Hết giờ nghỉ – đánh giá lại", "info"); S.pause = null; }
     if (!S.pause && c.day_lock && c.day_target > 0 && dayPct >= c.day_target && !Object.keys(S.pos).length) {     // CHỐT NGÀY: đạt mục tiêu → giữ thành quả
@@ -716,7 +726,7 @@ export class ScalpCore {
   tradesLastHour(now) { let n = 0; for (let i = this.S.trades.length - 1; i >= 0 && now - Date.parse(this.S.trades[i].t1 + "Z") < 3600e3; i--) n++; return n; }
 
   // ---------------------------------------------------------------- vào / ra lệnh (sàn thử, khớp theo sổ lệnh thật)
-  used() { let u = this.sw ? this.sw.margin() : 0; for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
+  used() { let u = (this.sw ? this.sw.margin() : 0) + (this.q ? this.q.margin() : 0); for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
   enter(x, side, best, cost, vol, now, mode) {
     const c = this.cfg, S = this.S, eq = this.equity(), lev = x.t === "F" ? c.lev : 1;
     // thoát chủ yếu theo thời gian (bộ học đo kỳ vọng ở đúng h giây); cắt lỗ chặn rủi ro bất thường (4 lần biến động); chốt sớm khi giá chạy gấp đôi kỳ vọng
@@ -1145,7 +1155,7 @@ export class ScalpCore {
     if (x.sh.some((o) => o.done)) x.sh = x.sh.filter((o) => !o.done);
   }
   equity() {
-    const S = this.S; let e = S.cash + (this.sw ? this.sw.upnl() : 0);      // gồm lời/lỗ đang mở của 🧪 thử nghiệm (cùng tài sản sàn thử)
+    const S = this.S; let e = S.cash + (this.sw ? this.sw.upnl() : 0) + (this.q ? this.q.upnl() : 0);      // gồm lời/lỗ đang mở của 🧪 thử nghiệm (cùng tài sản sàn thử)
     for (const [k, P] of Object.entries(S.pos || {})) { const x = this.M[k]; const m = x?.bid ? (P.side > 0 ? x.bid : x.ask) : P.e; e += P.side * P.q * (m - P.e); }
     return e;
   }
@@ -1165,7 +1175,7 @@ export class ScalpCore {
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
       radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
-      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg, sw: this.sw.out() };
+      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg, sw: this.sw.out(), q: this.q.out() };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;
