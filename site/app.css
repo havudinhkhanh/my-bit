@@ -3381,3 +3381,5 @@ td .sc-mxr{margin:0}
 @media (prefers-reduced-motion:reduce){.lvs-dot.on{animation:none}}
 .crumb{flex-wrap:wrap;row-gap:6px}.crumb>*{white-space:nowrap}
 .crumb .lvst span{opacity:1}.crumb .lvst .faint{opacity:.75}
+
+.sc-fsub td{font-size:.92em;color:var(--ink-2)}.sc-fsub td.l{padding-left:22px!important}

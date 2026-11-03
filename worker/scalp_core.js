@@ -800,7 +800,7 @@ export class ScalpCore {
     if (!S.days) this.daysInit(); else this.dayAdd(t, P.fee + fee);
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;
-    const bs = ((S.byS ||= {})[P.strat || "sec"] ||= { n: 0, net: 0, fees: 0, win: 0, bps: 0 }); bs.n++; bs.net += usd; bs.fees += P.fee + fee; bs.bps += net; if (usd > 0) bs.win++;
+    const bs = ((S.byS ||= {})[P.strat || "sec"] ||= { n: 0, net: 0, fees: 0, win: 0, bps: 0 }); bs.n++; bs.net += usd; bs.fees += P.fee + fee; bs.bps += net; { const q = (bs.q ||= { n: 0, s: 0, sq: 0 }); q.n++; q.s += net; q.sq += net * net; } if (usd > 0) bs.win++;
     if (P.shk) this.shAdd(P.shk, net, true, now);
     if (P.bx && why !== "BTC") this.bxAdd(P.bx.ep, clamp(P.side * (P.bx.px - px) / P.e * 1e4, -1000, 1000));      // lệnh thật giữ qua cú sốc BTC: thoát lúc đó thì hơn/kém bao nhiêu      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
     const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
@@ -826,7 +826,7 @@ export class ScalpCore {
     const base = x.id.split(":")[0], side = r < 0 ? 1 : -1;
     H.last = { k: x.id, at: iso(now), R: r2(r * 1e4, 0), z: r2(z, 1), vx: med > 0 ? r2((b[4] || 0) / med, 1) : null };
     const V = (why) => this.hkvAdd(x, side, b, r, R, why, now);      // đi theo ẢO cú sốc bị bộ lọc chặn → kiểm chứng bộ lọc bằng số liệu thật
-    if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; if (med > 0) V("vol"); return; }
+    if (!(med > 0 && (b[4] || 0) >= c.hk_v * med)) { H.last.why = "khối lượng chưa đủ lớn"; if (med > 0) this.hkvAdd(x, side, b, r, R, "vol", now, (b[4] || 0) < 5 * med ? "vol_lo" : "vol_hi"); return; }
     H.vol++;
     // BỘ LỌC (kiểm chứng 01/2025–10/2026, ~900 mã, 45.800 cú sốc – research/round4.py; sau lỗ 27/10 ở Q, BULLA bắt 2–3 lần liền):
     // coin đã có cú sốc khác trong hk_f6 giờ = đang bơm/xả liên tục → bỏ. (Kết hợp với lọc "dao rơi" bên dưới: TB +26 → +91 bps/lệnh, đuôi lỗ nhỏ hơn)
@@ -864,11 +864,11 @@ export class ScalpCore {
   }
   // ---- KIỂM CHỨNG BỘ LỌC: cú sốc bị chặn vẫn được "đặt" 2 lệnh chờ ẢO y hệt (không tốn tiền), khớp & thoát theo giá thật, cùng phí như lệnh thật.
   // Bộ lọc đúng khi các lệnh ảo nó chặn TB lỗ (hoặc kém hẳn lệnh thật). Kết quả: S.hkvS[lý do] = {n cú sốc, f lệnh khớp, sum bps, win}, S.hkvL = 40 lần gần nhất.
-  hkvAdd(x, side, b, r, R, why, now) {
+  hkvAdd(x, side, b, r, R, why, now, sub) {      // sub: nhóm con (bộ lọc khối lượng: "vol_lo" < 5×, "vol_hi" 5× → ngưỡng) – thống kê riêng để biết nên hạ ngưỡng tới đâu
     const c = this.cfg, S = this.S, V = (S.hkv ||= {}); if (V[x.id] || (x.t === "S" && side < 0)) return;
     const mv = Math.abs(Math.expm1(r)), c0 = b[1], lvs = [c.hk_d1, c.hk_d2].filter((d) => d > 0); if (!lvs.length) return;
-    V[x.id] = { why, side, t0: now, exp: now + c.hk_w * 60000, R: r2(R, 0), c0, lv: lvs.map((d) => ({ d, px: c0 * (1 - side * d * mv), f: 0, t: 0 })) };
-    const st = ((S.hkvS ||= {})[why] ||= { n: 0, f: 0, sum: 0, win: 0 }); st.n++;
+    V[x.id] = { why, sub: sub || undefined, side, t0: now, exp: now + c.hk_w * 60000, R: r2(R, 0), c0, lv: lvs.map((d) => ({ d, px: c0 * (1 - side * d * mv), f: 0, t: 0 })) };
+    for (const k of [why, sub].filter(Boolean)) { const st = ((S.hkvS ||= {})[k] ||= { n: 0, f: 0, sum: 0, win: 0 }); st.n++; }
   }
   hkvTrade(x, p, now) {
     const v = this.S.hkv[x.id]; if (!v || now > v.exp) return;
@@ -887,8 +887,11 @@ export class ScalpCore {
     }
   }
   hkvDone(id, v, L) {
-    const S = this.S, st = ((S.hkvS ||= {})[v.why] ||= { n: 0, f: 0, sum: 0, win: 0 });
-    if (L?.length) { for (const b of L) { st.f++; st.sum += b; if (b > 0) st.win++; } }
+    const S = this.S;
+    for (const k of [v.why, v.sub].filter(Boolean)) {      // sq: tổng bình phương → độ lệch chuẩn, sai số (trang chỉ kết luận khi chênh vượt 2 lần sai số)
+      const st = ((S.hkvS ||= {})[k] ||= { n: 0, f: 0, sum: 0, win: 0 });
+      if (L?.length) { const q = (st.q ||= { n: 0, s: 0, sq: 0 }); for (const b of L) { st.f++; st.sum += b; q.n++; q.s += b; q.sq += b * b; if (b > 0) st.win++; } }
+    }
     S.hkvL = [...(S.hkvL || []).slice(-39), { k: id, why: v.why, side: v.side, R: v.R, at: iso(v.t0), nf: L?.length || 0, net: L?.length ? r2(L.reduce((a, q) => a + q, 0) / L.length, 1) : null }];
   }
   // Lịch sử 1 phút ~8 giờ ngay trước cú sốc, lấy thẳng từ sàn (1 lần gọi, cú sốc hiếm): số cú sốc khác trong hk_f6 giờ (cùng chuẩn: ≥ hk_r bps, z ≥ hk_z, khối lượng ≥ hk_v×)
