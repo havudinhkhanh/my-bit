@@ -3465,3 +3465,48 @@ td .sc-mxr{margin:0}
 @media (min-width:980px){.sc-tabs button{padding:9px 11px;font-size:.82rem}}
 /* liên kết: không gạch chân khi rê chuột – chỉ đổi màu nhẹ (liên kết chữ thường); thẻ / nút có hiệu ứng nền riêng */
 a:not([class]):hover{color:color-mix(in srgb,var(--brand) 72%,var(--ink))}
+/* ⚙️ Thiết lập dạng danh sách: mỗi thiết lập 1 dòng – tên + mô tả trái, điều khiển phải; nhóm có tiêu đề nhỏ, viền phân dòng mảnh */
+.sc-sec .ph{margin-bottom:4px}
+.sc-grp{margin-top:12px}.sc-grp:first-of-type{margin-top:4px}
+.sc-gt{margin:0 0 6px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-3)}
+.sc-rows{border:1px solid var(--line-2);border-radius:12px;background:var(--surface);overflow:hidden}
+.sc-grp.c2 .sc-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+.sc-row,.sc-rows .sc-sl{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 16px;padding:11px 14px;border-top:1px solid var(--line-2);background:transparent;border-radius:0;min-height:52px}
+.sc-rows>:first-child{border-top:0}
+.sc-grp.c2 .sc-rows>*{border-top:1px solid var(--line-2)}
+.sc-rl{display:grid;gap:2px;min-width:0}.sc-rl b{font-size:.86rem;font-weight:600;color:var(--ink)}.sc-rl small{font-size:.74rem;color:var(--ink-3);line-height:1.35}
+.sc-rc{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.sc-row.dim{opacity:.55}
+/* thanh trượt trong danh sách: [tên + mô tả] [thanh trượt] [số] */
+.sc-rows .sc-sl{grid-template-columns:minmax(0,1fr) minmax(140px,220px) auto;grid-template-areas:"lab trk nv" "h trk nv" "w w w"}
+.sc-rows .sc-sl.out{box-shadow:inset 3px 0 0 var(--brass,#d9a23a)}
+.sc-rows .sc-sl1{display:contents}
+.sc-rows .sc-sl1 label{grid-area:lab;font-size:.86rem;font-weight:600;color:var(--ink);align-self:end}
+.sc-rows .sc-trk{grid-area:trk}.sc-rows .sc-nv{grid-area:nv;justify-self:end}
+.sc-rows .sc-h{grid-area:h;font-size:.74rem;color:var(--ink-3);align-self:start}.sc-rows .sc-h .faint{display:none}
+.sc-rows .sc-w{grid-area:w;width:auto}
+.sc-rows .sc-sl:hover .sc-h .faint,.sc-rows .sc-sl:focus-within .sc-h .faint{display:inline}
+/* ô số */
+.sc-nin{display:inline-flex;align-items:center;gap:6px;margin:0}.sc-nin input,.sc-rows .sc-nv input{width:96px;height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--sunk);color:var(--ink);text-align:right;font:500 .88rem/1 inherit;font-variant-numeric:tabular-nums}
+.sc-nin input:focus,.sc-rows .sc-nv input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
+.sc-nin small,.sc-rows .sc-nv small{min-width:22px;font-size:.74rem;color:var(--ink-3)}
+/* công tắc */
+.sc-sw{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:2px;cursor:pointer;color:var(--ink-2);font:600 .78rem/1 inherit}
+.sc-sw i{position:relative;width:40px;height:24px;border-radius:999px;background:color-mix(in srgb,var(--ink) 18%,transparent);transition:background .18s}
+.sc-sw i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .18s}
+.sc-sw.on i{background:var(--up)}.sc-sw.on i::after{transform:translateX(16px)}.sc-sw.on{color:var(--ink)}
+.sc-real.live .sc-sw.on i{background:var(--brand)}
+.sc-sw:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:999px}
+/* nút chọn trong dòng */
+.sc-seg{margin:0;flex-wrap:nowrap}.sc-seg button{white-space:nowrap}
+.sc-sec .sc-pres{margin:0}
+.sc-sec .sc-i{margin-top:12px}
+.sc-foot{margin:10px 2px 0;font-size:.76rem}
+@media (max-width:700px){
+  .sc-rows .sc-sl{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"lab nv" "h nv" "trk trk" "w w"}
+  .sc-row{grid-template-columns:minmax(0,1fr)}.sc-rc{justify-content:flex-start}
+  .sc-row:has(.sc-sw),.sc-row:has(.sc-nin){grid-template-columns:minmax(0,1fr) auto}
+  .sc-grp.c2 .sc-rows{grid-template-columns:minmax(0,1fr)}
+}
+.sc-rows .sc-nv,.sc-row .sc-nin{min-width:128px;justify-content:flex-end}
+.sc-rows .sc-nv:not(:has(small))::after,.sc-row .sc-nin:not(:has(small))::after{content:"";width:22px;flex:none}
