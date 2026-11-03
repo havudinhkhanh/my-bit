@@ -3426,3 +3426,12 @@ td .sc-mxr{margin:0}
 .sc-qc dl{margin:0;display:grid;gap:4px}.sc-qc dl div{display:grid;gap:1px}.sc-qc dt{font-size:.68rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.03em}.sc-qc dd{margin:0;font-size:.8rem}
 .sc-qc footer{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:auto;padding-top:8px;border-top:1px dashed var(--line-2)}
 .sc-qc footer label{display:flex;align-items:center;gap:6px;font-size:.74rem;color:var(--ink-2)}
+/* thanh tab Bot Phản Xạ: hover rõ ràng, có phản hồi khi bấm, viền focus bàn phím, tab đang chọn có vạch màu thương hiệu */
+.sc-tabs button{position:relative;transition:background .16s ease,color .16s ease,box-shadow .16s ease,transform .08s ease}
+@media (hover:hover){.sc-tabs button:not(.on):hover{background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink)}}
+.sc-tabs button:active{transform:scale(.97)}
+.sc-tabs button:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.sc-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12),0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent)}
+.sc-tabs button.on::after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:var(--brand)}
+.sc-tabs button .sc-bdg{transition:transform .16s ease}
+@media (hover:hover){.sc-tabs button:hover .sc-bdg{transform:scale(1.08)}}
