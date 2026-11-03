@@ -3383,3 +3383,18 @@ td .sc-mxr{margin:0}
 .crumb .lvst span{opacity:1}.crumb .lvst .faint{opacity:.75}
 
 .sc-fsub td{font-size:.92em;color:var(--ink-2)}.sc-fsub td.l{padding-left:22px!important}
+/* bảng kiểm chứng bộ lọc – gọn: 1 dòng mỗi bộ lọc, ± cùng dòng, kết luận nhãn ngắn */
+.sc-flt{font-size:.82rem}
+.sc-flt th,.sc-flt td{padding:6px 10px!important;vertical-align:middle;white-space:nowrap}
+.sc-flt th{font-size:.72rem;font-weight:600;color:var(--ink-3)}
+.sc-flt td.l{white-space:normal;min-width:200px}
+.sc-flt th.l,.sc-flt td.sc-fv{text-align:left}
+.sc-flt .sc-pm{margin-left:5px;font-size:.72rem;font-weight:400}
+.sc-flt .pill{font-size:.72rem;padding:2px 8px;white-space:nowrap}
+.sc-flt .pill small{opacity:.75;font-weight:400}
+.sc-flt tbody tr:hover td{background:var(--sunk)}
+.sc-flt .sc-fsub td{padding-top:3px!important;padding-bottom:3px!important;font-size:.76rem;border-top:0}
+.sc-flt .sc-fsub td.l{padding-left:24px!important}
+.sc-flt td.sc-fwait{text-align:left;font-style:italic;white-space:normal}
+.sc-flt tfoot td{background:color-mix(in srgb,var(--brand) 6%,transparent);border-top:1px solid var(--line)}
+@media (max-width:760px){.sc-flt .sc-fsub td.l{padding-left:10px!important}.sc-flt td.l{min-width:0}}
