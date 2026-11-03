@@ -38,6 +38,9 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  STATUS_SSH_KEY: ${{ secrets.STATUS_SSH_KEY }}      # có thì báo cáo vào repo riêng tư bot-status (xem scripts/publish_status.sh)
+
 jobs:
   run:
     runs-on: ubuntu-latest
