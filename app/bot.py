@@ -603,6 +603,16 @@ def run_all(be, us: list, items, rows, sectors, fut, prices, bars_of, light, btc
                 v = json.loads(r.get("value") or "{}")
                 if key == "scalpstate":
                     v = {k: v.get(k) for k in ("at", "eq", "start", "day", "pause", "stats", "by", "byS", "hk", "hkStat", "pos", "trades", "eqs", "log", "cfg", "sh", "why", "live", "bx", "guard")}
+                    # nhánh status công khai: bỏ số dư / tài sản ví / nạp-rút / đường tài sản của tài khoản Binance THẬT (chỉ giữ lệnh & nhật ký để chẩn đoán)
+                    L = v.get("live")
+                    if isinstance(L, dict):
+                        for k in ("wal", "walH", "flow", "eqH", "eqHr", "eqDay", "size", "risk"):
+                            L.pop(k, None)
+                        if isinstance(L.get("st"), dict):
+                            L["st"] = {k: L["st"].get(k) for k in ("env", "checked", "keys", "ok", "why")}
+                        for h in L.get("hist") or []:
+                            if isinstance(h, dict):
+                                h.pop("tot", None)
                 out[key] = v
         os.makedirs("data", exist_ok=True)
         with open("data/diag.json", "w") as fh:
