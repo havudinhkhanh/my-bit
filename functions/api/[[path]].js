@@ -239,6 +239,15 @@ export async function onRequest(ctx) {
       const r = await fetch(base + b.path + (b.qs ? "?" + b.qs : ""), { method: b.method, headers: b.key ? { "X-MBX-APIKEY": String(b.key) } : {} });
       return new Response(await r.text(), { status: r.status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" } });
     }
+    if (key === "scalpbrief" && m === "GET") {      // trạng thái gọn của Bot Phản Xạ cho dải trạng thái ở mọi trang (không tải cả scalpstate ~600 KB)
+      const X = await getData(env, uid, "scalpstate");
+      if (!X || !X.at) return json({ at: null });
+      const L = X.live || null, E = L?.env || "demo";
+      return json({ at: X.at, paper: { hk: Object.keys(X.hk || {}).length, pos: Object.keys(X.pos || {}).length, eq: X.eq ?? null, start: X.start ?? null },
+        live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: L.dayE?.[E]?.pnl ?? null,
+          ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
+          swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp })) } : null });
+    }
     if (!USER_KEYS.has(key)) return err("Không có API này", 404);
     if (m === "GET") {
       const v = await getData(env, uid, key);

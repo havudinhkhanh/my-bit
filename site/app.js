@@ -431,6 +431,7 @@ function navDecor(r) {
   const ph = app_.querySelector(".ph");
   const crumb = `<div class="crumb" data-nd><i>${X.cur.gi}</i>${esc(gname)} <span>›</span> ${esc(name)}</div>`;
   if (ph) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);
+  try { lvsDraw(); } catch (e) { /* bỏ qua */ }
   if (X.next) {
     const n = X.next, nn = n.a.querySelector(".nav-t")?.textContent || "", ng = n.g?.querySelector("b")?.textContent || "";
     app_.insertAdjacentHTML("beforeend", `<a class="nextstep" data-nd href="${n.a.getAttribute("href")}"><small>${n.gi !== X.cur.gi ? `Bước tiếp theo · ${esc(ng)}` : "Tiếp trong nhóm"}</small>
@@ -5567,3 +5568,63 @@ addEventListener("resize", () => document.querySelectorAll("details[open]").forE
   btn.addEventListener("click", (e) => { e.preventDefault(); const auto = !document.body.classList.contains("rail-auto"); set(auto, true); if (!auto) return; nav.classList.add("open"); });
   addEventListener("keydown", (e) => { if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey || !wide.matches || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "") || document.activeElement?.isContentEditable) return; e.preventDefault(); set(!document.body.classList.contains("rail-auto"), true); });
 })();
+
+// ---- 💵 dải trạng thái Bot Phản Xạ ở góc phải hàng đường dẫn – mọi trang: lệnh đang chờ / đang mở trên Binance, lời/lỗ hôm nay.
+//      Bấm để xem từng lệnh. Lấy bản gọn (api/scalpbrief) 30 giây/lần khi trang đang mở.
+const LVS = { d: null, t: 0, busy: false };
+const lvsLeft = (ms) => { const s = ms / 1000; return s <= 0 ? "sắp hết" : s < 3600 ? `${Math.max(1, Math.round(s / 60))} phút` : s < 172800 ? `${Math.round(s / 3600)} giờ` : `${Math.round(s / 86400)} ngày`; };
+const lvsT = (v) => (typeof v === "number" ? v : Date.parse(/Z$/.test(String(v)) ? v : v + "Z"));
+function lvsItems(D) {
+  const L = D?.live, I = [];
+  for (const e of L?.ev || []) {
+    const c = String(e.sym || "").replace(/USDT$/, ""), P = e.pos || {}, pend = (e.lv || []).filter((l) => l.st === "open" || l.st === "wait");
+    if (P.q > 0) I.push({ o: 1, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `đang mở ${qty(P.q)} @ ${px(P.ap)}${e.stop ? ` · cắt lỗ ${px(e.stop)}` : ""}`, r: P.t1 ? `tự đóng sau ${lvsLeft(P.t1 + (e.hold || 60) * 60e3 - Date.now())}` : "" });
+    if (pend.length) I.push({ o: 0, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `chờ ${e.side > 0 ? "mua" : "bán"} ${pend.map((l) => `${qty(l.q)} @ ${px(l.px)}`).join(" · ")}`, r: e.exp ? `còn ${lvsLeft(lvsT(e.exp) - Date.now())}` : "" });
+  }
+  for (const p of L?.swp || []) I.push({ o: 1, h: `🧪 <b>${esc(String(p.sym).replace(/USDT$/, ""))}</b> <span class="down">Short</span>`, s: `đang mở ${qty(p.q)} @ ${px(p.ap)} · <span class="${cls(p.upnl)}">${p.upnl >= 0 ? "+" : ""}${usd2(p.upnl)}</span> tạm tính`, r: p.exp ? `còn ${lvsLeft(lvsT(p.exp) - Date.now())}` : "" });
+  return I;
+}
+function lvsHtml(D) {
+  if (!D?.at) return "";
+  const L = D.live, fresh = Date.now() - lvsT(D.at) < 150e3, live = L && (L.on || L.ev?.length || L.swp?.length);
+  if (live) {
+    const I = lvsItems(D), w = I.filter((x) => !x.o).length, o = I.filter((x) => x.o).length, day = L.day;
+    const st = !fresh ? "off" : L.halt ? "warn" : "on";
+    return `<span class="lvs-dot ${st}"></span><b>${L.env === "live" ? "💵 Thật" : "🟡 Demo"}</b>${w ? `<span>⏳ ${w} chờ</span>` : ""}${o ? `<span>📌 ${o} mở</span>` : ""}${!w && !o ? `<span class="faint">${L.halt ? "đang dừng" : "không có lệnh"}</span>` : ""}${isNum(day) ? `<span class="${cls(day)}">${nz(day, 2) > 0 ? "+" : ""}${usd2(day)}</span>` : ""}`;
+  }
+  const n = (D.paper?.hk || 0) + (D.paper?.pos || 0);
+  return `<span class="lvs-dot ${fresh ? "on" : "off"}"></span><b>🧪 Sàn thử</b><span>${D.paper?.hk ? `⏳ ${D.paper.hk} chờ ` : ""}${D.paper?.pos ? `📌 ${D.paper.pos} mở` : ""}${n ? "" : "không có lệnh"}</span>`;
+}
+function lvsPopClose() { const p = document.getElementById("lvsPop"); if (p) { p.classList.add("out"); setTimeout(() => p.remove(), 150); } }
+function lvsPop(btn) {
+  if (document.getElementById("lvsPop")) { lvsPopClose(); return; }
+  const D = LVS.d, L = D?.live, I = lvsItems(D).sort((a, b) => b.o - a.o), r = btn.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(340, vw - 16);
+  const p = document.createElement("div"); p.id = "lvsPop"; p.className = "lvs-pop"; p.setAttribute("role", "dialog");
+  p.style.cssText = `top:${Math.round(r.bottom + 6)}px;left:${Math.round(Math.max(8, Math.min(vw - W - 8, r.right - W)))}px;width:${W}px`;
+  p.innerHTML = `<div class="lvs-ph"><b>${L && (L.on || I.length) ? (L.env === "live" ? "💵 Binance thật" : "🟡 Binance Demo") : "🧪 Sàn thử"}</b><small>${D?.at ? `cập nhật ${new Date(lvsT(D.at)).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</small></div>
+    ${I.length ? I.map((x) => `<div class="lvs-it"><div>${x.h} <small class="pill ${x.o ? "brand" : ""}">${x.o ? "mở" : "chờ"}</small></div><div class="lvs-s">${x.s}</div>${x.r ? `<div class="lvs-r">${x.r}</div>` : ""}</div>`).join("") : `<p class="lvs-none">${L?.halt ? `⛔ ${esc(L.halt)}` : "Không có lệnh nào đang chờ hay đang mở."}</p>`}
+    <div class="lvs-f">${L ? `<span>Hôm nay <b class="${cls(L.day)}">${isNum(L.day) ? `${nz(L.day, 2) > 0 ? "+" : ""}${usd2(L.day)}` : "—"}</b>${isNum(L.bal) ? ` · số dư ${usd2(L.bal)}` : ""}</span>` : "<span></span>"}<a href="#/bot/scalp" data-lvs-go>Mở Bot Phản Xạ →</a></div>`;
+  document.body.appendChild(p);
+  p.querySelector("[data-lvs-go]").addEventListener("click", () => { try { if (L?.on) { window.__scTab = "live"; lsSet("sctab", "live"); } } catch (e) { /* bỏ qua */ } lvsPopClose(); });
+  setTimeout(() => { const off = (e) => { if (!p.isConnected) return removeEventListener("pointerdown", off, true); if (!p.contains(e.target) && !btn.contains(e.target)) { lvsPopClose(); removeEventListener("pointerdown", off, true); } }; addEventListener("pointerdown", off, true); }, 0);
+  addEventListener("keydown", function k(e) { if (e.key === "Escape") { lvsPopClose(); removeEventListener("keydown", k); } });
+  addEventListener("hashchange", lvsPopClose, { once: true });
+}
+function lvsDraw() {
+  const h = lvsHtml(LVS.d), app_ = document.getElementById("app"); if (!app_) return;
+  let C = app_.querySelector(".crumb[data-nd]");
+  app_.querySelectorAll(".crumb[data-lvs]").forEach((x) => { if (C || !h) x.remove(); });
+  if (!h) { app_.querySelectorAll(".lvst").forEach((x) => x.remove()); return; }
+  if (!C) { C = app_.querySelector(".crumb[data-lvs]"); if (!C) { app_.insertAdjacentHTML("afterbegin", '<div class="crumb lvs-only" data-lvs></div>'); C = app_.querySelector(".crumb[data-lvs]"); } }
+  let el = C.querySelector(".lvst");
+  if (!el) { el = document.createElement("button"); el.type = "button"; el.className = "lvst"; el.title = "Lệnh đang chờ / đang mở của Bot Phản Xạ – bấm để xem"; el.addEventListener("click", (e) => { e.stopPropagation(); lvsPop(el); }); C.appendChild(el); }
+  if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
+}
+async function lvsPull() {
+  if (document.hidden || LVS.busy || !ME || ME.legacy) return; LVS.busy = true;
+  try { const r = await fetch("api/scalpbrief", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { LVS.d = await r.json(); LVS.t = Date.now(); lvsDraw(); if (document.getElementById("lvsPop")) { /* giữ bảng đang mở */ } } } catch (e) { /* mất mạng: thử lại lần sau */ }
+  LVS.busy = false;
+}
+setTimeout(lvsPull, 1500); setInterval(lvsPull, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - LVS.t > 20000) lvsPull(); });
+addEventListener("hashchange", () => setTimeout(lvsDraw, 120));

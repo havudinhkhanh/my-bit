@@ -315,9 +315,16 @@ async function viewScalp() {
   const EVS = [...(X.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "bot" })), ...(LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "lv" }))].map((e) => ({ ...e, c: evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
   const EVF = EVC.some(([k]) => k === window.__scEvF) ? window.__scEvF : "all";
   const evIco = { trade: "🔔", skip: "🚫", fix: "🔁", lv: "💵", fund: "💸", err: "⚠️", sys: "⚙️" };
+  // mỗi sự kiện thuộc ngày nào (giờ VN): dải ngày chen giữa danh sách + lọc theo ngày
+  const evD = (t) => { try { return vnDayOf(String(t).slice(0, 19)); } catch (e) { return ""; } }, EVTD = vnToday(), EVYD = new Date(Date.parse(EVTD + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
+  const dLab = (d) => (d === EVTD ? bi("Hôm nay", "Today") : d === EVYD ? bi("Hôm qua", "Yesterday") : new Date(d + "T00:00:00Z").toLocaleDateString(LOC, { weekday: "long", timeZone: "UTC" })) + ` · ${ddmm(d)}`;
+  const EVDAYS = [...new Set(EVS.map((e) => evD(e.t)).filter(Boolean))].sort().reverse(), EVDF = EVDAYS.includes(window.__scEvD) ? window.__scEvD : "all";
+  const feedLis = (L, chips) => { let last = ""; return L.map((e) => { const d = evD(e.t), hide = chips && ((EVF !== "all" && e.c !== EVF) || (EVDF !== "all" && d !== EVDF)), h = d && d !== last ? `<li class="sc-fday" data-d="${d}">${esc(dLab(d))}</li>` : ""; last = d || last;
+    return `${h}<li data-c="${e.c}" data-d="${d}" class="${e.k || ""}" ${hide ? "hidden" : ""}><span class="sc-fi">${evIco[e.c]}</span><span class="sc-ft">${hms(e.t)}</span><span class="sc-fm">${esc(viDec(e.m))}</span></li>`; }).join(""); };
   const feed = (L, chips) => `${chips ? `<div class="bseg sc-evf">${EVC.map(([k, t]) => { const n = k === "all" ? L.length : L.filter((e) => e.c === k).length; return n || k === "all" ? `<button type="button" data-scev="${k}" class="${k === EVF ? "on" : ""}">${t} <small class="faint" data-noi18n>${n}</small></button>` : ""; }).join("")}</div>` : ""}
     <div class="fd-sz" role="radiogroup" aria-label="Độ dài khung sự kiện">${[["s", bi("Gọn", "Short")], ["m", bi("Vừa", "Medium")], ["l", bi("Đầy đủ", "Full")]].map(([k, t]) => `<button type="button" role="radio" data-fdsz="${k}" aria-checked="${k === fdSz()}">${t}</button>`).join("")}</div>
-    <ul class="sc-feed" data-f="${chips ? EVF : "all"}">${L.map((e) => `<li data-c="${e.c}" class="${e.k || ""}" ${chips && EVF !== "all" && e.c !== EVF ? "hidden" : ""}><span class="sc-fi">${evIco[e.c]}</span><span class="sc-ft">${hms(e.t)}</span><span class="sc-fm">${esc(viDec(e.m))}</span></li>`).join("") || `<li class="faint">Chưa có sự kiện.</li>`}</ul>`;
+    ${chips && EVDAYS.length > 1 ? `<div class="bseg sc-evd" aria-label="Lọc theo ngày"><button type="button" data-scevd="all" class="${EVDF === "all" ? "on" : ""}">${bi("Mọi ngày", "All days")}</button>${EVDAYS.map((d) => `<button type="button" data-scevd="${d}" class="${EVDF === d ? "on" : ""}">${esc(d === EVTD ? bi("Hôm nay", "Today") : d === EVYD ? bi("Hôm qua", "Yesterday") : ddmm(d))} <small class="faint" data-noi18n>${L.filter((e) => evD(e.t) === d).length}</small></button>`).join("")}</div>` : ""}
+    <ul class="sc-feed" data-f="${chips ? EVF : "all"}">${feedLis(L, chips) || `<li class="faint">Chưa có sự kiện.</li>`}</ul>`;
   // ---------------------------------------------------------------- (D) Bắt râu sập: lệnh đã đóng + biểu đồ cú sốc, kiểm chứng bộ lọc bằng lệnh ảo
   const HT = AT.filter((t) => t.strat === "hook").slice().reverse();
   const hkTrades = HT.length ? `<div class="sc-hl lvt">${HT.map((t, i) => `<div class="sc-ht"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(t.t1)}</small> 🪝 <b>${esc(String(t.k).split(":")[0])}</b> <span class="${t.side > 0 ? "up" : "down"}">${t.side > 0 ? "Long" : "Short"}</span></span><span class="lvt-v"><b class="${cls(t.usd)}">${nz(t.usd, 2) > 0 ? "+" : ""}${usd2(t.usd)}</b><em class="${cls(t.net)}">${bps(t.net, 0)} bps</em></span>
@@ -491,7 +498,12 @@ async function viewScalp() {
     ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TB)[1])}${body}</div>`;
   $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; scTabGo(b.dataset.sctab); }));
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
-  $$("[data-scev]").forEach((b) => (b.onclick = () => { window.__scEvF = b.dataset.scev; $$("[data-scev]").forEach((x) => x.classList.toggle("on", x === b)); $$(".sc-feed li[data-c]").forEach((li) => (li.hidden = b.dataset.scev !== "all" && li.dataset.c !== b.dataset.scev)); }));
+  const evApply = () => { const c = window.__scEvF || "all", d = window.__scEvD || "all";
+    $$(".sc-feed").forEach((ul) => { if (ul.dataset.f === "all" && !$(".sc-evf")) return; let hd = null, any = false; const fin = () => { if (hd) hd.hidden = !any; };
+      for (const li of ul.children) { if (li.classList.contains("sc-fday")) { fin(); hd = li; any = false; continue; } if (!li.dataset.c) continue; li.hidden = (c !== "all" && li.dataset.c !== c) || (d !== "all" && li.dataset.d !== d); if (!li.hidden) any = true; } fin(); }); };
+  $$("[data-scev]").forEach((b) => (b.onclick = () => { window.__scEvF = b.dataset.scev; $$("[data-scev]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
+  $$("[data-scevd]").forEach((b) => (b.onclick = () => { window.__scEvD = b.dataset.scevd; $$("[data-scevd]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
+  if ($(".sc-evf")) evApply();
   $$("[data-hkc]").forEach((b) => (b.onclick = () => hkChartOpen(HT[+b.dataset.hkc], $("#hkc" + b.dataset.hkc))));
   $$("[data-lvc]").forEach((b) => (b.onclick = () => { const h = LHr[+b.dataset.lvc]; hkChartOpen({ k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase }, $("#lvc" + b.dataset.lvc)); }));
   rsTables($("#app"));

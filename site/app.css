@@ -3341,3 +3341,34 @@ td .sc-mxr{margin:0}
   .tabs .rail-pin kbd{margin-left:auto;font:600 .66rem/1 ui-monospace,monospace;padding:2px 5px;border-radius:4px;border:1px solid var(--line);color:var(--ink-3);transition:opacity .16s}
 }
 @media (prefers-reduced-motion:reduce){.tabs,.tabs .nav-t,body,.tabs a.nav-sub{transition:none!important}}
+
+/* sự kiện: dải ngày chen giữa danh sách (dính ở đầu khi cuộn) + lọc theo ngày */
+.sc-feed li.sc-fday{display:block;position:sticky;top:0;z-index:1;padding:8px 6px 4px;margin-top:4px;background:var(--surface);font:700 .68rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line-2);border-radius:0}
+.sc-feed li.sc-fday:first-child{margin-top:0}
+.sc-feed li.sc-fday[hidden]{display:none}
+.sc-evd{margin-top:6px}
+
+/* 💵 dải trạng thái Bot Phản Xạ (góc phải hàng đường dẫn, mọi trang) */
+.crumb .lvst,.crumb.lvs-only .lvst{margin-left:auto}
+.crumb.lvs-only{justify-content:flex-end;min-height:22px}
+.lvst{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:3px 10px 3px 8px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+  font:500 .72rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap;overflow:hidden;-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+.lvst:hover{background:var(--sunk);border-color:var(--ink-3)}
+.lvst b{color:var(--ink);font-weight:600}.lvst .up{color:var(--up);font-weight:600}.lvst .down{color:var(--down);font-weight:600}
+.lvs-dot{width:7px;height:7px;border-radius:50%;flex:none;background:var(--ink-3)}
+.lvs-dot.on{background:var(--up);box-shadow:0 0 0 3px color-mix(in srgb,var(--up) 22%,transparent);animation:lvsPulse 2.4s ease-in-out infinite}
+.lvs-dot.warn{background:var(--ref,#d9a400)}
+@keyframes lvsPulse{50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--up) 10%,transparent)}}
+.lvs-pop{position:fixed;z-index:1250;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:0 16px 48px rgba(0,0,0,.28);padding:10px 12px;display:grid;gap:8px;animation:lvsIn .16s ease-out both;max-height:70vh;overflow:auto;font-size:.8rem}
+.lvs-pop.out{animation:lvsOut .14s ease-in both}
+@keyframes lvsIn{from{opacity:0;transform:translateY(-4px) scale(.98)}}@keyframes lvsOut{to{opacity:0;transform:translateY(-4px)}}
+.lvs-ph{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.lvs-ph small{color:var(--ink-3);font-size:.7rem}
+.lvs-it{padding:8px 10px;border-radius:10px;background:var(--sunk);display:grid;gap:2px}.lvs-it .up{color:var(--up)}.lvs-it .down{color:var(--down)}
+.lvs-s{font-variant-numeric:tabular-nums;color:var(--ink-2)}.lvs-r{font-size:.7rem;color:var(--ink-3)}
+.lvs-none{margin:2px 0;color:var(--ink-3)}
+.lvs-f{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:6px;border-top:1px solid var(--line-2);font-size:.74rem;color:var(--ink-2)}
+.lvs-f .up{color:var(--up)}.lvs-f .down{color:var(--down)}
+@media (max-width:760px){.lvst{font-size:.68rem;gap:6px;padding:2px 8px 2px 7px}}
+@media (prefers-reduced-motion:reduce){.lvs-dot.on{animation:none}}
+.crumb{flex-wrap:wrap;row-gap:6px}.crumb>*{white-space:nowrap}
+.crumb .lvst span{opacity:1}.crumb .lvst .faint{opacity:.75}
