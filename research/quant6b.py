@@ -164,7 +164,7 @@ def build5(syms):
             for f in M:
                 M[f][i[ok], S[s]] = d[f].values[ok]
     log(f"nến 5 phút xong · {time.time() - t0:.0f}s")
-    dj = [(s, d) for s in keep for d in days_of(MONTHS)]
+    dj = [] if os.environ.get("Q_NOOI") else [(s, d) for s in keep for d in days_of(MONTHS)]      # Q_NOOI=1: không cần Open Interest
     done = 0
     with cf.ThreadPoolExecutor(64) as ex:
         for (s, day), d in zip(dj, ex.map(lambda j: fetch_metrics(*j), dj)):
