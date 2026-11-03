@@ -113,6 +113,13 @@ async function scalpRunner({ request, env }, sub) {
     try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); }
     await putData(env, u.id, "scalpdays", t); return json({ ok: true });
   }
+  if (sub === "ledger") {     // 📒 sổ giao dịch đầy đủ mọi lệnh đã đóng – trang "Sổ lệnh & bài học" đọc (khoá scalpledger)
+    if (request.method !== "POST") return err("Phương thức không hỗ trợ", 405);
+    const t = await request.text(); if (t.length > 1900000) return err("Quá lớn", 413);
+    let j; try { j = JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); }
+    if (!Array.isArray(j?.rows)) return err("Thiếu danh sách lệnh");
+    await putData(env, u.id, "scalpledger", t); return json({ ok: true, n: j.rows.length });
+  }
   if (sub === "brain") {      // bộ nhớ học dùng chung (bot khác / máy khác / lúc giao dịch thật nạp lại được)
     if (request.method === "GET") return json(await getData(env, u.id, "scalpbrain"));
     if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }

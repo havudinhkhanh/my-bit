@@ -1050,3 +1050,105 @@ async function viewDays(envArg, dateArg) {
   $$(".dtab tr[data-dd]").forEach((tr) => (tr.onclick = (e) => { if (!e.target.closest("a")) location.hash = `#/bot/days/${env}/${tr.dataset.dd}`; }));
   $("#dNoteSave").onclick = async () => { const r = await Store.get("scalpnotes"); const M = r.data || {}; M[nk] = $("#dNote").value.slice(0, 4000); await Store.put("scalpnotes", M); toast("Đã lưu ghi chú"); };
 }
+
+// ================================================================ 📒 SỔ LỆNH & BÀI HỌC – toàn bộ lịch sử giao dịch (sàn thử / Demo / thật) + bài học tổng hợp
+// Nguồn: sổ lệnh đầy đủ máy chủ riêng lưu mãi (scalpledger, 5 phút/lần) + lệnh vừa đóng trong trạng thái trực tiếp (chưa kịp vào sổ).
+const JSTRAT = { hook: ["🪝", "Bắt râu sập"], sec: ["⚡", "Lướt giây"], pump: ["🧪", "Short coin vừa bơm"], list: ["🆕", "Short coin mới niêm yết"] };
+const JWHY = { TP: "chốt lời", SL: "cắt lỗ", TIME: "hết giờ giữ", "TIME+": "hết giờ (đã giữ thêm)", TRAIL: "cắt lỗ đuổi", REV: "tín hiệu đảo chiều", BTC: "BTC sốc ngược chiều", STALE: "mất dữ liệu giá", MANUAL: "anh đóng tay", GONE: "đã đóng trên sàn", LIQ: "thanh lý / mất trắng", DELIST: "ngừng giao dịch" };
+const JENV = [["live", "💵 Binance thật"], ["demo", "🟡 Demo"], ["paper", "🧪 Sàn thử"], ["all", "Tất cả"]];
+const jT = (s) => (s ? Date.parse(/Z$/.test(s) ? s : s + "Z") : NaN);
+function jRows(LG, X) {
+  const M = new Map(), put = (r) => { if (!r.t2 || !(r.q > 0) || !(r.e > 0)) return; const k = `${r.env}|${r.k}|${String(r.t2).slice(0, 19)}`; if (!M.has(k)) M.set(k, r); };
+  for (const a of LG?.rows || []) put({ env: a[0], strat: a[1], k: a[2], side: a[3], q: a[4], e: a[5], x: a[6], t1: a[7], t2: a[8], fee: a[9], fund: a[10], pnl: a[11], why: a[12], lv: a[13], R: a[14], tot: a[15], note: a[16] });
+  for (const h of X?.live?.hist || []) put({ env: h.env || "demo", strat: h.strat || "hook", k: h.k || String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note });
+  for (const t of X?.trades || []) { const n0 = t.net && t.usd ? Math.abs(t.usd / (t.net / 1e4)) : null; if (n0) put({ env: "paper", strat: t.strat || "sec", k: t.k, side: t.side, q: n0 / t.e, e: t.e, x: t.x, t1: t.t0, t2: t.t1, fee: (t.fee || 0) * n0 / 1e4, fund: t.fu || 0, pnl: t.usd, why: t.why, lv: t.lv, R: t.shock }); }
+  for (const s of ["list", "pump"]) for (const h of X?.sw?.[s]?.hist || []) put({ env: "paper", strat: s, k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.N / h.e, e: h.e, x: h.x, t1: h.t0, t2: h.t2, fee: h.fee, fund: h.fund, pnl: h.net, why: h.why, note: h.note });
+  return [...M.values()].map((r) => { const N = r.q * r.e, g = r.side * r.q * (r.x - r.e); return { ...r, fee: +r.fee || 0, fund: +r.fund || 0, pnl: +r.pnl || 0, N, g, bps: (+r.pnl || 0) / N * 1e4, mv: r.side * (r.x / r.e - 1) * 100, hold: (jT(r.t2) - jT(r.t1)) / 1000, d: vnDayOf(String(r.t2).slice(0, 19)) }; })
+    .sort((a, b) => jT(b.t2) - jT(a.t2));
+}
+const jHold = (s) => (!isNum(s) || s < 0 ? "—" : s < 120 ? `${nf(s, 0)} giây` : s < 7200 ? `${nf(s / 60, 0)} phút` : s < 172800 ? `${nf(s / 3600, 1)} giờ` : `${nf(s / 86400, 1)} ngày`);
+const jTm = (s) => { const t = jT(s); return isNum(t) ? new Date(t).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"; };
+const j$ = (v, d) => { const k = d ?? (Math.abs(v) < 1 ? 3 : 2); return `${nz(v, k) > 0 ? "+" : nz(v, k) < 0 ? "−" : ""}$${nf(Math.abs(v), k)}`; };
+// bài học rút từ chính các lệnh trong khoảng đang xem (số liệu, không đoán)
+function jLessons(F) {
+  const out = [], grp = (f) => { const G = {}; for (const r of F) { const k = f(r); if (k == null) continue; const g = (G[k] ||= { n: 0, w: 0, pnl: 0, bps: 0 }); g.n++; g.pnl += r.pnl; g.bps += r.bps; if (r.pnl > 0) g.w++; } return Object.entries(G).map(([k, g]) => ({ k, ...g, ab: g.bps / g.n })); };
+  if (F.length < 3) return { L: [["", "Cần ít nhất 3 lệnh trong khoảng đang xem để rút bài học."]], T: {} };
+  const gp = F.reduce((a, r) => a + Math.max(0, r.g), 0), fee = F.reduce((a, r) => a + r.fee, 0), trap = F.filter((r) => r.g > 0 && r.pnl < 0), fund = F.reduce((a, r) => a + r.fund, 0);
+  if (gp > 0) out.push([fee / gp > 0.4 ? "bad" : fee / gp > 0.2 ? "warn" : "good", `Phí giao dịch bằng ${nf(fee / gp * 100, 0)}% tiền lời theo giá (${j$(-fee)} / ${j$(gp)}).${fee / gp > 0.4 ? " Phí đang ăn phần lớn lợi nhuận – ưu tiên lệnh chờ (maker) và bỏ các cú sốc nhỏ." : ""}`]);
+  if (trap.length) out.push(["warn", `${trap.length} lệnh lời theo giá nhưng LỖ sau phí/funding (tổng ${j$(trap.reduce((a, r) => a + r.pnl, 0))}) – lệnh "tưởng hoà" thật ra là lỗ.`]);
+  if (Math.abs(fund) >= 0.01) out.push([fund < 0 ? "warn" : "good", `Funding cả khoảng: ${j$(fund)} (${fund < 0 ? "trả" : "nhận"}).`]);
+  const why = grp((r) => r.why || "?").sort((a, b) => a.pnl - b.pnl);
+  if (why.length > 1 && why[0].pnl < 0) out.push(["bad", `Đóng vì «${JWHY[why[0].k] || why[0].k}» lỗ nhiều nhất: ${why[0].n} lệnh, ${j$(why[0].pnl)}, TB ${nf(why[0].ab, 0)} bps/lệnh.`]);
+  const bw = why[why.length - 1]; if (bw && bw.pnl > 0) out.push(["good", `Đóng vì «${JWHY[bw.k] || bw.k}» đem lại nhiều lời nhất: ${bw.n} lệnh, ${j$(bw.pnl)}.`]);
+  const sd = grp((r) => (r.side > 0 ? "Long" : "Short")); if (sd.length === 2) { const [a, b] = sd.sort((x, y) => y.ab - x.ab); out.push([b.pnl < 0 ? "warn" : "", `${a.k} tốt hơn ${b.k}: TB ${nf(a.ab, 0)} vs ${nf(b.ab, 0)} bps/lệnh (thắng ${nf(a.w / a.n * 100, 0)}% vs ${nf(b.w / b.n * 100, 0)}%).`]); }
+  const hr = grp((r) => { const h = (new Date(jT(r.t2)).getUTCHours() + 7) % 24; return h < 6 ? "0–6 giờ" : h < 12 ? "6–12 giờ" : h < 18 ? "12–18 giờ" : "18–24 giờ"; }).filter((g) => g.n >= 3).sort((a, b) => a.ab - b.ab);
+  if (hr.length > 1) out.push([hr[0].pnl < 0 ? "warn" : "", `Khung giờ kém nhất (giờ VN): ${hr[0].k} – ${hr[0].n} lệnh, TB ${nf(hr[0].ab, 0)} bps; tốt nhất: ${hr[hr.length - 1].k} – TB ${nf(hr[hr.length - 1].ab, 0)} bps.`]);
+  const hk = F.filter((r) => r.strat === "hook" && r.R), sh = grp((r) => (r.strat !== "hook" || !r.R ? null : Math.abs(r.R) < 400 ? "sốc < 4%" : Math.abs(r.R) < 800 ? "sốc 4–8%" : "sốc ≥ 8%")).sort((a, b) => a.ab - b.ab);
+  if (hk.length >= 5 && sh.length > 1) out.push([sh[0].pnl < 0 ? "warn" : "", `Bắt râu sập theo cỡ cú sốc: ${sh.map((g) => `${g.k} ${g.n} lệnh, TB ${nf(g.ab, 0)} bps`).join(" · ")}.`]);
+  const co = grp((r) => r.k.split(":")[0]).filter((g) => g.n >= 2).sort((a, b) => a.pnl - b.pnl);
+  if (co.length && co[0].pnl < 0) out.push(["bad", `Coin lỗ lặp lại: ${co.filter((g) => g.pnl < 0).slice(0, 3).map((g) => `${g.k} (${g.n} lệnh, ${j$(g.pnl)})`).join(", ")}.`]);
+  const W = F.filter((r) => r.pnl > 0), Lz = F.filter((r) => r.pnl <= 0), ah = (A) => A.reduce((a, r) => a + (isNum(r.hold) ? r.hold : 0), 0) / Math.max(1, A.length);
+  if (W.length >= 2 && Lz.length >= 2) out.push(["", `Lệnh lời giữ TB ${jHold(ah(W))}, lệnh lỗ giữ TB ${jHold(ah(Lz))}.${ah(Lz) > ah(W) * 2 ? " Lệnh lỗ bị giữ lâu hơn hẳn – lỗ thường đến từ lệnh giữ tới hết giờ." : ""}`]);
+  let st = 0, mx = 0; for (const r of F.slice().reverse()) { st = r.pnl < 0 ? st + 1 : 0; mx = Math.max(mx, st); }
+  if (mx >= 3) out.push(["warn", `Chuỗi thua dài nhất: ${mx} lệnh liên tiếp.`]);
+  return { L: out, T: { why, sd, hr, co } };
+}
+async function viewJournal(envArg) {
+  const [rl, rs, rd, rn, rq] = await Promise.all([Store.get("scalpledger"), Store.get("scalpstate"), Store.get("scalpdays"), Store.get("scalpnotes"), Store.get("scalp")]);
+  const J = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 });
+  const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, LG = rl.data || null, ALL = rd.data || {}, NOTES = rn.data || {};
+  const A = jRows(LG, X), cnt = Object.fromEntries(JENV.map(([e]) => [e, e === "all" ? A.length : A.filter((r) => r.env === e).length]));
+  const env = JENV.some((x) => x[0] === envArg) ? envArg : J.env || (cnt.live ? "live" : "paper"); J.env = env;
+  const TD = vnToday(), from = J.R === "all" ? "" : new Date(Date.parse(TD + "T00:00:00Z") - (J.R - 1) * 864e5).toISOString().slice(0, 10), qq = J.q.trim().toUpperCase();
+  const F = A.filter((r) => (env === "all" || r.env === env) && (!from || r.d >= from) && (J.st === "all" || r.strat === J.st) && (J.res === "all" || (J.res === "win" ? r.pnl > 0 : r.pnl <= 0)) && (!qq || r.k.toUpperCase().includes(qq)));
+  const n = F.length, w = F.filter((r) => r.pnl > 0), lo = F.filter((r) => r.pnl <= 0), net = F.reduce((a, r) => a + r.pnl, 0), fee = F.reduce((a, r) => a + r.fee, 0), fund = F.reduce((a, r) => a + r.fund, 0), gross = F.reduce((a, r) => a + r.g, 0);
+  const sw = w.reduce((a, r) => a + r.pnl, 0), sl = lo.reduce((a, r) => a + r.pnl, 0), best = F.reduce((a, r) => (!a || r.pnl > a.pnl ? r : a), null), worst = F.reduce((a, r) => (!a || r.pnl < a.pnl ? r : a), null);
+  const stOpts = ["all", ...Object.keys(JSTRAT).filter((s) => A.some((r) => r.strat === s && (env === "all" || r.env === env)))];
+  const head = `<div class="ph"><h1>📒 Sổ lệnh & bài học</h1><span class="meta"><a href="#/bot/days">📅 Kết quả theo ngày</a> · giờ Việt Nam · ${LG?.at ? `sổ cập nhật ${jTm(LG.at.slice(0, 19))}` : "sổ đầy đủ có sau khi cập nhật máy chủ riêng"}</span></div>
+    <div class="bseg dseg">${JENV.map(([e, t]) => `<a href="#/bot/journal/${e}" class="${e === env ? "on" : ""}">${t}${cnt[e] ? ` <small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
+    <div class="jf"><div class="bseg">${[[7, "7 ngày"], [30, "30 ngày"], [90, "90 ngày"], ["all", "Tất cả"]].map(([v, t]) => `<button type="button" data-jr="${v}" class="${J.R === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      <select id="jSt" aria-label="Phương pháp">${stOpts.map((s) => `<option value="${s}" ${J.st === s ? "selected" : ""}>${s === "all" ? "Mọi phương pháp" : JSTRAT[s].join(" ")}</option>`).join("")}</select>
+      <div class="bseg">${[["all", "Tất cả"], ["win", "Lời"], ["loss", "Lỗ"]].map(([v, t]) => `<button type="button" data-jx="${v}" class="${J.res === v ? "on" : ""}">${t}</button>`).join("")}</div>
+      <input id="jQ" type="search" placeholder="Lọc coin…" value="${esc(J.q)}" autocomplete="off" enterkeyhint="search"><button class="btn sm" id="jCsv" ${n ? "" : "disabled"}>⬇ Tải CSV</button></div>`;
+  const summ = panel("Tổng quan", stg([["Số lệnh", nf(n, 0), "", n ? `thắng ${nf(w.length / n * 100, 0)}% · ${w.length} lời / ${lo.length} lỗ` : "không có lệnh"],
+    ["Lời/lỗ ròng", n ? j$(net) : "—", cls(net), n ? `TB ${nf(F.reduce((a, r) => a + r.bps, 0) / n, 0)} bps/lệnh · sau phí & funding` : ""],
+    ["Lời/lỗ theo giá", n ? j$(gross) : "—", cls(gross), "trước phí & funding"], ["Phí giao dịch", n ? j$(-fee) : "—", fee > 0 ? "down" : "", gross > 0 ? `${nf(fee / Math.max(1e-9, F.reduce((a, r) => a + Math.max(0, r.g), 0)) * 100, 0)}% tiền lời theo giá` : ""],
+    ["Funding", n && nz(fund, 3) ? j$(fund) : "—", nz(fund, 3) ? cls(fund) : "", fund < 0 ? "đã trả" : fund > 0 ? "đã nhận" : "không có kỳ chốt nào"], ["Lời TB / lỗ TB", w.length || lo.length ? `${w.length ? j$(sw / w.length) : "—"} / ${lo.length ? j$(sl / lo.length) : "—"}` : "—", "", sl < 0 ? `hệ số lời ${nf(sw / -sl, 2)} (> 1 là có lời)` : ""],
+    ["Lệnh tốt nhất", best ? j$(best.pnl) : "—", "up", best ? `${best.k.split(":")[0]} · ${jTm(best.t2)}` : ""], ["Lệnh tệ nhất", worst ? j$(worst.pnl) : "—", "down", worst ? `${worst.k.split(":")[0]} · ${jTm(worst.t2)}` : ""]]));
+  // bài học tổng hợp
+  const LS = jLessons(F), tb = (G, t) => (G?.length ? `<div class="jg"><p class="sbh">${t}</p><table class="jmini"><tbody>${G.slice().sort((a, b) => b.pnl - a.pnl).map((g) => `<tr><td class="l">${esc(JWHY[g.k] || g.k)}</td><td>${g.n}</td><td>${nf(g.w / g.n * 100, 0)}%</td><td class="${cls(g.pnl)}">${j$(g.pnl)}</td></tr>`).join("")}</tbody></table></div>` : "");
+  const lessons = panel("📚 Bài học tổng hợp", `<ul class="bot-rl dles">${LS.L.map(([c, m]) => `<li class="${c}">${esc(m)}</li>`).join("")}</ul>
+    ${n >= 3 ? `<div class="jgs">${tb(LS.T.why, "Theo lý do đóng")}${tb(LS.T.sd, "Long / Short")}${tb(LS.T.hr, "Theo giờ (VN)")}${tb((LS.T.co || []).slice(0, 4).concat((LS.T.co || []).slice(-4)).filter((g, i, a) => a.indexOf(g) === i), "Coin lỗ & lời nhiều nhất (≥ 2 lệnh)")}</div>` : ""}
+    <p class="faint" style="font-size:.74rem">Tính trên ${n} lệnh đang lọc. Cột: số lệnh · tỉ lệ thắng · lời/lỗ ròng.</p>`, n ? `${n} lệnh` : "");
+  // nhật ký bài học từng ngày (bộ rút bài học của trang Kết quả theo ngày + ghi chú của anh)
+  const denv = env === "all" ? (cnt.live ? "live" : "paper") : env, src = ALL[denv] || {}, days = src.days || {}, dtr = src.dtr || {}, dk = Object.keys(days).filter((d) => (!from || d >= from) && days[d]?.n).sort().reverse();
+  const diary = dk.length ? panel(`🗓️ Nhật ký bài học từng ngày – ${JENV.find((x) => x[0] === denv)[1]}`, dk.slice(0, 31).map((d, i) => { const D = days[d], H = Object.keys(days).filter((k) => k < d).sort().map((k) => days[k]), L = dayLessons(D, dtr[d] || [], H, C, denv), nt = NOTES[`${denv}|${d}`];
+    return `<details class="jd" ${i < 2 ? "open" : ""}><summary><b>${ddmm(d)}</b> <span class="${cls(D.usd)}">${j$(D.usd || 0)}</span> <small class="faint">${D.n} lệnh · thắng ${nf(D.win / D.n * 100, 0)}%</small><a href="#/bot/days/${denv}/${d}" class="jd-a">chi tiết →</a></summary>
+      <ul class="bot-rl dles">${L.L.map(([c, m]) => `<li class="${c}">${esc(m)}</li>`).join("")}</ul>${L.N.length ? `<p class="sbh">➡️ Rút kinh nghiệm</p><ul class="bot-rl dles">${L.N.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}${nt ? `<p class="jd-n">📝 ${esc(nt)}</p>` : ""}</details>`; }).join(""), `${dk.length} ngày có lệnh`) : "";
+  // bảng lệnh: máy tính = bảng đủ cột, điện thoại = thẻ
+  const S = F.slice(0, J.lim), sg = (r) => `<span class="${r.side > 0 ? "up" : "down"}">${r.side > 0 ? "Long" : "Short"}</span>`, ac = (r) => (r.env === "live" ? `<span class="sc-acc live">💵 Thật</span>` : r.env === "demo" ? `<span class="sc-acc demo">Demo</span>` : `<span class="sc-acc paper">Sàn thử</span>`);
+  const pT = (r) => (r.tot > 0 ? ` · ${nz(r.pnl / r.tot * 100, 2) > 0 ? "+" : ""}${nf(r.pnl / r.tot * 100, 2)}% TS` : "");
+  const tbl = `<div class="tw jt-d" style="max-height:640px"><table class="jt keep"><thead><tr><th class="l">Vào → ra</th><th class="l">Lệnh</th><th>Giá vào → ra</th><th>Khối lượng</th><th>Phí · funding</th><th>Ròng</th><th>Giữ</th><th class="l">Lý do đóng</th></tr></thead><tbody>${S.map((r) => `<tr>
+      <td class="l"><small>${jTm(r.t1)}<br>→ ${jTm(r.t2)}</small></td><td class="l">${(JSTRAT[r.strat] || ["•"])[0]} <b>${esc(r.k.split(":")[0])}</b> ${sg(r)}${env === "all" ? "<br>" + ac(r) : ""}${r.lv > 1 ? ` <small class="faint">${r.lv} mức</small>` : ""}</td>
+      <td>${px(r.e)} → ${px(r.x)}<br><small class="${cls(r.mv)}">${nz(r.mv, 2) > 0 ? "+" : ""}${nf(r.mv, 2)}%</small></td><td>${qty(r.q)}<br><small>${usd2(r.N)}</small></td>
+      <td><span class="down">${j$(-r.fee)}</span><br><small class="${nz(r.fund, 3) ? cls(r.fund) : ""}">${nz(r.fund, 3) ? j$(r.fund) : "—"}</small></td>
+      <td class="${cls(r.pnl)}"><b>${j$(r.pnl)}</b><br><small>${nf(r.bps, 0)} bps${pT(r)}</small></td><td><small>${jHold(r.hold)}</small></td><td class="l jw"><small>${esc(JWHY[r.why] || r.why || "")}${r.note ? ` · ${esc(r.note)}` : ""}</small></td></tr>`).join("")}</tbody></table></div>`;
+  const cards = `<div class="jt-m">${S.map((r) => `<div class="jc ${r.pnl > 0 ? "w" : "l"}"><div class="jc1"><span>${(JSTRAT[r.strat] || ["•"])[0]} <b>${esc(r.k.split(":")[0])}</b> ${sg(r)} ${env === "all" ? ac(r) : ""}</span><b class="${cls(r.pnl)}">${j$(r.pnl)}</b></div>
+      <div class="jc2"><span>${px(r.e)} → ${px(r.x)} <em class="${cls(r.mv)}">${nz(r.mv, 2) > 0 ? "+" : ""}${nf(r.mv, 2)}%</em></span><span>${qty(r.q)} · ${usd2(r.N)}</span></div>
+      <div class="jc3"><small>${jTm(r.t1)} → ${jTm(r.t2)} · ${jHold(r.hold)}</small><small>phí ${j$(-r.fee)}${nz(r.fund, 3) ? ` · funding ${j$(r.fund)}` : ""} · ${nf(r.bps, 0)} bps${pT(r)}</small><small class="faint">${esc(JWHY[r.why] || r.why || "")}${r.note ? ` · ${esc(r.note)}` : ""}</small></div></div>`).join("")}</div>`;
+  const list = panel("🧾 Từng lệnh", n ? `${tbl}${cards}${n > J.lim ? `<button class="btn" id="jMore" style="margin-top:10px">Xem thêm (${n - J.lim} lệnh)</button>` : ""}` : `<p class="muted">Không có lệnh nào khớp bộ lọc.</p>`, n ? `${Math.min(n, J.lim)} / ${n} lệnh` : "");
+  app().innerHTML = head + summ + lessons + list + diary + (LG ? "" : `<p class="faint" style="font-size:.76rem">Hiện chỉ có các lệnh gần đây (trong trạng thái trực tiếp). Sau khi anh chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>, máy chủ riêng lưu mãi mọi lệnh và dựng lại các lệnh cũ còn trong bộ nhớ.</p>`);
+  const re = () => { J.lim = 100; viewJournal(env); };
+  $$("[data-jr]").forEach((b) => (b.onclick = () => { J.R = b.dataset.jr === "all" ? "all" : +b.dataset.jr; re(); }));
+  $$("[data-jx]").forEach((b) => (b.onclick = () => { J.res = b.dataset.jx; re(); }));
+  $("#jSt").onchange = (e) => { J.st = e.target.value; re(); };
+  let qt = 0; $("#jQ").oninput = (e) => { clearTimeout(qt); qt = setTimeout(() => { J.q = e.target.value; re(); setTimeout(() => { const i = $("#jQ"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); }, 350); };
+  if ($("#jMore")) $("#jMore").onclick = () => { J.lim += 100; viewJournal(env); };
+  $("#jCsv").onclick = () => {
+    const H = ["tai_khoan", "phuong_phap", "coin", "chieu", "gio_vao_VN", "gio_ra_VN", "gia_vao", "khoi_luong", "gia_tri_USDT", "gia_ra", "gia_di_%", "loi_lo_theo_gia", "phi", "funding", "loi_lo_rong", "bps_rong", "giu_giay", "ly_do", "ghi_chu"];
+    const vn = (s) => { const t = jT(s); return isNum(t) ? new Date(t + 7 * 3600e3).toISOString().slice(0, 19).replace("T", " ") : ""; }, q = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v);
+    const L = F.map((r) => [r.env, r.strat, r.k.split(":")[0], r.side > 0 ? "Long" : "Short", vn(r.t1), vn(r.t2), r.e, r.q, r.N.toFixed(4), r.x, r.mv.toFixed(3), r.g.toFixed(4), r.fee.toFixed(4), r.fund.toFixed(4), r.pnl.toFixed(4), r.bps.toFixed(1), isNum(r.hold) ? Math.round(r.hold) : "", JWHY[r.why] || r.why || "", r.note || ""].map(q).join(","));
+    const blob = new Blob(["﻿" + [H.join(","), ...L].join("\n")], { type: "text/csv;charset=utf-8" }), a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `mybit-so-lenh-${env}-${TD}.csv`; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  };
+}

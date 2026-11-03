@@ -285,7 +285,7 @@ function twFit(tw) {
   tw.classList.add("fit"); if (!ov()) return;
   tw.classList.add("fit2"); if (!ov()) return;
   const hs = [...t.querySelectorAll(":scope > thead > tr:last-child > th")];
-  if (hs.length && !hs.some((h) => h.colSpan > 1)) {
+  if (hs.length && !t.classList.contains("keep") && !hs.some((h) => h.colSpan > 1)) {      // bảng có lớp "keep" (Sổ lệnh): không ẩn cột, cuộn ngang
     const idx = hs.map((h, i) => (TW_OPT.some((rx) => rx.test(h.textContent.trim())) ? i + 1 : 0)).filter(Boolean);
     if (idx.length) {
       t.dataset.tf ||= String(++TWN);
@@ -479,10 +479,10 @@ document.addEventListener("click", (e) => {
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msheet")?.hidden) mSheet(false); });
 if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
-const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"]];
+const BOTSEG = [["bot", "#/bot", "🤖", "Đội bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botsup", "#/bot/sup", "🛡️", "Bot giám sát"], ["botdays", "#/bot/days", "📅", "Kết quả theo ngày"], ["botjournal", "#/bot/journal", "📒", "Sổ lệnh & bài học"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan"], ["hook", "Bắt râu sập"], ["sec", "Lướt giây"], ["live", "Binance thật"], ["lab", "Thử nghiệm"], ["learn", "Học & kiểm chứng"], ["ev", "Sự kiện"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Theo ngày", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Đội bot", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Theo ngày", "#/bot/journal": "Sổ lệnh", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Đội bot", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 const SC_ICON = { ov: "📊", hook: "🪝", sec: "⚡", live: "💵", lab: "🧪", learn: "🧠", ev: "📜", set: "⚙️" };
 function cusOpts() {
   const out = []; let g = "";
@@ -537,8 +537,8 @@ function cusPick(anchor) {
   addEventListener("hashchange", iosMenuClose, { once: true });
 }
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
-const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot" };
-const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+const BOTSUB = { bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày của mọi bot", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp" };
+const botCur = (h = location.hash) => (h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
 function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
@@ -661,7 +661,7 @@ const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.con
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
 // tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn
-const BOT_KEYS = { "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"] };
+const BOT_KEYS = { "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"], journal: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"] };
 function botWarm(only) {
   if (!multiUser() || (ME && typeof can === "function" && !can("bot"))) return;
   const go = () => { lazyJs("app-bot.js").catch(() => {}); Store.warm(only ? BOT_KEYS[only] || [] : [...new Set(Object.values(BOT_KEYS).flat())]); };
@@ -818,7 +818,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -3592,6 +3592,7 @@ function dayLessons(D, T, H, C, env) {
   return { head, L, N };
 }
 async function viewDays(...a) { await lazyJs("app-bot.js"); return viewDays(...a); }
+async function viewJournal(...a) { await lazyJs("app-bot.js"); return viewJournal(...a); }
 async function viewScalp(...a) { await lazyJs("app-bot.js"); return viewScalp(...a); }
 
 // ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)

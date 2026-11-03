@@ -62,6 +62,39 @@ const actOf = (out) => {
 const writeState = async (uid, out) => { try { ACT = actOf(out); } catch (e) { ACT = null; } return api("POST", JSON.stringify(live ? { ...out, live: live.summary(), act: ACT } : { ...out, act: ACT })); };
 const loadBrain = async () => api("GET", undefined, "/brain");
 const saveDays = async (uid, paper) => api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), paper, demo: live?.daysOut("demo"), live: live?.daysOut("live") }), "/days");
+// ---------------------------------------------------------------- 📒 SỔ GIAO DỊCH ĐẦY ĐỦ: mọi lệnh đã đóng (sàn thử / Demo / thật) – giá vào, khối lượng, giá ra, phí, funding, lời/lỗ
+// lưu mãi trên máy chủ (data/ledger.json) + gửi lên MyBit (trang "Sổ lệnh & bài học") 5 phút/lần. Dòng: [tài khoản, phương pháp, mã, chiều, KL, giá vào, giá ra,
+// giờ vào, giờ ra (UTC), phí, funding, lời/lỗ ròng USDT, lý do đóng, số mức khớp, cú sốc bps, % tổng tài sản lúc đó, ghi chú]
+const LEDF = path.join(DIR, "ledger.json");
+let LED = { v: 1, bf: false, rows: [] }; try { const j = JSON.parse(fs.readFileSync(LEDF, "utf8")); if (Array.isArray(j.rows)) LED = j; } catch (e) { /* tệp mới */ }
+let ledDirty = true;
+const r8 = (v) => (Number.isFinite(+v) ? +(+v).toPrecision(8) : null), r4 = (v) => (Number.isFinite(+v) ? +(+v).toFixed(4) : 0);
+const ledKey = (r) => `${r[0]}|${r[2]}|${String(r[8]).slice(0, 19)}`;
+const ledAdd = (t) => {
+  if (!t || !t.t2 || !(+t.q > 0) || !(+t.e > 0)) return;
+  const r = [t.env || "paper", t.strat || "hook", t.k, t.side > 0 ? 1 : -1, r8(t.q), r8(t.e), r8(t.x), String(t.t1 || "").slice(0, 19), String(t.t2).slice(0, 19), r4(t.fee), r4(t.fund), r4(t.pnl), t.why || "", t.lv || null, t.R || null, t.tot > 0 ? +(+t.tot).toFixed(2) : null, t.note ? String(t.note).slice(0, 80) : null];
+  const k = ledKey(r); if (LED.rows.some((x) => ledKey(x) === k)) return;
+  LED.rows.push(r); LED.rows.sort((a, b) => (a[8] < b[8] ? -1 : a[8] > b[8] ? 1 : 0)); ledDirty = true;
+};
+const ledTrim = () => {      // giữ dưới ~1,7 MB: bỏ lệnh sàn thử cũ nhất trước, rồi Demo; lệnh TIỀN THẬT giữ lại hết
+  for (const env of ["paper", "demo"]) { while (JSON.stringify(LED.rows).length > 1.7e6) { const i = LED.rows.findIndex((r) => r[0] === env); if (i < 0) break; LED.rows.splice(i, 1); } }
+};
+const ledBackfill = () => {      // lần đầu: dựng lại từ lịch sử đang có (sàn thử 300 lệnh gần nhất, Binance 200 lệnh, phòng thử nghiệm 200 lệnh/phương pháp)
+  if (LED.bf) return; LED.bf = true;
+  for (const t of core?.S?.trades || []) {
+    const n0 = t.net && t.usd ? Math.abs(t.usd / (t.net / 1e4)) : null; if (!n0) continue;
+    const ent = t.t0 || (t.t1 && t.hold ? new Date(Date.parse(t.t1 + "Z") - t.hold * 1000).toISOString() : null);
+    ledAdd({ env: "paper", strat: t.strat || "sec", k: t.k, side: t.side, q: n0 / t.e, e: t.e, x: t.x, t1: ent, t2: t.t1, fee: (t.fee || 0) * n0 / 1e4, fund: t.fu || 0, pnl: t.usd, why: t.why, lv: t.lv, R: t.shock });
+  }
+  for (const h of live?.S?.hist || []) live.led?.(h);
+  for (const k of ["list", "pump"]) for (const h of core?.S?.sw?.[k]?.hist || []) ledAdd({ env: "paper", strat: k, k: h.sym.replace(/USDT$/, "") + ":F", side: h.side, q: h.N / h.e, e: h.e, x: h.x, t1: h.t0, t2: h.t2, fee: h.fee, fund: h.fund, pnl: h.net, why: h.why, note: h.note });
+};
+const ledSave = async () => {
+  try { ledBackfill(); } catch (e) { log("📒 dựng lại sổ lệnh:", e.message); }
+  if (!ledDirty) return; ledTrim();
+  try { const tmp = LEDF + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(LED)); fs.renameSync(tmp, LEDF); } catch (e) { log("📒 ghi sổ lệnh:", e.message); }
+  try { await api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), rows: LED.rows }), "/ledger"); ledDirty = false; } catch (e) { log("📒 gửi sổ lệnh:", e.message); }
+};
 const notify = async (uid, items) => api("POST", JSON.stringify({ items, act: ACT }), "/notify");
 const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
 const openWS = (url) => new Promise((res, rej) => {
@@ -119,6 +152,7 @@ const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname()
 live = new LiveExec({ core, dir: DIR, log });
 core.io.onHook = (h) => live.onHook(h);
 core.io.onSwing = (s) => live.onSwing(s);
+core.io.onTrade = (t) => { try { ledAdd(t); } catch (e) { log("📒", e.message); } };
 let walBusy = 0; core.io.onWalReq = () => { if (Date.now() - walBusy < 20e3) return; walBusy = Date.now(); live.wallets().then(() => core.snapshot?.()).catch((e) => log("💵 đọc ví:", e.message)); };      // 🔄 Danh mục: đọc ví ngay
 core.io.onManual = (k) => live.onManual(k);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
 let busy = false, lastErr = "";
@@ -145,13 +179,14 @@ async function main() {
   // tài khoản Binance thật: kiểm tra mỗi 5 phút, quản lý lệnh mỗi 2 giây (chạy cả khi bot tạm tắt – lệnh đang mở vẫn phải được đóng đúng hạn)
   const lvCheck = async () => { try { if (core.cfg?.lv_on || live.active().length || live.keys()) await live.check(); live.resume(core.cfg?.lv_resume_at); } catch (e) { log("💵 kiểm tra:", e.message); } try { await live.wallets(); } catch (e) { log("💵 tổng tài sản:", e.message); } };
   await lvCheck(); setInterval(lvCheck, 300000);
+  setTimeout(ledSave, 60000); setInterval(ledSave, 300000);      // 📒 sổ lệnh: lần đầu sau 1 phút (đợi nạp trạng thái), rồi 5 phút/lần
   setInterval(() => live.tick().catch((e) => log("💵", e.message)), 2000);
   let lvOn = null; setInterval(() => { const on = !!core.cfg?.lv_on; if (on !== lvOn) { lvOn = on; if (on) lvCheck(); } }, 15000);
   setTimeout(() => setInterval(() => { if (!busy && core.here()) core.snapshot().catch(() => {}); }, 10000), 5000);
   let pxOff = false;      // chuyển tiếp giá Binance thật cho các bot phút (chỉ máy chủ của quản trị viên – trang trả 403 nếu không phải)
   setInterval(async () => { if (pxOff || !core.here()) return; const px = core.pxRelay(); if (Object.keys(px).length < 10) return; try { await api("POST", JSON.stringify({ px }), "/px"); } catch (e) { if (/HTTP 403/.test(e.message)) { pxOff = true; log("ℹ️ tài khoản không phải quản trị viên – không chuyển tiếp giá cho bot phút"); } } }, 10000);   // gửi số liệu lên trang mỗi ~5 giây (xen giữa các vòng 10 giây)
 }
-const stop = async (sig) => { log(`Nhận ${sig} – lưu trạng thái rồi thoát`); try { await core.snapshot(); await core.saveBrain(); } catch (e) { /* bỏ qua */ } try { kv.flush(); } catch (e) { /* bỏ qua */ } process.exit(0); };
+const stop = async (sig) => { log(`Nhận ${sig} – lưu trạng thái rồi thoát`); try { await core.snapshot(); await core.saveBrain(); await ledSave(); } catch (e) { /* bỏ qua */ } try { kv.flush(); } catch (e) { /* bỏ qua */ } process.exit(0); };
 process.on("SIGTERM", () => stop("SIGTERM")); process.on("SIGINT", () => stop("SIGINT"));
 process.on("unhandledRejection", (e) => log("⚠️ unhandled", e?.message || e));
 main();

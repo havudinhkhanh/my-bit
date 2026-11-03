@@ -446,6 +446,7 @@ export class LiveExec {
       try { const I = await this.income({ sym: x.sym, t0 }); if (I) { x.fundA = +I.fund.toFixed(4); if (I.com && !I.other) x.feeA = +(-I.com).toFixed(4); } } catch (e) { /* lần sau thử lại */ }
     }
   }
+  led(h) { try { this.core?.io?.onTrade?.({ env: h.env, strat: h.strat || "hook", k: h.k || coin(h.sym) + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note }); } catch (e) { /* sổ lệnh lỗi không ảnh hưởng giao dịch */ } }
   async swClose(p, why) {
     const c = this.cfg(), pr = await this.pos(p.sym), q = Math.abs(pr.amt);
     let px = null;
@@ -463,6 +464,7 @@ export class LiveExec {
     this.dayAdd({ env: p.env, sym: p.sym, side: -1, pos: { q: p.q, ap: p.ap, t1: p.t0 }, t0: p.t0, lv: [{ fq: p.q }], fund, strat: "pump" }, pnl, fee, px, why);
     const tot0 = +this.S.wal?.[p.env]?.total || 0;
     this.S.hist = [...this.S.hist.slice(-199), { id: p.id, strat: "pump", sym: p.sym, side: -1, q: p.q, e: p.ap, x: px, pnl: p.pnl, fee: +fee.toFixed(4), fund: p.fund || undefined, k: coin(p.sym) + ":F", ts: iso(p.t0), nl: 1, net: +bps.toFixed(1), why, t1: iso(p.t0), t2: iso(p.t2), env: p.env, tot: tot0 > 0 ? tot0 : undefined, note: p.why }];
+    this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const wl = { TIME: "hết 7 ngày giữ", MANUAL: "anh đóng tay", LIQ: "giá ×2 – sàn thanh lý (mất phần tiền của lệnh)", GONE: "vị thế đã đóng trên Binance" }[why] || why;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} 🧪 Đóng Short bơm ${coin(p.sym)} – ${wl}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% phần lệnh, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)})`, pnl >= 0 ? "win" : "loss");
     this.note(`swc:${p.id}`, 2, `${LTAG(p.env)} · ${pnl >= 0 ? "🟢" : "🔴"} 🧪 ${coin(p.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `Short coin vừa bơm · ${wl} · ${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% phần lệnh`, `lv:${p.id}`);
@@ -513,6 +515,7 @@ export class LiveExec {
     this.dayAdd(ev, pnl, fee, px, why);
     const tot0 = +this.S.wal?.[ev.env]?.total || 0;      // tổng tài sản Binance (mọi ví) lúc đóng – để tính lời/lỗ lệnh này bằng bao nhiêu % tổng tài sản
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined }];
+    this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);

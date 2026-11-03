@@ -105,6 +105,7 @@ export class SwingLab {
     const net = gross - P.fee - fee + P.fund, pct = net / P.N * 100;
     B.st.n++; B.st.pnl += net; if (net > 0) B.st.win++;
     B.hist = [...B.hist.slice(-199), { sym: P.sym, side: P.side, e: P.e, x: px, N: P.N, t0: P.t0, t2: iso(now), why, net: r2(net, 3), pct: r2(pct, 2), fund: r2(P.fund, 3), fee: r2(P.fee + fee, 3), hi: P.hi, lo: P.lo, note: P.why }];
+    try { this.core.io?.onTrade?.({ env: "paper", strat: k, k: P.sym.replace(/USDT$/, "") + ":F", side: P.side, q: P.q, e: P.e, x: px, t1: P.t0, t2: iso(now), fee: P.fee + fee, fund: P.fund, pnl: net, why, note: P.why }); } catch (e) { /* bỏ qua */ }
     delete B.pos[P.id];
     const base = P.sym.replace(/USDT$/, ""), wl = { TIME: "hết giờ giữ", MANUAL: "anh đóng tay", LIQ: "giá ×2 – mất trắng phần lệnh (x1)", DELIST: "hợp đồng ngừng giao dịch" }[why] || why;
     this.say(`${R.name}: đóng ${base} – ${wl}: ${net >= 0 ? "+" : ""}${r2(net, 2)} USDT (${pct >= 0 ? "+" : ""}${r2(pct, 1)}%)`, net >= 0 ? "win" : "loss");

@@ -796,6 +796,7 @@ export class ScalpCore {
     const n0 = P.q * P.e, fund = P.fund || 0, grossB = gross / n0 * 1e4, feeB = (P.fee + fee) / n0 * 1e4, fundB = fund / n0 * 1e4, net = grossB - feeB + fundB, usd = gross - fee - P.fee + fund;      // funding đã cộng/trừ vào tiền mặt lúc chốt
     const t = { id: P.id, k: x.id, t: P.t, side: P.side, how: P.how, e: r2(P.e, 8), x: r2(px, 8), hold: r2((now - P.t0) / 1000, 1), gross: r2(grossB, 2), fee: r2(feeB, 2), net: r2(net, 2), usd: r2(usd, 3), exp: r2(P.exp, 2), raw: r2(P.raw, 2), cost: r2(P.cost, 2), h: P.h, g: P.g || x.g, ctx: P.ctx || null, zone: P.zone || null, why, fund: fund ? r2(fundB, 2) : undefined, fu: fund ? r2(fund, 4) : undefined, c0: P.c0 ? +P.c0.toPrecision(8) : undefined, ts: P.ts ? iso(P.ts) : undefined, lvp: P.lvp || undefined, val: !!P.shk, strat: P.strat || "sec", lv: P.lv || undefined, shock: P.R || undefined, t0: iso(P.t0), t1: iso(now) };
     S.trades = [...S.trades.slice(-299), t];
+    try { this.io.onTrade?.({ env: "paper", strat: P.strat || "sec", k: x.id, side: P.side, q: P.q, e: P.e, x: px, t1: iso(P.t0), t2: iso(now), fee: P.fee + fee, fund, pnl: usd, why, lv: P.lv, R: P.R, mk: P.how }); } catch (e) { /* bỏ qua */ }
     if (!S.days) this.daysInit(); else this.dayAdd(t, P.fee + fee);
     const st = S.stats; st.n++; st.gross += gross; st.fees += P.fee + fee; st.net += usd; if (usd > 0) st.win++;
     const b = (S.by[P.t] ||= { n: 0, net: 0, fees: 0, win: 0 }); b.n++; b.net += usd; b.fees += P.fee + fee; if (usd > 0) b.win++;

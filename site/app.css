@@ -3294,3 +3294,23 @@ td .sc-mxr{margin:0}
 .pf-sync-t{flex:1 1 260px;min-width:0;font-size:.82rem}.pf-sync-t small{color:var(--ink-3);font-size:.74rem}
 .pf-auto{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:var(--ink-2);cursor:pointer}
 @media (max-width:760px){.stg{grid-template-columns:repeat(2,minmax(0,1fr))}.pf-tot b{font-size:1.8rem}.pf-mix{flex-basis:100%}.pf-sync #pfSync{flex:1 1 auto}}
+/* 📒 Sổ lệnh & bài học */
+.jf{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}
+.jf select,.jf input{height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 10px;font:inherit;font-size:16px}
+@media (min-width:761px){.jf select,.jf input{font-size:.82rem}}
+.jf input{flex:1 1 140px;min-width:120px;max-width:220px}
+.jt{font-size:.78rem}.jt td{vertical-align:top}.jt td.jw{white-space:normal;min-width:110px}.jt td small{color:var(--ink-3)}.jt td.l small{white-space:nowrap}
+.jt-m{display:none}
+@media (max-width:760px){.jt-d{display:none}.jt-m{display:grid;gap:8px}}
+.jc{border-radius:10px;background:var(--sunk);padding:10px 12px;display:grid;gap:4px;border-left:3px solid var(--line)}.jc.w{border-left-color:var(--up)}.jc.l{border-left-color:var(--down)}
+.jc1,.jc2{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.jc1 b{font-variant-numeric:tabular-nums}
+.jc2{font-size:.8rem;font-variant-numeric:tabular-nums}.jc2 em{font-style:normal;margin-left:4px}.jc2 em.up{color:var(--up)}.jc2 em.down{color:var(--down)}
+.jc3{display:flex;flex-direction:column;gap:1px;font-size:.72rem;color:var(--ink-2)}
+.jgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 16px;margin-top:10px}
+.jmini{width:100%;font-size:.76rem}.jmini td{padding:3px 4px;border-bottom:1px solid var(--line-2)}.jmini td.up{color:var(--up)}.jmini td.down{color:var(--down)}
+.jd{border-top:1px solid var(--line-2);padding:8px 0}.jd:first-of-type{border-top:0}
+.jd summary{cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;list-style:none}.jd summary::-webkit-details-marker{display:none}
+.jd summary::before{content:"▸";color:var(--ink-3);transition:transform .15s}.jd[open] summary::before{transform:rotate(90deg)}
+.jd summary .up{color:var(--up)}.jd summary .down{color:var(--down)}.jd-a{margin-left:auto;font-size:.74rem}
+.jd-n{margin:6px 0 0;font-size:.8rem;color:var(--ink-2);background:var(--sunk);border-radius:8px;padding:6px 10px}
+.sc-acc.paper{background:var(--line-2);color:var(--ink-2)}
