@@ -141,3 +141,66 @@ TINH LỌC 3 phương pháp · 2022-01 → 2026-10 · 2026-11-03 10:07 UTC
     WALK-FORWARD ngoài mẫu – riêng 2025–26: 2891 lệnh (1589/năm) · thắng 38.8% · TB ròng -77.4 bps (gộp -151.6 − phí 17.4 + funding +91.6) · trung vị -227.5 · t -1.50 · 10%/lệnh ≈ -123.0%/năm, sụt 317.0% · {2025: [2361, -95.7], 2026: [530, 4.0]}
   ▸ 8 biến thể tốt nhất RIÊNG 2025–26 (tham khảo, có thiên lệch chọn): h72|sl0.05|sma20+abs 1531 lệnh +80.3 bps thắng 32% | h72|sl0.05|sma20 2235 lệnh +58.4 bps thắng 31% | h24|sl0.05|sma20+abs 1531 lệnh +54.2 bps thắng 36% | h24|sl0.05|sma20 2235 lệnh +39.1 bps thắng 37% | h72|slNone|sma20+abs 1531 lệnh +26.9 bps thắng 40% | h72|sl0.05|abs 3091 lệnh +25.8 bps thắng 34% | h8|sl0.05|sma20+abs 1531 lệnh +18.8 bps thắng 40% | h24|sl0.05|abs 3094 lệnh +18.0 bps thắng 39%
 ```
+
+
+## Vòng 7 – đánh nhanh, khớp chắc (03/11/2026) – research/quant7.py
+
+Premium k6/0,4%/120 phút: +88 bps/lệnh toàn giai đoạn nhưng 49% lời từ 5 coin, tháng 10/2025 (+938 bps/lệnh, cú sập 10/10) chiếm phần lớn; từ 04/2026 tháng nào cũng âm; walk-forward không đánh 3 cửa sổ cuối.
+
+```
+Vòng 7 – đánh nhanh, khớp chắc · 2025-07 → 2026-10 · 2026-11-03 10:27 UTC
+
+==================== K1 · Premium perp-spot lệch cực đoan → đánh ngược
+Vào lệnh thị trường; +3 bps trượt.
+  mặc định (k4.0|p0.2|h30), toàn giai đoạn: 14218 lệnh (11358/năm) · thắng 43.1% (trước phí 52.2%) · TB ròng -2.0 bps/lệnh (gộp +16.3 − phí 19.4 + funding +1.1) · trung vị -13.4 · t -0.29 · mỗi lệnh 10% vốn ≈ -22.4%/năm, sụt 180.7% · theo năm {2025: [4040, 36.2], 2026: [10178, -17.1]}
+  WALK-FORWARD ngoài mẫu: 633 lệnh (1926/năm) · thắng 50.1% (trước phí 52.3%) · TB ròng +7.8 bps/lệnh (gộp +20.4 − phí 19.4 + funding +6.8) · trung vị +0.1 · t +0.27 · mỗi lệnh 10% vốn ≈ +15.0%/năm, sụt 15.6% · theo năm {2026: [633, 7.8]}
+  10 biến thể tốt nhất (toàn giai đoạn, CHỈ để tham khảo – có thiên lệch chọn):
+    k6.0|p0.4|h120                               2754 lệnh · thắng  48.1% · TB ròng   +88.0 · gộp  +100.2
+    k6.0|p0.4|h60                                2922 lệnh · thắng  48.3% · TB ròng   +83.9 · gộp   +99.7
+    k6.0|p0.4|h30                                3185 lệnh · thắng  47.2% · TB ròng   +73.5 · gộp   +91.4
+    k6.0|p0.2|h60                                4869 lệnh · thắng  47.5% · TB ròng   +40.9 · gộp   +58.1
+    k4.0|p0.4|h120                               5374 lệnh · thắng  48.3% · TB ròng   +40.1 · gộp   +51.8
+    k6.0|p0.4|h15                                3559 lệnh · thắng  47.0% · TB ròng   +39.8 · gộp   +58.4
+    k4.0|p0.4|h60                                6042 lệnh · thắng  47.6% · TB ròng   +38.8 · gộp   +53.9
+    k6.0|p0.2|h30                                5218 lệnh · thắng  45.8% · TB ròng   +35.2 · gộp   +53.6
+    k4.0|p0.4|h30                                6940 lệnh · thắng  46.2% · TB ròng   +30.6 · gộp   +47.6
+    k3.0|p0.4|h120                               7885 lệnh · thắng  48.2% · TB ròng   +25.5 · gộp   +37.1
+  Lựa chọn từng cửa sổ: 2025-08..2026-01 → 2026-02..2026-03: k6.0|p0.4|h120 (257.8, 1002 lệnh) | 2025-10..2026-03 → 2026-04..2026-05: k6.0|p0.4|h120 (223.8, 1186 lệnh) | 2025-12..2026-05 → 2026-06..2026-07: k6.0|p0.4|h120 (-7.7, 1002 lệnh) – KHÔNG ĐÁNH | 2026-02..2026-07 → 2026-08..2026-09: k6.0|p0.4|h60 (-6.6, 1050 lệnh) – KHÔNG ĐÁNH | 2026-04..2026-09 → 2026-10: k3.0|p0.4|h30 (-13.8, 4920 lệnh) – KHÔNG ĐÁNH
+  ▸ Mọi biến thể ≥ 50 lệnh (toàn giai đoạn): k6.0|p0.4|h120 2754 lệnh +88.0 | k6.0|p0.4|h60 2922 lệnh +83.9 | k6.0|p0.4|h30 3185 lệnh +73.5 | k6.0|p0.2|h60 4869 lệnh +40.9 | k4.0|p0.4|h120 5374 lệnh +40.1 | k6.0|p0.4|h15 3559 lệnh +39.8 | k4.0|p0.4|h60 6042 lệnh +38.8 | k6.0|p0.2|h30 5218 lệnh +35.2 | k4.0|p0.4|h30 6940 lệnh +30.6 | k3.0|p0.4|h120 7885 lệnh +25.5 | k6.0|p0.2|h120 4608 lệnh +24.1 | k6.0|p0.1|h60 6191 lệnh +23.1 | k3.0|p0.4|h60 9387 lệnh +21.8 | k6.0|p0.2|h15 5668 lệnh +19.0 | k6.0|p0.1|h30 6616 lệnh +17.9 | k3.0|p0.4|h30 11233 lệnh +13.9 | k6.0|p0.1|h15 7146 lệnh +10.5 | k4.0|p0.4|h15 8071 lệnh +9.8 | k6.0|p0.1|h120 5844 lệnh +7.5 | k4.0|p0.2|h60 12756 lệnh +2.5 | k3.0|p0.4|h15 13541 lệnh +0.2 | k4.0|p0.2|h30 14218 lệnh -2.0 | k4.0|p0.2|h120 11483 lệnh -4.0 | k4.0|p0.2|h15 15874 lệnh -4.6 | k4.0|p0.1|h60 19889 lệnh -5.9 | k3.0|p0.2|h60 24030 lệnh -6.5 | k4.0|p0.1|h15 24190 lệnh -8.2 | k4.0|p0.1|h30 21987 lệnh -9.5 | k3.0|p0.2|h30 27772 lệnh -9.5 | k3.0|p0.2|h120 20505 lệnh -10.7 | k3.0|p0.2|h15 31946 lệnh -10.8 | k4.0|p0.1|h120 17896 lệnh -13.3 | k3.0|p0.1|h60 46625 lệnh -14.6 | k3.0|p0.1|h15 60101 lệnh -15.1 | k3.0|p0.1|h120 39796 lệnh -15.9 | k3.0|p0.1|h30 53399 lệnh -15.9
+
+==================== K2 · Cú sốc 5 phút trên 20 coin lớn
+Vào lệnh thị trường ở nến kế tiếp; +5 bps trượt.
+  mặc định (fade|k4.0|h30), toàn giai đoạn: 5566 lệnh (4460/năm) · thắng 47.6% (trước phí 55.0%) · TB ròng -32.6 bps/lệnh (gộp -12.6 − phí 20.1 + funding +0.1) · trung vị -6.0 · t -2.30 · mỗi lệnh 10% vốn ≈ -145.3%/năm, sụt 185.6% · theo năm {2025: [1974, -51.6], 2026: [3592, -22.1]}
+  WALK-FORWARD ngoài mẫu: 729 lệnh (2219/năm) · thắng 34.2% (trước phí 43.9%) · TB ròng -38.3 bps/lệnh (gộp -18.3 − phí 20.0 + funding +0.0) · trung vị -35.0 · t -2.09 · mỗi lệnh 10% vốn ≈ -85.0%/năm, sụt 28.1% · theo năm {2026: [729, -38.3]}
+  10 biến thể tốt nhất (toàn giai đoạn, CHỈ để tham khảo – có thiên lệch chọn):
+    follow|k6.0|h30                              2810 lệnh · thắng  39.4% · TB ròng    +1.9 · gộp   +22.1
+    follow|k4.0|h30                              5566 lệnh · thắng  38.3% · TB ròng    -7.6 · gộp   +12.6
+    follow|k6.0|h60                              2752 lệnh · thắng  40.0% · TB ròng    -9.2 · gộp   +11.1
+    follow|k4.0|h60                              5391 lệnh · thắng  39.5% · TB ròng   -12.7 · gộp    +7.7
+    fade|k6.0|h15                                2870 lệnh · thắng  49.3% · TB ròng   -13.8 · gộp    +6.2
+    fade|k4.0|h15                                5742 lệnh · thắng  48.4% · TB ròng   -19.6 · gộp    +0.5
+    follow|k4.0|h15                              5742 lệnh · thắng  35.3% · TB ròng   -20.5 · gộp    -0.5
+    follow|k6.0|h15                              2870 lệnh · thắng  35.0% · TB ròng   -26.2 · gộp    -6.2
+    fade|k4.0|h60                                5391 lệnh · thắng  49.5% · TB ròng   -27.4 · gộp    -7.7
+    fade|k6.0|h60                                2752 lệnh · thắng  48.9% · TB ròng   -30.9 · gộp   -11.1
+  Lựa chọn từng cửa sổ: 2025-08..2026-01 → 2026-02..2026-03: follow|k6.0|h30 (42.5, 1156 lệnh) | 2025-10..2026-03 → 2026-04..2026-05: follow|k6.0|h30 (26.5, 1217 lệnh) | 2025-12..2026-05 → 2026-06..2026-07: follow|k4.0|h15 (-14.9, 2396 lệnh) – KHÔNG ĐÁNH | 2026-02..2026-07 → 2026-08..2026-09: fade|k6.0|h30 (-4.4, 1089 lệnh) – KHÔNG ĐÁNH | 2026-04..2026-09 → 2026-10: follow|k6.0|h60 (-2.2, 1081 lệnh) – KHÔNG ĐÁNH
+  ▸ Mọi biến thể ≥ 50 lệnh (toàn giai đoạn): follow|k6.0|h30 2810 lệnh +1.9 | follow|k4.0|h30 5566 lệnh -7.6 | follow|k6.0|h60 2752 lệnh -9.2 | follow|k4.0|h60 5391 lệnh -12.7 | fade|k6.0|h15 2870 lệnh -13.8 | fade|k4.0|h15 5742 lệnh -19.6 | follow|k4.0|h15 5742 lệnh -20.5 | follow|k6.0|h15 2870 lệnh -26.2 | fade|k4.0|h60 5391 lệnh -27.4 | fade|k6.0|h60 2752 lệnh -30.9 | fade|k4.0|h30 5566 lệnh -32.6 | fade|k6.0|h30 2810 lệnh -42.0
+
+==================== K3 · Giờ mở phiên BTC/ETH/SOL
+Phí cố định 14 bps (coin lớn).
+  mặc định (us1330|follow|h60), toàn giai đoạn: 637 lệnh (479/năm) · thắng 34.7% (trước phí 41.1%) · TB ròng -27.6 bps/lệnh (gộp -13.6 − phí 14.0 + funding +0.0) · trung vị -31.7 · t -4.48 · mỗi lệnh 10% vốn ≈ -13.2%/năm, sụt 17.8% · theo năm {2025: [260, -26.9], 2026: [377, -28.1]}
+  WALK-FORWARD ngoài mẫu: 278 lệnh (374/năm) · thắng 48.6% (trước phí 53.6%) · TB ròng -8.7 bps/lệnh (gộp +5.3 − phí 14.0 + funding +0.0) · trung vị -5.2 · t -0.67 · mỗi lệnh 10% vốn ≈ -3.3%/năm, sụt 4.8% · theo năm {2026: [278, -8.7]}
+  10 biến thể tốt nhất (toàn giai đoạn, CHỈ để tham khảo – có thiên lệch chọn):
+    us1330|fade|h60                               637 lệnh · thắng  51.6% · TB ròng    -0.4 · gộp   +13.6
+    us1330|fade|h120                              637 lệnh · thắng  47.7% · TB ròng    -1.6 · gộp   +12.4
+    asia00|fade|h120                              467 lệnh · thắng  50.5% · TB ròng    -4.7 · gộp    +9.3
+    asia00|fade|h30                               467 lệnh · thắng  37.9% · TB ròng    -8.1 · gộp    +5.9
+    eu08|follow|h30                               464 lệnh · thắng  33.6% · TB ròng   -10.2 · gộp    +3.8
+    eu08|fade|h120                                464 lệnh · thắng  42.5% · TB ròng   -10.2 · gộp    +3.8
+    us1330|fade|h30                               637 lệnh · thắng  44.1% · TB ròng   -11.6 · gộp    +2.4
+    eu07|fade|h30                                 362 lệnh · thắng  37.0% · TB ròng   -11.9 · gộp    +2.1
+    eu07|follow|h120                              362 lệnh · thắng  38.4% · TB ròng   -12.2 · gộp    +1.8
+    eu07|fade|h60                                 362 lệnh · thắng  41.2% · TB ròng   -12.4 · gộp    +1.6
+  Lựa chọn từng cửa sổ: 2025-08..2026-01 → 2026-02..2026-03: asia00|follow|h120 (1.9, 204 lệnh) | 2025-10..2026-03 → 2026-04..2026-05: us1330|fade|h120 (5.0, 235 lệnh) | 2025-12..2026-05 → 2026-06..2026-07: us1330|fade|h120 (19.0, 207 lệnh) | 2026-02..2026-07 → 2026-08..2026-09: asia00|fade|h120 (13.1, 165 lệnh) | 2026-04..2026-09 → 2026-10: asia00|fade|h120 (3.8, 145 lệnh)
+  ▸ Mọi biến thể ≥ 50 lệnh (toàn giai đoạn): us1330|fade|h60 637 lệnh -0.4 | us1330|fade|h120 637 lệnh -1.6 | asia00|fade|h120 467 lệnh -4.7 | asia00|fade|h30 467 lệnh -8.1 | eu08|fade|h120 464 lệnh -10.2 | eu08|follow|h30 464 lệnh -10.2 | us1330|fade|h30 637 lệnh -11.6 | eu07|fade|h30 362 lệnh -11.9 | eu07|follow|h120 362 lệnh -12.2 | eu07|fade|h60 362 lệnh -12.4 | asia00|fade|h60 467 lệnh -12.7 | eu08|follow|h60 464 lệnh -13.4 | eu08|fade|h60 464 lệnh -14.6 | asia00|follow|h60 467 lệnh -15.3 | eu07|follow|h60 362 lệnh -15.6 | eu07|fade|h120 362 lệnh -15.8 | eu07|follow|h30 362 lệnh -16.1 | us1330|follow|h30 637 lệnh -16.4 | eu08|fade|h30 464 lệnh -17.8 | eu08|follow|h120 464 lệnh -17.8 | asia00|follow|h30 467 lệnh -19.9 | asia00|follow|h120 467 lệnh -23.3 | us1330|follow|h120 637 lệnh -26.4 | us1330|follow|h60 637 lệnh -27.6
+```
