@@ -3646,7 +3646,7 @@ html.lb-dragging .lb-c1 .lb-drop-t{display:block}
 .lb-dr .lm-g{grid-template-columns:minmax(0,1fr)}
 .lb-dr .lm-h{padding-right:40px}
 html.lb-lock,html.lb-lock body{overflow:hidden}
-@media (max-width:640px){.lb-dr-p{top:auto;left:0;width:100%;max-height:92dvh;border-radius:18px 18px 0 0;transform:translateY(102%);box-shadow:0 -16px 40px rgba(0,0,0,.2);padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}.lb-dr-p::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-4px auto 8px}}
+@media (max-width:640px){.lb-dr-p{top:auto;left:0;width:100%;max-height:92dvh;border-radius:18px 18px 0 0;transform:translateY(102%);box-shadow:0 -16px 40px rgba(0,0,0,.2);padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}}
 /* bảng thử nghiệm – dạng dòng gọn (1 dòng / kiểu chơi) */
 .lb{gap:10px}
 @media (min-width:900px){.lb{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr) minmax(0,.9fr)}}
@@ -3794,3 +3794,6 @@ html.lb-dragging .lb-bg{border-style:dashed}
   .lb-seg{height:46px;padding:0 9px;gap:8px}
   .lbx .lb-gh{padding:6px 4px 0}
 }
+.lb-dr-h{display:none}
+.lb-dr{touch-action:none}.lb-dr-p{touch-action:pan-y}
+@media (max-width:640px){.lb-dr-h{display:block;position:sticky;top:-14px;z-index:4;margin:-14px -14px 4px;padding:10px 0 12px;touch-action:none;cursor:grab;background:linear-gradient(var(--bg) 70%,transparent)}.lb-dr-h i{display:block;width:44px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 25%,transparent);margin:0 auto}.lb-dr-x{top:14px}}

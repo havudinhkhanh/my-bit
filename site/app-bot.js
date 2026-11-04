@@ -668,7 +668,7 @@ async function viewScalp() {
         ${GR.map(([t, L]) => `<div class="lb-gh"><span>${t}</span><small>${L.length}</small></div>${L.map(row).join("")}`).join("")}
       </div>
       <div class="lb-foot"><span>Gạt <b>🧪</b> để đánh tiền ảo · gạt <b>${LVI}</b> để đánh trên Binance (luôn hỏi xác nhận) · bấm tên để xem kết quả & chỉnh thông số</span>${QX ? `<span class="lb-cfg"><b>📐 Cỡ lệnh thật:</b><span class="bseg sc-seg">${[2, 3, 5, 10].map(szB).join("")}</span><b>tối đa</b><span class="bseg sc-seg">${[1, 2, 3].map(mxB).join("")}</span><small>/ kiểu</small></span>` : ""}</div>`;
-    const drawer = `<div class="lb-dr" id="lbDr" hidden><div class="lb-dr-bg" data-lbclose></div><aside class="lb-dr-p" role="dialog" aria-modal="true" aria-label="Chi tiết phương pháp"><button type="button" class="lb-dr-x" data-lbclose aria-label="Đóng">✕</button>${ML.map((m) => `<div class="lb-dr-c" data-lbdr="${m.k}" hidden>${lmCard(m)}</div>`).join("")}</aside></div>`;
+    const drawer = `<div class="lb-dr" id="lbDr" hidden><div class="lb-dr-bg" data-lbclose></div><aside class="lb-dr-p" role="dialog" aria-modal="true" aria-label="Chi tiết phương pháp"><div class="lb-dr-h" aria-hidden="true"><i></i></div><button type="button" class="lb-dr-x" data-lbclose aria-label="Đóng">✕</button>${ML.map((m) => `<div class="lb-dr-c" data-lbdr="${m.k}" hidden>${lmCard(m)}</div>`).join("")}</aside></div>`;
     // ---------- bảng lệnh (mọi phương pháp thử nghiệm)
     const lft = (t) => { const s = (Date.parse(t + "Z") - Date.now()) / 1000; return s <= 0 ? "sắp đóng" : s > 86400 ? `${Math.floor(s / 86400)} ngày ${Math.floor((s % 86400) / 3600)} giờ` : `${Math.floor(s / 3600)} giờ ${Math.floor((s % 3600) / 60)} phút`; };
     const lg = (L) => L.map((x) => `<span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span> <b>${esc(x.sym.replace(/USDT$/, ""))}</b> ${px(x.e ?? x.ap)}${x.m ? ` → ${px(x.m)}` : ""}`).join("<br>");
@@ -930,6 +930,17 @@ async function viewScalp() {
     DR.querySelector(".lb-dr-p").addEventListener("scroll", (e) => { if (window.__lmOpen) (window.__lbDrY ||= {})[window.__lmOpen] = e.target.scrollTop; }, { passive: true });
     $$("[data-lbopen]").forEach((b) => (b.onclick = () => show(b.dataset.lbopen)));
     DR.querySelectorAll("[data-lbclose]").forEach((b) => (b.onclick = hide));
+    // điện thoại: vuốt vạch kéo (hoặc vuốt xuống khi đang ở đầu nội dung) để đóng; nền mờ không cuộn trang bên dưới
+    { const P = DR.querySelector(".lb-dr-p"), BG = DR.querySelector(".lb-dr-bg"); let sy = null, dy = 0, t0 = 0, fromH = false;
+      BG.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+      P.addEventListener("touchstart", (e) => { if (!matchMedia("(max-width:640px)").matches) return; fromH = !!e.target.closest(".lb-dr-h"); if (!fromH && P.scrollTop > 0) { sy = null; return; } sy = e.touches[0].clientY; dy = 0; t0 = Date.now(); }, { passive: true });
+      P.addEventListener("touchmove", (e) => {
+        if (sy == null) return; dy = e.touches[0].clientY - sy;
+        if (dy <= 0) { if (fromH) e.preventDefault(); else { sy = null; P.style.transform = ""; P.style.transition = ""; BG.style.opacity = ""; } return; }
+        e.preventDefault(); P.style.transition = "none"; P.style.transform = `translateY(${dy}px)`; BG.style.opacity = String(1 - Math.min(dy / 500, 0.7));
+      }, { passive: false });
+      const end = () => { if (sy == null) return; sy = null; const v = dy / Math.max(1, Date.now() - t0); P.style.transition = ""; BG.style.opacity = ""; if (dy > 110 || (dy > 30 && v > 0.6)) { hide(); P.style.transform = ""; } else P.style.transform = ""; };
+      P.addEventListener("touchend", end); P.addEventListener("touchcancel", end); }
     if (!window.__lbKey) { window.__lbKey = 1; addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector("body > .lb-dr.on")) document.querySelector("body > .lb-dr [data-lbclose]")?.click(); }); addEventListener("hashchange", () => { if (!location.hash.startsWith("#/bot/scalp")) { document.querySelectorAll("body > .lb-dr").forEach((x) => x.remove()); document.documentElement.classList.remove("lb-lock"); window.__lmOpen = null; } }); }
     if (window.__lmOpen && LB?.MM[window.__lmOpen]) show(window.__lmOpen, false); else document.documentElement.classList.remove("lb-lock");
   } else document.documentElement.classList.remove("lb-lock");
