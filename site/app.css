@@ -3797,3 +3797,20 @@ html.lb-dragging .lb-bg{border-style:dashed}
 .lb-dr-h{display:none}
 .lb-dr{touch-action:none}.lb-dr-p{touch-action:pan-y}
 @media (max-width:640px){.lb-dr-h{display:block;position:sticky;top:-14px;z-index:4;margin:-14px -14px 4px;padding:10px 0 12px;touch-action:none;cursor:grab;background:linear-gradient(var(--bg) 70%,transparent)}.lb-dr-h i{display:block;width:44px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink) 25%,transparent);margin:0 auto}.lb-dr-x{top:14px}}
+/* ⚙️ thông số phương pháp thử nghiệm: cột điều khiển cố định → ô số, đơn vị, công tắc, nút chọn thẳng hàng */
+.lm-pr{grid-template-columns:minmax(0,1fr) 208px}
+.lm-pr .sc-rc{justify-content:flex-start;flex-wrap:nowrap}
+.lm-pr .sc-nin{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px;align-items:center;min-width:0;width:100%}
+.lm-pr .sc-nin::after{content:none!important}
+.lm-pr .sc-nin input{width:96px}
+.lm-pr .sc-nin small{min-width:0;text-align:left;white-space:nowrap}
+.lm-pr .sc-seg{width:100%;display:flex}.lm-pr .sc-seg button{flex:1;padding-left:6px;padding-right:6px}
+@media (max-width:560px){.lm-pr{grid-template-columns:minmax(0,1fr)}.lm-pr .sc-rc{width:100%;max-width:240px}}
+.lm-pr .sc-seg button{justify-content:center;text-align:center}
+@media (max-width:560px){
+  .lm .sc-rows .sc-row.lm-pr{grid-template-columns:minmax(0,1fr);gap:8px}
+  .lm .sc-rows .sc-row.lm-pr .sc-rc{width:100%;max-width:none;justify-content:flex-start}
+  .lm .sc-rows .sc-row.lm-pr .sc-nin{grid-template-columns:120px minmax(0,1fr);width:100%}
+  .lm .sc-rows .sc-row.lm-pr .sc-nin input{width:120px}
+  .lm .sc-rows .sc-row.lm-pr .sc-seg{max-width:none}
+}

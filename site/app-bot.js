@@ -219,7 +219,7 @@ async function viewScalp() {
   const lmRow = (m, p) => {
     const def = p.def, cur = p.top ? (C[p.f] ?? def) : (p.cur ?? lmV(p, def)), chg = String(cur) !== String(def), id = `${m.sc}|${m.k}|${p.f}`;
     const dshow = p.type === "n" ? `${nf(lmShow(p, def), Number.isInteger(lmShow(p, def)) ? 0 : p.dp ?? 2)}${p.unit ? " " + p.unit : ""}` : p.type === "b" ? (def ? "bật" : "tắt") : (p.opts.find(([v]) => String(v) === String(def))?.[1] || def);
-    const ctl = p.type === "n" ? `<span class="sc-nin field"><input inputmode="decimal" data-lmf="${id}" data-mul="${p.mul || 1}" data-top="${p.top ? 1 : ""}" value="${lmShow(p, cur)}" aria-label="${esc(p.label)}">${p.unit ? `<small>${p.unit}</small>` : ""}</span>`
+    const ctl = p.type === "n" ? `<span class="sc-nin field"><input inputmode="decimal" data-lmf="${id}" data-mul="${p.mul || 1}" data-top="${p.top ? 1 : ""}" value="${lmShow(p, cur)}" aria-label="${esc(p.label)}"><small>${p.unit || ""}</small></span>`
       : p.type === "b" ? `<button type="button" class="sc-sw${cur ? " on" : ""}" data-lmb="${id}" role="switch" aria-checked="${!!cur}"><i></i><span>${cur ? "Bật" : "Tắt"}</span></button>`
       : `<div class="bseg sc-seg" data-lmg="${id}">${p.opts.map(([v, t]) => `<button type="button" data-v="${v}" class="${String(cur) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
     return `<div class="sc-row lm-pr${chg ? " chg" : ""}" data-lmrow="${id}" data-def="${esc(String(def))}" data-type="${p.type}"><div class="sc-rl"><b>${p.label}</b><small>${p.desc || ""}</small><small class="lm-std">Chuẩn: <b>${dshow}</b>${p.tip ? ` · ${p.tip}` : ""}</small></div><div class="sc-rc">${ctl}</div></div>`;
