@@ -3647,3 +3647,98 @@ html.lb-dragging .lb-c1 .lb-drop-t{display:block}
 .lb-dr .lm-h{padding-right:40px}
 html.lb-lock,html.lb-lock body{overflow:hidden}
 @media (max-width:640px){.lb-dr-p{top:auto;left:0;width:100%;max-height:92dvh;border-radius:18px 18px 0 0;transform:translateY(102%);box-shadow:0 -16px 40px rgba(0,0,0,.2);padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}.lb-dr-p::before{content:"";display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-4px auto 8px}}
+/* bảng thử nghiệm – dạng dòng gọn (1 dòng / kiểu chơi) */
+.lb{gap:10px}
+@media (min-width:900px){.lb{grid-template-columns:minmax(0,1.55fr) minmax(0,1fr) minmax(0,.9fr)}}
+.lb-col{padding:8px;min-height:0;border-radius:14px}
+.lb-ch{grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;padding:2px 4px 8px}
+.lb-ci{width:28px;height:28px;border-radius:8px;font-size:.92rem}
+.lb-ch h3{font-size:.88rem}.lb-ch small{font-size:.68rem;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-n{min-width:22px;height:22px;font-size:.72rem;padding:0 6px}
+.lb-sum{font-size:.82rem;font-variant-numeric:tabular-nums}
+.lb-list{gap:3px}
+.lb-gh{margin:6px 6px 2px;font-size:.62rem}
+.lb-hd{display:grid;grid-template-columns:12px minmax(0,1fr) 64px 64px 66px;gap:6px;padding:0 8px 2px 6px;font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.lb-card.lb-row{display:grid;align-items:center;gap:6px;padding:5px 8px 5px 6px;border-radius:9px;min-height:38px;box-shadow:none}
+.lb-lib.lb-row{grid-template-columns:12px minmax(0,1fr) 64px 64px 66px}
+.lb-run.lb-row{grid-template-columns:12px minmax(0,1fr) auto 22px}
+@media (hover:hover){.lb-card.lb-row:hover{transform:none;box-shadow:0 2px 10px rgba(0,0,0,.07)}}
+.lb-row .lb-grip{min-height:22px;width:12px}
+.lb-row .lb-nm{display:flex;align-items:center;gap:6px;min-width:0}
+.lb-row .lb-nm b{font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lb-c{text-align:right;font-size:.78rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.lb-hd .lb-c{text-align:right}.lb-hd span:last-child{text-align:center}
+.lb-ver{color:var(--ink-2)}
+.lb-mo{display:block;font-size:.64rem;color:var(--ink-3);line-height:1.1}
+.lb-vd{flex:none;width:7px;height:7px;border-radius:50%;background:color-mix(in srgb,var(--ink) 25%,transparent)}
+.lb-vd.ok{background:var(--up)}.lb-vd.mid{background:var(--brass,#d9a23a)}.lb-vd.bad{background:var(--down)}.lb-vd.warn{background:var(--brass,#d9a23a)}
+.lb-row .lb-chg{flex:none;padding:1px 5px;font-size:.62rem}
+.lb-row .lb-acts{display:inline-flex;gap:3px;justify-content:flex-end}
+.lb-row .lb-tg{width:30px;height:26px;border-radius:7px;font-size:.8rem}
+.lb-run.lb-row.paper{box-shadow:inset 3px 0 0 var(--up)}.lb-run.lb-row.live{box-shadow:inset 3px 0 0 var(--brand)}
+.lb-row .lb-x{width:22px;height:22px}
+.lb-empty{padding:12px 10px;gap:2px}
+.lb-cfg{margin-top:8px;padding:8px 10px;gap:6px}
+.lb-drop-t{padding:6px;margin-top:6px}
+@media (max-width:560px){.lb-lib.lb-row,.lb-hd{grid-template-columns:12px minmax(0,1fr) 52px 58px 64px}.lb-c{font-size:.74rem}}
+@media (min-width:900px){.lb{grid-template-columns:minmax(0,1.85fr) minmax(0,1fr) minmax(0,.9fr)}}
+.lb-hd,.lb-lib.lb-row{grid-template-columns:12px minmax(0,1fr) 56px 58px 64px}
+.lb-hd{text-transform:none;letter-spacing:0;font-size:.66rem;font-weight:600}
+.lb-hd span{white-space:nowrap}
+/* bảng thử nghiệm dạng ma trận: dòng = kiểu chơi, cột = 📚 | 🧪 | 💰 (nền cột vẽ bằng lớp tuyệt đối theo vùng lưới) */
+.lb{position:relative;display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1fr);column-gap:8px;row-gap:0;margin-bottom:8px;align-items:stretch}
+@media (min-width:900px){.lb{grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1fr)}}
+@media (max-width:899px){.lb-c2,.lb-c3,.lb-c1{order:0}}
+.lb-bg{position:absolute;inset:0;grid-row:1/-1;border-radius:14px;--tint:var(--ink);background:color-mix(in srgb,var(--tint) 4%,var(--sunk));border:1px solid color-mix(in srgb,var(--tint) 10%,var(--line-2));transition:background .16s,border-color .16s,box-shadow .16s;z-index:0}
+.lb-b1{grid-column:1/2}.lb-b2{grid-column:2/3;--tint:var(--up)}.lb-b3{grid-column:3/4;--tint:var(--brand)}
+.lb-b3.lock{background-image:repeating-linear-gradient(135deg,transparent 0 8px,color-mix(in srgb,var(--ink) 4%,transparent) 8px 9px)}
+.lb-cell{position:relative;z-index:1;display:flex;align-items:center;min-width:0;padding:2px 6px;min-height:38px}
+.lb-l1{grid-column:1}.lb-l2{grid-column:2}.lb-l3{grid-column:3}
+.lb-hc{gap:6px;padding:8px 8px 6px;min-height:0;font-size:.84rem}
+.lb-hc .lb-ci{width:24px;height:24px;border-radius:7px;font-size:.8rem;flex:none}
+.lb-hc>b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lb-hc .lb-n{flex:none;min-width:20px;height:20px;font-size:.68rem;padding:0 6px;border-radius:999px;display:grid;place-items:center;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-2)}
+.lb-hc .lb-sum{margin-left:auto;font-size:.8rem;font-variant-numeric:tabular-nums}
+.lb-hk{margin-left:auto;font-size:.64rem;color:var(--ink-3);padding-right:6px}
+.lb-lockb{margin-left:auto;border:0;background:var(--surface);border-radius:999px;padding:2px 8px;font-size:.68rem;cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
+.lb-gh{grid-column:1/-1;position:relative;z-index:1;display:flex;align-items:center;gap:6px;margin:0;padding:8px 12px 2px;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.lb-gh small{font-weight:600;opacity:.8}
+.lb-chip.lb-card{flex:1;min-width:0;display:flex;align-items:center;gap:6px;padding:4px 6px 4px 4px;border-radius:9px;min-height:32px;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+@media (hover:hover){.lb-chip.lb-card:hover{transform:none;box-shadow:0 2px 10px rgba(0,0,0,.08)}}
+.lb-chip .lb-grip{width:12px;min-height:20px;flex:none}
+.lb-chip .lb-nm{display:flex;align-items:center;gap:6px;min-width:0;flex:1}
+.lb-chip .lb-nm b{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lb-ic{flex:none;font-size:.86rem}
+.lb-chip .lb-ver{flex:none;font-size:.74rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.lb-chip.lib:not(:has(~ *)){}
+.lb-l1:not(.lb-on) .lb-chip{background:color-mix(in srgb,var(--surface) 70%,transparent);border-style:dashed}
+.lb-chip.paper{background:color-mix(in srgb,var(--up) 9%,var(--surface));border-color:color-mix(in srgb,var(--up) 35%,var(--line-2))}
+.lb-chip.live{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:color-mix(in srgb,var(--brand) 45%,var(--line-2))}
+.lb-chip .lb-v{flex:1;min-width:0;display:flex;align-items:baseline;gap:5px;font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+.lb-chip .lb-v small{font-size:.66rem;color:var(--ink-3)}
+.lb-chip .lb-x{flex:none;width:20px;height:20px;opacity:.5}.lb-chip:hover .lb-x{opacity:1}
+.lb-slot{flex:1;height:30px;border-radius:9px;border:1.5px dashed color-mix(in srgb,var(--ink) 14%,transparent);background:transparent;color:var(--ink-3);font:600 .74rem/1 inherit;cursor:pointer;opacity:.55;transition:all .15s;display:grid;place-items:center}
+.lb-slot:hover{opacity:1;border-color:var(--ink-3);color:var(--ink);background:var(--surface)}
+.lb-slot.no{cursor:default;opacity:.4;font-weight:500;font-size:.68rem}.lb-slot.no:hover{background:transparent;border-color:color-mix(in srgb,var(--ink) 14%,transparent);color:var(--ink-3)}
+.lb-slot.lock{opacity:.35}
+.lb>.lb-cell:last-child,.lb>.lb-cell:nth-last-child(-n+3){padding-bottom:6px}
+.lb-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 14px;margin:0 2px 12px;font-size:.74rem;color:var(--ink-3)}
+.lb-foot .lb-cfg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;padding:0;border:0;background:none;color:var(--ink-2)}
+.lb-foot .lb-cfg .bseg button{padding:3px 8px;font-size:.72rem}
+.lb-bg.lb-over{background:color-mix(in srgb,var(--tint) 14%,var(--sunk));border:1.5px solid color-mix(in srgb,var(--tint) 70%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--tint) 14%,transparent)}
+.lb-b1.lb-over{--tint:var(--down)}
+.lb-bg.lb-no{border-color:color-mix(in srgb,var(--down) 60%,transparent);background:color-mix(in srgb,var(--down) 6%,var(--sunk))}
+html.lb-dragging .lb-bg{border-style:dashed}
+.lb-ghost.lb-chip{display:flex}
+@media (max-width:560px){.lb{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,.8fr);column-gap:5px}.lb-chip .lb-ver,.lb-hk{display:none}.lb-cell{padding:2px 4px}.lb-chip .lb-nm b{font-size:.76rem}.lb-chip .lb-v{font-size:.74rem}.lb-chip .lb-v small{display:none}.lb-hc{font-size:.76rem;padding:8px 6px 6px}.lb-hc .lb-ci{display:none}}
+@media (max-width:560px){
+  .lb{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr) minmax(0,.72fr);column-gap:4px}
+  .lb-l1 .lb-chip .lb-grip,.lb-chip .lb-vd{display:none}
+  .lb-dk{display:none}
+  .lb-hc{gap:4px}.lb-l2.lb-hc>b,.lb-l3.lb-hc>b{display:none}.lb-l2.lb-hc .lb-ci,.lb-l3.lb-hc .lb-ci{display:grid}
+  .lb-hc .lb-sum{font-size:.72rem}
+  .lb-chip.lb-card{gap:3px;padding:4px 4px}
+  .lb-chip .lb-x{width:18px;height:18px;opacity:.7}
+  .lb-slot.no{font-size:0}.lb-slot.no::after{content:"—";font-size:.74rem}
+  .lb-gh{padding:8px 8px 2px}
+}

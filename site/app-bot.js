@@ -565,7 +565,7 @@ async function viewScalp() {
         paper: { on: paperOn, attr: `data-lbt="paper|${k}"`, note: "tiền ảo · chung tài sản sàn thử · mặc định bật" },
         live: k === "list" ? { none: `chỉ theo dõi – ${T.bad}, sụt tối đa ${T.dd}: quá rủi ro cho tiền thật` } : { on: lvOn, attr: `data-lbt="live|${k}"`, note: lvOn ? `${C.sw_lv_sz}% vốn/lệnh · tối đa ${C.sw_lv_max} lệnh · chạy riêng, không cần sàn thử` : "Short lệnh thị trường, x1, không cắt lỗ" },
         mech: k === "pump" ? "Tiền thật chạy <b>riêng</b> với sàn thử: cùng tín hiệu, không cần bật sàn thử. Cần bật tài khoản Binance ở tab 💵 trước." : "Lệnh có thể mất trắng phần tiền của lệnh (giá ×2) – vì vậy chỉ đánh trên sàn thử.",
-        ver: `<b class="up">${T.mean}</b>/lệnh <small class="faint">· ${T.n} lệnh</small>`, tot, nOpen: pos.length, nlv,
+        ver: `<b class="up">${T.mean}</b>/lệnh <small class="faint">· ${T.n} lệnh</small>`, vs: [k === "list" ? "warn" : "ok", `${T.mean}`, `Kiểm chứng 2022–26: ${T.n} lệnh · thắng ${T.win}% · TB ${T.mean}/lệnh · sụt tối đa ${T.dd}`], tot, nOpen: pos.length, nlv,
         stats: [["Kiểm chứng 2022–26", `${T.mean}/lệnh`, `${T.n} lệnh · thắng ${T.win}% · ${T.yr} · sụt tối đa ${T.dd}`],
           ["Sàn thử – đã đóng", st.n ? `<span class="${cls(st.pnl)}">${sg(st.pnl)} USDT</span>` : "chưa có", st.n ? `${st.n} lệnh · thắng ${nf(st.win / st.n * 100, 0)}% · phí ${nf(st.fee || 0, 2)} · funding ${sg(st.fund || 0)}` : "chờ tín hiệu"],
           ["Sàn thử – đang mở", `${pos.length} lệnh`, pos.length ? `<span class="${cls(open)}">${sg(open)} USDT</span>` : ""],
@@ -629,7 +629,7 @@ async function viewScalp() {
         paper: { on: paperOn, attr: `data-lbt="paper|${k}"`, note: "tiền ảo · chung tài sản sàn thử · mặc định bật" },
         live: { on: liveOn, attr: `data-lbt="live|${k}"`, note: liveOn ? `đi theo lệnh sàn thử · ${C.lq_sz}% vốn/lệnh` : edge ? "có lợi thế ngoài mẫu – cân nhắc bật Demo trước" : "chưa nên bật – chưa có lợi thế sau phí" },
         mech: "Tiền thật <b>đi theo đúng lệnh sàn thử</b> (mở/đóng cùng lúc) → tắt sàn thử là tắt luôn tiền thật. Cỡ lệnh thật chỉnh chung ở cột 💰.",
-        ver: rsB(R), tot, nOpen: pos.length, nlv, R,
+        ver: rsB(R), vs: [!R?.n ? "na" : edge ? "ok" : R.mean > 0 ? "mid" : "bad", R?.n ? `${R.mean >= 0 ? "+" : ""}${nf(R.mean, 0)} bps` : "—", R?.n ? `Kiểm chứng ngoài mẫu: ${R.n} lệnh · thắng ${nf(R.win, 0)}% · TB ${R.mean >= 0 ? "+" : ""}${nf(R.mean, 0)} bps/lệnh sau phí · t ${nf(R.t, 1)}` : "chưa có kết quả kiểm chứng ngoài mẫu"], tot, nOpen: pos.length, nlv, R,
         stats: [["Kiểm chứng ngoài mẫu", !R?.n ? "chưa có" : `<span class="${cls(R.mean)}">${R.mean >= 0 ? "+" : ""}${nf(R.mean, 0)} bps</span>/lệnh`, R?.n ? `${nf(R.n, 0)} lệnh · thắng ${nf(R.win, 0)}% · t ${nf(R.t, 1)}${isNum(R.ret10) ? ` · 10%/lệnh ≈ ${R.ret10 >= 0 ? "+" : ""}${nf(R.ret10, 0)}%/năm` : ""}` : "walk-forward 6 tháng → 2 tháng"],
           ["Sàn thử – đã đóng", st.n ? `<span class="${cls(st.pnl)}">${sg(st.pnl)} USDT</span>` : "chưa có", st.n ? `${nf(st.n, 0)} lệnh · thắng ${nf(st.win / st.n * 100, 0)}%` : "chờ tín hiệu"],
           ["Sàn thử – đang mở", `${pos.length} lệnh`, pos.length ? `<span class="${cls(op)}">${sg(op)} USDT</span>` : ""],
@@ -640,30 +640,32 @@ async function viewScalp() {
     const ML = [...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : [])], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
     LB = { ML, MM };
     const nchgOf = (m) => m.params.filter((p) => String(p.top ? (C[p.f] ?? p.def) : lmV(p, p.def)) !== String(p.def)).length;
-    // ---------- thẻ trên bảng
-    const libCard = (m) => { const n = nchgOf(m); return `<article class="lb-card lb-lib${m.paper.on || m.live.on ? " lb-on" : ""}" data-lbk="${m.k}" data-lbsrc="lib">
-        <header><span class="lb-grip" data-lbgrip title="Kéo sang cột 🧪 hoặc 💰 để bật" aria-hidden="true"><i></i></span><button type="button" class="lb-nm" data-lbopen="${m.k}"><b>${m.ico} ${esc(m.name)}</b><small>${m.short}</small></button></header>
-        <dl class="lb-kv"><div><dt>Kiểm chứng</dt><dd>${m.ver}</dd></div><div><dt>Sàn thử</dt><dd>${m.res}</dd></div></dl>
-        <footer>${m.verdict}${n ? `<span class="lb-chg" title="thông số khác mức chuẩn">⚙️ ${n}</span>` : ""}<span class="lb-acts"><button type="button" class="lb-tg p${m.paper.on ? " on" : ""}" data-lbt="paper|${m.k}" aria-pressed="${m.paper.on}" title="${m.paper.on ? "Đang đánh sàn thử – bấm để tắt" : "Bật trên sàn thử"}">🧪</button>${m.live.none ? `<button type="button" class="lb-tg l" disabled title="Không hỗ trợ tiền thật">💰</button>` : `<button type="button" class="lb-tg l${m.live.on ? " on" : ""}" data-lbt="live|${m.k}" aria-pressed="${m.live.on}" title="${m.live.on ? `Đang đánh ${LVN} – bấm để tắt` : `Bật trên ${LVN}`}">💰</button>`}</span></footer></article>`; };
-    const runCard = (m, col) => `<article class="lb-card lb-run ${col}" data-lbk="${m.k}" data-lbsrc="${col}">
-        <header><span class="lb-grip" data-lbgrip title="${col === "paper" ? "Kéo sang 💰 để đánh tiền thật · kéo về 📚 để tắt" : "Kéo về 📚 để tắt"}" aria-hidden="true"><i></i></span><button type="button" class="lb-nm" data-lbopen="${m.k}"><b>${m.ico} ${esc(m.name)}</b></button><button type="button" class="lb-x" data-lbt="${col}|${m.k}" title="Tắt" aria-label="Tắt ${esc(m.name)} trên ${col === "paper" ? "sàn thử" : LVN}">✕</button></header>
-        ${col === "paper" ? `<div class="lb-rv">${m.res}</div>${m.nOpen ? `<small class="lb-rs">${m.nOpen} lệnh đang mở</small>` : `<small class="lb-rs">chờ tín hiệu</small>`}`
-          : `<div class="lb-rv"><b>${m.nlv}</b> <small class="faint">lệnh thật đang mở</small></div><small class="lb-rs">${m.live.note}</small>`}</article>`;
+    // ---------- bảng ma trận: mỗi DÒNG = 1 kiểu chơi, 3 CỘT = 📚 tất cả | 🧪 sàn thử | 💰 tiền thật. Ô đang bật = "thẻ" kéo được sang cột khác.
+    const NM = { ou: "Cặp coin O-U", rsi2: "RSI(2) Connors", fund: "Funding âm → Long", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý", pump: "Short coin vừa bơm", list: "Short coin mới niêm yết" }, nmOf = (m) => NM[m.k] || m.name;
     const pOn = ML.filter((m) => m.paper.on), lOn = ML.filter((m) => m.live.on), pSum = pOn.reduce((a, m) => a + m.tot, 0);
-    const grpL = (g, t) => { const L = ML.filter((m) => m.grp === g); return L.length ? `<h4 class="lb-gh">${t}<small>${L.length}</small></h4>${L.map(libCard).join("")}` : ""; };
     const szB = (v) => `<button type="button" data-qsz="${v}" class="${+C.lq_sz === v ? "on" : ""}">${v}%</button>`, mxB = (v) => `<button type="button" data-qmx="${v}" class="${+C.lq_max === v ? "on" : ""}">${v}</button>`;
     const ctx = QX ? `<div class="sc-cnt lb-ctx">${QX.reg ? `<span>Thị trường (HMM BTC): <b>${QX.reg.p > 0.7 ? "đi ngang" : "có xu hướng"}</b> · p ${nf(QX.reg.p * 100, 0)}%</span>` : ""}${QX.pairs ? `<span>Cặp tháng ${esc(QX.pairs.m || "")}: <b>${QX.pairs.L.length}</b>${QX.pairs.L.length ? ` – ${QX.pairs.L.slice(0, 5).map((q) => esc(q.id.replace(/USDT/g, ""))).join(", ")}${QX.pairs.L.length > 5 ? "…" : ""}` : ""}</span>` : ""}${QX.orb?.L?.length ? `<span>ORB ${esc(QX.orb.day)}: ${QX.orb.L.length} coin chờ phá vỡ</span>` : ""}<span>${nf(QX.uni, 0)} coin đang quét</span>${SWX?.at ? `<span>giá & funding ${hms(SWX.at)}</span>` : ""}</div>` : "";
     const oldSrv = (QX && !QX.QLIM) || (SWX && !SWX.LIM);
-    const board = `<div class="lb" id="lb">
-        <section class="lb-col lb-c1" data-lbcol="lib" aria-label="Tất cả kiểu chơi"><header class="lb-ch"><span class="lb-ci">📚</span><div><h3>Tất cả kiểu chơi</h3><small>bấm tên xem kết quả & thiết lập</small></div><b class="lb-n">${ML.length}</b></header>
-          <div class="lb-list">${grpL("q", "📐 Định lượng")}${grpL("sw", "🗓️ Giữ nhiều ngày")}</div><p class="lb-drop-t">Thả vào đây để tắt</p></section>
-        <section class="lb-col lb-c2" data-lbcol="paper" aria-label="Đang đánh sàn thử"><header class="lb-ch"><span class="lb-ci">🧪</span><div><h3>Sàn thử</h3><small>tiền ảo · chung tài sản sàn thử</small></div><b class="lb-n">${pOn.length}</b></header>
-          ${pOn.length ? `<div class="lb-sum"><span>Cộng lại</span><b class="${cls(pSum)}">${sg(pSum)} USDT</b></div>` : ""}
-          <div class="lb-list">${pOn.length ? pOn.map((m) => runCard(m, "paper")).join("") : ""}<div class="lb-empty"><b>Kéo kiểu chơi vào đây</b><small>hoặc bấm 🧪 trên thẻ – đánh bằng tiền ảo</small></div></div></section>
-        <section class="lb-col lb-c3${C.lv_on ? "" : " lock"}" data-lbcol="live" aria-label="Đang đánh ${LVN}"><header class="lb-ch"><span class="lb-ci">${C.lv_env === "live" ? "💰" : "🟡"}</span><div><h3>${C.lv_env === "live" ? "Tiền thật" : "Binance Demo"}</h3><small>${C.lv_on ? (C.lv_env === "live" ? "tiền thật trên Binance" : "tiền ảo, giá & sổ lệnh Binance thật") : "tài khoản Binance của bot đang tắt"}</small></div><b class="lb-n">${lOn.length}</b></header>
-          <div class="lb-list">${lOn.map((m) => runCard(m, "live")).join("")}<div class="lb-empty">${C.lv_on ? `<b>Kéo kiểu chơi vào đây</b><small>hoặc bấm 💰 trên thẻ – luôn hỏi xác nhận trước</small>` : `<b>🔒 Chưa bật tài khoản Binance</b><small>bật ở ⚙️ Thiết lập → 💵 Binance trước</small><button type="button" class="btn sm" data-sctab="set">Mở thiết lập →</button>`}</div></div>
-          ${QX ? `<div class="lb-cfg"><h4>📐 Cỡ lệnh thật – chung cho định lượng</h4><div class="lb-cfgr"><span>Mỗi lệnh</span><div class="bseg sc-seg">${[2, 3, 5, 10].map(szB).join("")}</div></div><div class="lb-cfgr"><span>Tối đa / phương pháp</span><div class="bseg sc-seg">${[1, 2, 3].map(mxB).join("")}</div></div><small>chuẩn ${SCALP_DEF.lq_sz}% · ${SCALP_DEF.lq_max} lệnh · ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn</small></div>` : ""}</section>
-      </div>`;
+    const grip = (t) => `<span class="lb-grip" data-lbgrip title="${t}" aria-hidden="true"><i></i></span>`;
+    const libCell = (m) => { const n = nchgOf(m); return `<div class="lb-cell lb-l1${m.paper.on || m.live.on ? " lb-on" : ""}" data-lbcol="lib"><div class="lb-card lb-chip lib" data-lbk="${m.k}" data-lbsrc="lib">${grip("Kéo sang 🧪 hoặc 💰 để bật")}
+        <button type="button" class="lb-nm" data-lbopen="${m.k}" title="${esc(m.name)} – ${esc(m.short.replace(/<[^>]+>/g, ""))}. Bấm xem chi tiết & thiết lập"><i class="lb-vd ${m.vs[0]}"></i><span class="lb-ic">${m.ico}</span><b>${esc(nmOf(m))}</b>${n ? `<span class="lb-chg" title="${n} thông số khác chuẩn">⚙️${n}</span>` : ""}</button>
+        <span class="lb-ver" title="${esc(m.vs[2])}">${m.vs[1]}</span></div></div>`; };
+    const paperCell = (m) => `<div class="lb-cell lb-l2" data-lbcol="paper">${m.paper.on ? `<div class="lb-card lb-chip paper" data-lbk="${m.k}" data-lbsrc="paper">${grip("Kéo sang 💰 để đánh tiền thật · kéo về 📚 để tắt")}
+        <span class="lb-v">${m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>` : `<span class="faint">chờ<span class="lb-dk"> tín hiệu</span></span>`}${m.nOpen ? `<small>${m.nOpen} mở</small>` : ""}</span><button type="button" class="lb-x" data-lbt="paper|${m.k}" title="Tắt trên sàn thử" aria-label="Tắt ${esc(m.name)} trên sàn thử">✕</button></div>`
+      : `<button type="button" class="lb-slot" data-lbt="paper|${m.k}" title="Bật ${esc(m.name)} trên sàn thử">+ 🧪</button>`}</div>`;
+    const liveCell = (m) => `<div class="lb-cell lb-l3" data-lbcol="live">${m.live.on ? `<div class="lb-card lb-chip live" data-lbk="${m.k}" data-lbsrc="live">${grip("Kéo về 📚 để tắt")}
+        <span class="lb-v">${m.nlv ? `<b>${m.nlv}</b> <small>lệnh mở</small>` : `<span class="faint">chờ<span class="lb-dk"> tín hiệu</span></span>`}</span><button type="button" class="lb-x" data-lbt="live|${m.k}" title="Tắt trên ${LVN}" aria-label="Tắt ${esc(m.name)} trên ${LVN}">✕</button></div>`
+      : m.live.none ? `<span class="lb-slot no" title="${esc(m.live.none)}">không hỗ trợ</span>` : `<button type="button" class="lb-slot${C.lv_on ? "" : " lock"}" data-lbt="live|${m.k}" title="${C.lv_on ? `Bật ${esc(m.name)} trên ${LVN}` : "Tài khoản Binance của bot đang tắt"}">${C.lv_on ? "+ 💰" : "🔒"}</button>`}</div>`;
+    const GR = [["q", "📐 Định lượng"], ["sw", "🗓️ Giữ nhiều ngày"]].map(([g, t]) => [t, ML.filter((m) => m.grp === g)]).filter(([, L]) => L.length);
+    const nRows = 1 + GR.reduce((a, [, L]) => a + 1 + L.length, 0);
+    const board = `<div class="lb" id="lb" style="grid-template-rows:repeat(${nRows},auto)">
+        <div class="lb-bg lb-b1" data-lbcol="lib"></div><div class="lb-bg lb-b2" data-lbcol="paper"></div><div class="lb-bg lb-b3${C.lv_on ? "" : " lock"}" data-lbcol="live"></div>
+        <div class="lb-cell lb-hc lb-l1" data-lbcol="lib"><span class="lb-ci">📚</span><b>Tất cả kiểu chơi</b><small class="lb-n">${ML.length}</small><small class="lb-hk">kiểm chứng</small></div>
+        <div class="lb-cell lb-hc lb-l2" data-lbcol="paper"><span class="lb-ci">🧪</span><b>Sàn thử</b><small class="lb-n">${pOn.length}</small>${pOn.length ? `<b class="lb-sum ${cls(pSum)}" title="Cộng lời/lỗ sàn thử (đã đóng + đang mở)">${sg(pSum)}</b>` : ""}</div>
+        <div class="lb-cell lb-hc lb-l3" data-lbcol="live"><span class="lb-ci">${C.lv_env === "live" ? "💰" : "🟡"}</span><b>${C.lv_env === "live" ? "Tiền thật" : "Demo"}</b><small class="lb-n">${lOn.length}</small>${C.lv_on ? "" : `<button type="button" class="lb-lockb" data-sctab="set" title="Tài khoản Binance của bot đang tắt – bật ở Thiết lập → 💵">🔒 bật</button>`}</div>
+        ${GR.map(([t, L]) => `<div class="lb-gh"><span>${t}</span><small>${L.length}</small></div>${L.map((m) => libCell(m) + paperCell(m) + liveCell(m)).join("")}`).join("")}
+      </div>
+      <div class="lb-foot"><span>🖐 Giữ <b>⠿</b> kéo sang cột khác · hoặc bấm <b>+ 🧪</b> / <b>+ 💰</b> · bấm tên để xem kết quả & chỉnh thông số</span>${QX ? `<span class="lb-cfg"><b>📐 Cỡ lệnh thật:</b><span class="bseg sc-seg">${[2, 3, 5, 10].map(szB).join("")}</span><b>tối đa</b><span class="bseg sc-seg">${[1, 2, 3].map(mxB).join("")}</span><small>/ kiểu</small></span>` : ""}</div>`;
     const drawer = `<div class="lb-dr" id="lbDr" hidden><div class="lb-dr-bg" data-lbclose></div><aside class="lb-dr-p" role="dialog" aria-modal="true" aria-label="Chi tiết phương pháp"><button type="button" class="lb-dr-x" data-lbclose aria-label="Đóng">✕</button>${ML.map((m) => `<div class="lb-dr-c" data-lbdr="${m.k}" hidden>${lmCard(m)}</div>`).join("")}</aside></div>`;
     // ---------- bảng lệnh (mọi phương pháp thử nghiệm)
     const lft = (t) => { const s = (Date.parse(t + "Z") - Date.now()) / 1000; return s <= 0 ? "sắp đóng" : s > 86400 ? `${Math.floor(s / 86400)} ngày ${Math.floor((s % 86400) / 3600)} giờ` : `${Math.floor(s / 3600)} giờ ${Math.floor((s % 3600) / 60)} phút`; };
@@ -679,7 +681,7 @@ async function viewScalp() {
     const histT = HI.length ? `<div class="tw" style="max-height:380px"><table class="rs keep"><thead><tr><th class="l">Kiểu chơi</th><th class="l">Lệnh</th><th>Lời/lỗ</th><th class="l">Vào → đóng</th><th class="l">Lý do đóng</th></tr></thead><tbody>${HI.map((h) => `<tr><td class="l">${MM[h.k]?.ico || ""} ${esc(MM[h.k]?.name || h.k)}</td><td class="l">${h.legs.map((x) => `<span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</span> ${esc(x.sym.replace(/USDT$/, ""))} ${px(x.e)} → ${px(x.x)}`).join("<br>")}</td>
         <td class="${cls(h.pct)}"><b>${sg(h.pct, 2)}%</b><br><small>${sg(h.net)} USDT</small></td><td class="l"><small>${dt(h.t0 + "Z")}<br>→ ${dt(h.t2 + "Z")}</small></td><td class="l"><small>${hwhy[h.why] || esc(h.why)}</small></td></tr>`).join("")}</tbody></table></div>` : "";
     body = !ML.length ? panel("🧪 Thử nghiệm", empty(`Chưa có dữ liệu – máy chủ riêng cần cập nhật bản mới (<code>sudo bash /opt/my-bit/scalper/install.sh</code>). Các phương pháp thử nghiệm chỉ chạy ở máy chủ riêng (cần dữ liệu Binance futures).`))
-      : `<div class="lb-top"><p class="lb-intro"><b>${ML.length} kiểu chơi thử nghiệm.</b> Kéo thẻ (giữ ⠿) sang <b>🧪 Sàn thử</b> để đánh bằng tiền ảo, sang <b>💰 ${C.lv_env === "live" ? "Tiền thật" : "Demo"}</b> để đánh trên Binance, kéo về <b>📚</b> để tắt – hoặc bấm nút 🧪 / 💰 trên thẻ. Bấm tên kiểu chơi để xem kết quả, chỉnh thông số.</p>${ctx}
+      : `<div class="lb-top">${ctx}
           ${oldSrv ? `<p class="lm-warn">⚠️ Máy chủ riêng đang chạy bản cũ – thông số và công tắc sàn thử của 🗓️ giữ nhiều ngày chỉ có tác dụng sau khi chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>.</p>` : ""}</div>
         ${board}${drawer}
         ${panel("📌 Lệnh đang mở – sàn thử", posT, `${OP.length} lệnh`)}${lvT ? panel(C.lv_env === "live" ? "💰 Lệnh đang mở – TIỀN THẬT" : "🟡 Lệnh đang mở – Binance Demo", lvT) : ""}${histT ? panel("🧾 Lệnh đã đóng – sàn thử", histT, `${HI.length} gần nhất`) : ""}`;
@@ -942,7 +944,7 @@ async function viewScalp() {
     let over = null, y = e.clientY, raf = 0;
     const mv = (ev) => {
       y = ev.clientY; gh.style.transform = `translate(${ev.clientX - dx}px,${ev.clientY - dy}px) rotate(1.5deg) scale(1.02)`;
-      const col = document.elementsFromPoint(ev.clientX, ev.clientY).find((el) => el.matches?.("[data-lbcol]")) || null;
+      const hit = document.elementsFromPoint(ev.clientX, ev.clientY).find((el) => el.matches?.("[data-lbcol]")), col = hit ? document.querySelector(`#lb .lb-bg[data-lbcol="${hit.dataset.lbcol}"]`) : null;      // tô sáng CẢ cột
       if (col !== over) { over?.classList.remove("lb-over", "lb-no"); over = col; const ok = col && lbOk(k, from, col.dataset.lbcol); if (col && ok !== null) col.classList.add(ok ? "lb-over" : "lb-no"); }
     };
     const auto = () => { const H = innerHeight, M = 80; if (y < M) scrollBy(0, -Math.ceil((M - y) / 6)); else if (y > H - M) scrollBy(0, Math.ceil((y - H + M) / 6)); raf = requestAnimationFrame(auto); };
