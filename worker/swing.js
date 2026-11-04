@@ -14,9 +14,19 @@ const iso = (t) => new Date(t).toISOString().slice(0, 19);
 const r2 = (x, d = 2) => (Number.isFinite(x) ? +x.toFixed(d) : null);
 const FEE = 0.15;     // % mỗi chiều
 export const SW = {
-  list: { name: "Short coin mới niêm yết", sz: 10, max: 5, hold: 14 * 24, rule: "24 giờ sau khi niêm yết futures → Short, giữ 14 ngày, không cắt lỗ, x1, 10% tài sản sàn thử/lệnh, tối đa 5 lệnh" },
-  pump: { name: "Short coin vừa bơm ≥ 100%", sz: 5, max: 5, hold: 7 * 24, rule: "7:00 sáng (00:00 UTC) coin tăng ≥ 100%/24h, khối lượng ≥ 10 triệu USD → Short, giữ 7 ngày, không cắt lỗ, x1, 5% tài sản sàn thử/lệnh, tối đa 5 lệnh" },
+  list: { name: "Short coin mới niêm yết", sz: 10, max: 5, hold: 14 * 24 },
+  pump: { name: "Short coin vừa bơm", sz: 5, max: 5, hold: 7 * 24, chg: 100, vol: 10 },
 };
+// tham số anh chỉnh trên trang (cfg.swx = { list: { on, sz, max, days }, pump: { on, sz, max, days, chg, vol } }) – thiếu / sai → chuẩn; số ngoài giới hạn → kẹp
+export const SWLIM = { sz: [1, 25], max: [1, 10], days: [1, 30], chg: [30, 500], vol: [1, 500] };
+const pickN = (v, [a, b], d) => { if (v == null || v === "") return d; const n = +v; return Number.isFinite(n) ? Math.max(a, Math.min(b, n)) : d; };
+export function swR(cfg, k) {
+  const x = cfg?.swx?.[k] || {}, D = SW[k], o = { ...D, on: x.on !== false, sz: pickN(x.sz, SWLIM.sz, D.sz), max: Math.round(pickN(x.max, SWLIM.max, D.max)), hold: Math.round(pickN(x.days, SWLIM.days, D.hold / 24)) * 24 };
+  if (k === "pump") { o.chg = pickN(x.chg, SWLIM.chg, D.chg); o.vol = pickN(x.vol, SWLIM.vol, D.vol); o.name = `Short coin vừa bơm ≥ ${o.chg}%`; }
+  o.rule = k === "list" ? `24 giờ sau khi niêm yết futures → Short, giữ ${o.hold / 24} ngày, không cắt lỗ, x1, ${o.sz}% tài sản sàn thử/lệnh, tối đa ${o.max} lệnh`
+    : `7:00 sáng (00:00 UTC) coin tăng ≥ ${o.chg}%/24h, khối lượng ≥ ${o.vol} triệu USD → Short, giữ ${o.hold / 24} ngày, không cắt lỗ, x1, ${o.sz}% tài sản sàn thử/lệnh, tối đa ${o.max} lệnh`;
+  return o;
+}
 
 export class SwingLab {
   constructor(core) { this.core = core; this.busy = false; this.pxAt = 0; this.obAt = 0; this.px = {}; this.ob = {}; }
@@ -26,6 +36,7 @@ export class SwingLab {
     for (const k of Object.keys(SW)) S.sw[k] ||= { pos: {}, hist: [], st: { n: 0, win: 0, pnl: 0, fee: 0, fund: 0, skip: 0 }, seen: {} };
     return S.sw;
   }
+  R(k) { return swR(this.core.cfg, k); }
   get(u) { return fetch(u, { signal: AbortSignal.timeout(15000) }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} ${u.split("/").pop()}`); return r.json(); }); }
   // lời/lỗ đang mở & ký quỹ (x1 = giá trị lệnh) của mọi lệnh thử nghiệm – ScalpCore.equity() / used() cộng vào
   upnl() { let u = 0; const W = this.core.S?.sw; if (!W) return 0; for (const k of Object.keys(SW)) for (const P of Object.values(W[k]?.pos || {})) u += P.side * P.q * ((this.px[P.sym]?.m || P.last || P.e) - P.e); return u; }
@@ -51,19 +62,20 @@ export class SwingLab {
       // list: 24–30 giờ sau giờ niêm yết (lần đầu chạy không vào bù coin đã quá 30 giờ)
       for (const [sym, ob] of Object.entries(this.ob)) {
         const age = now - ob;
-        if (ob > 0 && age >= 24 * 3600e3 && age < 30 * 3600e3 && !W.list.seen[sym]) { W.list.seen[sym] = iso(now); this.open("list", W.list, sym, now, `niêm yết ${iso(ob).replace("T", " ")} UTC`); }
+        if (ob > 0 && age >= 24 * 3600e3 && age < 30 * 3600e3 && !W.list.seen[sym]) { W.list.seen[sym] = iso(now); if (this.R("list").on) this.open("list", W.list, sym, now, `niêm yết ${iso(ob).replace("T", " ")} UTC`); }
       }
       // pump: 00:00–00:10 UTC, mỗi ngày 1 lần
       const d = new Date(now), day = d.toISOString().slice(0, 10);
       if (d.getUTCHours() === 0 && d.getUTCMinutes() < 10 && W.pump.day !== day) {
         W.pump.day = day;
         const T = await this.get(`${FAPI}/ticker/24hr`);
-        const C = (T || []).filter((x) => x.symbol.endsWith("USDT") && this.ob[x.symbol] && +x.priceChangePercent >= 100 && +x.quoteVolume >= 10e6).sort((a, b) => +b.priceChangePercent - +a.priceChangePercent);
-        if (!C.length) this.say(`Short coin vừa bơm: ${day} không có coin nào tăng ≥ 100%/24h – không vào lệnh`);
+        const RP = this.R("pump");
+        const C = (T || []).filter((x) => x.symbol.endsWith("USDT") && this.ob[x.symbol] && +x.priceChangePercent >= RP.chg && +x.quoteVolume >= RP.vol * 1e6).sort((a, b) => +b.priceChangePercent - +a.priceChangePercent);
+        if (!C.length) this.say(`Short coin vừa bơm: ${day} không có coin nào tăng ≥ ${RP.chg}%/24h – không vào lệnh`);
         for (const x of C) {
           const why = `24h +${(+x.priceChangePercent).toFixed(0)}% · khối lượng ${(+x.quoteVolume / 1e6).toFixed(0)} triệu USD`;
-          this.open("pump", W.pump, x.symbol, now, why);
-          try { this.core.io.onSwing?.({ k: "pump", sym: x.symbol, px: this.px[x.symbol]?.m || +x.lastPrice, hold: SW.pump.hold, why, chg: +x.priceChangePercent }); } catch (e) { this.core.err("thử nghiệm → tiền thật: " + e.message); }
+          if (RP.on) this.open("pump", W.pump, x.symbol, now, why);      // sàn thử tắt → vẫn báo tiền thật (công tắc riêng)
+          try { this.core.io.onSwing?.({ k: "pump", sym: x.symbol, px: this.px[x.symbol]?.m || +x.lastPrice, hold: RP.hold, why, chg: +x.priceChangePercent }); } catch (e) { this.core.err("thử nghiệm → tiền thật: " + e.message); }
         }
       }
       // seen: chỉ giữ 60 ngày
@@ -71,7 +83,7 @@ export class SwingLab {
     } catch (e) { this.core.err("thử nghiệm: " + e.message); } finally { this.busy = false; }
   }
   open(k, B, sym, now, why) {
-    const R = SW[k], p = this.px[sym]?.m, base = sym.replace(/USDT$/, "");
+    const R = this.R(k), p = this.px[sym]?.m, base = sym.replace(/USDT$/, "");
     if (!(p > 0)) { this.say(`${R.name}: ${base} chưa có giá – bỏ qua`); B.st.skip++; return; }
     if (Object.keys(B.pos).length >= R.max) { this.say(`${R.name}: ${base} (${why}) – đã đủ ${R.max} lệnh, bỏ qua`); B.st.skip++; return; }
     if (Object.values(B.pos).some((P) => P.sym === sym)) { B.st.skip++; return; }
@@ -100,7 +112,7 @@ export class SwingLab {
     }
   }
   close(k, B, P, px, why, now) {
-    const R = SW[k], gross = P.side * P.q * (px - P.e), fee = P.q * px * FEE / 100;
+    const R = this.R(k), gross = P.side * P.q * (px - P.e), fee = P.q * px * FEE / 100;
     this.core.S.cash += gross - fee; B.st.fee += fee;
     const net = gross - P.fee - fee + P.fund, pct = net / P.N * 100;
     B.st.n++; B.st.pnl += net; if (net > 0) B.st.win++;
@@ -113,10 +125,10 @@ export class SwingLab {
   }
   out() {
     const W = this.core.S?.sw; if (!W) return null;
-    const o = { at: this.pxAt ? iso(this.pxAt) : null, shared: true, on: this.core.where === "vps", upnl: r2(this.upnl(), 2), margin: r2(this.margin(), 2) };
+    const o = { at: this.pxAt ? iso(this.pxAt) : null, shared: true, LIM: SWLIM, on: this.core.where === "vps", upnl: r2(this.upnl(), 2), margin: r2(this.margin(), 2) };
     for (const k of Object.keys(SW)) {
       const B = W[k]; if (!B) continue;
-      o[k] = { ...SW[k], st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
+      o[k] = { ...this.R(k), def: SW[k], st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
         pos: Object.values(B.pos).map((P) => { const m = this.px[P.sym]?.m || P.e, u = P.side * P.q * (m - P.e); return { ...P, m, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
         hist: B.hist.slice(-60), day: B.day || null };
     }

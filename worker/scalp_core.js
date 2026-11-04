@@ -90,7 +90,7 @@ function norm(c) {
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000);
   c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
-  c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5);
+  c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
   return c;
 }

@@ -113,6 +113,25 @@ const regFeat = (c) => {      // đặc trưng mỗi giờ: log độ biến đ�
   return out;
 };
 
+// tham số anh chỉnh trên trang (cfg.qx = { ou: { zin: 2.5, sz: 6 }, … }) – thiếu / sai kiểu → dùng chuẩn (QP / QS); số ngoài giới hạn → kẹp vào giới hạn.
+// kiểu: "b" bật/tắt · "s" hướng (1 Long / −1 Short) · ["a","b"] chọn 1 · [min, max] số
+export const QLIM = {
+  ou: { mode: ["kal", "fix"], zin: [1.5, 3.4] },
+  rsi2: { tf: ["H1", "H4"], side: "s", lvl: [1, 20], kel: "b", ex: ["sma5", "ema10"] },
+  fund: { hold: [8, 168], abs: "b" },
+  orb: { flt: ["nr7", "bb30", "both"], tp: [0.3, 3] },
+  vwap: { side: "s", k: [1.5, 4], hmm: "b", mfi: "b" },
+  liq: { side: "s", X: [0.01, 0.1], Y: [0.01, 0.2], hold: [3, 48] },
+  _: { sz: [1, 15], max: [1, 10] },
+};
+export function qPick(v, lim, d) {
+  if (v == null || v === "") return d;
+  if (lim === "b") return typeof v === "boolean" ? v : d;
+  if (lim === "s") return +v === 1 || +v === -1 ? +v : d;
+  if (typeof lim[0] === "string") return lim.includes(v) ? v : d;
+  const n = +v; return Number.isFinite(n) ? Math.max(lim[0], Math.min(lim[1], n)) : d;
+}
+
 export class QuantLab {
   constructor(core) { this.core = core; this.busy = false; this.K1 = {}; this.K5 = {}; this.OI = {}; this.D1 = {}; this.uni = []; this.uni5 = []; this.at = {}; this.ex = {}; this.fseen = {}; }
   st() {
@@ -121,6 +140,8 @@ export class QuantLab {
     return S.q;
   }
   on(k) { const c = this.core.cfg || {}; return c.q_on !== false && c["q_" + k] !== false; }
+  P(k) { const x = this.core.cfg?.qx?.[k] || {}, o = { ...QP[k] }; for (const [f, lim] of Object.entries(QLIM[k])) o[f] = qPick(x[f], lim, QP[k][f]); if (k === "liq") o.hold = Math.round(o.hold); return o; }      // tham số đang dùng
+  R(k) { const x = this.core.cfg?.qx?.[k] || {}; return { ...QS[k], sz: qPick(x.sz, QLIM._.sz, QS[k].sz), max: Math.round(qPick(x.max, QLIM._.max, QS[k].max)) }; }      // cỡ lệnh & số lệnh tối đa (sàn thử)
   get(u) { return fetch(u, { signal: AbortSignal.timeout(15000) }).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status} ${u.split("?")[0].split("/").pop()}`); return r.json(); }); }
   say(m, kind = "info") { try { this.core.say(Date.now(), `📐 ${m}`, kind); } catch (e) { /* bỏ qua */ } }
   note(key, title, body) { try { this.core.note(`q:${key}`, 2, title, body); } catch (e) { /* bỏ qua */ } }
@@ -195,7 +216,7 @@ export class QuantLab {
 
   // ---------------------------------------------------------------- mở / theo dõi / đóng lệnh sàn thử
   open(k, B, legs, o) {      // legs: [{sym, side, w}] (w = tỉ trọng giá trị); o: {sl, tp, exp, why, meta}
-    const R = QS[k], now = Date.now(), base = legs.map((L) => L.sym.replace(/USDT$/, "")).join("/");
+    const R = this.R(k), now = Date.now(), base = legs.map((L) => L.sym.replace(/USDT$/, "")).join("/");
     if (Object.keys(B.pos).length >= R.max) { B.st.skip++; return null; }
     if (Object.values(B.pos).some((P) => P.legs.some((L) => legs.some((x) => x.sym === L.sym)))) { B.st.skip++; return null; }
     const eq = this.core.equity(), N = eq * R.sz / 100;
@@ -236,7 +257,7 @@ export class QuantLab {
   }
   close(k, P, why, now = Date.now()) {
     const B = this.core.S.q?.[k]; if (!B?.pos[P.id]) return;
-    const R = QS[k]; let gross = 0, fee = 0;
+    const R = this.R(k); let gross = 0, fee = 0;
     for (const L of P.legs) { const m = this.mid(L.sym) || L.last || L.e, x = m * (1 - L.side * SLIP / 100); L.x = x; gross += L.side * L.q * (x - L.e); fee += L.q * x * FEE / 100; }
     this.core.S.cash += gross - fee; B.st.fee += fee;
     const net = gross - P.fee - fee + P.fund, pct = net / P.N * 100;
@@ -255,7 +276,7 @@ export class QuantLab {
 
   // ---------------------------------------------------------------- 📉 RSI(2)
   rsi2(B, now, h) {
-    const p = QP.rsi2; if (p.tf === "H4" && h % 4 !== 0) return;
+    const p = this.P("rsi2"); if (p.tf === "H4" && h % 4 !== 0) return;
     for (const P of Object.values(B.pos)) {      // thoát: nến vừa đóng vượt SMA5 / EMA10
       const s = P.legs[0].sym, K = this.bars(s, p.tf); if (!K) continue;
       const c = K.map((x) => x.c), tg = p.ex === "sma5" ? sma(c, 5) : ema(c, 10), i = c.length - 1, side = P.legs[0].side;
@@ -283,7 +304,7 @@ export class QuantLab {
 
   // ---------------------------------------------------------------- 🔗 cặp coin O-U
   async ou(B, now) {
-    const W = this.core.S.q, mon = iso(now).slice(0, 7), p = QP.ou;
+    const W = this.core.S.q, mon = iso(now).slice(0, 7), p = this.P("ou");
     const PR = (W.pairs ||= { m: null, L: [] });
     if (PR.m !== mon) {      // sang tháng: đóng cặp cũ, chọn cặp mới trên 30 ngày TRƯỚC đầu tháng
       for (const P of Object.values(B.pos)) this.close("ou", P, "EOM", now);
@@ -319,7 +340,7 @@ export class QuantLab {
     const sp = xa - Q.beta * xb;
     const E = (Q.E ||= []), Sx = (Q.Sx ||= []); const win = Q.win;
     let z;
-    if (QP.ou.mode === "kal") { if (E.length >= win / 2) { const w = E.slice(-win), m = w.reduce((a, b) => a + b, 0) / w.length, sd = Math.sqrt(w.reduce((a, b) => a + (b - m) ** 2, 0) / (w.length - 1)); z = err / sd; } }
+    if (this.P("ou").mode === "kal") { if (E.length >= win / 2) { const w = E.slice(-win), m = w.reduce((a, b) => a + b, 0) / w.length, sd = Math.sqrt(w.reduce((a, b) => a + (b - m) ** 2, 0) / (w.length - 1)); z = err / sd; } }
     else { const w = [...Sx.slice(-(win - 1)), sp]; if (w.length >= win) { const m = w.reduce((a, b) => a + b, 0) / win, sd = Math.sqrt(w.reduce((a, b) => a + (b - m) ** 2, 0) / (win - 1)); z = (sp - m) / sd; } }
     E.push(err); Sx.push(sp); if (E.length > 260) E.splice(0, E.length - 260); if (Sx.length > 260) Sx.splice(0, Sx.length - 260);
     return z;
@@ -356,7 +377,7 @@ export class QuantLab {
   // ---------------------------------------------------------------- 💸 funding cực âm
   async fund(B, now) {
     const px = this.core.sw?.px; if (!px) return;
-    const p = QP.fund;
+    const p = this.P("fund");
     for (const s of this.uni) {
       const x = px[s]; if (!x?.next) continue;
       const prev = this.fseen[s];
@@ -381,7 +402,7 @@ export class QuantLab {
 
   // ---------------------------------------------------------------- 📦 ORB + NR7
   async orbSetup(B, now) {
-    const day = iso(now).slice(0, 10), W = this.core.S.q, p = QP.orb;
+    const day = iso(now).slice(0, 10), W = this.core.S.q, p = this.P("orb");
     if (W.orbDay === day) return; W.orbDay = day; W.orbP = {};
     for (const P of Object.values(B.pos)) this.close("orb", P, "EOD", now);
     for (const s of this.uni) {
@@ -410,7 +431,7 @@ export class QuantLab {
       if (O.done) continue; const m = this.mid(s); if (!m) continue;
       const side = m >= O.up ? 1 : m <= O.dn ? -1 : 0; if (!side) continue;
       O.done = true;
-      this.sig("orb", B, [{ sym: s, side, w: 1 }], { sl: side > 0 ? O.dn : O.up, tp: m + side * QP.orb.tp * O.atr, exp: eod, why: `${O.why} – giá phá ${side > 0 ? "lên" : "xuống"} ${+(side > 0 ? O.up : O.dn).toPrecision(6)}` });
+      this.sig("orb", B, [{ sym: s, side, w: 1 }], { sl: side > 0 ? O.dn : O.up, tp: m + side * this.P("orb").tp * O.atr, exp: eod, why: `${O.why} – giá phá ${side > 0 ? "lên" : "xuống"} ${+(side > 0 ? O.up : O.dn).toPrecision(6)}` });
     }
   }
 
@@ -430,7 +451,7 @@ export class QuantLab {
     const H = W.hmm; W.reg = { at: iso(now), p: r2(hmmFilter(F.slice(-200).map((x) => [(x[0] - H.mu[0]) / H.sd[0], (x[1] - H.mu[1]) / H.sd[1]]), H.P), 3) };
   }
   vwap(B, now) {
-    const p = QP.vwap, W = this.core.S.q, day0 = Math.floor(now / (24 * HR)) * 24 * HR;
+    const p = this.P("vwap"), W = this.core.S.q, day0 = Math.floor(now / (24 * HR)) * 24 * HR;
     for (const P of Object.values(B.pos)) { const V = this.vw(P.legs[0].sym, day0); if (V) P.tpDyn = V.vw[V.vw.length - 1]; }      // chốt ở VWAP của nến 5 phút vừa đóng
     if (p.hmm && !((W.reg?.p ?? 0) > 0.7)) return;
     for (const s of this.uni5) {
@@ -457,7 +478,7 @@ export class QuantLab {
 
   // ---------------------------------------------------------------- 🌊 thác thanh lý + OI
   liq(B, now) {
-    const p = QP.liq;
+    const p = this.P("liq");
     for (const s of this.uni5) {
       const K = this.K5[s], R = this.OI[s]; if (!K || K.length < 25 || !R || R.length < 5) continue;
       const i = K.length - 1, b = Math.floor(K[i].t / M5); if (K[i].t < now - 2 * M5) continue;
@@ -476,10 +497,10 @@ export class QuantLab {
     const W = this.core.S?.q; if (!W) return null;
     const o = { on: this.core.where === "vps", upnl: r2(this.upnl(), 2), margin: r2(this.margin(), 2), uni: this.uni.length, reg: W.reg || null, hmmAt: W.hmm?.at || null,
       pairs: W.pairs ? { m: W.pairs.m, at: W.pairs.at, L: (W.pairs.L || []).map((q) => ({ id: q.id, beta: r2(q.th?.[0] ?? q.beta, 3), hl: r2(q.hl, 1), adf: q.adf })) } : null,
-      orb: W.orbP ? { day: W.orbDay, L: Object.entries(W.orbP).map(([s, x]) => ({ s, up: x.up, dn: x.dn, done: !!x.done })) } : null, QP, QR };
+      orb: W.orbP ? { day: W.orbDay, L: Object.entries(W.orbP).map(([s, x]) => ({ s, up: x.up, dn: x.dn, done: !!x.done })) } : null, QP: Object.fromEntries(Object.keys(QS).map((k) => [k, this.P(k)])), QP0: QP, QS0: QS, QLIM, QR };
     for (const k of Object.keys(QS)) {
       const B = W[k]; if (!B) continue;
-      o[k] = { ...QS[k], st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
+      o[k] = { ...this.R(k), on: this.on(k), st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
         pos: Object.values(B.pos).map((P) => { let u = 0; for (const L of P.legs) u += L.side * L.q * ((this.mid(L.sym) || L.last || L.e) - L.e); return { id: P.id, legs: P.legs.map((L) => ({ sym: L.sym, side: L.side, e: L.e, m: this.mid(L.sym) || L.last })), N: P.N, t0: P.t0, exp: iso(P.exp), sl: P.sl, tp: P.tpDyn ?? P.tp, why: P.why, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
         hist: B.hist.slice(-15).map((h) => ({ ...h, note: undefined })) };
     }
