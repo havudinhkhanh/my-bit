@@ -368,16 +368,30 @@ async function viewScalp() {
   // ---------------------------------------------------------------- (C) dòng sự kiện trực tiếp, phân loại & lọc
   const EVC = [["all", "Tất cả"], ["trade", "🔔 Lệnh"], ["skip", "🚫 Bộ lọc chặn"], ["fix", "🔁 Tự sửa & dừng"], ["lv", "💵 Binance"], ["fund", "💸 Funding"], ["err", "⚠️ Lỗi"], ["sys", "⚙️ Hệ thống"]];
   const evCat = (e) => (e.s === "lv" ? (/⚠️|lỗi/i.test(e.m) ? "err" : "lv") : /BỎ QUA/.test(e.m) ? "skip" : /💸|funding/i.test(e.m) ? "fund" : /⛔|🔁|nghỉ|Dừng|chạy lại|chạy tiếp|Sang ngày|mục tiêu/i.test(e.m) ? "fix" : /⚠️|lỗi/i.test(e.m) || e.k === "err" ? "err" : /Khớp|Đóng|chờ (mua|bán)|đặt lệnh|đã huỷ|💰|🔻|🪝|⚡|Long|Short/.test(e.m) ? "trade" : "sys");
-  const EVS = [...(X.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "bot" })), ...(LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "lv" }))].map((e) => ({ ...e, c: evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
-  const EVF = EVC.some(([k]) => k === window.__scEvF) ? window.__scEvF : "all";
+  // nguồn của mỗi dòng nhật ký (thuộc phương pháp nào) – nhãn màu trên từng dòng + lọc theo nguồn
+  const EVSRC = [["all", "Mọi nguồn"], ["hook", "🪝 Bắt râu sập"], ["sec", "⚡ Lướt giây"], ["sw", "🗓️ Giữ nhiều ngày"], ["q", "📐 Định lượng"], ["sys", "⚙️ Hệ thống"]];
+  const evSrc = (e) => { const m = String(e.m || "");
+    if (/^🧪|Short (coin )?(vừa )?bơm|niêm yết|thử nghiệm/i.test(m)) return "sw";
+    if (/^📐|^🔗|^📉|^💸 Funding cực|^📦|^〰️|^🌊|định lượng/i.test(m)) return "q";
+    if (/🪝|râu|lệnh chờ|chờ (mua|bán)|giá không tới|^🔍|cú sốc|bắt/i.test(m)) return "hook";
+    if (/⚡|lướt|Mở (Long|Short)|taker|maker|sổ lệnh|chốt ngày|mục tiêu/i.test(m)) return "sec";
+    return "sys"; };
+  const EVS = [...(X.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, n: l.n || 0, t0: l.t0, s: "bot" })), ...(LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, n: l.n || 0, t0: l.t0, s: "lv" }))].map((e) => ({ ...e, c: evCat(e), src: evSrc(e) })).sort((a, b) => (a.t < b.t ? 1 : -1))
+    .reduce((A, e) => {      // thông báo hệ thống lặp lại (chỉ khác con số) → gộp 1 dòng "×n" (bản máy chủ mới tự gộp; đây là cho số liệu cũ)
+      const sig = String(e.m).replace(/[\d.,]+/g, "#"), g = e.src === "sys" ? A.slice(-4).find((x) => x.src === "sys" && x.s === e.s && x.sig === sig) : null;
+      if (g) { g.n = (g.n || 1) + (e.n || 1); g.t0 = e.t0 || e.t; return A; }
+      A.push({ ...e, sig }); return A; }, []);
+  const EVF = EVC.some(([k]) => k === window.__scEvF) ? window.__scEvF : "all", EVS_F = EVSRC.some(([k]) => k === window.__scEvS) ? window.__scEvS : "all";
+  const SRCT = Object.fromEntries(EVSRC), ACC = LV?.env === "live" || C.lv_env === "live" ? "💵 Binance thật" : "🟡 Binance Demo";
   const evIco = { trade: "🔔", skip: "🚫", fix: "🔁", lv: "💵", fund: "💸", err: "⚠️", sys: "⚙️" };
   // mỗi sự kiện thuộc ngày nào (giờ VN): dải ngày chen giữa danh sách + lọc theo ngày
   const evD = (t) => { try { return vnDayOf(String(t).slice(0, 19)); } catch (e) { return ""; } }, EVTD = vnToday(), EVYD = new Date(Date.parse(EVTD + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
   const dLab = (d) => (d === EVTD ? bi("Hôm nay", "Today") : d === EVYD ? bi("Hôm qua", "Yesterday") : new Date(d + "T00:00:00Z").toLocaleDateString(LOC, { weekday: "long", timeZone: "UTC" })) + ` · ${ddmm(d)}`;
   const EVDAYS = [...new Set(EVS.map((e) => evD(e.t)).filter(Boolean))].sort().reverse(), EVDF = EVDAYS.includes(window.__scEvD) ? window.__scEvD : "all";
-  const feedLis = (L, chips) => { let last = ""; return L.map((e) => { const d = evD(e.t), hide = chips && ((EVF !== "all" && e.c !== EVF) || (EVDF !== "all" && d !== EVDF)), h = d && d !== last ? `<li class="sc-fday" data-d="${d}">${esc(dLab(d))}</li>` : ""; last = d || last;
-    return `${h}<li data-c="${e.c}" data-d="${d}" class="${e.k || ""}" ${hide ? "hidden" : ""}><span class="sc-fi">${evIco[e.c]}</span><span class="sc-ft">${hms(e.t)}</span><span class="sc-fm">${esc(viDec(e.m))}</span></li>`; }).join(""); };
-  const feed = (L, chips) => `${chips ? `<div class="bseg sc-evf">${EVC.map(([k, t]) => { const n = k === "all" ? L.length : L.filter((e) => e.c === k).length; return n || k === "all" ? `<button type="button" data-scev="${k}" class="${k === EVF ? "on" : ""}">${t} <small class="faint" data-noi18n>${n}</small></button>` : ""; }).join("")}</div>` : ""}
+  const feedLis = (L, chips) => { let last = ""; return L.map((e) => { const d = evD(e.t), hide = chips && ((EVF !== "all" && e.c !== EVF) || (EVS_F !== "all" && e.src !== EVS_F) || (EVDF !== "all" && d !== EVDF)), h = d && d !== last ? `<li class="sc-fday" data-d="${d}">${esc(dLab(d))}</li>` : ""; last = d || last;
+    const tags = `<span class="sc-ftg s-${e.src}">${SRCT[e.src]}</span>${e.src !== "sys" ? `<span class="sc-ftg a-${e.s}">${e.s === "lv" ? ACC : "🧪 Sàn thử"}</span>` : ""}${e.n > 1 ? `<span class="sc-ftg rep" title="Lặp lại ${e.n} lần${e.t0 ? ` từ ${hms(e.t0)}` : ""}">×${e.n}</span>` : ""}`;
+    return `${h}<li data-c="${e.c}" data-src="${e.src}" data-d="${d}" class="${e.k || ""}" ${hide ? "hidden" : ""} title="${esc(viDec(e.m))}"><span class="sc-fi">${evIco[e.c]}</span><span class="sc-ft">${hms(e.t)}</span><span class="sc-fm"><span class="sc-ftgs">${tags}</span>${esc(viDec(e.m))}</span></li>`; }).join(""); };
+  const feed = (L, chips) => `${chips ? `<div class="bseg sc-evf sc-evs" aria-label="Lọc theo nguồn">${EVSRC.map(([k, t]) => { const n = k === "all" ? L.length : L.filter((e) => e.src === k).length; return n || k === "all" ? `<button type="button" data-scevs="${k}" class="${k === EVS_F ? "on" : ""}">${t} <small class="faint" data-noi18n>${n}</small></button>` : ""; }).join("")}</div>` : ""}${chips ? `<div class="bseg sc-evf">${EVC.map(([k, t]) => { const n = k === "all" ? L.length : L.filter((e) => e.c === k).length; return n || k === "all" ? `<button type="button" data-scev="${k}" class="${k === EVF ? "on" : ""}">${t} <small class="faint" data-noi18n>${n}</small></button>` : ""; }).join("")}</div>` : ""}
     <div class="fd-sz" role="radiogroup" aria-label="Độ dài khung sự kiện">${[["s", bi("Gọn", "Short")], ["m", bi("Vừa", "Medium")], ["l", bi("Đầy đủ", "Full")]].map(([k, t]) => `<button type="button" role="radio" data-fdsz="${k}" aria-checked="${k === fdSz()}">${t}</button>`).join("")}</div>
     ${chips && EVDAYS.length > 1 ? `<div class="bseg sc-evd" aria-label="Lọc theo ngày"><button type="button" data-scevd="all" class="${EVDF === "all" ? "on" : ""}">${bi("Mọi ngày", "All days")}</button>${EVDAYS.map((d) => `<button type="button" data-scevd="${d}" class="${EVDF === d ? "on" : ""}">${esc(d === EVTD ? bi("Hôm nay", "Today") : d === EVYD ? bi("Hôm qua", "Yesterday") : ddmm(d))} <small class="faint" data-noi18n>${L.filter((e) => evD(e.t) === d).length}</small></button>`).join("")}</div>` : ""}
     <ul class="sc-feed" data-f="${chips ? EVF : "all"}">${feedLis(L, chips) || `<li class="faint">Chưa có sự kiện.</li>`}</ul>`;
@@ -712,10 +726,11 @@ async function viewScalp() {
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
   $$("[data-scpm]").forEach((b) => (b.onclick = () => { window.__scPm = b.dataset.scpm; lsSet("scpm", b.dataset.scpm); window.__scUseCache = true; viewScalp(); }));
   $$("[data-sclog]").forEach((b) => (b.onclick = () => { window.__scLog = b.dataset.sclog; lsSet("sclog", b.dataset.sclog); window.__scUseCache = true; viewScalp(); }));
-  const evApply = () => { const c = window.__scEvF || "all", d = window.__scEvD || "all";
+  const evApply = () => { const c = window.__scEvF || "all", d = window.__scEvD || "all", sr = window.__scEvS || "all";
     $$(".sc-feed").forEach((ul) => { if (ul.dataset.f === "all" && !$(".sc-evf")) return; let hd = null, any = false; const fin = () => { if (hd) hd.hidden = !any; };
-      for (const li of ul.children) { if (li.classList.contains("sc-fday")) { fin(); hd = li; any = false; continue; } if (!li.dataset.c) continue; li.hidden = (c !== "all" && li.dataset.c !== c) || (d !== "all" && li.dataset.d !== d); if (!li.hidden) any = true; } fin(); }); };
+      for (const li of ul.children) { if (li.classList.contains("sc-fday")) { fin(); hd = li; any = false; continue; } if (!li.dataset.c) continue; li.hidden = (c !== "all" && li.dataset.c !== c) || (sr !== "all" && li.dataset.src !== sr) || (d !== "all" && li.dataset.d !== d); if (!li.hidden) any = true; } fin(); }); };
   $$("[data-scev]").forEach((b) => (b.onclick = () => { window.__scEvF = b.dataset.scev; $$("[data-scev]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
+  $$("[data-scevs]").forEach((b) => (b.onclick = () => { window.__scEvS = b.dataset.scevs; $$("[data-scevs]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
   $$("[data-scevd]").forEach((b) => (b.onclick = () => { window.__scEvD = b.dataset.scevd; $$("[data-scevd]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
   if ($(".sc-evf")) evApply();
   $$("[data-hkc]").forEach((b) => (b.onclick = () => hkChartOpen(HT[+b.dataset.hkc], $("#hkc" + b.dataset.hkc))));

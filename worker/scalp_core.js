@@ -350,7 +350,13 @@ export class ScalpCore {
     return (now / then - 1) * 1e4 / (Math.max(0.05, vol ?? x.vol ?? 1) * Math.sqrt(60 * mins));
   }
   note(key, sev, title, body, url = "#/bot/scalp", grp = null) { if (this.notes.length < 50) this.notes.push({ key, sev, title, body, url, ...(grp ? { grp } : {}) }); }   // grp: mã 1 lệnh – mọi thông báo của lệnh đó đè lên nhau trên điện thoại
-  say(now, m, k = "info") { this.S.log = [...(this.S.log || []).slice(-79), { t: iso(now), k, m }]; if (k === "stop" && this.S.days) { const D = this.dayRec(now); D.ev = [...(D.ev || []).slice(-9), [iso(now).slice(11, 16), m.slice(0, 160)]]; } }
+  // nhật ký: giữ 300 dòng; cùng 1 thông báo lặp lại (chỉ khác con số – vd. kết nối lại nguồn dữ liệu) trong 30 phút → gộp thành 1 dòng "×n", không đẩy mất sự kiện thật
+  say(now, m, k = "info") {
+    const L = (this.S.log ||= []), sig = String(m).replace(/[\d.,]+/g, "#");
+    for (let i = L.length - 1; i >= Math.max(0, L.length - 6); i--) { const e = L[i]; if (e.k === k && (e.sig || String(e.m).replace(/[\d.,]+/g, "#")) === sig && now - Date.parse((e.t0 || e.t) + "Z") < 30 * 60e3 && !/Khớp|Đóng|đóng|LỜI|LỖ|Long|Short|MUA|BÁN/.test(m)) { e.t0 ||= e.t; e.t = iso(now); e.m = m; e.n = (e.n || 1) + 1; e.sig = sig; L.splice(i, 1); L.push(e); return this.sayDay(now, m, k); } }
+    this.S.log = [...L.slice(-299), { t: iso(now), k, m }]; this.sayDay(now, m, k);
+  }
+  sayDay(now, m, k) { if (k === "stop" && this.S.days) { const D = this.dayRec(now); D.ev = [...(D.ev || []).slice(-9), [iso(now).slice(11, 16), m.slice(0, 160)]]; } }
   // ---------------------------------------------------------------- KẾT QUẢ THEO NGÀY (giờ Việt Nam) – lưu lâu dài, trang "Kết quả theo ngày" đọc để vẽ biểu đồ & rút bài học
   dayRec(now, d = vnDay(now)) {
     const S = this.S, D = ((S.days ||= {})[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, f6: 0, knife: 0, seen: 0, placed: 0, ev: [] });
@@ -1182,7 +1188,7 @@ export class ScalpCore {
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
       radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
-      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-40), cfg: this.cfg, sw: this.sw.out(), q: this.q.out() };
+      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-200), cfg: this.cfg, sw: this.sw.out(), q: this.q.out() };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;

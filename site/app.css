@@ -3831,3 +3831,22 @@ html.sw-drag,html.sw-drag body{overflow-x:hidden}
 @media (prefers-reduced-motion:reduce){#swNav .sw-t{transform:none}}
 /* app mở từ màn hình chính: không kéo dãn cả trang (thanh tiêu đề đứng yên, chỉ nội dung bên dưới cuộn) – như ứng dụng thật */
 html.pwa,html.pwa body{overscroll-behavior-y:none}
+/* nhật ký: nhãn nguồn trên từng dòng */
+.sc-ftgs{display:inline-flex;gap:4px;margin-right:6px;vertical-align:1px}
+.sc-ftg{display:inline-block;padding:1px 6px;border-radius:999px;font-size:.64rem;font-weight:600;line-height:1.5;white-space:nowrap;background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink-2)}
+.sc-ftg.s-hook{background:color-mix(in srgb,var(--brass,#d9a23a) 18%,transparent)}
+.sc-ftg.s-sec{background:color-mix(in srgb,#5b8def 16%,transparent)}
+.sc-ftg.s-sw{background:color-mix(in srgb,#a46be0 16%,transparent)}
+.sc-ftg.s-q{background:color-mix(in srgb,#2bb3a3 18%,transparent)}
+.sc-ftg.a-lv{background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--ink)}
+.sc-ftg.a-bot{background:transparent;box-shadow:inset 0 0 0 1px var(--line-2)}
+.sc-ftg.rep{background:transparent;color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line-2)}
+.sc-evs{margin-bottom:6px}
+/* Gọn / Vừa / Đầy đủ: chỉ đổi SỐ DÒNG hiện (chiều cao khung) – cỡ chữ giữ nguyên; dòng bị cắt thì rê chuột / chạm vào là hiện đủ */
+html[data-fdsz="s"] .sc-feed li{padding:5px 6px;font-size:.8rem}
+html[data-fdsz="s"] .sc-feed{max-height:260px}
+html[data-fdsz="m"] .sc-feed{max-height:560px}
+@media (hover:hover){
+  html[data-fdsz="s"] .sc-feed li:hover .sc-fm,html[data-fdsz="m"] .sc-feed li:hover .sc-fm{white-space:normal;overflow:visible;display:block;-webkit-line-clamp:unset}
+  html[data-fdsz="s"] .sc-feed li:hover,html[data-fdsz="m"] .sc-feed li:hover{background:color-mix(in srgb,var(--brand) 7%,var(--surface))}
+}
