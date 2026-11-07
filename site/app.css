@@ -3814,3 +3814,18 @@ html.lb-dragging .lb-bg{border-style:dashed}
   .lm .sc-rows .sc-row.lm-pr .sc-nin input{width:120px}
   .lm .sc-rows .sc-row.lm-pr .sc-seg{max-width:none}
 }
+/* vuốt lùi / tới (điện thoại): trang đi theo ngón tay, phía sau hiện tên trang sẽ tới */
+html.sw-drag #app{position:relative;z-index:2;background:var(--bg);will-change:transform}
+html.sw-drag,html.sw-drag body{overflow-x:hidden}
+#swNav{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .15s}
+#swNav.on{opacity:1}
+#swNav .sw-under{position:absolute;inset:0;background:color-mix(in srgb,var(--ink) 6%,var(--bg));display:flex;align-items:center;padding:0 64px}
+#swNav[data-dir="fwd"] .sw-under{justify-content:flex-end}
+#swNav .sw-t{font:600 .95rem/1.3 "Be Vietnam Pro",system-ui,sans-serif;color:var(--ink-2);opacity:calc(.25 + var(--p,0) * 1.6);transform:translateX(calc((var(--p,0) - .3) * 40px));max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#swNav[data-dir="fwd"] .sw-t{transform:translateX(calc((.3 - var(--p,0)) * 40px))}
+#swNav .sw-ar{position:fixed;top:50%;left:6px;z-index:40;width:38px;height:38px;margin-top:-19px;border-radius:50%;background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.18);display:grid;place-items:center;transform:scale(calc(.5 + var(--p,0) * 1.2));opacity:calc(var(--p,0) * 4);transition:background .15s,color .15s}
+#swNav[data-dir="fwd"] .sw-ar{left:auto;right:6px}
+#swNav .sw-ar::before{content:"‹";font:700 1.4rem/1 system-ui;color:var(--ink-2);margin-top:-2px}
+#swNav[data-dir="fwd"] .sw-ar::before{content:"›"}
+#swNav.go .sw-ar{background:var(--brand)}#swNav.go .sw-ar::before{color:var(--brand-ink,#fff)}
+@media (prefers-reduced-motion:reduce){#swNav .sw-t{transform:none}}

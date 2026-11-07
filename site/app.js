@@ -671,17 +671,86 @@ function botWarm(only) {
 }
 document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days|home|journal))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
 let VT_PREV = location.hash;
+// ---------------------------------------------------------------- lịch sử trong app: đánh số từng trang (history.state.i) → biết đang lùi hay tới, còn trang để lùi / tới không
+const NAVH = (() => { let o = {}; try { o = JSON.parse(sessionStorage.getItem("navh") || "{}"); } catch (e) { /* bỏ qua */ } return { max: o.max || 1, t: o.t || {} }; })();
+const navSave = () => { try { sessionStorage.setItem("navh", JSON.stringify(NAVH)); } catch (e) { /* bỏ qua */ } };
+const navI = () => history.state?.i || 1;
+if (!history.state?.i) { try { history.replaceState({ ...(history.state || {}), i: 1 }, "", location.href); } catch (e) { /* bỏ qua */ } }
+let NAV_LAST = navI();
+function navTrack() {      // gọi mỗi lần đổi trang: trả "back" / "fwd" / "new"
+  let i = history.state?.i, kind;
+  if (!i) { i = NAV_LAST + 1; try { history.replaceState({ ...(history.state || {}), i }, "", location.href); } catch (e) { /* bỏ qua */ } NAVH.max = i; kind = "new"; }
+  else kind = i < NAV_LAST ? "back" : i > NAV_LAST ? "fwd" : "new";
+  NAV_LAST = i; navSave(); return kind;
+}
+function navTitle() { const h = document.querySelector("#app > .ph h1"); if (h) { NAVH.t[navI()] = (h.childNodes[0]?.textContent || h.textContent || "").trim().slice(0, 40); navSave(); } }
 function navRoute() {
   const prev = VT_PREV, next = location.hash; VT_PREV = next;
-  if (!document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return route();
+  const kind = navTrack();
+  if (window.__swNav) { const dir = window.__swNav; window.__swNav = null; window.__vt = true; return Promise.resolve(route()).finally(() => { window.__vt = false; swIn(dir); navTitle(); }); }
+  if (!document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return Promise.resolve(route()).finally(navTitle);
   const bi = (h) => BOTSEG.findIndex(([k]) => k === botCur(h)), a = bi(prev), b = bi(next), d = document.documentElement;
   d.dataset.vt = a >= 0 && b >= 0 && a !== b ? (b > a ? "fwd" : "back") : "fade"; window.__vt = true;
   // chờ trang mới tối đa 0,45 giây (thường dữ liệu đã có sẵn) – lâu hơn thì chuyển luôn, nội dung hiện tiếp khi tải xong
+  if (kind !== "new" && d.dataset.vt === "fade") d.dataset.vt = kind;      // nút lùi / tới của trình duyệt cũng trượt đúng chiều
   try {
     const t = document.startViewTransition(() => Promise.race([route(), new Promise((r) => setTimeout(r, 450))]));
-    t.finished.finally(() => { delete d.dataset.vt; window.__vt = false; });
+    t.finished.finally(() => { delete d.dataset.vt; window.__vt = false; navTitle(); });
   } catch (e) { window.__vt = false; route(); }
 }
+// ---------------------------------------------------------------- VUỐT LÙI / TỚI như ứng dụng iPhone (điện thoại)
+// vuốt từ mép TRÁI sang phải = quay lại trang trước · từ mép PHẢI sang trái = tới trang vừa lùi. Trang đi theo ngón tay, thả quá 1/3 hoặc vuốt nhanh thì chuyển.
+// Safari thường (không phải app trên màn hình chính) đã có sẵn vuốt lùi của iOS → không làm thêm để khỏi chồng 2 lần.
+function swIn(dir) {
+  const a = document.getElementById("app"); if (!a) return;
+  a.style.transition = ""; a.style.transform = ""; a.style.boxShadow = "";
+  try { a.animate([{ transform: `translateX(${dir === "back" ? -28 : 28}%)`, opacity: 0.6 }, { transform: "none", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }
+  document.getElementById("swNav")?.classList.remove("on", "go");
+}
+(function swipeNav() {
+  const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+  if (IOS && !STANDALONE) return;
+  const EDGE = 24;
+  const blocked = () => !MOB.matches || document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
+  let st = null;
+  const ui = () => { let u = document.getElementById("swNav"); if (!u) { u = document.createElement("div"); u.id = "swNav"; u.setAttribute("aria-hidden", "true"); u.innerHTML = '<div class="sw-under"><span class="sw-t"></span></div><i class="sw-ar"></i>'; document.body.appendChild(u); } return u; };
+  addEventListener("touchstart", (e) => {
+    st = null; if (e.touches.length !== 1 || blocked()) return;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY, W = innerWidth, i = navI();
+    const dir = x <= EDGE && i > 1 ? "back" : x >= W - EDGE && i < NAVH.max ? "fwd" : null;
+    if (dir) st = { dir, x, y, t: Date.now(), dx: 0, lock: false };
+  }, { passive: true });
+  addEventListener("touchmove", (e) => {
+    if (!st) return;
+    const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y;
+    if (!st.lock) {
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
+      if (Math.abs(dx) < 8 || (st.dir === "back" ? dx < 0 : dx > 0)) return;
+      st.lock = true; const u = ui(); u.dataset.dir = st.dir; u.querySelector(".sw-t").textContent = (st.dir === "back" ? "‹ " : "") + (NAVH.t[navI() + (st.dir === "back" ? -1 : 1)] || (st.dir === "back" ? "Trang trước" : "Trang sau")) + (st.dir === "fwd" ? " ›" : "");
+      u.classList.add("on"); document.documentElement.classList.add("sw-drag");
+    }
+    e.preventDefault();
+    const W = innerWidth, d = st.dir === "back" ? Math.max(0, dx) : Math.min(0, dx), p = Math.min(1, Math.abs(d) / W); st.dx = d;
+    const a = document.getElementById("app"); a.style.transition = "none"; a.style.transform = `translateX(${d}px)`; a.style.boxShadow = `${st.dir === "back" ? -1 : 1}px 0 24px rgba(0,0,0,${0.18 * (1 - p)})`;
+    const u = ui(); u.style.setProperty("--p", p.toFixed(3)); u.classList.toggle("go", p > 0.33);
+  }, { passive: false });
+  const end = () => {
+    if (!st) return; const s = st; st = null; if (!s.lock) return;
+    document.documentElement.classList.remove("sw-drag");
+    const a = document.getElementById("app"), W = innerWidth, p = Math.abs(s.dx) / W, v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), u = ui();
+    const go = p > 0.33 || (v > 0.55 && p > 0.08);
+    a.style.transition = "transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s"; a.style.boxShadow = "";
+    if (!go) { a.style.transform = ""; u.classList.remove("on", "go"); setTimeout(() => (a.style.transition = ""), 220); return; }
+    navigator.vibrate?.(6);
+    a.style.transform = `translateX(${s.dir === "back" ? W : -W}px)`;
+    setTimeout(() => {
+      window.__swNav = s.dir; s.dir === "back" ? history.back() : history.forward();
+      setTimeout(() => { if (window.__swNav) { window.__swNav = null; swIn(s.dir); } }, 900);      // không đổi trang được (hết lịch sử) → trả trang về chỗ cũ
+    }, 170);
+  };
+  addEventListener("touchend", end); addEventListener("touchcancel", end);
+})();
 function pageIn() {
   if (window.__vt) return;
   const a = document.getElementById("app"); if (!a) return;
@@ -1537,7 +1606,7 @@ async function viewCoin(key, sub = "") {
   const show = (s) => {
     disposeCharts();
     $$(".subtabs button").forEach((b) => b.classList.toggle("on", b.dataset.st === s));
-    history.replaceState(null, "", `#/c/${enc(key)}${s ? "/" + s : ""}`);
+    history.replaceState(history.state, "", `#/c/${enc(key)}${s ? "/" + s : ""}`);
     const f = { "": tabOverview, smc: tabSmc, val: tabVal, lv: tabLevels, fut: tabFut, plan: tabPlan, tech: tabTech }[s] || tabOverview;
     $("#sub").innerHTML = f(D);
     (BIND[s || ""] || (() => {}))(D);
@@ -4000,7 +4069,7 @@ async function viewPaper(k0) {
   // môi trường: giả lập / Binance
   const envInfo = () => { $("#pvEnvInfo").innerHTML = env() === "bx" ? `Đang gửi lệnh tới <b>${esc(BXE[BX.env].n)}</b>${BX.keys[BX.env] ? ' <span class="up">● đã mở khoá</span>' : ' <span class="down">● chưa mở khoá – xem khung bên dưới</span>'}` : "Lệnh chỉ chạy trong MyBit, không đụng tới tài khoản sàn"; };
   $$("#pvEnv button").forEach((b) => b.onclick = () => { lsSet("pvenv", b.dataset.e); $$("#pvEnv button").forEach((x) => x.classList.toggle("on", x === b)); envInfo(); form(); });
-  $("#pvK").onchange = () => { const k = $("#pvK").value.trim().toUpperCase(); if (BYK[k] && (BYK[k].sp || BYK[k].bf)) { PV.k = k; lsSet("pvk", k); history.replaceState(null, "", "#/paper/" + enc(k)); disposeCharts(); loadCoin(); } };
+  $("#pvK").onchange = () => { const k = $("#pvK").value.trim().toUpperCase(); if (BYK[k] && (BYK[k].sp || BYK[k].bf)) { PV.k = k; lsSet("pvk", k); history.replaceState(history.state, "", "#/paper/" + enc(k)); disposeCharts(); loadCoin(); } };
   $$("#pvTabs button").forEach((b) => b.onclick = () => { PV.tab = b.dataset.t; lsSet("pvtab", PV.tab); $$("#pvTabs button").forEach((x) => x.classList.toggle("on", x === b)); tab(); });
   let n = 0;
   PE.onTick = () => { if (!$("#pvSum")) { PE.onTick = null; return; } n++; const p = papPx(PV.k, PV.mkt), e = $("#pvP"); if (e && p) { const pv = +e.dataset.p || p; e.textContent = px(p); e.className = "tr-p " + (p > pv ? "up" : p < pv ? "down" : ""); e.dataset.p = p; } summary(); if (n % 2 === 0 && ["pos", "spot", "ord"].includes(PV.tab)) tab(); };
@@ -4415,7 +4484,7 @@ async function viewMethods(id) {
       <p class="faint disclaimer">${en ? "All methods are tools for structuring decisions with real numbers, not guarantees. Always place a stop on the exchange." : "Mọi phương pháp chỉ là công cụ để ra quyết định có số liệu, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn."}</p>`;
     $$("#mdet a[data-m]").forEach((a) => a.onclick = (ev) => { ev.preventDefault(); show(METHODS.find((x) => x[0] === a.dataset.m)); });
     $$("#mlist a").forEach((a) => a.classList.toggle("on", a.dataset.m === m[0]));
-    history.replaceState(null, "", "#/methods/" + m[0]);
+    history.replaceState(history.state, "", "#/methods/" + m[0]);
     if (!keep && innerWidth < 900) $("#mdet").scrollIntoView({ block: "start" });
   };
   $("#mq").oninput = (e) => { q = e.target.value; const h = list(); if (h.length && q.trim()) show(h[0].m, true); };
@@ -5540,7 +5609,7 @@ function initAccountUI() {
   coins().then(() => papLoad()).then(() => { if (PAP.orders.length || PAP.pos.length || Object.keys(PAP.spot).length) papReplay().then(papEngine); }).catch(() => {});
   window.addEventListener("hashchange", navRoute);
   pnInit();
-  Promise.resolve(route()).finally(() => window.__splashOut?.());      // trang đầu vẽ xong → tắt màn hình mở app
+  Promise.resolve(route()).finally(() => { window.__splashOut?.(); navTitle(); });      // trang đầu vẽ xong → tắt màn hình mở app
 })();
 
 // ================================================================ BÀN PHÍM ĐIỆN THOẠI: ô đang gõ không bị thanh tab dưới / nút nổi che, tự cuộn ô vào giữa vùng còn thấy
