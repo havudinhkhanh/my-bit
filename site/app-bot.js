@@ -262,7 +262,7 @@ async function viewScalp() {
   const QX = X.q || null, QK = ["ou", "rsi2", "fund", "orb", "vwap", "liq"], qPos = QX ? QK.reduce((a, k) => a + (QX[k]?.pos?.length || 0), 0) : 0;
   const nHook = Object.keys(HK).length + posH.length;
   const nLive = (LV?.ev || []).length + (LV?.qp?.open?.length || 0) + (LV?.swp?.open?.length || 0), nPaper = nHook + posS.length + swPos + qPos;
-  const badge = { ord: ENV === "live" ? nLive : nPaper };
+  const badge = { ord: nLive + nPaper };      // số lệnh đang mở của CẢ 2 sàn – không đổi khi bấm công tắc sàn (từng sàn: số trên nút Binance / Sàn thử)
   const tabBar = `<nav class="sc-tabs" role="tablist" aria-label="Các phần của bot">${TABS.map(([k, t, sep]) => `<button type="button" role="tab" aria-selected="${k === TOP}" data-sctab="${k}" class="${k === TOP ? "on" : ""}">${t}${badge[k] ? `<i class="sc-bdg">${badge[k]}</i>` : ""}</button>${sep ? '<i class="sc-tsep" aria-hidden="true"></i>' : ""}`).join("")}</nav>`;
   const cnt = (n) => (n ? ` <i class="sc-bdg">${n}</i>` : "");
   const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "10 kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
@@ -808,8 +808,16 @@ async function viewScalp() {
   }
   app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
     ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${envSeg}${subSeg}${body}</div>`;
+  try { if (typeof CUR_TAB !== "undefined" && CUR_TAB && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB); } catch (e) { /* bỏ qua */ }      // đường dẫn trang vẽ NGAY cùng nội dung – không chèn trễ làm cả trang nhảy xuống
   $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
-  $$("[data-scenv]").forEach((b) => (b.onclick = async () => { window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true; await viewScalp(); try { cusDraw(); } catch (e) { /* bỏ qua */ } }));
+  $$("[data-scenv]").forEach((b) => (b.onclick = async () => {      // đổi sàn: giữ nguyên chỗ đang xem (không giật trang)
+    if (window.__scEnv === b.dataset.scenv) return;
+    window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true;
+    const root = $("#app"), y0 = b.getBoundingClientRect().top; root.style.minHeight = root.offsetHeight + "px";
+    await viewScalp();
+    const b2 = $(`[data-scenv="${b.dataset.scenv}"]`); if (b2) scrollTo(0, Math.max(0, scrollY + b2.getBoundingClientRect().top - y0));
+    setTimeout(() => { root.style.minHeight = ""; }, 400);
+    try { cusDraw(); } catch (e) { /* bỏ qua */ } }));
   { const ap = () => { const om = window.__scOm || "all"; $$("[data-om]").forEach((d) => (d.hidden = om !== "all" && d.dataset.om !== "open" && d.dataset.om !== om)); }; ap();      // tab Lệnh: lọc theo phương pháp
     $$("[data-scom]").forEach((b) => (b.onclick = () => { window.__scOm = b.dataset.scom; $$("[data-scom]").forEach((x) => x.classList.toggle("on", x === b)); ap(); })); }
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
