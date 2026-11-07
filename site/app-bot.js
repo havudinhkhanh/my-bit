@@ -24,7 +24,7 @@ async function scCmd(act, k, at) {
   const L = (window.__scCmdL || []).filter((x) => Date.now() - Date.parse(x.at) < 10 * 60e3); L.push({ act, k, at }); window.__scCmdL = L;
   try { await Store.put("scalpcmd", { list: L.slice(-20) }); } catch (e) { /* còn đường thiết lập dự phòng */ }
 }
-const HK_ENTER_NOTE = "Kiểm chứng: vào ngay ngay sau cú sốc lời ít hơn hẳn chờ ở mức sâu – bot chỉ tự vào ngay khi Long và 15 phút trước giá đã giảm ≥ 3%. Đây là lựa chọn của anh, bot không khuyên.";
+const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng 11): vào ngay bằng giá thị trường lúc vừa có cú sốc TB −3 bps/lệnh sau phí (cả danh mục −44%); chờ ở 1,25× / 1,5× như bot: +50 bps/lệnh (+144%). Bot chỉ tự vào ngay khi Long và 15 phút trước giá đã giảm ≥ 3%. Đây là lựa chọn của anh, bot không khuyên.";
 // ĐIỆN THOẠI: vuốt ngang trên nội dung để chuyển tab Bot Phản Xạ (Tổng quan ↔ Binance ↔ Phương pháp ↔ Nhật ký ↔ Thiết lập) – như lật trang trong app.
 // Mép trái/phải màn hình để dành cho vuốt lùi/tới trang; vuốt trên bảng cuộn ngang, biểu đồ, ô nhập, thanh nút thì không đổi tab.
 (function scSwipe() {
