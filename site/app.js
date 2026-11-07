@@ -484,7 +484,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 // nhóm Bot: 1 cửa vào (Bot của tôi) → từng bot → báo cáo chung. Giám sát rủi ro & sổ lệnh vẫn có trang riêng nhưng đi vào từ trang tổng / trang kết quả.
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["botsup", "#/bot/sup", "🛡️", "Rủi ro & giám sát"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
-const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
+const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];
 const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
@@ -526,7 +526,7 @@ function uxStrip(root) {
     const t = n.textContent, m = t.match(UX_EMO); if (m && m[0].length < t.length) n.textContent = t.slice(m[0].length);
   });
 }
-const PC_SKIP = /^(bot\/scalp|bot\/days|bot\/journal|bot\/binance|c\/|methods|notifications|account|admin)/;
+const PC_SKIP = /^(bot\/scalp|bot\/days|bot\/journal|bot\/miss|bot\/binance|c\/|methods|notifications|account|admin)/;
 function pcKey(p) { return (location.hash.replace(/^#\/?/, "").split("/").slice(0, 2).join("/") || "home") + "|" + (p.firstElementChild?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40); }
 function pcOpen(p, v = true) {
   p.classList.toggle("pc-shut", !v); p.firstElementChild?.setAttribute("aria-expanded", v);
@@ -564,7 +564,7 @@ function navKeyNow(h = location.hash || "#/") {
   const m = h.match(/^#\/c\/([^/]+)/); if (m) return "#/c/" + decodeURIComponent(m[1]).toUpperCase();
   const p = h.replace(/^#\/?/, "").split("/");
   if (!p[0]) return "#/";
-  if (p[0] === "bot") return p[1] && ["home", "sup", "days", "binance", "journal"].includes(p[1]) ? `#/bot/${p[1] === "journal" ? "days" : p[1]}` : "#/bot";
+  if (p[0] === "bot") return p[1] && ["home", "sup", "days", "binance", "journal", "miss"].includes(p[1]) ? `#/bot/${p[1] === "journal" || p[1] === "miss" ? "days" : p[1]}` : "#/bot";
   if (p[0] === "sector") return "#/sectors";
   if (p[0] === "help") return "#/methods";
   return "#/" + p[0];
@@ -658,7 +658,7 @@ function cusPick(anchor) {
 }
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
 const BOTSUB = { bothome: "Mọi bot ở một chỗ: đang chạy, lời/lỗ hôm nay, lệnh mở", bot: "Khung ngày / 4 giờ · sàn thử · đang thử nghiệm", botscalp: "Bắt râu sập + lướt giây · sàn thử & tiền thật", botsup: "Giới hạn rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày · sổ mọi lệnh · bài học", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp", botbin: "Số dư, ví, giới hạn an toàn, khoá API" };
-const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : h.startsWith("#/bot/journal") ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : (h.startsWith("#/bot/journal") || h.startsWith("#/bot/miss")) ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
 function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
@@ -787,13 +787,13 @@ const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.con
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
 // tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn
-const BOT_KEYS = { home: ["bot", "botstate", "sup", "supstate", "scalp", "scalpstate"], "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"], journal: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"] };
+const BOT_KEYS = { home: ["bot", "botstate", "sup", "supstate", "scalp", "scalpstate"], "": ["bot", "botstate", "sup", "supstate"], sup: ["bot", "botstate", "sup", "supstate"], scalp: ["scalp", "scalpstate", "scalpkey"], days: ["scalpdays", "scalpstate", "scalpnotes", "scalp"], journal: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"], miss: ["scalpledger", "scalpstate", "scalpdays", "scalpnotes", "scalp"] };
 function botWarm(only) {
   if (!multiUser() || (ME && typeof can === "function" && !can("bot"))) return;
   const go = () => { lazyJs("app-bot.js").catch(() => {}); Store.warm(only ? BOT_KEYS[only] || [] : [...new Set(Object.values(BOT_KEYS).flat())]); };
   only ? go() : (window.requestIdleCallback || ((f) => setTimeout(f, 600)))(go, { timeout: 2500 });
 }
-document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days|home|journal))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
+document.addEventListener("pointerdown", (e) => { const a = e.target.closest?.('a[href^="#/bot"]'); if (!a) return; const m = a.getAttribute("href").match(/^#\/bot(?:\/(scalp|sup|days|home|journal|miss))?/); if (m) botWarm(m[1] || ""); }, { passive: true, capture: true });
 let VT_PREV = location.hash;
 // ---------------------------------------------------------------- lịch sử trong app: đánh số từng trang (history.state.i) → biết đang lùi hay tới, còn trang để lùi / tới không
 const NAVH = (() => { let o = {}; try { o = JSON.parse(sessionStorage.getItem("navh") || "{}"); } catch (e) { /* bỏ qua */ } return { max: o.max || 1, t: o.t || {} }; })();
@@ -1042,7 +1042,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { window.__scMode = null; if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("bothome"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "binance") { setTab("botbin"); window.__scMode = "acct"; await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { window.__scMode = null; if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("bothome"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "binance") { setTab("botbin"); window.__scMode = "acct"; await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else if (arg[0] === "miss") { setTab("botjournal"); await viewJournal(arg[1], "miss"); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -4242,23 +4242,27 @@ async function bxGuard(desc) {
 }
 async function bxPanel() {
   const el = $("#pvBx"); if (!el) return;
+  // chưa từng chọn môi trường → theo tài khoản bot đang chạy (bot đánh Binance thật thì mặc định Binance thật, không hiện Demo)
+  if (!BX.envSync && !lsGet("bxenv", null) && !Object.keys(BX.keys).length) { BX.envSync = 1; try { const c = (await Store.get("scalp")).data; if (c?.lv_on && BXE[c.lv_env]) BX.env = c.lv_env; } catch (e) { /* bỏ qua */ } }
   const st = lsGet("bxk_" + BX.env, null), open = !!BX.keys[BX.env];
-  if (location.hash.startsWith("#/paper")) {      // 11/2026: kết nối Binance chuyển sang trang 💵 Tài khoản Binance – ở Sàn thử chỉ còn dòng trạng thái
-    el.innerHTML = `<div class="ph"><h2>🔗 Kết nối Binance (lệnh tay)</h2><span class="meta">${esc(BXE[BX.env]?.n || BX.env)} · ${open ? '<span class="up">đã mở khoá – gửi được lệnh thật từ đây</span>' : st ? "đã lưu khoá, chưa mở khoá" : "chưa kết nối"}</span></div><p style="margin:0"><a class="btn sm" href="#/bot/binance">Quản lý kết nối ở trang 💵 Tài khoản Binance →</a></p>`;
+  if (!location.hash.startsWith("#/account")) {      // 11/2026: kết nối khoá chỉ làm 1 lần → nằm trong ⚙️ Tài khoản & cài đặt; Sàn thử / trang Binance chỉ còn 1 dòng trạng thái
+    el.classList.add("bx-mini");
+    el.innerHTML = `<div class="bx-line"><span><span><b>Khoá API cho lệnh tay</b> · ${esc(BXE[BX.env]?.n || BX.env)} · ${open ? '<span class="up">đã mở khoá</span>' : st ? "đã lưu, chưa mở khoá" : '<span class="faint">chưa kết nối</span>'}</span><small class="faint">Bot dùng khoá riêng trên máy chủ – không cần khoá này.</small></span><a class="btn sm" href="#/account" data-acjump="bx">Cài đặt khoá →</a></div>`;
+    $("[data-acjump]", el).onclick = () => { window.__acJump = "bx"; };
     return;
   }
-  el.innerHTML = `<div class="ph"><h2>🔗 Kết nối tài khoản Binance</h2><span class="meta">khoá API mã hoá bằng mật khẩu riêng của anh, chỉ lưu trong trình duyệt này</span></div>
+  el.innerHTML = `<div class="ph"><h2>Kết nối Binance cho lệnh tay</h2><span class="meta">chỉ dùng ở Sàn thử lệnh tay · khoá mã hoá bằng mật khẩu riêng, chỉ lưu trong trình duyệt này</span></div>
     <div class="bxg"><div><div class="field"><label>Môi trường</label><select id="bxEnv">${Object.entries(BXE).map(([k, v]) => `<option value="${k}" ${BX.env === k ? "selected" : ""}>${esc(v.n)}</option>`).join("")}</select></div>
       <div class="field"><label>Đường kết nối</label><select id="bxVia"><option value="direct" ${BX.via === "direct" ? "selected" : ""}>Trình duyệt gọi thẳng Binance (khoá IP được)</option><option value="relay" ${BX.via === "relay" ? "selected" : ""}>Qua máy chủ MyBit (khi trình duyệt bị chặn)</option></select></div>
       ${st ? `<p>Đã lưu khoá …${esc(st.tail)} (${new Date(st.at).toLocaleDateString(LOC)}). ${open ? '<b class="up">Đã mở khoá cho phiên này.</b>' : ""}</p>
         ${open ? "" : `<div class="field"><label>Mật khẩu mở khoá</label><input type="password" id="bxPass"></div><button class="btn primary" id="bxOpen">Mở khoá</button>`} <button class="btn" id="bxDel">Xoá khoá đã lưu</button>`
       : `<div class="field"><label>API Key</label><input id="bxK" autocomplete="off"></div><div class="field"><label>Secret Key</label><input id="bxS" type="password" autocomplete="off"></div><div class="field"><label>Đặt mật khẩu mở khoá (để mã hoá khoá trên máy này)</label><input id="bxP" type="password"></div><button class="btn primary" id="bxSave">Lưu & kết nối</button>`}
       ${BX.env === "live" ? `<label class="chk"><input type="checkbox" id="bxLive" ${BX.liveOk ? "checked" : ""}> Tôi hiểu đây là tiền thật – cho phép gửi lệnh (mỗi lệnh vẫn hỏi xác nhận)</label>` : ""}<div id="bxMsg"></div></div>
-      <div class="bxh"><h4>Cách tạo khoá an toàn</h4><ol>
+      <details class="bxh"><summary>Cách tạo khoá an toàn</summary><ol>
         <li>${BX.env === "demo" ? `Vào <a href="${BXE.demo.url}" target="_blank" rel="noopener">demo.binance.com</a> (đăng nhập bằng tài khoản Binance) → <b>Quản lý API</b> → Tạo API. Tiền trong Demo là tiền ảo, giá theo thị trường thật – nên thử ở đây trước.` : BX.env === "test" ? `Vào <a href="https://testnet.binance.vision" target="_blank" rel="noopener">testnet.binance.vision</a> (spot) và <a href="https://testnet.binancefuture.com" target="_blank" rel="noopener">testnet.binancefuture.com</a> (futures) để tạo khoá testnet.` : `Binance → <b>Quản lý API</b> → Tạo API (loại do hệ thống tạo).`}</li>
         <li>Chỉ bật <b>Enable Spot & Margin Trading</b> và <b>Enable Futures</b>. <b>TUYỆT ĐỐI KHÔNG bật rút tiền (Withdrawals)</b>.</li>
         <li>Nếu dùng "Trình duyệt gọi thẳng": chọn <b>Restrict access to trusted IPs</b> và nhập IP mạng nhà / máy anh – khoá bị lộ cũng không dùng được ở nơi khác.</li>
-        <li>Dán API Key + Secret vào đây, đặt mật khẩu mở khoá. Khoá được mã hoá AES-256 bằng mật khẩu đó và chỉ nằm trên trình duyệt này; mỗi lần mở trang cần nhập lại mật khẩu.</li></ol></div></div>
+        <li>Dán API Key + Secret vào đây, đặt mật khẩu mở khoá. Khoá được mã hoá AES-256 bằng mật khẩu đó và chỉ nằm trên trình duyệt này; mỗi lần mở trang cần nhập lại mật khẩu.</li></ol></details></div>
     <div id="bxAcc"></div>`;
   $("#bxEnv").onchange = (e) => { BX.env = e.target.value; lsSet("bxenv", BX.env); BX.off = { spot: 0, fut: 0 }; BX.xi = {}; BX.liveOk = false; bxPanel(); const i = $("#pvEnvInfo"); if (i) i.innerHTML = ""; };
   $("#bxVia").onchange = (e) => { BX.via = e.target.value; lsSet("bxvia", BX.via); };
@@ -5629,14 +5633,16 @@ function planTable() {
   </tbody></table></div>`;
 }
 
+// khung "Kết nối Binance cho lệnh tay" trong trang Tài khoản; đến từ nút "Cài đặt khoá →" thì cuộn thẳng tới khung
+async function acBx() { await bxPanel(); if (window.__acJump === "bx") { window.__acJump = null; setTimeout(() => $("#pvBx")?.scrollIntoView({ block: "start", behavior: "smooth" }), 60); } }
 async function viewAccount() {
   await Promise.all([plansData(), loadSettings()]);
-  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="acp">${acTradeHtml()}</div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); return; }
+  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="acp">${acTradeHtml()}<section class="panel" id="pvBx"></section></div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); acBx(); return; }
   const [np, ps, subs] = await Promise.all([api("notify").catch(() => ({})), pushState(), api("push/list").catch(() => ({ subs: [] }))]);
   const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
-  app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml(), pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
-  thSegBind(app()); uiPrefBind();
+  app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml() + '<section class="panel" id="pvBx"></section>', pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
+  thSegBind(app()); uiPrefBind(); acBx();
   $("#acSave").onclick = async () => { try { const j = await api("auth/profile", "POST", { name: $("#acName").value }); ME = { ...ME, ...j.me }; toast("Đã lưu"); } catch (e) { toast(e.message); } };
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();

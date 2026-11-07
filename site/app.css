@@ -2318,7 +2318,8 @@ body{touch-action:manipulation}
   .tabs a,.tabs .nav-more{font-size:.64rem!important;font-weight:600!important;letter-spacing:.01em}
   .tabs a svg,.tabs .nav-more svg{width:23px!important;height:23px!important}
   /* ô nhập ≥ 16px: iPhone không tự phóng to khi chạm vào */
-  input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:1.0625rem!important}
+  /* 11/2026: iPhone đã chặn tự phóng to bằng maximum-scale=1 (index.html) → ô nhập dùng cỡ chữ chung như nút, không còn to hơn */
+  input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:var(--fs-base)!important}
   /* chuông / tài khoản → bảng trượt từ dưới lên */
   .sheet-bg{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.42);animation:fadeIn .25s ease}
   .sheet-bg.out{opacity:0;transition:opacity .28s}
@@ -4040,3 +4041,29 @@ small{font-size:max(var(--fs-xs),.86em)}
 }
 @media (min-width:980px){.cal-d{min-height:96px;padding:8px 9px 7px}.cal-p{font-size:var(--fs-lg)}.cal-c{font-size:var(--fs-xs)}}
 .cal-d.fut{min-height:40px!important}
+/* ===== 11/2026 · sổ lệnh: nhãn nhóm coin, giá trị lệnh, lệnh hụt; khoá Binance chuyển vào Tài khoản; cỡ chữ điều khiển thống nhất ===== */
+.jtag{display:inline-block;vertical-align:1px;font-size:var(--fs-xs);font-weight:600;line-height:1.5;padding:0 7px;border-radius:999px;background:color-mix(in srgb,var(--brand) 13%,transparent);color:var(--ink-2);white-space:nowrap;letter-spacing:.01em}
+.jc-v{color:var(--ink-2)}.jc-v b{color:var(--ink);font-weight:700}
+.jc.m{border-left:3px dashed color-mix(in srgb,var(--warn,#d9a441) 70%,transparent)}
+.jc.m .jc2{justify-content:space-between;color:var(--ink-2)}.jc.m .jc2 b{color:var(--ink)}
+.jt-m.jt-all{display:grid;gap:8px}
+@media (min-width:761px){.jt-m.jt-all{grid-template-columns:repeat(auto-fill,minmax(330px,1fr))}}
+.dseg a{display:inline-flex;align-items:baseline;gap:5px}.dseg .ds{display:none}.dseg a small{font-size:var(--fs-xs)}
+@media (max-width:640px){.dseg{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px}.dseg a{font-size:var(--fs-base)!important;padding:7px 4px!important;justify-content:center}.dseg .dl{display:none}.dseg .ds{display:inline}.dseg a small{display:inline!important}}
+.dj-seg{grid-template-columns:repeat(3,minmax(0,1fr))!important;max-width:620px}
+@media (max-width:640px){.dj-seg>a{padding:8px 10px!important;align-items:center!important}.dj-seg a small{display:none}}
+.jf select{flex:0 1 auto;min-width:0}
+@media (max-width:640px){.jf{display:grid;grid-template-columns:1fr 1fr;gap:6px}.jf select,.jf input{width:100%;max-width:none!important;min-width:0}.jf .bseg{margin:0;flex-wrap:nowrap}.jf .bseg button{flex:1 1 0;text-align:center;padding:6px 4px}.jf>input:only-of-type:nth-child(2){grid-column:auto}}
+.panel .ph .meta .btn.sm{margin-left:6px;vertical-align:middle}
+.bx-mini .bx-line{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bx-mini .bx-line>span{display:flex;flex-direction:column;gap:2px;min-width:0}.bx-mini .bx-line small{font-size:var(--fs-xs)}
+details.bxh>summary{cursor:pointer;font-weight:600;list-style:none}details.bxh>summary::-webkit-details-marker{display:none}
+details.bxh>summary::before{content:"▸ ";color:var(--ink-3)}details.bxh[open]>summary::before{content:"▾ "}details.bxh[open]>summary{margin-bottom:6px}
+/* cỡ chữ của mọi nút, nút lọc, ô nhập, ô chọn = 1 cỡ (13,5px); nhãn trên ô = 12px – không còn nút chữ nhỏ cạnh ô chữ to */
+input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{font-size:var(--fs-base)!important}
+.btn,.btn.sm,.bseg button,.bseg a,.seg button,.subtabs button,.chip,.sc-env button,.sc-tabs button,.fd-sz button,.lb-cfgr .bseg button,.cal-nb,.nt-bar .btn{font-size:var(--fs-base)}
+.field label,.ff label,.fx label{font-size:var(--fs-sm)}
+.jf{align-items:center}.jf select,.jf input{height:32px}
+.jc-r{display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-left:auto}.jc-r .jc-v{font-size:var(--fs-xs)}
+.jf .bseg button{height:32px;padding-top:0;padding-bottom:0}
+@media (max-width:640px){.sc-om{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-2px;padding:0 2px 2px}.sc-om::-webkit-scrollbar{display:none}.sc-om button{flex:0 0 auto;white-space:nowrap}}

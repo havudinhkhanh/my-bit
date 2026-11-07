@@ -76,8 +76,15 @@ const ledAdd = (t) => {
   const k = ledKey(r); if (LED.rows.some((x) => ledKey(x) === k)) return;
   LED.rows.push(r); LED.rows.sort((a, b) => (a[8] < b[8] ? -1 : a[8] > b[8] ? 1 : 0)); ledDirty = true;
 };
-const ledTrim = () => {      // giữ dưới ~1,7 MB: bỏ lệnh sàn thử cũ nhất trước, rồi Demo; lệnh TIỀN THẬT giữ lại hết
-  for (const env of ["paper", "demo"]) { while (JSON.stringify(LED.rows).length > 1.7e6) { const i = LED.rows.findIndex((r) => r[0] === env); if (i < 0) break; LED.rows.splice(i, 1); } }
+// 🎯 lệnh hụt (đặt lệnh chờ trên Binance mà giá không tới / bỏ qua): bot chỉ giữ 80 lần gần nhất → chép vào sổ để lưu mãi (tối đa 1500 lần, trang "Lệnh hụt")
+const missSync = () => {
+  const M = live?.S?.miss || []; if (!M.length) return; LED.miss ||= [];
+  const has = new Set(LED.miss.map((m) => `${m.env}|${m.k}|${m.t0}`));
+  for (const m of M) { const k = `${m.env}|${m.k}|${m.t0}`; if (!has.has(k)) { LED.miss.push(m); has.add(k); ledDirty = true; } }
+  if (LED.miss.length > 1500) LED.miss = LED.miss.slice(-1500);
+};
+const ledTrim = () => {      // giữ dưới ~1,5 MB (+ lệnh hụt ≤ ~0,3 MB): bỏ lệnh sàn thử cũ nhất trước, rồi Demo; lệnh TIỀN THẬT giữ lại hết
+  for (const env of ["paper", "demo"]) { while (JSON.stringify(LED.rows).length > 1.5e6) { const i = LED.rows.findIndex((r) => r[0] === env); if (i < 0) break; LED.rows.splice(i, 1); } }
 };
 const ledBackfill = () => {      // lần đầu: dựng lại từ lịch sử đang có (sàn thử 300 lệnh gần nhất, Binance 200 lệnh, phòng thử nghiệm 200 lệnh/phương pháp)
   if (LED.bf) return; LED.bf = true;
@@ -91,9 +98,10 @@ const ledBackfill = () => {      // lần đầu: dựng lại từ lịch sử 
 };
 const ledSave = async () => {
   try { ledBackfill(); } catch (e) { log("📒 dựng lại sổ lệnh:", e.message); }
+  try { missSync(); } catch (e) { log("📒 lệnh hụt:", e.message); }
   if (!ledDirty) return; ledTrim();
   try { const tmp = LEDF + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(LED)); fs.renameSync(tmp, LEDF); } catch (e) { log("📒 ghi sổ lệnh:", e.message); }
-  try { await api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), rows: LED.rows }), "/ledger"); ledDirty = false; } catch (e) { log("📒 gửi sổ lệnh:", e.message); }
+  try { await api("POST", JSON.stringify({ v: 1, at: new Date().toISOString(), rows: LED.rows, miss: LED.miss || [] }), "/ledger"); ledDirty = false; } catch (e) { log("📒 gửi sổ lệnh:", e.message); }
 };
 const notify = async (uid, items) => api("POST", JSON.stringify({ items, act: ACT }), "/notify");
 const saveBrain = async (uid, b) => { await api("POST", JSON.stringify(b), "/brain"); if (b) log(`🧠 đã lưu bộ nhớ học lên MyBit: ${b.n} mẫu, ${b.coins} coin`); };
