@@ -4067,3 +4067,16 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
 .jc-r{display:flex;flex-direction:column;align-items:flex-end;gap:1px;margin-left:auto}.jc-r .jc-v{font-size:var(--fs-xs)}
 .jf .bseg button{height:32px;padding-top:0;padding-bottom:0}
 @media (max-width:640px){.sc-om{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:-2px;padding:0 2px 2px}.sc-om::-webkit-scrollbar{display:none}.sc-om button{flex:0 0 auto;white-space:nowrap}}
+/* ===== 11/2026 · trang Theo ngày gọn lại: hàng sàn 1 dòng như Sổ lệnh, 6 thẻ số đều 3×2, ô hôm nay / ô đang chọn nhẹ hơn, ngày chưa tới thấp ===== */
+.dseg.d3 small{font-weight:600}
+@media (max-width:640px){.dseg.d3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media (min-width:641px){.stg.st3{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width:640px){.stg.st3{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.stg.st3>div{padding:8px 9px}.stg.st3 dd{font-size:var(--fs-md)!important}.stg.st3 dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
+.cal-d.today{box-shadow:none!important}
+.cal-d.today .cal-n{color:var(--brass,var(--brand));font-weight:800}
+.cal-d.today .cal-n::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--brass,var(--brand));margin-left:4px;vertical-align:2px}
+.cal-d.sel{outline:2px solid var(--brass,var(--brand))!important;outline-offset:0!important}
+.cal-d.fut{min-height:26px!important;padding-top:3px!important;padding-bottom:3px!important;opacity:.3;border-style:solid}
+.cal-d.fut .cal-p,.cal-d.fut .cal-r{display:none}
+.cal-c,.cal-c span{color:var(--ink-3)!important;font-weight:500}
+.cal-d.up .cal-c,.cal-d.down .cal-c,.cal-d.up .cal-c span,.cal-d.down .cal-c span{color:color-mix(in srgb,var(--ink) 62%,transparent)!important}

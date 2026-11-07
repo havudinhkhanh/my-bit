@@ -3776,7 +3776,7 @@ function shPanel(SH, C) {
 // ================================================================ 📅 KẾT QUẢ THEO NGÀY – sàn thử / Binance Demo / Binance thật
 // Máy chủ riêng lưu tổng hợp từng ngày (giờ Việt Nam) vào "scalpdays" ~10 phút/lần; hôm nay lấy số liệu trực tiếp từ "scalpstate".
 // Bài học từng ngày được rút NGAY TRÊN TRANG từ số liệu (quy tắc bên dưới) → cải tiến quy tắc là áp dụng lại cho cả các ngày cũ.
-const DENV = [["paper", "🧪 Sàn thử", "tiền ảo · khớp mô phỏng trên giá thật Binance"], ["demo", "🟡 Binance Demo", "tiền ảo · lệnh thật trên Binance Demo"], ["live", "💵 Binance thật", "TIỀN THẬT"]];
+const DENV = [["live", "Binance thật", "TIỀN THẬT", "Thật"], ["demo", "Binance Demo", "tiền ảo · lệnh thật trên Binance Demo", "Demo"], ["paper", "Sàn thử", "tiền ảo · khớp mô phỏng trên giá thật Binance", "Sàn thử"]];      // tiền thật lên đầu – cùng thứ tự với Sổ lệnh
 const vnDayOf = (isoUtc) => new Date(Date.parse(isoUtc.endsWith("Z") ? isoUtc : isoUtc + "Z") + 7 * 3600e3).toISOString().slice(0, 10);
 const vnToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const ddmm = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
