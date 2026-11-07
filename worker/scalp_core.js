@@ -196,11 +196,11 @@ SRC.binancef = {     // futures vĩnh cửu USDT của Binance – CHỈ chạy 
       .map((x) => ({ id: `${x.baseAsset}:F`, sym: x.symbol, ct: 1, qv: +T.get(x.symbol).quoteVolume / 1e6 }));
   },
   // luồng sổ lệnh ở /public, khớp lệnh ở /market (Binance tách đường dẫn từ 2026); mỗi kết nối 100 coin
-  conns: (t, L) => {
+  conns: (t, L, noBook) => {      // noBook: chỉ Bắt râu sập (lướt giây tắt) → không cần sổ lệnh, chỉ nhận khớp lệnh (bớt ~nửa dữ liệu & CPU)
     const out = [];
     for (let i = 0; i < L.length; i += 100) {
       const g = L.slice(i, i + 100).map((m) => m.sym.toLowerCase());
-      out.push({ url: "wss://fstream.binance.com/public/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@depth5@500ms"), id: i + 1 })] });
+      if (!noBook) out.push({ url: "wss://fstream.binance.com/public/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@depth5@500ms"), id: i + 1 })] });
       out.push({ url: "wss://fstream.binance.com/market/stream", subs: [JSON.stringify({ method: "SUBSCRIBE", params: g.map((s) => s + "@aggTrade"), id: i + 2 })] });
     }
     return out;
@@ -403,17 +403,20 @@ export class ScalpCore {
     for (const k of dk.slice(0, Math.max(0, dk.length - 90))) delete S.dtr[k];
     return { days: S.days || {}, dtr: S.dtr || {}, start: S.start, eq: r2(this.equity(), 2), at: iso(Date.now()) };
   }
+  hookOnly() { return this.where === "vps" && this.cfg?.sec_on === false; }      // ⚡ lướt giây tắt → máy chủ riêng chỉ chạy Bắt râu sập (+ thử nghiệm)
   closeFeed(t, why) { const f = this.F[t]; if (!f) return; for (const w of f.wss || []) { try { w.close(1000, why); } catch (e) { /* bỏ qua */ } } f.ws = null; f.wss = []; }
   closeAll(why) { for (const t of Object.keys(this.F)) this.closeFeed(t, why); }
 
   // ---------------------------------------------------------------- kết nối: danh sách thị trường + WebSocket, tự chuyển nguồn khi lỗi / im lặng
   async ensureFeeds() {
-    const c = this.cfg, want = [...(c.fut ? ["F"] : []), ...(c.spot ? ["S"] : [])];
+    const c = this.cfg, want = [...(c.fut ? ["F"] : []), ...(c.spot && (!this.hookOnly() || c.hk_spot) ? ["S"] : [])];      // lướt giây tắt & Bắt râu không đánh spot → bỏ luôn luồng spot
     for (const t of Object.keys(this.F)) if (!want.includes(t)) { this.closeFeed(t, "tắt loại thị trường"); delete this.F[t]; for (const id of Object.keys(this.M)) if (this.M[id].t === t && !this.S.pos[id]) delete this.M[id]; }
     for (const t of want) {
       const f = (this.F[t] ||= { t, src: null, srcI: 0, ws: null, wss: [], last: 0, n: 0, n0: 0, rate: 0, bySym: new Map(), list: [], at: 0 });
       const silent = f.ws && Date.now() - f.last >= 15000, old = f.ws && Date.now() - f.at >= 3600e3;
-      if (f.ws && !silent && !old) continue;
+      const modeChg = f.ws && t === "F" && !!f.noBook !== this.hookOnly();      // vừa bật / tắt lướt giây → kết nối lại với đúng loại dữ liệu
+      if (f.ws && !silent && !old && !modeChg) continue;
+      if (modeChg) this.closeFeed(t, this.hookOnly() ? "lướt giây tắt – chỉ nhận khớp lệnh" : "lướt giây bật – nhận thêm sổ lệnh");
       if (silent) { this.err(`${f.src} ${t === "F" ? "futures" : "spot"}: im lặng > 15 giây – chuyển nguồn`); f.srcI = (f.srcI + 1) % this.ORD[t].length; this.closeFeed(t, "im lặng"); }
       else if (old) this.closeFeed(t, "làm mới danh sách thị trường");
       await this.connect(f);
@@ -442,7 +445,8 @@ export class ScalpCore {
         const seen = new Set(); U = U.sort((a, b) => b.qv - a.qv).filter((m) => (seen.has(m.id) ? false : seen.add(m.id))).slice(0, Math.min(S.uniFrom ? 500 : 1e9, c.max_mk, this.io.cap ? this.io.cap(t) : 1e9));
         if (!U.length) throw new Error("danh sách thị trường rỗng");
         // một nguồn có thể cần nhiều kết nối (Binance futures: sổ lệnh và khớp lệnh ở 2 đường dẫn, 100 coin mỗi kết nối)
-        const plan = S.conns ? S.conns(t, U) : [{ url: S.url(t), subs: S.subs(t, U) }];
+        const noBook = t === "F" && this.hookOnly() && !!S.conns; f.noBook = noBook;
+        const plan = S.conns ? S.conns(t, U, noBook) : [{ url: S.url(t), subs: S.subs(t, U) }];
         const wss = [];
         for (let i = 0; i < plan.length; i++) { const w = i === 0 && first ? first : await this.io.openWS(plan[i].url); if (w !== first) opened.push(w); wss.push(w); }
         f.bySym = new Map(); f.list = U;
@@ -513,6 +517,7 @@ export class ScalpCore {
     SRC[f.src].parse(m, f, {
       book: (x, b, bq, a, aq, b1, a1) => { if (b) { x.bid = b; if (bq != null) { x.bq = bq; x.b1q = b1 ?? bq; } } if (a) { x.ask = a; if (aq != null) { x.aq = aq; x.a1q = a1 ?? aq; } } x.tb = now; if (x.bid && x.ask) this.onBook(x, now); },
       trade: (x, p, q, side) => { if (!(p > 0 && q > 0)) return; if (side > 0) x.sec.buy += q * p; else x.sec.sell += q * p;
+        if (f.noBook) { x.bid = x.ask = p; x.tb = now; }      // không có sổ lệnh: dùng giá khớp cuối làm giá mua/bán (nến 1 phút, đóng lệnh sàn thử)
         const mv = Math.floor(now / 60000); if (!x.vm || x.vm[0] !== mv) { x.vmp = x.vm; x.vm = [mv, 0]; } x.vm[1] += q * p * (x.ct || 1);      // khối lượng (USDT) từng phút
         this.onTrade(x, p, q, side, now); },
     });
@@ -559,7 +564,7 @@ export class ScalpCore {
     const bx = this.M["BTC:F"] || this.M["BTC:S"], bz = bx ? this.trendZ(bx, 5) : null;      // BTC 5 phút: dẫn dắt cả thị trường
     if (bx) try { this.btcShock(bx, now); } catch (e) { this.err("btc shock " + e.message); }
     for (const id in this.M) {
-      const x = this.M[id]; if (!x.bid || !x.ask || x.ask <= x.bid) continue;
+      const x = this.M[id]; if (!x.bid || !x.ask || x.ask < x.bid) continue;      // = nhau khi chỉ có giá khớp (lướt giây tắt)
       cnt.all++;
       const mid = (x.bid + x.ask) / 2, spread = (x.ask - x.bid) / mid * 1e4;
       x.flow.push([x.sec.buy, x.sec.sell]); x.sec = { buy: 0, sell: 0 }; if (x.flow.length > 10) x.flow.shift();
@@ -573,7 +578,7 @@ export class ScalpCore {
       if (now - x.tb > 10000) { cnt.stale++; x.pend.length = 0; x.ptr = null; if (!S.pos[id]) continue; }
       // coin dưới ngưỡng khối lượng: chỉ theo dõi giá (Bắt râu vẫn quét), không học / không vào lệnh lướt giây.
       // Máy quá tải CPU (this.lite do máy chủ đặt): 1 = lướt giây chỉ học 150 coin lớn nhất, 2 = tạm dừng phần lướt giây – KHÔNG bớt coin theo dõi.
-      if ((x.qv < c.min_vol || this.lite >= 2 || (this.lite === 1 && x.rk >= 150)) && !S.pos[id]) { cnt.thin = (cnt.thin || 0) + 1; continue; }
+      if ((x.qv < c.min_vol || this.lite >= 2 || c.sec_on === false || (this.lite === 1 && x.rk >= 150)) && !S.pos[id]) { cnt.thin = (cnt.thin || 0) + 1; continue; }
       if (x.mids.length < 20) continue;
       // đặc trưng
       let b5 = 0, s5 = 0; for (let i = Math.max(0, x.flow.length - 5); i < x.flow.length; i++) { b5 += x.flow[i][0]; s5 += x.flow[i][1]; }
