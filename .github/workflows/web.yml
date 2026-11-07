@@ -72,4 +72,7 @@ jobs:
 
       - name: Đẩy log lên nhánh status
         if: always()
-        run: bash scripts/publish_status.sh web data/deploy.txt data/site_check.txt data/optimize.txt data/cf.txt
+        run: |
+          # bản sao dữ liệu đã dựng (site/data, ≤ 40 MB) vào repo riêng tư bot-status – để Claude xem thử giao diện với số liệu thật khi sửa web
+          tar czf data/sitedata.tgz -C site data 2>/dev/null && [ "$(stat -c %s data/sitedata.tgz)" -lt 41943040 ] || rm -f data/sitedata.tgz
+          bash scripts/publish_status.sh web data/deploy.txt data/site_check.txt data/optimize.txt data/cf.txt $( [ -f data/sitedata.tgz ] && echo data/sitedata.tgz )
