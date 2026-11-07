@@ -29,7 +29,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install numpy pandas
+      - run: pip install numpy pandas numba
       - name: Bộ đệm dữ liệu nến
         uses: actions/cache@v4
         with:
