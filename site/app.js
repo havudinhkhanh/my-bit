@@ -514,6 +514,49 @@ function cusDraw() {
 // ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
 // bỏ qua các trang đã có nút cố định (Thị trường, Cơ hội, Giao dịch, Bot) và trang đang đặt ở nút tuỳ chọn → luôn là 1 lối tắt MỚI
 const NF_HL = 7 * 864e5;
+// ---------------------------------------------------------------- GỌN MẮT (review UX 11/2026) – chạy sau mỗi lần vẽ trang:
+// (1) bỏ biểu tượng ở đầu tiêu đề (giữ ⚠️ ⛔ 💰 và chấm màu 🟢🔵🔴🟡 vì mang nghĩa); (2) điện thoại: trang dài (> 6 khối) chỉ mở sẵn 4 khối đầu,
+// khối sau thu còn dòng tiêu đề – chạm để mở, app nhớ khối anh đã mở. Bỏ qua trang có tab riêng (Bot Phản Xạ, trang coin, sổ lệnh, cẩm nang).
+const UX_KEEP = /^(⚠️|⚠|⛔|💰|🟢|🔵|🔴|🟡)/u, UX_EMO = /^\s*(?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|‍|\p{Extended_Pictographic}|\p{Emoji_Modifier}|⃣)*\s*/u;
+function uxStrip(root) {
+  root.querySelectorAll("h1, h2, h3").forEach((h) => {
+    if (h.dataset.ux) return; h.dataset.ux = 1;
+    let n = h.firstChild; while (n && n.nodeType === 3 && !n.textContent.trim()) n = n.nextSibling;
+    if (!n || n.nodeType !== 3 || UX_KEEP.test(n.textContent.trimStart())) return;
+    const t = n.textContent, m = t.match(UX_EMO); if (m && m[0].length < t.length) n.textContent = t.slice(m[0].length);
+  });
+}
+const PC_SKIP = /^(bot\/scalp|bot\/days|bot\/journal|bot\/binance|c\/|methods|notifications|account|admin)/;
+function pcKey(p) { return (location.hash.replace(/^#\/?/, "").split("/").slice(0, 2).join("/") || "home") + "|" + (p.firstElementChild?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40); }
+function pcOpen(p, v = true) {
+  p.classList.toggle("pc-shut", !v); p.firstElementChild?.setAttribute("aria-expanded", v);
+  const O = lsGet("pcopen", {}) || {}, k = pcKey(p); if (v) O[k] = 1; else delete O[k]; lsSet("pcopen", O);
+  if (v) requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));      // biểu đồ trong khối vừa mở tự vẽ lại đúng kích thước
+}
+function pcApply() {
+  const A = $("#app"); if (!A || !MOB.matches || PC_SKIP.test(location.hash.replace(/^#\/?/, ""))) return;
+  A.querySelectorAll(".lane-b:not([data-lm])").forEach((b) => {      // Cơ hội hôm nay: mỗi làn hiện 3 thẻ đầu, còn lại bấm "Xem thêm"
+    const cs = [...b.children].filter((c) => !c.matches("p")); b.dataset.lm = 1; if (cs.length <= 4) return;
+    cs.slice(3).forEach((c) => c.classList.add("lm-hide"));
+    b.insertAdjacentHTML("beforeend", `<button type="button" class="btn lm-more">Xem thêm ${cs.length - 3} thẻ</button>`);
+    b.querySelector(".lm-more").onclick = (e) => { cs.forEach((c) => c.classList.remove("lm-hide")); e.currentTarget.remove(); window.dispatchEvent(new Event("resize")); };
+  });
+  const ps = [...A.querySelectorAll(".panel")].filter((p) => p.tagName !== "DETAILS" && !p.parentElement.closest(".panel, .modal, [hidden]"));
+  if (ps.length <= 6) return;
+  const O = lsGet("pcopen", {}) || {};
+  ps.forEach((p, i) => {
+    if (i < 4 || p.dataset.pc) return;
+    const h = p.firstElementChild; if (!h || !(h.matches(".ph, h2, h3")) || !h.textContent.trim()) return;
+    p.dataset.pc = 1; h.insertAdjacentHTML("beforeend", '<i class="pc-chev" aria-hidden="true"></i>'); h.setAttribute("role", "button"); h.tabIndex = 0;
+    const shut = !O[pcKey(p)]; p.classList.toggle("pc-shut", shut); h.setAttribute("aria-expanded", !shut);
+    h.addEventListener("click", (e) => { if (e.target.closest("a, button, input, select, label")) return; pcOpen(p, p.classList.contains("pc-shut")); });
+    h.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pcOpen(p, p.classList.contains("pc-shut")); } });
+  });
+}
+(function uxObs() {
+  const A = document.getElementById("app"); if (!A) return; let rq = 0;
+  new MutationObserver(() => { if (!rq) rq = requestAnimationFrame(() => { rq = 0; try { uxStrip(A); pcApply(); } catch (e) { /* bỏ qua */ } }); }).observe(A, { childList: true, subtree: true });
+})();
 // điện thoại: cuộn xuống → ẩn nút ☰ Bảng phụ (đỡ che nội dung), cuộn lên → hiện lại
 (function scrDir() { let y0 = scrollY; addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - y0) < 12) return; document.body.classList.toggle("scr-dn", y > y0 && y > 160); y0 = y; }, { passive: true }); addEventListener("hashchange", () => document.body.classList.remove("scr-dn")); })();
 function navKeyNow(h = location.hash || "#/") {
@@ -1133,6 +1176,7 @@ function pnApply() {
 }
 function pnGo(p) {
   if (!p) return;
+  if (p.classList?.contains("pc-shut")) pcOpen(p, true);
   const isItem = PN.items.includes(p); if (isItem) PN.cur = p;
   if (isItem && PN.focus && !PN.q) { PN.items.forEach((x) => x.classList.toggle("pn-x", x !== p)); window.dispatchEvent(new Event("resize")); window.scrollTo({ top: Math.max(0, app().getBoundingClientRect().top + scrollY - 70), behavior: "smooth" }); }
   else window.scrollTo({ top: p.getBoundingClientRect().top + scrollY - (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) - 12, behavior: "smooth" });
