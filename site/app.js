@@ -419,7 +419,7 @@ async function softRender(fn) {
 // vị trí trong quy trình: "2 · Tìm cơ hội › Radar tín hiệu" trên đầu trang + "Bước tiếp theo" ở cuối trang (theo đúng thứ tự menu)
 function navCtx(r) {
   const kids = [...($("#tabs")?.children || [])]; let g = null, gi = 0; const items = [];
-  kids.forEach((n) => { if (n.classList.contains("nav-g")) { g = n; gi++; } else if (n.tagName === "A") items.push({ a: n, g, gi }); });
+  kids.forEach((n) => { if (n.classList.contains("nav-scg") || n.classList.contains("nav-cus")) return; if (n.classList.contains("nav-g")) { g = n; gi++; } else if (n.tagName === "A") items.push({ a: n, g, gi }); });
   const i = items.findIndex((x) => x.a.dataset.r === r);
   return i < 0 ? null : { cur: items[i], next: items[i + 1] || null };
 }
@@ -457,6 +457,7 @@ function mSheet(open) {
   if (open) {
     let html = "", grp = "";
     for (const n of $("#tabs").children) {
+      if (n.classList.contains("nav-scg")) continue;
       if (n.classList.contains("nav-g")) { if (grp) html += `</div>`; html += `<h4 class="msheet-g">${n.innerHTML}</h4><div class="msheet-l">`; grp = 1; }
       else if (n.tagName === "A" && !n.classList.contains("nav-cus") && n.getAttribute("href") !== "#/bot/sup") {
         const svg = n.querySelector("svg")?.outerHTML || "", t = n.querySelector(".nav-t")?.textContent || n.textContent, h = n.getAttribute("title") || "";
@@ -503,7 +504,8 @@ const cusKey = (o) => o.href + (o.sc ? "|" + o.sc : "");
 function cusCur() { const k = lsGet("navcus", "#/portfolio"), L = cusOpts(); return L.find((o) => cusKey(o) === k) || L.find((o) => o.href === "#/portfolio") || L[0]; }
 function cusDraw() {
   const nav = $("#tabs"), more = $("#navMore"); if (!nav || !more) return;
-  let a = $("#navCus"); if (!a) { a = document.createElement("a"); a.id = "navCus"; a.className = "nav-m nav-cus"; nav.insertBefore(a, more); cusBind(a); }
+  let a = $("#navCus"); if (!a) { a = document.createElement("a"); a.id = "navCus"; a.className = "nav-m nav-cus"; nav.insertBefore(a, more); cusBind(a);
+    const g = document.createElement("span"); g.className = "nav-g nav-scg"; g.innerHTML = "<b>Lối tắt</b><em>★ tự chọn · ↻ hay vào</em>"; nav.insertBefore(g, a); }
   const o = cusCur(); a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `${o.t} – giữ lâu để đổi nút này`;
   a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
   if (o.sc) a.classList.toggle("on", location.hash.startsWith("#/bot/scalp") && (window.__scTab === o.sc || (o.sc === "live" && window.__scTab === "ov" && window.__scEnv === "live")));
@@ -512,6 +514,8 @@ function cusDraw() {
 // ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
 // bỏ qua các trang đã có nút cố định (Thị trường, Cơ hội, Giao dịch, Bot) và trang đang đặt ở nút tuỳ chọn → luôn là 1 lối tắt MỚI
 const NF_HL = 7 * 864e5;
+// điện thoại: cuộn xuống → ẩn nút ☰ Bảng phụ (đỡ che nội dung), cuộn lên → hiện lại
+(function scrDir() { let y0 = scrollY; addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - y0) < 12) return; document.body.classList.toggle("scr-dn", y > y0 && y > 160); y0 = y; }, { passive: true }); addEventListener("hashchange", () => document.body.classList.remove("scr-dn")); })();
 function navKeyNow(h = location.hash || "#/") {
   if (h.startsWith("#/bot/scalp")) return "#/bot/scalp|" + (window.__scTab || "ov");
   const m = h.match(/^#\/c\/([^/]+)/); if (m) return "#/c/" + decodeURIComponent(m[1]).toUpperCase();
@@ -526,8 +530,7 @@ function navFreqHit(k = navKeyNow()) {
   if (!k || k === window.__nfLast) return; window.__nfLast = k;
   const F = lsGet("navfreq", {}) || {}, now = Date.now();
   for (const [x, v] of Object.entries(F)) { const sc = (+v?.[0] || 0) * Math.pow(0.5, (now - (+v?.[1] || now)) / NF_HL); if (sc < 0.05) delete F[x]; else F[x] = [+sc.toFixed(3), now]; }
-  F[k] = [(F[k]?.[0] || 0) + 1, now]; lsSet("navfreq", F);
-  try { autoDraw(); } catch (e) { /* bỏ qua */ }
+  F[k] = [(F[k]?.[0] || 0) + 1, now]; lsSet("navfreq", F);      // không vẽ lại nút ngay – nút "Hay vào" đứng yên suốt phiên (chọn lúc mở app), không nhảy theo trang vừa vào
 }
 function navOpt(k) {
   const L = cusOpts(), o = L.find((x) => cusKey(x) === k); if (o) return o;
@@ -547,7 +550,8 @@ function autoTop(n = 1) {
 function autoDraw() {
   const nav = $("#tabs"), more = $("#navMore"); if (!nav || !more) return;
   let a = $("#navAuto"); if (!a) { a = document.createElement("a"); a.id = "navAuto"; a.className = "nav-m nav-cus nav-auto"; nav.insertBefore(a, more); autoBind(a); }
-  const o = autoTop(1)[0] || navOpt("#/bot/days") || { href: "#/bot/days", t: "Kết quả & sổ lệnh", short: "Kết quả", emo: "📒" };
+  if (!window.__autoO || window.__autoO.cus !== lsGet("navcus", "#/portfolio")) window.__autoO = { cus: lsGet("navcus", "#/portfolio"), o: autoTop(1)[0] || navOpt("#/bot/days") || { href: "#/bot/days", t: "Kết quả & sổ lệnh", short: "Kết quả", emo: "📒" } };
+  const o = window.__autoO.o;
   a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc && typeof o.sc === "string" ? o.sc : ""; a.title = `Hay vào: ${o.t} – tự đổi theo trang anh vào nhiều nhất · giữ lâu để xem danh sách`;
   a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "↻"}</span>`}<span class="nav-t">↻ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
 }
@@ -1061,7 +1065,8 @@ function pnCheck(force) {
   const its = PN.skip.has(PN.r) ? [] : pnCollect();
   const named = its.filter((p) => pnTitle(p));
   const full = !PN.skip.has(PN.r) && !PN.narrow.has(PN.r), mini = !full && !PN.skip.has(PN.r), on = full || mini;
-  document.body.classList.toggle("pn-on", full && pnLS("open") !== false);
+  const pnPref = pnLS("open");      // chưa từng bật/tắt: chỉ mở sẵn khi màn ≥ 1600px – màn nhỏ hơn dành chỗ cho nội dung chính
+  document.body.classList.toggle("pn-on", full && (pnPref == null ? innerWidth >= 1600 : pnPref !== false));
   document.body.classList.toggle("pn-has", on);
   document.body.classList.toggle("pn-mini", mini);
   nav.hidden = !on;
@@ -2252,7 +2257,7 @@ function bindTicketSave(root = document) {
 async function viewPlan(k0) {
   const [IJ] = await Promise.all([load("data/ideas.json"), coins(), loadSettings(), pfLoad().catch(() => null)]);
   const L = await liveData();
-  const items = ((L && L.ideas && new Date(L.at) > new Date(IJ.at)) ? L.ideas : IJ.items).filter((x) => x.edge).slice(0, 6);
+  const items = ((L && L.ideas && new Date(L.at) > new Date(IJ.at)) ? L.ideas : IJ.items).filter((x) => x.edge).slice(0, 3);      // 3 lệnh đầu – danh sách đầy đủ ở Cơ hội hôm nay
   const O = { k: k0 || lsGet("plk", ""), tf: lsGet("pltf", "auto"), side: lsGet("plside", "auto") };
   app().innerHTML = `<div class="ph"><h1>Lên kế hoạch lệnh</h1><span class="meta">đèn ${LIGHT_VI[govLight()] || ""} · đòn bẩy do hệ thống kiểm soát (swing ≤ x${GOV.base.d[govLight()]}, lướt ≤ x${GOV.base.h4[govLight()]}) · rủi ro ${nf(levGov({ k: "BTC", mc: 2e12 }, "long", "d").risk, 2)}%/lệnh · <a href="#/portfolio">xem kiểm soát rủi ro</a></span></div>
     <section class="panel"><div class="ph"><h2>🧾 Tạo kế hoạch cho một coin</h2></div>
@@ -2262,7 +2267,7 @@ async function viewPlan(k0) {
         <button class="btn primary" id="plGo">Tạo kế hoạch</button></div>
       <datalist id="plList">${COINS.rows.map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>
       <div id="plOut"></div></section>
-    <section class="panel"><div class="ph"><h2>🎯 Lệnh đáng làm nhất lúc này <span class="live-dot"></span></h2><span class="meta">giá & trạng thái cập nhật từng giây · xác nhận khung 15 phút mỗi phút · danh sách làm mới mỗi 5 phút · đã tính khối lượng, spot hay futures, đòn bẩy theo vốn của anh</span></div><div id="plTop"><p class="muted">Đang tính…</p></div></section>
+    <section class="panel"><div class="ph"><h2>🎯 3 lệnh đáng làm nhất lúc này <span class="live-dot"></span></h2><span class="meta"><a href="#/ideas">xem tất cả ở Cơ hội hôm nay →</a> · giá & trạng thái cập nhật từng giây · xác nhận khung 15 phút mỗi phút · danh sách làm mới mỗi 5 phút · đã tính khối lượng, spot hay futures, đòn bẩy theo vốn của anh</span></div><div id="plTop"><p class="muted">Đang tính…</p></div></section>
     <p class="faint disclaimer">Kế hoạch được tính tự động từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư và không đảm bảo kết quả. Đòn bẩy chỉ làm giảm tiền ký quỹ; mức lỗ do khối lượng và điểm cắt lỗ quyết định – luôn đặt cắt lỗ trên sàn.</p>`;
   const go = async () => {
     const k = $("#plK").value.trim().toUpperCase(); if (!BYK[k]) { $("#plOut").innerHTML = `<p class="muted">Chọn coin có trong danh sách.</p>`; return; }
@@ -2277,7 +2282,7 @@ async function viewPlan(k0) {
   if (O.k && BYK[O.k]) go();
   const build = async (fresh) => {
     let src = items;
-    if (fresh) { const L2 = await liveData(true); src = ((L2 && L2.ideas && new Date(L2.at) > new Date(IJ.at)) ? L2.ideas : IJ.items).filter((x) => x.edge).slice(0, 8); }
+    if (fresh) { const L2 = await liveData(true); src = ((L2 && L2.ideas && new Date(L2.at) > new Date(IJ.at)) ? L2.ideas : IJ.items).filter((x) => x.edge).slice(0, 3); }
     const seen = new Set(), tops = [];
     for (const x of src) { if (seen.has(x.k)) continue; seen.add(x.k); try { const D = await load(`data/c/${enc(x.k)}.json`); D._ij = IJ; D.ideas = [x, ...(D.ideas || []).filter((y) => y.setup !== x.setup)]; const t = makeTicket(D, IJ, { tf: x.tf, side: x.side }); if (!t.none && t.verdict !== "no") tops.push({ t, D }); } catch (e) { /* thiếu dữ liệu */ } }
     const host = $("#plTop"); if (!host) return;
@@ -2545,6 +2550,7 @@ function hookRender() {
   const pend = Object.entries(X.hk || {}).map(([id, H]) => ({ ...H, id })).filter((H) => H.exp > now - 60e3);
   const hold = Object.entries(X.pos || {}).filter(([, P]) => P.strat === "hook").map(([id, P]) => ({ ...P, id }));
   const demo = new Set((X.live?.ev || []).map((e) => e.k));
+  if (stale || (!pend.length && !hold.length)) { el.innerHTML = `<p class="hk-mini">🪝 <b>Bắt râu sập</b> · ${stale ? `<span class="down">bot chưa gửi số liệu ${Math.round(age / 60)} phút</span>` : "chưa có cú sốc nào đang chờ khớp"} · <a href="#/bot/scalp">mở bot →</a></p>`; return; }
   const day = now - 24 * 3600e3;
   const done = (X.trades || []).filter((t) => t.strat === "hook" && hkT(t.t1 || t.t0) > day).slice(-8).reverse();
   const logs = (X.log || []).filter((l) => l.m.startsWith("🪝") && hkT(l.t) > day && !/Khớp|hết \d+ phút/.test(l.m)).slice(-6).reverse();

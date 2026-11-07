@@ -1193,7 +1193,7 @@ async function viewBot(sel) {
       ${(TH.cands || []).length ? `<p class="sbh">Ứng viên bot đang xét (${TH.n} từ máy chủ phân tích)</p><div class="bth-c">${TH.cands.map((t) => { const v = BOT_V[t.v] || [t.v, ""];
           return `<div class="bth-ci"><span class="pill ${v[1]}">${v[0]}</span><b>${t.side === "long" ? "Long" : "Short"} ${esc(t.k)}</b> <small class="faint">${t.tf === "d" ? "ngày" : "4h"} · ${t.mkt === "spot" ? "spot" : "fut"} · thống kê ${nf(t.win1, 0)}% · ${nf(t.avgR, 2)}R</small>${isNum(t.pm) ? ` <span class="pill brand" title="Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này">🧬 ${nf(t.pm, 0)}%</span>` : ""}${t.play ? ` <span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[t.play] || ""}" title="Sổ tay riêng của mã cho thiết lập này">${{ prefer: "mã hợp", ok: "mã được", weak: "mã yếu", avoid: "mã tránh" }[t.play]}</span>` : ""}<div class="bth-why">${esc(t.why || "")}${isNum(t.p) ? ` <small class="faint">· giá ${px(t.p)} · vào ${px(t.e)} · SL ${px(t.s)} · MT1 ${px(t.t1)}</small>` : ""}</div></div>`; }).join("")}</div>` : ""}`
     : `<p class="muted">Bot chưa chạy phút nào – bật bot và chờ 1–2 phút.</p>`;
-  app().innerHTML = `<div class="ph"><h1>📈 Bot xu hướng</h1><span class="meta"><a href="#/bot/home">← Bot của tôi</a> · Sàn thử (tiền giả, giá thật) · theo dõi giá & khớp lệnh mỗi phút · phân tích lại mỗi 15 phút ${mLink("r")}</span></div>
+  app().innerHTML = `<div class="ph"><h1>📈 Bot xu hướng</h1><span class="meta"><a href="#/bot/home">← Bot</a> · Sàn thử (tiền giả, giá thật) · theo dõi giá & khớp lệnh mỗi phút · phân tích lại mỗi 15 phút ${mLink("r")}</span></div>
     ${PG("Bot xu hướng")}${supStrip(rv.data, rq.data)}
     ${panel(`📈 Các bot xu hướng của anh (${B.length}/6)`, fleet)}
     ${cmp}
@@ -1492,7 +1492,7 @@ async function viewDays(envArg, dateArg) {
   const keys = Object.keys(days).sort(), cnt = Object.fromEntries(DENV.map(([e]) => [e, Object.values(ALL[e]?.days || {}).filter((d) => d.n).length]));
   const R = window.__dRange || 30, ks = R === "all" ? keys : keys.slice(-R);
   const sel = dateArg && days[dateArg] ? dateArg : keys.includes(TD) ? TD : keys[keys.length - 1];
-  const head = `<div class="ph"><h1>📒 Kết quả & sổ lệnh</h1><span class="meta"><a href="#/bot/home">← Bot của tôi</a> · giờ Việt Nam · bài học rút tự động từ số liệu từng ngày</span></div>${djSeg("days", env)}
+  const head = `<div class="ph"><h1>📒 Kết quả & sổ lệnh</h1><span class="meta"><a href="#/bot/home">← Bot</a> · giờ Việt Nam · bài học rút tự động từ số liệu từng ngày</span></div>${djSeg("days", env)}
     <div class="bseg dseg">${DENV.map(([e, t, d]) => `<a href="#/bot/days/${e}" class="${e === env ? "on" : ""}" title="${esc(d)}">${t}${cnt[e] ? ` <small>${cnt[e]} ngày</small>` : ""}</a>`).join("")}</div>`;
   if (!keys.length) {
     app().innerHTML = head + panel(DENV.find((x) => x[0] === env)[1], `<p class="muted">${env === "paper" ? "Chưa có số liệu theo ngày – máy chủ riêng bắt đầu lưu sau khi cập nhật (sudo bash /opt/my-bit/scalper/install.sh), dựng lại các ngày cũ từ lịch sử lệnh." : env === "demo" ? "Chưa có lệnh nào trên Binance Demo." : "Chưa chạy trên Binance thật. Khi anh chuyển sang tiền thật, kết quả từng ngày hiện ở đây – tách riêng khỏi sàn thử & Demo."}</p>`);
@@ -1591,7 +1591,7 @@ async function viewJournal(envArg) {
   const n = F.length, w = F.filter((r) => r.pnl > 0), lo = F.filter((r) => r.pnl <= 0), net = F.reduce((a, r) => a + r.pnl, 0), fee = F.reduce((a, r) => a + r.fee, 0), fund = F.reduce((a, r) => a + r.fund, 0), gross = F.reduce((a, r) => a + r.g, 0);
   const sw = w.reduce((a, r) => a + r.pnl, 0), sl = lo.reduce((a, r) => a + r.pnl, 0), best = F.reduce((a, r) => (!a || r.pnl > a.pnl ? r : a), null), worst = F.reduce((a, r) => (!a || r.pnl < a.pnl ? r : a), null);
   const stOpts = ["all", ...Object.keys(JSTRAT).filter((s) => A.some((r) => r.strat === s && (env === "all" || r.env === env)))];
-  const head = `<div class="ph"><h1>📒 Kết quả & sổ lệnh</h1><span class="meta"><a href="#/bot/home">← Bot của tôi</a> · giờ Việt Nam · ${LG?.at ? `sổ cập nhật ${jTm(LG.at.slice(0, 19))}` : "sổ đầy đủ có sau khi cập nhật máy chủ riêng"}</span></div>${djSeg("journal", env === "all" ? "" : env)}
+  const head = `<div class="ph"><h1>📒 Kết quả & sổ lệnh</h1><span class="meta"><a href="#/bot/home">← Bot</a> · giờ Việt Nam · ${LG?.at ? `sổ cập nhật ${jTm(LG.at.slice(0, 19))}` : "sổ đầy đủ có sau khi cập nhật máy chủ riêng"}</span></div>${djSeg("journal", env === "all" ? "" : env)}
     <div class="bseg dseg">${JENV.map(([e, t]) => `<a href="#/bot/journal/${e}" class="${e === env ? "on" : ""}">${t}${cnt[e] ? ` <small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
     <div class="jf"><div class="bseg">${[[7, "7 ngày"], [30, "30 ngày"], [90, "90 ngày"], ["all", "Tất cả"]].map(([v, t]) => `<button type="button" data-jr="${v}" class="${J.R === v ? "on" : ""}">${t}</button>`).join("")}</div>
       <select id="jSt" aria-label="Phương pháp">${stOpts.map((s) => `<option value="${s}" ${J.st === s ? "selected" : ""}>${s === "all" ? "Mọi phương pháp" : JSTRAT[s].join(" ")}</option>`).join("")}</select>
