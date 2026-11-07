@@ -1171,7 +1171,9 @@ function pnOpen(v) {
 // chiều cao phần dính trên cùng: --toph = thanh đầu trang; --stick = thanh đầu + thanh menu ngang (màn 980–1199px) → mọi thứ "dính" bên dưới (tab Bot Phản Xạ, khung bên) không bị che
 function stickH() {
   const d = document.documentElement, top = $(".top"), tb = $("#tabs");
-  const h = top?.offsetHeight || 51, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
+  // ứng dụng (thêm vào màn hình chính): thanh đầu dính ở env(safe-area-inset-top) – phải cộng phần tai thỏ / thanh trạng thái, không thì thanh tab & tiêu đề dính bị thanh MyBit che mất
+  const safe = top ? parseFloat(getComputedStyle(top).top) || 0 : 0;
+  const h = (top?.offsetHeight || 51) + safe, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
   d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick", h + tbs + "px");
 }
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
