@@ -3850,3 +3850,15 @@ html[data-fdsz="m"] .sc-feed{max-height:560px}
   html[data-fdsz="s"] .sc-feed li:hover .sc-fm,html[data-fdsz="m"] .sc-feed li:hover .sc-fm{white-space:normal;overflow:visible;display:block;-webkit-line-clamp:unset}
   html[data-fdsz="s"] .sc-feed li:hover,html[data-fdsz="m"] .sc-feed li:hover{background:color-mix(in srgb,var(--brand) 7%,var(--surface))}
 }
+/* thanh tab Bot Phản Xạ: tách rõ khỏi nội dung khi dính trên cùng – nền mờ (blur) mạnh hơn, viền + bóng */
+.sc-tabs{background:color-mix(in srgb,var(--surface) 95%,transparent);-webkit-backdrop-filter:blur(28px) saturate(1.6);backdrop-filter:blur(28px) saturate(1.6);border:1px solid color-mix(in srgb,var(--ink) 10%,transparent);box-shadow:0 8px 24px rgba(0,0,0,.14),0 1px 0 rgba(255,255,255,.04) inset;margin-bottom:16px}
+.sc-tabs button.on{background:var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.18),inset 0 0 0 1px color-mix(in srgb,var(--ink) 8%,transparent)}
+/* nhật ký: bỏ cột biểu tượng – nhãn nguồn đã nói rõ loại */
+.sc-feed .sc-fi{display:none}
+.sc-feed li{grid-template-columns:62px minmax(0,1fr)}
+@media (max-width:760px){.sc-feed li{grid-template-columns:54px minmax(0,1fr)}}
+/* thanh cuộn ngang (tab, nút lọc…): trên máy tính lăn chuột để cuộn ngang, kéo bằng chuột được, mờ dần ở mép còn nội dung */
+.ovx-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px);mask-image:linear-gradient(90deg,transparent,#000 28px)}
+.ovx-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+.ovx-l.ovx-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
+html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!important}

@@ -698,6 +698,28 @@ function navRoute() {
     t.finished.finally(() => { delete d.dataset.vt; window.__vt = false; navTitle(); });
   } catch (e) { window.__vt = false; route(); }
 }
+// ---------------------------------------------------------------- THANH CUỘN NGANG trên máy tính (thanh tab, hàng nút lọc, bảng rộng…)
+// chuột thường chỉ lăn dọc → lăn chuột trên thanh ngang = cuộn ngang; giữ chuột kéo trái/phải cũng được; mép còn nội dung thì mờ dần để biết còn nữa
+(function ovx() {
+  const isX = (el) => { if (!el || el === document.body || el === document.documentElement) return false; const cs = getComputedStyle(el); return /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2; };
+  const findX = (t) => { for (let el = t; el && el !== document.body; el = el.parentElement) { if (isX(el)) return el; } return null; };
+  const mark = (el) => { const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2; el.classList.toggle("ovx-l", l); el.classList.toggle("ovx-r", r); };
+  const SEL = ".sc-tabs, .bseg, .sc-evf, .sc-sub2, .tabs, .subtabs";
+  const scan = () => document.querySelectorAll(SEL).forEach((el) => { if (isX(el)) { mark(el); if (!el.__ovx) { el.__ovx = 1; el.addEventListener("scroll", () => mark(el), { passive: true }); } } else el.classList.remove("ovx-l", "ovx-r"); });
+  new MutationObserver(() => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); }).observe(document.documentElement, { childList: true, subtree: true });
+  addEventListener("resize", () => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); });
+  if (!matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  addEventListener("wheel", (e) => {
+    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;      // bàn di chuột đã cuộn ngang sẵn
+    const el = findX(e.target); if (!el || el.scrollHeight > el.clientHeight + 2) return;      // khung cuộn cả 2 chiều (bảng cao) → để lăn dọc như thường
+    const max = el.scrollWidth - el.clientWidth, x = el.scrollLeft; if ((e.deltaY < 0 && x <= 0) || (e.deltaY > 0 && x >= max - 1)) return;
+    e.preventDefault(); el.scrollLeft = x + e.deltaY;
+  }, { passive: false });
+  let D = null;
+  addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse" || e.button !== 0) return; const el = e.target.closest?.(SEL); if (!el || !isX(el)) return; D = { el, x: e.clientX, s: el.scrollLeft, moved: false }; });
+  addEventListener("pointermove", (e) => { if (!D) return; const dx = e.clientX - D.x; if (!D.moved && Math.abs(dx) < 6) return; D.moved = true; document.documentElement.classList.add("ovx-drag"); D.el.scrollLeft = D.s - dx; });
+  addEventListener("pointerup", () => { if (!D) return; const m = D.moved; D = null; document.documentElement.classList.remove("ovx-drag"); if (m) { const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => removeEventListener("click", eat, { capture: true }), 60); } });
+})();
 // ---------------------------------------------------------------- VUỐT LÙI / TỚI như ứng dụng iPhone (điện thoại)
 // vuốt từ mép TRÁI sang phải = quay lại trang trước · từ mép PHẢI sang trái = tới trang vừa lùi. Trang đi theo ngón tay, thả quá 1/3 hoặc vuốt nhanh thì chuyển.
 // Safari thường (không phải app trên màn hình chính) đã có sẵn vuốt lùi của iOS → không làm thêm để khỏi chồng 2 lần.
