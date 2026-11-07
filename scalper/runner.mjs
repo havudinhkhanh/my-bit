@@ -43,8 +43,8 @@ class FileKV {
 const kv = new FileKV(path.join(DIR, "state.json"));
 
 // ---------------------------------------------------------------- cổng trang MyBit
-async function api(method, body, sub = "") {
-  const r = await fetch(`${SITE}/api/scalp-runner${sub}`, { method, headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json", "user-agent": "mybit-scalper" }, body, signal: AbortSignal.timeout(20000) });
+async function api(method, body, sub = "", tmo = 20000) {
+  const r = await fetch(`${SITE}/api/scalp-runner${sub}`, { method, headers: { authorization: `Bearer ${KEY}`, "content-type": "application/json", "user-agent": "mybit-scalper" }, body, signal: AbortSignal.timeout(tmo) });
   const t = await r.text();
   if (!r.ok) { let m = t; try { m = JSON.parse(t).error || t; } catch (e) { /* để nguyên */ } throw new Error(`HTTP ${r.status}: ${String(m).slice(0, 200)}`); }
   return JSON.parse(t);
@@ -155,6 +155,25 @@ core.io.onSwing = (s) => live.onSwing(s);
 core.io.onQuant = (x) => live.onQuant(x);      // 📐 định lượng: sàn thử mở/đóng → lệnh thật theo công tắc từng phương pháp
 core.io.onTrade = (t) => { try { ledAdd(t); } catch (e) { log("📒", e.message); } };
 let walBusy = 0; core.io.onWalReq = () => { if (Date.now() - walBusy < 20e3) return; walBusy = Date.now(); live.wallets().then(() => core.snapshot?.()).catch((e) => log("💵 đọc ví:", e.message)); };      // 🔄 Danh mục: đọc ví ngay
+core.io.onEnter = (id) => live.onEnter(id);      // ✋ anh bấm "Vào ngay" lệnh chờ Bắt râu sập trên Binance
+// ✋ ĐƯỜNG NHANH cho lệnh tay (đóng / vào ngay): hỏi /cmd kiểu chờ dài – trang ghi lệnh là máy chủ nhận trong ~1 giây (không phải chờ lượt đọc thiết lập 30 giây)
+let cmdAt = "", cmdSeen = new Set();
+(async function cmdLoop() {
+  for (;;) {
+    try {
+      if (!core.S) { await new Promise((r) => setTimeout(r, 3000)); continue; }      // chưa khởi động xong
+      const j = await api("GET", undefined, `/cmd?after=${encodeURIComponent(cmdAt)}`, 35000);
+      if (j?.at) {
+        cmdAt = j.at;
+        for (const it of j.cmd?.list || []) {
+          const id = `${it.act}|${it.k}|${it.at}`; if (cmdSeen.has(id)) continue; cmdSeen.add(id);
+          if (core.S && core.manual(it.k, it.at, it.act === "enter" ? "enter" : "close")) { log("✋", it.act, it.k); live?.tick().catch(() => {}); setTimeout(() => { Promise.resolve(core.snapshot?.()).catch(() => {}); }, 3000); }
+        }
+        if (cmdSeen.size > 400) cmdSeen = new Set([...cmdSeen].slice(-100));
+      }
+    } catch (e) { await new Promise((r) => setTimeout(r, 5000)); }
+  }
+})();
 core.io.onManual = (k) => live.onManual(k);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
 let busy = false, lastErr = "";
 async function tick(first) {

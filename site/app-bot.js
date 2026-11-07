@@ -19,6 +19,12 @@ async function scTabGo(k) {
   await viewScalp();
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
+// ✋ lệnh tay qua ĐƯỜNG NHANH: ghi khoá nhỏ "scalpcmd" – máy chủ riêng đang chờ sẵn (hỏi kiểu chờ dài) nên nhận trong ~1 giây
+async function scCmd(act, k, at) {
+  const L = (window.__scCmdL || []).filter((x) => Date.now() - Date.parse(x.at) < 10 * 60e3); L.push({ act, k, at }); window.__scCmdL = L;
+  try { await Store.put("scalpcmd", { list: L.slice(-20) }); } catch (e) { /* còn đường thiết lập dự phòng */ }
+}
+const HK_ENTER_NOTE = "Kiểm chứng: vào ngay ngay sau cú sốc lời ít hơn hẳn chờ ở mức sâu – bot chỉ tự vào ngay khi Long và 15 phút trước giá đã giảm ≥ 3%. Đây là lựa chọn của anh, bot không khuyên.";
 // ĐIỆN THOẠI: vuốt ngang trên nội dung để chuyển tab Bot Phản Xạ (Tổng quan ↔ Binance ↔ Phương pháp ↔ Nhật ký ↔ Thiết lập) – như lật trang trong app.
 // Mép trái/phải màn hình để dành cho vuốt lùi/tới trang; vuốt trên bảng cuộn ngang, biểu đồ, ô nhập, thanh nút thì không đổi tab.
 (function scSwipe() {
@@ -366,7 +372,9 @@ async function viewScalp() {
   // MXE[key] = số liệu để ƯỚC TÍNH lời/lỗ ròng nếu đóng ngay: e giá vào, q khối lượng, sd 1/−1, f0 phí đã trả, fr % phí taker lúc đóng, fund funding đã nhận(+)/trả(−) (null = chưa biết), pk mã giá sống, m giá dự phòng, sl % trượt giá ước tính
   const MXE = (window.__MXE = {});
   const mxRow = (key, name, real, est) => { const b = window.__mClosing?.[key]; if (est) MXE[key] = est; return `<div class="sc-mxr"><button type="button" class="sc-mx${real ? " real" : ""}${b ? " busy" : ""}" data-mclose="${esc(key)}" data-mname="${esc(name)}" data-mreal="${real ? 1 : 0}" ${b ? "disabled" : ""}>${b ? bi("⏳ Đang gửi lệnh đóng…", "⏳ Closing…") : bi("✕ Đóng lệnh", "✕ Close")}</button></div>`; };
-  const withMx = (html, key, name, real, est) => html.replace(/<\/div>\s*$/, mxRow(key, name, real, est) + "</div>");
+  // ✋ "Vào ngay" cho lệnh Bắt râu sập đang chờ khớp (sàn thử / Binance): huỷ lệnh chờ còn lại, vào phần còn thiếu bằng giá thị trường
+  const enterBtn = (key, name, real) => { const b = window.__mEntering?.[key]; return `<button type="button" class="sc-mx sc-me${real ? " real" : ""}${b ? " busy" : ""}" data-menter="${esc(key)}" data-mname="${esc(name)}" data-mreal="${real ? 1 : 0}" ${b ? "disabled" : ""}>${b ? "Đang gửi…" : "Vào ngay"}</button>`; };
+  const withMx = (html, key, name, real, est, enter) => html.replace(/<\/div>\s*$/, mxRow(key, name, real, est).replace('<div class="sc-mxr">', `<div class="sc-mxr">${enter ? enterBtn(key, name, real) : ""}`) + "</div>");
   const pcard0 = (k, p) => `<div class="sc-oc ${p.side > 0 ? "L" : "S"}"><div class="r1"><span>${p.strat === "hook" ? "🪝" : "⚡"} <b>${scK(k)}</b> <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span></span><b class="lpx" data-lpx="${esc(k)}">${px(isNum(p.m) ? p.m : p.e)}</b></div>
       <div class="r1s">${accT("paper")} ${p.strat === "hook" ? `${bi("Bắt râu sập · sốc", "Wick Catcher · shock")} ${nf((p.R || 0) / 100, 1)}%` : esc(p.how || "")}</div>
       <div class="r2" data-lpnl="${esc(k)}" data-e="${p.e}" data-q="${p.q}" data-sd="${p.side}" data-f0="${p.fee || 0}" data-fr="${frOf(p)}" data-sl="${p.sl}" data-tp="${p.tp}"><b>—</b></div>
@@ -377,7 +385,7 @@ async function viewScalp() {
       <div class="r1s">${accT("paper")} ${bi("Bắt râu sập · sốc", "Wick Catcher · shock")} ${h.side > 0 ? "−" : "+"}${nf(h.R / 100, 1)}% · z ${nf(h.z, 1)}</div>
       ${h.lv.map((l) => `<div class="sc-lvl"><span>${l.f ? "✅" : "⏳"} ${bi("mức", "level")} ${nf(l.d, 1)}× ${bi("ở", "at")} <b>${px(l.px)}</b></span><small class="faint" data-lgap="${esc(k)}" data-px="${l.px}" data-sd="${h.side}" data-f="${l.f ? 1 : 0}">${l.f ? bi("đã khớp", "filled") : ""}</small></div>`).join("")}
       <div class="r4" data-lt0="${h.t0}" data-lh="${(h.exp - h.t0) / 1000}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("còn chờ khớp", "waiting to fill")}</small></div></div>`;
-  const hcard = (k, h) => withMx(hcard0(k, h), "pp:" + k, `lệnh chờ ${k.split(":")[0]} (sàn thử)`, false, { nofill: 1, paper: 1 });
+  const hcard = (k, h) => withMx(hcard0(k, h), "pp:" + k, `lệnh chờ ${k.split(":")[0]} (sàn thử)`, false, { nofill: 1, paper: 1 }, h.lv.some((l) => !l.f));
   const lvEst = (e) => (e.pos?.q > 0 ? { pk: e.k || e.sym.replace(/USDT$/, "") + ":F", e: e.pos.ap, q: e.pos.q, sd: e.side, f0: e.fees || 0, fr: C.fee_t, fund: e.fund ?? null, sl: 0.05, pend: e.lv.filter((l) => l.st === "open" || l.st === "wait").length } : { nofill: 1 });
   const accT = (a) => `<span class="sc-acc ${a}">${a === "paper" ? bi("Sàn thử", "Paper") : a === "live" ? bi("💵 Tiền thật", "💵 Real") : "Demo"}</span>`;
   const lvAcc = () => accT(LV?.env === "live" ? "live" : "demo");
@@ -388,7 +396,7 @@ async function viewScalp() {
       ${P.q > 0 ? `<div class="r2" data-lpnl="${esc(k)}" data-e="${P.ap}" data-q="${P.q}" data-sd="${e.side}" data-f0="${e.fees || 0}" data-fr="${C.fee_t}" data-sl="${e.stop || 0}" data-tp="0"><b>—</b></div>
       <div class="r3"><small>${bi("vào TB", "avg entry")} <b>${px(P.ap)}</b> · ${qty(P.q)} · ${usd2(P.q * P.ap)}</small>${e.stop ? `<small class="down" data-lsd="${esc(k)}" data-sl="${e.stop}" data-sd="${e.side}">${bi("cắt lỗ trên sàn", "exchange stop")} ${px(e.stop)}</small>` : ""}</div>` : ""}
       ${e.lv.map((l, i) => `<div class="sc-lvl"><span>${{ open: "⏳", wait: "🕒", filled: "✅", cxl: "✖" }[l.st] || ""} ${bi("mức", "level")} ${i + 1} ${bi("ở", "at")} <b>${px(l.px)}</b> <small class="faint">· ${qty(l.q)}${l.fq > 0 && l.st !== "filled" ? ` (${bi("khớp", "filled")} ${qty(l.fq)})` : ""}</small></span><small class="faint" data-lgap="${esc(k)}" data-px="${l.px}" data-sd="${e.side}" data-f="${l.st === "open" || l.st === "wait" ? 0 : 1}">${l.st === "filled" ? bi("đã khớp", "filled") : l.st === "cxl" ? bi("đã huỷ", "cancelled") : l.st === "wait" ? bi("chờ giá tới gần mới gửi", "sent when price is near") : ""}</small></div>`).join("")}
-      ${P.q > 0 ? `<div class="r4" data-lt0="${P.t1}" data-lh="${(e.hold || 60) * 60}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("tự đóng sau", "auto-closes after")} ${nf(e.hold || 60, 0)}${bi(" phút", " min")}</small></div>` : pend.length && Date.now() < ex ? `<div class="r4" data-lt0="${t0}" data-lh="${(ex - t0) / 1000}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("còn chờ khớp", "waiting to fill")}</small></div>` : ""}</div>`, "lv:" + e.id, `${e.sym.replace(/USDT$/, "")} ${e.side > 0 ? "Long" : "Short"} trên Binance ${LV?.env === "live" ? "THẬT" : "Demo"}`, LV?.env === "live", lvEst(e));
+      ${P.q > 0 ? `<div class="r4" data-lt0="${P.t1}" data-lh="${(e.hold || 60) * 60}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("tự đóng sau", "auto-closes after")} ${nf(e.hold || 60, 0)}${bi(" phút", " min")}</small></div>` : pend.length && Date.now() < ex ? `<div class="r4" data-lt0="${t0}" data-lh="${(ex - t0) / 1000}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("còn chờ khớp", "waiting to fill")}</small></div>` : ""}</div>`, "lv:" + e.id, `${e.sym.replace(/USDT$/, "")} ${e.side > 0 ? "Long" : "Short"} trên Binance ${LV?.env === "live" ? "THẬT" : "Demo"}`, LV?.env === "live", lvEst(e), pend.length > 0 && Date.now() < ex);
   };
   const lcard = lvCard;
   const openCards = [...POS.map(([k, p]) => pcard(k, p)), ...Object.entries(HK).map(([k, h]) => hcard(k, h)), ...(LV?.ev || []).map(lcard)].join("");
@@ -1051,14 +1059,28 @@ async function viewScalp() {
   if ($("#scRes")) $("#scRes").onclick = async () => { C.resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot sẽ chạy tiếp trong ≤ 30 giây"); viewScalp(); };
   $("#scAuto").onclick = () => { const off = !autoOff("scalp"); try { localStorage.setItem("mybit_auto_scalp", off ? "0" : "1"); } catch (e) { /* bỏ qua */ } toast(off ? "Đã dừng tự cập nhật – bấm lại để chạy tiếp" : "Trang tự cập nhật lại"); if (off) $("#scAuto").textContent = "▶ Tự cập nhật"; else softRender(() => viewScalp()); };
   lvEqBind(); cmpMark(); fdPlace();
+  $$("[data-menter]").forEach((b0) => (b0.onclick = async () => {      // ✋ VÀO NGAY lệnh chờ Bắt râu sập
+    let b = b0; const key = b.dataset.menter, real = b.dataset.mreal === "1", k = key.slice(3), nm = b.dataset.mname;
+    const card = b.closest(".sc-oc"), cur = card?.querySelector(".lpx")?.textContent?.trim() || "—";
+    const ok = await iosSheet({ title: `Vào ngay ${esc(nm)}?`, danger: real, wait: real ? 1200 : 0, ok: real ? "Vào ngay bằng TIỀN THẬT" : "Vào ngay",
+      body: `Huỷ các lệnh chờ còn lại và <b>vào phần còn thiếu bằng lệnh thị trường</b> ở giá hiện tại${/\d/.test(cur) ? ` (~${esc(cur)})` : ""}. Sau đó bot quản lý như lệnh khớp thường: cắt lỗ thảm hoạ ${nf(C.hk_stop, 0)}%${C.hk_tra ? `, cắt lỗ đuổi (lời ≥ ${nf(C.hk_tra / 100, 1)}% thì đóng khi trả lại ${nf(C.hk_trg / 100, 1)}%)` : ""}, giữ tối đa ${nf(C.hk_h, 0)} phút.<br><br><span class="faint">${HK_ENTER_NOTE}</span>` });
+    if (!ok) return;
+    if (!document.body.contains(b)) b = document.querySelector(`[data-menter="${CSS.escape(key)}"]`) || b;
+    const now = new Date().toISOString(), R = {}; for (const [x, t] of Object.entries(C.enter_req || {})) if (Date.now() - Date.parse(t) < 30 * 60e3) R[x] = t;
+    scCmd("enter", key, now); R[key] = now; C.enter_req = R; delete C.syms;
+    b.disabled = true; b.classList.add("busy"); b.textContent = "Đang gửi…";
+    if (await Store.put("scalp", C)) { (window.__mEntering ||= {})[key] = now; toast(real ? "Đã gửi – máy chủ vào lệnh thật trong vài giây" : "Đã gửi – sàn thử vào lệnh trong vài giây"); setTimeout(() => { delete window.__mEntering?.[key]; }, 60e3); }
+    else { b.disabled = false; b.classList.remove("busy"); b.textContent = "Vào ngay"; }
+  }));
   $$("[data-mclose]").forEach((b0) => (b0.onclick = async () => {
     let b = b0; const key = b.dataset.mclose, real = b.dataset.mreal === "1", pend = /^pp:/.test(key) && /lệnh chờ/.test(b.dataset.mname);
     if (!(await mxAsk(key, b.dataset.mname, real, pend))) return;
     if (!document.body.contains(b)) b = document.querySelector(`[data-mclose="${CSS.escape(key)}"]`) || b;      // trang đã vẽ lại trong lúc xem bảng
     const now = new Date().toISOString(), R = {}; for (const [k, t] of Object.entries(C.close_req || {})) if (Date.now() - Date.parse(t) < 30 * 60e3) R[k] = t;
+    scCmd("close", key, now);      // đường nhanh (~1 giây) – thiết lập bên dưới là đường dự phòng (≤ 30 giây)
     R[key] = now; C.close_req = R; delete C.syms;
     b.disabled = true; b.classList.add("busy"); b.textContent = bi("⏳ Đang gửi lệnh đóng…", "⏳ Closing…");
-    if (await Store.put("scalp", C)) { (window.__mClosing ||= {})[key] = now; toast(bi("Đã gửi – máy chủ đóng lệnh trong ≤ 30 giây", "Sent – the server closes it within 30 s")); setTimeout(() => { delete window.__mClosing?.[key]; }, 90e3); }
+    if (await Store.put("scalp", C)) { (window.__mClosing ||= {})[key] = now; toast(bi("Đã gửi – máy chủ đóng lệnh trong vài giây", "Sent – the server closes it in a few seconds")); setTimeout(() => { delete window.__mClosing?.[key]; }, 90e3); }
     else { b.disabled = false; b.classList.remove("busy"); b.textContent = bi("✕ Đóng lệnh", "✕ Close"); }
   })); if (window.__hzInfo) { const d = $(".hz2 > .sc-i"); if (d) d.open = true; }
   $("#scOn").onclick = async () => {

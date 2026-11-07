@@ -120,6 +120,16 @@ async function scalpRunner({ request, env }, sub) {
     if (!Array.isArray(j?.rows)) return err("Thiếu danh sách lệnh");
     await putData(env, u.id, "scalpledger", t); return json({ ok: true, n: j.rows.length });
   }
+  if (sub === "cmd") {        // ✋ lệnh tay từ trang (đóng lệnh / vào ngay) – máy chủ riêng hỏi kiểu "chờ dài": trả ngay khi có lệnh mới, tối đa chờ 20 giây → nhanh ~1 giây, rất ít yêu cầu
+    if (request.method !== "GET") return err("Phương thức không hỗ trợ", 405);
+    const after = new URL(request.url).searchParams.get("after") || "";
+    for (let i = 0; i < 20; i++) {
+      const r = await env.DB.prepare("SELECT value, updated_at FROM user_data WHERE user_id = ? AND key = 'scalpcmd'").bind(u.id).first();
+      if (r && r.updated_at > after) { let v = null; try { v = JSON.parse(r.value); } catch (e) { /* bỏ qua */ } return json({ at: r.updated_at, cmd: v }); }
+      await new Promise((res) => setTimeout(res, 1000));
+    }
+    return json({ at: null });
+  }
   if (sub === "brain") {      // bộ nhớ học dùng chung (bot khác / máy khác / lúc giao dịch thật nạp lại được)
     if (request.method === "GET") return json(await getData(env, u.id, "scalpbrain"));
     if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }

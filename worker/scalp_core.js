@@ -277,17 +277,9 @@ export class ScalpCore {
     if (!this.brainTried) { this.brainTried = true; await this.loadBrain(now); }
     // ĐÓNG LỆNH TAY: trang ghi close_req = { "<mã lệnh>": giờ bấm } → xử lý 1 lần mỗi yêu cầu (đọc thiết lập ≤ 30 giây/lần)
     //   pp:<thị trường> = lệnh sàn thử (lướt giây / Bắt râu sập) · sw:<pp>:<id> = lệnh thử nghiệm · lv:<id> / swp:<id> = lệnh trên Binance (chuyển cho máy chủ riêng)
-    for (const [k, at] of Object.entries(c.close_req || {})) {
-      const seen = (this.S.close_seen ||= {}); if (seen[k] === at) continue; seen[k] = at;
-      if (Date.now() - Date.parse(at) > 15 * 60e3) continue;      // yêu cầu quá cũ (máy chủ tắt lâu) → bỏ, không đóng bất ngờ
-      try {
-        if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
-        else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
-        else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
-        else if (k.startsWith("lv:") || k.startsWith("swp:") || k.startsWith("lq:")) this.io.onManual?.(k);
-      } catch (e) { this.err("đóng tay " + k + ": " + e.message); }
-    }
-    for (const k of Object.keys(this.S.close_seen || {})) if (!(c.close_req || {})[k]) delete this.S.close_seen[k];
+    for (const [k, at] of Object.entries(c.close_req || {})) this.manual(k, at, "close");
+    for (const [k, at] of Object.entries(c.enter_req || {})) this.manual(k, at, "enter");
+    for (const [k, at] of Object.entries(this.S.close_seen || {})) if (Date.now() - Date.parse(at) > 30 * 60e3) delete this.S.close_seen[k];      // nhớ 30 phút để không làm 2 lần (đường nhanh + đường thiết lập)
     // 🔄 trang Danh mục bấm "Cập nhật từ Binance" → đọc lại số dư ví ngay (không chờ lượt 5 phút)
     if (c.wal_req && c.wal_req !== this.S.wal_seen) { this.S.wal_seen = c.wal_req; if (Date.now() - Date.parse(c.wal_req) < 10 * 60e3) try { this.io.onWalReq?.(); } catch (e) { /* bỏ qua */ } }
     if (c.resume_at && c.resume_at !== this.S.resume_seen) {   // anh bấm "bỏ nghỉ, chạy tiếp"
@@ -357,6 +349,34 @@ export class ScalpCore {
     this.S.log = [...L.slice(-299), { t: iso(now), k, m }]; this.sayDay(now, m, k);
   }
   sayDay(now, m, k) { if (k === "stop" && this.S.days) { const D = this.dayRec(now); D.ev = [...(D.ev || []).slice(-9), [iso(now).slice(11, 16), m.slice(0, 160)]]; } }
+  // ✋ LỆNH TAY từ trang: đóng lệnh (close) hoặc VÀO NGAY lệnh chờ Bắt râu sập (enter). Đến qua 2 đường: nhanh (máy chủ riêng hỏi /cmd, ~1 giây)
+  // và thiết lập (close_req / enter_req, ≤ 30 giây) → close_seen chống làm 2 lần. Trả true nếu đã xử lý.
+  manual(k, at, act = "close") {
+    if (!this.S || !k || !at) return false;
+    const seen = (this.S.close_seen ||= {}), key = act === "enter" ? "E|" + k : k, now = Date.now();
+    if (seen[key] === at) return false; seen[key] = at;
+    if (now - Date.parse(at) > 15 * 60e3) return false;      // yêu cầu quá cũ (máy chủ tắt lâu) → bỏ, không đóng / vào bất ngờ
+    try {
+      if (act === "enter") return this.enterNow(k, now);
+        if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
+      else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
+      else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
+      else if (k.startsWith("lv:") || k.startsWith("swp:") || k.startsWith("lq:")) this.io.onManual?.(k);
+    } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
+    return true;
+  }
+  enterNow(k, now = Date.now()) {
+    if (k.startsWith("lv:")) { this.io.onEnter?.(k.slice(3)); return true; }
+    if (!k.startsWith("pp:")) return false;
+    const id = k.slice(3), H = this.S.hk?.[id], x = this.M[id]; if (!H || !x) return false;
+    const px = H.side > 0 ? x.ask || x.bid : x.bid || x.ask; if (!(px > 0)) return false;
+    const rest = H.lv.filter((l) => !l.f); if (!rest.length) return false;
+    for (const l of rest) { l.f = 1; l.mk = 1; l.px = px; this.hookFill(x, H, l, now); }
+    delete this.S.hk[id];
+    const P = this.S.pos[id]; if (P) P.man = 1;
+    this.say(now, `✋ Anh bấm VÀO NGAY ${id.split(":")[0]} trên trang – ${H.side > 0 ? "mua" : "bán"} ${rest.length} mức chờ còn lại ở giá thị trường ${+px.toPrecision(6)}`, "info");
+    return true;
+  }
   // ---------------------------------------------------------------- KẾT QUẢ THEO NGÀY (giờ Việt Nam) – lưu lâu dài, trang "Kết quả theo ngày" đọc để vẽ biểu đồ & rút bài học
   dayRec(now, d = vnDay(now)) {
     const S = this.S, D = ((S.days ||= {})[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, f6: 0, knife: 0, seen: 0, placed: 0, ev: [] });

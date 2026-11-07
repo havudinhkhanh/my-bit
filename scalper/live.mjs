@@ -268,6 +268,7 @@ export class LiveExec {
     try {
       while (this.q.length) { const h = this.q.shift(); try { await this.place(h); } catch (e) { this.err(`đặt lệnh ${h.id}`, e); } }
       while (this.qm?.length) { const k = this.qm.shift(); try { await this.doManual(k); } catch (e) { this.err(`đóng tay ${k}`, e); } }
+      while (this.qe?.length) { const id = this.qe.shift(); try { await this.enterNow(id); } catch (e) { this.err(`vào ngay ${id}`, e); } }
       while (this.qs?.length) { const x = this.qs.shift(); try { await this.swPlace(x); } catch (e) { this.err(`Short bơm ${x.sym}`, e); } }
       await this.swManage();
       while (this.qq?.length) { const x = this.qq.shift(); try { if (x.act === "open") await this.qPlace(x); else await this.qExit(x.id, x.why); } catch (e) { this.err(`📐 ${x.k || ""} ${x.act}`, e); } }
@@ -372,6 +373,32 @@ export class LiveExec {
   onSwing(s) { (this.qs ||= []).push(s); }
   // ✋ đóng tay từ trang: lv:<id> = lần Bắt râu sập (huỷ lệnh chờ + đóng vị thế), swp:<id> = lệnh Short bơm
   onManual(k) { (this.qm ||= []).push(k); }
+  // ✋ VÀO NGAY từ trang: lần Bắt râu sập đang chờ khớp → huỷ các lệnh chờ còn lại, vào phần còn thiếu bằng lệnh thị trường; sau đó quản lý như lệnh khớp thường
+  // (cắt lỗ đặt trên sàn, cắt lỗ đuổi, giữ tối đa hk_h phút tính từ lúc vào)
+  onEnter(id) { (this.qe ||= []).push(id); }
+  async enterNow(id) {
+    const ev = this.S.ev[id]; if (!ev || ev.done) return;
+    const F = await this.filters(ev.sym); if (!F) return;
+    let rem = 0;
+    for (const l of ev.lv) {
+      if (l.st === "open") {
+        await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {});
+        const o = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => null);
+        if (o) { const fq = +o.executedQty, ap = +o.avgPrice; if (fq > (l.fq || 0)) { this.addFill(ev, fq - (l.fq || 0), (ap * fq - (l.ap || 0) * (l.fq || 0)) / Math.max(1e-12, fq - (l.fq || 0)), l.mk); l.fq = fq; l.ap = ap; } }
+      }
+      if (l.st === "open" || l.st === "wait") { rem += Math.max(0, l.q - (l.fq || 0)); l.st = (l.fq || 0) > 0 ? "filled" : "cxl"; }
+    }
+    ev.exp = Math.min(ev.exp, Date.now());
+    const m = this.mark(ev.k) || ev.pos.ap || ev.c0; let q = fl(rem, F.step);
+    if (m && q * m < F.minN) q = ce(F.minN * 1.02 / m, F.step);
+    if (!(rem > 0) || !(q > 0)) { this.say(`✋ ${ev.sym}: không còn mức chờ nào để vào ngay`, "info"); this.save(); return; }
+    const o = await this.req("POST", "/fapi/v1/order", { symbol: ev.sym, side: ev.side > 0 ? "BUY" : "SELL", type: "MARKET", quantity: q.toFixed(F.sd), newClientOrderId: `mb${ev.id}n${Date.now() % 1e6}`, newOrderRespType: "RESULT" });
+    const fq = +o.executedQty || q, ap = +o.avgPrice || m;
+    ev.lv.push({ d: 0, mk: 0, man: 1, px: ap, q: fq, st: "filled", fq, ap, cid: o.clientOrderId || "" });
+    this.addFill(ev, fq, ap, 1); ev.man = 1;
+    this.say(`✋ Anh bấm VÀO NGAY ${ev.sym} trên trang – ${ev.side > 0 ? "mua" : "bán"} ${fq} giá thị trường ~${+ap.toPrecision(8)} (đã huỷ lệnh chờ còn lại)`, "info");
+    this.save();
+  }
   async doManual(k) {
     if (k.startsWith("lv:")) { const ev = this.S.ev[k.slice(3)]; if (ev && !ev.done) {
       const pr = await this.pos(ev.sym);

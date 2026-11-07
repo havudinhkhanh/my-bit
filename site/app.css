@@ -3877,3 +3877,7 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
   table.rs td:not([data-l]):not(:first-child){grid-column:1/-1;display:flex!important;justify-content:flex-end;align-items:center;gap:8px;margin-top:2px;padding-top:8px!important;border-top:1px dashed var(--line-2)!important}
   table.rs td:not([data-l]):not(:first-child) .btn,table.rs td:not([data-l]):not(:first-child) button{padding:6px 14px;font-size:.78rem;min-height:0}
 }
+/* ✋ Vào ngay (lệnh chờ) cạnh Đóng lệnh */
+.sc-mxr{gap:6px}
+.sc-me{border-color:color-mix(in srgb,var(--brand) 50%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent);color:var(--ink)}
+.sc-me.real{border-color:var(--brass,#d9a23a);background:color-mix(in srgb,var(--brass,#d9a23a) 16%,transparent)}
