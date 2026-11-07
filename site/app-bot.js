@@ -19,6 +19,49 @@ async function scTabGo(k) {
   await viewScalp();
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
+// ĐIỆN THOẠI: vuốt ngang trên nội dung để chuyển tab Bot Phản Xạ (Tổng quan ↔ Binance ↔ Phương pháp ↔ Nhật ký ↔ Thiết lập) – như lật trang trong app.
+// Mép trái/phải màn hình để dành cho vuốt lùi/tới trang; vuốt trên bảng cuộn ngang, biểu đồ, ô nhập, thanh nút thì không đổi tab.
+(function scSwipe() {
+  if (window.__scSwipe) return; window.__scSwipe = 1;
+  const MOBq = matchMedia("(max-width:979px)");
+  const noGo = (t) => { for (let el = t; el && el.id !== "app"; el = el.parentElement) {
+    if (el.matches?.("input, textarea, select, canvas, svg, .tw, .sc-tabs, .bseg, .sc-sub2, .sc-evf, .lb-seg, [data-noswipe], .chartbox, .lw-chart")) return true;
+    const cs = getComputedStyle(el); if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2) return true; } return false; };
+  let st = null;
+  addEventListener("touchstart", (e) => {
+    st = null; if (!MOBq.matches || !location.hash.startsWith("#/bot/scalp") || e.touches.length !== 1) return;
+    if (document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu")) return;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY, body = document.querySelector("#app .sc-body");
+    if (!body || x < 30 || x > innerWidth - 30 || !body.contains(e.target) || noGo(e.target)) return;
+    const keys = [...document.querySelectorAll(".sc-tabs [data-sctab]")].map((b) => b.dataset.sctab), i = keys.indexOf(window.__scTab);
+    if (i < 0) return; st = { x, y, t: Date.now(), dx: 0, lock: false, body, keys, i };
+  }, { passive: true });
+  addEventListener("touchmove", (e) => {
+    if (!st) return; const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y;
+    if (!st.lock) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; } if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.6) return; st.lock = true; }
+    e.preventDefault();
+    const edge = (dx > 0 && st.i === 0) || (dx < 0 && st.i === st.keys.length - 1), d = edge ? dx * 0.25 : dx; st.dx = d;
+    st.body.style.transition = "none"; st.body.style.transform = `translateX(${d}px)`; st.body.style.opacity = String(1 - Math.min(0.35, Math.abs(d) / innerWidth * 0.6));
+    const bar = document.querySelector(".sc-tabs"), nx = st.keys[st.i + (dx < 0 ? 1 : -1)];
+    bar?.querySelectorAll("[data-sctab]").forEach((b) => b.classList.toggle("pv", !edge && Math.abs(d) > innerWidth * 0.22 && b.dataset.sctab === nx));
+  }, { passive: false });
+  const end = async () => {
+    if (!st) return; const s = st; st = null; if (!s.lock) return;
+    document.querySelectorAll(".sc-tabs .pv").forEach((b) => b.classList.remove("pv"));
+    const W = innerWidth, v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), j = s.i + (s.dx < 0 ? 1 : -1);
+    const go = j >= 0 && j < s.keys.length && (Math.abs(s.dx) > W * 0.22 || (v > 0.5 && Math.abs(s.dx) > 40));
+    s.body.style.transition = "transform .18s cubic-bezier(.2,.8,.2,1), opacity .18s";
+    if (!go) { s.body.style.transform = ""; s.body.style.opacity = ""; return; }
+    const dir = s.dx < 0 ? 1 : -1; s.body.style.transform = `translateX(${-dir * W * 0.6}px)`; s.body.style.opacity = "0";
+    navigator.vibrate?.(5);
+    setTimeout(async () => {
+      await scTabGo(s.keys[j]);
+      const nb = document.querySelector("#app .sc-body"); if (!nb) return;
+      try { nb.animate([{ transform: `translateX(${dir * W * 0.35}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (er) { /* bỏ qua */ }
+    }, 150);
+  };
+  addEventListener("touchend", end); addEventListener("touchcancel", end);
+})();
 // khung sự kiện: Gọn (ít dòng, mỗi sự kiện 1 dòng) · Vừa (mặc định) · Đầy đủ (hiện hết, không cuộn trong khung) – áp dụng cho mọi khung sự kiện, nhớ lựa chọn
 const fdSz = () => { const v = lsGet("feedsz", "m"); return ["s", "m", "l"].includes(v) ? v : "m"; };
 document.documentElement.dataset.fdsz = fdSz();

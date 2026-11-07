@@ -3862,3 +3862,9 @@ html[data-fdsz="m"] .sc-feed{max-height:560px}
 .ovx-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
 .ovx-l.ovx-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
 html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!important}
+/* vuốt đổi tab: tab sắp tới sáng lên khi kéo đủ xa */
+.sc-tabs button.pv{background:color-mix(in srgb,var(--brand) 12%,var(--surface));color:var(--ink)}
+/* vuốt lùi/tới: nút mũi tên gọn, không tràn khỏi màn hình */
+#swNav .sw-ar{width:34px;height:34px;margin-top:-17px;left:12px;transform-origin:left center;transform:scale(calc(.6 + var(--p,0) * .4))}
+#swNav[data-dir="fwd"] .sw-ar{left:auto;right:12px;transform-origin:right center}
+#swNav .sw-ar::before{font-size:1.2rem}
