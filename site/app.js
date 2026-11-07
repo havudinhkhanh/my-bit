@@ -1595,7 +1595,7 @@ async function viewMarket() {
   const list = (keys, fn, n = 8) => (keys || []).slice(0, n).map((k) => coinMini(k, fn(BYK[k] || {}))).join("") || `<p class="muted">—</p>`;
   const sec = (X.sectors || []).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a> <small class="faint">${s.n}</small></td><td class="${cls(s.r1)}">${pct(s.r1, 1)}</td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 0)}</td><td>${usd(s.mc)}</td><td>${nf(s.up / s.n * 100, 0)}%</td><td class="l">${coinLink(s.best)} <small class="${cls(s.best7)}">${pct(s.best7, 0)}</small></td></tr>`).join("");
   app().innerHTML = `
-  <div class="ph"><h1>Tổng quan thị trường</h1><span class="meta">cập nhật ${esc(new Date(M.at).toLocaleString(LOC))} · ${nf(M.counts?.coins, 0)} coin (${nf(M.counts?.fut, 0)} có futures, ${nf(M.counts?.spot, 0)} trên Binance spot) · <a href="#/radar">⚡ Radar tín hiệu</a> · <a href="#/pairs">Coin cùng nhịp</a> · <a href="#/live">Bảng giá trực tiếp →</a></span></div>
+  <div class="ph"><h1>Thị trường</h1><span class="meta">Cập nhật ${esc(new Date(M.at).toLocaleString(LOC))} · ${nf(M.counts?.coins, 0)} coin · ${nf(M.counts?.fut, 0)} futures</span></div>
   ${PG("Tổng quan")}<section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
   <div class="stgs">
     ${stGroup("Xu hướng", [
@@ -1709,7 +1709,7 @@ async function viewCoins(view0) {
   const F = lsGet("cfilter", { q: "", g: "", fut: false, spot: false, vd: "", ts: "", cf: false, min: 0 });
   let sort = lsGet("csort", { k: "mc", d: -1 });
   const groups = [...new Set(C.rows.map((r) => r.g).filter(Boolean))].sort();
-  app().innerHTML = `<div class="ph"><h1>Tra cứu coin</h1><span class="meta">${nf(C.rows.length, 0)} coin · top ~300 vốn hoá + cặp USDT Binance + mọi coin có futures (đã loại stablecoin, token bọc, cổ phiếu token hoá)</span></div>
+  app().innerHTML = `<div class="ph"><h1>Tra cứu coin</h1><span class="meta">${nf(C.rows.length, 0)} coin · top 300 vốn hoá + mọi coin có futures · đã loại stablecoin, token bọc</span></div>
     <div class="views">${Object.entries(VIEWS).map(([k, [n]]) => `<button data-v="${k}" class="${k === view ? "on" : ""}">${n}</button>`).join("")}</div>
     <div class="filters">
       <div class="field"><label>Tìm</label><input id="fq" value="${esc(F.q)}" placeholder="Tên hoặc mã"></div>
@@ -2321,7 +2321,7 @@ async function viewPlan(k0) {
   const L = await liveData();
   const items = ((L && L.ideas && new Date(L.at) > new Date(IJ.at)) ? L.ideas : IJ.items).filter((x) => x.edge).slice(0, 3);      // 3 lệnh đầu – danh sách đầy đủ ở Cơ hội hôm nay
   const O = { k: k0 || lsGet("plk", ""), tf: lsGet("pltf", "auto"), side: lsGet("plside", "auto") };
-  app().innerHTML = `<div class="ph"><h1>Lên kế hoạch lệnh</h1><span class="meta">đèn ${LIGHT_VI[govLight()] || ""} · đòn bẩy do hệ thống kiểm soát (swing ≤ x${GOV.base.d[govLight()]}, lướt ≤ x${GOV.base.h4[govLight()]}) · rủi ro ${nf(levGov({ k: "BTC", mc: 2e12 }, "long", "d").risk, 2)}%/lệnh · <a href="#/portfolio">xem kiểm soát rủi ro</a></span></div>
+  app().innerHTML = `<div class="ph"><h1>Lên kế hoạch lệnh</h1><span class="meta">Đèn ${LIGHT_VI[govLight()] || ""} · đòn bẩy tối đa x${GOV.base.d[govLight()]} swing, x${GOV.base.h4[govLight()]} lướt · rủi ro ${nf(levGov({ k: "BTC", mc: 2e12 }, "long", "d").risk, 2)}%/lệnh · <a href="#/portfolio">kiểm soát rủi ro →</a></span></div>
     <section class="panel"><div class="ph"><h2>🧾 Tạo kế hoạch cho một coin</h2></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="plK" list="plList" value="${esc(O.k)}" placeholder="VD: SOL"></div>
         <div class="field"><label>Kiểu chơi</label><select id="plTf"><option value="auto">Tự chọn</option><option value="h4" ${O.tf === "h4" ? "selected" : ""}>Lướt (4h, vài giờ – vài ngày)</option><option value="d" ${O.tf === "d" ? "selected" : ""}>Swing (ngày, vài ngày – vài tuần)</option></select></div>
@@ -2688,7 +2688,7 @@ async function viewIdeas() {
     <div class="mo"><h4>⚖️ Giao dịch cặp (trung lập thị trường)</h4><p>Long coin rẻ / Short coin đắt trong một cặp hay chạy cùng nhau, chờ chênh lệch quay về.</p>${pok.length ? `<ul>${pok.map((x) => `<li><b>${esc(x.side)}</b> <small>z ${nf(x.z, 2)} · quay về ${nf(x.win, 0)}% · ${x.n} lần</small></li>`).join("")}</ul>` : `<p class="muted">Không có cặp nào đạt chuẩn lúc này.</p>`}<a href="#/pairs">Xem cặp coin →</a></div>
     <div class="mo"><h4>⚡ Lướt khung ngắn (phút – giờ)</h4><p>Radar quét trực tiếp 20–80 coin theo SMC + chỉ báo + khung lớn, báo khi coin chuyển sang VÀO ĐƯỢC.</p><a class="btn" href="#/radar">Mở Radar →</a></div>
     <div class="mo"><h4>🧱 Tích luỹ BTC dài hạn</h4><p>MVRV ${nf(cy.mvrv, 2)} (${esc(cy.mvrv_zone || "")}). ${cy.mvrv < 1.5 ? "Vùng rẻ lịch sử – mua đều (DCA) hằng tuần là chiến lược có xác suất cao nhất." : cy.mvrv > 3 ? "Vùng đắt lịch sử – ngừng mua thêm, chốt lời dần phần dài hạn." : "Vùng trung tính – mua đều phần nhỏ, giữ tiền mặt chờ vùng rẻ."}</p><a href="#/">Xem định giá BTC →</a></div></div>`;
-  app().innerHTML = `<div class="ph"><h1>Cơ hội hôm nay – vào lệnh gì lúc này</h1><span class="meta">${fromLive ? "thiết lập cập nhật " + etaTxt(L0.at.slice(0, 16)) : "cập nhật " + etaTxt(I.at.slice(0, 16))} · giá trực tiếp từng giây <span class="live-dot"></span></span></div>
+  app().innerHTML = `<div class="ph"><h1>Cơ hội hôm nay</h1><span class="meta">Cập nhật ${etaTxt((fromLive ? L0.at : I.at).slice(0, 16))} · giá trực tiếp <span class="live-dot"></span></span></div>
     <section class="panel hero light-${light.color || ""}"><div class="opp-sum" id="oSum"></div></section>
     <div id="oHook"></div>
     <section class="panel"><div class="ph"><h2>🗺️ Bản đồ cơ hội – chọn nhanh lệnh đáng làm</h2><span class="meta">góc trên-phải = xác suất cao và lời nhiều</span></div><div class="omap-w"><div id="oMap"></div><div id="oTop" class="otop"></div></div></section>
@@ -2807,7 +2807,7 @@ async function viewSectors() {
   if (!S) throw new Error("Chưa có dữ liệu nhóm ngành – chờ lượt cập nhật đầy đủ kế tiếp");
   const L = S.sectors.filter((s) => s.series?.length && s.n_liq >= 2 && s.g !== "Khác");
   let rng = lsGet("secrng", 90), sort = lsGet("secsort", "rs30");
-  app().innerHTML = `<div class="ph"><h1>Nhóm ngành crypto</h1><span class="meta">${L.length} nhóm · chỉ số giá theo vốn hoá của coin giao dịch được · cập nhật ${esc(new Date(S.at).toLocaleString(LOC))}</span></div>
+  app().innerHTML = `<div class="ph"><h1>Nhóm ngành</h1><span class="meta">${L.length} nhóm · chỉ số theo vốn hoá · cập nhật ${esc(new Date(S.at).toLocaleString(LOC))}</span></div>
     <div class="note"><p>Tiền trong crypto chạy theo <b>nhóm câu chuyện</b> (AI, Meme, Layer 1, DeFi…). Khi một nhóm mạnh hơn BTC và còn tăng tốc, coin trong nhóm thường cùng tăng; khi nhóm hụt hơi, cả nhóm cùng giảm. Trang này cho anh biết từng nhóm làm gì, kiếm tiền từ đâu, đang mạnh hay yếu, và nên làm gì.</p></div>
     <div class="g g2w">${panel(`🔄 Bản đồ luân chuyển dòng tiền ${mLink("rrg")}`, rrg(L) + `<p class="faint" style="font-size:.75rem">Trục ngang: nhóm tăng hơn (phải) hay kém (trái) BTC trong 30 ngày. Trục dọc: lợi thế đó đang tăng thêm (trên) hay giảm đi (dưới) trong 7 ngày. Vệt mờ = đường đi 3 tuần qua. Vòng quay điển hình: Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu. Bong bóng càng to vốn hoá càng lớn.</p>`)}
       ${panel("📊 Hiệu suất các nhóm", `<div class="tw"><table class="sect"><thead><tr><th class="l">Nhóm</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>So BTC 30n</th><th class="l">Trạng thái</th></tr></thead><tbody>${L.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999)).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a></td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 1)}</td><td class="${cls(s.r90)}">${pct(s.r90, 0)}</td><td class="${cls(s.rs30)}"><b>${pct(s.rs30, 1)}</b></td><td class="l">${pill(esc(s.action?.q || "—"), QCOL[s.action?.q] || "")}</td></tr>`).join("")}</tbody></table></div>`)}</div>
@@ -2885,7 +2885,7 @@ const keyOfBase = (() => { let m = null; return (base, kind) => { if (!m) { m = 
 async function viewLive() {
   await coins();
   lvClose();
-  app().innerHTML = `<div class="ph"><h1>Bảng giá trực tiếp</h1><span class="meta">mọi cặp USDT spot + hợp đồng vĩnh cửu USDT-M · giá từng giây, lấy thẳng từ Binance trên trình duyệt của anh
+  app().innerHTML = `<div class="ph"><h1>Bảng giá trực tiếp</h1><span class="meta">Spot USDT + perp USDT-M · giá trực tiếp từ Binance
     · spot <b id="lvS">${LV.st.spot}</b> · futures <b id="lvF">${LV.st.fut}</b></span></div>
     <div class="g g3" id="lvMov"></div>
     <div class="filters"><div class="field"><label>Tìm</label><input id="lvQ" placeholder="BTC, SOL…"></div>
@@ -3436,7 +3436,7 @@ async function viewRadar() {
   const IJ = await tryLoad("data/ideas.json");
   const O = { tf: lsGet("rdtf", "15m"), n: lsGet("rdn", 30), side: lsGet("rdside", ""), st: lsGet("rdst", "") };
   const TFR = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
-  app().innerHTML = `<div class="ph"><h1>Radar tín hiệu</h1><span class="meta">quét trực tiếp từ Binance trên trình duyệt · SMC + chỉ báo + khung lớn · <span id="rdS">…</span></span></div>
+  app().innerHTML = `<div class="ph"><h1>Radar tín hiệu</h1><span class="meta">Quét trực tiếp Binance · SMC + chỉ báo đa khung · <span id="rdS">…</span></span></div>
     <div class="note"><p>Mỗi coin được chấm điểm 0–100 cho cả Long và Short theo cùng bảng kiểm tra ở tab <b>SMC & vào lệnh</b>: cấu trúc khung lớn, BOS/CHoCH, quét thanh khoản, vị trí Premium/Discount, giá đang ở Order Block/FVG, RSI, MACD, dòng tiền chủ động (CVD), VWAP, khối lượng, đám đông futures. <b>VÀO ĐƯỢC</b> ≥ 75 điểm và đã phá cấu trúc · <b>CHUẨN BỊ</b> ≥ 58 (đặt cảnh báo/lệnh chờ) · còn lại <b>CHỜ</b>.</p></div>
     <div class="filters"><div class="field"><label>Khung vào lệnh</label><select id="rdT">${TFR.map((t) => `<option value="${t}" ${t === O.tf ? "selected" : ""}>${TFN[t]}</option>`).join("")}</select></div>
       <div class="field"><label>Số coin</label><select id="rdN">${[20, 30, 50, 80].map((n) => `<option ${n === O.n ? "selected" : ""}>${n}</option>`).join("")}</select></div>
@@ -3508,7 +3508,7 @@ async function viewPairs() {
   const rs = (P.rs || []).filter((x) => BYK[x.k]);
   const rsT = (arr) => `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>Giá / BTC 90 ngày</th></tr></thead><tbody>${arr.map((x) => `<tr><td class="l">${coinLink(x.k)}</td><td class="${cls(x.rs7)}">${pct(x.rs7, 1)}</td><td class="${cls(x.rs30)}"><b>${pct(x.rs30, 1)}</b></td><td class="${cls(x.rs90)}">${pct(x.rs90, 0)}</td><td>${spark(x.sp, { w: 110, h: 22 })}</td></tr>`).join("")}</tbody></table></div>`;
   const rsS = rs.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999));
-  app().innerHTML = `<div class="ph"><h1>Coin cùng nhịp – coin nào chạy cùng nhau</h1><span class="meta">cập nhật ${esc(new Date(P.at).toLocaleString(LOC))} · ${ks.length} coin thanh khoản lớn · tương quan lợi nhuận ngày ${C.days || 90} ngày</span></div>
+  app().innerHTML = `<div class="ph"><h1>Coin cùng nhịp</h1><span class="meta">${ks.length} coin thanh khoản lớn · tương quan lợi suất ngày, ${C.days || 90} ngày · cập nhật ${esc(new Date(P.at).toLocaleString(LOC))}</span></div>
     ${PG("Tương quan")}<div class="g g2w">
       ${panel("🧩 Bản đồ tương quan (số = tương quan × 100)", heat + `<p class="faint" style="font-size:.75rem">Xếp theo mức tương quan với BTC. Xanh đậm = chạy gần như cùng nhau (đa dạng hoá kém, hedge tốt); đỏ = ngược chiều; nhạt = ít liên quan. Altcoin lớn thường tương quan 0,7–0,9 với BTC – khi thị trường sập, gần như mọi thứ giảm cùng lúc.</p>`)}
       <div>${panel("Chạy cùng nhau nhiều nhất", pl(C.top))}${panel("Ít liên quan nhất (đa dạng hoá)", pl(C.low))}</div></div>
@@ -4112,7 +4112,7 @@ async function viewPaper(k0) {
   if (k0 && BYK[k0]) PV.k = k0;
   if (!BYK[PV.k]) PV.k = "BTC";
   const envOn = lsGet("pvenv", "paper");
-  app().innerHTML = `<div class="ph"><h1>Sàn giao dịch thử</h1><span class="meta">giá thật từng giây từ Binance · phí, funding, thanh lý như sàn thật · đòn bẩy vẫn do hệ thống kiểm soát</span></div>
+  app().innerHTML = `<div class="ph"><h1>Sàn thử lệnh tay</h1><span class="meta">Giá thật Binance · phí, funding, thanh lý như sàn thật</span></div>
     <div class="envbar"><span class="seg" id="pvEnv"><button data-e="paper" class="${envOn === "paper" ? "on" : ""}">🧪 Giả lập MyBit</button><button data-e="bx" class="${envOn === "bx" ? "on" : ""}">🔗 Tài khoản Binance</button></span>
       <span id="pvEnvInfo" class="faint"></span></div>
     <div id="pvSum"></div>
@@ -4588,7 +4588,7 @@ async function viewMethods(id) {
   const fold = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
   const IDX = METHODS.map((m) => ({ m, n: fold(m[2] + " " + m[3] + " " + m[0]), b: fold(Object.values(m[4]).join(" ") + " " + Object.values(m[5]).join(" ")) }));
   let cur = METHODS.find((m) => m[0] === id) || METHODS[0], q = "", grp = "", PH = [];
-  app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Cẩm nang chỉ báo – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
+  app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Cẩm nang chỉ báo"}</h1><span class="meta">${METHODS.length} ${en ? "concepts" : "khái niệm"}</span></div>
     ${en ? `<section class="panel mguide"><details id="mHelp"><summary>🧭 What MyBit does – overview & how to use it</summary><ul class="why">
       <li><b>Market</b>: market light, sentiment, on-chain, derivatives, sectors – data every 4 hours, live prices every second from Binance.</li>
       <li><b>Find opportunities</b>: <a href="#/ideas">Today's opportunities</a> – historically tested SMC/trend setups on 4h & daily, plus 🪝 wick catcher (1-minute shocks found by Reflex Bot); live <a href="#/radar">Radar</a>; <a href="#/pairs">Coins moving together</a>.</li>
@@ -4662,7 +4662,7 @@ async function viewFutures(sub) {
   const by = (k, d = -1, f = () => true, n = 15) => R.filter((r) => isNum(r[k]) && f(r)).sort((a, b) => (a[k] - b[k]) * d).slice(0, n);
   const crowd = R.filter((r) => (r.cr || []).length).sort((a, b) => (b.oi || 0) - (a.oi || 0)).slice(0, 25);
   const carry = by("car", -1, (r) => r.spot && (r.oi || 0) > 5e6, 15);
-  app().innerHTML = `<div class="ph"><h1>Phái sinh & đòn bẩy</h1><span class="meta">${nf(R.length, 0)} hợp đồng có OI > $2 tr · Bitget, OKX, Gate, Hyperliquid (+ OI/long-short Binance theo ngày)</span></div>
+  app().innerHTML = `<div class="ph"><h1>Phái sinh & funding</h1><span class="meta">${nf(R.length, 0)} hợp đồng OI > $2 tr · Bitget, OKX, Gate, Hyperliquid, Binance</span></div>
     <div class="note"><p><b>Cách đọc nhanh:</b> funding dương cao = phe Long trả phí, đám đông đang Long → dễ bị "xả" khi giá quay đầu. Funding âm = Short đông → dễ bị ép tăng.
     OI tăng cùng giá = tiền mới vào xu hướng; OI tăng mà giá đứng = đòn bẩy dồn tích, sắp có biến động mạnh.</p></div>
     ${PG("Funding & OI")}<div class="g g2">
@@ -4823,7 +4823,7 @@ async function viewPortfolio() {
       ["Chuỗi thua", RISK ? `${RISK.streak} lệnh` : "—", RISK?.streak >= 3 ? "down" : "", "thua 3 lệnh liên tiếp → rủi ro giảm 1/2 trong 24 giờ"],
       ["Trạng thái", RISK?.halt ? "⛔ Dừng" : (RISK?.half || []).length ? "⚠️ Giảm rủi ro" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}` : "máy chủ chưa kiểm tra – sau lượt 15 phút tới"]])}
       <p class="faint" style="font-size:.75rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
-  app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
+  app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">Dữ liệu riêng · lưu trên tài khoản</span></div>
     <section class="panel pf-hero"><div class="pf-top"><div class="pf-tot"><small>Tổng tài sản (ước)</small><b>${usd2(eq)}</b><span>≈ ${vndF(eq * fx)}${PF.depVnd > 0 ? ` · <em class="${cls(eq * fx - PF.depVnd)}">${eq * fx - PF.depVnd >= 0 ? "+" : ""}${vndF(eq * fx - PF.depVnd)} (${pct((eq * fx / PF.depVnd - 1) * 100, 1)})</em> so với ${vndF(PF.depVnd)} đã nạp` : ""}</span></div>
       ${eq > 0 ? `<div class="pf-mix">${[["Spot", spotV, "var(--brand)"], ["Tiền mặt", cash, "var(--ink-3)"], ["Futures", futMargin + futPnl, "var(--ref,#d9a400)"]].filter((x) => x[1] > 0).map(([t, v, c]) => `<span style="flex:${v}"><i style="background:${c}"></i><small>${t} ${nf(v / eq * 100, 0)}%</small></span>`).join("")}</div>` : ""}</div>
       ${stg([["Spot", usd2(spotV), "", spotC ? `đã bỏ ra ${usd2(spotC)}` : `${PF.holdings.length} coin`],
@@ -5019,7 +5019,7 @@ async function viewBacktest() {
   const T = B.trend || {};
   const rows = (T.rows || []).filter((r) => BYK[r.key] && (BYK[r.key].mc || 0) > 3e8);
   const fz = (B.fng?.rows || []).filter((r) => r.reg === "all");
-  app().innerHTML = `<div class="ph"><h1>Kiểm chứng</h1><span class="meta">các quy tắc dùng trên trang, chạy lại trên dữ liệu lịch sử – có phí, trượt giá, funding</span></div>
+  app().innerHTML = `<div class="ph"><h1>Kiểm chứng</h1><span class="meta">Quy tắc trên web chạy lại trên dữ liệu lịch sử · đã tính phí, trượt giá, funding</span></div>
   <div class="g g2">
     ${panel("📈 Theo xu hướng (Long khi giá > EMA50 > …, thoát dưới EMA50)", `${kpis([["Số coin kiểm chứng", nf(T.n, 0)], ["Lãi/năm (trung vị)", pct(T.cagr, 0), cls(T.cagr)], ["Mua & giữ (trung vị)", pct(T.bh_cagr, 0), cls(T.bh_cagr)], ["Sụt tối đa (trung vị)", pct(T.mdd, 0), "down"], ["Mua & giữ sụt tối đa", pct(T.bh_mdd, 0), "down"],
       ["Thắng mua & giữ", nf(T.beat, 0) + "% số coin"], ["Sụt giảm nhỏ hơn", nf(T.dd_better, 0) + "% số coin"], ["Thời gian có lệnh", nf(T.expo, 0) + "%"]])}
@@ -5505,7 +5505,7 @@ async function viewNotifications() {
   let items = [], more = true, f = lsGet("ntf_f", "all");
   const draw = () => {
     const un = items.filter((n) => !n.read_at).length;
-    app().innerHTML = `<div class="ph"><h1>🔔 Thông báo</h1><span class="meta">${un ? `${un} chưa đọc` : "đã đọc hết"} · ${items.length}${more ? "+" : ""} thông báo gần nhất</span></div>
+    app().innerHTML = `<div class="ph"><h1>Thông báo</h1><span class="meta">${un ? `${un} chưa đọc` : "đã đọc hết"} · ${items.length}${more ? "+" : ""} thông báo gần nhất</span></div>
       <div class="nt-bar"><button class="btn" id="nAll">✓ Đánh dấu tất cả đã đọc</button><button class="btn" id="nDel">🗑 Xoá thông báo đã đọc</button><a class="btn" href="#/account">⚙️ Cài đặt nhận thông báo</a></div>
       <section class="panel nt-page"><div class="nt-cs">${ntfChips(items, f)}</div><div class="ntp-l">${ntfList(items, f)}</div>
       ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}</section>`;

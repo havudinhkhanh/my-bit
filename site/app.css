@@ -3961,3 +3961,16 @@ small{font-size:max(var(--fs-xs),.86em)}
 .uip-e{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-size:1.05rem;font-weight:700;color:var(--ink-2);cursor:pointer;display:grid;place-items:center}
 .uip-c{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--brand-2);cursor:pointer}
 .uip-e.on,.uip-c.on{outline:2px solid var(--brand);outline-offset:2px}
+/* ảnh đại diện trên thanh đầu: tròn đúng, nội dung nằm giữa */
+.mebtn{border-radius:50%!important;width:auto!important;aspect-ratio:1/1;padding:0!important;display:inline-grid!important;place-items:center;line-height:1!important;overflow:hidden}
+.mebtn.has-emo{font-size:1.15rem;padding-top:1px!important}
+/* điện thoại: bớt khoảng trống thừa */
+@media (max-width:700px){
+  :root{--gap:10px}
+  main{padding:10px 10px 80px}
+  .panel{padding:12px}
+  .ph{margin-bottom:6px}
+  .crumb[data-nd]{margin-bottom:2px}
+  .sc-g2,.g{gap:var(--gap)!important}
+  .acp-card{padding:14px}
+}
