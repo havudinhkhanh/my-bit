@@ -134,9 +134,9 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
     def legcost(rk):          # vào (hoặc ra) 1 cặp: 2 chân, bps của giá trị 1 chân
         return FS + FP + 2 * half(rk) + 2.0
 
-    def run(N, thr_in, thr_out, fixed=None):
-        held = {}          # j → dict(q, S0ref, P0ref, rk, d0)
-        R_ = {}; ent = 0; reb = 0; spike = 0; hold_days = []; capt = []
+    def run(N, thr_in, thr_out, fixed=None, guard=False):
+        held = {}          # j → dict(rk, h0, ref)
+        R_ = {}; ent = 0; reb = 0; spike = 0; hold_days = []; capt = []; badd = []
         for h in hours:
             if h not in elig:
                 continue
@@ -146,14 +146,15 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
             for j in list(held):
                 p = held[j]
                 bad = not (np.isfinite(C[h - 1, j]) and np.isfinite(SP[h - 1, j]))
-                if fixed is None and (bad or apr[j] < thr_out):
+                div = (not bad) and abs(C[h - 1, j] / SP[h - 1, j] - 1) > 0.03
+                if bad or (fixed is None and apr[j] < thr_out) or (guard and div):
                     day_pnl -= legcost(p["rk"]) / 1e4
                     hold_days.append((h - p["h0"]) / 24); del held[j]
             # vào
             if fixed is not None:
-                want = [j for j in fixed if ok[j] and j not in held]
+                want = [j for j in fixed if ok[j] and j not in held and not (guard and abs(C[h - 1, j] / SP[h - 1, j] - 1) > 0.03)]
             else:
-                cand = sorted((j for j in uni if ok[j] and apr[j] >= thr_in and j not in held), key=lambda j: -apr[j])
+                cand = sorted((j for j in uni if ok[j] and apr[j] >= thr_in and j not in held and not (guard and abs(C[h - 1, j] / SP[h - 1, j] - 1) > 0.03)), key=lambda j: -apr[j])
                 want = cand[:max(0, N - len(held))]
             for j in want:
                 rk = uni.get(j, 0)
@@ -166,7 +167,10 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
                     continue
                 fr = F64[h + 1:h + 25, j]; px = C[h:h + 24, j]
                 fund = float(np.nansum(fr * px)) / s0
-                day_pnl += ((s1 - s0) - (p1 - p0)) / s0 + fund
+                ctb = ((s1 - s0) - (p1 - p0)) / s0 + fund
+                day_pnl += ctb
+                if ctb < -0.03:
+                    badd.append((keep[j], Q.month_of(h, H0), (h + H0) // 24, round(float(s0), 6), round(float(s1), 6), round(float(p0), 6), round(float(p1), 6), round(fund * 100, 2), round(ctb * 100, 1)))
                 capt.append(float(fr.sum()) * 365)
                 if np.nanmax(Hh[h:h + 24, j]) >= p["ref"] * 1.8:
                     spike += 1
@@ -174,7 +178,7 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
                     reb += 1; p["ref"] = p1; day_pnl -= 0.4 * legcost(p["rk"]) / 1e4
             R_[(h + H0) // 24] = day_pnl / (2 * (N if fixed is None else len(fixed)))
         return pd.Series(R_), dict(entries=ent, rebal=reb, spike80=spike, hold_med=round(float(np.median(hold_days)), 1) if hold_days else None,
-                                   apr_capt=round(float(np.mean(capt)) * 100, 1) if capt else None, slots=N if fixed is None else len(fixed))
+                                   apr_capt=round(float(np.mean(capt)) * 100, 1) if capt else None, slots=N if fixed is None else len(fixed), bad=badd)
 
     D = {}; info = {}; txt = []
     for name, fx in (("BTC luôn giữ", ["BTCUSDT"]), ("ETH luôn giữ", ["ETHUSDT"]), ("BTC+ETH luôn giữ", ["BTCUSDT", "ETHUSDT"])):
@@ -185,8 +189,9 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
     for N in (1, 3, 5, 10):
         for ti in (0.10, 0.20, 0.40, 0.80):
             for to_ in (ti / 2, 0.0):
-                k = f"N{N}|vào≥{ti * 100:.0f}%|ra<{to_ * 100:.0f}%"
-                r, inf = run(N, ti, to_); D[k] = r; info[k] = inf
+                for gd in (False, True):
+                    k = f"N{N}|vào≥{ti * 100:.0f}%|ra<{to_ * 100:.0f}%{'|chặn lệch>3%' if gd else ''}"
+                    r, inf = run(N, ti, to_, guard=gd); D[k] = r; info[k] = inf
     DF = pd.DataFrame(D).sort_index()
     rows = []
     for k in DF.columns:
@@ -196,7 +201,11 @@ def a1_carry(H0, n, keep, S, M, UNI, RK, F, SP):
     txt.append(f"  Phí: spot {FS} + perp {FP} bps mỗi chân + chênh lệch (0,5/1,5/3 bps theo hạng) + trượt 1 bps mỗi chân, cả lúc vào và ra. Lợi nhuận tính trên TỔNG vốn (spot + ký quỹ perp).")
     for k, s_, inf in rows:
         txt.append(f"  {k:<26} {fmt(s_)} · lượt vào {inf['entries']} · giữ TB(trung vị) {inf['hold_med']} ngày · funding thu quy năm {inf['apr_capt']}% · cân ký quỹ {inf['rebal']} · ngày vọt ≥80% {inf['spike80']}")
-    wfr, picks = wf_days(DF[[c for c in DF.columns if c.startswith("N")]])
+    allbad = sorted({b for k in info for b in info[k]['bad']}, key=lambda b: b[-1])
+    txt.append(f"  Ngày-cặp lỗ > 3% giá trị chân (gộp mọi biến thể, {len(allbad)} trường hợp) – tệ nhất: " + " | ".join(f"{b[0]} {pd.Timestamp(b[2] * 86400, unit='s').date()} spot {b[3]}→{b[4]} perp {b[5]}→{b[6]} funding {b[7]}% = {b[8]}%" for b in allbad[:25]))
+    for k in info:
+        info[k].pop('bad', None)
+    wfr, picks = wf_days(DF[[c for c in DF.columns if c.startswith("N") and 'chặn' not in c]])
     sw = dstats(wfr)
     txt.append(f"  WALK-FORWARD (chọn biến thể tốt nhất 6 tháng → chạy mù 2 tháng): {fmt(sw)}")
     txt.append("  Lựa chọn: " + " | ".join(picks[-10:]))
@@ -506,6 +515,25 @@ def b2_grid(H0, n5, keep, S, M, UNI, RK, F):
     return dict(rows=[dict(k=k, **s_, fills=g_[0], stops=g_[1]) for k, s_, g_ in rows], wf=dstats(wfr), picks=picks), "\n".join(txt)
 
 
+def load_spot(H0, n, keep, S):
+    SP = np.full((n, len(keep)), np.nan, dtype=np.float32)
+
+    def ld(s):
+        d = R.load1h(s)
+        pc = pd.Series(d.c.values, index=d.index.values) if d is not None else None
+        return s, spot_series(s, MONTHS, pc)[0]
+    okn = 0
+    with cf.ThreadPoolExecutor(32) as ex:
+        for s, ser in ex.map(ld, keep):
+            if ser is None:
+                continue
+            okn += 1
+            i = ser.index.values - H0; ok = (i >= 0) & (i < n)
+            SP[i[ok], S[s]] = ser.values[ok]
+    log(f"spot: {okn}/{len(keep)} mã có cặp spot khớp · ")
+    return SP
+
+
 # ============================================================================
 if __name__ == "__main__":
     t00 = time.time()
@@ -529,21 +557,7 @@ if __name__ == "__main__":
         log(f"{len(syms)} mã · nến 1 giờ")
         H0, n, keep, S, M, UNI, RK = Q.build(syms)
         F = Q.load_funding(keep, H0, n)
-        SP = np.full((n, len(keep)), np.nan, dtype=np.float32)
-
-        def ld(s):
-            d = R.load1h(s)
-            pc = pd.Series(d.c.values, index=d.index.values) if d is not None else None
-            return s, spot_series(s, MONTHS, pc)[0]
-        okn = 0
-        with cf.ThreadPoolExecutor(32) as ex:
-            for s, ser in ex.map(ld, keep):
-                if ser is None:
-                    continue
-                okn += 1
-                i = ser.index.values - H0; ok = (i >= 0) & (i < n)
-                SP[i[ok], S[s]] = ser.values[ok]
-        log(f"spot: {okn}/{len(keep)} mã có cặp spot khớp · {time.time() - t00:.0f}s")
+        SP = load_spot(H0, n, keep, S)
         go("A1", lambda: a1_carry(H0, n, keep, S, M, UNI, RK, F, SP))
         go("A2", lambda: a2_listing(syms, H0))
     else:
@@ -561,4 +575,10 @@ if __name__ == "__main__":
         F = Q.load_funding(keep, H0, n)
         go("B2", lambda: b2_grid(H0, n5, keep, S, M, UNI, RK, F))
         go("B1", lambda: b1_cvd(H0, n5, keep, S, M, OI, TB, UNI, RK, F))
+        if os.environ.get("Q8_A1"):          # chẩn đoán lại A1 (nến 1 giờ từ RS_START) cùng lần chạy
+            del M, OI, TB
+            H0, n, keep, S, M, UNI, RK = Q.build(syms)
+            F = Q.load_funding(keep, H0, n)
+            SP = load_spot(H0, n, keep, S)
+            go("A1", lambda: a1_carry(H0, n, keep, S, M, UNI, RK, F, SP))
     log(f"xong · {time.time() - t00:.0f}s")
