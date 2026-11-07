@@ -45,3 +45,10 @@ jobs:
       - name: Đẩy kết quả lên nhánh status
         if: always()
         run: bash scripts/publish_status.sh research research_out
+      - name: Lưu kết quả thành artifact (phòng khi nhánh status bị lần chạy khác ghi đè cùng lúc)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research_out
+          path: research_out
+          retention-days: 14
