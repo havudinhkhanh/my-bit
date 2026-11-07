@@ -445,7 +445,7 @@ let CUR_TAB = "";
 })();
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
-  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r === "botscalp" && /^bot/.test(r || "") && r !== "botscalp"); });
+  $$("#tabs a").forEach((a) => { if (a.dataset.sc) { a.classList.toggle("on", scOn(a.dataset.sc)); return; } a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r === "botscalp" && /^bot/.test(r || "") && r !== "botscalp"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
@@ -484,7 +484,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 // nhóm Bot: 1 cửa vào (Bot của tôi) → từng bot → báo cáo chung. Giám sát rủi ro & sổ lệnh vẫn có trang riêng nhưng đi vào từ trang tổng / trang kết quả.
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["botsup", "#/bot/sup", "🛡️", "Rủi ro & giám sát"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
-const CUS_SUB = [["ov", "Tổng quan"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
+const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
 const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
@@ -494,7 +494,7 @@ function cusOpts() {
     if (n.tagName !== "A" || n.classList.contains("nav-cus")) continue;
     const href = n.getAttribute("href"), t = n.querySelector(".nav-t")?.textContent || n.textContent.trim();
     out.push({ g, href, r: n.dataset.r, t, short: CUS_SHORT[href] || t, svg: n.querySelector("svg")?.outerHTML || "" });
-    if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : "", short: st.replace("Tổng quan · Binance", "Binance").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
+    if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : "", short: st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
   }
   out.push({ g: "Khác", href: "#/notifications", r: "", t: "Thông báo", short: "Thông báo", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' },
     { g: "Khác", href: "#/account", r: "", t: "Tài khoản & cài đặt", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' });
@@ -508,7 +508,7 @@ function cusDraw() {
     const g = document.createElement("span"); g.className = "nav-g nav-scg"; g.innerHTML = "<b>Lối tắt</b><em>★ tự chọn · ↻ hay vào</em>"; nav.insertBefore(g, a); }
   const o = cusCur(); a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `${o.t} – giữ lâu để đổi nút này`;
   a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
-  if (o.sc) a.classList.toggle("on", location.hash.startsWith("#/bot/scalp") && (window.__scTab === o.sc || (o.sc === "live" && window.__scTab === "ov" && window.__scEnv === "live")));
+  if (o.sc) a.classList.toggle("on", scOn(o.sc));
   try { autoDraw(); } catch (e) { /* bỏ qua */ }
 }
 // ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
@@ -560,7 +560,7 @@ function pcApply() {
 // điện thoại: cuộn xuống → ẩn nút ☰ Bảng phụ (đỡ che nội dung), cuộn lên → hiện lại
 (function scrDir() { let y0 = scrollY; addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - y0) < 12) return; document.body.classList.toggle("scr-dn", y > y0 && y > 160); y0 = y; }, { passive: true }); addEventListener("hashchange", () => document.body.classList.remove("scr-dn")); })();
 function navKeyNow(h = location.hash || "#/") {
-  if (h.startsWith("#/bot/scalp")) return "#/bot/scalp|" + (window.__scTab || "ov");
+  if (h.startsWith("#/bot/scalp")) { const t = window.__scTab || "ov"; return "#/bot/scalp|" + (t === "ov" && window.__scEnv === "live" ? "live" : t); }
   const m = h.match(/^#\/c\/([^/]+)/); if (m) return "#/c/" + decodeURIComponent(m[1]).toUpperCase();
   const p = h.replace(/^#\/?/, "").split("/");
   if (!p[0]) return "#/";
@@ -587,7 +587,7 @@ function navOpt(k) {
 function autoTop(n = 1) {
   const F = lsGet("navfreq", {}) || {}, now = Date.now(), fixed = new Set($$("#tabs a.nav-m:not(.nav-cus)").map((a) => a.getAttribute("href"))), cus = lsGet("navcus", "#/portfolio");
   const L = Object.entries(F).map(([k, v]) => [k, (+v?.[0] || 0) * Math.pow(0.5, (now - (+v?.[1] || now)) / NF_HL)]).filter(([k]) => !fixed.has(k) && k !== cus).sort((a, b) => b[1] - a[1]);
-  const out = []; for (const [k, sc] of L) { const o = navOpt(k); if (o) out.push({ ...o, sc }); if (out.length >= n) break; }
+  const out = []; for (const [k, score] of L) { const o = navOpt(k); if (o) out.push({ ...o, score }); if (out.length >= n) break; }
   return out;
 }
 function autoDraw() {
@@ -595,8 +595,9 @@ function autoDraw() {
   let a = $("#navAuto"); if (!a) { a = document.createElement("a"); a.id = "navAuto"; a.className = "nav-m nav-cus nav-auto"; nav.insertBefore(a, more); autoBind(a); }
   if (!window.__autoO || window.__autoO.cus !== lsGet("navcus", "#/portfolio")) window.__autoO = { cus: lsGet("navcus", "#/portfolio"), o: autoTop(1)[0] || navOpt("#/bot/days") || { href: "#/bot/days", t: "Kết quả & sổ lệnh", short: "Kết quả", emo: "📒" } };
   const o = window.__autoO.o;
-  a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc && typeof o.sc === "string" ? o.sc : ""; a.title = `Hay vào: ${o.t} – tự đổi theo trang anh vào nhiều nhất · giữ lâu để xem danh sách`;
+  a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `Hay vào: ${o.t} – tự đổi theo trang anh vào nhiều nhất · giữ lâu để xem danh sách`;
   a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "↻"}</span>`}<span class="nav-t">↻ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
+  if (o.sc) a.classList.toggle("on", scOn(o.sc));
 }
 function autoBind(a) {
   let t = 0, long = false;
@@ -606,21 +607,24 @@ function autoBind(a) {
   a.addEventListener("click", (e) => {
     if (long) { e.preventDefault(); long = false; return; }
     const sc = a.dataset.sc; if (!sc) return;
-    window.__scTab = sc; lsSet("sctab", sc);
+    scShortEnv(sc); window.__scTab = sc === "live" ? "ov" : sc; lsSet("sctab", window.__scTab);
     if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); else route(); }
   });
 }
 function autoMenu(anchor) {
   if ($("#iosMenu")) iosMenuClose();
-  const L = autoTop(8), r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left + r.width / 2 - W / 2)), tot = L.reduce((x, o) => x + o.sc, 0) || 1;
+  const L = autoTop(8), r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left + r.width / 2 - W / 2)), tot = L.reduce((x, o) => x + o.score, 0) || 1;
   const up = r.top > innerHeight / 2, pos = up ? `bottom:${Math.round(innerHeight - r.top + 8)}px` : `top:${Math.round(r.bottom + 6)}px`;
   const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
-  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in cus-menu" role="menu" aria-label="Trang anh hay vào" style="left:${left}px;width:${W}px;${pos}"><div class="ios-menu-h cus-top">↻ Hay vào – tự xếp theo số lần anh vào (7 ngày gần nhất nặng hơn)</div>${L.length ? L.map((o, i) => `<a role="menuitem" href="${o.href}" data-asc="${esc(typeof o.sc === "string" ? o.sc : "")}"><span class="ios-ck">${i === 0 ? "★" : ""}</span><span class="ios-t">${esc(o.t)}<small>${Math.round(o.sc / tot * 100)}%</small></span><span class="ios-ic">${o.emo || o.svg}</span></a>`).join("") : `<div class="ios-menu-h">Chưa đủ dữ liệu – dùng app thêm vài lần nút này sẽ tự chọn.</div>`}</div>`;
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in cus-menu" role="menu" aria-label="Trang anh hay vào" style="left:${left}px;width:${W}px;${pos}"><div class="ios-menu-h cus-top">↻ Hay vào – tự xếp theo số lần anh vào (7 ngày gần nhất nặng hơn)</div>${L.length ? L.map((o, i) => `<a role="menuitem" href="${o.href}" data-asc="${esc(o.sc || "")}"><span class="ios-ck">${i === 0 ? "★" : ""}</span><span class="ios-t">${esc(o.t)}<small>${Math.round(o.score / tot * 100)}%</small></span><span class="ios-ic">${o.emo || o.svg}</span></a>`).join("") : `<div class="ios-menu-h">Chưa đủ dữ liệu – dùng app thêm vài lần nút này sẽ tự chọn.</div>`}</div>`;
   document.body.appendChild(m);
   m.querySelector("[data-x]").onclick = iosMenuClose;
-  $$("[data-asc]", m).forEach((x) => (x.onclick = (e) => { const sc = x.dataset.asc; iosMenuClose(); if (!sc) return; window.__scTab = sc; lsSet("sctab", sc); if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); } }));
+  $$("[data-asc]", m).forEach((x) => (x.onclick = (e) => { const sc = x.dataset.asc; iosMenuClose(); if (!sc) return; scShortEnv(sc); window.__scTab = sc === "live" ? "ov" : sc; lsSet("sctab", window.__scTab); if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); } }));
   addEventListener("hashchange", iosMenuClose, { once: true });
 }
+// lối tắt tới 1 tab của Bot Phản Xạ chỉ sáng khi đúng tab ĐÓ (và đúng sàn với Tổng quan: "ov" = sàn thử, "live" = Binance)
+function scOn(sc) { if (!location.hash.startsWith("#/bot/scalp")) return false; const t = window.__scTab, live = window.__scEnv === "live"; return sc === "live" ? t === "ov" && live : sc === "ov" ? t === "ov" && !live : t === sc; }
+function scShortEnv(sc) { if (sc === "ov" || sc === "live") { window.__scEnv = sc === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); } }
 function cusBind(a) {
   let t = 0, long = false;
   // giữ lâu: tạm cấm chọn chữ trên cả trang (iPhone hay bôi đen hết trang khi giữ ngón tay), mở menu, xoá vùng chọn nếu lỡ có
@@ -631,7 +635,7 @@ function cusBind(a) {
   a.addEventListener("click", (e) => {
     if (long) { e.preventDefault(); long = false; return; }
     const sc = a.dataset.sc; if (!sc) return;
-    window.__scTab = sc; lsSet("sctab", sc);
+    scShortEnv(sc); window.__scTab = sc === "live" ? "ov" : sc; lsSet("sctab", window.__scTab);
     if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); else route(); cusDraw(); }
   });
 }

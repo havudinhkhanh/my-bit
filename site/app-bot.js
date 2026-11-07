@@ -11,7 +11,7 @@ function scNormTab(k) {
 }
 async function scTabGo(k) {
   k = scNormTab(k);
-  if (k === window.__scTab) { await viewScalp(); return; }
+  if (k === window.__scTab) { await viewScalp(); try { cusDraw(); } catch (e) { /* bỏ qua */ } return; }
   const ORD = ["ov", "pm", "ord", "log", "set"], dir = Math.sign(ORD.indexOf(k) - ORD.indexOf(window.__scTab)) || 1;
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
   window.__scTab = k; lsSet("sctab", k); try { navFreqHit?.("#/bot/scalp|" + k); } catch (e) { /* bỏ qua */ }
@@ -20,6 +20,7 @@ async function scTabGo(k) {
   root.style.minHeight = root.offsetHeight + "px"; window.__scUseCache = true;
   window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
   await viewScalp();
+  try { cusDraw(); } catch (e) { /* bỏ qua */ }      // lối tắt ★ / ↻ sáng đúng tab vừa mở
   try { if (!matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.2, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
@@ -807,7 +808,7 @@ async function viewScalp() {
   app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1><span class="meta"><a href="#/bot/home">← Bot</a> · 🪝 Bắt râu sập + ⚡ lướt giây · sàn thử dùng giá & khớp lệnh thật, phí thật · <a href="#/bot/days">📒 Kết quả & sổ lệnh</a></span></div>
     ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${envSeg}${subSeg}${body}</div>`;
   $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
-  $$("[data-scenv]").forEach((b) => (b.onclick = () => { window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true; viewScalp(); }));
+  $$("[data-scenv]").forEach((b) => (b.onclick = async () => { window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true; await viewScalp(); try { cusDraw(); } catch (e) { /* bỏ qua */ } }));
   { const ap = () => { const om = window.__scOm || "all"; $$("[data-om]").forEach((d) => (d.hidden = om !== "all" && d.dataset.om !== "open" && d.dataset.om !== om)); }; ap();      // tab Lệnh: lọc theo phương pháp
     $$("[data-scom]").forEach((b) => (b.onclick = () => { window.__scOm = b.dataset.scom; $$("[data-scom]").forEach((x) => x.classList.toggle("on", x === b)); ap(); })); }
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
