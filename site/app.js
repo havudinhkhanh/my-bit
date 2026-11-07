@@ -486,6 +486,9 @@ const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];
 const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+// icon riêng cho từng tab con của Bot Phản Xạ trên thanh dưới (trước dùng chung tia sét của nút Bot → nút "Lệnh" trông y hệt nút "Bot")
+const SVG0 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const SC_SVG = { ov: SVG0('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'), ord: SVG0('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>'), pm: SVG0('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), log: SVG0('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'), set: SVG0('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>') };
 const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
   const out = []; let g = "";
@@ -494,7 +497,7 @@ function cusOpts() {
     if (n.tagName !== "A" || n.classList.contains("nav-cus")) continue;
     const href = n.getAttribute("href"), t = n.querySelector(".nav-t")?.textContent || n.textContent.trim();
     out.push({ g, href, r: n.dataset.r, t, short: CUS_SHORT[href] || t, svg: n.querySelector("svg")?.outerHTML || "" });
-    if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : "", short: st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
+    if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : SC_SVG[k] || "", short: st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
   }
   out.push({ g: "Khác", href: "#/notifications", r: "", t: "Thông báo", short: "Thông báo", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' },
     { g: "Khác", href: "#/account", r: "", t: "Tài khoản & cài đặt", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' });
@@ -704,7 +707,13 @@ function botMenu(anchor, up) {
 (function botBtn() { let t = 0, long = false; const sel = '#tabs a.nav-m[data-r="botscalp"]:not(.nav-cus)';
   document.addEventListener("touchstart", (e) => { const a = e.target.closest?.(sel); if (!a) return; long = false; clearTimeout(t); document.documentElement.classList.add("lp-on"); t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (e2) { /* bỏ qua */ } botMenu(a, true); }, 480); }, { passive: true });
   ["touchend", "touchmove", "touchcancel"].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(t); if (document.documentElement.classList.contains("lp-on")) setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); }, { passive: true }));
-  document.addEventListener("click", (e) => { const a = e.target.closest?.(sel); if (!a) return; if (long) { e.preventDefault(); e.stopPropagation(); long = false; } }, true);
+  document.addEventListener("click", (e) => { const a = e.target.closest?.(sel); if (!a) return; if (long) { e.preventDefault(); e.stopPropagation(); long = false; return; }
+    // chạm = luôn về Bot Phản Xạ › Tổng quan (nút "Lệnh" / lối tắt lo tab con) – tự đi trang, không phụ thuộc hashchange; nếu vì lý do gì trang chưa đổi thì vẽ lại
+    e.preventDefault(); window.__scMode = null; window.__scTab = "ov"; lsSet("sctab", "ov");
+    if (location.hash === "#/bot/scalp") { if (typeof scTabGo === "function" && $("#app .sc-tabs")) scTabGo("ov"); else route(); }
+    else location.hash = "#/bot/scalp";
+    setTimeout(() => { if (location.hash === "#/bot/scalp" && !$("#app .sc-tabs") && !$("#app .skel")) route(); }, 1500);
+  }, true);
   document.addEventListener("contextmenu", (e) => { const a = e.target.closest?.(sel); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); });
 })();
 function botSeg() {
