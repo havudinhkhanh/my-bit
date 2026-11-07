@@ -1556,7 +1556,7 @@ function calPanel(days, keys, PF, env, sel, TD) {
     <div class="cal">${["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((w) => `<span class="cal-w">${w}</span>`).join("")}${'<span class="cal-x"></span>'.repeat(lead)}${ds.map(cell).join("")}</div>${selBar}
     <p class="faint cal-note">Ô: lời/lỗ ngày · % ngày · dưới vạch = lũy kế từ đầu. Nạp/rút (số nhỏ góc ô) không tính là lời/lỗ.</p>`, L?.end ? `tài sản ${usd2(L.end)}` : "");
 }
-async function viewDays(envArg, dateArg) {
+async function viewDays(envArg, dateArg, part) {
   const [rd, rs, rn, rq] = await Promise.all([Store.get("scalpdays"), Store.get("scalpstate"), Store.get("scalpnotes"), Store.get("scalp")]);
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, ALL = rd.data || {}, NOTES = rn.data || {};
   const env = ["paper", "demo", "live"].includes(envArg) ? envArg : window.__dEnv || (C.lv_on ? (C.lv_env === "live" ? "live" : "demo") : "paper"); window.__dEnv = env;      // mặc định xem tài khoản Binance
@@ -1616,10 +1616,13 @@ async function viewDays(envArg, dateArg) {
   // so sánh Demo / thật với sàn thử cùng ngày
   let cmp = "";
   if (env !== "paper" && ALL.paper?.days?.[sel]) { const P = ALL.paper.days[sel]; cmp = panel("So với sàn thử cùng ngày", `<div class="tw"><table><thead><tr><th class="l"></th><th>Lệnh</th><th>Thắng</th><th>Lãi/lỗ</th><th>TB bps/lệnh</th></tr></thead><tbody>${[["🧪 Sàn thử", P], [DENV.find((x) => x[0] === env)[1], D]].map(([t, x]) => `<tr><td class="l">${t}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td class="${cls(x.usd)}">${x.n ? usd2(x.usd) : "—"}</td><td>${x.n ? bps(x.bps / x.n, 0) : "—"}</td></tr>`).join("")}</tbody></table></div><p class="faint" style="font-size:.75rem">${bi(`Sàn thử dùng vốn ${usd(C.capital)}, ${env === "demo" ? "Demo" : "tài khoản thật"} dùng tối đa ${usd(C.lv_cap)} → so sánh bằng bps/lệnh (không phụ thuộc cỡ lệnh). Chênh nhiều = khớp thật khác mô phỏng (trễ, thiếu lượt khớp ở râu nến).`, `The paper account uses ${usd(C.capital)}, ${env === "demo" ? "Demo" : "the live account"} uses at most ${usd(C.lv_cap)} → compared in bps per trade (independent of size). A big gap = real fills differ from the simulation (late, missing fills on wicks).`)}</p>`); }
-  app().innerHTML = head + summ + calPanel(days, keys, PF, env, sel, TD) + charts + `<div id="dDetail">${detail}</div>` + cmp + list;
+  const html = head + summ + `<div id="dCal">${calPanel(days, keys, PF, env, sel, TD)}</div>` + charts + `<div id="dDetail">${detail}</div>` + `<div id="dCmp">${cmp}</div>` + list;
+  // lịch: chọn ngày / đổi tháng → CHỈ thay khung lịch + chi tiết ngày (phần trên trang giữ nguyên → không nhảy, không cuộn)
+  if (part && $("#dCal")) { const T = document.createElement("div"); T.innerHTML = html; for (const id of ["dCal", "dDetail", "dCmp"]) { const a = $("#" + id), b = T.querySelector("#" + id); if (a && b) a.replaceWith(b); } }
+  else app().innerHTML = html;
   // lịch: chọn ngày / đổi tháng → vẽ lại tại chỗ, KHÔNG chuyển trang (không cuộn lên đầu); địa chỉ cập nhật để quay lại đúng ngày
-  const calRe = async (d, mon) => { const c0 = $(".cal")?.getBoundingClientRect().top ?? 0; if (mon) window.__dMon = mon; if (d && d !== sel) history.replaceState(history.state, "", `#/bot/days/${env}/${d}`);
-    const root = $("#app"); root.style.minHeight = root.offsetHeight + "px"; await viewDays(env, d || sel); const c1 = $(".cal")?.getBoundingClientRect().top ?? 0; scrollTo(0, Math.max(0, scrollY + c1 - c0)); setTimeout(() => (root.style.minHeight = ""), 300); };
+  const calRe = async (d, mon) => { const y0 = scrollY; if (mon) window.__dMon = mon; if (d && d !== sel) history.replaceState(history.state, "", `#/bot/days/${env}/${d}`);
+    document.activeElement?.blur?.(); await viewDays(env, d || sel, true); if (Math.abs(scrollY - y0) > 2) scrollTo(0, y0); requestAnimationFrame(() => { if (Math.abs(scrollY - y0) > 2) scrollTo(0, y0); }); };
   $$("[data-calm]").forEach((b) => (b.onclick = () => calRe(null, b.dataset.calm)));
   $$("[data-calpick]").forEach((s2) => (s2.onchange = () => calRe(null, s2.value)));
   $$("[data-cald]").forEach((b) => (b.onclick = () => calRe(b.dataset.cald, null)));
