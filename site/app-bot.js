@@ -1513,17 +1513,20 @@ function calPanel(days, keys, PF, env, sel, TD) {
   const mP = act.reduce((a, d) => a + (PF[d]?.pnl || 0), 0), mR = ds.reduce((a, d) => (isNum(PF[d]?.r) && days[d]?.n ? a * (1 + PF[d].r) : a), 1) - 1, mF = ds.reduce((a, d) => a + (PF[d]?.flow || 0), 0);
   const win = act.filter((d) => PF[d].pnl > 0).length, last = [...ds].reverse().find((d) => PF[d]), L = last ? PF[last] : null;
   const cell = (d) => {
-    const x = days[d], P = PF[d], has = !!x?.n, r = P?.r, k = !has ? "none" : P.pnl > 0 ? "up" : P.pnl < 0 ? "down" : "flat", a = has && isNum(r) ? Math.round(18 + 62 * Math.min(1, Math.abs(r) / mx)) : 0;
-    const fut = d > TD;
-    return `<a class="cal-d ${k}${d === sel ? " sel" : ""}${d === TD ? " today" : ""}${fut ? " fut" : ""}" ${fut ? "" : `href="#/bot/days/${env}/${d}"`} style="--a:${a}%" title="${d}${has ? ` · ${nf(x.n, 0)} lệnh, thắng ${nf(x.win / x.n * 100, 0)}%` : ""}${P?.flow ? ` · ${P.flow > 0 ? "nạp" : "rút"} ${usd2(Math.abs(P.flow))}` : ""}">
-      <b class="cal-n">${+d.slice(8)}</b>${P?.flow ? `<i class="cal-f ${P.flow > 0 ? "in" : "out"}">${P.flow > 0 ? "+" : "−"}${nf(Math.abs(P.flow), 0)}</i>` : ""}
-      ${has ? `<span class="cal-p">${sg(P.pnl)}</span><span class="cal-r">${isNum(r) ? sg(r * 100, 1) + "%" : "—"}</span>` : `<span class="cal-p faint">${fut ? "" : "·"}</span><span class="cal-r"></span>`}
-      ${P && !fut ? `<span class="cal-c">Σ ${sg(P.cum)}</span><span class="cal-cr ${cls(P.cr)}">${sg(P.cr * 100, 1)}%</span>` : ""}</a>`;
+    const x = days[d], P = PF[d], has = !!x?.n, r = P?.r, k = !has ? "none" : P.pnl > 0 ? "up" : P.pnl < 0 ? "down" : "flat", a = has && isNum(r) ? Math.round(10 + 34 * Math.min(1, Math.abs(r) / mx)) : 0, fut = d > TD;
+    const tip = `${d}${has ? ` · ${nf(x.n, 0)} lệnh, thắng ${nf(x.win / x.n * 100, 0)}%` : ""}${P?.flow ? ` · ${P.flow > 0 ? "nạp" : "rút"} ${usd2(Math.abs(P.flow))}` : ""}`;
+    return `<button type="button" class="cal-d ${k}${d === sel ? " sel" : ""}${d === TD ? " today" : ""}${fut ? " fut" : ""}" ${fut ? "disabled" : `data-cald="${d}"`} style="--a:${a}%" title="${esc(tip)}">
+      <span class="cal-h"><b class="cal-n">${+d.slice(8)}</b>${P?.flow ? `<i class="cal-f ${P.flow > 0 ? "in" : "out"}" title="${P.flow > 0 ? "nạp" : "rút"}">${P.flow > 0 ? "+" : "−"}${nf(Math.abs(P.flow), 0)}</i>` : ""}</span>
+      ${has ? `<span class="cal-p">${sg(P.pnl)}</span><span class="cal-r">${isNum(r) ? sg(r * 100, 1) + "%" : "—"}</span>` : `<span class="cal-p cal-0">${fut ? "" : "–"}</span><span class="cal-r"></span>`}
+      ${P && !fut ? `<span class="cal-c"><span>${sg(P.cum)}</span><span class="${cls(P.cr)}">${sg(P.cr * 100, 1)}%</span></span>` : ""}</button>`;
   };
-  const nav = (j, t) => (j >= 0 && j < mons.length ? `<button type="button" class="btn sm" data-calm="${mons[j]}" aria-label="${t}">${t === "trước" ? "‹" : "›"}</button>` : `<button type="button" class="btn sm" disabled>${t === "trước" ? "‹" : "›"}</button>`);
-  return panel(`Lịch lời/lỗ · ${String(m).padStart(2, "0")}/${y}`, `<div class="cal-top">${nav(mi - 1, "trước")}
-      <div class="cal-sum"><span>Tháng <b class="${cls(mP)}">${sg(mP)} USDT</b> · <b class="${cls(mR)}">${sg(mR * 100, 2)}%</b></span><span>${win}/${act.length} ngày lời</span>${mF ? `<span>${mF > 0 ? "nạp ròng" : "rút ròng"} <b>${usd2(Math.abs(mF))}</b></span>` : ""}${L ? `<span>Lũy kế <b class="${cls(L.cum)}">${sg(L.cum)}</b> · <b class="${cls(L.cr)}">${sg(L.cr * 100, 2)}%</b></span>` : ""}</div>${nav(mi + 1, "sau")}</div>
-    <div class="cal">${["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((w) => `<span class="cal-w">${w}</span>`).join("")}${'<span class="cal-x"></span>'.repeat(lead)}${ds.map(cell).join("")}</div>
+  const nav = (j, t) => `<button type="button" class="cal-nb" ${j >= 0 && j < mons.length ? `data-calm="${mons[j]}"` : "disabled"} aria-label="Tháng ${t}">${t === "trước" ? "‹" : "›"}</button>`;
+  const pick = `<select class="cal-pick" data-calpick aria-label="Chọn tháng">${mons.slice().reverse().map((q) => `<option value="${q}" ${q === cur ? "selected" : ""}>Tháng ${q.slice(5)}/${q.slice(0, 4)}</option>`).join("")}</select>`;
+  const SD = sel && sel.startsWith(cur) ? sel : null, SP = SD ? PF[SD] : null, SX = SD ? days[SD] : null;
+  const selBar = SD ? `<div class="cal-sel"><b>${ddmm(SD)}</b>${SX?.n ? `<span class="${cls(SP.pnl)}">${sg(SP.pnl)} USDT · ${isNum(SP.r) ? sg(SP.r * 100, 2) + "%" : "—"}</span><span>${nf(SX.n, 0)} lệnh · thắng ${nf(SX.win / SX.n * 100, 0)}%</span>` : `<span class="faint">không có lệnh</span>`}${SP?.flow ? `<span>${SP.flow > 0 ? "nạp" : "rút"} ${usd2(Math.abs(SP.flow))}</span>` : ""}<a href="#dDetail" data-caljump>Chi tiết ngày ↓</a></div>` : "";
+  return panel("Lịch lời/lỗ", `<div class="cal-top">${nav(mi - 1, "trước")}${pick}${nav(mi + 1, "sau")}${cur !== TD.slice(0, 7) && mons.includes(TD.slice(0, 7)) ? `<button type="button" class="cal-nb cal-td" data-calm="${TD.slice(0, 7)}">Hôm nay</button>` : ""}</div>
+      <div class="cal-sum"><span>Tháng <b class="${cls(mP)}">${sg(mP)} USDT</b> · <b class="${cls(mR)}">${sg(mR * 100, 2)}%</b></span><span>${win}/${act.length} ngày lời</span>${mF ? `<span>${mF > 0 ? "nạp ròng" : "rút ròng"} <b>${usd2(Math.abs(mF))}</b></span>` : ""}${L ? `<span>Lũy kế <b class="${cls(L.cum)}">${sg(L.cum)}</b> · <b class="${cls(L.cr)}">${sg(L.cr * 100, 2)}%</b></span>` : ""}</div>
+    <div class="cal">${["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((w) => `<span class="cal-w">${w}</span>`).join("")}${'<span class="cal-x"></span>'.repeat(lead)}${ds.map(cell).join("")}</div>${selBar}
     <p class="faint cal-note">Mỗi ô: lời/lỗ ngày (USDT) · % ngày · Σ lũy kế (USDT) · % lũy kế. % tính trên vốn đầu ngày và nối từng ngày như quỹ đầu tư – tiền nạp/rút (số nhỏ góc ô) không bị tính là lời/lỗ.</p>`, L?.end ? `tài sản ${usd2(L.end)}` : "");
 }
 async function viewDays(envArg, dateArg) {
@@ -1587,8 +1590,14 @@ async function viewDays(envArg, dateArg) {
   // so sánh Demo / thật với sàn thử cùng ngày
   let cmp = "";
   if (env !== "paper" && ALL.paper?.days?.[sel]) { const P = ALL.paper.days[sel]; cmp = panel("So với sàn thử cùng ngày", `<div class="tw"><table><thead><tr><th class="l"></th><th>Lệnh</th><th>Thắng</th><th>Lãi/lỗ</th><th>TB bps/lệnh</th></tr></thead><tbody>${[["🧪 Sàn thử", P], [DENV.find((x) => x[0] === env)[1], D]].map(([t, x]) => `<tr><td class="l">${t}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td class="${cls(x.usd)}">${x.n ? usd2(x.usd) : "—"}</td><td>${x.n ? bps(x.bps / x.n, 0) : "—"}</td></tr>`).join("")}</tbody></table></div><p class="faint" style="font-size:.75rem">${bi(`Sàn thử dùng vốn ${usd(C.capital)}, ${env === "demo" ? "Demo" : "tài khoản thật"} dùng tối đa ${usd(C.lv_cap)} → so sánh bằng bps/lệnh (không phụ thuộc cỡ lệnh). Chênh nhiều = khớp thật khác mô phỏng (trễ, thiếu lượt khớp ở râu nến).`, `The paper account uses ${usd(C.capital)}, ${env === "demo" ? "Demo" : "the live account"} uses at most ${usd(C.lv_cap)} → compared in bps per trade (independent of size). A big gap = real fills differ from the simulation (late, missing fills on wicks).`)}</p>`); }
-  app().innerHTML = head + summ + calPanel(days, keys, PF, env, sel, TD) + charts + detail + cmp + list;
-  $$("[data-calm]").forEach((b) => (b.onclick = () => { window.__dMon = b.dataset.calm; viewDays(env, sel); }));
+  app().innerHTML = head + summ + calPanel(days, keys, PF, env, sel, TD) + charts + `<div id="dDetail">${detail}</div>` + cmp + list;
+  // lịch: chọn ngày / đổi tháng → vẽ lại tại chỗ, KHÔNG chuyển trang (không cuộn lên đầu); địa chỉ cập nhật để quay lại đúng ngày
+  const calRe = async (d, mon) => { const c0 = $(".cal")?.getBoundingClientRect().top ?? 0; if (mon) window.__dMon = mon; if (d && d !== sel) history.replaceState(history.state, "", `#/bot/days/${env}/${d}`);
+    const root = $("#app"); root.style.minHeight = root.offsetHeight + "px"; await viewDays(env, d || sel); const c1 = $(".cal")?.getBoundingClientRect().top ?? 0; scrollTo(0, Math.max(0, scrollY + c1 - c0)); setTimeout(() => (root.style.minHeight = ""), 300); };
+  $$("[data-calm]").forEach((b) => (b.onclick = () => calRe(null, b.dataset.calm)));
+  $$("[data-calpick]").forEach((s2) => (s2.onchange = () => calRe(null, s2.value)));
+  $$("[data-cald]").forEach((b) => (b.onclick = () => calRe(b.dataset.cald, null)));
+  $$("[data-caljump]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const t = $("#dDetail"); if (t) scrollTo({ top: t.getBoundingClientRect().top + scrollY - ((parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) + 10), behavior: "smooth" }); }));
   $$("[data-dr]").forEach((b) => (b.onclick = () => { window.__dRange = b.dataset.dr === "all" ? "all" : +b.dataset.dr; viewDays(env, sel); }));
   $$(".dtab tr[data-dd]").forEach((tr) => (tr.onclick = (e) => { if (!e.target.closest("a")) location.hash = `#/bot/days/${env}/${tr.dataset.dd}`; }));
   $("#dNoteSave").onclick = async () => { const r = await Store.get("scalpnotes"); const M = r.data || {}; M[nk] = $("#dNote").value.slice(0, 4000); await Store.put("scalpnotes", M); toast("Đã lưu ghi chú"); };

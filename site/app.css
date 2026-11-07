@@ -4000,3 +4000,43 @@ small{font-size:max(var(--fs-xs),.86em)}
 @media (max-width:560px){.cal{gap:3px}.cal-d{min-height:84px;padding:5px 1px 4px;border-radius:6px}.cal-p{font-size:var(--fs-sm)}.cal-c{letter-spacing:-.2px}.cal-f{top:3px;right:2px;font-size:.5625rem;padding:0 2px}}
 @media (min-width:980px){.cal-d{min-height:104px}.cal-p{font-size:var(--fs-md)}}
 .cal-d.up .cal-cr,.cal-d.down .cal-cr{color:var(--ink)!important;opacity:.9}
+/* lịch v2: ô tinh gọn – số ngày & nạp/rút trên cùng, lời/lỗ ở giữa, % dạng nhãn, lũy kế mờ dưới vạch mảnh */
+.cal-top{display:flex;align-items:center;gap:6px;margin:0 0 8px;flex-wrap:wrap}
+.cal-nb{height:32px;min-width:32px;padding:0 10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 var(--fs-md)/1 "Be Vietnam Pro",system-ui,sans-serif;cursor:pointer}
+.cal-nb:disabled{opacity:.35;cursor:default}.cal-nb.cal-td{font-size:var(--fs-sm)}
+.cal-pick{height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 var(--fs-base) "Be Vietnam Pro",system-ui,sans-serif;padding:0 28px 0 10px}
+.cal-sum{flex:none;width:100%;margin:0 0 10px;padding:8px 10px;border-radius:10px;background:var(--sunk)}
+.cal{gap:5px}
+.cal-w{font-size:var(--fs-xs);letter-spacing:.04em}
+.cal-d{appearance:none;font:inherit;cursor:pointer;width:100%;min-height:86px;padding:6px 6px 5px;border-radius:10px;gap:2px;align-items:stretch;text-align:center;background:var(--sunk);border:1px solid color-mix(in srgb,var(--ink) 6%,transparent)}
+.cal-d:disabled{cursor:default}
+.cal-d.up{background:color-mix(in srgb,var(--up) var(--a),var(--surface));border-color:color-mix(in srgb,var(--up) 38%,transparent)}
+.cal-d.down{background:color-mix(in srgb,var(--down) var(--a),var(--surface));border-color:color-mix(in srgb,var(--down) 38%,transparent)}
+.cal-d.none{background:transparent;border-style:dashed;border-color:color-mix(in srgb,var(--ink) 9%,transparent)}
+.cal-d.fut{opacity:.35;border-style:solid}
+.cal-d.today{box-shadow:inset 0 0 0 1.5px var(--brass,var(--brand))}
+.cal-d.sel{outline:2px solid var(--ink);outline-offset:1px}
+.cal-h{display:flex;align-items:center;justify-content:space-between;min-height:14px}
+.cal-n{font-size:var(--fs-xs);font-weight:600;color:var(--ink-2);margin:0}
+.cal-d.today .cal-n{color:var(--brass,var(--brand))}
+.cal-f{position:static;font-size:.625rem;padding:1px 4px;border-radius:5px;background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.cal-p{margin-top:4px;font-size:var(--fs-md);font-weight:700;letter-spacing:-.01em}
+.cal-d.up .cal-p{color:color-mix(in srgb,var(--up) 70%,var(--ink))}.cal-d.down .cal-p{color:color-mix(in srgb,var(--down) 70%,var(--ink))}
+.cal-0{color:var(--ink-3);font-weight:400}
+.cal-r{align-self:center;font-size:.6875rem;font-weight:600;padding:0 6px;border-radius:999px;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2);min-height:15px;line-height:15px}
+.cal-r:empty{background:none}
+.cal-c{margin-top:auto;padding-top:4px;border-top:1px solid color-mix(in srgb,var(--ink) 8%,transparent);display:flex;justify-content:space-between;gap:2px;font-size:.625rem;color:var(--ink-3);font-weight:500}
+.cal-c .up,.cal-c .down{font-weight:600}
+.cal-d.up .cal-cr,.cal-d.down .cal-cr{color:inherit!important}
+.cal-sel{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin-top:10px;padding:9px 12px;border-radius:10px;background:var(--sunk);font-size:var(--fs-sm)}
+.cal-sel a{margin-left:auto;font-weight:600}
+@media (max-width:560px){
+  .cal{gap:3px}
+  .cal-d{min-height:78px;padding:4px 3px 4px;border-radius:8px}
+  .cal-p{font-size:var(--fs-sm);margin-top:2px}
+  .cal-r{font-size:.5625rem;padding:0 4px;line-height:13px;min-height:13px}
+  .cal-c{flex-direction:column;align-items:center;gap:0;font-size:.5625rem;padding-top:3px}
+  .cal-f{font-size:.5rem;padding:0 2px}
+}
+@media (min-width:980px){.cal-d{min-height:96px;padding:8px 9px 7px}.cal-p{font-size:var(--fs-lg)}.cal-c{font-size:var(--fs-xs)}}
+.cal-d.fut{min-height:40px!important}
