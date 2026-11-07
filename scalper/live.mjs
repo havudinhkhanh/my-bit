@@ -326,6 +326,7 @@ export class LiveExec {
   missAdd(m) { const env = this.env(); this.S.miss = [...(this.S.miss || []).slice(-79), { ...m, env }]; }
   addFill(ev, q, px, mk = 0) {
     const c = this.cfg(), P = ev.pos, nq = P.q + q;
+    if (!ev.ff && ev.k && !String(ev.k).startsWith("q:")) { ev.ff = 1; try { this.core.hkLiveFill?.(Date.now()); } catch (e) { /* bỏ qua */ } }
     P.ap = (P.ap * P.q + px * q) / nq; P.q = nq; P.t1 ||= Date.now(); ev.pk = 0; ev.fees += q * px * (mk ? c.fee_t : c.fee_m) / 100; ev.needStop = true; ev.ichk = 0;
     this.say(`✅ Khớp ${ev.side > 0 ? "MUA" : "BÁN"} ${ev.sym} ${+q.toFixed(8)} @ ${+px.toPrecision(8)} · vị thế ${+P.q.toFixed(8)} giá TB ${+P.ap.toPrecision(8)} · tự đóng sau ${ev.hold} phút`, "win");
     this.note(`fill:${ev.id}:${P.q}`, 2, `${LTAG(ev.env)} · ✅ Khớp ${ev.side > 0 ? "Long" : "Short"} ${coin(ev.sym)}`, `${+q.toFixed(8)} @ ${+px.toPrecision(8)} – tự đóng sau ${ev.hold} phút, cắt lỗ trên sàn ${ev.stopPct}%`, `lv:${ev.id}`);
