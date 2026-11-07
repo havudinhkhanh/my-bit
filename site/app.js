@@ -1018,7 +1018,7 @@ function hkSvg(K, t, ts, tf, tx) {
   if (ts) s += `<rect x="${X(ix(ts)) - bw}" y="${pt}" width="${2 * bw}" height="${H - pt - pb}" fill="${css("--brass") || css("--warn")}" opacity=".18"/>`;
   niceTicks(mn, mx, 5).forEach((v) => { const y = Y(v).toFixed(1); s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" class="g"/><text x="${pl - 6}" y="${+y + 3.5}" text-anchor="end" class="ya">${esc(px(v))}</text>`; });
   K.forEach((k, i) => { const up = k[4] >= k[1], c = up ? css("--up") : css("--down"); s += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y(k[2])}" y2="${Y(k[3])}" stroke="${c}"/><rect x="${X(i) - bw / 2}" y="${Math.min(Y(k[1]), Y(k[4]))}" width="${bw}" height="${Math.max(1, Math.abs(Y(k[1]) - Y(k[4])))}" fill="${c}"/>`; });
-  lines.forEach(([v, c, lab]) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-dasharray="5 4" opacity=".9"/><text x="${W - pr - 2}" y="${Y(v) - 3}" text-anchor="end" style="fill:${c};font-size:10px">${esc(lab)} ${esc(px(v))}</text>`; });
+  lines.forEach(([v, c, lab]) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-dasharray="5 4" opacity=".9"/><text x="${W - pr - 2}" y="${Y(v) - 3}" text-anchor="end" style="fill:${c};font-size:.6875rem">${esc(lab)} ${esc(px(v))}</text>`; });
   s += `<circle cx="${X(ix(tf))}" cy="${Y(t.e)}" r="5" fill="${css("--brand")}" stroke="var(--surface)" stroke-width="1.5"/><circle cx="${X(ix(tx))}" cy="${Y(t.x)}" r="5" fill="${t.usd >= 0 ? css("--up") : css("--down")}" stroke="var(--surface)" stroke-width="1.5"/>`;
   [0, Math.floor(n / 2), n - 1].forEach((i) => { s += `<text x="${X(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" class="xa">${esc(new Date(K[i][0]).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</text>`; });
   return `<div class="sc-hk">${s}</svg><div class="leg">${ts ? `<span><i style="background:${css("--brass") || css("--warn")}"></i>nến sốc</span>` : ""}<span><i style="background:${css("--brand")}"></i>vào lệnh ${hms(t.t0)}</span><span><i style="background:${t.usd >= 0 ? css("--up") : css("--down")}"></i>ra ${hms(t.t1)} · ${t.usd >= 0 ? "+" : ""}${usd2(t.usd)}</span>${t.c0 ? "" : `<span class="faint">lệnh cũ – chưa lưu giá sau sốc & mức chờ</span>`}</div></div>`;
@@ -1186,7 +1186,7 @@ function pnApply() {
     const has = xs.some((i) => res[i].p === cur), nS = xs.filter((i) => res[i].show).length, shut = gc[g] && !f;
     return `<div class="pn-g ${shut ? "shut" : ""} ${has ? "cur" : ""} ${f && !nS ? "dim" : ""}"><button type="button" class="pn-gh" data-g="${esc(g)}"><span>${esc(T(g))}</span><em>${f ? nS + "/" : ""}${xs.length}</em></button><div class="pn-gb">${xs.map((i) => one(res[i], i)).join("")}</div></div>`;
   }).join("");
-  $("#pnlist").innerHTML = html || `<p class="muted" style="padding:6px 8px;font-size:.8rem">${I18N.lang === "en" ? "Type to filter rows on this page" : "Gõ để lọc các dòng trên trang"}</p>`;
+  $("#pnlist").innerHTML = html || `<p class="muted" style="padding:6px 8px;font-size:.84375rem">${I18N.lang === "en" ? "Type to filter rows on this page" : "Gõ để lọc các dòng trên trang"}</p>`;
   $$("#pnlist .pn-gh").forEach((b) => b.onclick = () => { const g = b.dataset.g, o = pnLS("gc_" + PN.r) || {}; o[g] = !o[g]; pnLS("gc_" + PN.r, o); b.parentElement.classList.toggle("shut", o[g]); });
   $$("#pnlist a[data-i]").forEach((a) => a.onclick = (e) => { e.preventDefault(); pnGo(res[+a.dataset.i].p); });
   $$("#pnlist a[data-s]").forEach((a) => a.onclick = (e) => { e.preventDefault(); const c = PN.subs[+a.dataset.s]; const p = res.find((x) => x.p.contains(c))?.p; if (PN.focus && p) pnGo(p); pnGo(c); });
@@ -1640,7 +1640,7 @@ async function viewMarket() {
   </div>
   <div class="g g3">
     ${panel(`😨 Nên làm gì lúc này (${esc(F.zone || "")})`, `<div class="play"><ul>${(P.lines || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`)}
-    ${panel(`BTC 90 ngày sau theo vùng tâm lý <small class="muted">từ ${esc((st.since || "").slice(0, 4))}</small>`, `<div class="tw"><table><thead><tr><th class="l">Vùng</th><th colspan="2">BTC trên MA200</th><th colspan="2">BTC dưới MA200</th></tr></thead><tbody>${fngTbl}</tbody></table></div><p class="faint" style="font-size:.7rem">Trung vị lợi nhuận · xác suất tăng</p>`)}
+    ${panel(`BTC 90 ngày sau theo vùng tâm lý <small class="muted">từ ${esc((st.since || "").slice(0, 4))}</small>`, `<div class="tw"><table><thead><tr><th class="l">Vùng</th><th colspan="2">BTC trên MA200</th><th colspan="2">BTC dưới MA200</th></tr></thead><tbody>${fngTbl}</tbody></table></div><p class="faint" style="font-size:.6875rem">Trung vị lợi nhuận · xác suất tăng</p>`)}
     ${panel("BTC 1 năm sau theo vùng MVRV <small class='muted'>từ 2014</small>", `<div class="tw"><table><thead><tr><th class="l">MVRV</th><th>Số ngày</th><th>Trung vị</th><th>Tăng</th></tr></thead><tbody>${zoneTbl}</tbody></table></div>`)}
   </div>
   ${PG("Dòng tiền & cơ hội")}<div class="g g2w">
@@ -1899,7 +1899,7 @@ function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
   return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="g g3w">
-    ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.72rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
+    ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.75rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
     <div class="col">
       ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
       ${planSummary(D)}</div>
@@ -1938,7 +1938,7 @@ function tabVal(D) {
       ["Doanh thu giao thức (năm)", usd(V.rev_ann), "", "Revenue: phần phí giao thức giữ lại"], ["Về tay người giữ token (năm)", usd(V.hrev_ann), "", "Holders revenue: mua lại & đốt, chia cho người stake…"],
       ["Tỉ lệ tích luỹ giá trị", isNum(V.accrual) ? nf(V.accrual, 0) + "%" : "—", "", "Holders revenue / Fees – bao nhiêu phần phí thực sự chảy về token"],
       ["Doanh thu 30n vs nhịp 12 tháng", pct((V.rev_vs1y ?? 0) * 100, 0), cls(V.rev_vs1y), "Doanh thu 30 ngày gần nhất năm hoá so với tổng 12 tháng"]])}
-      <p class="faint" style="font-size:.74rem">Nguồn: DefiLlama ${esc(cf.name || V.ll_name || "")} (${esc(cf.category || V.ll_cat || "")}${cf.n_parts > 1 ? `, gộp ${cf.n_parts} phiên bản/sản phẩm` : ""}).</p>` : `<p class="muted">DefiLlama không ghi nhận phí/doanh thu cho dự án này.</p>`;
+      <p class="faint" style="font-size:.75rem">Nguồn: DefiLlama ${esc(cf.name || V.ll_name || "")} (${esc(cf.category || V.ll_cat || "")}${cf.n_parts > 1 ? `, gộp ${cf.n_parts} phiên bản/sản phẩm` : ""}).</p>` : `<p class="muted">DefiLlama không ghi nhận phí/doanh thu cho dự án này.</p>`;
   const multBox = hasCF ? `${kpis([["P/S (vốn hoá)", nf(V.ps, 1), "", "Vốn hoá / doanh thu năm"], ["P/S (FDV)", nf(V.ps_fdv, 1), "", "Tính trên toàn bộ tổng cung"], ["P/F", nf(V.pf, 1), "", "Vốn hoá / phí năm"],
       ["P/HR", nf(V.phr, 1), "", "Vốn hoá / phần về người giữ token – gần với P/E nhất"], ["P/HR (FDV)", nf(V.phr_fdv, 1)], ["P/S trung vị nhóm", nf(V.ps_grp, 1), "", `Nhóm ${r.g || ""}`],
       ["So với nhóm", isNum(V.vs_grp) ? pct(V.vs_grp, 0) : "—", V.vs_grp < 0 ? "up" : "down"], ["Tăng trưởng ngầm định", isNum(V.implied_g) ? nf(V.implied_g, 0) + "%/năm" : "—", V.implied_g > 50 ? "down" : V.implied_g <= 10 ? "up" : "", "Dòng tiền về token phải tăng bao nhiêu %/năm trong 5 năm để giá hiện tại hợp lý (chiết khấu 30%/năm, bội số cuối kỳ 15)"],
@@ -1946,7 +1946,7 @@ function tabVal(D) {
       ${kpis([["Giá nếu ngang P/S nhóm", px(V.fair_grp), "", "Giá tương ứng khi P/S bằng trung vị nhóm – thước đo tương đối, không phải mục tiêu giá"],
         ["Giá theo dòng tiền hiện tại", px(V.fair_cf), "", "Nếu dòng tiền KHÔNG tăng: giá trị = dòng tiền về token × 15, đã trừ pha loãng 1 năm. Thấp hơn nhiều so với giá = thị trường đang trả tiền cho tăng trưởng"],
         ["Giá hiện tại", px(r.p)]])}
-      <p class="faint" style="font-size:.74rem">${V.cf_basis === "rev50" ? "Giao thức chưa chuyển doanh thu cho người giữ token → giả định tối đa 50% doanh thu sẽ về token (có thể thấp hơn nhiều)." : "Dòng tiền về token = holders revenue (mua lại/đốt/chia thưởng)."}</p>`
+      <p class="faint" style="font-size:.75rem">${V.cf_basis === "rev50" ? "Giao thức chưa chuyển doanh thu cho người giữ token → giả định tối đa 50% doanh thu sẽ về token (có thể thấp hơn nhiều)." : "Dòng tiền về token = holders revenue (mua lại/đốt/chia thưởng)."}</p>`
     : `<div class="note"><p><b>${esc(V.verdict || "Đầu cơ")}</b>: ${esc((V.why || [])[0] || "")}</p><p>Với coin không có dòng tiền, giá chủ yếu do câu chuyện, thanh khoản và dòng tiền đầu cơ. Hãy dựa nhiều hơn vào <b>xu hướng</b>, <b>đòn bẩy (funding/OI)</b> và <b>áp lực cung</b> (mở khoá) – và giữ tỷ trọng nhỏ.</p></div>`;
   const nxt = (V.unlock_next || []).map((e) => `<tr><td class="l">${fmtT(e.t)}</td><td>${isNum(e.pct) ? nf(e.pct, 2) + "%" : "—"}</td><td>${usd(e.usd)}</td><td class="l"><small>${esc(e.cat || "")} · ${esc(e.desc || "")}</small></td></tr>`).join("");
   const us = (U.series || []);
@@ -1975,8 +1975,8 @@ function tabFut(D) {
       ${q ? `<div class="note"><p><b>${esc(q.t)}</b> (7 ngày): ${esc(q.d)}</p></div>` : ""}
       ${(D.crowd || []).map((c) => `<div class="note warn"><p><b>${esc(c.t)}</b>: ${esc(c.d)}</p></div>`).join("")}
       ${C ? `<h3>Chênh lệch funding (carry)</h3><p>Mua ${esc(r.k)} spot + bán perp cùng lượng trên <b>${esc(C.ex)}</b>: lãi funding ~<b class="${C.ok ? "up" : ""}">${nf(C.ann7 ?? C.ann_now, 1)}%/năm</b> (TB 7 ngày; hiện tại ${nf(C.ann_now, 1)}%, TB 30 ngày ${nf(C.ann30, 1)}%), chi phí vào/ra ~${nf(C.cost, 1)}%. Lãi ròng ước tính 30 ngày: <b>${pct(C.net_30d, 2)}</b>.
-        ${C.ok ? "" : '<span class="muted"> – chưa đủ hấp dẫn/ổn định (cần ≥ 15%/năm và ≥ 70% kỳ dương).</span>'}</p><p class="faint" style="font-size:.74rem">Rủi ro: funding đổi chiều, sàn sập/rút tiền chậm, perp bị thanh lý khi giá tăng mạnh nếu ký quỹ mỏng (giữ đòn bẩy chân perp ≤ 2–3x).</p>` : ""}`)}
-    <div>${panel("Theo sàn", `<div class="tw"><table><thead><tr><th class="l">Sàn</th><th>Giá</th><th>OI</th><th>KL 24h</th><th>Funding 8h</th><th>Kỳ</th><th>Basis</th><th>Đòn bẩy</th></tr></thead><tbody>${vt}</tbody></table></div><p class="faint" style="font-size:.72rem">Basis = giá mark perp so với giá chỉ số spot. Funding đã quy về mức 8 giờ để so sánh giữa sàn.</p>`)}
+        ${C.ok ? "" : '<span class="muted"> – chưa đủ hấp dẫn/ổn định (cần ≥ 15%/năm và ≥ 70% kỳ dương).</span>'}</p><p class="faint" style="font-size:.75rem">Rủi ro: funding đổi chiều, sàn sập/rút tiền chậm, perp bị thanh lý khi giá tăng mạnh nếu ký quỹ mỏng (giữ đòn bẩy chân perp ≤ 2–3x).</p>` : ""}`)}
+    <div>${panel("Theo sàn", `<div class="tw"><table><thead><tr><th class="l">Sàn</th><th>Giá</th><th>OI</th><th>KL 24h</th><th>Funding 8h</th><th>Kỳ</th><th>Basis</th><th>Đòn bẩy</th></tr></thead><tbody>${vt}</tbody></table></div><p class="faint" style="font-size:.75rem">Basis = giá mark perp so với giá chỉ số spot. Funding đã quy về mức 8 giờ để so sánh giữa sàn.</p>`)}
     ${fser.length ? panel("Lịch sử funding (%/8h)", lineSvg([{ bars: true, pts: fser.map(([t, v]) => ({ x: fmtD(t), y: v })) }], { h: 150, dec: 3, zero: true })) : ""}
     ${bser.length ? panel("Binance: OI & Long/Short theo ngày", lineSvg([{ name: "OI (triệu USD)", color: css("--brand"), pts: bser.map(([d, o]) => ({ x: fmtD(d), y: isNum(o) ? o / 1e6 : null })) }], { h: 130, dec: 0 }) + lineSvg([{ name: "Tỉ lệ tài khoản Long/Short", color: css("--ref"), pts: bser.map(([d, , l]) => ({ x: fmtD(d), y: l })) }], { h: 110, dec: 2, hlines: [{ y: 1, label: "cân bằng" }] })) : ""}</div></div>`;
 }
@@ -2026,7 +2026,7 @@ function tabPlan(D) {
   const hedgeBox = r.fx ? `<p>Giữ ${esc(r.k)} spot nhưng lo giá giảm ngắn hạn? Bán perp cùng lượng = trung tính giá (khoá giá trị bằng USD).</p>
     ${kpis([["Beta với BTC", nf(H.beta, 2), "", "1% BTC biến động → coin biến động bao nhiêu %"], ["Tương quan", nf(H.corr, 2)], ["Biến động năm hoá", isNum(H.vol90) ? nf(H.vol90, 0) + "%" : "—"],
       ["Funding nếu Short phòng hộ", isNum(fh) ? (fh >= 0 ? `<b class="up">nhận ${nf(fh * 3 * 365, 0)}%/năm</b>` : `<b class="down">trả ${nf(-fh * 3 * 365, 0)}%/năm</b>`) : "—"]])}
-    <p class="faint" style="font-size:.74rem">Phòng hộ bằng chính coin: chính xác nhất. Phòng hộ bằng BTC perp (giá trị = vị thế × beta): rẻ & thanh khoản hơn nhưng còn rủi ro riêng của coin (tương quan ${nf(H.corr, 2)}). Dùng <a href="#/tools/hedge">máy tính phòng hộ</a>.</p>` : `<p class="muted">Không có perp để phòng hộ trực tiếp – có thể phòng hộ bằng BTC perp với beta ${nf(H.beta, 2)}.</p>`;
+    <p class="faint" style="font-size:.75rem">Phòng hộ bằng chính coin: chính xác nhất. Phòng hộ bằng BTC perp (giá trị = vị thế × beta): rẻ & thanh khoản hơn nhưng còn rủi ro riêng của coin (tương quan ${nf(H.corr, 2)}). Dùng <a href="#/tools/hedge">máy tính phòng hộ</a>.</p>` : `<p class="muted">Không có perp để phòng hộ trực tiếp – có thể phòng hộ bằng BTC perp với beta ${nf(H.beta, 2)}.</p>`;
   const tk = (tf) => { const t = makeTicket(D, D._ij, { tf }); if (t.none) t.k = r.k; return ticketCard(t); };
   return `${panel("🧾 Kế hoạch lệnh (tính theo vốn của anh)", `<div class="seg" id="tkSeg"><button data-tk="auto" class="on">Tự chọn</button><button data-tk="h4">Lướt 4h</button><button data-tk="d">Swing ngày</button></div><div id="tkOut">${tk("auto")}</div>`, `<a href="#/plan/${enc(r.k)}">mở trang Lên lệnh</a>`)}
   <div class="g g2">${panel("📈 Theo xu hướng – khung ngày, đòn bẩy thấp", trendBox)}<div>${panel("⚡ Lướt trong ngày – 4h định hướng, 1h vào lệnh", intraBox)}${panel("🛡️ Phòng hộ spot / basis", hedgeBox)}</div></div>
@@ -2701,7 +2701,7 @@ async function viewIdeas() {
     <div class="lanes" id="lanes"></div>
     ${panel("🧭 Ngoài vào lệnh theo tín hiệu, anh còn có thể kiếm lời bằng", more)}
     <details class="panel"><summary>Thiết lập nào thực sự có lợi thế? (BTC ${I.btc_up ? "trên" : "dưới"} MA200 – bấm để xem)</summary><div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${sTab}</tbody></table></div>
-      <p class="faint" style="font-size:.74rem">1R = khoảng từ điểm vào tới cắt lỗ. Lãi TB 0,2R = mỗi lần rủi ro $100 thì trung bình lãi $20 sau phí. "Có lợi thế" = kỳ vọng dương trên ≥ 100 lần, vẫn dương ở 2 năm gần nhất và ở đúng trạng thái khung lớn hiện tại.</p></details>
+      <p class="faint" style="font-size:.75rem">1R = khoảng từ điểm vào tới cắt lỗ. Lãi TB 0,2R = mỗi lần rủi ro $100 thì trung bình lãi $20 sau phí. "Có lợi thế" = kỳ vọng dương trên ≥ 100 lần, vẫn dương ở 2 năm gần nhất và ở đúng trạng thái khung lớn hiện tại.</p></details>
     <p class="faint disclaimer">Tín hiệu từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn.</p>`;
   hookIdeas();
   let xs = [];
@@ -2791,7 +2791,7 @@ function rrgDraw(S, W, H) {
   [[W / 2, 0, "Cải thiện", css("--brand")], [W / 2, H / 2, "Dẫn dắt", css("--up")], [0, H / 2, "Tụt hậu", css("--down")], [0, 0, "Suy yếu", css("--ref")]].forEach(([x0, y0, t, c], i) => {
     const qx = i === 0 ? 0 : i === 1 ? W / 2 : i === 2 ? 0 : W / 2, qy = i === 0 ? 0 : i === 1 ? 0 : i === 2 ? H / 2 : H / 2;
     const lab = ["Cải thiện", "Dẫn dắt", "Tụt hậu", "Suy yếu"][i], col = [css("--brand"), css("--up"), css("--down"), css("--ref")][i];
-    s += `<rect x="${qx}" y="${qy}" width="${W / 2}" height="${H / 2}" fill="${col}" opacity=".06"/><text x="${qx + (i % 2 ? W / 2 - 8 : 8)}" y="${qy + (i < 2 ? 16 : H / 2 - 8)}" text-anchor="${i % 2 ? "end" : "start"}" style="fill:${col};font-weight:600;font-size:12px">${lab}</text>`;
+    s += `<rect x="${qx}" y="${qy}" width="${W / 2}" height="${H / 2}" fill="${col}" opacity=".06"/><text x="${qx + (i % 2 ? W / 2 - 8 : 8)}" y="${qy + (i < 2 ? 16 : H / 2 - 8)}" text-anchor="${i % 2 ? "end" : "start"}" style="fill:${col};font-weight:600;font-size:.75rem">${lab}</text>`;
   });
   s += `<line x1="${W / 2}" x2="${W / 2}" y1="0" y2="${H}" stroke="var(--line)"/><line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="var(--line)"/>
     <text x="${W - 6}" y="${H / 2 + 14}" text-anchor="end">mạnh hơn BTC 30 ngày →</text><text x="${W / 2 + 6}" y="${H - 6}">${W / 2 - 6 < 240 ? "↑ tăng tốc / ↓ chậm lại" : "↑ đang tăng tốc / ↓ đang chậm lại (7 ngày)"}</text>`;
@@ -2799,7 +2799,7 @@ function rrgDraw(S, W, H) {
     const tr = (q.trail || []).filter((t) => isNum(t[0]) && isNum(t[1]));
     if (tr.length > 1) s += `<polyline fill="none" stroke="${c}" stroke-opacity=".45" stroke-width="1.5" points="${tr.map((t) => `${X(t[0])},${Y(t[1])}`).join(" ")}"/>`;
     const rad = 4 + Math.sqrt(q.mc || 1) / mx * 14;
-    s += `<a href="#/sector/${enc(q.g)}"><circle cx="${X(q.rs30)}" cy="${Y(q.mom)}" r="${rad.toFixed(1)}" fill="${c}" fill-opacity=".55" stroke="${c}"><title>${esc(q.g)}: so BTC 30 ngày ${pct(q.rs30, 1)}, đà ${nf(q.mom, 1)}</title></circle><text x="${X(q.rs30) > W * 0.72 ? X(q.rs30) - rad - 3 : X(q.rs30) + rad + 3}" text-anchor="${X(q.rs30) > W * 0.72 ? "end" : "start"}" y="${Y(q.mom) + 4}" style="font-size:11px;fill:var(--ink)">${esc(q.g)}</text></a>`; });
+    s += `<a href="#/sector/${enc(q.g)}"><circle cx="${X(q.rs30)}" cy="${Y(q.mom)}" r="${rad.toFixed(1)}" fill="${c}" fill-opacity=".55" stroke="${c}"><title>${esc(q.g)}: so BTC 30 ngày ${pct(q.rs30, 1)}, đà ${nf(q.mom, 1)}</title></circle><text x="${X(q.rs30) > W * 0.72 ? X(q.rs30) - rad - 3 : X(q.rs30) + rad + 3}" text-anchor="${X(q.rs30) > W * 0.72 ? "end" : "start"}" y="${Y(q.mom) + 4}" style="font-size:.6875rem;fill:var(--ink)">${esc(q.g)}</text></a>`; });
   return s + `</svg>`;
 }
 async function viewSectors() {
@@ -2809,7 +2809,7 @@ async function viewSectors() {
   let rng = lsGet("secrng", 90), sort = lsGet("secsort", "rs30");
   app().innerHTML = `<div class="ph"><h1>Nhóm ngành crypto</h1><span class="meta">${L.length} nhóm · chỉ số giá theo vốn hoá của coin giao dịch được · cập nhật ${esc(new Date(S.at).toLocaleString(LOC))}</span></div>
     <div class="note"><p>Tiền trong crypto chạy theo <b>nhóm câu chuyện</b> (AI, Meme, Layer 1, DeFi…). Khi một nhóm mạnh hơn BTC và còn tăng tốc, coin trong nhóm thường cùng tăng; khi nhóm hụt hơi, cả nhóm cùng giảm. Trang này cho anh biết từng nhóm làm gì, kiếm tiền từ đâu, đang mạnh hay yếu, và nên làm gì.</p></div>
-    <div class="g g2w">${panel(`🔄 Bản đồ luân chuyển dòng tiền ${mLink("rrg")}`, rrg(L) + `<p class="faint" style="font-size:.72rem">Trục ngang: nhóm tăng hơn (phải) hay kém (trái) BTC trong 30 ngày. Trục dọc: lợi thế đó đang tăng thêm (trên) hay giảm đi (dưới) trong 7 ngày. Vệt mờ = đường đi 3 tuần qua. Vòng quay điển hình: Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu. Bong bóng càng to vốn hoá càng lớn.</p>`)}
+    <div class="g g2w">${panel(`🔄 Bản đồ luân chuyển dòng tiền ${mLink("rrg")}`, rrg(L) + `<p class="faint" style="font-size:.75rem">Trục ngang: nhóm tăng hơn (phải) hay kém (trái) BTC trong 30 ngày. Trục dọc: lợi thế đó đang tăng thêm (trên) hay giảm đi (dưới) trong 7 ngày. Vệt mờ = đường đi 3 tuần qua. Vòng quay điển hình: Cải thiện → Dẫn dắt → Suy yếu → Tụt hậu. Bong bóng càng to vốn hoá càng lớn.</p>`)}
       ${panel("📊 Hiệu suất các nhóm", `<div class="tw"><table class="sect"><thead><tr><th class="l">Nhóm</th><th>7 ngày</th><th>30 ngày</th><th>90 ngày</th><th>So BTC 30n</th><th class="l">Trạng thái</th></tr></thead><tbody>${L.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999)).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a></td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 1)}</td><td class="${cls(s.r90)}">${pct(s.r90, 0)}</td><td class="${cls(s.rs30)}"><b>${pct(s.rs30, 1)}</b></td><td class="l">${pill(esc(s.action?.q || "—"), QCOL[s.action?.q] || "")}</td></tr>`).join("")}</tbody></table></div>`)}</div>
     ${panel("📈 Chỉ số giá các nhóm lớn so với BTC", `<span class="seg" id="srg">${[30, 90, 365].map((d) => `<button data-d="${d}" class="${d === rng ? "on" : ""}">${d === 365 ? "1 năm" : d + " ngày"}</button>`).join("")}</span><div id="smc2"></div>`)}
     <div class="ph" style="margin-top:14px"><h2>Từng nhóm</h2><span class="meta"><span class="seg" id="sso">${[["rs30", "Mạnh nhất so BTC"], ["mc", "Vốn hoá"], ["r7", "7 ngày"], ["vflow", "Tiền đổ vào"]].map(([k, n]) => `<button data-k="${k}" class="${k === sort ? "on" : ""}">${n}</button>`).join("")}</span></span></div>
@@ -2838,7 +2838,7 @@ function secMore(s, mem) {
   const st = (s.setups || []).slice(0, 8).map((q) => `<tr><td class="l">${TFV[q.tf]} · ${esc(IDEA_NAMES[q.setup] || q.setup)}</td><td>${nf(q.n, 0)}</td><td>${nf(q.win1, 0)}%</td><td class="${cls(q.avgR)}"><b>${nf(q.avgR, 2)}R</b></td><td class="${cls(q.avgR_2y)}">${isNum(q.avgR_2y) ? nf(q.avgR_2y, 2) + "R" : "—"}</td><td>${isNum(q.d1) ? durTxt(q.d1, q.tf === "d" ? 1 : 1 / 6) : "—"}</td></tr>`);
   const lst = (arr, f) => `<div class="rows">${(arr || []).map((x) => coinMini(x[0], f(x))).join("") || `<p class="muted">—</p>`}</div>`;
   return `${panel(`Coin tiêu biểu trong nhóm – làm gì?`, cards)}
-    <div class="g g2">${panel("🎮 Cách đánh nhóm này", `<p class="play">${esc(s.info?.play || "")}</p><h4 class="sub">Thiết lập kỹ thuật hiệu quả nhất với nhóm (kiểm chứng lịch sử)</h4>${tbl(["Thiết lập", "Số lần", "Chạm MT1", "Lãi TB", "2 năm gần", "Tới MT1"], st)}<p class="faint" style="font-size:.72rem">Gộp mọi coin trong nhóm, đã trừ phí. Chỉ tin thiết lập có lãi TB dương ở cả cột "2 năm gần".</p>`)}
+    <div class="g g2">${panel("🎮 Cách đánh nhóm này", `<p class="play">${esc(s.info?.play || "")}</p><h4 class="sub">Thiết lập kỹ thuật hiệu quả nhất với nhóm (kiểm chứng lịch sử)</h4>${tbl(["Thiết lập", "Số lần", "Chạm MT1", "Lãi TB", "2 năm gần", "Tới MT1"], st)}<p class="faint" style="font-size:.75rem">Gộp mọi coin trong nhóm, đã trừ phí. Chỉ tin thiết lập có lãi TB dương ở cả cột "2 năm gần".</p>`)}
       ${panel("💰 Định giá & dòng tiền thật", `${vdBar}<h4 class="sub">Rẻ nhất theo P/S (vốn hoá / doanh thu năm)</h4>${tbl(["Coin", "P/S", "Doanh thu 30 ngày"], (s.cheap || []).map(([k, ps, rv]) => `<tr><td class="l">${coinLink(k)}</td><td><b>${nf(ps, 1)}</b></td><td>${rv ? usd(rv) : "—"}</td></tr>`))}<h4 class="sub">Doanh thu lớn nhất 30 ngày</h4>${tbl(["Coin", "Doanh thu"], (s.revtop || []).map(([k, rv]) => `<tr><td class="l">${coinLink(k)}</td><td>${usd(rv)}</td></tr>`))}`)}</div>
     <div class="g g4">${panel("🚀 Mạnh nhất 7 ngày", lst(s.best7, ([, v]) => `<small class="${cls(v)}">${pct(v, 1)}</small>`))}${panel("🩸 Yếu nhất 7 ngày", lst(s.worst7, ([, v]) => `<small class="${cls(v)}">${pct(v, 1)}</small>`))}
       ${panel("📊 OI futures lớn nhất", lst(s.oi_top, ([, oi, o7]) => `<small>${usd(oi)} · 7n <b class="${cls(o7)}">${pct(o7, 0)}</b></small>`))}${panel("🔓 Mở khoá 90 ngày tới", lst(s.unl, ([, u]) => `<small class="${u >= 3 ? "down" : ""}">${nf(u, 1)}% lưu hành</small>`))}</div>
@@ -2856,7 +2856,7 @@ async function viewSector(g) {
   app().innerHTML = `<div class="ph"><h1>${esc(g)} <small>${s.n} coin · ${s.n_liq} coin thanh khoản</small></h1><span class="meta">${pill(esc(A.q || "—"), QCOL[A.q] || "")} · <a href="#/sectors">tất cả nhóm</a></span></div>
     <section class="panel hero"><p class="sec-ah">${esc(A.head || "")}</p><ul class="why">${(A.lines || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul></section>
     ${PG("Tổng quan nhóm")}<div class="g g2w">
-      ${panel("Chỉ số giá nhóm", `<span class="seg" id="srg1">${[30, 90, 365].map((d) => `<button data-d="${d}" class="${d === rng ? "on" : ""}">${d === 365 ? "1 năm" : d + " ngày"}</button>`).join("")}</span><div id="sch"></div><p class="faint" style="font-size:.72rem">Theo vốn hoá = coin lớn nặng ký hơn · Bình quân = mỗi coin như nhau (phản ánh coin nhỏ trong nhóm) · BTC để so sánh. Chỉ tính coin giao dịch được trên Binance / sàn futures.</p>`)}
+      ${panel("Chỉ số giá nhóm", `<span class="seg" id="srg1">${[30, 90, 365].map((d) => `<button data-d="${d}" class="${d === rng ? "on" : ""}">${d === 365 ? "1 năm" : d + " ngày"}</button>`).join("")}</span><div id="sch"></div><p class="faint" style="font-size:.75rem">Theo vốn hoá = coin lớn nặng ký hơn · Bình quân = mỗi coin như nhau (phản ánh coin nhỏ trong nhóm) · BTC để so sánh. Chỉ tính coin giao dịch được trên Binance / sàn futures.</p>`)}
       ${panel("Nhóm này là gì?", `<dl class="secinfo"><dt>Là gì</dt><dd>${esc(In.what)}</dd><dt>Sản phẩm / dịch vụ</dt><dd>${esc(In.product)}</dd><dt>Kiếm tiền từ đâu · token được gì</dt><dd>${esc(In.money)}</dd><dt>Điều làm giá chạy</dt><dd>${esc(In.drivers)}</dd><dt>Rủi ro chính</dt><dd>${esc(In.risks)}</dd></dl>`)}</div>
     ${panel("Số liệu nhóm", kpis([["Vốn hoá", usd(s.mc)], ["Tỷ trọng thị trường", isNum(s.share) ? nf(s.share, 2) + "%" : "—"], ["KL 24h", usd(s.vol)],
       ["Beta với BTC (trung vị)", nf(s.beta, 2), "", "BTC tăng/giảm 1% thì coin trong nhóm thường tăng/giảm bấy nhiêu %"], ["Biến động năm hoá", isNum(s.volat) ? nf(s.volat, 0) + "%" : "—"], ["Tương quan với BTC", nf(s.corr, 2)], ["Biến động ngày (ATR)", isNum(s.atr) ? nf(s.atr, 1) + "%" : "—"],
@@ -2892,7 +2892,7 @@ async function viewLive() {
       <label class="chk"><input type="checkbox" id="lvB"> Chỉ cặp có cả spot và perp</label><div class="field"><label>Số cặp</label><select id="lvA"><option value="60">60 lớn nhất</option><option value="120">120</option><option value="250">250</option><option value="0">Tất cả</option></select></div>
       <small class="faint" id="lvN"></small></div>
     <div class="tw sticky" id="lvT"></div>
-    <p class="faint" style="font-size:.72rem">1p / 5p / 15p = biến động trong 1, 5, 15 phút gần nhất – tính từ lúc anh mở trang (cần mở đủ lâu). Basis = giá mark perp so với giá chỉ số spot. Funding = mức kỳ tới (đa số kỳ 8 giờ). Bấm tên coin để mở phân tích (coin có trong hệ thống).</p>`;
+    <p class="faint" style="font-size:.75rem">1p / 5p / 15p = biến động trong 1, 5, 15 phút gần nhất – tính từ lúc anh mở trang (cần mở đủ lâu). Basis = giá mark perp so với giá chỉ số spot. Funding = mức kỳ tới (đa số kỳ 8 giờ). Bấm tên coin để mở phân tích (coin có trong hệ thống).</p>`;
   const set = (id, v) => { LV.st[id === "lvS" ? "spot" : "fut"] = v; const e = $("#" + id); if (e) e.innerHTML = v; };
   const ok = '<span class="up">● đang chạy</span>', bad = '<span class="down">● không kết nối được</span>';
   // ảnh chụp ban đầu
@@ -3420,12 +3420,12 @@ function tabSmc(D) {
   const st = ["d", "h4"].flatMap((tf) => SMC_SET.map((s) => { const x = IJ.stats?.[tf]?.[s]; const a = x && (x[up ? "up" : "down"] || x.all); if (!a) return ""; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[s] || s)}</td><td>${nf(a.n, 0)}</td><td>${nf(a.win1, 0)}%</td><td class="${cls(a.avgR)}">${nf(a.avgR, 2)}R</td><td class="${cls(a.avgR_2y)}">${isNum(a.avgR_2y) ? nf(a.avgR_2y, 2) + "R" : "—"}</td><td>${durTxt(a.d1, tf === "d" ? 1 : 1 / 6)}</td></tr>`; })).join("");
   return `${panel(`🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không? ${mLink("mtf")}`, `<div id="mtf"><p class="muted">Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
   <div class="g g2w">
-    ${panel(`Biểu đồ Smart Money – vẽ lại theo từng nến ${mLink("bos", "BOS?")} ${mLink("choch", "CHoCH?")} ${mLink("ob", "OB?")} ${mLink("fvg", "FVG?")}`, `${chartBox(D, 520)}<p class="faint" style="font-size:.72rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
+    ${panel(`Biểu đồ Smart Money – vẽ lại theo từng nến ${mLink("bos", "BOS?")} ${mLink("choch", "CHoCH?")} ${mLink("ob", "OB?")} ${mLink("fvg", "FVG?")}`, `${chartBox(D, 520)}<p class="faint" style="font-size:.75rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
     <div>${panel(`⚡ Vào lệnh lúc này? – đánh giá thời gian thực ${mLink("rt")}`, rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
       ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
     ${panel(`🧲 Vùng giá sẽ về – SMC + học máy ${mLink("magnet")}`, `<div id="mag"><p class="muted">Đang tải mô hình…</p></div>`, "theo khung đang xem trên biểu đồ · xác suất chạm & chạm rồi thì sao")}
     ${st ? panel(`Thiết lập SMC có thật sự hiệu quả? (kiểm chứng trên toàn bộ coin, BTC ${up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${st}</tbody></table></div>
-      <p class="faint" style="font-size:.74rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
+      <p class="faint" style="font-size:.75rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
 }
 
 // ================================================================ RADAR – quét thời gian thực nhiều coin theo khung chọn
@@ -3510,12 +3510,12 @@ async function viewPairs() {
   const rsS = rs.slice().sort((a, b) => (b.rs30 ?? -999) - (a.rs30 ?? -999));
   app().innerHTML = `<div class="ph"><h1>Coin cùng nhịp – coin nào chạy cùng nhau</h1><span class="meta">cập nhật ${esc(new Date(P.at).toLocaleString(LOC))} · ${ks.length} coin thanh khoản lớn · tương quan lợi nhuận ngày ${C.days || 90} ngày</span></div>
     ${PG("Tương quan")}<div class="g g2w">
-      ${panel("🧩 Bản đồ tương quan (số = tương quan × 100)", heat + `<p class="faint" style="font-size:.72rem">Xếp theo mức tương quan với BTC. Xanh đậm = chạy gần như cùng nhau (đa dạng hoá kém, hedge tốt); đỏ = ngược chiều; nhạt = ít liên quan. Altcoin lớn thường tương quan 0,7–0,9 với BTC – khi thị trường sập, gần như mọi thứ giảm cùng lúc.</p>`)}
+      ${panel("🧩 Bản đồ tương quan (số = tương quan × 100)", heat + `<p class="faint" style="font-size:.75rem">Xếp theo mức tương quan với BTC. Xanh đậm = chạy gần như cùng nhau (đa dạng hoá kém, hedge tốt); đỏ = ngược chiều; nhạt = ít liên quan. Altcoin lớn thường tương quan 0,7–0,9 với BTC – khi thị trường sập, gần như mọi thứ giảm cùng lúc.</p>`)}
       <div>${panel("Chạy cùng nhau nhiều nhất", pl(C.top))}${panel("Ít liên quan nhất (đa dạng hoá)", pl(C.low))}</div></div>
     ${PG("Giao dịch theo cặp")}${panel("⏱️ Coin chạy theo BTC/ETH – đã bắt kịp chưa? (nến 1 giờ, 20 ngày)", `<div class="tw"><table><thead><tr><th class="l">Coin</th><th>Theo</th><th>Tương quan cùng giờ</th><th>Beta</th><th>Trễ tốt nhất</th><th>BTC/ETH 3 giờ qua</th><th>Coin 3 giờ qua</th><th>Lẽ ra (theo beta)</th><th class="l">Nhận xét</th></tr></thead><tbody>${lead.map((x) => `<tr><td class="l">${sl(x.k)}</td><td>${esc(x.lead)}</td><td>${nf(x.c0, 2)}</td><td>${nf(x.beta, 2)}</td><td>${x.lag}h <small class="faint">(${nf(x.clag, 2)})</small></td><td class="${cls(x.mv_lead3h)}">${pct(x.mv_lead3h, 2)}</td><td class="${cls(x.mv3h)}">${pct(x.mv3h, 2)}</td><td class="${cls(x.beta * x.mv_lead3h)}">${pct(x.beta * x.mv_lead3h, 2)}</td><td class="l"><small>${llTxt(x)}</small></td></tr>`).join("")}</tbody></table></div>
-      <p class="faint" style="font-size:.74rem">Kết quả nghiên cứu thật: tương quan trễ 1–6 giờ cao nhất chỉ ${nf(maxLag, 2)} (gần 0) – altcoin phản ứng với BTC <b>trong cùng giờ</b>, gần như không có độ trễ khai thác được ở khung 1h. Cột nhận xét so sánh biến động 3 giờ của coin với mức "lẽ ra" theo beta – chỉ cho thấy coin đang lệch nhịp (thường do tin riêng hoặc dòng tiền riêng) – không phải tín hiệu đã kiểm chứng.</p>`)}
+      <p class="faint" style="font-size:.75rem">Kết quả nghiên cứu thật: tương quan trễ 1–6 giờ cao nhất chỉ ${nf(maxLag, 2)} (gần 0) – altcoin phản ứng với BTC <b>trong cùng giờ</b>, gần như không có độ trễ khai thác được ở khung 1h. Cột nhận xét so sánh biến động 3 giờ của coin với mức "lẽ ra" theo beta – chỉ cho thấy coin đang lệch nhịp (thường do tin riêng hoặc dòng tiền riêng) – không phải tín hiệu đã kiểm chứng.</p>`)}
     ${panel(`⚖️ Giao dịch cặp – chênh lệch giá quay về trung bình ${mLink("pairs")}`, `<div class="tw"><table class="prt"><thead><tr><th class="l">Cặp</th><th>Tương quan</th><th>Beta</th><th>Z-score hiện tại</th><th class="l">Nếu vào</th><th>Số lần (2 năm)</th><th>Quay về</th><th>Lãi TB/lần</th><th>Giữ</th><th>Bán rã</th><th></th></tr></thead><tbody>${pairs.map((x, i) => `<tr data-i="${i}" class="${i === 0 ? "on" : ""}"><td class="l">${sl(x.a)} / ${sl(x.b)}</td><td>${nf(x.corr, 2)}</td><td>${nf(x.beta, 2)}</td><td class="${Math.abs(x.z) >= 2 ? "ref" : ""}"><b>${nf(x.z, 2)}</b></td><td class="l"><small>${Math.abs(x.z) >= 2 ? esc(x.side) : "chưa lệch đủ (|z| < 2)"}</small></td><td>${x.n}</td><td>${nf(x.win, 0)}%</td><td class="${cls(x.avg)}">${pct(x.avg, 2)}</td><td>${nf(x.days, 0)} ngày</td><td>${isNum(x.hl) ? nf(x.hl, 0) + " ngày" : "—"}</td><td>${x.ok ? '<span class="pill brand">đạt</span>' : ""}</td></tr>`).join("")}</tbody></table></div><div id="pz"></div>
-      <p class="faint" style="font-size:.74rem">Chênh lệch = log(giá A) − beta × log(giá B). Z-score = chênh lệch hiện tại so với trung bình 60 ngày, đo bằng độ lệch chuẩn. |z| ≥ 2 → Short coin đắt / Long coin rẻ cùng giá trị × beta, thoát khi |z| ≤ 0,5, cắt khi |z| ≥ 3,5 hoặc sau 30 ngày; đã trừ phí 4 chân. "Đạt" = đang lệch ≥ 2, quay về ≥ 60% số lần, lãi TB dương, bán rã ≤ 30 ngày. <b>Kết quả nghiên cứu: phần lớn cặp crypto có lãi trung bình gần 0 hoặc âm</b> – các cặp tương quan cao vẫn có thể "lệch luôn" khi một coin có câu chuyện riêng. Số lần ít (thường < 20) nên chỉ dùng tham khảo, khối lượng nhỏ.</p>`)}
+      <p class="faint" style="font-size:.75rem">Chênh lệch = log(giá A) − beta × log(giá B). Z-score = chênh lệch hiện tại so với trung bình 60 ngày, đo bằng độ lệch chuẩn. |z| ≥ 2 → Short coin đắt / Long coin rẻ cùng giá trị × beta, thoát khi |z| ≤ 0,5, cắt khi |z| ≥ 3,5 hoặc sau 30 ngày; đã trừ phí 4 chân. "Đạt" = đang lệch ≥ 2, quay về ≥ 60% số lần, lãi TB dương, bán rã ≤ 30 ngày. <b>Kết quả nghiên cứu: phần lớn cặp crypto có lãi trung bình gần 0 hoặc âm</b> – các cặp tương quan cao vẫn có thể "lệch luôn" khi một coin có câu chuyện riêng. Số lần ít (thường < 20) nên chỉ dùng tham khảo, khối lượng nhỏ.</p>`)}
     ${PG("Mạnh / yếu so BTC")}<div class="g g2">${panel("💪 Mạnh hơn BTC (30 ngày)", rsT(rsS.slice(0, 20)))}${panel("🐢 Yếu hơn BTC (30 ngày)", rsT(rsS.slice(-20).reverse()))}</div>
     <p class="faint disclaimer">Tương quan và quan hệ dẫn – theo thay đổi theo thời gian; không phải lời khuyên đầu tư.</p>`;
   const zc = (i) => { const x = pairs[i]; if (!x) { $("#pz").innerHTML = ""; return; }
@@ -3621,12 +3621,12 @@ function mtfHtml(M, IJ) {
     return `<tr class="${s === "_all" ? "hl" : ""}"><td class="l">${TFV[tf]}</td><td class="l">${s === "_all" ? "<b>Tất cả thiết lập</b>" : esc(IDEA_NAMES[s] || s)}</td><td>${cell(x["h+"])}</td><td>${cell(x["h0"])}</td><td>${cell(x["h-"])}</td><td>${cell(x[reg + "_h+"])}</td><td>${cell(x[reg + "_h-"])}</td></tr>`; })).join("");
   const res = rows ? `<h3 style="margin:14px 0 4px">Kiểm chứng: đánh cùng chiều hay ngược chiều khung lớn thì tốt hơn?</h3>
     <div class="tw"><table><thead><tr><th class="l">Khung vào</th><th class="l">Thiết lập</th><th>Khung lớn cùng chiều</th><th>Lẫn lộn</th><th>Khung lớn ngược</th><th>Cùng chiều · BTC ${IJ.btc_up ? "trên" : "dưới"} MA200</th><th>Ngược · BTC ${IJ.btc_up ? "trên" : "dưới"} MA200</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="faint" style="font-size:.74rem">Khung lớn của khung ngày = tuần + tháng; của khung 4h = ngày + tuần. "Cùng chiều" = cả 2 khung lớn cùng hướng lệnh tại thời điểm tín hiệu (giá so với EMA của các kỳ đã đóng, không nhìn trước). Mỗi ô: lãi TB/lệnh sau phí · tỉ lệ chạm MT1 · số lần. Điều thú vị: thiết lập <b>thuận xu hướng</b> (hồi về Fibonacci, phá đỉnh) cần khung lớn cùng chiều, còn thiết lập <b>đảo chiều</b> (quét thanh khoản đáy) lại tốt nhất khi khung lớn đang giảm – vì đó chính là lúc phe bán bị quét. Vì vậy hệ thống chấm theo số liệu của đúng thiết lập + đúng trạng thái khung lớn, không áp một quy tắc chung.</p>` : "";
+    <p class="faint" style="font-size:.75rem">Khung lớn của khung ngày = tuần + tháng; của khung 4h = ngày + tuần. "Cùng chiều" = cả 2 khung lớn cùng hướng lệnh tại thời điểm tín hiệu (giá so với EMA của các kỳ đã đóng, không nhìn trước). Mỗi ô: lãi TB/lệnh sau phí · tỉ lệ chạm MT1 · số lần. Điều thú vị: thiết lập <b>thuận xu hướng</b> (hồi về Fibonacci, phá đỉnh) cần khung lớn cùng chiều, còn thiết lập <b>đảo chiều</b> (quét thanh khoản đáy) lại tốt nhất khi khung lớn đang giảm – vì đó chính là lúc phe bán bị quét. Vì vậy hệ thống chấm theo số liệu của đúng thiết lập + đúng trạng thái khung lớn, không áp một quy tắc chung.</p>` : "";
   return `${strip}<div class="mtf-sum"><p>${C.up} / ${C.n} khung tăng · ${C.dn} / ${C.n} khung giảm</p>${C.txt.map((t) => `<p>⚠️ ${t}</p>`).join("") || "<p>Các khung không xung đột lớn.</p>"}</div>${hz}${tbl}${res}`;
 }
 async function mtfMount(D) {
   const el = $("#mtf"); if (!el) return;
-  const go = async () => { if (!el.isConnected) return; const M = await mtfLoad(D.row, D); if (!el.isConnected) return; el.innerHTML = mtfHtml(M, D._ij) + `<p class="faint" style="font-size:.7rem">Cập nhật ${new Date().toLocaleTimeString(LOC)} · tự làm mới mỗi 60 giây · khung Quý gộp từ nến tháng.</p>`; };
+  const go = async () => { if (!el.isConnected) return; const M = await mtfLoad(D.row, D); if (!el.isConnected) return; el.innerHTML = mtfHtml(M, D._ij) + `<p class="faint" style="font-size:.6875rem">Cập nhật ${new Date().toLocaleTimeString(LOC)} · tự làm mới mỗi 60 giây · khung Quý gộp từ nến tháng.</p>`; };
   await go();
   const tm = setInterval(() => { if (!el.isConnected) { clearInterval(tm); return; } go(); }, 60e3);
 }
@@ -3704,7 +3704,7 @@ function engPanel(ss, C, B) {
   const mc = M.none ? `<p class="muted">Mô phỏng cần ít nhất 1 bot có ≥ 10 lệnh đã đóng.</p>` : M.n ? `<div class="eng-mc">
       <div><span>Cuối năm ≥ sàn +${nf(c.goal_floor, 0)}%</span>${pb(M.p_floor, css("--ref"))}</div><div><span>Cuối năm ≥ ×${nf(c.goal_x, 0)}</span>${pb(M.p_x, css("--up"))}</div>
       <div><span>Cuối năm ≥ ×${nf(c.goal_x2, 0)}</span>${pb(M.p_x2, css("--floor"))}</div><div><span>Lỗ so với đầu năm</span>${pb(M.p_loss, css("--down"))}</div><div><span>Có lúc sụt ≥ ${nf(C.acct_dd, 0)}%</span>${pb(M.p_dd, css("--down"))}</div></div>
-      <p class="faint" style="font-size:.74rem">${nf(M.n, 0)} lần mô phỏng phần còn lại của năm (~${nf(M.trades, 0)} lệnh) bằng cách bốc ngẫu nhiên từ chính các lệnh đã đóng của từng bot, với đúng cỡ lệnh máy đang đặt và cơ chế bảo vệ sàn. Kết quả cuối năm: xấu 10% ${P((M.p10 - 1) * 100)} · giữa ${P((M.p50 - 1) * 100)} · tốt 10% ${P((M.p90 - 1) * 100)}. Tính lại mỗi 6 giờ.</p>` : `<p class="muted">Đang chờ lượt mô phỏng đầu tiên.</p>`;
+      <p class="faint" style="font-size:.75rem">${nf(M.n, 0)} lần mô phỏng phần còn lại của năm (~${nf(M.trades, 0)} lệnh) bằng cách bốc ngẫu nhiên từ chính các lệnh đã đóng của từng bot, với đúng cỡ lệnh máy đang đặt và cơ chế bảo vệ sàn. Kết quả cuối năm: xấu 10% ${P((M.p10 - 1) * 100)} · giữa ${P((M.p50 - 1) * 100)} · tốt 10% ${P((M.p90 - 1) * 100)}. Tính lại mỗi 6 giờ.</p>` : `<p class="muted">Đang chờ lượt mô phỏng đầu tiên.</p>`;
   return `${kpis([["Lợi nhuận từ " + G.start.slice(8, 10) + "/" + G.start.slice(5, 7), P(ret), cls(ret), "lợi nhuận theo thời gian (TWR) – không bị méo khi thêm / làm lại bot"], ["Trạng thái", PACE[0], PACE[1]],
       ["Đường sàn lúc này", P((E.paths.floor - 1) * 100), "", `+${nf(c.goal_floor, 0)}%/năm`], [`Đường ×${nf(c.goal_x, 0)} lúc này`, P((E.paths.x - 1) * 100)],
       ["Sàn bảo vệ", P((E.floor - 1) * 100), E.lock ? "up" : "", E.lock ? `đã khoá +${nf(c.goal_floor, 0)}%` : "sụt tối đa từ đỉnh"], ["Cỡ lệnh chung", `×${nf(E.acct, 2)}`, E.acct < 1 ? "down" : "", `đệm tới sàn ${nf(E.cush * 100, 1)}%`],
@@ -3714,7 +3714,7 @@ function engPanel(ss, C, B) {
     <div class="tw"><table class="rs"><thead><tr><th class="l">Bot</th><th class="l">Chế độ</th><th>Lệnh</th><th title="Lãi TB mỗi lệnh đo được / cận dưới 80% (thận trọng – dùng để đặt cược)">Lợi thế đo / thận trọng</th><th>Lệnh/năm</th>
       <th title="Rủi ro mỗi lệnh vừa đủ để đạt mục tiêu vào cuối năm">Cần cho mục tiêu</th><th title="Rủi ro lớn nhất để xác suất sụt quá giới hạn ≤ 10%">Trần an toàn sụt</th><th title="Vượt mức này tăng rủi ro lại làm giảm tăng trưởng dài hạn">${nf(c.kelly, 1)}×Kelly</th><th>→ Đặt</th><th>So với cài đặt</th><th title="Lợi nhuận 12 tháng ước tính – theo lợi thế đo / thận trọng">Kỳ vọng năm</th></tr></thead><tbody>${rows}</tbody></table></div>
     <h4 class="bfh">🎲 Mô phỏng phần còn lại của năm</h4>${mc}
-    <p class="faint" style="font-size:.74rem">Thật thà: không cỗ máy nào đảm bảo "luôn luôn ≥ ${nf(c.goal_floor, 0)}%/năm" – thị trường có thể làm mọi lợi thế biến mất. Cỗ máy làm được ba việc: (1) chỉ đặt cược lớn khi lợi thế đã được chứng minh bằng số liệu (dùng cận dưới, không dùng con số đẹp), (2) chỉ lấy đúng mức rủi ro cần cho mục tiêu, không hơn, và không bao giờ vượt trần an toàn sụt / Kelly / 2%/lệnh, (3) khi lãi đủ đệm thì khoá sàn +${nf(c.goal_floor, 0)}%, càng gần sàn càng đánh nhỏ, chạm sàn là dừng. Mục tiêu ×${nf(c.goal_x, 0)}–×${nf(c.goal_x2, 0)} chỉ đạt được nếu các bot có lợi thế thật và đủ nhiều lệnh – bảng trên cho thấy từng bot còn thiếu gì.</p>`;
+    <p class="faint" style="font-size:.75rem">Thật thà: không cỗ máy nào đảm bảo "luôn luôn ≥ ${nf(c.goal_floor, 0)}%/năm" – thị trường có thể làm mọi lợi thế biến mất. Cỗ máy làm được ba việc: (1) chỉ đặt cược lớn khi lợi thế đã được chứng minh bằng số liệu (dùng cận dưới, không dùng con số đẹp), (2) chỉ lấy đúng mức rủi ro cần cho mục tiêu, không hơn, và không bao giờ vượt trần an toàn sụt / Kelly / 2%/lệnh, (3) khi lãi đủ đệm thì khoá sàn +${nf(c.goal_floor, 0)}%, càng gần sàn càng đánh nhỏ, chạm sàn là dừng. Mục tiêu ×${nf(c.goal_x, 0)}–×${nf(c.goal_x2, 0)} chỉ đạt được nếu các bot có lợi thế thật và đủ nhiều lệnh – bảng trên cho thấy từng bot còn thiếu gì.</p>`;
 }
 async function viewSup(...a) { await lazyJs("app-bot.js"); return viewSup(...a); }
 
@@ -3752,13 +3752,13 @@ function whyLive(X, C) {
       ["Lợi thế kỳ vọng (thận trọng)", isNum(W.exp) ? `${bps(W.exp, 1)} bps` : "—", isNum(W.exp) && isNum(W.cT) && W.exp > W.cT ? "up" : "down", "trung vị lợi thế kỳ vọng sau khi trừ sai số, ở mốc giữ tốt nhất"],
       ["Thị trường có lợi thế > chi phí", isNum(W.posT) ? `${nf(W.posT, 0)}% · ${nf(W.posM, 0)}%` : "—", "", "taker · maker"], ["Dao động / chênh lệch", `${nf(W.vol, 2)} · ${nf(W.spread, 2)} bps`, "", "trung vị dao động mỗi giây và chênh lệch mua/bán"]])}
       <p class="sbh">Lệnh ảo thực tế (đã trừ phí)</p><ul class="wf-l"><li><b>Taker:</b> ${sh("T")}</li><li><b>Maker:</b> ${sh("M")}</li></ul>
-      <p class="faint" style="font-size:.74rem"><span>Bot chỉ vào lệnh khi qua đủ 2 tầng. Phễu hẹp ở tầng nào thì đó là lý do chính đang đứng ngoài: hẹp ở tầng 1 là phí + chênh lệch lớn hơn biến động thị trường; hẹp ở tầng 2 là lệnh ảo cho thấy lợi thế trên giấy chưa thành tiền thật.</span></p></div></div>`;
+      <p class="faint" style="font-size:.75rem"><span>Bot chỉ vào lệnh khi qua đủ 2 tầng. Phễu hẹp ở tầng nào thì đó là lý do chính đang đứng ngoài: hẹp ở tầng 1 là phí + chênh lệch lớn hơn biến động thị trường; hẹp ở tầng 2 là lệnh ảo cho thấy lợi thế trên giấy chưa thành tiền thật.</span></p></div></div>`;
 }
 function shPanel(SH, C) {
   if (!SH || !(SH.all || []).length) return `<p class="muted">Chưa có lệnh ảo nào – lệnh ảo bắt đầu khi bộ học tầng 1 thấy cơ hội vượt chi phí.</p>`;
   const row = (r) => `<tr><td class="l">${esc(shLab(r[0]))}</td><td>${nf(r[4], 0)}${r[9] != null ? ` <small class="faint">/ ${nf(r[9], 0)} lệnh</small>` : ""}</td><td class="${cls(r[5])}">${bps(r[5], 1)}</td><td class="${r[6] >= (C.min_net ?? 1) && r[4] >= (C.sh_min ?? 30) ? "up" : "down"}"><b>${bps(r[6], 1)}</b></td><td>${nf(r[7], 0)}%</td><td>${r[1][0] === "M" ? nf(r[8], 0) + "%" : "—"}</td></tr>`;
   const head = `<thead><tr><th class="l">Loại tình huống</th><th title="Lệnh ảo trong cùng 10 phút chạy cùng nhau nên chỉ tính là 1 bằng chứng – cần đủ số đợt mới đánh thật">Số đợt 10 phút</th><th title="bps, đã trừ phí">Ròng TB</th><th title="cận dưới thận trọng – phải ≥ ngưỡng mới đánh thật">Thận trọng</th><th>Thắng</th><th title="maker: tỉ lệ lệnh chờ được khớp trong 3 giây">Khớp</th></tr></thead>`;
-  return `<p class="faint" style="font-size:.76rem"><span>Mỗi cơ hội đạt tầng 1 được đánh thử ẢO bằng cả 2 cách khớp, với 3 mốc giữ lệnh, đúng phí, đúng cắt lỗ / chốt lời / hết giờ như lệnh thật. Kết quả cộng dồn theo từng loại tình huống (nhóm thanh khoản × xu hướng × BTC × vùng giá) và lưu vào bộ nhớ học. Bot chỉ vào lệnh THẬT khi số lệnh ảo của loại tình huống đó đạt tối thiểu</span> <b>${nf(C.sh_min ?? 30, 0)}</b> <span>và lời ròng thận trọng đạt tối thiểu</span> <b>${nf(C.min_net ?? 1, 1)} bps</b><span>. Trung bình trượt khoảng 300 kết quả gần nhất: nhớ lâu, nhưng vẫn theo kịp thị trường đổi tính.</span></p>
+  return `<p class="faint" style="font-size:.75rem"><span>Mỗi cơ hội đạt tầng 1 được đánh thử ẢO bằng cả 2 cách khớp, với 3 mốc giữ lệnh, đúng phí, đúng cắt lỗ / chốt lời / hết giờ như lệnh thật. Kết quả cộng dồn theo từng loại tình huống (nhóm thanh khoản × xu hướng × BTC × vùng giá) và lưu vào bộ nhớ học. Bot chỉ vào lệnh THẬT khi số lệnh ảo của loại tình huống đó đạt tối thiểu</span> <b>${nf(C.sh_min ?? 30, 0)}</b> <span>và lời ròng thận trọng đạt tối thiểu</span> <b>${nf(C.min_net ?? 1, 1)} bps</b><span>. Trung bình trượt khoảng 300 kết quả gần nhất: nhớ lâu, nhưng vẫn theo kịp thị trường đổi tính.</span></p>
     <p class="sbh">Tổng theo cách khớp × mốc giữ</p><div class="tw"><table>${head}<tbody>${SH.all.map(row).join("")}</tbody></table></div>
     ${SH.best.length ? `<p class="sbh">Tình huống tốt nhất</p><div class="tw"><table>${head}<tbody>${SH.best.slice(0, 12).map(row).join("")}</tbody></table></div>` : ""}
     ${SH.worst.length ? `<p class="sbh">Tình huống tệ nhất – bot tránh</p><div class="tw"><table>${head}<tbody>${SH.worst.slice(0, 8).map(row).join("")}</tbody></table></div>` : ""}`;
@@ -4672,7 +4672,7 @@ async function viewFutures(sub) {
       ${panel("📉 OI giảm mạnh 7 ngày (xả đòn bẩy)", tbl(by("oi7", 1, (r) => (r.oi || 0) > 5e6), ["k", "p", "r7", "oi", "oi24", "oi7", "f8"]))}
     </div>
     ${PG("Đám đông & chênh lệch")}${panel("👥 Tín hiệu đám đông", crowd.length ? tbl(crowd, ["k", "p", "r1", "r7", "f8", "fp", "oi7", "lsr", "cr"]) : `<p class="muted">Hiện không có coin nào ở trạng thái đám đông cực đoan.</p>`, "chỉ báo ngược – đám đông thường sai ở cực trị")}
-    ${panel("💱 Cơ hội chênh lệch funding (mua spot + bán perp)", carry.length ? tbl(carry, ["k", "p", "car", "f8", "f7", "oi", "vol"]) + `<p class="faint" style="font-size:.74rem">Lãi năm hoá theo funding TB 7 ngày, chưa trừ phí vào/ra (~0,4%). Giữ chân perp đòn bẩy thấp (≤ 2–3x) để không bị thanh lý khi giá tăng vọt. Funding có thể đổi chiều bất cứ lúc nào.</p>` : `<p class="muted">Chưa có cơ hội đáng kể.</p>`)}
+    ${panel("💱 Cơ hội chênh lệch funding (mua spot + bán perp)", carry.length ? tbl(carry, ["k", "p", "car", "f8", "f7", "oi", "vol"]) + `<p class="faint" style="font-size:.75rem">Lãi năm hoá theo funding TB 7 ngày, chưa trừ phí vào/ra (~0,4%). Giữ chân perp đòn bẩy thấp (≤ 2–3x) để không bị thanh lý khi giá tăng vọt. Funding có thể đổi chiều bất cứ lúc nào.</p>` : `<p class="muted">Chưa có cơ hội đáng kể.</p>`)}
     ${panel("Toàn bộ hợp đồng", `<p><a class="btn" href="#/coins/fut">Mở bảng Futures đầy đủ (lọc, sắp xếp) →</a></p>`)}`;
 }
 
@@ -4759,7 +4759,7 @@ async function pfSyncAsk(P) {
     <table class="mxe"><tbody>${rows || '<tr><td>Không có coin nào (≥ $1) ngoài stablecoin</td><td></td></tr>'}
     <tr><td>💵 Tiền mặt / stablecoin<small>${P.F?.length ? "đã trừ ký quỹ & lời/lỗ vị thế futures (tính riêng ở bảng Futures)" : "USDT, USDC, FDUSD… ở mọi ví"}</small></td><td><b>$${nf(P.cash, 2)}</b><small>trước: $${nf(+PF.cash || 0, 2)}</small></td></tr>
     <tr><td>📈 Vị thế futures</td><td>${P.F ? `<b>${P.F.length}</b> vị thế<small>${P.F.map((f) => `${f.symbol} ${f.side === "long" ? "Long" : "Short"} x${nf(f.lev, 0)}`).join(", ") || "không có"}</small>` : `<small>máy chủ chưa gửi – giữ như cũ</small>`}</td></tr></tbody></table>
-    ${P.gone.length ? `<label class="chk" style="display:flex;gap:8px;margin-top:8px;font-size:13px"><input type="checkbox" id="pfDrop" checked> Xoá ${P.gone.length} coin không còn trên Binance: ${P.gone.map((h) => esc(h.symbol)).join(", ")}</label>` : ""}
+    ${P.gone.length ? `<label class="chk" style="display:flex;gap:8px;margin-top:8px;font-size:.84375rem"><input type="checkbox" id="pfDrop" checked> Xoá ${P.gone.length} coin không còn trên Binance: ${P.gone.map((h) => esc(h.symbol)).join(", ")}</label>` : ""}
     ${P.skip.length || P.fskip.length ? `<p class="mxn">Bỏ qua (không có trong danh sách coin của MyBit): ${esc([...P.skip, ...P.fskip].join(", "))}</p>` : ""}
     <p class="mxn">Giá vốn anh đã nhập được giữ. Coin mới tạm lấy giá vốn = giá bây giờ – bấm "Sửa" ở dòng đó nếu nhớ giá mua. Bụi dưới $1 không đưa vào.</p>`;
   const go = iosSheet({ title: "Cập nhật danh mục từ Binance thật?", body, ok: "Cập nhật danh mục", cancel: "Huỷ" });
@@ -4822,7 +4822,7 @@ async function viewPortfolio() {
       ["Lãi/lỗ tuần này", RISK ? pct(RISK.week_pct, 2) : "—", RISK?.week_pct <= -6 ? "down" : cls(RISK?.week_pct), "−6%/tuần → rủi ro mỗi lệnh giảm 1/2"],
       ["Chuỗi thua", RISK ? `${RISK.streak} lệnh` : "—", RISK?.streak >= 3 ? "down" : "", "thua 3 lệnh liên tiếp → rủi ro giảm 1/2 trong 24 giờ"],
       ["Trạng thái", RISK?.halt ? "⛔ Dừng" : (RISK?.half || []).length ? "⚠️ Giảm rủi ro" : "✅ Bình thường", RISK?.halt ? "down" : (RISK?.half || []).length ? "ref" : "up", RISK ? `máy chủ kiểm tra lúc ${new Date(RISK.at + "Z").toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}` : "máy chủ chưa kiểm tra – sau lượt 15 phút tới"]])}
-      <p class="faint" style="font-size:.74rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
+      <p class="faint" style="font-size:.75rem">Anh không tự nâng được đòn bẩy: mọi phiếu lệnh dùng mức trần này (thêm giới hạn theo biến động, vốn hoá, khoảng cắt lỗ, đám đông). Vị thế nhập vào vượt mức sẽ bị đánh dấu đỏ và hệ thống nhắc mỗi 15 phút cho tới khi anh giảm.</p>`);
   app().innerHTML = `<div class="ph"><h1>Danh mục</h1><span class="meta">dữ liệu riêng của anh – lưu trên tài khoản</span></div>
     <section class="panel pf-hero"><div class="pf-top"><div class="pf-tot"><small>Tổng tài sản (ước)</small><b>${usd2(eq)}</b><span>≈ ${vndF(eq * fx)}${PF.depVnd > 0 ? ` · <em class="${cls(eq * fx - PF.depVnd)}">${eq * fx - PF.depVnd >= 0 ? "+" : ""}${vndF(eq * fx - PF.depVnd)} (${pct((eq * fx / PF.depVnd - 1) * 100, 1)})</em> so với ${vndF(PF.depVnd)} đã nạp` : ""}</span></div>
       ${eq > 0 ? `<div class="pf-mix">${[["Spot", spotV, "var(--brand)"], ["Tiền mặt", cash, "var(--ink-3)"], ["Futures", futMargin + futPnl, "var(--ref,#d9a400)"]].filter((x) => x[1] > 0).map(([t, v, c]) => `<span style="flex:${v}"><i style="background:${c}"></i><small>${t} ${nf(v / eq * 100, 0)}%</small></span>`).join("")}</div>` : ""}</div>
@@ -4852,7 +4852,7 @@ async function viewPortfolio() {
     ${panel("Futures (perp)", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Số lượng</th><th>Giá vào</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Thanh lý (ước)</th><th>Cắt lỗ</th><th>Funding</th><th></th></tr></thead><tbody>${fu || '<tr><td colspan="11" class="muted">Chưa có vị thế.</td></tr>'}</tbody></table></div>
       <div class="filters"><div class="field"><label>Coin</label><input id="fS" list="coinlist" placeholder="ETH"></div><div class="field"><label>Chiều</label><select id="fSide"><option value="long">Long</option><option value="short">Short</option></select></div>
       <div class="field"><label>Giá vào <small>(Binance › Vị thế › Giá vào)</small></label><input id="fE" inputmode="decimal"></div><div class="field"><label>Đòn bẩy</label><input id="fL" inputmode="decimal" value="3"></div><div class="field"><label>Ký quỹ (USDT)</label><input id="fM" inputmode="decimal" placeholder="vd 100"></div><div class="field"><label>hoặc Số lượng (coin)</label><input id="fQ" inputmode="decimal"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
-      <p class="faint" style="font-size:.72rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. ${BW ? "Bấm 🔄 Cập nhật từ Binance ở trên để lấy vị thế thật; trang này chỉ đọc, không đặt lệnh." : "Hệ thống chỉ theo dõi, không kết nối tài khoản sàn."}</p>`)}
+      <p class="faint" style="font-size:.75rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. ${BW ? "Bấm 🔄 Cập nhật từ Binance ở trên để lấy vị thế thật; trang này chỉ đọc, không đặt lệnh." : "Hệ thống chỉ theo dõi, không kết nối tài khoản sàn."}</p>`)}
     ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
       const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
       return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
@@ -4965,7 +4965,7 @@ async function viewTools(sub) {
   <div class="g g2">
     ${panel("⚙️ Thông số của anh", `<div class="filters"><div class="field"><label>Vốn giao dịch (USD)</label><input id="tA" type="number" value="${acct}"></div><div class="field"><label>Rủi ro mỗi lệnh (% vốn)</label><input id="tR" type="number" step="0.1" value="${rk}"></div>
       <button class="btn primary" id="tSave">Lưu</button></div>
-      <p class="faint" style="font-size:.74rem">Rủi ro tối đa 2%/lệnh. <b>Đòn bẩy do hệ thống kiểm soát</b> – xem chi tiết ở <a href="#/portfolio">Danh mục</a>. Khi đã nhập danh mục, hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</p>`)}
+      <p class="faint" style="font-size:.75rem">Rủi ro tối đa 2%/lệnh. <b>Đòn bẩy do hệ thống kiểm soát</b> – xem chi tiết ở <a href="#/portfolio">Danh mục</a>. Khi đã nhập danh mục, hệ thống dùng tổng tài sản thực thay cho vốn giao dịch.</p>`)}
     ${panel("🧮 Khối lượng lệnh & giá thanh lý", `<div class="filters"><div class="field"><label>Coin (tự điền giá)</label><input id="cS" list="coinlist2" placeholder="SOL"></div><div class="field"><label>Giá vào</label><input id="cE" type="number" step="any"></div><div class="field"><label>Cắt lỗ</label><input id="cSL" type="number" step="any"></div>
       <div class="field"><label>Đòn bẩy</label><input id="cL" type="number" step="any" value="${ml}"></div><div class="field"><label>Tỉ lệ ký quỹ duy trì (%)</label><input id="cM" type="number" step="0.1" value="0.5"></div></div><div id="cOut"></div>`)}
     ${panel("🛡️ Phòng hộ spot bằng perp", `<div class="filters"><div class="field"><label>Coin đang giữ</label><input id="hS2" list="coinlist2" placeholder="SOL"></div><div class="field"><label>Giá trị đang giữ (USD)</label><input id="hV" type="number" step="any" value="10000"></div>
@@ -4998,7 +4998,7 @@ async function viewTools(sub) {
     const n = w === "btc" ? v * p * (r.beta || 1) : v * p, f8 = w === "btc" ? b?.f8 : r.f8;
     const qn = w === "btc" ? n / (b?.p || 1) : n / r.p;
     $("#hOut").innerHTML = kpis([["Bán perp", `${qty(qn)} ${w === "btc" ? "BTC" : esc(r.k)}`], ["Giá trị Short", usd(n)], ["Beta dùng", w === "btc" ? nf(r.beta, 2) : "1"], ["Funding", isNum(f8) ? (f8 >= 0 ? `<b class="up">nhận ~${usd(n * f8 / 100 * 3)}/ngày</b>` : `<b class="down">trả ~${usd(-n * f8 / 100 * 3)}/ngày</b>`) : "—"],
-      ["Còn phơi nhiễm", usd(v - (w === "btc" ? n / (r.beta || 1) : n))]]) + (w === "btc" && r.k !== "BTC" ? `<p class="faint" style="font-size:.74rem">Phòng hộ chéo bằng BTC chỉ khử phần biến động chung (tương quan với BTC); phần riêng của ${esc(r.k)} vẫn còn.</p>` : "") +
+      ["Còn phơi nhiễm", usd(v - (w === "btc" ? n / (r.beta || 1) : n))]]) + (w === "btc" && r.k !== "BTC" ? `<p class="faint" style="font-size:.75rem">Phòng hộ chéo bằng BTC chỉ khử phần biến động chung (tương quan với BTC); phần riêng của ${esc(r.k)} vẫn còn.</p>` : "") +
       (r.fx ? "" : `<p class="down">${esc(r.k)} không có perp trên các sàn theo dõi – chỉ phòng hộ được bằng BTC.</p>`);
   };
   ["#hS2", "#hV", "#hP", "#hW"].forEach((id) => $(id).addEventListener("input", hcalc));
@@ -5029,7 +5029,7 @@ async function viewBacktest() {
     <div>${panel("😨 Mua khi sợ hãi? (BTC từ " + esc((B.fng?.since || "").slice(0, 4)) + ")", `<div class="tw"><table><thead><tr><th class="l">Vùng</th><th>Số ngày</th><th>30 ngày sau</th><th>90 ngày sau</th><th>180 ngày sau</th><th>Xác suất tăng 90n</th><th>Xấu nhất 10% (90n)</th></tr></thead><tbody>
       ${fz.map((r) => `<tr><td class="l">${esc(r.zone)}</td><td>${nf(r.days, 0)}</td><td class="${cls(r.med30)}">${pct(r.med30, 0)}</td><td class="${cls(r.med90)}">${pct(r.med90, 0)}</td><td class="${cls(r.med180)}">${pct(r.med180, 0)}</td><td>${nf(r.win90, 0)}%</td><td class="down">${pct(r.p10_90, 0)}</td></tr>`).join("")}
       <tr class="faint"><td class="l">Mọi thời điểm</td><td></td><td>${pct(B.fng?.base?.med30, 0)}</td><td>${pct(B.fng?.base?.med90, 0)}</td><td>${pct(B.fng?.base?.med180, 0)}</td><td>${nf(B.fng?.base?.win90, 0)}%</td><td></td></tr></tbody></table></div>
-      <p class="faint" style="font-size:.74rem">Lợi nhuận trung vị của BTC sau khi chỉ số Sợ hãi & Tham lam ở từng vùng. Tách theo BTC trên/dưới MA200 ở trang Thị trường.</p>`)}
+      <p class="faint" style="font-size:.75rem">Lợi nhuận trung vị của BTC sau khi chỉ số Sợ hãi & Tham lam ở từng vùng. Tách theo BTC trên/dưới MA200 ở trang Thị trường.</p>`)}
     ${panel("₿ MVRV và lợi nhuận 1 năm sau (từ 2014)", `<div class="tw"><table><thead><tr><th class="l">MVRV</th><th>Số ngày</th><th>Trung vị 1 năm</th><th>Xác suất tăng</th></tr></thead><tbody>${(B.mvrv || []).map((z) => `<tr><td class="l">${esc(z.zone)}</td><td>${nf(z.n, 0)}</td><td class="${cls(z.med1y)}">${pct(z.med1y, 0)}</td><td>${nf(z.win, 0)}%</td></tr>`).join("")}</tbody></table></div>`)}</div>
   </div>`;
 }
@@ -5095,7 +5095,7 @@ function initSearch() {
     const C = await coins();
     list = C.rows.filter((r) => r.k.startsWith(t) || String(r.n || "").toUpperCase().includes(t)).sort((a, b) => (b.k === t) - (a.k === t) || (b.k.startsWith(t) - a.k.startsWith(t)) || (b.mc || 0) - (a.mc || 0)).slice(0, 8);
     sel = 0;
-    box.innerHTML = list.map((r, i) => `<a href="#/c/${r.k}" class="${i === 0 ? "on" : ""}"><b>${r.k}</b><span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.76rem">${esc(r.n || "")}</span><span style="margin-left:auto">${px(r.p)}</span><small class="${cls(r.r1)}">${pct(r.r1, 1)}</small></a>`).join("") || `<div class="muted" style="padding:10px">Không thấy coin</div>`;
+    box.innerHTML = list.map((r, i) => `<a href="#/c/${r.k}" class="${i === 0 ? "on" : ""}"><b>${r.k}</b><span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${esc(r.n || "")}</span><span style="margin-left:auto">${px(r.p)}</span><small class="${cls(r.r1)}">${pct(r.r1, 1)}</small></a>`).join("") || `<div class="muted" style="padding:10px">Không thấy coin</div>`;
     box.hidden = false;
   });
   q.addEventListener("keydown", (e) => {
@@ -5590,13 +5590,14 @@ function acPage(o) {
   const push = !can("notify_push") ? `<span class="acp-lock">🔒 Gói Pro</span>` : !ps.ok ? `<span class="acp-warn">${esc(ps.why)}</span>`
     : `<span class="acp-st ${ps.on ? "on" : ""}">${ps.on ? "● Đang bật" : ps.perm === "denied" ? "Bị chặn trong trình duyệt" : "Chưa bật"}</span>${ps.on ? '<button class="btn" id="puTest">Gửi thử</button><button class="btn" id="puOff">Tắt</button>' : '<button class="btn primary" id="puOn">Bật</button>'}`;
   return `<div class="acp">
-  <header class="acp-hero"><div class="acp-av" aria-hidden="true">${ini}</div><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
+  <header class="acp-hero"><div class="acp-av" id="acAv" aria-hidden="true">${ini}</div><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
     <div class="acp-tags"><span class="acp-tag ${pro ? "pro" : ""}">${pro ? "★ " : ""}Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? ` · đến ${esc(ME.plan_until)}` : ""}</span><span class="acp-tag">${ME.role === "admin" ? "Quản trị viên" : "Thành viên"}</span><span class="acp-tag">Đăng nhập: ${esc(login)}</span></div></div></header>
   <div class="acp-grid">
   <section class="acp-card"><h2>Hồ sơ</h2>
     ${acRow("Tên hiển thị", "Hiện trên đầu trang & trong thông báo", `<input id="acName" value="${esc(ME.name || "")}" placeholder="Tên của anh/chị"><button class="btn" id="acSave">Lưu</button>`)}
     ${acRow("Email đăng nhập", "", `<span class="acp-v">${esc(ME.email)}</span>`)}
     ${acRow("Giao diện", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
+    ${uiPrefHtml()}
   </section>
   <section class="acp-card"><h2>Bảo mật</h2>
     ${ME.has_pw ? acRow("Mật khẩu hiện tại", "", `<input id="pwOld" type="password" autocomplete="current-password" placeholder="••••••••">`) : ""}
@@ -5634,7 +5635,7 @@ async function viewAccount() {
   const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
   app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml(), pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
-  thSegBind(app());
+  thSegBind(app()); uiPrefBind();
   $("#acSave").onclick = async () => { try { const j = await api("auth/profile", "POST", { name: $("#acName").value }); ME = { ...ME, ...j.me }; toast("Đã lưu"); } catch (e) { toast(e.message); } };
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();
@@ -5671,7 +5672,7 @@ async function viewAdmin(sub = "users") {
         <td>${sel(u.id, "role", u.role, [["user", "Thành viên"], ["admin", "Quản trị"]])}</td><td class="l"><input data-u="${u.id}" data-k="note" value="${esc(u.note || "")}" style="width:140px"></td>
         <td><small>${esc((u.created_at || "").slice(0, 10))}</small></td><td><small>${u.last_seen ? agoShort(u.last_seen) : "—"}</small></td><td>${nf(u.push, 0)}</td>
         <td><button class="btn" data-save="${u.id}">Lưu</button> <button class="chip" data-rst="${u.id}" title="Tạo liên kết đặt lại mật khẩu (72 giờ)">Link đặt MK</button></td></tr>`).join("")}</tbody></table></div>
-      <p class="faint" style="font-size:.72rem;margin-top:4px">Khoá tài khoản hoặc đổi vai trò sẽ đăng xuất người đó khỏi mọi thiết bị. Gói hết hạn tự về Miễn phí.</p><div id="rstOut"></div></section>`;
+      <p class="faint" style="font-size:.75rem;margin-top:4px">Khoá tài khoản hoặc đổi vai trò sẽ đăng xuất người đó khỏi mọi thiết bị. Gói hết hạn tự về Miễn phí.</p><div id="rstOut"></div></section>`;
     $$("[data-save]").forEach((b) => (b.onclick = async () => {
       const id = b.dataset.save, body = { id: Number(id) };
       $$(`[data-u="${id}"]`).forEach((x) => (body[x.dataset.k] = x.value));
@@ -5703,10 +5704,10 @@ async function viewAdmin(sub = "users") {
     app().innerHTML = head + `<section class="panel sec"><div class="ph"><h2>Đăng ký & đăng nhập</h2></div>
       <div class="filters"><div class="field"><label for="cf_signup_mode">Đăng ký</label><select id="cf_signup_mode"><option value="invite" ${C.signup_mode !== "open" ? "selected" : ""}>Cần mã mời / chờ duyệt</option><option value="open" ${C.signup_mode === "open" ? "selected" : ""}>Mở tự do (gói Miễn phí)</option></select></div>
         ${f("google_client_id", "Google OAuth Client ID", "xxxx.apps.googleusercontent.com")}${f("site_url", "Địa chỉ trang", "https://my-bit.pages.dev")}</div>
-      <p class="faint" style="font-size:.72rem">Google Client ID: Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID (Web), thêm “Authorized JavaScript origins” = địa chỉ trang. ${j.env.GOOGLE_CLIENT_ID ? "Đang dùng biến môi trường GOOGLE_CLIENT_ID." : ""}</p></section>
+      <p class="faint" style="font-size:.75rem">Google Client ID: Google Cloud Console → APIs & Services → Credentials → Create OAuth client ID (Web), thêm “Authorized JavaScript origins” = địa chỉ trang. ${j.env.GOOGLE_CLIENT_ID ? "Đang dùng biến môi trường GOOGLE_CLIENT_ID." : ""}</p></section>
       <section class="panel sec"><div class="ph"><h2>Email gửi thông báo</h2></div>
       <div class="filters">${f("mail_from", "Người gửi", "MyBit <ban@gmail.com>")}${f("smtp_host", "Máy chủ SMTP", "smtp.gmail.com")}${f("smtp_port", "Cổng", "465")}${f("smtp_user", "Tài khoản SMTP", "ban@gmail.com")}${f("smtp_pass", "Mật khẩu ứng dụng", "16 ký tự", "password")}${f("resend_key", "Resend API key (tuỳ chọn)", "re_…", "password")}</div>
-      <p class="faint" style="font-size:.72rem">Gmail: bật xác minh 2 bước → myaccount.google.com/apppasswords → tạo “Mật khẩu ứng dụng”, dán vào ô trên (không dùng mật khẩu Gmail thường). Email thông báo gửi từ các lượt chạy; email đặt lại mật khẩu tức thì cần Resend (có tên miền riêng) – nếu chưa có, người dùng bấm “Quên mật khẩu” sẽ tạo yêu cầu để anh gửi liên kết từ trang Người dùng.</p>
+      <p class="faint" style="font-size:.75rem">Gmail: bật xác minh 2 bước → myaccount.google.com/apppasswords → tạo “Mật khẩu ứng dụng”, dán vào ô trên (không dùng mật khẩu Gmail thường). Email thông báo gửi từ các lượt chạy; email đặt lại mật khẩu tức thì cần Resend (có tên miền riêng) – nếu chưa có, người dùng bấm “Quên mật khẩu” sẽ tạo yêu cầu để anh gửi liên kết từ trang Người dùng.</p>
       <p><button class="btn primary" id="cfSave">Lưu cấu hình</button></p></section>`;
     $("#cfSave").onclick = async () => { const b = {}; $$("[id^=cf_]").forEach((x) => (b[x.id.slice(3)] = x.value)); try { await api("admin/config", "POST", b); toast("Đã lưu cấu hình"); } catch (e) { toast(e.message); } };
     return;
@@ -5717,6 +5718,40 @@ async function viewAdmin(sub = "users") {
 }
 
 // ---- bản tin thị trường
+// ---------------------------------------------------------------- 🎨 CÁ NHÂN HOÁ: ảnh đại diện (ảnh / biểu tượng / màu) + cỡ chữ toàn app – lưu "ui" (đồng bộ mọi máy), bản sao trên máy để áp ngay khi mở
+let UIP = lsGet("ui_cache", {}) || {};
+const UI_EMO = ["", "😎", "🦊", "🐯", "🦁", "🐼", "🚀", "💎", "⚡", "🌙"], UI_COL = ["", "#0f766e", "#1d4ed8", "#7c3aed", "#be123c", "#b45309", "#334155"];
+const UI_FS = [["s", "Nhỏ", 15], ["m", "Vừa", 16], ["l", "Lớn", 17], ["xl", "Rất lớn", 18]];
+function uiAvHtml() { const ini = esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase()); return UIP.av ? "" : UIP.emo ? UIP.emo : ini; }
+function uiAvStyle(el) { if (!el) return; el.textContent = uiAvHtml(); el.classList.toggle("has-img", !!UIP.av); el.style.backgroundImage = UIP.av ? `url("${UIP.av}")` : ""; el.style.backgroundColor = !UIP.av && UIP.col ? UIP.col : ""; el.style.color = !UIP.av && UIP.col ? "#fff" : ""; el.classList.toggle("has-emo", !UIP.av && !!UIP.emo); }
+function uiApply() {
+  const f = UI_FS.find(([k]) => k === (UIP.fs || "m"))?.[2] || 16; document.documentElement.style.fontSize = f === 16 ? "" : f + "px";
+  uiAvStyle($("#meBtn")); uiAvStyle($("#acAv"));
+}
+uiApply();
+async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); } } catch (e) { /* bỏ qua */ } }
+async function uiSave() { lsSet("ui_cache", UIP); uiApply(); try { await Store.put("ui", UIP); } catch (e) { /* bỏ qua */ } }
+function uiPrefHtml() {
+  return `${acRow("Ảnh đại diện", "ảnh của anh, một biểu tượng, hoặc chữ cái đầu trên nền màu", `<div class="uip"><div class="uip-av" id="uiAvP"></div><label class="btn sm">Tải ảnh lên<input type="file" id="uiFile" accept="image/*" hidden></label>${UIP.av ? '<button class="btn sm" id="uiDel">Bỏ ảnh</button>' : ""}</div>
+      <div class="uip-row">${UI_EMO.map((e) => `<button type="button" class="uip-e${(UIP.emo || "") === e && !UIP.av ? " on" : ""}" data-uiemo="${e}" aria-label="${e || "Chữ cái đầu"}">${e || esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase())}</button>`).join("")}</div>
+      <div class="uip-row">${UI_COL.map((c) => `<button type="button" class="uip-c${(UIP.col || "") === c ? " on" : ""}" data-uicol="${c}" style="${c ? `background:${c}` : ""}" aria-label="${c || "Màu mặc định"}"></button>`).join("")}</div>`)}
+    ${acRow("Cỡ chữ", "áp dụng cho toàn bộ app, mọi trang cùng một cỡ", `<div class="bseg" id="uiFs">${UI_FS.map(([k, t]) => `<button type="button" data-uifs="${k}" class="${(UIP.fs || "m") === k ? "on" : ""}">${t}</button>`).join("")}</div>`)}`;
+}
+function uiPrefBind() {
+  uiAvStyle($("#uiAvP"));
+  const re = () => { const sec = $("#uiFs")?.closest("section"); if (!sec) return; const tmp = document.createElement("div"); tmp.innerHTML = uiPrefHtml(); [...sec.querySelectorAll(".acp-row")].filter((r) => r.contains($("#uiAvP")) || r.contains($("#uiFs"))).forEach((r) => r.remove()); sec.append(...tmp.children); uiPrefBind(); };
+  $$("[data-uiemo]").forEach((b) => (b.onclick = async () => { UIP.emo = b.dataset.uiemo; delete UIP.av; await uiSave(); re(); }));
+  $$("[data-uicol]").forEach((b) => (b.onclick = async () => { UIP.col = b.dataset.uicol; await uiSave(); re(); }));
+  $$("[data-uifs]").forEach((b) => (b.onclick = async () => { UIP.fs = b.dataset.uifs; await uiSave(); re(); toast("Đã đổi cỡ chữ cho toàn app"); }));
+  if ($("#uiDel")) $("#uiDel").onclick = async () => { delete UIP.av; await uiSave(); re(); };
+  const f = $("#uiFile"); if (f) f.onchange = () => {
+    const file = f.files?.[0]; if (!file) return;
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = async () => { const S = 160, c = document.createElement("canvas"); c.width = c.height = S; const k = Math.min(img.width, img.height), x = (img.width - k) / 2, y = (img.height - k) / 2;      // cắt vuông ở giữa, thu về 160 px (~10 KB)
+      c.getContext("2d").drawImage(img, x, y, k, k, 0, 0, S, S); URL.revokeObjectURL(url); UIP.av = c.toDataURL("image/jpeg", 0.85); delete UIP.emo; await uiSave(); re(); toast("Đã đổi ảnh đại diện"); };
+    img.onerror = () => toast("Không đọc được ảnh này"); img.src = url;
+  };
+}
 function initAccountUI() {
   if (!multiUser()) return;
   const th = $("#theme");
@@ -5725,7 +5760,7 @@ function initAccountUI() {
   bell.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span id="bellN" hidden></span>`;
   const meb = document.createElement("button");
   meb.className = "iconbtn mebtn"; meb.id = "meBtn"; meb.title = ME.email; meb.setAttribute("aria-label", "Tài khoản");
-  meb.textContent = ((ME.name || ME.email || "?").trim()[0] || "?").toUpperCase();
+  meb.textContent = ((ME.name || ME.email || "?").trim()[0] || "?").toUpperCase(); setTimeout(uiApply, 0);
   th.parentNode.insertBefore(bell, th); th.parentNode.insertBefore(meb, th);
   bell.onclick = (e) => { e.stopPropagation(); bellOpen(); };
   meb.onclick = (e) => {
@@ -5755,7 +5790,7 @@ function initAccountUI() {
   const lb = $("#lang"); if (lb) { lb.textContent = I18N.lang === "en" ? "VI" : "EN"; lb.title = I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English"; lb.onclick = langToggle; lb.setAttribute("data-noi18n", ""); }
   ME = await fetchMe();
   if (!ME) { location.replace("/login?next=" + encodeURIComponent("/" + location.hash)); return; }
-  initTheme(); initSearch(); initPop(); initAccountUI(); plansData();
+  initTheme(); initSearch(); initPop(); initAccountUI(); plansData(); uiLoad();
   try {
     const meta = await load("data/meta.json?x=" + Date.now());
     window.__ver = meta.ver || "";
