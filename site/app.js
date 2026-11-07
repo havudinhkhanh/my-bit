@@ -601,8 +601,9 @@ function autoDraw() {
 }
 function autoBind(a) {
   let t = 0, long = false;
-  a.addEventListener("touchstart", () => { long = false; t = setTimeout(() => { long = true; navigator.vibrate?.(10); autoMenu(a); }, 480); }, { passive: true });
-  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  const lpEnd = () => { clearTimeout(t); setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); };      // giữ lâu: cấm bôi đen cả trang (iPhone) như nút ★
+  a.addEventListener("touchstart", () => { long = false; document.documentElement.classList.add("lp-on"); t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (e) { /* bỏ qua */ } autoMenu(a); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, lpEnd, { passive: true }));
   a.addEventListener("contextmenu", (e) => { e.preventDefault(); autoMenu(a); });
   a.addEventListener("click", (e) => {
     if (long) { e.preventDefault(); long = false; return; }
@@ -701,8 +702,8 @@ function botMenu(anchor, up) {
 // nút Bot ở thanh dưới (điện thoại) → menu thay vì nhảy thẳng vào Đội bot
 // nút Bot ở thanh dưới: chạm = vào thẳng Bot Phản Xạ (bot chính, nơi bật/tắt sàn thử – tiền thật); giữ lâu = menu các trang bot khác
 (function botBtn() { let t = 0, long = false; const sel = '#tabs a.nav-m[data-r="botscalp"]:not(.nav-cus)';
-  document.addEventListener("touchstart", (e) => { const a = e.target.closest?.(sel); if (!a) return; long = false; clearTimeout(t); t = setTimeout(() => { long = true; navigator.vibrate?.(10); botMenu(a, true); }, 480); }, { passive: true });
-  ["touchend", "touchmove", "touchcancel"].forEach((ev) => document.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  document.addEventListener("touchstart", (e) => { const a = e.target.closest?.(sel); if (!a) return; long = false; clearTimeout(t); document.documentElement.classList.add("lp-on"); t = setTimeout(() => { long = true; navigator.vibrate?.(10); try { getSelection()?.removeAllRanges(); } catch (e2) { /* bỏ qua */ } botMenu(a, true); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => document.addEventListener(ev, () => { clearTimeout(t); if (document.documentElement.classList.contains("lp-on")) setTimeout(() => document.documentElement.classList.remove("lp-on"), 400); }, { passive: true }));
   document.addEventListener("click", (e) => { const a = e.target.closest?.(sel); if (!a) return; if (long) { e.preventDefault(); e.stopPropagation(); long = false; } }, true);
   document.addEventListener("contextmenu", (e) => { const a = e.target.closest?.(sel); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); });
 })();

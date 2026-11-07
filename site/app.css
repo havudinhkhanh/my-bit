@@ -3974,3 +3974,5 @@ small{font-size:max(var(--fs-xs),.86em)}
   .sc-g2,.g{gap:var(--gap)!important}
   .acp-card{padding:14px}
 }
+/* thanh điều hướng: giữ lâu không bôi đen / không hiện menu hệ thống của iPhone */
+.tabs,.tabs *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
