@@ -12,6 +12,7 @@ function scNormTab(k) {
 async function scTabGo(k) {
   k = scNormTab(k);
   if (k === window.__scTab) { await viewScalp(); return; }
+  const ORD = ["ov", "pm", "ord", "log", "set"], dir = Math.sign(ORD.indexOf(k) - ORD.indexOf(window.__scTab)) || 1;
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
   window.__scTab = k; lsSet("sctab", k); try { navFreqHit?.("#/bot/scalp|" + k); } catch (e) { /* bỏ qua */ }
   window.__scTabX = $(".sc-tabs")?.scrollLeft ?? null;      // giữ vị trí cuộn ngang của thanh tab qua lần vẽ lại → trượt mượt tới giữa
@@ -19,6 +20,7 @@ async function scTabGo(k) {
   root.style.minHeight = root.offsetHeight + "px"; window.__scUseCache = true;
   window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
   await viewScalp();
+  try { if (!matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.2, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
 // ✋ lệnh tay qua ĐƯỜNG NHANH: ghi khoá nhỏ "scalpcmd" – máy chủ riêng đang chờ sẵn (hỏi kiểu chờ dài) nên nhận trong ~1 giây
@@ -601,9 +603,9 @@ async function viewScalp() {
   const openL = panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), lvOpen || swOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`);
   const halt = LV?.halt ? `<p class="sc-pause">⛔ ${esc(LV.halt)} <button type="button" class="btn sm" id="lvRes">${bi("▶ Chạy lại", "▶ Resume")}</button></p>` : "";
   const omChips = `<div class="bseg sc-om" role="tablist">${[["all", bi("Tất cả", "All")], ["hook", "🪝 " + bi("Bắt râu sập", "Wick")], ["sec", "⚡ " + bi("Lướt giây", "Scalp")]].map(([k, t]) => `<button type="button" data-scom="${k}" class="${(window.__scOm || "all") === k ? "on" : ""}">${t}</button>`).join("")}</div>`;
-  if (TB === "ov") body = ENV === "paper" ? `${cards}<div class="sc-g2">${panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi("Chưa có lệnh nào đang mở trên sàn thử.", "No open paper trades."))}${allOrd(nPaper)}`)}${panel("📜 Sự kiện mới nhất", `${feed((EVS.filter((e) => e.c !== "sys" && e.s !== "lv").length ? EVS.filter((e) => e.c !== "sys" && e.s !== "lv") : EVS).slice(0, 8), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
+  if (TB === "ov") body = ENV === "paper" ? `${cards}<!--LB--><div class="sc-g2">${panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi("Chưa có lệnh nào đang mở trên sàn thử.", "No open paper trades."))}${allOrd(nPaper)}`)}${panel("📜 Sự kiện mới nhất", `${feed((EVS.filter((e) => e.c !== "sys" && e.s !== "lv").length ? EVS.filter((e) => e.c !== "sys" && e.s !== "lv") : EVS).slice(0, 8), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
       <div class="sc-g2">${panel("📈 Tài sản sàn thử – 12 giờ qua", `${eqChart}<p class="faint sc-cap">Chấm = lúc đóng lệnh (xanh lời, đỏ lỗ).</p>`)}${panel("⚖️ Lời/lỗ theo phương pháp", `${stChart}${stTable}`, "80 lệnh gần nhất")}</div>`
-    : lvOff ? lvOffP : `${halt}${lvCards}${lvRisk}
+    : lvOff ? `${lvOffP}<!--LB-->` : `${halt}${lvCards}${lvRisk}<!--LB-->
       <div class="sc-g2">${panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), `${lvOpen || swOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
       <div class="sc-g2">${panel(bi(`📈 Tài sản futures ${LVN}`, `📈 ${LVN} futures equity`), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh. <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền anh nạp vào / rút ra ví futures; <b>%</b> tính kiểu quỹ đầu tư (nối % lời/lỗ từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm % tăng giả.", "Includes unrealized P/L · dots = trade closes. <b>Real P/L</b> = equity change minus transfers in/out of the futures wallet; <b>%</b> is time-weighted, so deposits don't inflate it.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
       <p class="sc-goord"><span>${bi("Số dư, ví, kết nối khoá API và giới hạn an toàn của tài khoản", "Balances, wallets, API key connection and account safety limits")}</span><a class="btn sm" href="#/bot/binance">${bi("Trang Binance →", "Binance page →")}</a></p>`;
@@ -620,7 +622,7 @@ async function viewScalp() {
         ${info(`<p>Xếp theo lợi thế ròng sau phí / √thời gian giữ. Mỗi giây bot chấm điểm mọi thị trường, nhưng chỉ vào tối đa 1 lệnh – cơ hội tốt nhất – và chỉ khi lợi thế kỳ vọng ≥ <b>${nf(C.k + (X.kadd || 0), 1)}×</b> chi phí và ròng sau phí ≥ <b>${nf(C.min_net, 1)} bps</b>. Spot chỉ được Long.</p>`)}`, "đánh giá lại mỗi giây")}
       ${panel("🔍 Kiểm tra: kỳ vọng lúc vào lệnh vs kết quả thực", audit, "80 lệnh gần nhất")}
       ${panel("⚖️ Futures vs Spot", `<div class="tw"><table><thead><tr><th class="l">Loại</th><th>Số lệnh</th><th>Thắng</th><th>Ròng sau phí</th><th>Phí</th></tr></thead><tbody>${byRow("F", "Futures")}${byRow("S", "Spot")}</tbody></table></div>`)}`;
-  else if (TB === "lab") {
+  if (TB === "lab" || TB === "ov") {      // bảng bật/tắt mọi phương pháp: tab Phương pháp › Tất cả VÀ ngay trên Tổng quan (1 chạm từ nút Bot)
     // 🧪 THỬ NGHIỆM – 1 bảng 3 cột kéo-thả: 📚 tất cả kiểu chơi | 🧪 đang đánh sàn thử | 💰 đang đánh tiền thật (Demo / thật)
     // 8 phương pháp: 6 📐 định lượng (worker/quant.js) + 2 🗓️ giữ nhiều ngày (worker/swing.js). Bấm thẻ → ngăn kéo: làm gì, kết quả, bật/tắt, ⚙️ thông số, luật.
     const sg = (v, d = 2) => `${v >= 0 ? "+" : ""}${nf(v, d)}`;
@@ -778,7 +780,8 @@ async function viewScalp() {
     const HI = [...(QX ? QK.flatMap((k) => (QX[k]?.hist || []).map((h) => ({ ...h, k }))) : []), ...(SWX ? ["list", "pump"].flatMap((k) => (SWX[k]?.hist || []).map((h) => ({ ...h, k, legs: [{ sym: h.sym, side: -1, e: h.e, x: h.x }] }))) : [])].sort((a, b) => (a.t2 < b.t2 ? 1 : -1)).slice(0, 50);
     const histT = HI.length ? `<div class="tw" style="max-height:380px"><table class="rs keep"><thead><tr><th class="l">Kiểu chơi</th><th class="l">Lệnh</th><th>Lời/lỗ</th><th class="l">Vào → đóng</th><th class="l">Lý do đóng</th></tr></thead><tbody>${HI.map((h) => `<tr><td class="l">${MM[h.k]?.ico || ""} ${esc(MM[h.k]?.name || h.k)}</td><td class="l">${h.legs.map((x) => `<span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</span> ${esc(x.sym.replace(/USDT$/, ""))} ${px(x.e)} → ${px(x.x)}`).join("<br>")}</td>
         <td class="${cls(h.pct)}"><b>${sg(h.pct, 2)}%</b><br><small>${sg(h.net)} USDT</small></td><td class="l"><small>${dt(h.t0 + "Z")}<br>→ ${dt(h.t2 + "Z")}</small></td><td class="l"><small>${hwhy[h.why] || esc(h.why)}</small></td></tr>`).join("")}</tbody></table></div>` : "";
-    body = !ML.length ? panel("🧪 Thử nghiệm", empty(`Chưa có dữ liệu – máy chủ riêng cần cập nhật bản mới (<code>sudo bash /opt/my-bit/scalper/install.sh</code>). Các phương pháp thử nghiệm chỉ chạy ở máy chủ riêng (cần dữ liệu Binance futures).`))
+    if (TB === "ov") body = body.replace("<!--LB-->", ML.length ? `${panel(bi("Phương pháp – bật/tắt sàn thử & tiền thật", "Methods – paper & live switches"), board, bi(`${pOn.length} sàn thử · ${lOn.length} ${LVT === "Demo" ? "Demo" : "tiền thật"}`, `${pOn.length} paper · ${lOn.length} live`))}${drawer}` : "");
+    else body = !ML.length ? panel("🧪 Thử nghiệm", empty(`Chưa có dữ liệu – máy chủ riêng cần cập nhật bản mới (<code>sudo bash /opt/my-bit/scalper/install.sh</code>). Các phương pháp thử nghiệm chỉ chạy ở máy chủ riêng (cần dữ liệu Binance futures).`))
       : `<div class="lb-top">${ctx}
           ${oldSrv ? `<p class="lm-warn">⚠️ Máy chủ riêng đang chạy bản cũ – thông số và công tắc sàn thử của 🗓️ giữ nhiều ngày chỉ có tác dụng sau khi chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>.</p>` : ""}</div>
         ${board}${drawer}
@@ -808,7 +811,7 @@ async function viewScalp() {
   { const ap = () => { const om = window.__scOm || "all"; $$("[data-om]").forEach((d) => (d.hidden = om !== "all" && d.dataset.om !== "open" && d.dataset.om !== om)); }; ap();      // tab Lệnh: lọc theo phương pháp
     $$("[data-scom]").forEach((b) => (b.onclick = () => { window.__scOm = b.dataset.scom; $$("[data-scom]").forEach((x) => x.classList.toggle("on", x === b)); ap(); })); }
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
-  $$("[data-scpm]").forEach((b) => (b.onclick = () => { window.__scPm = b.dataset.scpm; lsSet("scpm", b.dataset.scpm); window.__scUseCache = true; viewScalp(); }));
+  $$("[data-scpm]").forEach((b) => (b.onclick = () => { if (window.__scTab !== "pm") { scTabGo(b.dataset.scpm); return; } window.__scPm = b.dataset.scpm; lsSet("scpm", b.dataset.scpm); window.__scUseCache = true; viewScalp(); }));
   $$("[data-sclog]").forEach((b) => (b.onclick = () => { window.__scLog = b.dataset.sclog; lsSet("sclog", b.dataset.sclog); window.__scUseCache = true; viewScalp(); }));
   const evApply = () => { const c = window.__scEvF || "all", d = window.__scEvD || "all", sr = window.__scEvS || "all";
     $$(".sc-feed").forEach((ul) => { if (ul.dataset.f === "all" && !$(".sc-evf")) return; let hd = null, any = false; const fin = () => { if (hd) hd.hidden = !any; };

@@ -445,7 +445,7 @@ let CUR_TAB = "";
 })();
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
-  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.dataset.r === "bothome" && /^bot/.test(r || "") && r !== "bothome"); });
+  $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r === "botscalp" && /^bot/.test(r || "") && r !== "botscalp"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
@@ -485,7 +485,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["botsup", "#/bot/sup", "🛡️", "Rủi ro & giám sát"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
   const out = []; let g = "";
@@ -695,7 +695,13 @@ function botMenu(anchor, up) {
   addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
 }
 // nút Bot ở thanh dưới (điện thoại) → menu thay vì nhảy thẳng vào Đội bot
-document.addEventListener("click", (e) => { const a = e.target.closest?.('#tabs a.nav-m[data-r="bothome"]:not(.nav-cus)'); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); }, true);
+// nút Bot ở thanh dưới: chạm = vào thẳng Bot Phản Xạ (bot chính, nơi bật/tắt sàn thử – tiền thật); giữ lâu = menu các trang bot khác
+(function botBtn() { let t = 0, long = false; const sel = '#tabs a.nav-m[data-r="botscalp"]:not(.nav-cus)';
+  document.addEventListener("touchstart", (e) => { const a = e.target.closest?.(sel); if (!a) return; long = false; clearTimeout(t); t = setTimeout(() => { long = true; navigator.vibrate?.(10); botMenu(a, true); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => document.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  document.addEventListener("click", (e) => { const a = e.target.closest?.(sel); if (!a) return; if (long) { e.preventDefault(); e.stopPropagation(); long = false; } }, true);
+  document.addEventListener("contextmenu", (e) => { const a = e.target.closest?.(sel); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); });
+})();
 function botSeg() {
   if (!botCur()) return;
   const h = $("#app > .ph h1"); if (!h || h.classList.contains("ttl-m")) return;
@@ -797,6 +803,11 @@ function navTrack() {      // gọi mỗi lần đổi trang: trả "back" / "fw
   NAV_LAST = i; navSave(); return kind;
 }
 function navTitle() { const h = document.querySelector("#app > .ph h1"); if (h) { NAVH.t[navI()] = (h.childNodes[0]?.textContent || h.textContent || "").trim().slice(0, 40); navSave(); } }
+// phản hồi NGAY khi chạm thanh điều hướng (trước khi trang mới tải xong): sáng nút, trang cũ mờ đi → không còn cảm giác "đơ"
+document.addEventListener("pointerdown", (e) => {
+  const a = e.target.closest?.("#tabs a[href], #msheetB a[href]"); if (!a || a.getAttribute("href") === location.hash) return;
+  if (a.closest("#tabs")) { $$("#tabs a").forEach((x) => x.classList.toggle("on", x === a)); }
+}, { passive: true });
 function navRoute() {
   const prev = VT_PREV, next = location.hash; VT_PREV = next;
   const kind = navTrack();
@@ -806,8 +817,9 @@ function navRoute() {
   d.dataset.vt = a >= 0 && b >= 0 && a !== b ? (b > a ? "fwd" : "back") : "fade"; window.__vt = true;
   // chờ trang mới tối đa 0,45 giây (thường dữ liệu đã có sẵn) – lâu hơn thì chuyển luôn, nội dung hiện tiếp khi tải xong
   if (kind !== "new" && d.dataset.vt === "fade") d.dataset.vt = kind;      // nút lùi / tới của trình duyệt cũng trượt đúng chiều
+  if (d.dataset.vt === "fade") { delete d.dataset.vt; window.__vt = false; return Promise.resolve(route()).finally(navTitle); }      // chạm bình thường: không đóng băng màn hình chờ trang mới – vẽ ngay, hiệu ứng trượt nhẹ do pageIn lo
   try {
-    const t = document.startViewTransition(() => Promise.race([route(), new Promise((r) => setTimeout(r, 450))]));
+    const t = document.startViewTransition(() => Promise.race([route(), new Promise((r) => setTimeout(r, 160))]));
     t.finished.finally(() => { delete d.dataset.vt; window.__vt = false; navTitle(); });
   } catch (e) { window.__vt = false; route(); }
 }
@@ -890,7 +902,7 @@ function pageIn() {
   if (window.__vt) return;
   const a = document.getElementById("app"); if (!a) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); return; } catch (e) { /* trình duyệt cũ */ } }
+  if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); return; } catch (e) { /* trình duyệt cũ */ } }
   a.classList.remove("pg-in"); requestAnimationFrame(() => a.classList.add("pg-in"));
 }
 
@@ -1016,6 +1028,7 @@ async function route() {
   const parts = h.split("/");
   const r = parts[0], arg = parts.slice(1).map((x) => decodeURIComponent(x));
   window.scrollTo(0, 0);
+  app().classList.add("pg-wait");      // trang cũ mờ đi ngay khi chuyển (chỉ hiện nếu trang mới tải > 60 ms)
   Store.fast = true;      // chuyển trang: dữ liệu tài khoản vừa tải (≤ 90 giây) dùng lại ngay, bản mới tải ở nền
   if (!app().querySelector(".panel")) app().innerHTML = `<div class="skel"><i></i><i></i><i></i><i class="w"></i><i class="w"></i></div>`;
   try {
@@ -1046,6 +1059,7 @@ async function route() {
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
   Store.fast = false;
+  app().classList.remove("pg-wait");
   // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
   { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
   if (r === "bot") botWarm();

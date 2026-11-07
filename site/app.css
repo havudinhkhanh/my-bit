@@ -3940,3 +3940,11 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
   .panel.pc-shut .ph .meta{display:none}
 }
 @media (max-width:979px){.lane-b>.lm-hide{display:none!important}.lm-more{width:100%;margin-top:8px}}
+/* cảm giác bấm: phản hồi tức thì */
+#app.pg-wait{opacity:.45;transition:opacity .12s ease .06s}
+.tabs a svg,.tabs .nav-more svg,.tabs .nav-emo{transition:transform .14s ease}
+.tabs a:active svg,.tabs .nav-more:active svg,.tabs a:active .nav-emo{transform:scale(.84)}
+.tabs a{-webkit-tap-highlight-color:transparent}
+.btn:active,.sc-tabs button:active,.sc-sub2>*:active,.sc-env button:active,.bh-card:active{transform:scale(.97)}
+.btn,.bh-card,.sc-env button{transition:transform .1s ease,background .15s,color .15s,box-shadow .15s}
+@media (prefers-reduced-motion:reduce){#app.pg-wait{transition:none}}
