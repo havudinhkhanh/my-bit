@@ -244,7 +244,7 @@ export async function onRequest(ctx) {
       if (!X || !X.at) return json({ at: null });
       const L = X.live || null, E = L?.env || "demo";
       return json({ at: X.at, paper: { hk: Object.keys(X.hk || {}).length, pos: Object.keys(X.pos || {}).length, eq: X.eq ?? null, start: X.start ?? null },
-        live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: L.dayE?.[E]?.pnl ?? null,
+        live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: L.dayE?.[E] ? (L.dayE[E].d === new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) ? L.dayE[E].pnl : 0) : null,      // chỉ lời/lỗ HÔM NAY (giờ VN) – ngày cũ chưa có lệnh đóng thì = 0
           ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
           swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp })) } : null });
     }

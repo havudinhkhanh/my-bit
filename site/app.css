@@ -3829,3 +3829,5 @@ html.sw-drag,html.sw-drag body{overflow-x:hidden}
 #swNav[data-dir="fwd"] .sw-ar::before{content:"›"}
 #swNav.go .sw-ar{background:var(--brand)}#swNav.go .sw-ar::before{color:var(--brand-ink,#fff)}
 @media (prefers-reduced-motion:reduce){#swNav .sw-t{transform:none}}
+/* app mở từ màn hình chính: không kéo dãn cả trang (thanh tiêu đề đứng yên, chỉ nội dung bên dưới cuộn) – như ứng dụng thật */
+html.pwa,html.pwa body{overscroll-behavior-y:none}
