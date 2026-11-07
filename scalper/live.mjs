@@ -478,7 +478,7 @@ export class LiveExec {
   onQuant(x) { (this.qq ||= []).push(x); }
   qOpen() { return Object.values(this.S.qp || {}).filter((p) => !p.done && p.env === this.env()); }
   async qPlace(x) {
-    const c = this.cfg(), env = this.env(), nm = `📐 ${x.name || x.k}`, base = x.legs.map((L) => coin(L.sym)).join("/"), skip = (w) => this.say(`${nm} ${base}: bỏ qua lệnh thật – ${w}`, "skip");
+    const c = this.cfg(), env = this.env(), nm = `${x.k === "sec" ? "⚡" : "📐"} ${x.name || x.k}`, base = x.legs.map((L) => coin(L.sym)).join("/"), skip = (w) => this.say(`${nm} ${base}: bỏ qua lệnh thật – ${w}`, "skip");
     if (!c["lq_" + x.k]) return;
     if (!this.enabled()) return skip("tài khoản Binance của bot đang tắt");
     if (!this.st.ok) return skip(`tài khoản chưa sẵn sàng – ${this.st.why}`);
@@ -678,7 +678,7 @@ export class LiveExec {
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
-      qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
+      qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq", "sec"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
         open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
       swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +(p.feeA ?? p.fees ?? 0).toFixed(4), fund: p.fundA ?? null }; }) },
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),

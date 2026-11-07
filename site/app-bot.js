@@ -706,12 +706,12 @@ async function viewScalp() {
     // ⭐ 2 phương pháp chính (Bắt râu sập, Lướt giây) – cùng thanh 2 cần gạt; bấm tên mở trang riêng của nó
     const mainM = (k) => {
       const H = k === "hook", B = H ? bh : bsec, n = B?.n || 0, pend = H ? Object.keys(HK).length : 0, open = H ? posH.length : posS.length, nlv = H ? (LV?.ev || []).length : 0;
-      const paperOn = H ? C.hk_on !== false : C.sec_on !== false, liveOn = H && C.lv_hk !== false && !!C.lv_on;
+      const paperOn = H ? C.hk_on !== false : C.sec_on !== false, liveOn = !!C.lv_on && (H ? C.lv_hk !== false : !!C.lq_sec);
       return { main: 1, sc: "main", k, ico: H ? "🪝" : "⚡", name: H ? "Bắt râu sập" : "Lướt giây", grp: "main", params: [],
         short: H ? "Cú sập/vọt ≥ 3%/phút → chờ khớp ở râu nến, giữ ≤ 60 phút" : "Đọc sổ lệnh từng giây, vào–ra trong vài giây tới vài phút",
         vs: H ? ["ok", "+81 bps", "Kiểm chứng 01/2025–09/2026 (danh mục thật, thoát đuổi 150/100): ~3,7 lệnh/ngày · TB +81 bps/lệnh · thắng 88% · tổng +61% · sụt tối đa 5%"]
           : [n ? (B.net > 0 ? "mid" : "bad") : "na", n ? `${B.bps / n >= 0 ? "+" : ""}${nf(B.bps / n, 0)} bps` : "—", n ? `Sàn thử: ${n} lệnh · thắng ${nf(B.win / n * 100, 0)}% · ${B.net >= 0 ? "+" : ""}${usd2(B.net)} – chưa có kiểm chứng trên dữ liệu quá khứ` : "chưa có lệnh"],
-        paper: { on: paperOn }, live: H ? { on: liveOn } : { none: "chỉ sàn thử – chưa có lợi thế sau phí để đánh tiền thật" },
+        paper: { on: paperOn }, live: { on: liveOn, note: H ? "" : "đi theo lệnh sàn thử · chưa có lợi thế" },
         tot: B?.net || 0, nOpen: open + pend, nlv, edge: H };
     };
     const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : [])], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
@@ -970,8 +970,8 @@ async function viewScalp() {
   const lbPaper = async (m, on) => {
     if (m.paper.on === on) return false;
     if (m.main) {
-      if (!on && !(await iosSheet({ title: `Tắt ${m.ico} ${m.name} trên sàn thử?`, body: m.k === "hook" ? `Ngừng đặt lệnh chờ ảo trên sàn thử; lệnh đang mở vẫn được quản lý tới khi đóng.${C.lv_on && C.lv_hk !== false ? "<br><b>Tiền thật vẫn chạy</b> – tắt riêng ở khúc 💰." : ""}` : "Ngừng lướt giây trên sàn thử; lệnh đang mở vẫn giữ tới khi đóng.<br><b>Máy chủ riêng nhẹ hẳn:</b> thôi nhận sổ lệnh của mọi coin (chỉ còn giá khớp – đủ cho Bắt râu sập), thôi học từng giây, bỏ luồng spot nếu Bắt râu không đánh spot.", ok: "Tắt", danger: true }))) return false;
-      C[m.k === "hook" ? "hk_on" : "sec_on"] = on;
+      if (!on && !(await iosSheet({ title: `Tắt ${m.ico} ${m.name} trên sàn thử?`, body: m.k === "hook" ? `Ngừng đặt lệnh chờ ảo trên sàn thử; lệnh đang mở vẫn được quản lý tới khi đóng.${C.lv_on && C.lv_hk !== false ? "<br><b>Tiền thật vẫn chạy</b> – tắt riêng ở khúc 💰." : ""}` : `Ngừng lướt giây trên sàn thử; lệnh đang mở vẫn giữ tới khi đóng.${C.lq_sec ? " <b>Tiền thật lướt giây đi theo sàn thử nên cũng tắt.</b>" : ""}<br><b>Máy chủ riêng nhẹ hẳn:</b> thôi nhận sổ lệnh của mọi coin (chỉ còn giá khớp – đủ cho Bắt râu sập), thôi học từng giây, bỏ luồng spot nếu Bắt râu không đánh spot.`, ok: "Tắt", danger: true }))) return false;
+      C[m.k === "hook" ? "hk_on" : "sec_on"] = on; if (!on && m.k === "sec") C.lq_sec = false;      // tiền thật lướt giây đi theo sàn thử
       return lbSave(on ? `Đã bật ${m.name} trên sàn thử` : `Đã tắt ${m.name} trên sàn thử`, on ? `paper|${m.k}` : "");
     }
     if (!on && !(await iosSheet({ title: `Tắt ${m.ico} ${esc(m.name)} trên sàn thử?`, body: m.sc === "qx" ? `Lệnh sàn thử đang mở của kiểu chơi này sẽ được đóng.${m.live.on ? `<br><b>Tiền thật đi theo sàn thử nên ${lbEnv()} cũng tắt</b> (lệnh thật đang mở vẫn được quản lý tới khi đóng).` : ""}` : "Chỉ ngừng mở lệnh mới – lệnh đang mở vẫn giữ tới khi hết giờ (hoặc anh đóng tay).", ok: "Tắt", danger: true }))) return false;
@@ -987,13 +987,14 @@ async function viewScalp() {
     const LVLx = C.lv_env === "live";
     if (on) {
       if (!C.lv_on) { toast("Tài khoản Binance của bot đang tắt – bật ở tab ⚙️ Thiết lập → 💵 trước"); return false; }
-      const R = m.R, body = m.main ? `Bot đặt lệnh Bắt râu sập trên tài khoản Binance theo thiết lập ở ⚙️ Thiết lập → 💵 Binance (${C.lv_all ? "toàn bộ số dư" : `tối đa ${C.lv_cap} USDT`}, x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày).${LVLx && !C.lv_live_ok ? "<br><b>Chưa xác nhận tiền thật</b> – vào ⚙️ Thiết lập → 💵 để gõ xác nhận trước." : ""}` : m.sc === "qx"
+      const R = m.R, body = m.main && m.k === "sec" ? `Mỗi lệnh lướt giây trên sàn thử → bot vào lệnh thị trường y hệt trên Binance (${C.lq_sz || 5}% vốn, ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc) và đóng cùng lúc với sàn thử.${C.sec_on === false ? " <b>Sàn thử lướt giây sẽ được bật cùng</b> (tiền thật đi theo sàn thử)." : ""}<br><br><b class="down">Lướt giây trên sàn thử đang lỗ sau phí${bsec?.n ? ` (${nf(bsec.bps / bsec.n, 0)} bps/lệnh, ${bsec.n} lệnh)` : ""}</b>; lệnh thật vào/ra trễ hơn sàn thử ~0,5–1 giây nên thường còn tệ hơn. Chỉ nên bật Demo để thử.` : m.main ? `Bot đặt lệnh Bắt râu sập trên tài khoản Binance theo thiết lập ở ⚙️ Thiết lập → 💵 Binance (${C.lv_all ? "toàn bộ số dư" : `tối đa ${C.lv_cap} USDT`}, x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày).${LVLx && !C.lv_live_ok ? "<br><b>Chưa xác nhận tiền thật</b> – vào ⚙️ Thiết lập → 💵 để gõ xác nhận trước." : ""}` : m.sc === "qx"
         ? `Mỗi tín hiệu: lệnh thị trường <b>${C.lq_sz || 5}% vốn</b> (mỗi chân ≥ ~5,5 USDT), ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc. Lệnh thật đi theo đúng lệnh sàn thử${m.paper.on ? "" : " – <b>sàn thử sẽ được bật cùng</b>"}.<br><br>${R?.n ? `Kiểm chứng ngoài mẫu: ${R.n} lệnh, thắng ${R.win}%, TB ${R.mean >= 0 ? "+" : ""}${R.mean} bps/lệnh sau phí.` : "Chưa có kết quả kiểm chứng ngoài mẫu."}${m.edge ? "" : " <b class=\"down\">Chưa có lợi thế sau phí.</b>"} Quá khứ không bảo đảm tương lai.`
         : `Lúc 7:00 sáng, coin tăng ≥ ${X.sw?.pump?.chg || 100}%/24h → Short <b>${C.sw_lv_sz}% vốn</b> mỗi lệnh (tối thiểu ~5,5 USDT), x1, giữ ${(X.sw?.pump?.hold || 168) / 24} ngày, <b>không cắt lỗ</b>, tối đa ${C.sw_lv_max} lệnh cùng lúc.<br>Giá tăng gấp đôi → mất trắng phần tiền của lệnh đó.`;
       if (!(await iosSheet({ title: `Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body, ok: LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx, wait: LVLx ? 1500 : 0 }))) return false;
       if (LVLx && prompt('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:') !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
     }
-    if (m.main) C.lv_hk = on;
+    if (m.main && m.k === "hook") C.lv_hk = on;
+    else if (m.main) { C.lq_sec = on; if (on) C.sec_on = true; }
     else if (m.sc === "qx") { if (on) { if (C.q_on === false) { QK.forEach((x) => (C["q_" + x] = false)); C.q_on = true; } C["q_" + m.k] = true; } C["lq_" + m.k] = on; }
     else C.sw_lv_pump = on;
     return lbSave(on ? `Đã bật ${m.name} trên ${lbEnv()} – áp dụng cho tín hiệu MỚI` : `Đã tắt ${m.name} trên ${lbEnv()} – lệnh đang mở vẫn được quản lý tới khi đóng`, on ? `live|${m.k}` : "");

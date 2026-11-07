@@ -23,7 +23,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  sec_on: true, lv_hk: true, hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.25, hk_d2: 1.5, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 3,
+  sec_on: true, lv_hk: true, lq_sec: false, hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.25, hk_d2: 1.5, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 3,
   // VÀO NGAY (vòng 8, research/round8.py + r8_analyze.py, 01/2025–10/2026, ~900 mã): cú SẬP xảy ra khi 15 phút trước giá đã giảm ≥ hk_mk15 bps (xả tháo chạy)
   // → mua ngay bằng lệnh thị trường (hk_mkS % tài sản), song song 2 lệnh chờ sâu như cũ. Long TB +119 bps/lệnh sau phí taker + trượt, thắng 73%, 2025 +111 / 2026 +128.
   hk_mk: true, hk_mk15: 300, hk_mkS: 2,
@@ -88,7 +88,7 @@ function norm(c) {
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000);
-  c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
+  c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.lq_sec = !!c.lq_sec; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
@@ -778,6 +778,7 @@ export class ScalpCore {
     const c = this.cfg, fr = x.t === "F" ? (how === "maker" ? c.fee_m : c.fee_t) : how === "maker" ? c.fee_ms : c.fee_ts, fee = q * px * fr / 100;
     this.S.cash -= fee;
     this.S.pos[x.id] = { id: this.S.seq++, dx: !!best.m?.endsWith?.("D"), t: x.t, side, e: px, q, fee, how, t0: now, h: best.h, sl: px * (1 - side * slb / 1e4), tp: px * (1 + side * tpb / 1e4), exp: best.exp, raw: best.raw, g: x.g, ctx: x.ctx, zone: x.zone, shk: x.shk, cost, slb, tpb };
+    { const P = this.S.pos[x.id]; if (x.t === "F" && this.cfg.lq_sec && x.sym) try { this.io.onQuant?.({ act: "open", id: `sec:${P.id}`, k: "sec", name: "Lướt giây", legs: [{ sym: x.sym, side, w: 1, px }], sl: P.sl, exp: now + (P.h || 60) * 1000, why: `lướt giây ${how}` }); } catch (e) { this.err("lướt giây → tiền thật: " + e.message); } }      // ⚡ tiền thật đi theo lệnh sàn thử (bật riêng: lq_sec)
   }
   onTrade(x, p, q, side, now) {
     const o = this.S?.ord?.[x.id];
@@ -831,6 +832,7 @@ export class ScalpCore {
   }
   close1(x, px, why, now) {
     const c = this.cfg, S = this.S, P = S.pos[x.id]; if (!P) return;
+    if (P.strat !== "hook" && P.t === "F") try { this.io.onQuant?.({ act: "close", id: `sec:${P.id}`, k: "sec", why }); } catch (e) { /* bỏ qua */ }
     const fee = P.q * px * (P.t === "F" ? c.fee_t : c.fee_ts) / 100, gross = P.side * P.q * (px - P.e);
     S.cash += gross - fee;
     delete S.pos[x.id];
