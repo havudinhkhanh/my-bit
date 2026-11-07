@@ -3881,3 +3881,12 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
 .sc-mxr{gap:6px}
 .sc-me{border-color:color-mix(in srgb,var(--brand) 50%,transparent);background:color-mix(in srgb,var(--brand) 10%,transparent);color:var(--ink)}
 .sc-me.real{border-color:var(--brass,#d9a23a);background:color-mix(in srgb,var(--brass,#d9a23a) 16%,transparent)}
+/* thanh tab Bot Phản Xạ: bo đủ 4 góc (không còn cạnh trên vuông), mờ 2 mép bằng lớp phủ thay vì mask (mask làm cụt cả nền + viền + bóng của thanh) */
+.sc-tabs{border-radius:14px}
+@media (max-width:720px){.sc-tabs{border-radius:14px;top:calc(var(--stick,47px) + 4px)}}
+.sc-tabs.ovx-l,.sc-tabs.ovx-r,.sc-tabs.ovx-l.ovx-r{-webkit-mask-image:none;mask-image:none}
+.sc-tabs::before,.sc-tabs::after{content:"";flex:none;width:26px;align-self:stretch;position:sticky;z-index:2;pointer-events:none;opacity:0;transition:opacity .15s}
+.sc-tabs::before{left:-4px;margin:-4px -30px -4px -4px;border-radius:14px 0 0 14px;background:linear-gradient(90deg,var(--surface) 20%,transparent)}
+.sc-tabs::after{right:-4px;margin:-4px -4px -4px -30px;border-radius:0 14px 14px 0;background:linear-gradient(270deg,var(--surface) 20%,transparent)}
+.sc-tabs.ovx-l::before,.sc-tabs.ovx-r::after{opacity:1}
+@media (min-width:980px){.sc-tabs::before,.sc-tabs::after{display:none}}

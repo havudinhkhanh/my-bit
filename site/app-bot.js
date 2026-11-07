@@ -13,6 +13,7 @@ async function scTabGo(k) {
   if (k === window.__scTab) { await viewScalp(); return; }
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
   window.__scTab = k; lsSet("sctab", k);
+  window.__scTabX = $(".sc-tabs")?.scrollLeft ?? null;      // giữ vị trí cuộn ngang của thanh tab qua lần vẽ lại → trượt mượt tới giữa
   const root = $("#app"), bar0 = $(".sc-tabs")?.getBoundingClientRect().top;
   root.style.minHeight = root.offsetHeight + "px"; window.__scUseCache = true;
   window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
@@ -788,7 +789,12 @@ async function viewScalp() {
   $$("[data-hkc]").forEach((b) => (b.onclick = () => hkChartOpen(HT[+b.dataset.hkc], $("#hkc" + b.dataset.hkc))));
   $$("[data-lvc]").forEach((b) => (b.onclick = () => { const h = LHr[+b.dataset.lvc]; hkChartOpen({ k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase }, $("#lvc" + b.dataset.lvc)); }));
   rsTables($("#app"));
-  { const tb = $(".sc-tabs"), on = tb?.querySelector("button.on"); if (tb && on && tb.scrollWidth > tb.clientWidth) { const l = on.offsetLeft - tb.offsetLeft, r = l + on.offsetWidth; if (l < tb.scrollLeft || r > tb.scrollLeft + tb.clientWidth) tb.scrollLeft = Math.max(0, l - 24); } }   // điện thoại: tab đang mở luôn nằm trong khung nhìn
+  { const tb = $(".sc-tabs"), on = tb?.querySelector("button.on"), x0 = window.__scTabX; window.__scTabX = null;      // tab đang chọn luôn nằm GIỮA thanh tab
+    if (tb && on && tb.scrollWidth > tb.clientWidth + 2) {
+      if (x0 != null) tb.scrollLeft = x0;
+      const a = tb.getBoundingClientRect(), b = on.getBoundingClientRect(), to = Math.max(0, Math.min(tb.scrollWidth - tb.clientWidth, tb.scrollLeft + b.left + b.width / 2 - (a.left + a.width / 2)));
+      if (Math.abs(to - tb.scrollLeft) > 1) tb.scrollTo({ left: to, behavior: x0 != null && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+    } }
   if (window.__scKeep != null) {      // đổi tab con: đặt lại cuộn NGAY sau khi vẽ (trước khi trình duyệt kịp hiện khung hình lệch) + thanh vị trí
     const k0 = window.__scKeep; window.__scKeep = null;
     if (typeof CUR_TAB !== "undefined" && CUR_TAB && $("#app .ph") && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB);
