@@ -372,7 +372,7 @@ function lineDraw(series, opt, W, H, cx) {
   cx.hover = (mx2) => {
     if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;
     const i = Math.max(0, Math.min(n - 1, Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
-    const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b></span>` : ""; }).join("");
+    const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b>${se.pts[i]?.tip ? ` <small class="${se.pts[i].tc || ""}">${esc(se.pts[i].tip)}</small>` : ""}</span>` : ""; }).join("");
     return rows ? { x: X(i), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
   };
   return s;

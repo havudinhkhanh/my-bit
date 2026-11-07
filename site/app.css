@@ -3976,3 +3976,27 @@ small{font-size:max(var(--fs-xs),.86em)}
 }
 /* thanh điều hướng: giữ lâu không bôi đen / không hiện menu hệ thống của iPhone */
 .tabs,.tabs *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* 📅 lịch lời/lỗ tháng */
+.cal-top{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.cal-sum{flex:1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:var(--fs-sm);color:var(--ink-2)}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-w{font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);text-align:center;padding:2px 0}
+.cal-d{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:92px;padding:6px 3px 5px;border-radius:8px;text-decoration:none!important;color:var(--ink);background:var(--sunk);border:1px solid transparent;font-variant-numeric:tabular-nums;line-height:1.2;overflow:hidden;transition:transform .1s ease}
+.cal-d:active{transform:scale(.96)}
+.cal-d.up{background:color-mix(in srgb,var(--up) var(--a),var(--sunk))}
+.cal-d.down{background:color-mix(in srgb,var(--down) var(--a),var(--sunk))}
+.cal-d.fut{opacity:.45}
+.cal-d.today{border-color:var(--brass,var(--brand))}
+.cal-d.sel{outline:2px solid var(--ink);outline-offset:1px}
+.cal-n{font-size:var(--fs-sm);font-weight:700;align-self:flex-start;margin-left:2px}
+.cal-p{font-size:var(--fs-base);font-weight:700}
+.cal-r{font-size:var(--fs-xs);font-weight:600}
+.cal-c{margin-top:auto;font-size:var(--fs-xs);color:var(--ink-2)}
+.cal-cr{font-size:var(--fs-xs);font-weight:600}
+.cal-d.up .cal-c,.cal-d.down .cal-c{color:var(--ink)}
+.cal-f{position:absolute;top:4px;right:4px;font-style:normal;font-size:.625rem;font-weight:700;padding:0 4px;border-radius:4px;background:var(--surface);color:var(--ink-2)}
+.cal-f.in{color:var(--up)}.cal-f.out{color:var(--down)}
+.cal-note{font-size:var(--fs-xs);margin:8px 0 0}
+@media (max-width:560px){.cal{gap:3px}.cal-d{min-height:84px;padding:5px 1px 4px;border-radius:6px}.cal-p{font-size:var(--fs-sm)}.cal-c{letter-spacing:-.2px}.cal-f{top:3px;right:2px;font-size:.5625rem;padding:0 2px}}
+@media (min-width:980px){.cal-d{min-height:104px}.cal-p{font-size:var(--fs-md)}}
+.cal-d.up .cal-cr,.cal-d.down .cal-cr{color:var(--ink)!important;opacity:.9}

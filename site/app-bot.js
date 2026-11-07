@@ -1486,6 +1486,46 @@ function djSeg(cur, env) {
   const L = [["days", "📅 Theo ngày", "lãi/lỗ từng ngày · so sánh"], ["journal", "📒 Sổ lệnh & bài học", "từng lệnh · vì sao thắng/thua"]];
   return `<nav class="sc-sub2 dj-seg" aria-label="Kết quả & sổ lệnh">${L.map(([k, t, d]) => `<a href="#/bot/${k}${env ? "/" + env : ""}" class="${k === cur ? "on" : ""}"${k === cur ? ' aria-current="page"' : ""}><span>${t}</span><small>${d}</small></a>`).join("")}</nav>`;
 }
+// ---------------------------------------------------------------- HIỆU SUẤT THEO NGÀY, KHỬ TIỀN NẠP / RÚT
+// lời/lỗ $ = tổng lời/lỗ các lệnh (không bao giờ tính tiền nạp là lời). % ngày = lời/lỗ ÷ (vốn đầu ngày + ½ tiền nạp/rút trong ngày) – kiểu Modified Dietz;
+// % lũy kế = nối % từng ngày (∏(1 + r) − 1) – kiểu quỹ đầu tư (time-weighted), nạp thêm tiền không làm % tăng giả, rút bớt không làm % giảm giả.
+function dayPerf(days, keys, env, X, C) {
+  const FL = {}; if (env !== "paper") for (const [m, v] of X.live?.flow?.[env] || []) { const d = new Date(m * 60000 + 7 * 3600e3).toISOString().slice(0, 10); FL[d] = (FL[d] || 0) + v; }
+  const out = {}; let cum = 0, cr = 1, prevEnd = null, inv = null;
+  for (const d of keys) {
+    const x = days[d] || {}, pnl = x.usd || 0, f = FL[d] || 0;
+    let base = isNum(x.eq0) && x.eq0 > 0 ? x.eq0 : prevEnd != null ? prevEnd : env === "paper" ? (X.start ?? C.capital ?? null) : null;
+    if (inv == null && base) inv = base;      // vốn ban đầu = tài sản đầu ngày đầu tiên có số liệu
+    const den = base != null ? base + 0.5 * f : null, r = den && den > 0 ? pnl / den : null;
+    cum += pnl; if (isNum(r)) cr *= 1 + r; if (inv != null) inv += f;
+    prevEnd = isNum(x.eq1) && x.eq1 > 0 ? x.eq1 : base != null ? base + pnl + f : null;
+    out[d] = { pnl, r, cum, cr: cr - 1, flow: f, base, end: prevEnd, inv };
+  }
+  return out;
+}
+// 📅 LỊCH THÁNG: mỗi ô 1 ngày – màu xanh/đỏ đậm nhạt theo % ngày; lời/lỗ $, % ngày, lũy kế $ và % (đã khử nạp/rút); ô có nạp/rút ghi số tiền
+function calPanel(days, keys, PF, env, sel, TD) {
+  if (!keys.length) return "";
+  const mons = [...new Set(keys.map((d) => d.slice(0, 7)))].sort(), cur = mons.includes(window.__dMon) ? window.__dMon : (sel || TD).slice(0, 7), mi = mons.indexOf(cur);
+  const [y, m] = cur.split("-").map(Number), first = new Date(Date.UTC(y, m - 1, 1)), nd = new Date(Date.UTC(y, m, 0)).getUTCDate(), lead = (first.getUTCDay() + 6) % 7;
+  const ds = Array.from({ length: nd }, (_, i) => `${cur}-${String(i + 1).padStart(2, "0")}`), act = ds.filter((d) => days[d]?.n);
+  const mx = Math.max(1e-9, ...act.map((d) => Math.abs(PF[d]?.r ?? 0))), sg = (v, dp = 2) => `${v >= 0 ? "+" : "−"}${nf(Math.abs(v), dp)}`;
+  const mP = act.reduce((a, d) => a + (PF[d]?.pnl || 0), 0), mR = ds.reduce((a, d) => (isNum(PF[d]?.r) && days[d]?.n ? a * (1 + PF[d].r) : a), 1) - 1, mF = ds.reduce((a, d) => a + (PF[d]?.flow || 0), 0);
+  const win = act.filter((d) => PF[d].pnl > 0).length, last = [...ds].reverse().find((d) => PF[d]), L = last ? PF[last] : null;
+  const cell = (d) => {
+    const x = days[d], P = PF[d], has = !!x?.n, r = P?.r, k = !has ? "none" : P.pnl > 0 ? "up" : P.pnl < 0 ? "down" : "flat", a = has && isNum(r) ? Math.round(18 + 62 * Math.min(1, Math.abs(r) / mx)) : 0;
+    const fut = d > TD;
+    return `<a class="cal-d ${k}${d === sel ? " sel" : ""}${d === TD ? " today" : ""}${fut ? " fut" : ""}" ${fut ? "" : `href="#/bot/days/${env}/${d}"`} style="--a:${a}%" title="${d}${has ? ` · ${nf(x.n, 0)} lệnh, thắng ${nf(x.win / x.n * 100, 0)}%` : ""}${P?.flow ? ` · ${P.flow > 0 ? "nạp" : "rút"} ${usd2(Math.abs(P.flow))}` : ""}">
+      <b class="cal-n">${+d.slice(8)}</b>${P?.flow ? `<i class="cal-f ${P.flow > 0 ? "in" : "out"}">${P.flow > 0 ? "+" : "−"}${nf(Math.abs(P.flow), 0)}</i>` : ""}
+      ${has ? `<span class="cal-p">${sg(P.pnl)}</span><span class="cal-r">${isNum(r) ? sg(r * 100, 1) + "%" : "—"}</span>` : `<span class="cal-p faint">${fut ? "" : "·"}</span><span class="cal-r"></span>`}
+      ${P && !fut ? `<span class="cal-c">Σ ${sg(P.cum)}</span><span class="cal-cr ${cls(P.cr)}">${sg(P.cr * 100, 1)}%</span>` : ""}</a>`;
+  };
+  const nav = (j, t) => (j >= 0 && j < mons.length ? `<button type="button" class="btn sm" data-calm="${mons[j]}" aria-label="${t}">${t === "trước" ? "‹" : "›"}</button>` : `<button type="button" class="btn sm" disabled>${t === "trước" ? "‹" : "›"}</button>`);
+  return panel(`Lịch lời/lỗ · ${String(m).padStart(2, "0")}/${y}`, `<div class="cal-top">${nav(mi - 1, "trước")}
+      <div class="cal-sum"><span>Tháng <b class="${cls(mP)}">${sg(mP)} USDT</b> · <b class="${cls(mR)}">${sg(mR * 100, 2)}%</b></span><span>${win}/${act.length} ngày lời</span>${mF ? `<span>${mF > 0 ? "nạp ròng" : "rút ròng"} <b>${usd2(Math.abs(mF))}</b></span>` : ""}${L ? `<span>Lũy kế <b class="${cls(L.cum)}">${sg(L.cum)}</b> · <b class="${cls(L.cr)}">${sg(L.cr * 100, 2)}%</b></span>` : ""}</div>${nav(mi + 1, "sau")}</div>
+    <div class="cal">${["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((w) => `<span class="cal-w">${w}</span>`).join("")}${'<span class="cal-x"></span>'.repeat(lead)}${ds.map(cell).join("")}</div>
+    <p class="faint cal-note">Mỗi ô: lời/lỗ ngày (USDT) · % ngày · Σ lũy kế (USDT) · % lũy kế. % tính trên vốn đầu ngày và nối từng ngày như quỹ đầu tư – tiền nạp/rút (số nhỏ góc ô) không bị tính là lời/lỗ.</p>`, L?.end ? `tài sản ${usd2(L.end)}` : "");
+}
 async function viewDays(envArg, dateArg) {
   const [rd, rs, rn, rq] = await Promise.all([Store.get("scalpdays"), Store.get("scalpstate"), Store.get("scalpnotes"), Store.get("scalp")]);
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, ALL = rd.data || {}, NOTES = rn.data || {};
@@ -1517,21 +1557,23 @@ async function viewDays(envArg, dateArg) {
   const cumBy = (st) => { let c = 0; return V.map((x) => (c += x.by?.[st]?.usd || 0)); };
   const nT = V.reduce((a, x) => a + (x.n || 0), 0), nW = V.reduce((a, x) => a + (x.win || 0), 0), wd = act.filter((x) => x.usd > 0).length;
   const bestD = act.reduce((a, x) => (!a || x.usd > a.usd ? x : a), null), worstD = act.reduce((a, x) => (!a || x.usd < a.usd ? x : a), null);
+  const PF = dayPerf(days, keys, env, X, C);      // % theo ngày & lũy kế đã khử tiền nạp/rút
   const pts = (f) => V.map((x, i) => ({ x: ddmm(x.d), y: f(x, i) }));
-  const charts = `<div class="g g2w"><div>${panel("Lãi/lỗ mỗi ngày (USDT)", lineSvg([{ name: "Lãi/lỗ ngày", bars: true, pts: pts((x) => +(x.usd || 0).toFixed(2)) }], { h: 200, dec: 2, zero: true, label: "lãi lỗ theo ngày" }))}</div>
-    <div>${panel("Lãi/lỗ cộng dồn", lineSvg([{ name: "Tổng", color: css("--brand"), width: 2, pts: pts((x, i) => +cumS[i].toFixed(2)) }, { name: "🪝 Bắt râu sập", color: css("--up"), pts: cumBy("hook").map((y, i) => ({ x: ddmm(V[i].d), y: +y.toFixed(2) })) }, ...(V.some((x) => x.by?.sec?.n) ? [{ name: "⚡ Lướt giây", color: css("--warn") || "#d89614", pts: cumBy("sec").map((y, i) => ({ x: ddmm(V[i].d), y: +y.toFixed(2) })) }] : [])], { h: 200, dec: 2, zero: true }))}</div></div>
+  const pctTip = (v) => (isNum(v) ? `${v >= 0 ? "+" : ""}${nf(v * 100, 2)}%` : "");
+  const charts = `<div class="g g2w"><div>${panel("Lãi/lỗ mỗi ngày (USDT)", lineSvg([{ name: "Lãi/lỗ ngày", bars: true, pts: V.map((x) => ({ x: ddmm(x.d), y: +(x.usd || 0).toFixed(2), tip: pctTip(PF[x.d]?.r), tc: cls(PF[x.d]?.r) })) }], { h: 200, dec: 2, zero: true, label: "lãi lỗ theo ngày" }))}</div>
+    <div>${panel("Lãi/lỗ cộng dồn", lineSvg([{ name: "Tổng", color: css("--brand"), width: 2, pts: V.map((x, i) => ({ x: ddmm(x.d), y: +cumS[i].toFixed(2), tip: pctTip(PF[x.d]?.cr), tc: cls(PF[x.d]?.cr) })) }, { name: "🪝 Bắt râu sập", color: css("--up"), pts: cumBy("hook").map((y, i) => ({ x: ddmm(V[i].d), y: +y.toFixed(2) })) }, ...(V.some((x) => x.by?.sec?.n) ? [{ name: "⚡ Lướt giây", color: css("--warn") || "#d89614", pts: cumBy("sec").map((y, i) => ({ x: ddmm(V[i].d), y: +y.toFixed(2) })) }] : [])], { h: 200, dec: 2, zero: true }))}</div></div>
     <div class="g g2w"><div>${panel("Số lệnh & tỉ lệ thắng mỗi ngày", lineSvg([{ name: "Số lệnh", bars: true, color: css("--line-2") || "#888", pts: pts((x) => x.n || 0) }, { name: "Thắng (%)", color: css("--up"), width: 2, pts: pts((x) => (x.n ? +(x.win / x.n * 100).toFixed(0) : null)) }], { h: 180, dec: 0, zero: true }))}</div>
     <div>${panel("Sụt giảm lớn nhất trong ngày (%)", lineSvg([{ name: "Sụt từ đỉnh trong ngày", bars: true, color: css("--down"), pts: pts((x) => (isNum(x.mdd) ? -x.mdd : null)) }], { h: 180, dec: 1, zero: true }))}</div></div>`;
   const rangeSeg = `<div class="bseg">${[[7, "7 ngày"], [30, "30 ngày"], [90, "90 ngày"], ["all", "Tất cả"]].map(([v, t]) => `<button type="button" data-dr="${v}" class="${R === v ? "on" : ""}">${t}</button>`).join("")}</div>`;
   const summ = panel(`${DENV.find((x) => x[0] === env)[1]} – tổng quan`, `${rangeSeg}${kpis([["Lãi/lỗ", `${tot >= 0 ? "+" : ""}${usd2(tot)}`, cls(tot), `${V.length} ngày đang xem`], ["TB mỗi ngày", act.length ? `${tot / V.length >= 0 ? "+" : ""}${usd2(tot / V.length)}` : "—", cls(tot)], ["Ngày lời", act.length ? `${wd}/${act.length}` : "—", "", "trong các ngày có lệnh"],
     ["Số lệnh", nf(nT, 0), "", nT ? `thắng ${nf(nW / nT * 100, 0)}%` : ""], ["Ngày tốt nhất", bestD ? `+${usd2(bestD.usd)}` : "—", "up", bestD ? ddmm(bestD.d) : ""], ["Ngày tệ nhất", worstD ? usd2(worstD.usd) : "—", "down", worstD ? ddmm(worstD.d) : ""], ["Sụt giảm tối đa (cộng dồn)", usd2(mdd), mdd < 0 ? "down" : "", "từ đỉnh lãi cộng dồn"]])}
     <p class="faint" style="font-size:.75rem">${esc(DENV.find((x) => x[0] === env)[2])}. Tổng hợp từng ngày lưu trên máy chủ riêng ~10 phút/lần; hôm nay là số liệu trực tiếp.</p>`);
-  const rows = keys.slice().reverse().map((d) => { const x = days[d], H = keys.filter((k) => k < d).map((k) => days[k]), r = dayLessons(x, dtr[d] || [], H, C, env); const p = x.eq0 ? (((x.eq1 ?? x.eq0) / x.eq0) - 1) * 100 : null;
+  const rows = keys.slice().reverse().map((d) => { const x = days[d], H = keys.filter((k) => k < d).map((k) => days[k]), r = dayLessons(x, dtr[d] || [], H, C, env); const p = isNum(PF[d]?.r) ? PF[d].r * 100 : null;
     return `<tr class="${d === sel ? "on" : ""}" data-dd="${d}"><td class="l"><a href="#/bot/days/${env}/${d}"><b>${ddmm(d)}</b></a>${d === TD ? ' <small class="pill brand">hôm nay</small>' : ""}</td><td class="${cls(x.usd)}"><b>${x.n ? `${x.usd >= 0 ? "+" : ""}${usd2(x.usd)}` : "—"}</b></td><td class="${cls(p)}">${isNum(p) ? pct(p, 2) : "—"}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td>${isNum(x.mdd) ? nf(x.mdd, 1) + "%" : "—"}</td><td class="l"><small>${esc((r.L.find((l) => l[0] === "down") || r.L[0] || ["", ""])[1].slice(0, 110))}</small></td></tr>`; }).join("");
   const list = panel("Từng ngày", `<div class="tw" style="max-height:420px"><table class="dtab"><thead><tr><th class="l">Ngày</th><th>Lãi/lỗ</th><th>%</th><th>Lệnh</th><th>Thắng</th><th title="Sụt từ đỉnh trong ngày">Sụt</th><th class="l">Điểm chính</th></tr></thead><tbody>${rows}</tbody></table></div>`, "bấm ngày để xem chi tiết");
   // chi tiết ngày đang chọn
   const D = days[sel], T = (dtr[sel] || []).slice().sort((a, b) => a[0].localeCompare(b[0])), H = keys.filter((k) => k < sel).map((k) => days[k]), LS_ = dayLessons(D, T, H, C, env);
-  const p = D.eq0 ? (((D.eq1 ?? D.eq0) / D.eq0) - 1) * 100 : null, btc = D.btc0 && D.btc1 ? (D.btc1 / D.btc0 - 1) * 100 : null;
+  const p = isNum(PF[sel]?.r) ? PF[sel].r * 100 : null, btc = D.btc0 && D.btc1 ? (D.btc1 / D.btc0 - 1) * 100 : null;
   const coins = Object.entries(D.coins || {}).map(([k, v]) => [k, v[0], v[1]]).sort((a, b) => b[2] - a[2]), mx = Math.max(1e-9, ...coins.map((c) => Math.abs(c[2])));
   const coinBars = coins.length ? `<div class="dbars">${coins.map(([k, nn, u]) => `<div><span><b>${esc(k)}</b> <small class="faint">${nn} lệnh</small></span><i><i class="${u >= 0 ? "up" : "down"}" style="width:${(Math.abs(u) / mx * 100).toFixed(0)}%"></i></i><b class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</b></div>`).join("")}</div>` : `<p class="muted">Không có lệnh.</p>`;
   const trT = T.length ? `<div class="tw" style="max-height:380px"><table><thead><tr><th class="l">Giờ</th><th class="l">Lệnh</th><th>Lãi/lỗ</th><th>bps</th><th>Giữ</th><th class="l">Lý do</th></tr></thead><tbody>${T.map((t) => `<tr><td class="l"><small>${vnHM(t[0])}</small></td><td class="l">${t[3] === "hook" ? "🪝 " : "⚡ "}${scK(t[1])} <span class="${t[2] > 0 ? "up" : "down"}">${t[2] > 0 ? "Long" : "Short"}</span>${t[7] === 2 ? ' <small class="faint">khớp 2 mức</small>' : ""}</td><td class="${cls(t[4])}"><b>${t[4] >= 0 ? "+" : ""}${usd2(t[4])}</b></td><td class="${cls(t[5])}">${bps(t[5], 0)}</td><td>${isNum(t[8]) ? (t[8] >= 600 ? nf(t[8] / 60, 0) + "p" : nf(t[8], 0) + "s") : "—"}</td><td class="l"><small>${esc(WHYD[t[6]] || t[6])}</small></td></tr>`).join("")}</tbody></table></div>` : "";
@@ -1545,7 +1587,8 @@ async function viewDays(envArg, dateArg) {
   // so sánh Demo / thật với sàn thử cùng ngày
   let cmp = "";
   if (env !== "paper" && ALL.paper?.days?.[sel]) { const P = ALL.paper.days[sel]; cmp = panel("So với sàn thử cùng ngày", `<div class="tw"><table><thead><tr><th class="l"></th><th>Lệnh</th><th>Thắng</th><th>Lãi/lỗ</th><th>TB bps/lệnh</th></tr></thead><tbody>${[["🧪 Sàn thử", P], [DENV.find((x) => x[0] === env)[1], D]].map(([t, x]) => `<tr><td class="l">${t}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td class="${cls(x.usd)}">${x.n ? usd2(x.usd) : "—"}</td><td>${x.n ? bps(x.bps / x.n, 0) : "—"}</td></tr>`).join("")}</tbody></table></div><p class="faint" style="font-size:.75rem">${bi(`Sàn thử dùng vốn ${usd(C.capital)}, ${env === "demo" ? "Demo" : "tài khoản thật"} dùng tối đa ${usd(C.lv_cap)} → so sánh bằng bps/lệnh (không phụ thuộc cỡ lệnh). Chênh nhiều = khớp thật khác mô phỏng (trễ, thiếu lượt khớp ở râu nến).`, `The paper account uses ${usd(C.capital)}, ${env === "demo" ? "Demo" : "the live account"} uses at most ${usd(C.lv_cap)} → compared in bps per trade (independent of size). A big gap = real fills differ from the simulation (late, missing fills on wicks).`)}</p>`); }
-  app().innerHTML = head + summ + charts + detail + cmp + list;
+  app().innerHTML = head + summ + calPanel(days, keys, PF, env, sel, TD) + charts + detail + cmp + list;
+  $$("[data-calm]").forEach((b) => (b.onclick = () => { window.__dMon = b.dataset.calm; viewDays(env, sel); }));
   $$("[data-dr]").forEach((b) => (b.onclick = () => { window.__dRange = b.dataset.dr === "all" ? "all" : +b.dataset.dr; viewDays(env, sel); }));
   $$(".dtab tr[data-dd]").forEach((tr) => (tr.onclick = (e) => { if (!e.target.closest("a")) location.hash = `#/bot/days/${env}/${tr.dataset.dd}`; }));
   $("#dNoteSave").onclick = async () => { const r = await Store.get("scalpnotes"); const M = r.data || {}; M[nk] = $("#dNote").value.slice(0, 4000); await Store.put("scalpnotes", M); toast("Đã lưu ghi chú"); };
