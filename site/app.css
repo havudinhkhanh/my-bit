@@ -3868,3 +3868,12 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
 #swNav .sw-ar{width:34px;height:34px;margin-top:-17px;left:12px;transform-origin:left center;transform:scale(calc(.6 + var(--p,0) * .4))}
 #swNav[data-dir="fwd"] .sw-ar{left:auto;right:12px;transform-origin:right center}
 #swNav .sw-ar::before{font-size:1.2rem}
+/* thẻ bảng trên điện thoại: chừa khoảng giữa 2 cột, chữ dài tự xuống dòng (không dính nhau); ô chỉ có nút (Đóng lệnh…) gọn ở góc phải dưới cùng */
+@media (max-width:760px){
+  table.rs tr{column-gap:16px;row-gap:8px;padding:11px 12px}
+  table.rs td:first-child,.tw>table.rs>tbody>tr>td.l:first-child{grid-column:1/-1;font-weight:600;max-width:none}
+  table.rs td{white-space:normal!important;overflow-wrap:anywhere;line-height:1.4}
+  table.rs td[data-l]:not(:first-child)::before{margin-bottom:1px}
+  table.rs td:not([data-l]):not(:first-child){grid-column:1/-1;display:flex!important;justify-content:flex-end;align-items:center;gap:8px;margin-top:2px;padding-top:8px!important;border-top:1px dashed var(--line-2)!important}
+  table.rs td:not([data-l]):not(:first-child) .btn,table.rs td:not([data-l]):not(:first-child) button{padding:6px 14px;font-size:.78rem;min-height:0}
+}
