@@ -653,6 +653,7 @@ async function viewScalp() {
           ["Sàn thử – đã đóng", st.n ? `<span class="${cls(st.pnl)}">${sg(st.pnl)} USDT</span>` : "chưa có", st.n ? `${st.n} lệnh · thắng ${nf(st.win / st.n * 100, 0)}% · phí ${nf(st.fee || 0, 2)} · funding ${sg(st.fund || 0)}` : "chờ tín hiệu"],
           ["Sàn thử – đang mở", `${pos.length} lệnh`, pos.length ? `<span class="${cls(open)}">${sg(open)} USDT</span>` : ""],
           ["Tiền thật", k === "list" ? "—" : lvOn ? `${nlv} lệnh mở` : "tắt", k === "list" ? "không hỗ trợ" : ""]],
+        pp: { n: st.n || 0, pnl: st.pnl || 0 },
         res: st.n || pos.length ? `<b class="${cls(tot)}">${sg(tot)}</b> <small class="faint">USDT · ${st.n} đóng · ${pos.length} mở</small>` : `<span class="faint">chưa có lệnh</span>`,
         params: P, rule: `<p><b>Luật đang chạy:</b> ${esc(B.rule || "")}.</p><p>Kiểm chứng 01/2022–10/2026 trên nến 1 giờ Binance futures (918 mã, kể cả mã đã huỷ niêm yết): ${T.n} lệnh · thắng ${T.win}% · TB ${T.mean}/lệnh · lời lớn nhất ${T.mx} · lỗ lớn nhất −100% (${T.bad}) · ${T.yr}, sụt tối đa ${T.dd}.</p><p>Không cắt lỗ là theo kết quả kiểm chứng: cắt lỗ +15/+30/+50% đều làm phương pháp kém đi hoặc thành lỗ. Phí 0,30% khứ hồi + funding thật mỗi kỳ chốt đã trừ.</p>` };
     };
@@ -717,6 +718,7 @@ async function viewScalp() {
           ["Sàn thử – đã đóng", st.n ? `<span class="${cls(st.pnl)}">${sg(st.pnl)} USDT</span>` : "chưa có", st.n ? `${nf(st.n, 0)} lệnh · thắng ${nf(st.win / st.n * 100, 0)}%` : "chờ tín hiệu"],
           ["Sàn thử – đang mở", `${pos.length} lệnh`, pos.length ? `<span class="${cls(op)}">${sg(op)} USDT</span>` : ""],
           ["Tiền thật", liveOn ? `${nlv} lệnh mở` : "tắt", liveOn ? LVN : ""]],
+        pp: { n: st.n || 0, pnl: st.pnl || 0 },
         res: st.n || pos.length ? `<b class="${cls(tot)}">${sg(tot)}</b> <small class="faint">USDT · ${st.n || 0} đóng · ${pos.length} mở</small>` : `<span class="faint">chưa có lệnh</span>`,
         params: P, rule: `<p>${RULE[k]}</p><p>Mức chuẩn = tham số walk-forward chọn trên 6 tháng gần nhất. Kiểm chứng: <code>research/quant6a.py</code> (nến 1 giờ 01/2022 → nay, 100 coin/tháng theo khối lượng tháng trước, kể cả coin đã huỷ niêm yết) và <code>research/quant6b.py</code> (nến 5 phút + Open Interest ~16 tháng). Chỉ dùng nến đã đóng, vào ở giá mở nến kế tiếp; phí + chênh lệch + trượt 14–19 bps mỗi vòng (cặp coin: cả 2 chân). Đổi thông số khác chuẩn = kết quả kiểm chứng không còn áp dụng.</p>` };
     };
@@ -729,7 +731,7 @@ async function viewScalp() {
         vs: H ? ["ok", "+81 bps", "Kiểm chứng 01/2025–09/2026 (danh mục thật, thoát đuổi 150/100): ~3,7 lệnh/ngày · TB +81 bps/lệnh · thắng 88% · tổng +61% · sụt tối đa 5%"]
           : [n ? (B.net > 0 ? "mid" : "bad") : "na", n ? `${B.bps / n >= 0 ? "+" : ""}${nf(B.bps / n, 0)} bps` : "—", n ? `Sàn thử: ${n} lệnh · thắng ${nf(B.win / n * 100, 0)}% · ${B.net >= 0 ? "+" : ""}${usd2(B.net)} – chưa có kiểm chứng trên dữ liệu quá khứ` : "chưa có lệnh"],
         paper: { on: paperOn }, live: { on: liveOn, note: H ? "" : "đi theo lệnh sàn thử · chưa có lợi thế" },
-        tot: B?.net || 0, nOpen: open + pend, nlv, edge: H };
+        tot: B?.net || 0, nOpen: open + pend, nlv, edge: H, pp: { n, pnl: B?.net || 0 } };
     };
     const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : [])], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
     LB = { ML, MM };
@@ -1027,7 +1029,10 @@ async function viewScalp() {
       const R = m.R, body = m.main && m.k === "sec" ? `Mỗi lệnh lướt giây trên sàn thử → bot vào lệnh thị trường y hệt trên Binance (${C.lq_sz || 5}% vốn, ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc) và đóng cùng lúc với sàn thử.${C.sec_on === false ? " <b>Sàn thử lướt giây sẽ được bật cùng</b> (tiền thật đi theo sàn thử)." : ""}<br><br><b class="down">Lướt giây trên sàn thử đang lỗ sau phí${bsec?.n ? ` (${nf(bsec.bps / bsec.n, 0)} bps/lệnh, ${bsec.n} lệnh)` : ""}</b>; lệnh thật vào/ra trễ hơn sàn thử ~0,5–1 giây nên thường còn tệ hơn. Chỉ nên bật Demo để thử.` : m.main ? `Bot đặt lệnh Bắt râu sập trên tài khoản Binance theo thiết lập ở ⚙️ Thiết lập → 💵 Binance (${C.lv_all ? "toàn bộ số dư" : `tối đa ${C.lv_cap} USDT`}, x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày).${LVLx && !C.lv_live_ok ? "<br><b>Chưa xác nhận tiền thật</b> – vào ⚙️ Thiết lập → 💵 để gõ xác nhận trước." : ""}` : m.sc === "qx"
         ? `Mỗi tín hiệu: lệnh thị trường <b>${C.lq_sz || 5}% vốn</b> (mỗi chân ≥ ~5,5 USDT), ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc. Lệnh thật đi theo đúng lệnh sàn thử${m.paper.on ? "" : " – <b>sàn thử sẽ được bật cùng</b>"}.<br><br>${R?.n ? `Kiểm chứng ngoài mẫu: ${R.n} lệnh, thắng ${R.win}%, TB ${R.mean >= 0 ? "+" : ""}${R.mean} bps/lệnh sau phí.` : "Chưa có kết quả kiểm chứng ngoài mẫu."}${m.edge ? "" : " <b class=\"down\">Chưa có lợi thế sau phí.</b>"} Quá khứ không bảo đảm tương lai.`
         : `Lúc 7:00 sáng, coin tăng ≥ ${X.sw?.pump?.chg || 100}%/24h → Short <b>${C.sw_lv_sz}% vốn</b> mỗi lệnh (tối thiểu ~5,5 USDT), x1, giữ ${(X.sw?.pump?.hold || 168) / 24} ngày, <b>không cắt lỗ</b>, tối đa ${C.sw_lv_max} lệnh cùng lúc.<br>Giá tăng gấp đôi → mất trắng phần tiền của lệnh đó.`;
-      if (!(await iosSheet({ title: `Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body, ok: LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx, wait: LVLx ? 1500 : 0 }))) return false;
+      // ⚠️ sàn thử chưa chứng minh có lời (Jason 07/11/2026): < 10 lệnh đã đóng hoặc tổng lời/lỗ ≤ 0 → cảnh báo đỏ ở đầu bảng xác nhận, nút bấm chờ lâu hơn
+      const PP = m.pp || { n: 0, pnl: 0 }, PMIN = 10, notYet = PP.n < PMIN || !(PP.pnl > 0);
+      const warn = !notYet ? "" : `<div class="sc-lvwarn">⚠️ <b>Sàn thử chưa thấy lời</b> – ${PP.n ? `${nf(PP.n, 0)} lệnh đã đóng, tổng <b class="${cls(PP.pnl)}">${PP.pnl >= 0 ? "+" : ""}${usd2(PP.pnl)}</b>${PP.n < PMIN ? ` (chưa đủ ${PMIN} lệnh để biết)` : " – đang lỗ sau phí"}` : "chưa có lệnh nào đã đóng"}. Nên để chạy sàn thử tới khi có ít nhất ${PMIN} lệnh và tổng lời dương rồi mới đánh ${LVLx ? "tiền thật" : "Demo"}.</div>`;
+      if (!(await iosSheet({ title: `${notYet ? "⚠️ " : ""}Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: warn + body, ok: notYet ? (LVLx ? "Vẫn tiếp tục" : "Vẫn bật trên Demo") : LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx || notYet, wait: LVLx ? (notYet ? 4000 : 1500) : notYet ? 1500 : 0 }))) return false;
       if (LVLx && prompt('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:') !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
     }
     if (m.main && m.k === "hook") C.lv_hk = on;

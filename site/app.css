@@ -3918,3 +3918,4 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
 .bh-tabs>a{text-decoration:none}
 @media (max-width:979px){.tabs .nav-more{line-height:1.15!important}}
 @media (max-width:400px){.tabs a,.tabs .nav-more{font-size:.6rem!important;letter-spacing:-.15px}}
+.sc-lvwarn{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--down) 12%,var(--surface));border:1px solid color-mix(in srgb,var(--down) 45%,transparent);color:var(--ink);font-size:.86rem;line-height:1.45;text-align:left}
