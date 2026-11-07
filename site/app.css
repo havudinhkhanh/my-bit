@@ -3890,3 +3890,31 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
 .sc-tabs::after{right:-4px;margin:-4px -4px -4px -30px;border-radius:0 14px 14px 0;background:linear-gradient(270deg,var(--surface) 20%,transparent)}
 .sc-tabs.ovx-l::before,.sc-tabs.ovx-r::after{opacity:1}
 @media (min-width:980px){.sc-tabs::before,.sc-tabs::after{display:none}}
+/* Bot Phản Xạ: công tắc xem Sàn thử / Binance (bộ lọc dùng chung cho Tổng quan & Lệnh) + lọc phương pháp ở tab Lệnh */
+.sc-env{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:0 0 12px;border-radius:12px;background:var(--sunk);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent)}
+.sc-env button{border:0;background:transparent;color:var(--ink-2);font:600 .86rem/1.1 "Be Vietnam Pro",system-ui,sans-serif;padding:10px 8px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:background .15s,color .15s,box-shadow .15s}
+.sc-env button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.16)}
+.sc-env button[data-scenv="live"].on{box-shadow:0 1px 3px rgba(0,0,0,.16),inset 0 0 0 1.5px var(--brass,var(--brand))}
+.sc-om{margin:0 0 12px}
+.sc-goord{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 14px;border-radius:12px;background:var(--sunk);font-size:.84rem;color:var(--ink-2)}
+/* 11/2026 điều hướng mới: thanh dưới 7 nút = Thị trường · Cơ hội · Giao dịch · Bot · ★ Tuỳ chọn · ↻ Hay vào · Thêm */
+@media (max-width:979px){
+  .tabs{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+  .tabs a,.tabs .nav-more{font-size:.64rem!important;padding:7px 1px 8px!important}
+  .tabs a .nav-s,.tabs .nav-more span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabs a.nav-auto::after{content:"↻";position:absolute;top:2px;right:calc(50% - 19px);width:auto;height:auto;border-radius:0;background:none;font-size:.6rem;line-height:1;color:var(--brass,var(--brand));opacity:.9}
+}
+@media (max-width:370px){.tabs a,.tabs .nav-more{font-size:.58rem!important}.tabs a svg,.tabs .nav-more svg{width:19px!important;height:19px!important}}
+/* máy tính (thanh bên): 2 lối tắt cá nhân nằm trên cùng */
+@media (min-width:980px){.tabs a.nav-cus,#navCus,#navAuto{display:none!important}}
+@media (min-width:1180px){
+  .tabs a#navCus,.tabs a#navAuto{display:flex!important;order:-1;position:relative}
+  .tabs a#navCus .nav-s,.tabs a#navAuto .nav-s{display:none}
+  .tabs a#navAuto{margin-bottom:6px}
+  .tabs a#navCus .nav-t,.tabs a#navAuto .nav-t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+.bh-sub{margin:18px 0 8px;font-size:.9rem;color:var(--ink-2)}
+.bh-tabs{margin-bottom:14px}
+.bh-tabs>a{text-decoration:none}
+@media (max-width:979px){.tabs .nav-more{line-height:1.15!important}}
+@media (max-width:400px){.tabs a,.tabs .nav-more{font-size:.6rem!important;letter-spacing:-.15px}}

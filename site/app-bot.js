@@ -6,13 +6,14 @@ function scNormTab(k) {
   if (["hook", "sec"].includes(k)) { window.__scPm = k; lsSet("scpm", k); return "pm"; }
   if (k === "lab" || k === "q" || k === "sw") { window.__scPm = "lab"; lsSet("scpm", "lab"); return "pm"; }      // 🧪 Thử nghiệm: 1 bảng kéo-thả cho mọi phương pháp thử nghiệm
   if (k === "ev" || k === "learn") { window.__scLog = k; lsSet("sclog", k); return "log"; }
+  if (k === "live") { window.__scEnv = "live"; lsSet("scenv", "live"); return "ov"; }      // tab "Binance thật" cũ → Tổng quan, lọc Binance
   return k;
 }
 async function scTabGo(k) {
   k = scNormTab(k);
   if (k === window.__scTab) { await viewScalp(); return; }
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
-  window.__scTab = k; lsSet("sctab", k);
+  window.__scTab = k; lsSet("sctab", k); try { navFreqHit?.("#/bot/scalp|" + k); } catch (e) { /* bỏ qua */ }
   window.__scTabX = $(".sc-tabs")?.scrollLeft ?? null;      // giữ vị trí cuộn ngang của thanh tab qua lần vẽ lại → trượt mượt tới giữa
   const root = $("#app"), bar0 = $(".sc-tabs")?.getBoundingClientRect().top;
   root.style.minHeight = root.offsetHeight + "px"; window.__scUseCache = true;
@@ -246,7 +247,9 @@ async function viewScalp() {
   // Thứ tự tab theo cách dùng: tổng quan → TIỀN THẬT (quan trọng nhất) → các phương pháp (sàn thử) → theo dõi & học → thiết lập.
   // 🧪 Thử nghiệm gộp 2 nhóm phương pháp chạy song song trên sàn thử (giữ nhiều ngày + 📐 6 phương pháp định lượng), chọn bằng nút con.
   // 5 tab: Tổng quan · Binance (tiền thật) · 🎯 Phương pháp (nút con: Bắt râu sập / Lướt giây / Giữ nhiều ngày / Định lượng) · 📜 Nhật ký (Sự kiện / Học & kiểm chứng) · Thiết lập
-  const TABS = [["ov", "Tổng quan", 1], ["live", C.lv_env === "live" ? "Binance thật" : "Binance Demo", 1], ["pm", "Phương pháp"], ["log", "Nhật ký", 1], ["set", "Thiết lập"]];
+  // 11/2026: tab = CHỨC NĂNG; sàn thử / Binance là BỘ LỌC (công tắc trên đầu Tổng quan & Lệnh), không còn tab "Binance thật" riêng.
+  const TABS = [["ov", "Tổng quan"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
+  const ENV = (window.__scEnv ?? lsGet("scenv", C.lv_on ? "live" : "paper")) === "live" ? "live" : "paper"; window.__scEnv = ENV;
   let TOP = scNormTab(window.__scTab ?? lsGet("sctab", "ov")); if (!TABS.some(([k]) => k === TOP)) TOP = "ov"; window.__scTab = TOP;
   const PMS0 = window.__scPm ?? lsGet("scpm", "lab"), PMS = PMS0 === "hook" ? "hook" : PMS0 === "sec" ? "sec" : "lab", LOGS = (window.__scLog ?? lsGet("sclog", "ev")) === "learn" ? "learn" : "ev";
   const TB = TOP === "pm" ? PMS : TOP === "log" ? LOGS : TOP;
@@ -255,7 +258,8 @@ async function viewScalp() {
   const SWX = X.sw || null, swPos = SWX ? ["list", "pump"].reduce((a, k) => a + (SWX[k]?.pos?.length || 0), 0) : 0;
   const QX = X.q || null, QK = ["ou", "rsi2", "fund", "orb", "vwap", "liq"], qPos = QX ? QK.reduce((a, k) => a + (QX[k]?.pos?.length || 0), 0) : 0;
   const nHook = Object.keys(HK).length + posH.length;
-  const badge = { pm: nHook + posS.length + swPos + qPos, live: (LV?.ev || []).length + (LV?.qp?.open?.length || 0) + (LV?.swp?.open?.length || 0) };
+  const nLive = (LV?.ev || []).length + (LV?.qp?.open?.length || 0) + (LV?.swp?.open?.length || 0), nPaper = nHook + posS.length + swPos + qPos;
+  const badge = { ord: ENV === "live" ? nLive : nPaper };
   const tabBar = `<nav class="sc-tabs" role="tablist" aria-label="Các phần của bot">${TABS.map(([k, t, sep]) => `<button type="button" role="tab" aria-selected="${k === TOP}" data-sctab="${k}" class="${k === TOP ? "on" : ""}">${t}${badge[k] ? `<i class="sc-bdg">${badge[k]}</i>` : ""}</button>${sep ? '<i class="sc-tsep" aria-hidden="true"></i>' : ""}`).join("")}</nav>`;
   const cnt = (n) => (n ? ` <i class="sc-bdg">${n}</i>` : "");
   const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "10 kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
@@ -587,23 +591,35 @@ async function viewScalp() {
   // ---------------------------------------------------------------- nội dung từng tab
   const trsSec = AT.filter((t) => t.strat !== "hook").slice().reverse().map((t) => `<tr><td class="l"><small>${hms(t.t1)}</small></td><td class="l">${scK(t.k)} <span class="${t.side > 0 ? "up" : "down"}">${t.side > 0 ? "L" : "S"}</span> <small>${t.how}</small></td><td>${px(t.e)} → ${px(t.x)}</td><td>${nf(t.hold, 1)}s</td><td class="${cls(t.gross)}">${bps(t.gross, 2)}</td><td class="down">−${nf(t.fee, 2)}</td><td class="${cls(t.net)}"><b>${bps(t.net, 2)}</b></td><td class="${cls(t.usd)}">${t.usd >= 0 ? "+" : ""}${nf(t.usd, 3)}</td><td><small>${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết giờ", "TIME+": "hết giờ (giữ thêm)", REV: "đảo chiều – thoát sớm", BTC: "BTC sốc – thoát ngay", STALE: "mất dữ liệu" }[t.why] || t.why}</small></td></tr>`).join("");
   let body = "";
-  if (TB === "ov") body = `${cards}<div class="sc-g2">${openPanel}${panel("📜 Sự kiện mới nhất", `${feed((EVS.filter((e) => e.c !== "sys").length ? EVS.filter((e) => e.c !== "sys") : EVS).slice(0, 8), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
-      <div class="sc-g2">${panel("📈 Tài sản sàn thử – 12 giờ qua", `${eqChart}<p class="faint sc-cap">Chấm = lúc đóng lệnh (xanh lời, đỏ lỗ).</p>`)}${panel("⚖️ Lời/lỗ theo phương pháp", `${stChart}${stTable}`, "80 lệnh gần nhất")}</div>`;
-  else if (TB === "hook") body = `${Object.keys(HK).length || posH.length ? panel("📌 Bắt râu sập – đang mở & chờ khớp", `<div class="sc-ocs">${[...posH.map(([k, p]) => pcard(k, p)), ...Object.entries(HK).map(([k, h]) => hcard(k, h))].join("")}</div>`) : ""}
-      ${hkPanel}${filterPanel}${panel("🧾 Lệnh Bắt râu sập đã đóng", `${hkTrades}<p class="faint sc-cap">Bấm 📈 để xem nến 1 phút quanh cú sốc: giá sau cú sốc, 2 mức chờ, điểm khớp và điểm thoát (giá lấy trực tiếp từ Binance).</p>`, `${HT.length} lệnh gần nhất`)}`;
-  else if (TB === "sec") body = `${posS.length ? panel("📌 Lướt giây – lệnh đang giữ", `<div class="sc-ocs">${posS.map(([k, p]) => pcard(k, p)).join("")}</div>${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`) : ords ? panel("📌 Lệnh chờ maker", `<ul class="bot-rl">${ords}</ul>`) : ""}
+  const envSeg = TOP === "ov" || TOP === "ord" ? `<div class="sc-env" role="tablist" aria-label="${bi("Xem sàn", "Venue")}">${[["paper", `🧪 ${bi("Sàn thử", "Paper")}`, nPaper], ["live", `${LVI} ${LVN}`, nLive]].map(([k, t, n]) => `<button type="button" role="tab" data-scenv="${k}" class="${ENV === k ? "on" : ""}" aria-selected="${ENV === k}">${t}${n ? ` <i class="sc-bdg">${n}</i>` : ""}</button>`).join("")}</div>` : "";
+  const goOrd = (n, what) => !n ? `<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ord" data-scenv0="paper">${bi(`Lệnh ${what} đã đóng → tab Lệnh`, `Closed ${what} trades → Trades tab`)}</button></p>` : `<p class="sc-goord"><span>${n ? bi(`${n} lệnh ${what} đang mở / chờ khớp`, `${n} ${what} trades open / pending`) : bi(`Lệnh ${what} (đang mở & đã đóng) nằm ở tab Lệnh`, `${what} trades (open & closed) are in the Trades tab`)}</span><button type="button" class="btn sm" data-sctab="ord" data-scenv0="paper">${bi("Xem lệnh →", "View trades →")}</button></p>`;
+  const lvOff = !C.lv_on && !LV?.hist?.length && !LV?.ev?.length && !wEnv;
+  const lvOffP = panel("💵 Tài khoản Binance", empty(`Tài khoản Binance đang tắt. Bật trong tab <button type="button" class="btn sm" data-sctab="set">⚙️ Thiết lập</button> → mục 💵 Tiền thật (nên chạy Demo trước).`));
+  const openCardsP = [...POS.map(([k, p]) => pcard(k, p)), ...Object.entries(HK).map(([k, h]) => hcard(k, h))].join("");
+  const allOrd = (n) => `<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ord">${bi(`Xem tất cả lệnh${n ? ` (${n} đang mở)` : ""} →`, `All trades${n ? ` (${n} open)` : ""} →`)}</button></p>`;
+  const openP = panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi(`Chưa có lệnh nào đang mở. 🪝 Bắt râu sập chờ cú sốc ≥ ${nf(C.hk_r / 100, 1)}%/phút – vài lần mỗi ngày, có ngày không có.`, `No open trades. 🪝 Wick Catcher waits for a ≥ ${nf(C.hk_r / 100, 1)}%/minute shock – a few times a day, some days none.`))}${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`, bi(`${POS.length} lệnh · ${Object.keys(HK).length} chờ khớp`, `${POS.length} open · ${Object.keys(HK).length} pending`));
+  const openL = panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), lvOpen || swOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`);
+  const halt = LV?.halt ? `<p class="sc-pause">⛔ ${esc(LV.halt)} <button type="button" class="btn sm" id="lvRes">${bi("▶ Chạy lại", "▶ Resume")}</button></p>` : "";
+  const omChips = `<div class="bseg sc-om" role="tablist">${[["all", bi("Tất cả", "All")], ["hook", "🪝 " + bi("Bắt râu sập", "Wick")], ["sec", "⚡ " + bi("Lướt giây", "Scalp")]].map(([k, t]) => `<button type="button" data-scom="${k}" class="${(window.__scOm || "all") === k ? "on" : ""}">${t}</button>`).join("")}</div>`;
+  if (TB === "ov") body = ENV === "paper" ? `${cards}<div class="sc-g2">${panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi("Chưa có lệnh nào đang mở trên sàn thử.", "No open paper trades."))}${allOrd(nPaper)}`)}${panel("📜 Sự kiện mới nhất", `${feed((EVS.filter((e) => e.c !== "sys" && e.s !== "lv").length ? EVS.filter((e) => e.c !== "sys" && e.s !== "lv") : EVS).slice(0, 8), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
+      <div class="sc-g2">${panel("📈 Tài sản sàn thử – 12 giờ qua", `${eqChart}<p class="faint sc-cap">Chấm = lúc đóng lệnh (xanh lời, đỏ lỗ).</p>`)}${panel("⚖️ Lời/lỗ theo phương pháp", `${stChart}${stTable}`, "80 lệnh gần nhất")}</div>`
+    : lvOff ? lvOffP : `${halt}${lvCards}${lvRisk}
+      <div class="sc-g2">${panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), `${lvOpen || swOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
+      <div class="sc-g2">${panel(bi(`📈 Tài sản futures ${LVN}`, `📈 ${LVN} futures equity`), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh. <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền anh nạp vào / rút ra ví futures; <b>%</b> tính kiểu quỹ đầu tư (nối % lời/lỗ từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm % tăng giả.", "Includes unrealized P/L · dots = trade closes. <b>Real P/L</b> = equity change minus transfers in/out of the futures wallet; <b>%</b> is time-weighted, so deposits don't inflate it.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
+      <p class="sc-goord"><span>${bi("Số dư, ví, kết nối khoá API và giới hạn an toàn của tài khoản", "Balances, wallets, API key connection and account safety limits")}</span><a class="btn sm" href="#/bot/binance">${bi("Trang Binance →", "Binance page →")}</a></p>`;
+  else if (TB === "ord") body = ENV === "paper" ? `${omChips}<div data-om="open">${openP}</div>
+      <div data-om="hook">${panel("🧾 Bắt râu sập – lệnh đã đóng", `${hkTrades}<p class="faint sc-cap">Bấm 📈 để xem nến 1 phút quanh cú sốc: giá sau cú sốc, 2 mức chờ, điểm khớp và điểm thoát (giá lấy trực tiếp từ Binance).</p>`, `${HT.length} lệnh gần nhất`)}</div>
+      <div data-om="sec">${panel("🧾 Lướt giây – lệnh đã đóng", trsSec ? `<div class="tw" style="max-height:420px"><table class="rs"><thead><tr><th class="l">Lúc</th><th class="l">Lệnh</th><th>Vào → ra</th><th>Giữ</th><th>Gộp (bps)</th><th>Phí</th><th>Ròng (bps)</th><th>USDT</th><th>Lý do</th></tr></thead><tbody>${trsSec}</tbody></table></div>` : empty("Chưa có lệnh – bot chỉ vào khi biên lời đo được lớn hơn phí."))}</div>
+      <p class="sc-goord"><span>${bi("Lệnh của các phương pháp thử nghiệm nằm trong thẻ từng phương pháp · sổ lệnh mọi ngày của mọi bot", "Experimental methods' trades are in each method card · every bot's full trade book")}</span><a class="btn sm" href="#/bot/days">${bi("Kết quả & sổ lệnh →", "Results & trade book →")}</a></p>`
+    : lvOff ? lvOffP : `${halt}${openL}${cmpPanel}${panel(bi(`🧾 Lệnh đã đóng trên ${LVN}`, `🧾 Closed trades on ${LVN}`), `${lvTrades}<p class="faint sc-cap">${bi(`Lời/lỗ, phí và funding lấy từ sổ thu chi của sàn. Bấm 📈 để xem nến 1 phút${LVE === "demo" ? " của sàn Demo" : ""} quanh lệnh.`, `P/L, fees and funding come from the exchange's income history. Press 📈 for the 1-minute candles${LVE === "demo" ? " on Demo" : ""} around the trade.`)}</p>`, `${LH.length} ${bi("lệnh", "trades")}`)}`;
+  else if (TB === "hook") body = `${goOrd(nHook, "Bắt râu sập")}${hkPanel}${filterPanel}`;
+  else if (TB === "sec") body = `${goOrd(posS.length, "Lướt giây")}
       ${panel("🧮 Vì sao bot chưa vào lệnh – trực tiếp", `${N.all ? `<div class="sc-cnt"><span>Mỗi giây trên <b>${nf(N.all, 0)}</b> thị trường:</span><span class="pill buy">${nf(N.go || 0, 0)} đạt chuẩn</span><span class="pill brand">${nf(N.hold || 0, 0)} đang giữ</span><span class="pill warn">${nf(N.fee || 0, 0)} chưa đủ biên lời</span><span class="pill brand">${nf(N.verify || 0, 0)} đang đánh ảo</span><span class="pill">${nf(N.learn || 0, 0)} đang học</span><span class="pill">${nf(N.skip || 0, 0)} bỏ qua</span></div>` : ""}${whyLive(X, C)}`, `ngưỡng ${nf(C.k + (X.kadd || 0), 1)}× chi phí`)}
       ${panel("🎯 Radar – cơ hội tốt nhất toàn thị trường lúc này", `<div class="bseg sc-fl">${[["all", "Tất cả"], ["F", "Futures"], ["S", "Spot"]].map(([v, t]) => `<button type="button" data-scf="${v}" class="${F0 === v ? "on" : ""}">${t}</button>`).join("")}</div>
         ${radar ? `<div class="tw" style="max-height:560px"><table class="sc-r rs"><thead><tr><th class="l">Thị trường · lý do</th><th>Giá</th><th title="Chênh lệch mua/bán (bps)">Chênh lệch</th><th title="Dao động mỗi giây (bps)">Dao động</th><th>Tín hiệu</th><th title="Lợi thế kỳ vọng (bps) · thời gian giữ">Kỳ vọng</th><th title="Chi phí khứ hồi (bps)">Chi phí</th><th title="Ròng sau phí (bps)">Ròng (bps)</th><th>Trạng thái</th></tr></thead><tbody>${radar}</tbody></table></div>` : empty("Chưa có dữ liệu trực tiếp.")}
         ${info(`<p>Xếp theo lợi thế ròng sau phí / √thời gian giữ. Mỗi giây bot chấm điểm mọi thị trường, nhưng chỉ vào tối đa 1 lệnh – cơ hội tốt nhất – và chỉ khi lợi thế kỳ vọng ≥ <b>${nf(C.k + (X.kadd || 0), 1)}×</b> chi phí và ròng sau phí ≥ <b>${nf(C.min_net, 1)} bps</b>. Spot chỉ được Long.</p>`)}`, "đánh giá lại mỗi giây")}
-      ${panel("🧾 Lướt giây – lệnh đã đóng", trsSec ? `<div class="tw" style="max-height:420px"><table class="rs"><thead><tr><th class="l">Lúc</th><th class="l">Lệnh</th><th>Vào → ra</th><th>Giữ</th><th>Gộp (bps)</th><th>Phí</th><th>Ròng (bps)</th><th>USDT</th><th>Lý do</th></tr></thead><tbody>${trsSec}</tbody></table></div>` : empty("Chưa có lệnh – bot chỉ vào khi biên lời đo được lớn hơn phí."))}
       ${panel("🔍 Kiểm tra: kỳ vọng lúc vào lệnh vs kết quả thực", audit, "80 lệnh gần nhất")}
       ${panel("⚖️ Futures vs Spot", `<div class="tw"><table><thead><tr><th class="l">Loại</th><th>Số lệnh</th><th>Thắng</th><th>Ròng sau phí</th><th>Phí</th></tr></thead><tbody>${byRow("F", "Futures")}${byRow("S", "Spot")}</tbody></table></div>`)}`;
-  else if (TB === "live") body = !C.lv_on && !LV?.hist?.length && !LV?.ev?.length && !wEnv ? panel("💵 Tài khoản Binance", empty(`Tài khoản Binance đang tắt. Bật trong tab <button type="button" class="btn sm" data-sctab="set">⚙️ Thiết lập</button> → mục 💵 Tiền thật (nên chạy Demo trước).`)) : `${LV?.halt ? `<p class="sc-pause">⛔ ${esc(LV.halt)} – ${bi("bấm ▶ Chạy lại ở khung trạng thái bên dưới", "press ▶ Resume in the status box below")}</p>` : ""}${lvCards}${lvRisk}
-      <div class="sc-g2">${panel(bi(`📌 ${LVN} – đang mở & chờ khớp`, `📌 ${LVN} – open & pending`), lvOpen || swOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), feed(LVEV.slice(0, 12), false))}</div>
-      <div class="sc-g2">${panel(bi(`📈 Tài sản futures ${LVN}`, `📈 ${LVN} futures equity`), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh. <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền anh nạp vào / rút ra ví futures; <b>%</b> tính kiểu quỹ đầu tư (nối % lời/lỗ từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm % tăng giả.", "Includes unrealized P/L · dots = trade closes. <b>Real P/L</b> = equity change minus transfers in/out of the futures wallet; <b>%</b> is time-weighted, so deposits don't inflate it.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
-      ${cmpPanel}${panel(bi(`🧾 Lệnh đã đóng trên ${LVN}`, `🧾 Closed trades on ${LVN}`), `${lvTrades}<p class="faint sc-cap">${bi(`Lời/lỗ, phí và funding lấy từ sổ thu chi của sàn. Bấm 📈 để xem nến 1 phút${LVE === "demo" ? " của sàn Demo" : ""} quanh lệnh.`, `P/L, fees and funding come from the exchange's income history. Press 📈 for the 1-minute candles${LVE === "demo" ? " on Demo" : ""} around the trade.`)}</p>`, `${LH.length} ${bi("lệnh", "trades")}`)}
-      ${walPanel || ""}${lvPanel || ""}`;
   else if (TB === "lab") {
     // 🧪 THỬ NGHIỆM – 1 bảng 3 cột kéo-thả: 📚 tất cả kiểu chơi | 🧪 đang đánh sàn thử | 💰 đang đánh tiền thật (Demo / thật)
     // 8 phương pháp: 6 📐 định lượng (worker/quant.js) + 2 🗓️ giữ nhiều ngày (worker/swing.js). Bấm thẻ → ngăn kéo: làm gì, kết quả, bật/tắt, ⚙️ thông số, luật.
@@ -773,9 +789,22 @@ async function viewScalp() {
         <div class="bsave"><button type="button" class="btn" id="scDl">⬇ Tải bộ nhớ học (JSON)</button><button type="button" class="btn" id="scWipe">🧹 Xoá bộ nhớ học</button></div></div>`, "tự học liên tục")}`;
   else if (TB === "ev") body = panel("📜 Sự kiện", `${feed(EVS, true)}<p class="faint sc-cap">${bi(`Gồm ${nf((X.log || []).length, 0)} sự kiện gần nhất của bot và ${nf((LV?.log || []).length, 0)} của tài khoản Binance. Kết quả từng ngày:`, `The bot's last ${nf((X.log || []).length, 0)} events and the Binance account's last ${nf((LV?.log || []).length, 0)}. Day-by-day results:`)} <a href="#/bot/days">📅 Kết quả theo ngày</a>.</p>`, bi(`${EVS.length} sự kiện`, `${EVS.length} events`));
   else if (TB === "set") body = `<div class="sc-setp" id="scForm"></div>`;
-  app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1><span class="meta"><a href="#/bot/home">← Bot của tôi</a> · 🪝 Bắt râu sập + ⚡ lướt giây · sàn thử dùng giá & khớp lệnh thật, phí thật · <a href="#/bot/days">📒 Kết quả & sổ lệnh</a></span></div>
-    ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${body}</div>`;
-  $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; scTabGo(b.dataset.sctab); }));
+  if (window.__scMode === "acct") {      // 💵 TRANG BINANCE (#/bot/binance): số dư, ví, trạng thái tài khoản bot, kết nối khoá API trên trình duyệt (lệnh tay)
+    app().innerHTML = `<div class="ph"><h1>💵 Tài khoản Binance</h1><span class="meta"><a href="#/bot/home">← Bot</a> · ${bi("số dư, ví, giới hạn an toàn, khoá API", "balances, wallets, safety limits, API keys")} · <a href="#/bot/scalp" data-scenvgo="1">⚡ ${bi("Bot Phản Xạ đánh trên tài khoản này →", "Reflex Bot trading this account →")}</a></span></div>
+      ${PG(bi("Tài khoản Binance", "Binance account"))}${lvOff ? lvOffP : `${lvCards}${lvRisk}`}${walPanel || ""}${lvPanel || ""}<section class="panel" id="pvBx"></section>`;
+    $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
+    $$("[data-scenvgo]").forEach((a) => (a.onclick = () => { window.__scEnv = "live"; lsSet("scenv", "live"); window.__scTab = "ov"; lsSet("sctab", "ov"); }));
+    $$("[data-sctab]").forEach((b) => (b.onclick = () => { window.__scTab = scNormTab(b.dataset.sctab); lsSet("sctab", window.__scTab); location.hash = "#/bot/scalp"; }));
+    if ($("#lvRes")) $("#lvRes").onclick = async () => { C.lv_resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Tài khoản thật chạy lại trong ≤ 5 phút"); viewScalp(); };
+    if (typeof bxPanel === "function") bxPanel();
+    return;
+  }
+  app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1><span class="meta"><a href="#/bot/home">← Bot</a> · 🪝 Bắt râu sập + ⚡ lướt giây · sàn thử dùng giá & khớp lệnh thật, phí thật · <a href="#/bot/days">📒 Kết quả & sổ lệnh</a></span></div>
+    ${hero}${tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${envSeg}${subSeg}${body}</div>`;
+  $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
+  $$("[data-scenv]").forEach((b) => (b.onclick = () => { window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true; viewScalp(); }));
+  { const ap = () => { const om = window.__scOm || "all"; $$("[data-om]").forEach((d) => (d.hidden = om !== "all" && d.dataset.om !== "open" && d.dataset.om !== om)); }; ap();      // tab Lệnh: lọc theo phương pháp
+    $$("[data-scom]").forEach((b) => (b.onclick = () => { window.__scOm = b.dataset.scom; $$("[data-scom]").forEach((x) => x.classList.toggle("on", x === b)); ap(); })); }
   $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
   $$("[data-scpm]").forEach((b) => (b.onclick = () => { window.__scPm = b.dataset.scpm; lsSet("scpm", b.dataset.scpm); window.__scUseCache = true; viewScalp(); }));
   $$("[data-sclog]").forEach((b) => (b.onclick = () => { window.__scLog = b.dataset.sclog; lsSet("sclog", b.dataset.sclog); window.__scUseCache = true; viewScalp(); }));
@@ -1317,7 +1346,7 @@ async function viewBot(sel) {
   // tự làm mới trạng thái mỗi phút khi anh đang xem (không đụng vào form đang sửa)
   clearInterval(window.__botT); let dirty = false; $("#bForm").addEventListener("input", () => (dirty = true));
   window.__botT = setInterval(async () => {
-    if (!/^#\/bot(\/(?!scalp|sup|days)[^/]*)?$/.test(location.hash)) { clearInterval(window.__botT); return; }     // chỉ trang Đội bot (trước đây cả #/bot/scalp → thỉnh thoảng vẽ trang Đội bot đè lên Bot Phản Xạ)
+    if (!/^#\/bot(\/(?!scalp|sup|days|home|binance|journal)[^/]*)?$/.test(location.hash)) { clearInterval(window.__botT); return; }     // chỉ trang Đội bot (trước đây cả #/bot/scalp → thỉnh thoảng vẽ trang Đội bot đè lên Bot Phản Xạ)
     if (document.hidden || dirty || userBusy() || document.activeElement?.closest?.("#bForm")) return;
     try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) softRender(() => viewBot(id)); } catch (e) { /* bỏ qua */ }
   }, 60000);
@@ -1360,7 +1389,7 @@ async function viewSup() {
   const feeP = `${kpis([["Phí đã trả", usd2(fees)], ["Funding (+ = trả)", usd2(fund), fund > 0 ? "down" : "up"], ["Phí TB mỗi lệnh", fR.length ? nf(fR.reduce((s, c) => s + c.feeR, 0) / fR.length, 3) + "R" : "—"], ["Phí / lãi gộp (cao nhất)", cv.some((c) => isNum(c.fee_share)) ? nf(Math.max(...cv.filter((c) => isNum(c.fee_share)).map((c) => c.fee_share)), 0) + "%" : "—", "", "bot có tỷ lệ phí / lãi gộp cao nhất"]])}
     <p class="sbp">Phí khứ hồi tính theo R = (phí mở + phí đóng + trượt giá 2 chiều) ÷ khoảng cách tới cắt lỗ. Futures 0,05%/chiều, spot 0,1%/chiều, trượt giá 0,05%/chiều → cắt lỗ cách 2%: futures tốn ≈ <b>0,10R</b>, spot ≈ <b>0,15R</b> mỗi lệnh; cắt lỗ cách 0,8% thì futures đã tốn ≈ 0,25R. Bot giám sát trừ phí này vào mọi phép so (đổi lệnh, chấm điểm) và học để bỏ lệnh có cắt lỗ quá hẹp so với phí.</p>`;
   const logH = (ss.log || []).slice().reverse().slice(0, 120).map((l) => { const d = SUP_D[l.k] || ["", ""]; return `<li class="${l.k === "stop" ? "stop" : ""}"><small>${dt(l.t + "Z")}</small>${d[0] ? ` <span class="pill ${d[1]}">${d[0]}</span>` : ""} ${esc(l.m)}</li>`; }).join("");
-  app().innerHTML = `<div class="ph"><h1>🛡️ Giám sát rủi ro · quản lý danh mục</h1><span class="meta"><a href="#/bot/home">← Bot của tôi</a> · đứng trên ${B.length} bot · chạy mỗi phút trên máy chủ · sàn thử</span></div>
+  app().innerHTML = `${botHubHead("sup")}<p class="faint bh-help" style="margin-top:0">🛡️ Giám sát rủi ro · quản lý danh mục – đứng trên ${B.length} bot · chạy mỗi phút trên máy chủ · sàn thử</p>
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${status[1]} big">${status[0]}</span><small>${esc(status[2])}</small>
       <span class="bot-btns">${ss.halt ? `<button class="btn primary" id="sRes">Mở khoá tài khoản</button>` : ""}<button class="btn ${C.enabled ? "" : "primary"}" id="sOn">${C.enabled ? "⏸ Tắt giám sát" : "▶ Bật giám sát"}</button></span></div>
       <p class="bth-h">${esc(TH.head || "")}</p>
@@ -1637,8 +1666,16 @@ async function viewBotHome() {
     ["Tài sản chung", isNum(a.eq) ? `${usd2(a.eq)} · sụt ${nf(a.dd, 1)}%` : "—"], ["Rủi ro đang mở", isNum(a.heat) ? `${nf(a.heat, 1)}%` : "—"], ["Nhận xét", esc(ss?.think?.head || "chờ lượt chạy đầu tiên")]],
     "Giới hạn rủi ro chung, khám nghiệm lệnh · mở");
   const resCard = card("#/bot/days", "📒", "Kết quả & sổ lệnh", ["mọi bot", ""], [["Theo ngày", "lãi/lỗ từng ngày, sàn thử & Binance"], ["Sổ lệnh", "mọi lệnh: giá vào/ra, phí, funding"], ["Bài học", "tổng hợp từ lệnh đã đóng"]], "Xem báo cáo");
-  app().innerHTML = `<div class="ph"><h1>🤖 Bot của tôi</h1><span class="meta">mọi bot ở một chỗ – bấm vào thẻ để vào từng bot</span></div>
-    ${PG("Bot của tôi")}
-    <div class="bh-grid">${scCard}${trCard}${resCard}${supCard}</div>
-    <p class="faint bh-help">Gợi ý: <b>⚡ Bot Phản Xạ</b> là bot đánh tiền thật trên Binance (bắt râu sập) · <b>📈 Bot xu hướng</b> chạy trên sàn thử theo khung ngày / 4 giờ · <b>📒 Kết quả & sổ lệnh</b> gộp kết quả của mọi bot · <b>🛡️ Giám sát</b> theo dõi rủi ro chung của tất cả.</p>`;
+  const binCard = card("#/bot/binance", "💵", "Tài khoản Binance", C.lv_on ? [LV?.halt ? "⛔ Ngừng mở mới" : `● ${lvEnv}`, LV?.halt ? "sell" : "buy"] : ["Bot chưa nối", ""], [
+    ["Số dư futures", isNum(LV?.st?.bal) ? usd2(LV.st.bal) : "—"], ["Hôm nay", C.lv_on ? su(LV?.day?.pnl ?? 0) : "—"], ["Kết nối", "khoá API trên máy chủ · không có quyền rút tiền"]], "Số dư, ví, khoá API · mở");
+  app().innerHTML = `${botHubHead("home")}
+    ${PG("Tổng quan bot")}
+    <div class="bh-grid">${scCard}${resCard}${binCard}${supCard}</div>
+    <h3 class="bh-sub">🧪 Thử nghiệm</h3><div class="bh-grid">${trCard}</div>
+    <p class="faint bh-help">Gợi ý: <b>⚡ Bot Phản Xạ</b> là bot đánh tiền thật trên Binance (bắt râu sập) · <b>📒 Kết quả & sổ lệnh</b> gộp kết quả của mọi bot · <b>💵 Tài khoản Binance</b>: số dư, ví, khoá API · <b>🛡️ Rủi ro & giám sát</b> theo dõi rủi ro chung · <b>📈 Bot xu hướng</b> đang thử nghiệm trên sàn thử.</p>`;
+}
+// đầu trang chung của trang chính Bot: 2 tab con "Tổng quan" (mọi bot) và "Rủi ro & giám sát" (Bot giám sát cũ) – cùng 1 trang
+function botHubHead(on) {
+  return `<div class="ph"><h1>🤖 Bot</h1><span class="meta">mọi bot ở một chỗ – lời/lỗ, lệnh mở, rủi ro chung</span></div>
+    <div class="sc-sub2 bh-tabs" role="tablist">${[["home", "#/bot/home", "Tổng quan", "mọi bot · hôm nay"], ["sup", "#/bot/sup", "Rủi ro & giám sát", "giới hạn chung · khám nghiệm lệnh"]].map(([k, h, t, d]) => `<a role="tab" href="${h}" class="${on === k ? "on" : ""}" aria-selected="${on === k}"><span>${t}</span><small>${d}</small></a>`).join("")}</div>`;
 }

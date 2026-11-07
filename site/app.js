@@ -458,7 +458,7 @@ function mSheet(open) {
     let html = "", grp = "";
     for (const n of $("#tabs").children) {
       if (n.classList.contains("nav-g")) { if (grp) html += `</div>`; html += `<h4 class="msheet-g">${n.innerHTML}</h4><div class="msheet-l">`; grp = 1; }
-      else if (n.tagName === "A" && !n.classList.contains("nav-cus")) {
+      else if (n.tagName === "A" && !n.classList.contains("nav-cus") && n.getAttribute("href") !== "#/bot/sup") {
         const svg = n.querySelector("svg")?.outerHTML || "", t = n.querySelector(".nav-t")?.textContent || n.textContent, h = n.getAttribute("title") || "";
         html += `<a href="${n.getAttribute("href")}" class="${n.classList.contains("on") ? "on" : ""}">${svg}<span class="ms-t"><b>${esc(t)}</b>${h ? `<small>${esc(h)}</small>` : ""}</span></a>`;
       }
@@ -481,11 +481,11 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msh
 if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More";
 // trang Bot (màn hình chưa có thanh dọc): thanh chuyển nhanh Đội bot / Giám sát / Lướt giây ngay đầu trang
 // nhóm Bot: 1 cửa vào (Bot của tôi) → từng bot → báo cáo chung. Giám sát rủi ro & sổ lệnh vẫn có trang riêng nhưng đi vào từ trang tổng / trang kết quả.
-const BOTSEG = [["bothome", "#/bot/home", "🤖", "Bot của tôi"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["bot", "#/bot", "📈", "Bot xu hướng"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botsup", "#/bot/sup", "🛡️", "Giám sát rủi ro"]];
+const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["botsup", "#/bot/sup", "🛡️", "Rủi ro & giám sát"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
-const CUS_SUB = [["ov", "Tổng quan"], ["live", "Binance thật"], ["pm", "Phương pháp"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/methods": "Phương pháp", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
-const SC_ICON = { ov: "📊", live: "💵", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
+const CUS_SUB = [["ov", "Tổng quan"], ["pm", "Phương pháp"], ["ord", "Lệnh"], ["log", "Nhật ký"], ["set", "Thiết lập"]];
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Sàn thử", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
 function cusOpts() {
   const out = []; let g = "";
   for (const n of $("#tabs").children) {
@@ -493,7 +493,7 @@ function cusOpts() {
     if (n.tagName !== "A" || n.classList.contains("nav-cus")) continue;
     const href = n.getAttribute("href"), t = n.querySelector(".nav-t")?.textContent || n.textContent.trim();
     out.push({ g, href, r: n.dataset.r, t, short: CUS_SHORT[href] || t, svg: n.querySelector("svg")?.outerHTML || "" });
-    if (href === "#/bot/scalp") CUS_SUB.forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, short: st.replace("Binance thật", "Binance").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
+    if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : "", short: st.replace("Tổng quan · Binance", "Binance").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
   }
   out.push({ g: "Khác", href: "#/notifications", r: "", t: "Thông báo", short: "Thông báo", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' },
     { g: "Khác", href: "#/account", r: "", t: "Tài khoản & cài đặt", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' });
@@ -505,8 +505,74 @@ function cusDraw() {
   const nav = $("#tabs"), more = $("#navMore"); if (!nav || !more) return;
   let a = $("#navCus"); if (!a) { a = document.createElement("a"); a.id = "navCus"; a.className = "nav-m nav-cus"; nav.insertBefore(a, more); cusBind(a); }
   const o = cusCur(); a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `${o.t} – giữ lâu để đổi nút này`;
-  a.innerHTML = `${o.emo ? `<span class="nav-emo">${o.emo}</span>` : o.svg}<span class="nav-s">${esc(o.short)}</span>`;
-  if (o.sc) a.classList.toggle("on", location.hash.startsWith("#/bot/scalp") && window.__scTab === o.sc);
+  a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
+  if (o.sc) a.classList.toggle("on", location.hash.startsWith("#/bot/scalp") && (window.__scTab === o.sc || (o.sc === "live" && window.__scTab === "ov" && window.__scEnv === "live")));
+  try { autoDraw(); } catch (e) { /* bỏ qua */ }
+}
+// ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
+// bỏ qua các trang đã có nút cố định (Thị trường, Cơ hội, Giao dịch, Bot) và trang đang đặt ở nút tuỳ chọn → luôn là 1 lối tắt MỚI
+const NF_HL = 7 * 864e5;
+function navKeyNow(h = location.hash || "#/") {
+  if (h.startsWith("#/bot/scalp")) return "#/bot/scalp|" + (window.__scTab || "ov");
+  const m = h.match(/^#\/c\/([^/]+)/); if (m) return "#/c/" + decodeURIComponent(m[1]).toUpperCase();
+  const p = h.replace(/^#\/?/, "").split("/");
+  if (!p[0]) return "#/";
+  if (p[0] === "bot") return p[1] && ["home", "sup", "days", "binance", "journal"].includes(p[1]) ? `#/bot/${p[1] === "journal" ? "days" : p[1]}` : "#/bot";
+  if (p[0] === "sector") return "#/sectors";
+  if (p[0] === "help") return "#/methods";
+  return "#/" + p[0];
+}
+function navFreqHit(k = navKeyNow()) {
+  if (!k || k === window.__nfLast) return; window.__nfLast = k;
+  const F = lsGet("navfreq", {}) || {}, now = Date.now();
+  for (const [x, v] of Object.entries(F)) { const sc = (+v?.[0] || 0) * Math.pow(0.5, (now - (+v?.[1] || now)) / NF_HL); if (sc < 0.05) delete F[x]; else F[x] = [+sc.toFixed(3), now]; }
+  F[k] = [(F[k]?.[0] || 0) + 1, now]; lsSet("navfreq", F);
+  try { autoDraw(); } catch (e) { /* bỏ qua */ }
+}
+function navOpt(k) {
+  const L = cusOpts(), o = L.find((x) => cusKey(x) === k); if (o) return o;
+  const coinSvg = $('#tabs a[data-r="coins"] svg')?.outerHTML || "";
+  if (k.startsWith("#/c/")) { const c = k.slice(4); return { href: k, r: "coins", t: `Coin ${c}`, short: c, svg: coinSvg }; }
+  const botSvg = $('#tabs a[data-r="bothome"] svg')?.outerHTML || "";
+  if (k === "#/bot") return { href: k, r: "bot", t: "Bot xu hướng (thử nghiệm)", short: "Xu hướng", emo: "📈", svg: botSvg };
+  if (k === "#/bot/sup") return { href: k, r: "bothome", t: "Bot › Rủi ro & giám sát", short: "Rủi ro", emo: "🛡️", svg: botSvg };
+  return null;
+}
+function autoTop(n = 1) {
+  const F = lsGet("navfreq", {}) || {}, now = Date.now(), fixed = new Set($$("#tabs a.nav-m:not(.nav-cus)").map((a) => a.getAttribute("href"))), cus = lsGet("navcus", "#/portfolio");
+  const L = Object.entries(F).map(([k, v]) => [k, (+v?.[0] || 0) * Math.pow(0.5, (now - (+v?.[1] || now)) / NF_HL)]).filter(([k]) => !fixed.has(k) && k !== cus).sort((a, b) => b[1] - a[1]);
+  const out = []; for (const [k, sc] of L) { const o = navOpt(k); if (o) out.push({ ...o, sc }); if (out.length >= n) break; }
+  return out;
+}
+function autoDraw() {
+  const nav = $("#tabs"), more = $("#navMore"); if (!nav || !more) return;
+  let a = $("#navAuto"); if (!a) { a = document.createElement("a"); a.id = "navAuto"; a.className = "nav-m nav-cus nav-auto"; nav.insertBefore(a, more); autoBind(a); }
+  const o = autoTop(1)[0] || navOpt("#/bot/days") || { href: "#/bot/days", t: "Kết quả & sổ lệnh", short: "Kết quả", emo: "📒" };
+  a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc && typeof o.sc === "string" ? o.sc : ""; a.title = `Hay vào: ${o.t} – tự đổi theo trang anh vào nhiều nhất · giữ lâu để xem danh sách`;
+  a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "↻"}</span>`}<span class="nav-t">↻ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
+}
+function autoBind(a) {
+  let t = 0, long = false;
+  a.addEventListener("touchstart", () => { long = false; t = setTimeout(() => { long = true; navigator.vibrate?.(10); autoMenu(a); }, 480); }, { passive: true });
+  ["touchend", "touchmove", "touchcancel"].forEach((ev) => a.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+  a.addEventListener("contextmenu", (e) => { e.preventDefault(); autoMenu(a); });
+  a.addEventListener("click", (e) => {
+    if (long) { e.preventDefault(); long = false; return; }
+    const sc = a.dataset.sc; if (!sc) return;
+    window.__scTab = sc; lsSet("sctab", sc);
+    if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); else route(); }
+  });
+}
+function autoMenu(anchor) {
+  if ($("#iosMenu")) iosMenuClose();
+  const L = autoTop(8), r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left + r.width / 2 - W / 2)), tot = L.reduce((x, o) => x + o.sc, 0) || 1;
+  const up = r.top > innerHeight / 2, pos = up ? `bottom:${Math.round(innerHeight - r.top + 8)}px` : `top:${Math.round(r.bottom + 6)}px`;
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in cus-menu" role="menu" aria-label="Trang anh hay vào" style="left:${left}px;width:${W}px;${pos}"><div class="ios-menu-h cus-top">↻ Hay vào – tự xếp theo số lần anh vào (7 ngày gần nhất nặng hơn)</div>${L.length ? L.map((o, i) => `<a role="menuitem" href="${o.href}" data-asc="${esc(typeof o.sc === "string" ? o.sc : "")}"><span class="ios-ck">${i === 0 ? "★" : ""}</span><span class="ios-t">${esc(o.t)}<small>${Math.round(o.sc / tot * 100)}%</small></span><span class="ios-ic">${o.emo || o.svg}</span></a>`).join("") : `<div class="ios-menu-h">Chưa đủ dữ liệu – dùng app thêm vài lần nút này sẽ tự chọn.</div>`}</div>`;
+  document.body.appendChild(m);
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("[data-asc]", m).forEach((x) => (x.onclick = (e) => { const sc = x.dataset.asc; iosMenuClose(); if (!sc) return; window.__scTab = sc; lsSet("sctab", sc); if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); } }));
+  addEventListener("hashchange", iosMenuClose, { once: true });
 }
 function cusBind(a) {
   let t = 0, long = false;
@@ -539,8 +605,8 @@ function cusPick(anchor) {
   addEventListener("hashchange", iosMenuClose, { once: true });
 }
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
-const BOTSUB = { bothome: "Mọi bot: đang chạy, lời/lỗ hôm nay, lệnh mở, rủi ro chung", bot: "Bot xu hướng khung ngày / 4 giờ", botscalp: "Bắt râu sập + lướt giây · tiền thật", botsup: "Rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày · sổ mọi lệnh · bài học", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp" };
-const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/journal") ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+const BOTSUB = { bothome: "Mọi bot ở một chỗ: đang chạy, lời/lỗ hôm nay, lệnh mở", bot: "Khung ngày / 4 giờ · sàn thử · đang thử nghiệm", botscalp: "Bắt râu sập + lướt giây · sàn thử & tiền thật", botsup: "Giới hạn rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày · sổ mọi lệnh · bài học", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp", botbin: "Số dư, ví, giới hạn an toàn, khoá API" };
+const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : h.startsWith("#/bot/journal") ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
 function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
@@ -911,7 +977,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("botsup"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { window.__scMode = null; if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("bothome"); await viewSup(); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "binance") { setTab("botbin"); window.__scMode = "acct"; await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -936,6 +1002,7 @@ async function route() {
   // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
   { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
   if (r === "bot") botWarm();
+  try { navFreqHit(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(() => app().focus({ preventScroll: true }));
   pnRoute(r, arg);
 }
@@ -1515,12 +1582,9 @@ async function viewMarket() {
   ${PG("Danh sách nhanh")}<div class="g g5">
     ${panel("🚀 Tăng 7 ngày", list(lst.gain7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
     ${panel("🩸 Giảm 7 ngày", list(lst.lose7, (r) => `<small class="${cls(r.r7)}">${pct(r.r7, 0)}</small>`))}
-    ${panel("🔥 Funding nóng", list(lst.f_hot, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`))}
-    ${panel("🧊 Funding âm", list(lst.f_cold, (r) => `<small class="${f8c(r.f8)}">${f8s(r.f8)}</small>`))}
-    ${panel("📈 OI tăng 7 ngày", list(lst.oi_up, (r) => `<small class="${cls(r.oi7)}">${pct(r.oi7, 0)}</small>`))}
+    ${panel("⚡ Funding & đòn bẩy", `<p class="sbh" style="margin-top:0">🔥 Funding nóng</p><div class="sbchips">${(lst.f_hot || []).slice(0, 4).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a>`).join("") || "—"}</div><p class="sbh">🧊 Funding âm</p><div class="sbchips">${(lst.f_cold || []).slice(0, 4).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a>`).join("") || "—"}</div><p style="margin:10px 0 0"><a class="btn sm" href="#/futures">Funding, OI, carry đầy đủ → Phái sinh</a></p>`)}
     ${panel("✅ Vừa vào xu hướng tăng", list(lst.trend_new, (r) => `<small>${r.td} ngày</small>`))}
     ${panel("💰 Định giá rẻ (dòng tiền thật)", list(lst.cheap, (r) => `<small>P/S ${nf(r.ps, 1)}</small>`))}
-    ${panel("💱 Carry funding cao", list(lst.carry, (r) => `<small class="up">${nf(r.car, 0)}%/năm</small>`))}
   </div>
   ${(M.news || []).length ? panel("📰 Tin có tác động (72 giờ)", `<div class="ntfs cols2">${M.news.map((n) => newsRow(n, true)).join("")}</div>`) : ""}
   ${(M.alerts || []).length ? panel("⚠️ Cảnh báo đòn bẩy", `<ul class="alerts">${M.alerts.map((a) => `<li>${coinLink(a.k, "/fut")} <b>${esc(a.t)}</b> – ${esc(a.d)}</li>`).join("")}</ul>`) : ""}
@@ -4108,6 +4172,10 @@ async function bxGuard(desc) {
 async function bxPanel() {
   const el = $("#pvBx"); if (!el) return;
   const st = lsGet("bxk_" + BX.env, null), open = !!BX.keys[BX.env];
+  if (location.hash.startsWith("#/paper")) {      // 11/2026: kết nối Binance chuyển sang trang 💵 Tài khoản Binance – ở Sàn thử chỉ còn dòng trạng thái
+    el.innerHTML = `<div class="ph"><h2>🔗 Kết nối Binance (lệnh tay)</h2><span class="meta">${esc(BXE[BX.env]?.n || BX.env)} · ${open ? '<span class="up">đã mở khoá – gửi được lệnh thật từ đây</span>' : st ? "đã lưu khoá, chưa mở khoá" : "chưa kết nối"}</span></div><p style="margin:0"><a class="btn sm" href="#/bot/binance">Quản lý kết nối ở trang 💵 Tài khoản Binance →</a></p>`;
+    return;
+  }
   el.innerHTML = `<div class="ph"><h2>🔗 Kết nối tài khoản Binance</h2><span class="meta">khoá API mã hoá bằng mật khẩu riêng của anh, chỉ lưu trong trình duyệt này</span></div>
     <div class="bxg"><div><div class="field"><label>Môi trường</label><select id="bxEnv">${Object.entries(BXE).map(([k, v]) => `<option value="${k}" ${BX.env === k ? "selected" : ""}>${esc(v.n)}</option>`).join("")}</select></div>
       <div class="field"><label>Đường kết nối</label><select id="bxVia"><option value="direct" ${BX.via === "direct" ? "selected" : ""}>Trình duyệt gọi thẳng Binance (khoá IP được)</option><option value="relay" ${BX.via === "relay" ? "selected" : ""}>Qua máy chủ MyBit (khi trình duyệt bị chặn)</option></select></div>
@@ -4450,7 +4518,7 @@ async function viewMethods(id) {
   const fold = (t) => String(t || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
   const IDX = METHODS.map((m) => ({ m, n: fold(m[2] + " " + m[3] + " " + m[0]), b: fold(Object.values(m[4]).join(" ") + " " + Object.values(m[5]).join(" ")) }));
   let cur = METHODS.find((m) => m[0] === id) || METHODS[0], q = "", grp = "", PH = [];
-  app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Phương pháp – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
+  app().innerHTML = `<div data-noi18n><div class="ph"><h1>${en ? "Methods – what each one means and how to use it" : "Cẩm nang chỉ báo – nghĩa là gì & dùng thế nào"}</h1><span class="meta">${METHODS.length} ${en ? "concepts used on the site" : "khái niệm đang dùng trên web"}</span></div>
     ${en ? `<section class="panel mguide"><details id="mHelp"><summary>🧭 What MyBit does – overview & how to use it</summary><ul class="why">
       <li><b>Market</b>: market light, sentiment, on-chain, derivatives, sectors – data every 4 hours, live prices every second from Binance.</li>
       <li><b>Find opportunities</b>: <a href="#/ideas">Today's opportunities</a> – historically tested SMC/trend setups on 4h & daily, plus 🪝 wick catcher (1-minute shocks found by Reflex Bot); live <a href="#/radar">Radar</a>; <a href="#/pairs">Coins moving together</a>.</li>
@@ -5718,7 +5786,7 @@ function lvsPop(btn) {
     ${I.length ? I.map((x) => `<div class="lvs-it"><div>${x.h} <small class="pill ${x.o ? "brand" : ""}">${x.o ? "mở" : "chờ"}</small></div><div class="lvs-s">${x.s}</div>${x.r ? `<div class="lvs-r">${x.r}</div>` : ""}</div>`).join("") : `<p class="lvs-none">${L?.halt ? `⛔ ${esc(L.halt)}` : "Không có lệnh nào đang chờ hay đang mở."}</p>`}
     <div class="lvs-f">${L ? `<span>Hôm nay <b class="${cls(L.day)}">${isNum(L.day) ? `${nz(L.day, 2) > 0 ? "+" : ""}${usd2(L.day)}` : "—"}</b>${isNum(L.bal) ? ` · số dư ${usd2(L.bal)}` : ""}</span>` : "<span></span>"}<a href="#/bot/scalp" data-lvs-go>Mở Bot Phản Xạ →</a></div>`;
   document.body.appendChild(p);
-  p.querySelector("[data-lvs-go]").addEventListener("click", () => { try { if (L?.on) { window.__scTab = "live"; lsSet("sctab", "live"); } } catch (e) { /* bỏ qua */ } lvsPopClose(); });
+  p.querySelector("[data-lvs-go]").addEventListener("click", () => { try { if (L?.on) { window.__scTab = "ov"; lsSet("sctab", "ov"); window.__scEnv = "live"; lsSet("scenv", "live"); } } catch (e) { /* bỏ qua */ } lvsPopClose(); });
   setTimeout(() => { const off = (e) => { if (!p.isConnected) return removeEventListener("pointerdown", off, true); if (!p.contains(e.target) && !btn.contains(e.target)) { lvsPopClose(); removeEventListener("pointerdown", off, true); } }; addEventListener("pointerdown", off, true); }, 0);
   addEventListener("keydown", function k(e) { if (e.key === "Escape") { lvsPopClose(); removeEventListener("keydown", k); } });
   addEventListener("hashchange", lvsPopClose, { once: true });
