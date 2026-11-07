@@ -180,6 +180,7 @@ export class LiveExec {
     const c = this.cfg(), env = this.env(), now = Date.now(), base = h.id.split(":")[0];
     const skip = (why) => { this.say(`Bỏ qua ${base}: ${why}`); this.missAdd({ k: h.id, side: h.side, R: h.R, t0: iso(now), what: "skip", why }); };
     if (!this.enabled()) return;
+    if (c.lv_hk === false) return;      // 🪝 Bắt râu sập trên Binance tắt riêng (các phương pháp khác trên tài khoản vẫn chạy)
     if (!h.id.endsWith(":F")) return skip("chỉ đánh futures");
     if (!this.st.ok) return skip(`tài khoản chưa sẵn sàng – ${this.st.why}`);
     if (this.S.halt) return skip(`đang ngừng mở mới – ${this.S.halt}`);

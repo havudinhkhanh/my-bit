@@ -23,7 +23,7 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
   // 🪝 BẮT RÂU SẬP (đã kiểm chứng trên nến 1 phút Binance futures 7–10/2026, xem research/round3.py): cú sốc 1 phút ≥ hk_r bps & ≥ hk_z lần độ lệch chuẩn 60 phút
   // & khối lượng ≥ hk_v lần trung vị → đặt 2 lệnh chờ ngược chiều sâu thêm hk_d1 / hk_d2 lần độ lớn cú sốc, chờ hk_w phút, giữ hk_h phút rồi đóng.
-  hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.25, hk_d2: 1.5, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 3,
+  sec_on: true, lv_hk: true, hk_on: true, hk_size: 5, hk_z: 4, hk_r: 300, hk_v: 8, hk_d1: 1.25, hk_d2: 1.5, hk_w: 8, hk_h: 60, hk_stop: 35, hk_max: 6, hk_spot: false, hk_f6: 6, hk_knife: 10, hk_r15: 100, hk_r15L: false, hk_fund: 50, hk_rev: 3,
   // VÀO NGAY (vòng 8, research/round8.py + r8_analyze.py, 01/2025–10/2026, ~900 mã): cú SẬP xảy ra khi 15 phút trước giá đã giảm ≥ hk_mk15 bps (xả tháo chạy)
   // → mua ngay bằng lệnh thị trường (hk_mkS % tài sản), song song 2 lệnh chờ sâu như cũ. Long TB +119 bps/lệnh sau phí taker + trượt, thắng 73%, 2025 +111 / 2026 +128.
   hk_mk: true, hk_mk15: 300, hk_mkS: 2,
@@ -88,7 +88,7 @@ function norm(c) {
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000);
-  c.hk_on = c.hk_on !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
+  c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
@@ -728,6 +728,7 @@ export class ScalpCore {
   // ---------------------------------------------------------------- vào / ra lệnh (sàn thử, khớp theo sổ lệnh thật)
   used() { let u = (this.sw ? this.sw.margin() : 0) + (this.q ? this.q.margin() : 0); for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
   enter(x, side, best, cost, vol, now, mode) {
+    if (this.cfg?.sec_on === false) return;      // ⚡ lướt giây tắt trên sàn thử (công tắc ở 🎯 Phương pháp)
     const c = this.cfg, S = this.S, eq = this.equity(), lev = x.t === "F" ? c.lev : 1;
     // thoát chủ yếu theo thời gian (bộ học đo kỳ vọng ở đúng h giây); cắt lỗ chặn rủi ro bất thường (4 lần biến động); chốt sớm khi giá chạy gấp đôi kỳ vọng
     const slb = Math.max(2 * cost, 4 * vol * Math.sqrt(best.h)), tpb = cost + 2 * best.exp;
@@ -821,7 +822,7 @@ export class ScalpCore {
   // Kiểm chứng (research/round3.py, ~900 mã Binance futures, khối lượng đúng thời điểm, khớp phải xuyên qua giá chờ 5 bps, thoát taker + trượt 10 bps):
   // trong mẫu 7–9/2026 và ngoài mẫu 10/2026 đều ròng dương sau phí; lời dồn vào các cú sập lớn cả thị trường, đuôi lỗ dày → cỡ lệnh nhỏ, có cắt lỗ thảm hoạ.
   hookBar(x, b, now) {
-    const c = this.cfg, S = this.S; if (!c?.hk_on || !S || (x.t === "S" && !c.hk_spot) || !(x.qv >= Math.max(2, c.min_vol))) return;      // kiểm chứng chỉ trên coin khối lượng 24h ≥ 2 triệu USD
+    const c = this.cfg, S = this.S; if (!(c?.hk_on || (c?.lv_on && c?.lv_hk !== false)) || !S || (x.t === "S" && !c.hk_spot) || !(x.qv >= Math.max(2, c.min_vol))) return;      // kiểm chứng chỉ trên coin khối lượng 24h ≥ 2 triệu USD
     const L = x.m1, n = L.length; if (n < 42 || L[n - 1] !== b) return;
     const prev = L[n - 2]; if (!(prev[1] > 0 && b[1] > 0)) return;
     const r = Math.log(b[1] / prev[1]);
@@ -950,6 +951,12 @@ export class ScalpCore {
     const mk = c.hk_mk && c.hk_mkS > 0 && side > 0 && x.t === "F" && r15 != null && r15 <= -c.hk_mk15 && x.ask > 0, mkN = mk ? Math.min(eq * c.hk_mkS / 100, Math.max(0, free - notional)) : 0;
     const LV = lvs.map((d) => { const px = c0 * (1 - side * d * mv); return { d, px, q: each / px, f: 0 }; });
     if (mk && mkN >= 10) LV.unshift({ d: 0, mk: 1, px: x.ask, q: mkN / x.ask, f: 0 });
+    if (!c.hk_on) {      // 🧪 sàn thử tắt, 💰 tiền thật bật: chỉ gửi tín hiệu cho tài khoản Binance, không đặt lệnh ảo
+      S.hkc[x.id] = now + 30 * 60000; H.last.why = "sàn thử tắt – chỉ gửi tiền thật";
+      try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })) }); } catch (e) { this.err("live " + e.message); }
+      this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps → chỉ gửi tài khoản Binance (sàn thử Bắt râu sập đang tắt)`, "info");
+      return;
+    }
     S.hk[x.id] = { t: x.t, side, t0: now, exp: now + c.hk_w * 60000, mv, R: r2(R, 0), z: r2(z, 1), c0, r15: r15 != null ? r2(r15, 0) : null, lv: LV };
     S.hkc[x.id] = now + 30 * 60000; H.placed++; this.dayRec(now).placed++; H.last.why = "đã đặt lệnh chờ"; if (LV[0].mk) H.mk = (H.mk || 0) + 1;
     try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })) }); } catch (e) { this.err("live " + e.message); }
