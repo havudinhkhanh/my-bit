@@ -612,13 +612,13 @@ async function viewScalp() {
   const lvWide = matchMedia("(min-width:761px)").matches;
   const lvTrades = !LHr.length ? empty(bi(`Chưa có lệnh nào đã đóng trên ${LVN}.`, `No closed trades on ${LVN} yet.`)) : lvWide
     ? `<div class="tw lvt-tw"><table class="lvt-t keep"><thead><tr><th class="l">${bi("Đóng lúc", "Closed")}</th><th class="l">Coin</th><th>${bi("Vào → ra", "Entry → exit")}</th><th>${bi("Giá trị", "Size")}</th><th>${bi("Giữ", "Held")}</th><th class="l">${bi("Lý do đóng", "Exit")}</th><th>bps</th><th>${bi("Lời/lỗ", "P/L")}</th><th></th></tr></thead><tbody>${lvDays.map(({ d, r }) => `<tr class="lvt-dh"><td colspan="9"><div><b>${lvDLab(d)}</b>${lvDSum(r)}</div></td></tr>${r.map(([h, i]) => { const q = tPct(h), mv = h.e > 0 ? h.side * (h.x / h.e - 1) * 100 : null;
-        return `<tr><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${h.strat === "pump" ? "🧪" : "🪝"} <b>${esc(String(lvk(h)).split(":")[0])}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(lvk(h))}</td>
+        return `<tr><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${h.strat === "pump" ? "🧪" : "🪝"} <a class="tr-go" href="#/t/${LVE}/${enc(String(lvk(h)).split(":")[0])}/${Date.parse(h.t2 + "Z")}" title="${bi("Chi tiết lệnh: biểu đồ, giá vào/ra, lý do", "Trade detail")}"><b>${esc(String(lvk(h)).split(":")[0])}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(lvk(h))}</td>
           <td>${px(h.e)} → ${px(h.x)}${isNum(mv) ? ` <small class="${cls(mv)}">${mv >= 0 ? "+" : ""}${nf(mv, 2)}%</small>` : ""}</td><td>${h.q > 0 && h.e > 0 ? usd2(h.q * h.e) : "—"}<small class="faint"> · ${h.nl || 1} ${bi("mức", "lvl")}</small></td><td><small>${lvHold(h)}</small></td>
           <td class="l"><small>${lvWhy(h.why)}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}</small></td><td class="${cls(h.net)}"><small>${isNum(h.net) ? bps(h.net, 0) : "—"}</small></td>
           <td class="lvt-pl"><b class="${cls(h.pnl)}">${sg$(h.pnl)}</b>${q != null ? ` <small class="${cls(q)}" title="${bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets")}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</small>` : ""}</td><td><button type="button" class="lvt-c" data-lvc="${i}" aria-label="${bi("Xem biểu đồ", "Show chart")}">📈</button></td></tr>
           <tr class="lvt-cr"><td colspan="9"><div class="sc-hc" id="lvc${i}" hidden></div></td></tr>`; }).join("")}`).join("")}</tbody></table></div>`
     : `<div class="sc-hl lvt">${lvDays.map(({ d, r }) => `<div class="lvt-dhm"><b>${lvDLab(d)}</b>${lvDSum(r)}</div>${r.map(([h, i]) => { const q = tPct(h);
-    return `<div class="sc-ht"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${h.strat === "pump" ? "🧪" : "🪝"} <b>${esc(String(lvk(h)).split(":")[0])}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(lvk(h))}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl)}</b>${q != null ? `<em class="${cls(q)}" title="${bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time")}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
+    return `<div class="sc-ht"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${h.strat === "pump" ? "🧪" : "🪝"} <a class="tr-go" href="#/t/${LVE}/${enc(String(lvk(h)).split(":")[0])}/${Date.parse(h.t2 + "Z")}"><b>${esc(String(lvk(h)).split(":")[0])}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(lvk(h))}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl)}</b>${q != null ? `<em class="${cls(q)}" title="${bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time")}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
       <small class="lvt-b faint">${px(h.e)} → ${px(h.x)}${h.q > 0 && h.e > 0 ? ` · ${bi("giá trị", "size")} ${usd2(h.q * h.e)}` : ""} · ${bi("giữ", "held")} ${lvHold(h)} · ${lvWhy(h.why)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${bps(h.net, 0)} bps</span>` : ""}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}</small><button type="button" class="lvt-c" data-lvc="${i}" aria-label="${bi("Xem biểu đồ", "Show chart")}">📈</button></div><div class="sc-hc" id="lvc${i}" hidden></div></div>`; }).join("")}`).join("")}</div>`;
   // ---------------------------------------------------------------- nội dung từng tab
   const trsSec = AT.filter((t) => t.strat !== "hook").slice().reverse().map((t) => `<tr><td class="l"><small>${hms(t.t1)}</small></td><td class="l">${scK(t.k)} <span class="${t.side > 0 ? "up" : "down"}">${t.side > 0 ? "L" : "S"}</span> <small>${t.how}</small></td><td>${px(t.e)} → ${px(t.x)}</td><td>${nf(t.hold, 1)}s</td><td class="${cls(t.gross)}">${bps(t.gross, 2)}</td><td class="down">−${nf(t.fee, 2)}</td><td class="${cls(t.net)}"><b>${bps(t.net, 2)}</b></td><td class="${cls(t.usd)}">${t.usd >= 0 ? "+" : ""}${nf(t.usd, 3)}</td><td><small>${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết giờ", "TIME+": "hết giờ (giữ thêm)", REV: "đảo chiều – thoát sớm", BTC: "BTC sốc – thoát ngay", STALE: "mất dữ liệu" }[t.why] || t.why}</small></td></tr>`).join("");
@@ -1832,4 +1832,120 @@ async function viewBotHome() {
 function botHubHead(on) {
   return `<div class="ph"><h1>Bot</h1><span class="meta">Lời/lỗ · lệnh mở · rủi ro chung</span></div>
     <div class="sc-sub2 bh-tabs" role="tablist">${[["home", "#/bot/home", "Tổng quan", "mọi bot · hôm nay"], ["sup", "#/bot/sup", "Rủi ro & giám sát", "giới hạn chung · khám nghiệm lệnh"]].map(([k, h, t, d]) => `<a role="tab" href="${h}" class="${on === k ? "on" : ""}" aria-selected="${on === k}"><span>${t}</span><small>${d}</small></a>`).join("")}</div>`;
+}
+
+// ================================================================ 🔎 CHI TIẾT 1 LỆNH (#/t/<sàn>/<COIN>/<mốc ms>) – bấm thông báo của bot là tới đây
+// Biểu đồ nến của coin đúng khung chơi + đường giá định vào (các mức chờ), giá vào thật, cắt lỗ, giá ra; mốc giờ cú sốc, giờ khớp, giờ ra (thật hoặc dự kiến);
+// lý do vào lệnh, kế hoạch thoát, kết quả, nhật ký từng bước của lệnh. Tự tìm đúng lệnh theo coin + thời điểm (cú sốc / khớp / đóng gần mốc nhất).
+const TENV = { live: ["💰", "TIỀN THẬT", "live"], demo: ["🟡", "Demo", "demo"], paper: ["🧪", "Sàn thử", "paper"] };
+function tRecs(X, LG, C, env, sym) {
+  const R = [], T = (s) => (s == null ? null : typeof s === "number" ? s : Date.parse(/Z$|[+-]\d\d:\d\d$/.test(s) ? s : s + "Z")), K = sym + ":F", LV = X.live || {};
+  const same = (k) => String(k || "").split(":")[0].replace(/USDT$/, "") === sym;
+  if (env !== "paper") {
+    if ((LV.env || C.lv_env) === env) for (const e of LV.ev || []) if (same(e.sym)) R.push({ src: "ev", strat: "hook", status: e.pos?.q > 0 ? "open" : "wait", side: e.side, tS: T(e.t0), c0: e.c0, R: e.R, lv: (e.lv || []).map((l) => ({ px: l.px, st: l.st === "filled" || l.fq > 0 ? "f" : l.st === "cxl" ? "x" : "w", q: l.q })), tW: T(e.exp), tF: T(e.pos?.t1), e: e.pos?.ap || null, q: e.pos?.q || 0, hold: e.hold, stop: e.stop, stopKind: e.stopKind, id: e.id });
+    for (const h of LV.hist || []) if ((h.env || "demo") === env && same(h.sym)) R.push({ src: "hist", strat: h.strat === "pump" ? "pump" : "hook", status: "closed", side: h.side, tS: T(h.ts), c0: h.c0, R: h.R, lv: (h.lvp || []).map((px) => ({ px, st: "m" })), tF: T(h.t1 || h.ts), e: h.e, tX: T(h.t2), x: h.x, why: h.why, pnl: h.pnl, net: h.net, q: h.q, fee: h.fee, fund: h.fund, nl: h.nl, tot: h.tot, hold: C.hk_h });
+    for (const m of LV.miss || []) if ((m.env || LV.env) === env && same(m.k)) R.push({ src: "miss", strat: "hook", status: "miss", side: m.side, tS: T(m.t0), R: m.R, lv: m.lvl ? [{ px: m.lvl, st: "x" }] : [], reach: m.reach, gap: m.gap, what: m.what, why: m.why, real: m.real, tW: T(m.t0) + (C.hk_w || 8) * 60e3 });
+    for (const p of LV.swp?.open || []) if (same(p.sym)) R.push({ src: "swp", strat: "pump", status: "open", side: -1, tF: T(p.t0), e: p.ap, q: p.q, N: p.N, tXe: T(p.exp), why0: p.why, upnl: p.upnl });
+    for (const p of LV.qp?.open || []) if ((p.legs || []).some((l) => same(l.sym))) { const L = p.legs.find((l) => same(l.sym)); R.push({ src: "qp", strat: p.k || "q", name: p.name, status: "open", side: L.side, tF: T(p.t0), e: L.ap ?? L.e, stop: L.stop, why0: p.why, upnl: p.upnl }); }
+  } else {
+    for (const [k, h] of Object.entries(X.hk || {})) if (same(k)) R.push({ src: "hk", strat: "hook", status: "wait", side: h.side, tS: T(h.t0), c0: h.c0, R: h.R, z: h.z, lv: (h.lv || []).map((l) => ({ px: l.px, st: l.f ? "f" : "w", d: l.d, mk: l.mk })), tW: T(h.exp), hold: C.hk_h });
+    for (const [k, p] of Object.entries(X.pos || {})) if (same(k)) R.push({ src: "pos", strat: p.strat === "hook" ? "hook" : "sec", status: "open", side: p.side, tF: T(p.t0), e: p.e, q: p.q, hold: (p.h || 0) / 60, stop: p.sl, tp: p.tp > 0 && p.tp < 1e17 ? p.tp : null });
+    for (const t of X.trades || []) if (same(t.k)) { const n0 = t.net && t.usd ? Math.abs(t.usd / (t.net / 1e4)) : null; R.push({ src: "tr", strat: t.strat || "sec", status: "closed", side: t.side, tS: T(t.ts), c0: t.c0, R: t.shock, lv: (t.lvp || []).map((px) => ({ px, st: "m" })), tF: T(t.t0), e: t.e, tX: T(t.t1), x: t.x, why: t.why, pnl: t.usd, net: t.net, hold: (t.h || 0) / 60, q: n0 ? n0 / t.e : null }); }
+    for (const s of ["pump", "list"]) { const B = X.sw?.[s] || {};
+      for (const p of B.pos || []) if (same(p.sym)) R.push({ src: "swpos", strat: s, status: "open", side: -1, tF: T(p.t0), e: p.e, q: p.q, N: p.N, tXe: T(p.t1), why0: p.why, upnl: p.upnl });
+      for (const h of B.hist || []) if (same(h.sym)) R.push({ src: "swh", strat: s, status: "closed", side: -1, tF: T(h.t0), e: h.e, tX: T(h.t2), x: h.x, why: h.why, pnl: h.net, N: h.N }); }
+    const QX = X.q || {}; for (const k of Object.keys(QX)) { const B = QX[k] || {};
+      for (const p of B.pos || []) { const L = (p.legs || []).find((l) => same(l.sym)); if (L) R.push({ src: "qpos", strat: k, status: "open", side: L.side, tF: T(p.t0), e: L.e, tXe: T(p.exp), stop: p.sl, tp: p.tp, why0: p.why, upnl: p.upnl }); }
+      for (const h of B.hist || []) { const L = (h.legs || []).find((l) => same(l.sym)); if (L) R.push({ src: "qh", strat: k, status: "closed", side: L.side, tF: T(h.t0), e: L.e, tX: T(h.t2), x: L.x, why: h.why, pnl: h.net }); } }
+  }
+  for (const a of LG?.rows || []) if (a[0] === env && same(a[2]) && !R.some((r) => r.status === "closed" && Math.abs((r.tX || 0) - T(a[8])) < 90e3)) R.push({ src: "led", strat: a[1], status: "closed", side: a[3], q: a[4], e: a[5], x: a[6], tF: T(a[7]), tX: T(a[8]), fee: a[9], fund: a[10], pnl: a[11], why: a[12], nl: a[13], R: a[14], tot: a[15] });
+  return R.map((r) => ({ ...r, t0: r.tS ?? r.tF ?? r.tX, t1: r.tX ?? r.tXe ?? (r.tF && r.hold ? r.tF + r.hold * 60e3 : null) ?? r.tW ?? r.tS }));
+}
+function tPick(R, ms) {      // lệnh gần mốc nhất: mốc nằm trong [bắt đầu − 3 phút, kết thúc + 15 phút] → khoảng cách 0
+  let best = null, bd = Infinity;
+  for (const r of R) { const a = (r.t0 ?? 0) - 3 * 60e3, b = (r.t1 ?? r.t0 ?? 0) + 15 * 60e3, d = ms >= a && ms <= b ? 0 : Math.min(Math.abs(ms - a), Math.abs(ms - b)); const w = d + (r.src === "led" ? 1 : 0); if (w < bd) { bd = w; best = r; } }
+  return bd < 36 * 3600e3 ? best : null;
+}
+async function viewTrade(env, sym, ms) {
+  env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, ""); ms = +ms || Date.now();
+  const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null })), coins().catch(() => null)]);
+  const X = rs.data || {}, C = { ...SCALP_DEF, ...scMig(rq.data) }, LG = rl.data || null;
+  const ALLR = tRecs(X, LG, C, env, sym), r = tPick(ALLR, ms), E = TENV[env];
+  const back = `<a href="#/bot/scalp" data-sctab-go="ord" class="btn sm">← ${bi("Lệnh của bot", "Bot trades")}</a>`;
+  const head = (st) => `<div class="ph"><h1>${esc(sym)} ${r ? `<span class="${r.side > 0 ? "up" : "down"}">${r.side > 0 ? "Long" : "Short"}</span>` : ""}</h1><span class="meta"><span class="sc-acc ${env}">${E[0]} ${E[1]}</span> ${grpTag(sym)} ${st || ""} · <a href="#/c/${enc(sym)}">${bi("Trang coin", "Coin page")} →</a></span></div>`;
+  if (!r) { app().innerHTML = head("") + panel(bi("Không tìm thấy lệnh", "Trade not found"), `<p class="muted">${bi(`Không còn dữ liệu lệnh ${esc(sym)} quanh ${dt(new Date(ms).toISOString())} trên ${E[1]} (lệnh cũ có thể đã ra khỏi bộ nhớ trực tiếp).`, "No trade data around that time.")}</p><p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`); return; }
+  const NM = { hook: bi("Bắt râu sập", "Wick Catcher"), sec: bi("Lướt giây", "Scalp"), pump: bi("Short coin vừa bơm", "Short pumped coin"), list: bi("Short coin mới niêm yết", "Short new listing"), ou: "Cặp coin O-U", rsi2: "RSI(2) Connors", fund: "Funding âm → Long", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý" };
+  const ST = { wait: ["⏳ " + bi("Chờ khớp", "Waiting to fill"), "warn"], open: ["● " + bi("Đang giữ", "Open"), "buy"], closed: [(r.pnl ?? 0) >= 0 ? bi("Đã đóng · lời", "Closed · win") : bi("Đã đóng · lỗ", "Closed · loss"), (r.pnl ?? 0) >= 0 ? "buy" : "sell"], miss: ["✕ " + bi("Hụt – giá không tới", "Missed"), ""] }[r.status];
+  const now = Date.now(), tm = (t) => (t ? new Date(t).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—");
+  const fillsAvg = r.e || null, entLv = (r.lv || []).filter((l) => !l.mk), expX = r.tX ? null : r.tXe ?? (r.tF && r.hold ? r.tF + r.hold * 60e3 : null);
+  const TFS = [["1m", 60], ["5m", 300], ["15m", 900], ["1h", 3600], ["4h", 14400]], tf0 = r.strat === "hook" || r.strat === "sec" ? "1m" : r.strat === "pump" || r.strat === "list" ? "1h" : "15m";
+  const TF = TFS.some(([k]) => k === window.__tTf) ? window.__tTf : tf0;
+  // ---- kế hoạch & kết quả
+  const sd = r.side > 0, shk = r.R ? `${sd ? bi("sập", "dropped") : bi("vọt", "spiked")} ${nf(Math.abs(r.R) / 100, 1)}% ${bi("trong 1 phút", "in 1 minute")}${r.z ? ` · z ${nf(r.z, 1)}` : ""}` : "";
+  const why = r.strat === "hook" ? bi(`${esc(sym)} ${shk} (thường là quét thanh lý). Bắt râu sập: đặt lệnh chờ ${sd ? "MUA" : "BÁN"} ngược chiều, sâu thêm so với giá sau cú sốc, đón giá hồi lại.`, `${esc(sym)} ${shk}. Wick Catcher: resting ${sd ? "buy" : "sell"} orders against the move, catching the snap-back.`)
+    : r.strat === "pump" || r.strat === "list" ? `${NM[r.strat]}${r.why0 ? ` · ${esc(r.why0)}` : ""} – ${bi("bán khống x1, không cắt lỗ, giữ tối đa 7 ngày (coin vừa bơm thường xả lại).", "short x1, no stop, hold up to 7 days.")}`
+    : r.strat === "sec" ? bi("Lướt giây: tín hiệu sổ lệnh / dòng tiền giây, vào khi lợi thế kỳ vọng lớn hơn phí.", "Order-book scalp.") : `${esc(r.name || NM[r.strat] || r.strat)}${r.why0 ? ` · ${esc(r.why0)}` : ""}`;
+  const lvTxt = entLv.length ? entLv.map((l, i) => `<li><span>${bi("Mức", "Level")} ${i + 1}${l.d ? ` · ${nf(l.d, 2)}×` : ""}</span><b>${px(l.px)}</b><small class="${l.st === "f" ? "up" : l.st === "x" ? "faint" : "warn"}">${{ f: bi("đã khớp", "filled"), x: bi("đã huỷ / không tới", "cancelled"), w: bi("đang chờ", "waiting"), m: "" }[l.st] || ""}</small></li>`).join("") : "";
+  const holdTxt = r.hold ? `${bi("giữ", "hold")} ${nf(r.hold, 0)} ${bi("phút", "min")}${r.strat === "hook" && C.hk_tra ? bi(` · lời ≥ ${nf(C.hk_tra, 0)} bps thì cắt lỗ đuổi (trả lại ${nf(C.hk_trg, 0)} bps là đóng)`, ` · trailing stop after +${nf(C.hk_tra, 0)} bps`) : ""}` : "";
+  const res = r.status === "closed" ? `<li><span>${bi("Giá ra", "Exit")}</span><b>${px(r.x)}</b><small>${tm(r.tX)} · ${esc(JWHY[r.why] || r.why || "")}</small></li><li><span>${bi("Lời/lỗ", "P/L")}</span><b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b><small>${isNum(r.net) ? `${bps(r.net, 0)} bps` : ""}${r.tot > 0 ? ` · ${nf(r.pnl / r.tot * 100, 2)}% ${bi("tổng tài sản", "of assets")}` : ""}${r.fee ? ` · ${bi("phí", "fee")} ${usd2(r.fee)}` : ""}</small></li>`
+    : r.status === "miss" ? `<li><span>${bi("Kết quả", "Result")}</span><b>${r.what === "nofill" ? bi(`thiếu ${nf(r.gap, 2)}%`, `short by ${nf(r.gap, 2)}%`) : bi("bỏ qua", "skipped")}</b><small>${r.what === "nofill" ? `${bi("giá xa nhất", "furthest")} ${px(r.reach)}` : esc(r.why || "")} · ${bi("tự huỷ, không mất phí", "auto-cancelled, no fee")}</small></li>`
+    : isNum(r.upnl) ? `<li><span>${bi("Tạm tính", "Unrealized")}</span><b class="${cls(r.upnl)}">${j$(r.upnl)}</b><small></small></li>` : "";
+  const plan = `<ul class="tr-pl">
+      <li><span>${bi("Phương pháp", "Method")}</span><b>${esc(NM[r.strat] || r.name || r.strat)}</b><small>${E[1]}</small></li>
+      ${r.tS ? `<li><span>${bi("Cú sốc", "Shock")}</span><b>${tm(r.tS)}</b><small>${r.c0 ? `${bi("giá sau sốc", "post-shock")} ${px(r.c0)}` : ""}${shk ? ` · ${shk}` : ""}</small></li>` : ""}
+      ${lvTxt ? `<li class="tr-lv"><span>${bi("Giá định vào", "Planned entry")}</span><ol>${lvTxt}</ol>${r.tW ? `<small>${bi("chờ khớp tới", "waits until")} ${tm(r.tW)}${r.tW > now && r.status === "wait" ? ` · ${bi("còn", "in")} ${Math.max(1, Math.round((r.tW - now) / 60e3))} ${bi("phút", "min")}` : ""}</small>` : ""}</li>` : ""}
+      ${r.tF ? `<li><span>${bi("Vào lệnh", "Entered")}</span><b>${px(fillsAvg)}</b><small>${tm(r.tF)}${r.q ? ` · KL ${qty(r.q)} · ${bi("giá trị", "size")} ${usd2((r.N || r.q * (fillsAvg || 0)))}` : r.N ? ` · ${bi("giá trị", "size")} ${usd2(r.N)}` : ""}</small></li>` : ""}
+      <li><span>${bi("Kế hoạch ra", "Exit plan")}</span><b>${expX ? `${bi("dự kiến", "expected")} ${tm(expX)}` : r.tX ? bi("đã ra", "exited") : r.status === "wait" ? bi("khi khớp", "after fill") : "—"}</b><small>${holdTxt}${r.stop ? ` · ${bi("cắt lỗ", "stop")} ${px(r.stop)}${r.stopKind === "soft" ? bi(" (dự phòng)", " (soft)") : ""}` : r.strat === "pump" || r.strat === "list" ? ` · ${bi("không cắt lỗ, giá ×2 = mất trắng", "no stop")}` : ""}${r.tp ? ` · ${bi("chốt lời", "target")} ${px(r.tp)}` : ""}</small></li>
+      ${res}</ul>`;
+  // ---- nhật ký từng bước (sự kiện bot + tài khoản có tên coin, trong khoảng lệnh)
+  const a0 = (r.t0 || ms) - 10 * 60e3, a1 = Math.max(r.t1 || 0, r.t0 || 0, ms) + 15 * 60e3, inR = (t) => { const v = Date.parse(String(t) + (/Z$/.test(String(t)) ? "" : "Z")); return v >= a0 && v <= a1; };
+  const LOGS = [...(env === "paper" ? (X.log || []) : (X.live?.log || []))].filter((l) => l?.m && new RegExp(`(^|[^A-Z0-9])${sym}([^A-Z0-9]|$)`).test(l.m) && inR(l.t)).sort((a, b) => (a.t < b.t ? -1 : 1)).slice(-30);
+  const logP = LOGS.length ? panel(bi("Nhật ký lệnh", "Trade log"), `<ul class="bot-rl tr-log">${LOGS.map((l) => `<li><small class="faint">${hms(l.t)}</small> ${esc(l.m)}</li>`).join("")}</ul>`, `${LOGS.length}`) : "";
+  // ---- các lệnh khác cùng coin
+  const others = ALLR.filter((x) => x !== r && x.t0).sort((a, b) => b.t0 - a.t0).slice(0, 8);
+  const othP = others.length ? panel(bi(`Lệnh ${sym} khác`, `Other ${sym} trades`), `<div class="tr-oth">${others.map((x) => `<a href="#/t/${env}/${enc(sym)}/${x.t0}" class="tr-o"><small class="faint">${tm(x.t0)}</small><span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span><span>${esc(NM[x.strat] || x.strat)}</span>${x.status === "closed" ? `<b class="${cls(x.pnl)}">${j$(x.pnl || 0)}</b>` : `<small>${{ wait: bi("chờ khớp", "waiting"), open: bi("đang giữ", "open"), miss: bi("hụt", "missed") }[x.status]}</small>`}</a>`).join("")}</div>`) : "";
+  app().innerHTML = `${head(`<span class="pill ${ST[1]}">${ST[0]}</span>${r.status === "closed" ? ` <b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b>` : ""}`)}
+    <section class="panel tr-ch"><div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}<span class="tr-lg"><i class="l-lv"></i>${bi("mức chờ", "levels")}<i class="l-e"></i>${bi("giá vào", "entry")}<i class="l-sl"></i>${bi("cắt lỗ", "stop")}<i class="l-x"></i>${bi("giá ra", "exit")}</span></div><div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
+    <div class="g g2w"><div>${panel(bi("Lý do & kế hoạch", "Why & plan"), `<p class="tr-why">${why}</p>${plan}`)}</div><div>${logP}${othP}</div></div>
+    <p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`;
+  $$("[data-sctab-go]").forEach((a) => (a.onclick = () => { window.__scEnv = env === "paper" ? "paper" : "live"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }));
+  $$("[data-ttf]").forEach((b) => (b.onclick = () => { window.__tTf = b.dataset.ttf; $$("[data-ttf]").forEach((x) => x.classList.toggle("on", x === b)); tChart(); }));
+  // ---- biểu đồ: nến Binance futures + đường giá + mốc thời gian (giờ máy anh)
+  const tChart = async () => {
+    const tf = window.__tTf && TFS.some(([k]) => k === window.__tTf) ? window.__tTf : tf0, sec = TFS.find(([k]) => k === tf)[1], el = $("#trChart"); if (!el) return;
+    const tA = r.t0 || ms, tB = Math.max(r.t1 || 0, expX || 0, r.tW || 0, tA), pre = 40 * sec * 1000, post = 15 * sec * 1000;
+    let st = tA - pre, en = Math.min(now, tB + post); if ((en - st) / (sec * 1000) > 1400) st = en - 1400 * sec * 1000;
+    let K = null; const bases = env === "demo" ? ["https://demo-fapi.binance.com", "https://fapi.binance.com"] : ["https://fapi.binance.com"];
+    for (const b of bases) { try { const q = await fetch(`${b}/fapi/v1/klines?symbol=${sym}USDT&interval=${tf}&startTime=${Math.floor(st)}&endTime=${Math.floor(en)}&limit=1500`); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử sàn khác */ } }
+    if (!$("#trChart")) return;
+    if (!K) { el.innerHTML = `<p class="faint" style="padding:12px">${bi("Không lấy được nến từ Binance.", "Couldn't load candles.")}</p>`; return; }
+    el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60, tt = (msv) => Math.floor(msv / 1000 / sec) * sec + off;
+    try { window.__trC?.remove(); const i = charts.indexOf(window.__trC); if (i >= 0) charts.splice(i, 1); } catch (e) { /* đã huỷ */ }
+    const c = mkChart(el, { height: el.clientHeight || 360 }); window.__trC = c; const dec = pdec(+K[K.length - 1][4]);
+    const cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
+    const data = K.map((k) => ({ time: tt(+k[0]), open: +k[1], high: +k[2], low: +k[3], close: +k[4] }));
+    const last = data[data.length - 1].time, endT = tt(Math.max(tB + post / 3, 0));
+    for (let t = last + sec; t <= endT && t - last < 400 * sec; t += sec) data.push({ time: t });      // khoảng trống tới giờ ra dự kiến
+    cs.setData(data);
+    const PL = [], L = (price, color, title, style = 2, w = 1) => { if (!(isNum(price) && price > 0)) return; PL.push(+price); cs.createPriceLine({ price: +price, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }); };
+    entLv.forEach((l, i) => L(l.px, l.st === "f" ? css("--brand") : css("--ink-3"), `${bi("mức", "lvl")} ${i + 1}`, 2));
+    if (r.c0) L(r.c0, css("--brass") || css("--warn"), bi("sau sốc", "post-shock"), 3);
+    if (fillsAvg) L(fillsAvg, css("--brand"), bi("vào", "entry"), 0, 2);
+    if (r.stop) L(r.stop, css("--down"), bi("cắt lỗ", "stop"), 2);
+    if (r.tp) L(r.tp, css("--up"), bi("chốt lời", "target"), 2);
+    if (r.x) L(r.x, (r.pnl ?? 0) >= 0 ? css("--up") : css("--down"), bi("ra", "exit"), 0, 2);
+    if (PL.length) cs.applyOptions({ autoscaleInfoProvider: (orig) => { const o = orig(); if (!o?.priceRange) return o; const lo = Math.min(o.priceRange.minValue, ...PL), hi = Math.max(o.priceRange.maxValue, ...PL), pd = (hi - lo) * 0.04; return { ...o, priceRange: { minValue: lo - pd, maxValue: hi + pd } }; } });      // luôn thấy đủ các mức giá
+    const M = [], up = r.side > 0;
+    if (r.tS) M.push({ time: tt(r.tS), position: up ? "aboveBar" : "belowBar", color: css("--brass") || "#d9a441", shape: up ? "arrowDown" : "arrowUp", text: bi("sốc", "shock") });
+    if (r.tF) M.push({ time: tt(r.tF), position: up ? "belowBar" : "aboveBar", color: css("--brand"), shape: up ? "arrowUp" : "arrowDown", text: bi("vào", "in") });
+    if (r.tX) M.push({ time: tt(r.tX), position: up ? "aboveBar" : "belowBar", color: (r.pnl ?? 0) >= 0 ? css("--up") : css("--down"), shape: "circle", text: `${bi("ra", "out")} ${j$(r.pnl || 0)}` });
+    else if (expX) M.push({ time: tt(expX), position: "aboveBar", color: css("--ink-3"), shape: "square", text: bi("dự kiến ra", "exp. exit") });
+    if (r.tW && r.status !== "open" && r.status !== "closed") M.push({ time: tt(r.tW), position: "aboveBar", color: css("--ink-3"), shape: "square", text: bi("hết chờ", "wait ends") });
+    cs.setMarkers(M.filter((m) => isNum(m.time)).sort((a, b) => a.time - b.time));
+    c.timeScale().setVisibleRange({ from: tt(tA) - 30 * sec, to: Math.max(tt(tB) + 8 * sec, last) });
+  };
+  tChart();
+  // lệnh chưa xong: tự cập nhật mỗi 20 giây
+  clearInterval(window.__trT);
+  if (r.status === "wait" || r.status === "open") window.__trT = setInterval(() => { if (!location.hash.startsWith("#/t/")) { clearInterval(window.__trT); return; } if (!document.hidden && !userBusy()) { const y = scrollY; disposeCharts(); window.__trC = null; viewTrade(env, sym, ms).then(() => scrollTo(0, y)); } }, 20000);
 }

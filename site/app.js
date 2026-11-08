@@ -529,7 +529,7 @@ function uxStrip(root) {
     const t = n.textContent, m = t.match(UX_EMO); if (m && m[0].length < t.length) n.textContent = t.slice(m[0].length);
   });
 }
-const PC_SKIP = /^(bot\/scalp|bot\/days|bot\/journal|bot\/miss|bot\/binance|c\/|methods|notifications|account|admin)/;
+const PC_SKIP = /^(t\/|bot\/scalp|bot\/days|bot\/journal|bot\/miss|bot\/binance|c\/|methods|notifications|account|admin)/;
 function pcKey(p) { return (location.hash.replace(/^#\/?/, "").split("/").slice(0, 2).join("/") || "home") + "|" + (p.firstElementChild?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40); }
 function pcOpen(p, v = true) {
   p.classList.toggle("pc-shut", !v); p.firstElementChild?.setAttribute("aria-expanded", v);
@@ -1048,6 +1048,7 @@ async function route() {
   try {
     if (!r) { setTab("market"); await viewMarket(); }
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
+    else if (r === "t" && arg[1]) { setTab("botscalp"); await viewTrade(arg[0], arg[1], arg[2]); }
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
@@ -3838,6 +3839,7 @@ function dayLessons(D, T, H, C, env) {
 }
 async function viewDays(...a) { await lazyJs("app-bot.js"); return viewDays(...a); }
 async function viewJournal(...a) { await lazyJs("app-bot.js"); return viewJournal(...a); }
+async function viewTrade(...a) { await lazyJs("app-bot.js"); return viewTrade(...a); }
 async function viewScalp(...a) { await lazyJs("app-bot.js"); return viewScalp(...a); }
 
 // ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)
@@ -5303,8 +5305,19 @@ const ntfDay = (iso) => {
   const d = new Date(iso), t = new Date(), same = (a, b) => a.toDateString() === b.toDateString();
   return same(d, t) ? "Hôm nay" : same(d, new Date(t - 864e5)) ? "Hôm qua" : d.toLocaleDateString(NLOC, { weekday: "long", day: "2-digit", month: "2-digit" });
 };
+// thông báo lệnh bot (chưa có đường dẫn riêng) → trang chi tiết lệnh: đoán sàn từ nhãn (TIỀN THẬT / DEMO / SÀN THỬ), coin từ tiêu đề, mốc = giờ thông báo
+const NT_SKIP = new Set(["USDT", "USD", "DEMO", "BTC1", "SL", "TP", "OCO", "API", "VN", "TB", "ATR", "RSI", "ORB", "NR7", "VWAP", "ADX", "EMA", "SMA", "OU", "O-U", "LONG", "SHORT", "MUA", "BÁN", "BOT", "IP"]);
+function ntTradeUrl(n) {
+  if (!/^scalp/.test(n.kind || "") && !/^sc:/.test(n.key || "")) return null;
+  if (n.url && n.url !== "#/bot/scalp") return n.url;
+  const T = String(n.title || ""), env = /TIỀN THẬT|LỆNH THẬT/.test(T) ? "live" : /DEMO|Demo/.test(T) ? "demo" : /SÀN THỬ/.test(T) ? "paper" : null; if (!env) return null;
+  const after = T.includes(":") ? T.slice(T.lastIndexOf(":") + 1) : T;
+  const pick = (s) => (s.match(/(?<![\p{L}\p{N}])[A-Z0-9]{2,15}(?![\p{L}\p{N}])/gu) || []).find((w) => !NT_SKIP.has(w) && !/^\d+$/.test(w));
+  const sym = (n.sym ? String(n.sym).replace(/USDT$/, "") : null) || pick(after) || pick(T); if (!sym) return null;
+  const t = Date.parse(n.created_at); return isNaN(t) ? null : `#/t/${env}/${encodeURIComponent(sym)}/${t}`;
+}
 function ntfRow(n) {
-  const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt
+  const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : ntTradeUrl(n) || n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt; lệnh bot → trang chi tiết lệnh
   const tm = new Date(n.created_at).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" }), g = ntfGrp(n.kind);
   const em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);      // tiêu đề có sẵn biểu tượng → dùng làm biểu tượng, không lặp 2 lần
   const ic = em ? em[1] : ntfIcon(n.kind), title = em ? n.title.slice(em[0].length) : n.title;

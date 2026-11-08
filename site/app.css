@@ -4102,3 +4102,25 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
 .lvt-t tr.lvt-dh td>div{display:flex!important;align-items:baseline;gap:12px;text-align:left}
 .lvt-t tr.lvt-dh td>div>b:last-child{margin-left:auto}
 .lvt-t td:first-child,.lvt-t th:first-child{border-right:0!important;box-shadow:none!important}
+/* ===== 11/2026 · trang chi tiết 1 lệnh (#/t/…): biểu đồ + kế hoạch vào/ra + nhật ký ===== */
+.tr-ch{padding-bottom:10px}
+.tr-cv{height:380px;position:relative}
+@media (max-width:640px){.tr-cv{height:320px}}
+.tr-tfs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.tr-lg{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--ink-3);flex-wrap:wrap}
+.tr-lg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--ink-3);margin-left:6px}
+.tr-lg i.l-e{border-top:2px solid var(--brand)}.tr-lg i.l-sl{border-top-color:var(--down)}.tr-lg i.l-x{border-top:2px solid var(--up)}
+.tr-why{margin:0 0 10px;line-height:1.5}
+.tr-pl{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.tr-pl>li{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:12px;row-gap:2px;padding:8px 0;border-top:1px solid var(--line-2);align-items:baseline}
+.tr-pl>li>span{color:var(--ink-3);font-size:var(--fs-sm);grid-row:span 2}
+.tr-pl>li>b{font-variant-numeric:tabular-nums}.tr-pl>li>small{grid-column:2;color:var(--ink-2);font-size:var(--fs-sm)}
+.tr-pl .tr-lv ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.tr-pl .tr-lv ol li{display:flex;gap:10px;align-items:baseline;font-variant-numeric:tabular-nums}.tr-pl .tr-lv ol li span{color:var(--ink-3);font-size:var(--fs-sm);min-width:76px}
+.tr-pl .tr-lv ol li small{font-size:var(--fs-xs)}
+@media (max-width:640px){.tr-pl>li{grid-template-columns:96px minmax(0,1fr)}}
+.tr-log li{font-size:var(--fs-sm)}
+.tr-oth{display:grid;gap:4px}
+.tr-o{display:flex;align-items:baseline;gap:10px;padding:7px 10px;border-radius:9px;background:var(--sunk);color:var(--ink);text-decoration:none!important;font-size:var(--fs-sm)}
+.tr-o b,.tr-o>small:last-child{margin-left:auto}
+.tr-go{color:inherit;text-decoration:none!important;border-bottom:1px dotted var(--ink-3)}

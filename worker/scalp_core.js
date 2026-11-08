@@ -341,7 +341,13 @@ export class ScalpCore {
     const then = L[L.length - 1 - mins][1], now = L[L.length - 1][1];
     return (now / then - 1) * 1e4 / (Math.max(0.05, vol ?? x.vol ?? 1) * Math.sqrt(60 * mins));
   }
-  note(key, sev, title, body, url = "#/bot/scalp", grp = null) { if (this.notes.length < 50) this.notes.push({ key, sev, title, body, url, ...(grp ? { grp } : {}) }); }   // grp: mã 1 lệnh – mọi thông báo của lệnh đó đè lên nhau trên điện thoại
+  // thông báo lệnh → mở thẳng trang chi tiết lệnh (#/t/<sàn>/<COIN>/<mốc ms>): biểu đồ, giá định vào / ra, giờ vào / ra, lý do
+  note(key, sev, title, body, url = null, grp = null) {
+    if (!url || url === "#/bot/scalp") { const T = String(title || ""), env = /TIỀN THẬT/.test(T) ? "live" : /DEMO/.test(T) ? "demo" : /SÀN THỬ/.test(T) ? "paper" : null, tail = T.includes(":") ? T.slice(T.lastIndexOf(":") + 1) : T;
+      const skip = new Set(["USDT", "USD", "DEMO", "SL", "TP", "API", "RSI", "ORB", "NR7", "VWAP", "ADX", "EMA", "SMA", "ATR", "OU"]), pick = (x) => (x.match(/(?<![\p{L}\p{N}])[A-Z0-9]{2,15}(?![\p{L}\p{N}])/gu) || []).find((w) => !skip.has(w) && !/^\d+$/.test(w));
+      const sym = env ? pick(tail) || pick(T) : null; url = sym ? `#/t/${env}/${sym}/${Date.now()}` : "#/bot/scalp"; }
+    if (this.notes.length < 50) this.notes.push({ key, sev, title, body, url, ...(grp ? { grp } : {}) });
+  }   // grp: mã 1 lệnh – mọi thông báo của lệnh đó đè lên nhau trên điện thoại
   // nhật ký: giữ 300 dòng; cùng 1 thông báo lặp lại (chỉ khác con số – vd. kết nối lại nguồn dữ liệu) trong 30 phút → gộp thành 1 dòng "×n", không đẩy mất sự kiện thật
   say(now, m, k = "info") {
     const L = (this.S.log ||= []), sig = String(m).replace(/[\d.,]+/g, "#");
