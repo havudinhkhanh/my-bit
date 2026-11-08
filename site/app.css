@@ -4080,3 +4080,25 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
 .cal-d.fut .cal-p,.cal-d.fut .cal-r{display:none}
 .cal-c,.cal-c span{color:var(--ink-3)!important;font-weight:500}
 .cal-d.up .cal-c,.cal-d.down .cal-c,.cal-d.up .cal-c span,.cal-d.down .cal-c span{color:color-mix(in srgb,var(--ink) 62%,transparent)!important}
+/* ===== 11/2026 · lệnh đã đóng (Binance): gom theo ngày; máy chủ = bảng cột thẳng hàng, không kéo dãn 2 cột ===== */
+.lvt-tw{max-height:640px;overflow:auto;overscroll-behavior:contain}
+.lvt-t{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.lvt-t th{position:sticky;top:0;z-index:1;background:var(--surface);font-size:var(--fs-xs);font-weight:600;color:var(--ink-3);text-align:right;padding:6px 10px;border-bottom:1px solid var(--line-2);white-space:nowrap}
+.lvt-t th.l,.lvt-t td.l{text-align:left}
+.lvt-t td{padding:6px 10px;text-align:right;border-bottom:1px solid color-mix(in srgb,var(--line-2) 60%,transparent);white-space:nowrap;font-size:var(--fs-base)}
+.lvt-t td small{font-size:var(--fs-xs)}
+.lvt-t tbody tr:not(.lvt-dh):not(.lvt-cr):hover td{background:color-mix(in srgb,var(--brand) 5%,transparent)}
+.lvt-t .lvt-pl b{font-size:var(--fs-md)}
+.lvt-t .lvt-c{width:28px;height:28px}
+.lvt-t tr.lvt-dh td{background:var(--sunk);padding:7px 10px;border-bottom:1px solid var(--line-2);position:sticky;top:29px;z-index:1}
+.lvt-dh td>div,.lvt-dhm{display:flex;align-items:baseline;gap:12px;font-size:var(--fs-sm)}
+.lvt-dh td>div b:first-child,.lvt-dhm b:first-child{font-size:var(--fs-base);color:var(--ink)}
+.lvt-dh td>div span,.lvt-dhm span{color:var(--ink-3)}
+.lvt-dh td>div b:last-child,.lvt-dhm b:last-child{margin-left:auto;font-size:var(--fs-base)}
+.lvt-t tr.lvt-cr td{padding:0;border:0}.lvt-t tr.lvt-cr .sc-hc:not([hidden]){padding:8px 10px 12px;white-space:normal;text-align:left}
+.lvt-dhm{padding:8px 2px 2px;position:sticky;top:0;background:var(--surface);z-index:1}
+.sc-hl.lvt{grid-template-columns:1fr!important}
+.lvt-t tr.lvt-dh td{text-align:left!important}
+.lvt-t tr.lvt-dh td>div{display:flex!important;align-items:baseline;gap:12px;text-align:left}
+.lvt-t tr.lvt-dh td>div>b:last-child{margin-left:auto}
+.lvt-t td:first-child,.lvt-t th:first-child{border-right:0!important;box-shadow:none!important}
