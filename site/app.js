@@ -5354,6 +5354,25 @@ function ntBindRow(it, items, redraw) {
   if (rd) rd.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, true, it._b); };
   if (ur) ur.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, false, it._b); };
   ntPeekBind(it, items);
+  ntSwipe(it, n);
+}
+// điện thoại: vuốt 1 thông báo sang trái = đã đọc, sang phải = chưa đọc (kéo theo ngón tay, quá 64px thì áp dụng)
+function ntSwipe(it, n) {
+  let x0 = 0, y0 = 0, dx = 0, on = false, dead = false;
+  it.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; on = false; dead = false; }, { passive: true });
+  it.addEventListener("touchmove", (e) => {
+    if (dead) return; const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
+    if (!on) { if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { dead = true; return; } if (Math.abs(mx) < 12) return; on = true; it.classList.add("nt-sw"); }
+    dx = Math.max(-120, Math.min(120, mx)); e.preventDefault();
+    it.style.transform = `translateX(${dx}px)`; it.dataset.sw = dx < -64 ? "read" : dx > 64 ? "unread" : "";
+  }, { passive: false });
+  const end = () => {
+    if (!on) return; on = false; const x = n(), act = it.dataset.sw;
+    it.classList.add("nt-sw-back"); it.style.transform = ""; it.dataset.sw = ""; setTimeout(() => it.classList.remove("nt-sw", "nt-sw-back"), 260);
+    if (x && act) { navigator.vibrate?.(8); ntSetRead(x, act === "read", it._b); }
+    const kill = (ev) => { ev.preventDefault(); ev.stopPropagation(); }; it.addEventListener("click", kill, { capture: true, once: true }); setTimeout(() => it.removeEventListener("click", kill, { capture: true }), 350);
+  };
+  it.addEventListener("touchend", end, { passive: true }); it.addEventListener("touchcancel", end, { passive: true });
 }
 // đánh dấu đã đọc / CHƯA đọc 1 thông báo: gọi máy chủ, vẽ lại đúng dòng đó (mọi nơi đang hiện), cập nhật số trên chuông
 function ntSetRead(n, read, ctx, rerow = true) {
@@ -5510,8 +5529,8 @@ async function bellOpen() {
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
-    <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div>
-    <div class="ntp-f"><button type="button" class="btn sm" id="bellAll">✓ Đã đọc hết</button><a class="btn sm" href="#/notifications">Xem tất cả →</a></div></div>`;
+    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw">vuốt ← đã đọc · → chưa đọc</small></div>
+    <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";
   const draw = (chips = true) => {
@@ -6202,3 +6221,18 @@ function dragEdge(el, o) {
   };
   if (document.readyState === "loading") addEventListener("DOMContentLoaded", go); else go();
 })();
+
+// ---------------------------------------------------------------- máy tính: lăn chuột trên hàng tab / chip cuộn ngang → cuộn chính hàng đó, KHÔNG kéo cả trang theo
+document.addEventListener("wheel", (e) => {
+  if (e.ctrlKey || !matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1), dx = e.deltaX * (e.deltaMode === 1 ? 16 : 1);
+  for (let el = e.target; el && el !== document.body; el = el.parentElement) {
+    if (el.scrollWidth <= el.clientWidth + 2 || el.clientHeight > 96) continue;      // chỉ hàng tab / chip (thấp), không đụng bảng rộng
+    const s = getComputedStyle(el); if (!/(auto|scroll)/.test(s.overflowX)) continue;
+    if (/(auto|scroll)/.test(s.overflowY) && el.scrollHeight > el.clientHeight + 2) return;      // bảng cuộn được cả 2 chiều → để mặc định
+    const d = Math.abs(dx) > Math.abs(dy) ? dx : dy; if (!d) return;
+    e.preventDefault();
+    if (Math.abs(dx) > Math.abs(dy)) el.scrollLeft += dx; else el.scrollBy({ left: dy, behavior: Math.abs(dy) >= 50 ? "smooth" : "auto" });
+    return;
+  }
+}, { passive: false });
