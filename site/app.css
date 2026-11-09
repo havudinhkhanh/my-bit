@@ -4501,3 +4501,31 @@ select[aria-expanded]{border-color:transparent!important;box-shadow:0 0 0 2px co
 /* thanh live nổi: các dòng lệnh cũng tô nền theo trạng thái */
 .lvw-it{border-left:0!important;background:var(--fill-card)}
 .lvw-it.open{background:color-mix(in srgb,var(--brand) 9%,var(--surface))}.lvw-it.wait{background:color-mix(in srgb,var(--brass,#d9a441) 11%,var(--surface))}
+/* ===== mảng màu v2: lớp tô bán trong suốt (hợp cả trên nền trang lẫn trong panel) + bậc nổi bằng bóng mềm – đủ tương phản mà không cần viền ===== */
+:root{--fill:color-mix(in srgb,var(--ink) 7.5%,transparent);--fill-h:color-mix(in srgb,var(--ink) 13%,transparent);--fill-card:color-mix(in srgb,var(--ink) 4.5%,transparent);--sel:var(--ink);--sel-ink:var(--bg)}
+:root[data-theme="dark"]{--fill:color-mix(in srgb,var(--ink) 9%,transparent);--fill-h:color-mix(in srgb,var(--ink) 15%,transparent);--fill-card:color-mix(in srgb,var(--ink) 5.5%,transparent)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fill:color-mix(in srgb,var(--ink) 9%,transparent);--fill-h:color-mix(in srgb,var(--ink) 15%,transparent);--fill-card:color-mix(in srgb,var(--ink) 5.5%,transparent)}}
+/* panel nổi khỏi nền: sáng = bóng 2 lớp mềm; tối = nền sáng hơn nền trang một bậc + gờ sáng mảnh phía trên */
+:root[data-theme="light"] .panel{box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -14px rgba(16,24,40,.16)!important}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .panel{box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -14px rgba(16,24,40,.16)!important}}
+:root[data-theme="dark"] .panel{background:color-mix(in srgb,var(--surface) 94%,#fff 3.5%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 28px -16px rgba(0,0,0,.7)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .panel{background:color-mix(in srgb,var(--surface) 94%,#fff 3.5%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 28px -16px rgba(0,0,0,.7)!important}}
+/* mục đang chọn: tô đặc tương phản cao, mọi chữ con (số đếm…) theo màu chữ của mục */
+.chip.on,.nt-c.on,.bseg button.on,.bpre button.on,.bchips button.on,.seg button.on,.subtabs button.on,.lvw-seg button.on,.fd-sz button.on,.dj-seg .on{background:var(--sel)!important;color:var(--sel-ink)!important;box-shadow:0 2px 6px -2px rgba(0,0,0,.25)!important}
+.chip.on *,.nt-c.on *,.bseg button.on *,.bpre button.on *,.bchips button.on *,.seg button.on *,.subtabs button.on *,.lvw-seg button.on *,.fd-sz button.on *,.dj-seg .on *{color:inherit!important}
+.bseg button small,.bseg button i:not(.sc-bdg),.nt-c i,.chip small{opacity:.7}
+.bseg button.on .sc-bdg,.nt-c.on .sc-bdg{background:var(--sel-ink)!important;color:var(--sel)!important}
+/* chữ trong mục chưa chọn đậm hơn một chút để rõ là nút */
+.chip,.nt-c,.ntp-ab,.bseg button,.bpre button,.bchips button,.seg button,.subtabs button,.lvw-seg button,.fd-sz button{color:var(--ink)!important;font-weight:550}
+/* bấm chuột không để lại vòng focus (bàn phím vẫn có) */
+.bseg button:focus:not(:focus-visible),.chip:focus:not(:focus-visible),.nt-c:focus:not(:focus-visible),.btn:focus:not(:focus-visible),.sc-tabs button:focus:not(:focus-visible),.sc-env button:focus:not(:focus-visible){outline:0}
+button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid color-mix(in srgb,var(--brand) 60%,transparent);outline-offset:2px}
+/* thẻ con, ô số: tô một bậc rõ hơn trong panel */
+.tx-kpi>div,.lv-kp>span,.tpk-f>div,.tx-how,.sc-kp>div,.stats>div{background:var(--fill-card)!important}
+/* hàng ô số đầu trang (nằm trên nền trang, ngoài panel): nổi như panel */
+.sc-kp>div{background:var(--surface)!important}
+:root[data-theme="light"] .sc-kp>div{box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -14px rgba(16,24,40,.16)!important}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .sc-kp>div{box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px -14px rgba(16,24,40,.16)!important}}
+:root[data-theme="dark"] .sc-kp>div{background:color-mix(in srgb,var(--surface) 94%,#fff 3.5%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 28px -16px rgba(0,0,0,.7)!important}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sc-kp>div{background:color-mix(in srgb,var(--surface) 94%,#fff 3.5%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 28px -16px rgba(0,0,0,.7)!important}}
+.panel .sc-kp>div{background:var(--fill-card)!important;box-shadow:none!important}
