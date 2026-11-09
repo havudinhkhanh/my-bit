@@ -569,6 +569,8 @@ async function viewScalp() {
   const lvEqHtml = () => {
     const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : LVR.some((r) => r[0] === lsGet("lvrng", "7d")) ? lsGet("lvrng", "7d") : "7d", md = window.__lvMd || lsGet("lvmd", "eq"), cm = window.__lvCm || lsGet("lvcm", "t");
     const [a, b] = lvRange(rk), A = lvSeries(a, b), TR = lvTrAll().filter((r) => r.tm >= a && r.tm <= b), cus = lsGet("lvcus", {}) || {};
+    // bảng phụ bên trái: 2 biểu đồ thu nhỏ luôn nhìn thấy khi 2 biểu đồ chính đã cuộn khỏi màn hình (xem lvDock)
+    const DK = { env: LVE === "live" ? "💰 " + bi("Binance thật", "Binance live") : "🟡 Binance Demo", rl: (LVR.find((r) => r[0] === rk) || LVR[1])[1], eq: null, cum: null };
     const bar = `<div class="lv-rng"><div class="bseg" role="tablist" aria-label="${bi("Khoảng thời gian", "Time range")}">${LVR.map(([k, t]) => `<button type="button" data-lvr="${k}" class="${k === rk ? "on" : ""}">${t}</button>`).join("")}</div>
       ${rk === "cus" ? `<span class="lv-cus"><label>${bi("Từ", "From")} <input type="date" id="lvA" value="${esc(window.__lvDraft?.a ?? cus.a ?? "")}" min="2020-01-01" max="${vnD(Date.now())}"></label><label>${bi("đến", "to")} <input type="date" id="lvB" value="${esc(window.__lvDraft?.b ?? cus.b ?? "")}" min="2020-01-01" max="${vnD(Date.now())}"></label><button type="button" class="btn sm" id="lvGo">${bi("Xem", "Apply")}</button></span>` : ""}
       <span class="lv-rng-t faint">${a ? vnD(a).split("-").reverse().join("/") : bi("ngày đầu", "first day")} → ${vnD(b).split("-").reverse().join("/")}</span></div>`;
@@ -600,6 +602,9 @@ async function viewScalp() {
       const nW = TR.filter((h) => h.pnl > 0).length;
       const sum = `<div class="lv-kp"><span><i>${bi("Lời/lỗ thật", "Real P/L")}</i><b class="${cls(pl)}">${sg$(pl)}</b><small class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</small></span><span><i>${bi("Sụt sâu nhất", "Max drawdown")}</i><b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b><small>${mdd < 0 ? fx(A[ddAt][0] * 60000) : "—"}</small></span><span><i>${bi("Nạp/rút ròng", "Net transfers")}</i><b>${net ? sg$(net) : "$0"}</b><small>${u$(E0)} → ${u$(E1)}</small></span><span><i>${bi("Lệnh đóng", "Closed trades")}</i><b>${TR.length}</b><small>${TR.length ? `${bi("thắng", "won")} ${nf(nW / TR.length * 100, 0)}%` : "—"}</small></span></div>`;
       eqP = segM + sum + lineSvg(S, { h: 210, dec: 2, zero: md !== "eq", hlines: hl, fmt: md === "dd" ? (v) => nf(v, 1) + "%" : null });
+      DK.eq = { t: md === "pl" ? bi("Lời/lỗ thật", "Real P/L") : md === "dd" ? bi("Sụt từ đỉnh", "Drawdown") : bi("Tài sản futures", "Futures equity"), v: md === "dd" ? `${nf(DD[DD.length - 1], 2)}%` : md === "pl" ? sg$(pl) : u$(E1), vc: md === "eq" ? "" : cls(md === "dd" ? DD[DD.length - 1] : pl),
+        s: md === "eq" ? `<b class="${cls(pl)}">${sg$(pl)}</b> · <span class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</span>` : `${bi("sụt sâu nhất", "max DD")} <b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b>`,
+        S: [{ ...main, name: "" }, { ...S[1], name: "" }], o: { h: 92, dec: md === "eq" ? 0 : 1, zero: md !== "eq", fmt: md === "dd" ? (v) => nf(v, 0) + "%" : null } };
     }
     // ---- 2) lời/lỗ cộng dồn theo từng lệnh hoặc từng ngày (sau phí & funding) + đường trước phí để thấy phí ăn bao nhiêu
     let cumP;
@@ -616,8 +621,11 @@ async function viewScalp() {
       const W = TR.filter((h) => h.pnl > 0), Lz = TR.filter((h) => h.pnl <= 0), gw = W.reduce((s2, h) => s2 + h.pnl, 0), gl = -Lz.reduce((s2, h) => s2 + h.pnl, 0), fees = TR.reduce((s2, h) => s2 + (h.fee || 0) - (h.fund || 0), 0);
       const best = TR.reduce((m, h) => (h.pnl > m.pnl ? h : m), TR[0]), worst = TR.reduce((m, h) => (h.pnl < m.pnl ? h : m), TR[0]);
       const sum = `<div class="lv-kp"><span><i>${bi("Ròng", "Net")}</i><b class="${cls(cn)}">${sg$(cn)}</b><small>${TR.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / TR.length * 100, 0)}%</small></span><span><i>${bi("TB / lệnh", "Avg / trade")}</i><b class="${cls(cn)}">${sg$(cn / TR.length)}</b><small>${gl > 0 ? `${bi("hệ số lời", "profit factor")} ${nf(gw / gl, 2)}` : bi("chưa có lệnh lỗ", "no losing trade")}</small></span><span><i>${bi("Phí & funding", "Fees & funding")}</i><b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b><small>${cg > 0 ? `${nf(fees / cg * 100, 0)}% ${bi("lời trước phí", "of gross")}` : "—"}</small></span><span><i>${bi("Lệnh tốt nhất", "Best trade")}</i><b class="up">${sg$(best.pnl)} <small>${esc(String(best.k).split(":")[0])}</small></b><small>${bi("tệ nhất", "worst")} <b class="down">${sg$(worst.pnl)}</b> ${esc(String(worst.k).split(":")[0])}</small></span></div>`;
+      DK.cum = { t: bi("Lời/lỗ cộng dồn", "Cumulative P/L"), v: sg$(cn), vc: cls(cn), s: `${TR.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / TR.length * 100, 0)}% · ${bi("phí", "fees")} <b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b>`,
+        S: [{ ...S[0], name: "" }, { ...S[2], name: "" }], o: { h: 92, dec: 1, zero: true } };
       cumP = segC + sum + lineSvg(S, { h: 210, dec: 2, zero: true }) + `<p class="sc-more-l"><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh đầy đủ →", "Full trade book →")}</a></p>`;
     }
+    window.__lvDk = DK.eq || DK.cum ? DK : null; setTimeout(() => window.lvDock?.(), 0);
     return `${bar}<div class="sc-g2">${panel(bi("Tài sản futures", "Futures equity"), `${eqP}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh (rê chuột để xem coin & lời/lỗ). <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền nạp/rút ví futures; <b>%</b> và <b>Sụt từ đỉnh</b> tính kiểu quỹ đầu tư (nối % từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm số đẹp giả.", "Includes unrealized P/L · dots = trade closes (hover for coin & P/L). <b>Real P/L</b> = equity change minus futures-wallet transfers; <b>%</b> and <b>Drawdown</b> are time-weighted, so deposits don't flatter the numbers.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), cumP, `${TR.length} ${bi("lệnh trong khoảng", "trades in range")}`)}</div>`;
   };
   const lvEqChart = `<div id="lvEqBox">${lvEqHtml()}</div>`;
@@ -2056,3 +2064,33 @@ async function coinPeek(sym, box) {
   const o = +K[0][1], l = +K[K.length - 1][4], hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), ch = (l / o - 1) * 100;
   const f = box.querySelector("#tpkF"); if (f) f.innerHTML = [[bi("Giá", "Price"), `<b>${px(l)}</b>`, ""], ["24h", `<b class="${cls(ch)}">${ch >= 0 ? "+" : ""}${nf(ch, 2)}%</b>`, ""], [bi("Cao / thấp 24h", "24h high / low"), `<b>${px(hi)}</b>`, px(lo)]].map(([a, b, c2]) => `<div><dt>${a}</dt><dd>${b}${c2 ? `<small>${c2}</small>` : ""}</dd></div>`).join("");
 }
+
+// ---- 📈 bảng phụ bên trái (máy tính): khi 2 biểu đồ Tài sản futures & Lời/lỗ cộng dồn đã cuộn khỏi màn hình (hoặc đang ở tab khác / Sàn thử),
+// hiện bản thu nhỏ ngay dưới hàng chỉ số của bảng phụ để luôn theo dõi được; bấm vào → về đúng biểu đồ lớn. Cùng khoảng thời gian & cách xem với biểu đồ chính.
+function lvDockOn() { return location.hash.startsWith("#/bot/scalp") && !!window.__lvDk; }
+window.lvDock = function lvDock() {
+  const pulse = $("#pnpulse"); if (!pulse) return;
+  let d = $("#pnDock");
+  if (!lvDockOn()) { if (d) d.classList.remove("on"); return; }
+  if (!d) { d = document.createElement("div"); d.id = "pnDock"; d.className = "pn-dock"; d.setAttribute("aria-label", bi("Biểu đồ bot đang theo dõi", "Pinned bot charts")); pulse.after(d);
+    d.addEventListener("click", (e) => { if (e.target.closest("[data-pnd]")) lvDockGo(); }); }
+  const D = window.__lvDk, card = (c) => c ? `<div class="pnd-c"><button type="button" class="pnd-t" data-pnd><span>${c.t}</span><b class="${c.vc}">${c.v}</b></button><small class="pnd-s">${c.s}</small>${lineSvg(c.S, c.o)}</div>` : "";
+  d.innerHTML = `<div class="pnd-in"><button type="button" class="pnd-h" data-pnd title="${bi("Về biểu đồ lớn", "Back to full charts")}"><b>${D.env}</b><span>${D.rl} ↗</span></button>${card(D.eq)}${card(D.cum)}</div>`;
+  try { cbMount(d); } catch (e) { /* bỏ qua */ }
+  lvDockVis();
+};
+function lvDockVis() {
+  const d = $("#pnDock"); if (!d) return;
+  let show = lvDockOn();
+  const b = $("#lvEqBox");
+  if (show && b && b.isConnected && b.offsetParent !== null) { const r = b.getBoundingClientRect(); show = r.bottom < 90 || r.top > innerHeight - 40; }
+  if (d.classList.contains("on") !== show) { d.classList.toggle("on", show); if (show) try { cbMount(d); } catch (e) { /* bỏ qua */ } }
+}
+async function lvDockGo() {
+  if (window.__scEnv === "paper") $('[data-scenv="live"]')?.click();
+  if (window.__scTab !== "ov") await scTabGo("ov");
+  setTimeout(() => { const b = $("#lvEqBox"); if (b) window.scrollTo({ top: Math.max(0, scrollY + b.getBoundingClientRect().top - 72), behavior: "smooth" }); }, window.__scEnv === "paper" ? 450 : 60);
+}
+if (!window.__lvDockW) { window.__lvDockW = 1; let q = 0;
+  addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; lvDockVis(); }); }, { passive: true });
+  addEventListener("hashchange", () => setTimeout(lvDockVis, 50)); addEventListener("resize", () => lvDockVis()); }

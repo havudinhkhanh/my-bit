@@ -4554,3 +4554,24 @@ button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid color-
   .sc-env.sc-env-t{background:color-mix(in srgb,var(--ink) 7%,var(--surface))!important;box-shadow:-10px 0 12px -4px var(--surface)!important}
   .sc-env.sc-env-t .et{display:none}.sc-env.sc-env-t button{padding:7px 10px;font-size:.9375rem}
 }
+/* lưới: khoảng cách giữa các ô đã có gap → bỏ lề trên kiểu "khối liền sau" để các ô cùng hàng thẳng mép trên (vd Bảng giá trực tiếp) */
+.g>.panel+.panel,.g>.panel+*,.g>*+.panel,.g>.g+.g{margin-top:0}
+#lvMov{align-items:stretch}
+/* 📈 bảng phụ: biểu đồ bot thu nhỏ – hiện khi 2 biểu đồ chính đã cuộn khỏi màn hình */
+.pn-dock{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .28s cubic-bezier(.2,.8,.2,1),opacity .2s,margin .28s;margin:0}
+.pn-dock.on{grid-template-rows:1fr;opacity:1;margin:0 0 8px}
+.pn-dock>.pnd-in{min-height:0;overflow:hidden;display:grid;gap:6px}
+.pnd-h{all:unset;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:6px;padding:2px 4px;font-size:.75rem;letter-spacing:.02em;color:var(--ink-2)}
+.pnd-h b{font-weight:650;color:var(--ink);text-transform:uppercase;font-size:.6875rem;letter-spacing:.05em}
+.pnd-h span{color:var(--ink-3)}
+.pnd-h:hover span{color:var(--brand)}
+.pnd-c{background:var(--fill,color-mix(in srgb,var(--ink) 6%,transparent));border-radius:10px;padding:7px 8px 2px}
+.pnd-t{all:unset;cursor:pointer;display:flex;align-items:baseline;justify-content:space-between;gap:6px;width:100%;box-sizing:border-box}
+.pnd-t span{font-size:.75rem;color:var(--ink-2)}
+.pnd-t b{font-size:.9375rem;font-variant-numeric:tabular-nums}
+.pnd-t:focus-visible,.pnd-h:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
+.pnd-s{display:block;font-size:.6875rem;color:var(--ink-3);margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pnd-c .cbox{margin:2px -4px 0;background:none!important;box-shadow:none!important;padding:0!important}
+.pnd-c .cbt,.pnd-c .leg{display:none!important}
+.pnd-c .svgchart text{font-size:9px}
+@media (prefers-reduced-motion:reduce){.pn-dock{transition:none}}
