@@ -5597,7 +5597,7 @@ async function bellOpen() {
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
-    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw" title="Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục">← đọc · → xem nhanh</small></div>
+    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}">✓ ${bi("Đọc hết", "Mark all read")}</button><a class="ntp-ab" href="#/notifications">${bi("Xem tất cả →", "See all →")}</a><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
     <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";

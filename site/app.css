@@ -4644,3 +4644,14 @@ h1 small,.ph h1 small{font-size:15px!important}
 .sc-oc .r1>span>b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:360px){.sc-oc .r1>span>.jtag{display:none}}
 @container (max-width:310px){.sc-oc .r1>span>.sc-t{display:none}}
+/* hàng tab Bot Phản Xạ: nút đang chọn cách đều 4 mép khung (trái = trên = dưới = phải = 5px), bo góc đồng tâm */
+.sc-tabs{padding:5px!important;border-width:0!important}
+.sc-tabs>button{border-radius:9px}
+.sc-tabs::before{margin:-5px -26px -5px -5px!important}
+.sc-tabs::after{margin:-5px -5px -5px -26px!important}
+.sc-env.sc-env-t{padding:3px;border-radius:12px}
+.sc-env.sc-env-t button{border-radius:9px}
+.sc-tabs::before{margin-right:-25px!important}
+.sc-tabs::after{margin-left:-25px!important}
+.sc-env.sc-env-t{height:34px;box-sizing:border-box;align-items:stretch}
+.sc-env.sc-env-t button{height:28px;padding-top:0!important;padding-bottom:0!important;display:inline-flex;align-items:center;gap:4px;box-sizing:border-box}
