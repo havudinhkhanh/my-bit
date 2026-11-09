@@ -4578,3 +4578,7 @@ button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid color-
 /* hàng tab Bot Phản Xạ: mọi nút cùng chiều cao dù có số đếm hay đang được chọn (số đếm không đẩy nút cao lên) */
 .sc-tabs>button{height:34px;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box;line-height:1}
 .sc-tabs>button .sc-bdg{height:17px;min-width:17px;padding:0 5px;line-height:1;margin:-2px 0;box-sizing:border-box}
+.pn-scroll{overscroll-behavior:contain}
+.pnd-c{padding:6px 8px 1px}
+.pn-dock>.pnd-in{gap:5px}
+@media (max-height:819px){.pnd-s{display:none}}

@@ -2074,7 +2074,7 @@ window.lvDock = function lvDock() {
   if (!lvDockOn()) { if (d) d.classList.remove("on"); return; }
   if (!d) { d = document.createElement("div"); d.id = "pnDock"; d.className = "pn-dock"; d.setAttribute("aria-label", bi("Biểu đồ bot đang theo dõi", "Pinned bot charts")); pulse.after(d);
     d.addEventListener("click", (e) => { if (e.target.closest("[data-pnd]")) lvDockGo(); }); }
-  const D = window.__lvDk, card = (c) => c ? `<div class="pnd-c"><button type="button" class="pnd-t" data-pnd><span>${c.t}</span><b class="${c.vc}">${c.v}</b></button><small class="pnd-s">${c.s}</small>${lineSvg(c.S, c.o)}</div>` : "";
+  const D = window.__lvDk, card = (c) => c ? `<div class="pnd-c"><button type="button" class="pnd-t" data-pnd><span>${c.t}</span><b class="${c.vc}">${c.v}</b></button><small class="pnd-s">${c.s}</small>${lineSvg(c.S, { ...c.o, h: innerHeight >= 940 ? 80 : innerHeight >= 820 ? 66 : 54, ny: innerHeight >= 940 ? 2 : 1 })}</div>` : "";
   d.innerHTML = `<div class="pnd-in"><button type="button" class="pnd-h" data-pnd title="${bi("Về biểu đồ lớn", "Back to full charts")}"><b>${D.env}</b><span>${D.rl} ↗</span></button>${card(D.eq)}${card(D.cum)}</div>`;
   try { cbMount(d); } catch (e) { /* bỏ qua */ }
   lvDockVis();

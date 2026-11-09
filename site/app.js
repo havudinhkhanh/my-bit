@@ -345,7 +345,7 @@ function lineDraw(series, opt, W, H, cx) {
   const lg = !!opt.log && mn > 0;
   const TF = (v) => (lg ? Math.log10(v) : v), tmn = TF(mn > 0 || !lg ? mn : 1e-9), tmx = TF(mx);
   const fmt = (v) => (opt.fmt ? opt.fmt(v) : nf(v, opt.dec ?? 1));
-  const nY = Math.max(2, Math.min(6, Math.floor(H / 42)));
+  const nY = opt.ny || Math.max(2, Math.min(6, Math.floor(H / 42)));
   const tv = lg ? Array.from({ length: nY + 1 }, (_, k) => 10 ** (tmn + (tmx - tmn) * k / nY)) : niceTicks(mn, mx, nY);
   const pl = Math.max(30, Math.min(70, Math.max(...tv.map((v) => String(fmt(v)).length)) * 6.2 + 10));
   const n = Math.max(...series.map((s) => s.pts.length));
@@ -6285,4 +6285,22 @@ document.addEventListener("wheel", (e) => {
     if (Math.abs(dx) > Math.abs(dy)) el.scrollLeft += dx; else el.scrollBy({ left: dy, behavior: Math.abs(dy) >= 50 ? "smooth" : "auto" });
     return;
   }
+}, { passive: false });
+
+// ---------------------------------------------------------------- máy tính: lăn chuột ở BẤT KỲ chỗ nào trên bảng phụ (thanh cuộn, biểu đồ thu nhỏ, hàng thẻ…) → cuộn khung nội dung của bảng phụ,
+// không bao giờ kéo cả trang theo (kể cả khi khung đã cuộn tới cuối). Cuộn mượt theo đích cộng dồn để lăn nhanh nhiều nấc không bị hụt.
+document.addEventListener("wheel", (e) => {
+  if (e.ctrlKey || !matchMedia("(hover:hover) and (pointer:fine)").matches) return;
+  const pn = e.target.closest?.("#pnav"); if (!pn) return;
+  for (let el = e.target; el && el !== pn; el = el.parentElement) {      // bảng / khung con tự cuộn được (vd danh sách mục, khung lọc) → để khung đó tự cuộn
+    if (el.classList?.contains("pn-scroll")) break;
+    if (el.scrollHeight > el.clientHeight + 2 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) { const up = e.deltaY < 0; if (up ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return; break; }
+  }
+  const sc = pn.querySelector(".pn-scroll"); if (!sc) return;
+  const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? sc.clientHeight : 1); if (!dy || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+  e.preventDefault();
+  const max = sc.scrollHeight - sc.clientHeight; if (max <= 0) return;
+  const now = performance.now(), base = sc.__wt && now - sc.__wt < 260 && isFinite(sc.__wg) ? sc.__wg : sc.scrollTop;
+  sc.__wg = Math.max(0, Math.min(max, base + dy)); sc.__wt = now;
+  if (Math.abs(dy) < 40 || matchMedia("(prefers-reduced-motion: reduce)").matches) sc.scrollTop = sc.__wg; else sc.scrollTo({ top: sc.__wg, behavior: "smooth" });
 }, { passive: false });
