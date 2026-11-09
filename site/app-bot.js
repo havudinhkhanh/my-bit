@@ -92,7 +92,12 @@ function lvEqBind() {
   $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvc]").forEach((b) => (b.onclick = () => { window.__lvCm = b.dataset.lvc; lsSet("lvcm", b.dataset.lvc); window.__lvEqRedraw?.(); }));
-  ["#lvA", "#lvB"].forEach((id) => { const el = $(id); if (el) el.onchange = () => { const c = lsGet("lvcus", {}) || {}; c[id === "#lvA" ? "a" : "b"] = el.value || null; lsSet("lvcus", c); window.__lvEqRedraw?.(); }; });
+  // ô ngày: chỉ áp dụng khi bấm Xem / Enter / rời khỏi cả 2 ô – gõ từng phần (ngày, tháng, 4 số năm) không làm vẽ lại & mất con trỏ
+  const ok = (v) => !v || (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= "2020-01-01" && v <= "2099-12-31");
+  const apply = () => { const A = $("#lvA"), B = $("#lvB"); if (!A || !B) return; if (!ok(A.value) || !ok(B.value)) { toast(bi("Ngày chưa đúng – năm cần đủ 4 số", "Invalid date – the year needs 4 digits")); return; } const c = lsGet("lvcus", {}) || {}; if (c.a === (A.value || null) && c.b === (B.value || null)) return; lsSet("lvcus", { a: A.value || null, b: B.value || null }); window.__lvDraft = null; window.__lvEqRedraw?.(); };
+  $("#lvGo") && ($("#lvGo").onclick = apply);
+  ["#lvA", "#lvB"].forEach((id) => { const el = $(id); if (!el) return; el.onkeydown = (e) => { if (e.key === "Enter") { e.preventDefault(); apply(); } }; el.oninput = () => { (window.__lvDraft ||= {})[id === "#lvA" ? "a" : "b"] = el.value; }; });      // trang tự làm mới giữa chừng vẫn giữ chữ đang gõ
+  const cu = $("#lvEqBox .lv-cus"); if (cu) cu.addEventListener("focusout", (e) => { if (!cu.contains(e.relatedTarget)) setTimeout(() => { if (!cu.contains(document.activeElement)) apply(); }, 120); });
 }
 // ✋ Đóng tay: trước khi gửi, hiện bảng ƯỚC TÍNH lời/lỗ ròng nếu đóng NGAY (giá sống − phí đã trả − phí lúc đóng − trượt giá ± funding),
 // giá hoà vốn sau phí, % tổng tài sản. Nút xác nhận mở sau 1,2 giây để không lỡ tay bấm liền. Số tự cập nhật mỗi giây theo giá.
@@ -565,7 +570,7 @@ async function viewScalp() {
     const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : LVR.some((r) => r[0] === lsGet("lvrng", "7d")) ? lsGet("lvrng", "7d") : "7d", md = window.__lvMd || lsGet("lvmd", "eq"), cm = window.__lvCm || lsGet("lvcm", "t");
     const [a, b] = lvRange(rk), A = lvSeries(a, b), TR = lvTrAll().filter((r) => r.tm >= a && r.tm <= b), cus = lsGet("lvcus", {}) || {};
     const bar = `<div class="lv-rng"><div class="bseg" role="tablist" aria-label="${bi("Khoảng thời gian", "Time range")}">${LVR.map(([k, t]) => `<button type="button" data-lvr="${k}" class="${k === rk ? "on" : ""}">${t}</button>`).join("")}</div>
-      ${rk === "cus" ? `<span class="lv-cus"><label>${bi("Từ", "From")} <input type="date" id="lvA" value="${esc(cus.a || "")}" max="${vnD(Date.now())}"></label><label>${bi("đến", "to")} <input type="date" id="lvB" value="${esc(cus.b || "")}" max="${vnD(Date.now())}"></label></span>` : ""}
+      ${rk === "cus" ? `<span class="lv-cus"><label>${bi("Từ", "From")} <input type="date" id="lvA" value="${esc(window.__lvDraft?.a ?? cus.a ?? "")}" min="2020-01-01" max="${vnD(Date.now())}"></label><label>${bi("đến", "to")} <input type="date" id="lvB" value="${esc(window.__lvDraft?.b ?? cus.b ?? "")}" min="2020-01-01" max="${vnD(Date.now())}"></label><button type="button" class="btn sm" id="lvGo">${bi("Xem", "Apply")}</button></span>` : ""}
       <span class="lv-rng-t faint">${a ? vnD(a).split("-").reverse().join("/") : bi("ngày đầu", "first day")} → ${vnD(b).split("-").reverse().join("/")}</span></div>`;
     // ---- 1) tài sản / lời lỗ thật / sụt từ đỉnh
     let eqP;
