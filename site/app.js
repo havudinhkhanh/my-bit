@@ -5199,6 +5199,7 @@ function cmdkItems(q) {
   pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; } });
   const acts = [...TH_OPT.filter(([k]) => k !== thPref()).map(([k, t]) => ({ g: "Thao tác", label: `Giao diện: ${t}`, go: () => thApply(k) })),
     { g: "Thao tác", label: I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English", go: () => langToggle() },
+    { g: "Thao tác", label: bi("Hiện lại thanh lệnh bot trực tiếp (về góc phải dưới)", "Show the live bot-trades bar again (bottom right)"), go: () => { LVW.pos = null; lsSet("lvwpos", null); LVW.mode = "mini"; lsSet("lvwmode", "mini"); LVW.rest = "mini"; lsSet("lvwrest", "mini"); document.getElementById("lvw")?.remove(); LVS.busy = false; lvsPull(); if (LVS.d) lvsDraw(); toast(LVS.d?.at ? bi("Đã đưa thanh lệnh bot về góc phải dưới", "Live bar moved back to the bottom right") : bi("Chưa có dữ liệu bot – kiểm tra máy chủ riêng", "No bot data yet – check your own server")); } },
     { g: "Thao tác", label: "Mở / đóng bảng phụ", sub: "điểm chính, mục lục, coin theo dõi, tính lệnh", go: () => $("#pnFab")?.click() }];
   if (!t) return [...pages, ...acts];
   const coinsHit = (COINS?.rows || []).filter((r) => r.k.startsWith(T) || fold(r.n).includes(t))
@@ -5990,7 +5991,8 @@ function lvwParts(D) {
 }
 // vùng được phép đặt: dưới thanh đầu trang, trên thanh tab dưới (điện thoại), không đè thanh điều hướng trái / bảng phụ (máy tính)
 function lvwBounds() {
-  const W = innerWidth, H = innerHeight, mob = MOB.matches, hd = document.querySelector("header.top")?.getBoundingClientRect();
+  const W = document.documentElement.clientWidth || innerWidth, H = document.documentElement.clientHeight || innerHeight, mob = MOB.matches,      // clientWidth: trừ thanh cuộn (máy tính) → không lẹm ra ngoài
+  hd = document.querySelector("header.top")?.getBoundingClientRect();
   let L = 8, R = W - 8, T = Math.max(8, (hd && hd.bottom > 0 ? hd.bottom : 0) + 8), B = H - 8;
   if (!mob) { L = (parseFloat(getComputedStyle(document.body).getPropertyValue("--rail")) || 0) + 10; const pn = document.body.classList.contains("pn-on") && document.getElementById("pnav")?.getBoundingClientRect(); if (pn && pn.width > 40 && pn.left > W / 2) R = pn.left - 10; }
   const tb = mob && document.getElementById("tabs")?.getBoundingClientRect(); if (tb && tb.height && tb.top < H && tb.top > H / 2) B = tb.top - 8;
@@ -6012,7 +6014,10 @@ function lvwPlace(el, anim = true) {
   const cl = Math.max(12 - x, Math.min(K.W - 12 - cw - x, al ? 0 : w - cw));
   el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, room))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
   ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-" + P.e)); el.classList.toggle("lvw-upw", up); el.classList.toggle("lvw-al", al);
-  el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x > K.W - 20 || y > K.H - 20 || x + w < 20 || y + h < 20) {      // vị trí hỏng / ngoài màn hình → về chỗ mặc định
+    if (!el.__fix) { el.__fix = 1; LVW.pos = null; lsSet("lvwpos", null); return lvwPlace(el, false); } x = Math.max(8, K.W - w - 12); y = Math.max(8, K.H - h - 90);
+  }
+  el.__fix = 0; el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 function lvwMode(m) {
@@ -6059,7 +6064,7 @@ function lvsDraw() {
         if (navigator.vibrate) try { navigator.vibrate(8); } catch (_) {} };
       addEventListener("pointermove", mv, { passive: false }); addEventListener("pointerup", up); addEventListener("pointercancel", up);
     });
-    addEventListener("resize", () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); });
+    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", rp); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); }, 1000);
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
