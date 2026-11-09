@@ -4393,3 +4393,15 @@ body.pn-sheet .pn-in{position:relative}
 @keyframes ntInR{from{opacity:.3;transform:translateX(-36px)}to{opacity:1;transform:none}}
 @keyframes ntEdge{30%{transform:translateX(-8px)}60%{transform:translateX(6px)}}
 @media (prefers-reduced-motion:reduce){.ntp-l.nt-in-l,.ntp-l.nt-in-r,.ntp-l.nt-edge{animation:none}}
+.ntp-in,.ntp-l,.nt-cs,.ntpk-in,.ntpk-card{overscroll-behavior:contain}
+/* xem nhanh lệnh bot / coin trong thông báo */
+.ntpk-art .tpk-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 8px}.tpk-r{margin-left:auto;display:inline-flex;align-items:baseline;gap:6px}
+.tpk-pl{font-size:1.25rem;font-variant-numeric:tabular-nums}.tpk-r small{font-size:.75rem}
+.tpk-c{height:190px;border-radius:10px;overflow:hidden;background:var(--sunk);margin:4px 0 10px;position:relative}.tpk-c>p{padding:12px;margin:0}
+.tpk-f{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin:0}
+.tpk-f>div{padding:7px 10px;border-radius:9px;background:var(--sunk);min-width:0}
+.tpk-f dt{font-size:.6875rem;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}.tpk-f dd{margin:2px 0 0;font-variant-numeric:tabular-nums;display:grid}.tpk-f dd small{color:var(--ink-3);font-size:.71875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpk-f .up{color:var(--up)}.tpk-f .down{color:var(--down)}
+.ntpk-raw{margin-top:8px;font-size:.78125rem;color:var(--ink-3)}.ntpk-raw summary{cursor:pointer}.ntpk-raw .ntpk-t{margin:6px 0 0}
+.ntpk.ntpk-tr .ntpk-in{width:min(560px,calc(100vw - 24px))}
+.ntpk-act .ntpk-go{font-weight:650}

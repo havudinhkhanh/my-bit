@@ -5466,7 +5466,7 @@ function ntCtxClose() { const m = document.getElementById("ntCtx"); if (!m || m.
 function ntCtx(n, x, y, it) {
   document.getElementById("ntCtx")?.remove();
   const ctx = it._b, url = n.url && n.url !== "#/notifications" ? n.url.replace(/^.*?(#\/)/, "#/") : "";
-  const A = [["peek", "Xem nhanh", "👁"], ...(url ? [["open", "Mở trong ứng dụng", "→"]] : []), n.read_at ? ["unread", "Đánh dấu chưa đọc", "●"] : ["read", "Đánh dấu đã đọc", "✓"]];
+  const useful = !!(ntTradeUrl(n) || /#\/t\//.test(n.url || "") || n.sym || /news|tin/i.test(n.kind || "")), A = [...(useful ? [["peek", /#\/t\//.test(ntTradeUrl(n) || n.url || "") ? "Xem nhanh lệnh" : "Xem nhanh", "👁"]] : []), ...(url ? [["open", "Mở trong ứng dụng", "→"]] : []), n.read_at ? ["unread", "Đánh dấu chưa đọc", "●"] : ["read", "Đánh dấu đã đọc", "✓"]];
   const m = document.createElement("div"); m.id = "ntCtx"; m.className = "ios-menu nt-ctx";
   m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="Thao tác thông báo">${A.map(([k, t, ic]) => `<button type="button" role="menuitem" data-a="${k}"><span class="ios-ck"></span><span class="ios-t">${t}</span><span class="ios-ic">${ic}</span></button>`).join("")}</div>`;
   document.body.appendChild(m);
@@ -5505,7 +5505,15 @@ async function ntPeek(n, touch = false) {
   const btn = (label, ic2, fn, cls = "") => { const b = document.createElement("button"); b.type = "button"; b.className = cls; b.innerHTML = `<span>${label}</span><i>${ic2}</i>`; b.onclick = fn; act.appendChild(b); return b; };
   const ctx = $(`[data-nid="${n.id}"]`)?._b, markRead = () => ntSetRead(n, true, ctx);
   let link = null;
-  if (n.url && n.url !== "#/notifications") btn("Mở trong ứng dụng", "→", () => { markRead(); close(); bellClose(); location.hash = n.url.replace(/^.*?(#\/)/, "#/"); });
+  // thông báo lệnh bot → biểu đồ nhỏ có mốc vào/ra + số chính của đúng lệnh đó; thông báo có mã coin → nến 24 giờ
+  const tu = ntTradeUrl(n) || n.url || "", tmt = String(tu).match(/#\/t\/([a-z]+)\/([^/]+)\/(\d+)/), go = tmt ? tu.replace(/^.*?(#\/)/, "#/") : n.url && n.url !== "#/notifications" ? n.url.replace(/^.*?(#\/)/, "#/") : n.sym ? `#/c/${enc(n.sym)}` : "";
+  if (go) btn(tmt ? "Mở chi tiết lệnh" : n.url && n.url !== "#/notifications" ? "Mở trong ứng dụng" : "Mở trang coin", "→", () => { markRead(); close(); bellClose(); location.hash = go; }, "ntpk-go");
+  if (tmt || n.sym) {
+    box.classList.add("ntpk-tr"); const tb = box.querySelector(".ntpk-t");
+    if (tb) { const d = document.createElement("details"); d.className = "ntpk-raw"; d.innerHTML = `<summary>Nội dung thông báo</summary>`; tb.replaceWith(d); d.appendChild(tb); }
+    artEl.innerHTML = `<div class="ntpk-ld"><i></i><i></i><i></i><i class="w"></i></div>`;
+    lazyJs("app-bot.js").then(() => (tmt ? tPeek(tmt[1], decodeURIComponent(tmt[2]), +tmt[3], artEl) : coinPeek(n.sym, artEl))).catch(() => { artEl.innerHTML = ""; });
+  }
   const srcBtn = btn("Mở bài gốc", "↗", () => { if (link) { markRead(); open(link, "_blank", "noopener"); } }); srcBtn.hidden = true;
   if (!n.read_at) btn("Đánh dấu đã đọc", "✓", () => { markRead(); close(); });
   else btn("Đánh dấu chưa đọc", "●", () => { ntSetRead(n, false, ctx); close(); });
@@ -5513,6 +5521,7 @@ async function ntPeek(n, touch = false) {
   $$("[data-x]", box).forEach((x) => (x.onclick = close));
   const k = (e) => { if (e.key === "Escape") { close(); removeEventListener("keydown", k); } }; addEventListener("keydown", k);
   addEventListener("hashchange", close, { once: true });
+  if (tmt || n.sym) return;      // lệnh / coin: không phải tin tức → không tìm bài báo
   // thông báo tin tức: tìm link bài & tải bài (máy chủ lọc lấy chữ + ảnh chính)
   try { link = typeof window.ntLink === "function" ? await window.ntLink(n) : null; } catch (e) { link = null; }
   if (!link || !box.isConnected) return;
@@ -5531,15 +5540,22 @@ async function ntPeek(n, touch = false) {
 function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
 // cuộn chuột / bàn di (máy tính): trong bảng nổi, danh sách cuộn được thì cuộn danh sách; tới đầu/cuối hoặc chuột đang ở phần
 // không cuộn được (tiêu đề, nền, hàng lọc) thì cuộn luôn trang phía sau – không bắt phải đưa chuột ra ngoài bảng mới cuộn được trang
+// lăn chuột trong bảng nổi (chuông…): chỉ cuộn phần bên trong; hết chỗ cuộn thì DỪNG, không kéo trang phía sau chạy theo
 function wheelChain(root) {
   root.addEventListener("wheel", (e) => {
-    if (matchMedia("(max-width:979px)").matches || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1); if (!dy) return;
+    if (e.ctrlKey) return;
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? innerHeight : 1), dx = e.deltaX * (e.deltaMode === 1 ? 16 : 1), hz = Math.abs(dx) > Math.abs(dy);
     for (let el = e.target; el && el !== root.parentNode; el = el.parentElement) {
-      const s = getComputedStyle(el); if (!/(auto|scroll)/.test(s.overflowY) || el.scrollHeight <= el.clientHeight + 1) continue;
+      const s = getComputedStyle(el);
+      if (el.scrollWidth > el.clientWidth + 2 && /(auto|scroll)/.test(s.overflowX) && el.clientHeight <= 96) {      // hàng chip / tab cuộn ngang
+        e.preventDefault(); e.stopPropagation(); el.scrollLeft += hz ? dx : dy; return;
+      }
+      if (hz) continue;
+      if (!/(auto|scroll)/.test(s.overflowY) || el.scrollHeight <= el.clientHeight + 1) continue;
       if (dy < 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1) return;      // phần này còn cuộn được → để trình duyệt cuộn
+      break;
     }
-    e.preventDefault(); scrollBy({ top: dy, behavior: "instant" });
+    e.preventDefault();      // hết chỗ cuộn bên trong → nuốt lần lăn, trang phía sau đứng yên
   }, { passive: false });
 }
 async function bellOpen() {

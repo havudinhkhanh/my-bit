@@ -1998,3 +1998,61 @@ async function viewTrade(env, sym, ms) {
   clearInterval(window.__trT);
   if (r.status === "wait" || r.status === "open") window.__trT = setInterval(() => { if (!location.hash.startsWith("#/t/")) { clearInterval(window.__trT); return; } if (!document.hidden && !userBusy()) { const y = scrollY; disposeCharts(); window.__trC = null; viewTrade(env, sym, ms).then(() => scrollTo(0, y)); } }, 20000);
 }
+// ================================================================ XEM NHANH 1 thông báo lệnh bot: bấm vào là thấy ngay lệnh đó ra sao (biểu đồ nhỏ có mốc vào/ra + số chính),
+// khỏi phải mở cả trang chi tiết. Dùng chung dữ liệu với trang lệnh (#/t/…).
+async function tPeek(env, sym, ms, box) {
+  env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, ""); ms = +ms || Date.now();
+  const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null }))]);
+  const X = rs.data || {}, C = { ...SCALP_DEF, ...scMig(rq.data) }, r = tPick(tRecs(X, rl.data || null, C, env, sym), ms);
+  if (!r) { box.innerHTML = `<p class="faint">${bi("Lệnh này không còn trong bộ nhớ trực tiếp – mở chi tiết để xem sổ lệnh.", "This trade is no longer in live memory – open details for the ledger.")}</p>`; return null; }
+  const now = Date.now(), tm = (t) => (t ? new Date(t).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
+  const expX = r.tX ? null : r.tXe ?? (r.tF && r.hold ? r.tF + r.hold * 60e3 : null), held = r.tF ? ((r.tX || now) - r.tF) / 1000 : null, N = r.N || (r.q && r.e ? r.q * r.e : null);
+  const ST = { wait: ["⏳ " + bi("Đang chờ khớp", "Waiting to fill"), "warn"], open: ["● " + bi("Đang giữ", "Open"), "buy"], closed: [(r.pnl ?? 0) >= 0 ? bi("Đã đóng · lời", "Closed · win") : bi("Đã đóng · lỗ", "Closed · loss"), (r.pnl ?? 0) >= 0 ? "buy" : "sell"], miss: ["✕ " + bi("Không khớp", "Not filled"), "faint"] }[r.status] || ["", ""];
+  const big = r.status === "closed" ? `<b class="tpk-pl ${cls(r.pnl)}">${j$(r.pnl || 0)}</b>${isNum(r.net) ? `<small class="${cls(r.net)}">${bps(r.net, 0)} bps</small>` : ""}` : isNum(r.upnl) ? `<b class="tpk-pl ${cls(r.upnl)}">${j$(r.upnl)}</b><small>${bi("tạm tính", "unrealized")}</small>` : "";
+  const lv = (r.lv || []).filter((l) => !l.mk);
+  const F = [
+    r.tF ? [bi("Vào", "Entry"), `<b>${px(r.e)}</b>`, tm(r.tF)] : lv.length ? [bi("Chờ ở", "Resting at"), `<b>${lv.map((l) => px(l.px)).join(" · ")}</b>`, r.tW ? `${bi("tới", "until")} ${tm(r.tW)}` : ""] : null,
+    r.tX ? [bi("Ra", "Exit"), `<b>${px(r.x)}</b>`, `${tm(r.tX)} · ${esc(JWHY[r.why] || r.why || "")}`] : expX ? [bi("Dự kiến ra", "Expected exit"), `<b>${tm(expX)}</b>`, expX > now ? `${bi("còn", "in")} ${jHold((expX - now) / 1000)}` : ""] : null,
+    N ? [bi("Giá trị lệnh", "Size"), `<b>${usd2(N)}</b>`, r.q ? `${qty(r.q)} ${esc(sym)}` : ""] : null,
+    held ? [bi("Thời gian giữ", "Held"), `<b>${jHold(held)}</b>`, r.hold ? `${bi("tối đa", "max")} ${nf(r.hold, 0)} ${bi("phút", "min")}` : ""] : null,
+    r.status === "closed" && (r.fee || r.fund) ? [bi("Phí · funding", "Fees · funding"), `<b class="down">${j$(-(r.fee || 0))}</b>`, r.fund ? `funding ${j$(r.fund)}` : ""] : r.stop ? [bi("Cắt lỗ", "Stop"), `<b class="down">${px(r.stop)}</b>`, r.e ? `${bi("cách", "away")} ${nf(Math.abs(r.stop / r.e - 1) * 100, 1)}%` : ""] : null,
+    r.R ? [bi("Cú sốc", "Shock"), `<b>${nf(Math.abs(r.R) / 100, 1)}%</b>`, r.c0 ? `${bi("giá sau sốc", "post-shock")} ${px(r.c0)}` : ""] : null,
+  ].filter(Boolean);
+  box.innerHTML = `<div class="tpk-h"><span class="pill ${ST[1]}">${ST[0]}</span><span class="${r.side > 0 ? "up" : "down"}"><b>${esc(sym)} ${r.side > 0 ? "Long" : "Short"}</b></span><span class="tpk-r">${big}</span></div>
+    <div class="tpk-c" id="tpkC"><p class="faint">${bi("Đang tải nến…", "Loading candles…")}</p></div>
+    <dl class="tpk-f">${F.map(([a, b, c]) => `<div><dt>${a}</dt><dd>${b}${c ? `<small>${c}</small>` : ""}</dd></div>`).join("")}</dl>`;
+  // nến 1 phút (Bắt râu / lướt giây) hoặc 1 giờ (giữ nhiều ngày), quanh lệnh
+  const sec = r.strat === "pump" || r.strat === "list" ? 3600 : (r.t1 || now) - (r.t0 || ms) > 6 * 3600e3 ? 900 : 60, tf = { 60: "1m", 900: "15m", 3600: "1h" }[sec];
+  const tA = r.t0 || ms, tB = Math.max(r.t1 || 0, expX || 0, tA); let st = tA - 25 * sec * 1000, en = Math.min(now, tB + 10 * sec * 1000); if ((en - st) / (sec * 1000) > 600) st = en - 600 * sec * 1000;
+  let K = null; for (const b of env === "demo" ? ["https://demo-fapi.binance.com", "https://fapi.binance.com"] : ["https://fapi.binance.com"]) { try { const q = await fetch(`${b}/fapi/v1/klines?symbol=${sym}USDT&interval=${tf}&startTime=${Math.floor(st)}&endTime=${Math.floor(en)}&limit=1000`); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử sàn khác */ } }
+  const el = box.querySelector("#tpkC"); if (!el || !el.isConnected) return r;
+  if (!K || typeof LightweightCharts === "undefined") { el.innerHTML = `<p class="faint">${bi("Không lấy được nến từ Binance.", "Couldn't load candles.")}</p>`; return r; }
+  el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60, tt = (v) => Math.floor(v / 1000 / sec) * sec + off;
+  const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, rightPriceScale: { borderColor: css("--line"), scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); charts.push(c);
+  const dec = pdec(+K[K.length - 1][4]), cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
+  cs.setData(K.map((k) => ({ time: tt(+k[0]), open: +k[1], high: +k[2], low: +k[3], close: +k[4] })));
+  const PL = [], L = (p, color, title, style = 2, w = 1) => { if (!(isNum(p) && p > 0)) return; PL.push(+p); cs.createPriceLine({ price: +p, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }); };
+  if (!r.tF) lv.forEach((l, i) => L(l.px, css("--ink-3"), `${bi("mức", "lvl")} ${i + 1}`));
+  if (r.e) L(r.e, css("--brand"), bi("vào", "in"), 0, 2); if (r.stop) L(r.stop, css("--down"), bi("cắt lỗ", "stop")); if (r.x) L(r.x, (r.pnl ?? 0) >= 0 ? css("--up") : css("--down"), bi("ra", "out"), 0, 2);
+  if (PL.length) cs.applyOptions({ autoscaleInfoProvider: (orig) => { const o = orig(); if (!o?.priceRange) return o; const lo = Math.min(o.priceRange.minValue, ...PL), hi = Math.max(o.priceRange.maxValue, ...PL), pd = (hi - lo) * 0.05; return { ...o, priceRange: { minValue: lo - pd, maxValue: hi + pd } }; } });
+  const up = r.side > 0, M = [];
+  if (r.tS) M.push({ time: tt(r.tS), position: up ? "aboveBar" : "belowBar", color: css("--brass") || "#d9a441", shape: up ? "arrowDown" : "arrowUp", text: bi("sốc", "shock") });
+  if (r.tF) M.push({ time: tt(r.tF), position: up ? "belowBar" : "aboveBar", color: css("--brand"), shape: up ? "arrowUp" : "arrowDown", text: bi("vào", "in") });
+  if (r.tX) M.push({ time: tt(r.tX), position: up ? "aboveBar" : "belowBar", color: (r.pnl ?? 0) >= 0 ? css("--up") : css("--down"), shape: "circle", text: bi("ra", "out") });
+  cs.setMarkers(M.filter((m) => isNum(m.time)).sort((a, b) => a.time - b.time)); c.timeScale().fitContent();
+  return r;
+}
+// xem nhanh coin (cảnh báo giá, cơ hội…): nến 15 phút 24 giờ qua + giá hiện tại
+async function coinPeek(sym, box) {
+  sym = String(sym || "").toUpperCase().replace(/USDT$/, "");
+  box.innerHTML = `<div class="tpk-c" id="tpkC"><p class="faint">${bi("Đang tải nến…", "Loading candles…")}</p></div><dl class="tpk-f" id="tpkF"></dl>`;
+  let K = null; for (const u of [`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}USDT&interval=15m&limit=96`, `https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=15m&limit=96`]) { try { const q = await fetch(u); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử nguồn khác */ } }
+  const el = box.querySelector("#tpkC"); if (!el || !el.isConnected) return;
+  if (!K || typeof LightweightCharts === "undefined") { el.innerHTML = `<p class="faint">${bi("Không lấy được nến.", "Couldn't load candles.")}</p>`; return; }
+  el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60;
+  const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, handleScroll: false, handleScale: false }); charts.push(c);
+  const dec = pdec(+K[K.length - 1][4]), cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
+  cs.setData(K.map((k) => ({ time: Math.floor(+k[0] / 1000) + off, open: +k[1], high: +k[2], low: +k[3], close: +k[4] }))); c.timeScale().fitContent();
+  const o = +K[0][1], l = +K[K.length - 1][4], hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), ch = (l / o - 1) * 100;
+  const f = box.querySelector("#tpkF"); if (f) f.innerHTML = [[bi("Giá", "Price"), `<b>${px(l)}</b>`, ""], ["24h", `<b class="${cls(ch)}">${ch >= 0 ? "+" : ""}${nf(ch, 2)}%</b>`, ""], [bi("Cao / thấp 24h", "24h high / low"), `<b>${px(hi)}</b>`, px(lo)]].map(([a, b, c2]) => `<div><dt>${a}</dt><dd>${b}${c2 ? `<small>${c2}</small>` : ""}</dd></div>`).join("");
+}
