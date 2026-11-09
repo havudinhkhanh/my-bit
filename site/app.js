@@ -6011,13 +6011,13 @@ function lvwPlace(el, anim = true) {
   const cw = Math.min(360, K.W - 24), room = up ? y - K.T - 8 : K.B - (y + h) - 8;
   const cl = Math.max(12 - x, Math.min(K.W - 12 - cw - x, al ? 0 : w - cw));
   el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, room))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
-  ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-" + P.e)); el.classList.toggle("up", up); el.classList.toggle("al", al);
+  ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-" + P.e)); el.classList.toggle("lvw-upw", up); el.classList.toggle("lvw-al", al);
   el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 function lvwMode(m) {
   if (m === LVW.mode) return; const el = document.getElementById("lvw"); LVW.mode = m; lsSet("lvwmode", m); if (m !== "full") { LVW.rest = m; lsSet("lvwrest", m); }
-  if (!el) return; lvsDraw(); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+  if (!el) return; lvsDraw(); el.classList.remove("lvw-pop"); void el.offsetWidth; el.classList.add("lvw-pop");
   if (m === "full") { lvwPx().then(() => lvsDraw()); lvsPull(); }
 }
 function lvsDraw() {
@@ -6034,7 +6034,7 @@ function lvsDraw() {
       if (el.__drag) { e.preventDefault(); e.stopPropagation(); el.__drag = false; return; }
       if (e.target.closest("[data-lvw-dot]")) { e.stopPropagation(); lvwMode("dot"); return; }
       const m = e.target.closest("[data-lvw-m]"); if (m) { lvwMode(m.dataset.lvwM); return; }
-      if (e.target.closest("[data-lvw-t]")) { lvwMode(LVW.mode === "full" ? LVW.rest : "full"); return; }
+      if (e.target.closest("[data-lvw-t]")) { lvwMode(LVW.mode === "full" ? LVW.rest : LVW.mode === "dot" ? "mini" : "full"); return; }      // chấm → viên → thẻ; bấm viên khi đang mở → thu về
       const tb = e.target.closest("[data-lvw-tab]"); if (tb) { LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw(); lvwPx().then(() => lvsDraw()); return; }
       const go = e.target.closest("[data-lvw-go]"); if (go) { window.__scEnv = go.dataset.lvwGo === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }
       if (e.target.closest("a") && MOB.matches) setTimeout(() => lvwMode(LVW.rest), 60);
@@ -6052,7 +6052,10 @@ function lvsDraw() {
         const d = { l: cx - K.L, r: K.R - cx, t: (cy - K.T) * 1.6, b: (K.B - cy) * 1.6 };      // ưu tiên mép trái/phải (đỡ che nội dung trên/dưới)
         const eg = Object.keys(d).reduce((a, b) => (d[a] <= d[b] ? a : b));
         const f = eg === "l" || eg === "r" ? (cy - ph / 2 - K.T) / Math.max(1, K.B - K.T - ph) : (cx - pw / 2 - K.L) / Math.max(1, K.R - K.L - pw);
-        LVW.pos = { e: eg, f: Math.round(Math.max(0, Math.min(1, f)) * 1000) / 1000 }; lsSet("lvwpos", LVW.pos); lvwPlace(el);
+        LVW.pos = { e: eg, f: Math.round(Math.max(0, Math.min(1, f)) * 1000) / 1000 }; lsSet("lvwpos", LVW.pos);
+        // vuốt sát mép trái/phải = cất thành chấm; kéo chấm ra xa mép = mở lại thành viên
+        const tuck = (eg === "l" && lx < 30) || (eg === "r" && lx > K.W - 30), away = Math.abs(lx - px0) > 56 && (eg === "l" ? lx > 70 : eg === "r" ? lx < K.W - 70 : true);
+        if (LVW.mode === "mini" && tuck) lvwMode("dot"); else if (LVW.mode === "dot" && away && !tuck) lvwMode("mini"); else lvwPlace(el);
         if (navigator.vibrate) try { navigator.vibrate(8); } catch (_) {} };
       addEventListener("pointermove", mv, { passive: false }); addEventListener("pointerup", up); addEventListener("pointercancel", up);
     });
@@ -6064,8 +6067,8 @@ function lvsDraw() {
   LVW.sig = sig;
   const P = lvwParts(D), set = (sel, k, html) => { if (LVW.h[k] === html) return; LVW.h[k] = html; const n = el.querySelector(sel); if (!n) return; if (k === "body") { const y = n.scrollTop; n.innerHTML = html; n.scrollTop = y; } else n.innerHTML = html; };
   const pillEl = el.querySelector(".lvw-pill"); set(".lvw-pill", "pill", P.pill); pillEl.setAttribute("aria-expanded", String(LVW.mode === "full"));
-  pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot trực tiếp – bấm để mở, giữ & kéo để đổi chỗ", "Live bot trades – tap to open, hold & drag to move") : bi("Bấm để mở / thu · giữ & kéo tới mép bất kỳ", "Tap to open / close · hold & drag to any edge");
-  ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("open", LVW.mode === "full"); el.classList.toggle("hot", P.st === "hot"); el.classList.toggle("is-dot", LVW.mode === "dot");
+  pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
+  ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
   if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); }
   lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag")); el.__pw = el.querySelector(".lvw-pill").offsetWidth;
 }
