@@ -4326,3 +4326,21 @@ body.pn-sheet .pn-in{position:relative}
 .tx-chips{display:flex;flex-wrap:wrap;gap:6px}.tx-chips span{padding:3px 9px;border-radius:999px;background:var(--sunk);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
 @media print{body.tx-print .tabs,body.tx-print header,body.tx-print .pnav,body.tx-print #lvw,body.tx-print .tx-drop,body.tx-print .tx-f,body.tx-print .tx-del,body.tx-print #txMore,body.tx-print .crumb,body.tx-print .pnfab{display:none!important}
   body.tx-print .tx-big{max-height:none;overflow:visible}body.tx-print .tx-t th,body.tx-print .tx-t td{white-space:normal;font-size:9px;padding:3px 4px}}
+
+/* ===== nút Mở rộng / Toàn màn hình của biểu đồ: nằm ở hàng chú thích bên dưới, không đè lên đường vẽ ===== */
+.cbox:not(.cz-full){display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"c c" "l b";column-gap:10px;align-items:start}
+.cbox:not(.cz-full)>.cbc{grid-area:c;min-width:0}
+.cbox:not(.cz-full)>.leg{grid-area:l}
+.cbox:not(.cz-full)>.cbt{grid-area:b;position:static;opacity:.55;margin-top:4px}
+.cbox:not(.cz-full):hover>.cbt,.cbox:not(.cz-full)>.cbt:focus-within{opacity:1}
+/* ===== Tài sản futures & lời/lỗ cộng dồn: thanh khoảng thời gian chung + số tóm tắt ===== */
+.lv-rng{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:2px 0 12px}
+.lv-rng .bseg{flex-wrap:wrap}
+.lv-cus{display:inline-flex;flex-wrap:wrap;gap:8px;align-items:center}.lv-cus label{display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-sm);color:var(--ink-2)}
+.lv-rng-t{font-size:var(--fs-xs);font-variant-numeric:tabular-nums;margin-left:auto}
+#lvEqBox .panel>.bseg{margin-bottom:8px}
+.lv-kp{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:2px 0 8px}
+.lv-kp>span{display:grid;gap:1px;padding:8px 10px;border-radius:10px;background:var(--sunk);min-width:0}
+.lv-kp i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3)}.lv-kp b{font-variant-numeric:tabular-nums;font-size:var(--fs-base);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-kp small{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lv-kp .up{color:var(--up)}.lv-kp .down{color:var(--down)}
+@media (max-width:640px){.lv-kp{grid-template-columns:1fr 1fr}.lv-rng-t{margin-left:0;width:100%}}

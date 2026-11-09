@@ -367,7 +367,8 @@ function lineDraw(series, opt, W, H, cx) {
   });
   const ref = series[0].pts;
   const nx = Math.max(2, Math.floor((W - pl - pr) / 90)), step = Math.max(1, Math.ceil(ref.length / nx));
-  ref.forEach((p, i) => { if (i % step === 0 && (ref.length - 1 - i) * (W - pl - pr) / Math.max(1, n - 1) > Math.max(40, String(p.x).length * 6.5) || i === ref.length - 1) s += `<text x="${X(i).toFixed(1)}" y="${H - 5}" text-anchor="${i === ref.length - 1 ? "end" : i === 0 ? "start" : "middle"}" class="xa">${esc(p.x)}</text>`; });
+  const lastW = String(ref[ref.length - 1]?.x ?? "").length * 6.2;
+  ref.forEach((p, i) => { if (i % step === 0 && (ref.length - 1 - i) * (W - pl - pr) / Math.max(1, n - 1) > Math.max(40, lastW + String(p.x).length * 3.3 + 8) || i === ref.length - 1) s += `<text x="${X(i).toFixed(1)}" y="${H - 5}" text-anchor="${i === ref.length - 1 ? "end" : i === 0 ? "start" : "middle"}" class="xa">${esc(p.x)}</text>`; });
   s += `</svg>`;
   cx.hover = (mx2) => {
     if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;

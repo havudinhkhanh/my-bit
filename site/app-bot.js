@@ -91,6 +91,8 @@ document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-
 function lvEqBind() {
   $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
+  $$("#lvEqBox [data-lvc]").forEach((b) => (b.onclick = () => { window.__lvCm = b.dataset.lvc; lsSet("lvcm", b.dataset.lvc); window.__lvEqRedraw?.(); }));
+  ["#lvA", "#lvB"].forEach((id) => { const el = $(id); if (el) el.onchange = () => { const c = lsGet("lvcus", {}) || {}; c[id === "#lvA" ? "a" : "b"] = el.value || null; lsSet("lvcus", c); window.__lvEqRedraw?.(); }; });
 }
 // ✋ Đóng tay: trước khi gửi, hiện bảng ƯỚC TÍNH lời/lỗ ròng nếu đóng NGAY (giá sống − phí đã trả − phí lúc đóng − trượt giá ± funding),
 // giá hoà vốn sau phí, % tổng tài sản. Nút xác nhận mở sau 1,2 giây để không lỡ tay bấm liền. Số tự cập nhật mỗi giây theo giá.
@@ -540,42 +542,81 @@ async function viewScalp() {
   const LVEV = (LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "lv" })).map((e) => ({ ...e, c: /🔍/.test(e.m) ? "skip" : evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
   // ---- 📈 tài sản futures: chọn khoảng (24 giờ / 7 ngày / 30 ngày / từ đầu) & cách xem (Tài sản · Lời/lỗ thật = bỏ tiền nạp/rút)
   const EQ5 = EQL, EQHR = LV?.eqHr?.[LVE] || [], EQDY = LV?.eqDay?.[LVE] || [], FLW = (LV?.flow?.[LVE] || []).slice().sort((a, b) => a[0] - b[0]);
-  const LVR = [["1d", bi("24 giờ", "24h"), 1440], ["7d", bi("7 ngày", "7D"), 10080], ["30d", bi("30 ngày", "30D"), 43200], ["all", bi("Từ đầu", "All"), Infinity]];
-  const lvSeries = (rk) => {      // ghép: ngày (cũ) → giờ → 5 phút (mới nhất), mỗi phần chỉ dùng trước điểm đầu của phần chi tiết hơn
-    const span = (LVR.find((r) => r[0] === rk) || LVR[1])[2], f0 = EQ5[0]?.[0] ?? Infinity, h0 = EQHR[0]?.[0] ?? f0;
-    let A = [...EQDY.filter((q) => q[0] < Math.min(h0, f0)), ...EQHR.filter((q) => q[0] < f0), ...EQ5];
-    const now = A.length ? A[A.length - 1][0] : 0; A = A.filter((q) => q[0] >= now - span);
-    if (span >= 43200 && A.length > 800) { const k = Math.ceil(A.length / 800); A = A.filter((_, i) => i % k === 0 || i === A.length - 1); }
+  // khoảng thời gian dùng chung cho 2 biểu đồ: có sẵn (24 giờ → từ đầu) hoặc tự chọn từ ngày A tới ngày B (giờ VN)
+  const LVR = [["1d", bi("24 giờ", "24h"), 1], ["7d", bi("7 ngày", "7D"), 7], ["14d", bi("14 ngày", "14D"), 14], ["30d", bi("30 ngày", "30D"), 30], ["90d", bi("90 ngày", "90D"), 90], ["ytd", bi("Từ đầu năm", "YTD"), 0], ["all", bi("Từ đầu", "All"), 0], ["cus", bi("Từ ngày…", "Custom…"), 0]];
+  const vnMs = (d) => Date.parse(d + "T00:00:00Z") - 7 * 3600e3, vnD = (ms) => new Date(ms + 7 * 3600e3).toISOString().slice(0, 10);
+  const lvRange = (rk) => {
+    const now = Date.now();
+    if (rk === "cus") { const c = lsGet("lvcus", {}) || {}; const a = c.a ? vnMs(c.a) : 0, b = c.b ? vnMs(c.b) + 864e5 - 1 : now; return a <= b ? [a, b] : [b, a]; }
+    if (rk === "all") return [0, now]; if (rk === "ytd") return [vnMs(vnD(now).slice(0, 4) + "-01-01"), now];
+    return [now - ((LVR.find((r) => r[0] === rk) || LVR[1])[2]) * 864e5, now];
+  };
+  const lvSeries = (a, b) => {      // ghép: ngày (cũ) → giờ → 5 phút (mới nhất), mỗi phần chỉ dùng trước điểm đầu của phần chi tiết hơn
+    const f0 = EQ5[0]?.[0] ?? Infinity, h0 = EQHR[0]?.[0] ?? f0, ma = a / 60000, mb = b / 60000;
+    let A = [...EQDY.filter((q) => q[0] < Math.min(h0, f0)), ...EQHR.filter((q) => q[0] < f0), ...EQ5].filter((q) => q[0] >= ma && q[0] <= mb);
+    if (A.length > 800) { const k = Math.ceil(A.length / 800); A = A.filter((_, i) => i % k === 0 || i === A.length - 1); }
     return A;
   };
+  // mọi lệnh đã đóng của tài khoản này: sổ lưu mãi trên máy chủ (tải nền) + lệnh vừa đóng trong trạng thái trực tiếp
+  if (!window.__scLed || Date.now() - window.__scLed.t > 300e3) { window.__scLed = { t: Date.now(), data: window.__scLed?.data || null }; Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; window.__lvEqRedraw?.(); }).catch(() => {}); }
+  const lvTrAll = () => (typeof jRows === "function" ? jRows(window.__scLed?.data || null, X).filter((r) => r.env === LVE) : []).map((r) => ({ ...r, tm: jT(r.t2) })).filter((r) => isNum(r.tm)).sort((p, q) => p.tm - q.tm);
+  const lvFmtX = (span) => (ms) => new Date(ms).toLocaleString(LOC, span <= 2 * 864e5 ? { hour: "2-digit", minute: "2-digit" } : span <= 15 * 864e5 ? { day: "2-digit", month: "2-digit", hour: "2-digit" } : { day: "2-digit", month: "2-digit", year: "2-digit" });
   const lvEqHtml = () => {
-    const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : lsGet("lvrng", "7d"), md = window.__lvMd || lsGet("lvmd", "eq"), A = lvSeries(rk);
-    const seg = `<div class="lv-ctl"><div class="bseg" role="tablist">${LVR.map(([k, t]) => `<button type="button" data-lvr="${k}" class="${k === rk ? "on" : ""}">${t}</button>`).join("")}</div>
-      <div class="bseg">${[["eq", bi("Tài sản", "Equity")], ["pl", bi("Lời/lỗ thật", "Real P/L")]].map(([k, t]) => `<button type="button" data-lvm="${k}" class="${k === md ? "on" : ""}">${t}</button>`).join("")}</div></div>`;
-    if (A.length < 3) return seg + empty(bi("Đường tài sản hiện sau khi máy chủ riêng cập nhật bản mới (5 phút 1 điểm).", "The equity line appears once your server runs the new version."));
-    // nạp/rút trong từng đoạn → lời/lỗ thật (tài sản − tiền nạp ròng) và % lời/lỗ theo thời gian (TWR: nối % từng đoạn, tiền nạp/rút không tính là lời)
-    let fi = 0; while (fi < FLW.length && FLW[fi][0] <= A[0][0]) fi++;
-    let net = 0, tw = 1; const PL = [0], NETS = [0], FLAT = A.map(() => null), FLC = A.map(() => null);
-    for (let i = 1; i < A.length; i++) {
-      let f = 0; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) f += FLW[fi++][1];
-      if (f) { FLAT[i] = A[i][1]; FLC[i] = f > 0 ? "#3B82F6" : "#F59E0B"; }
-      net += f; NETS.push(net); PL.push(A[i][1] - A[0][1] - net);
-      if (A[i - 1][1] > 0) tw *= (A[i][1] - f) / A[i - 1][1];
+    const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : LVR.some((r) => r[0] === lsGet("lvrng", "7d")) ? lsGet("lvrng", "7d") : "7d", md = window.__lvMd || lsGet("lvmd", "eq"), cm = window.__lvCm || lsGet("lvcm", "t");
+    const [a, b] = lvRange(rk), A = lvSeries(a, b), TR = lvTrAll().filter((r) => r.tm >= a && r.tm <= b), cus = lsGet("lvcus", {}) || {};
+    const bar = `<div class="lv-rng"><div class="bseg" role="tablist" aria-label="${bi("Khoảng thời gian", "Time range")}">${LVR.map(([k, t]) => `<button type="button" data-lvr="${k}" class="${k === rk ? "on" : ""}">${t}</button>`).join("")}</div>
+      ${rk === "cus" ? `<span class="lv-cus"><label>${bi("Từ", "From")} <input type="date" id="lvA" value="${esc(cus.a || "")}" max="${vnD(Date.now())}"></label><label>${bi("đến", "to")} <input type="date" id="lvB" value="${esc(cus.b || "")}" max="${vnD(Date.now())}"></label></span>` : ""}
+      <span class="lv-rng-t faint">${a ? vnD(a).split("-").reverse().join("/") : bi("ngày đầu", "first day")} → ${vnD(b).split("-").reverse().join("/")}</span></div>`;
+    // ---- 1) tài sản / lời lỗ thật / sụt từ đỉnh
+    let eqP;
+    const segM = `<div class="bseg">${[["eq", bi("Tài sản", "Equity")], ["pl", bi("Lời/lỗ thật", "Real P/L")], ["dd", bi("Sụt từ đỉnh", "Drawdown")]].map(([k, t]) => `<button type="button" data-lvm="${k}" class="${k === md ? "on" : ""}">${t}</button>`).join("")}</div>`;
+    if (A.length < 3) eqP = segM + empty(bi("Chưa có điểm tài sản trong khoảng này (máy chủ riêng lưu 5 phút 1 điểm).", "No equity points in this range (the server stores one every 5 minutes)."));
+    else {
+      // nạp/rút trong từng đoạn → lời/lỗ thật (tài sản − tiền nạp ròng), % theo thời gian (TWR) và mức sụt từ đỉnh của chỉ số TWR (nạp/rút không làm sai)
+      let fi = 0; while (fi < FLW.length && FLW[fi][0] <= A[0][0]) fi++;
+      let net = 0, tw = 1, pk = 1, mdd = 0, ddAt = 0; const PL = [0], DD = [0], FLAT = A.map(() => null), FLC = A.map(() => null);
+      for (let i = 1; i < A.length; i++) {
+        let f = 0; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) f += FLW[fi++][1];
+        if (f) { FLAT[i] = A[i][1]; FLC[i] = f > 0 ? "#3B82F6" : "#F59E0B"; }
+        net += f; PL.push(A[i][1] - A[0][1] - net);
+        if (A[i - 1][1] > 0) tw *= (A[i][1] - f) / A[i - 1][1];
+        pk = Math.max(pk, tw); const dd = (tw / pk - 1) * 100; DD.push(dd); if (dd < mdd) { mdd = dd; ddAt = i; }
+      }
+      const E0 = A[0][1], E1 = A[A.length - 1][1], pl = E1 - E0 - net, twr = (tw - 1) * 100, fx = lvFmtX((A[A.length - 1][0] - A[0][0]) * 60000);
+      const mk = A.map(() => null), mc = A.map(() => null), tip = A.map(() => null);
+      const yv = (i) => (md === "pl" ? PL[i] : md === "dd" ? DD[i] : A[i][1]);
+      TR.forEach((h) => { const m = h.tm / 60000; let i = -1; for (let j = 0; j < A.length; j++) if (A[j][0] <= m) i = j; if (i >= 0) { mk[i] = yv(i); mc[i] = h.pnl >= 0 ? css("--up") : css("--down"); tip[i] = `${String(h.k).split(":")[0]} ${h.side > 0 ? "L" : "S"} ${sg$(h.pnl)}`; } });
+      const main = md === "pl" ? { name: bi("Lời/lỗ thật (USDT, bỏ nạp/rút)", "Real P/L (USDT, excl. transfers)"), color: css("--brass") || css("--brand"), width: 2, pts: A.map(([m], i) => ({ x: fx(m * 60000), y: +PL[i].toFixed(3) })) }
+        : md === "dd" ? { name: bi("Sụt từ đỉnh (%)", "Drawdown from peak (%)"), color: css("--down"), width: 2, pts: A.map(([m], i) => ({ x: fx(m * 60000), y: +DD[i].toFixed(2) })) }
+        : { name: bi("Tài sản futures (USDT)", "Futures equity (USDT)"), color: css("--brand"), width: 2, pts: A.map(([m, v]) => ({ x: fx(m * 60000), y: v })) };
+      const S = [main, { name: bi("Đóng lệnh", "Trade close"), dots: true, color: css("--ink-2"), pts: mk.map((y, i) => ({ x: "", y, c: mc[i], tip: tip[i], tc: mc[i] === css("--up") ? "up" : "down" })) }];
+      if (FLAT.some((v) => v != null)) S.push({ name: bi("Nạp (xanh) / rút (cam)", "Deposit (blue) / withdraw (orange)"), dots: true, color: "#3B82F6", pts: FLAT.map((y, i) => ({ x: "", y: y == null ? null : yv(i), c: FLC[i] })) });
+      const hl = md === "eq" ? [{ y: Math.max(...A.map((q) => q[1])), color: "var(--ink-3)", label: bi("đỉnh", "peak") }] : md === "dd" && mdd < 0 ? [{ y: mdd, color: css("--down"), label: `${bi("sụt sâu nhất", "max DD")} ${nf(mdd, 2)}%` }] : [];
+      const nW = TR.filter((h) => h.pnl > 0).length;
+      const sum = `<div class="lv-kp"><span><i>${bi("Lời/lỗ thật", "Real P/L")}</i><b class="${cls(pl)}">${sg$(pl)}</b><small class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</small></span><span><i>${bi("Sụt sâu nhất", "Max drawdown")}</i><b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b><small>${mdd < 0 ? fx(A[ddAt][0] * 60000) : "—"}</small></span><span><i>${bi("Nạp/rút ròng", "Net transfers")}</i><b>${net ? sg$(net) : "$0"}</b><small>${u$(E0)} → ${u$(E1)}</small></span><span><i>${bi("Lệnh đóng", "Closed trades")}</i><b>${TR.length}</b><small>${TR.length ? `${bi("thắng", "won")} ${nf(nW / TR.length * 100, 0)}%` : "—"}</small></span></div>`;
+      eqP = segM + sum + lineSvg(S, { h: 210, dec: 2, zero: md !== "eq", hlines: hl, fmt: md === "dd" ? (v) => nf(v, 1) + "%" : null });
     }
-    const E0 = A[0][1], E1 = A[A.length - 1][1], pl = E1 - E0 - net, twr = (tw - 1) * 100;
-    const fmtX = (m) => new Date(m * 60000).toLocaleString(LOC, rk === "1d" ? { hour: "2-digit", minute: "2-digit" } : rk === "7d" ? { day: "2-digit", month: "2-digit", hour: "2-digit" } : { day: "2-digit", month: "2-digit" });
-    const mk = A.map(() => null), mc = A.map(() => null);
-    LH.forEach((h) => { const m = Math.floor(Date.parse(h.t2 + "Z") / 60000); if (m < A[0][0]) return; let i = -1; for (let j = 0; j < A.length; j++) if (A[j][0] <= m) i = j; if (i >= 0) { mk[i] = md === "pl" ? PL[i] : A[i][1]; mc[i] = h.pnl >= 0 ? css("--up") : css("--down"); } });
-    const main = md === "pl" ? { name: bi("Lời/lỗ thật (USDT, bỏ nạp/rút)", "Real P/L (USDT, excl. transfers)"), color: css("--brass") || css("--brand"), width: 2, pts: A.map(([m], i) => ({ x: fmtX(m), y: +PL[i].toFixed(3) })) }
-      : { name: bi("Tài sản futures (USDT)", "Futures equity (USDT)"), color: css("--brand"), width: 2, pts: A.map(([m, v]) => ({ x: fmtX(m), y: v })) };
-    const S = [main, { name: bi("Đóng lệnh", "Trade close"), dots: true, color: css("--ink-2"), pts: mk.map((y, i) => ({ x: "", y, c: mc[i] })) }];
-    if (FLAT.some((v) => v != null)) S.push({ name: bi("Nạp (xanh) / rút (cam)", "Deposit (blue) / withdraw (orange)"), dots: true, color: "#3B82F6", pts: FLAT.map((y, i) => ({ x: "", y: y == null ? null : md === "pl" ? PL[i] : y, c: FLC[i] })) });
-    const sum = `<p class="lv-sum"><span>${bi("Lời/lỗ thật", "Real P/L")} <b class="${cls(pl)}">${sg$(pl)}</b> <b class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</b></span><span>${bi("Nạp/rút ròng", "Net transfers")} <b>${net ? sg$(net) : "$0"}</b></span><span class="faint">${u$(E0)} → ${u$(E1)}</span></p>`;
-    return seg + sum + lineSvg(S, { h: 200, dec: 2, zero: md === "pl" });
+    // ---- 2) lời/lỗ cộng dồn theo từng lệnh hoặc từng ngày (sau phí & funding) + đường trước phí để thấy phí ăn bao nhiêu
+    let cumP;
+    const segC = `<div class="bseg">${[["t", bi("Từng lệnh", "Per trade")], ["d", bi("Từng ngày", "Per day")]].map(([k, t]) => `<button type="button" data-lvc="${k}" class="${k === cm ? "on" : ""}">${t}</button>`).join("")}</div>`;
+    if (TR.length < 1) cumP = segC + empty(bi("Không có lệnh nào đóng trong khoảng này.", "No trades closed in this range."));
+    else {
+      const fx = lvFmtX(Math.max(1, TR[TR.length - 1].tm - TR[0].tm));
+      let pts = TR.map((h) => ({ x: fx(h.tm), v: h.pnl, g: h.g, tip: `${String(h.k).split(":")[0]} ${h.side > 0 ? "Long" : "Short"} · ${JWHY[h.why] || h.why || ""}` }));
+      if (cm === "d") { const G = new Map(); for (const h of TR) { const d = vnDayOf(String(h.t2).slice(0, 19)), g = G.get(d) || { x: d.slice(8, 10) + "/" + d.slice(5, 7), v: 0, g: 0, n: 0 }; g.v += h.pnl; g.g += h.g; g.n++; G.set(d, g); } pts = [...G.values()].map((g) => ({ ...g, tip: `${g.n} ${bi("lệnh", "trades")}` })); }
+      let cn = 0, cg = 0; const NET = pts.map((p) => +(cn += p.v).toFixed(3)), GR = pts.map((p) => +(cg += p.g).toFixed(3));
+      const S = [{ name: bi("Cộng dồn sau phí & funding", "Cumulative after fees & funding"), color: css("--brass") || css("--brand"), width: 2.2, pts: pts.map((p, i) => ({ x: p.x, y: NET[i] })) },
+        { name: bi("Cộng dồn trước phí", "Cumulative before fees"), color: css("--ink-3"), width: 1.2, dash: "4 3", pts: pts.map((p, i) => ({ x: p.x, y: GR[i] })) },
+        { name: cm === "d" ? bi("Lời/lỗ từng ngày", "Daily P/L") : bi("Lời/lỗ từng lệnh", "P/L per trade"), bars: true, pts: pts.map((p) => ({ x: p.x, y: +p.v.toFixed(3), tip: p.tip, tc: p.v >= 0 ? "up" : "down" })) }];
+      const W = TR.filter((h) => h.pnl > 0), Lz = TR.filter((h) => h.pnl <= 0), gw = W.reduce((s2, h) => s2 + h.pnl, 0), gl = -Lz.reduce((s2, h) => s2 + h.pnl, 0), fees = TR.reduce((s2, h) => s2 + (h.fee || 0) - (h.fund || 0), 0);
+      const best = TR.reduce((m, h) => (h.pnl > m.pnl ? h : m), TR[0]), worst = TR.reduce((m, h) => (h.pnl < m.pnl ? h : m), TR[0]);
+      const sum = `<div class="lv-kp"><span><i>${bi("Ròng", "Net")}</i><b class="${cls(cn)}">${sg$(cn)}</b><small>${TR.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / TR.length * 100, 0)}%</small></span><span><i>${bi("TB / lệnh", "Avg / trade")}</i><b class="${cls(cn)}">${sg$(cn / TR.length)}</b><small>${gl > 0 ? `${bi("hệ số lời", "profit factor")} ${nf(gw / gl, 2)}` : bi("chưa có lệnh lỗ", "no losing trade")}</small></span><span><i>${bi("Phí & funding", "Fees & funding")}</i><b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b><small>${cg > 0 ? `${nf(fees / cg * 100, 0)}% ${bi("lời trước phí", "of gross")}` : "—"}</small></span><span><i>${bi("Lệnh tốt nhất", "Best trade")}</i><b class="up">${sg$(best.pnl)} <small>${esc(String(best.k).split(":")[0])}</small></b><small>${bi("tệ nhất", "worst")} <b class="down">${sg$(worst.pnl)}</b> ${esc(String(worst.k).split(":")[0])}</small></span></div>`;
+      cumP = segC + sum + lineSvg(S, { h: 210, dec: 2, zero: true }) + `<p class="sc-more-l"><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh đầy đủ →", "Full trade book →")}</a></p>`;
+    }
+    return `${bar}<div class="sc-g2">${panel(bi("Tài sản futures", "Futures equity"), `${eqP}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh (rê chuột để xem coin & lời/lỗ). <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền nạp/rút ví futures; <b>%</b> và <b>Sụt từ đỉnh</b> tính kiểu quỹ đầu tư (nối % từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm số đẹp giả.", "Includes unrealized P/L · dots = trade closes (hover for coin & P/L). <b>Real P/L</b> = equity change minus futures-wallet transfers; <b>%</b> and <b>Drawdown</b> are time-weighted, so deposits don't flatter the numbers.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), cumP, `${TR.length} ${bi("lệnh trong khoảng", "trades in range")}`)}</div>`;
   };
   const lvEqChart = `<div id="lvEqBox">${lvEqHtml()}</div>`;
-  window.__lvEqRedraw = () => { const b = $("#lvEqBox"); if (b) { b.innerHTML = lvEqHtml(); lvEqBind(); } };
-  let lc = 0; const lvCum = LHs.length > 1 ? lineSvg([{ name: bi("🪝 Lời/lỗ cộng dồn (USDT)", "🪝 Cumulative P/L (USDT)"), color: css("--brass") || css("--brand"), width: 2, pts: LHs.map((h) => ({ x: hms(h.t2), y: +(lc += h.pnl).toFixed(3) })) }], { h: 160, dec: 2, zero: true }) : empty(bi("Chưa đủ lệnh đã đóng để vẽ.", "Not enough closed trades to chart."));
+  window.__lvEqRedraw = () => { const b2 = $("#lvEqBox"); if (b2) { b2.innerHTML = lvEqHtml(); lvEqBind(); } };
   // so với sàn thử: cùng cú sốc (cùng coin, cách nhau ≤ 20 phút)
   const PH = AT.filter((t) => t.strat === "hook"), tms = (x) => Date.parse((x || "") + "Z");
   const pFind = (k, tm) => PH.find((t) => t.k === k && Math.abs(tms(t.ts || t.t0) - tm) < 20 * 60e3);
@@ -642,7 +683,7 @@ async function viewScalp() {
       <div class="sc-g2">${panel("Tài sản · 12 giờ", `${eqChart}<p class="faint sc-cap">Chấm = lúc đóng lệnh (xanh lời, đỏ lỗ).</p>`)}${panel("⚖️ Lời/lỗ theo phương pháp", `${stChart}${stTable}`, "80 lệnh gần nhất")}</div>`
     : lvOff ? `${lvOffP}<!--LB-->` : `${halt}${lvCards}${/rk-b (full|hi)/.test(lvRisk) ? `<p class="sc-goord sc-rkw"><span>⚠️ ${bi("Giới hạn an toàn của tài khoản sắp đầy – bot có thể ngừng mở lệnh mới", "Account safety limits nearly full – the bot may stop opening trades")}</span><a class="btn sm" href="#/bot/binance">${bi("Xem →", "View →")}</a></p>` : ""}<!--LB-->
       <div class="sc-g2">${panel(bi("Đang mở & chờ khớp", "Open & pending"), `${lvOpen || swOpenL || xOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
-      <div class="sc-g2">${panel(bi("Tài sản futures", "Futures equity"), `${lvEqChart}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh. <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền anh nạp vào / rút ra ví futures; <b>%</b> tính kiểu quỹ đầu tư (nối % lời/lỗ từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm % tăng giả.", "Includes unrealized P/L · dots = trade closes. <b>Real P/L</b> = equity change minus transfers in/out of the futures wallet; <b>%</b> is time-weighted, so deposits don't inflate it.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), lvCum, `${LH.length} ${bi("lệnh gần nhất", "recent trades")}`)}</div>
+      ${lvEqChart}
       <p class="sc-goord"><span>${bi("Tổng tài sản các ví, giới hạn an toàn, trạng thái khoá của tài khoản", "Total assets across wallets, safety limits, key status")}</span><a class="btn sm" href="#/bot/binance">${bi("Tài khoản Binance →", "Binance account →")}</a></p>`;
   else if (TB === "ord") body = ENV === "paper" ? `${omChips}<div data-om="open">${openP}</div>
       <div data-om="hook">${panel("Bắt râu sập · đã đóng", `${hkTrades}<p class="faint sc-cap">Bấm 📈 để xem nến 1 phút quanh cú sốc: giá sau cú sốc, 2 mức chờ, điểm khớp và điểm thoát (giá lấy trực tiếp từ Binance).</p>`, `${HT.length} lệnh gần nhất`)}</div>
