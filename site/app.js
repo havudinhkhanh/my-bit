@@ -4350,7 +4350,7 @@ async function i18nInit() {
   document.documentElement.lang = I18N.lang;
   if (I18N.lang !== "en") return;
   try {
-    I18N.d = await (await fetch("i18n-en.json", { cache: "no-cache" })).json();
+    I18N.d = await (await fetch("i18n-en.json", { cache: "no-store" })).json();      // no-store: luôn lấy bản dịch mới nhất, không qua bộ nhớ đệm của ứng dụng (bản cũ làm câu vừa dịch vẫn hiện tiếng Việt)
     const root = {};
     for (const k of Object.keys(I18N.d)) { let n = root; for (let i = 0; i < k.length; i++) n = Object.prototype.hasOwnProperty.call(n, k[i]) ? n[k[i]] : (n[k[i]] = {}); n[""] = k; }
     I18N.trie = root;

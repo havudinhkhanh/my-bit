@@ -4778,5 +4778,17 @@
 "Sai quá nhiều lần – thử lại sau 15 phút": "Too many attempts – try again in 15 minutes",
 "Admin viên": "Administrator",
 "Đổi": "Change",
-"Sàn thử lệnh tay": "Manual paper trading"
+"Sàn thử lệnh tay": "Manual paper trading",
+"Toàn cảnh thị trường crypto": "Crypto market overview",
+"Bảng coin & bộ lọc": "Coin table & filters",
+"Danh mục spot & futures": "Spot & futures portfolio",
+"Theo dõi & cảnh báo giá": "Watchlist & price alerts",
+"Thông báo trên web": "Web notifications",
+"Cập nhật 15 phút & giá trực tiếp": "15-minute updates & live prices",
+"Định giá & phân tích đầy đủ từng coin": "Full valuation & analysis per coin",
+"Futures: funding, OI, basis, phòng hộ": "Futures: funding, OI, basis, hedging",
+"Kiểm chứng chiến lược": "Strategy verification",
+"Thông báo qua email": "Email notifications",
+"Bot giao dịch tự động (sàn thử)": "Automated trading bots (paper)",
+"Đang dùng": "Current"
 }
