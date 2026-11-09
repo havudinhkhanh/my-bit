@@ -5375,20 +5375,33 @@ function ntTabSwipe(root, list, go) {
     root.querySelector(`[data-nf="${K[nx]}"]`)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
   }, { passive: true });
 }
-// điện thoại: vuốt 1 thông báo sang trái = đã đọc, sang phải = chưa đọc (kéo theo ngón tay, quá 64px thì áp dụng)
+// điện thoại: vuốt 1 thông báo kiểu iPhone/Android – lớp hành động hiện dần phía sau, biểu tượng lớn dần theo ngón tay,
+// qua ngưỡng thì "bật" (đổi màu + rung nhẹ), thả tay mới thực hiện; chưa qua ngưỡng thì trượt về, không làm gì.
+//   vuốt TRÁI → Đã đọc (hoặc Chưa đọc nếu đã đọc) · vuốt PHẢI → Xem nhanh
 function ntSwipe(it, n) {
-  let x0 = 0, y0 = 0, dx = 0, on = false, dead = false;
-  it.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; on = false; dead = false; }, { passive: true });
+  const T = 84; let x0 = 0, y0 = 0, dx = 0, on = false, dead = false, arm = false, bg = null;
+  const mkBg = () => {
+    const par = it.parentElement; if (!par) return null; if (getComputedStyle(par).position === "static") par.style.position = "relative";
+    const x = n(), rd = !!x?.read_at, b = document.createElement("div"); b.className = "nt-swbg";
+    b.innerHTML = `<span class="sl"><i>👁</i><b>Xem nhanh</b></span><span class="sr"><i>${rd ? "●" : "✓"}</i><b>${rd ? "Chưa đọc" : "Đã đọc"}</b></span>`;
+    Object.assign(b.style, { top: it.offsetTop + "px", left: it.offsetLeft + "px", width: it.offsetWidth + "px", height: it.offsetHeight + "px" });
+    par.insertBefore(b, it); return b;
+  };
+  it.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; dx = 0; on = false; dead = false; arm = false; }, { passive: true });
   it.addEventListener("touchmove", (e) => {
     if (dead) return; const t = e.touches[0], mx = t.clientX - x0, my = t.clientY - y0;
-    if (!on) { if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { dead = true; return; } if (Math.abs(mx) < 12) return; on = true; it.classList.add("nt-sw"); }
-    dx = Math.max(-120, Math.min(120, mx)); e.preventDefault();
-    it.style.transform = `translateX(${dx}px)`; it.dataset.sw = dx < -64 ? "read" : dx > 64 ? "unread" : "";
+    if (!on) { if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)) { dead = true; return; } if (Math.abs(mx) < 12) return; on = true; it.classList.add("nt-sw"); bg = mkBg(); }
+    e.preventDefault(); dx = mx;
+    const a = Math.abs(dx), eff = Math.sign(dx) * (a < T ? a : Math.min(T + (a - T) * 0.35, T + 70)), p = Math.min(1, a / T);
+    it.style.transform = `translateX(${eff}px)`;
+    if (bg) { bg.dataset.dir = dx < 0 ? "r" : "l"; bg.style.setProperty("--p", p.toFixed(3)); const nowArm = a >= T; if (nowArm !== arm) { arm = nowArm; bg.classList.toggle("arm", arm); if (arm) navigator.vibrate?.(10); } }
   }, { passive: false });
   const end = () => {
-    if (!on) return; on = false; const x = n(), act = it.dataset.sw;
-    it.classList.add("nt-sw-back"); it.style.transform = ""; it.dataset.sw = ""; setTimeout(() => it.classList.remove("nt-sw", "nt-sw-back"), 260);
-    if (x && act) { navigator.vibrate?.(8); ntSetRead(x, act === "read", it._b); }
+    if (!on) return; on = false; const x = n(), act = arm ? (dx < 0 ? "read" : "peek") : "";
+    it.classList.add("nt-sw-back"); it.style.transform = "";
+    const b = bg; bg = null; if (b) { b.classList.add("out"); setTimeout(() => b.remove(), 280); }
+    setTimeout(() => it.classList.remove("nt-sw", "nt-sw-back"), 280);
+    if (x && act === "read") ntSetRead(x, !x.read_at, it._b); else if (x && act === "peek") setTimeout(() => ntPeek(x), 120);
     const kill = (ev) => { ev.preventDefault(); ev.stopPropagation(); }; it.addEventListener("click", kill, { capture: true, once: true }); setTimeout(() => it.removeEventListener("click", kill, { capture: true }), 350);
   };
   it.addEventListener("touchend", end, { passive: true }); it.addEventListener("touchcancel", end, { passive: true });
@@ -5564,7 +5577,7 @@ async function bellOpen() {
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
-    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw">vuốt dòng: ← đã đọc · → chưa đọc · vuốt chỗ trống: đổi mục</small></div>
+    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw" title="Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục">← đọc · → xem nhanh</small></div>
     <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";
