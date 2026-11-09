@@ -5977,7 +5977,8 @@ function pinDraw() {
   const L = pinList();
   box.innerHTML = L.map((k) => { const o = pinOpt(k); if (!o) return ""; const fn = k.startsWith("fn:");
     return `<a class="nav-pin" draggable="true" data-pin="${esc(k)}" href="${fn ? "#" : esc(o.href)}" ${!fn && o.r ? `data-r="${esc(o.r)}"` : ""} ${!fn && o.sc ? `data-sc="${esc(o.sc)}"` : ""} title="${esc(o.t)} · kéo để xếp lại">${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">${esc(o.tn || o.t)}</span><button type="button" class="nav-unpin" data-unpin="${esc(k)}" title="Bỏ ghim" aria-label="Bỏ ghim">✕</button></a>`; }).join("")
-    + `<button type="button" class="nav-addpin" data-addpin title="Ghim trang / chức năng bất kỳ"><span>＋</span><span class="nav-t">Ghim lối tắt</span></button>`;
+    + (L.length ? "" : `<button type="button" class="nav-addpin" data-addpin title="Ghim trang / chức năng bất kỳ"><span>＋</span><span class="nav-t">Ghim lối tắt</span></button>`);
+  const gh = nav.querySelector(".nav-scg"); if (gh && !gh.querySelector(".nav-addpin2")) { const bt = document.createElement("button"); bt.type = "button"; bt.className = "nav-addpin2"; bt.title = "Ghim trang / chức năng bất kỳ lên Lối tắt (chuột phải lên mục bất kỳ cũng ghim được)"; bt.setAttribute("aria-label", "Ghim lối tắt"); bt.textContent = "＋"; bt.onclick = (e) => { e.preventDefault(); pinPick(bt); }; gh.appendChild(bt); }
   const r = typeof CUR_TAB !== "undefined" ? CUR_TAB : "";
   $$("a[data-pin]", box).forEach((a) => a.classList.toggle("on", a.dataset.sc ? scOn(a.dataset.sc) : !!a.dataset.r && a.dataset.r === r && !(a.dataset.r === "botscalp" && pinList().some((k) => k.startsWith("#/bot/scalp|")) && false)));
   const g = nav.querySelector(".nav-scg em"); if (g) g.textContent = "📌 ghim · ↻ hay vào";

@@ -4157,3 +4157,28 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
 @media (min-width:1180px){body:not(.pn-sheet) #pnHide{display:none!important}}
 body.pn-sheet #pnHide{position:absolute;top:8px;right:8px;z-index:3}
 body.pn-sheet .pn-in{position:relative}
+/* ===== 11/2026 · thanh bên gọn: vừa 1 màn hình không phải cuộn (dòng 30px, nhóm sát hơn, bỏ chú thích nhỏ cạnh tên nhóm); màn thấp gọn thêm ===== */
+@media (min-width:1180px){
+  .tabs{gap:1px!important;padding:10px 10px 8px!important}
+  .tabs a{padding:6px 12px!important;line-height:1.1!important}
+  .tabs a.on::before{top:6px;bottom:6px}
+  .tabs .nav-g{margin:8px 0 2px!important;padding:8px 12px 0!important;font-size:.6rem!important}
+  .tabs .nav-g em,.tabs .nav-g i{display:none!important}
+  .tabs .nav-scg{margin-top:0!important;padding-top:0!important;border-top:0!important;position:relative}
+  .nav-addpin2{margin-left:auto;width:20px;height:18px;border:0;border-radius:6px;background:transparent;color:var(--ink-3);font-size:13px;line-height:1;cursor:pointer;padding:0}
+  .nav-addpin2:hover{background:var(--sunk);color:var(--ink)}
+  body.rail-auto .tabs:not(.open) .nav-addpin2{opacity:0}
+  .tabs .rail-brand{padding:2px 12px 10px!important;margin-bottom:4px!important}
+  .tabs .rail-pin{padding-top:6px!important;padding-bottom:6px!important}
+  .tabs a#navAuto{margin-bottom:2px!important}
+}
+@media (min-width:1180px) and (max-height:860px){
+  .tabs a{padding:4px 12px!important;font-size:.84rem!important}
+  .tabs a svg{width:16px!important;height:16px!important}
+  .tabs .nav-g{margin:5px 0 1px!important;padding-top:5px!important}
+  .tabs .rail-pin{padding-top:4px!important;padding-bottom:4px!important}
+}
+@media (min-width:1180px) and (max-height:700px){.tabs a{padding:3px 12px!important;font-size:.8rem!important}}
+@media (min-width:1180px){.tabs{gap:0!important}.tabs a{padding:5px 12px!important}.nav-pins{gap:0!important}}
+@media (min-width:1180px) and (max-height:860px){.tabs a{padding:4px 12px!important}.tabs .nav-g{margin:3px 0 1px!important;padding-top:4px!important}}
+@media (min-width:1180px) and (max-height:760px){.tabs a{padding:3px 12px!important;font-size:.8rem!important}.tabs a svg{width:15px!important;height:15px!important}}
