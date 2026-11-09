@@ -4488,3 +4488,16 @@ select[aria-expanded]{border-color:transparent!important;box-shadow:0 0 0 2px co
 .sc-env button[data-scenv="live"].on{background:color-mix(in srgb,var(--brass,#d9a441) 20%,var(--surface))!important;box-shadow:0 1px 3px rgba(0,0,0,.14)!important}
 .sc-tabs{border-color:transparent!important}
 .sc-tabs button.on{box-shadow:0 1px 3px rgba(0,0,0,.14)!important}
+/* thẻ lệnh đang mở / chờ khớp: nhận biết bằng nền tô theo trạng thái (Long xanh, Short đỏ, đang chờ vàng) thay cho viền */
+.sc-oc{border:0!important;background:var(--fill-card)!important}
+.sc-oc.L{background:color-mix(in srgb,var(--up) 9%,var(--surface))!important}
+.sc-oc.S{background:color-mix(in srgb,var(--down) 9%,var(--surface))!important}
+.sc-oc.pend{background:color-mix(in srgb,var(--brass,#d9a441) 11%,var(--surface))!important}
+.sc-mx,.sc-mx.real{border:0!important;background:color-mix(in srgb,var(--down) 16%,var(--surface))!important;color:var(--down)}
+.sc-mx:hover{background:color-mix(in srgb,var(--down) 24%,var(--surface))!important}
+.sc-mx.busy,.sc-mx:disabled{background:var(--fill)!important;color:var(--ink-3)}
+.sc-me,.sc-me.real{border:0!important;background:color-mix(in srgb,var(--brass,#d9a23a) 24%,var(--surface))!important;color:var(--ink)}
+.sc-me:hover{background:color-mix(in srgb,var(--brass,#d9a23a) 32%,var(--surface))!important}
+/* thanh live nổi: các dòng lệnh cũng tô nền theo trạng thái */
+.lvw-it{border-left:0!important;background:var(--fill-card)}
+.lvw-it.open{background:color-mix(in srgb,var(--brand) 9%,var(--surface))}.lvw-it.wait{background:color-mix(in srgb,var(--brass,#d9a441) 11%,var(--surface))}
