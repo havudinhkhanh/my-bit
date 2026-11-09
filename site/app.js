@@ -513,6 +513,7 @@ function cusDraw() {
   a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
   if (o.sc) a.classList.toggle("on", scOn(o.sc));
   try { autoDraw(); } catch (e) { /* bỏ qua */ }
+  try { if (typeof pinDraw === "function" && $("#navPins")) pinDraw(); } catch (e) { /* bỏ qua */ }
 }
 // ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
 // bỏ qua các trang đã có nút cố định (Thị trường, Cơ hội, Giao dịch, Bot) và trang đang đặt ở nút tuỳ chọn → luôn là 1 lối tắt MỚI
@@ -1262,7 +1263,7 @@ function pnInit() {
   let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
   $("#pnFocus").onclick = () => { PN.focus = !PN.focus; pnLS("focus_" + PN.r, PN.focus); $("#pnFocus").classList.toggle("on", PN.focus); pnApply(); if (PN.focus) pnGo(PN.cur); else window.dispatchEvent(new Event("resize")); };
-  $("#pnHide").onclick = () => pnOpen(false);
+  if ($("#pnHide")) $("#pnHide").onclick = () => pnOpen(false);
   $$("#pnav [data-t]").forEach((b) => b.onclick = () => pnTab(b.dataset.t));
   if (!$("#pnCoins")) document.body.insertAdjacentHTML("beforeend", `<datalist id="pnCoins"></datalist>`);
   { let ft = 0; addEventListener("scroll", () => { document.body.classList.add("fab-hide"); clearTimeout(ft); ft = setTimeout(() => document.body.classList.remove("fab-hide"), 650); }, { passive: true }); }
@@ -5758,7 +5759,7 @@ function uiApply() {
   uiAvStyle($("#meBtn")); uiAvStyle($("#acAv"));
 }
 uiApply();
-async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); } } catch (e) { /* bỏ qua */ } }
+async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }
 async function uiSave() { lsSet("ui_cache", UIP); uiApply(); try { await Store.put("ui", UIP); } catch (e) { /* bỏ qua */ } }
 function uiPrefHtml() {
   return `${acRow("Ảnh đại diện", "ảnh của anh, một biểu tượng, hoặc chữ cái đầu trên nền màu", `<div class="uip"><div class="uip-av" id="uiAvP"></div><label class="btn sm">Tải ảnh lên<input type="file" id="uiFile" accept="image/*" hidden></label>${UIP.av ? '<button class="btn sm" id="uiDel">Bỏ ảnh</button>' : ""}</div>
@@ -5943,3 +5944,100 @@ async function lvsPull() {
 setTimeout(lvsPull, 1500); setInterval(lvsPull, 30000);
 document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - LVS.t > 20000) lvsPull(); });
 addEventListener("hashchange", () => setTimeout(lvsDraw, 120));
+
+// ================================================================ 📌 MÁY TÍNH: GHIM LỐI TẮT + KÉO GIÃN 2 THANH (11/2026)
+// (1) Thanh bên trái: nhóm "Lối tắt" ghim được BẤT KỲ trang / tab con Bot Phản Xạ / chức năng (Tính lệnh, Tìm nhanh, Đổi sáng-tối, Bảng phụ…), tối đa 12;
+//     "+ Ghim" để thêm, ✕ để bỏ, kéo-thả để xếp lại; chuột phải lên bất kỳ mục nào của thanh bên → "Ghim vào Lối tắt". Nút ↻ hay vào vẫn tự chạy bên dưới.
+// (2) Kéo mép phải thanh bên trái để đổi rộng (180–340px), kéo hẳn về trái = thu gọn chỉ còn biểu tượng; nhấp đúp mép = về mặc định.
+// (3) Bảng phụ: kéo mép phải để đổi rộng (240–560px), kéo hẳn về trái = ẩn; nút ‹ thu gọn nằm trên mép (không còn sát nút Tính lệnh).
+const PIN_FN = [
+  { k: "fn:calc", t: "Tính lệnh nhanh", short: "Tính lệnh", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h4"/></svg>', run: () => { pnOpen(true); setTimeout(() => pnTab("calc"), 30); } },
+  { k: "fn:search", t: "Tìm nhanh (Ctrl K)", short: "Tìm nhanh", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>', run: () => cmdk(true) },
+  { k: "fn:panel", t: "Bật / tắt bảng phụ", short: "Bảng phụ", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>', run: () => pnOpen(!document.body.classList.contains("pn-on")) },
+  { k: "fn:theme", t: "Đổi giao diện sáng / tối", short: "Sáng / tối", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8Z"/></svg>', run: () => $("#theme")?.click() },
+];
+const pinList = () => { const L = lsGet("navpins", null); return (Array.isArray(L) ? L : [lsGet("navcus", "#/portfolio")]).filter((x, i, a) => x && a.indexOf(x) === i).slice(0, 12); };
+const pinSave = (L) => { lsSet("navpins", L.slice(0, 12)); try { UIP = { ...UIP, pins: L.slice(0, 12) }; uiSave(); } catch (e) { /* bỏ qua */ } pinDraw(); };      // lưu cả lên tài khoản → máy khác cũng thấy
+function pinOpt(k) { if (k.startsWith("fn:")) return PIN_FN.find((f) => f.k === k) || null; return cusOpts().find((o) => cusKey(o) === k) || (typeof navOpt === "function" ? navOpt(k) : null); }
+const RAILQ = matchMedia("(min-width:1180px)");
+function pinDraw() {
+  const nav = $("#tabs"); if (!nav) return;
+  let box = $("#navPins");
+  if (!RAILQ.matches) { if (box) box.hidden = true; return; }
+  if (!box) {
+    box = document.createElement("div"); box.id = "navPins"; box.className = "nav-pins";
+    const g = nav.querySelector(".nav-scg"); (g ? g.after.bind(g) : (n) => nav.prepend(n))(box);
+    box.addEventListener("click", pinClick);
+    box.addEventListener("dragstart", (e) => { const a = e.target.closest("[data-pin]"); if (!a) return; box.__drag = a.dataset.pin; e.dataTransfer.effectAllowed = "move"; a.classList.add("drag"); });
+    box.addEventListener("dragend", (e) => { e.target.closest?.("[data-pin]")?.classList.remove("drag"); $$(".nav-pin.over", box).forEach((x) => x.classList.remove("over")); });
+    box.addEventListener("dragover", (e) => { const a = e.target.closest("[data-pin]"); if (!a || !box.__drag) return; e.preventDefault(); $$(".nav-pin.over", box).forEach((x) => x !== a && x.classList.remove("over")); a.classList.add("over"); });
+    box.addEventListener("drop", (e) => { const a = e.target.closest("[data-pin]"); if (!a || !box.__drag) return; e.preventDefault(); const L = pinList().filter((x) => x !== box.__drag), i = L.indexOf(a.dataset.pin); L.splice(i < 0 ? L.length : i, 0, box.__drag); box.__drag = null; pinSave(L); });
+  }
+  box.hidden = false;
+  const L = pinList();
+  box.innerHTML = L.map((k) => { const o = pinOpt(k); if (!o) return ""; const fn = k.startsWith("fn:");
+    return `<a class="nav-pin" draggable="true" data-pin="${esc(k)}" href="${fn ? "#" : esc(o.href)}" ${!fn && o.r ? `data-r="${esc(o.r)}"` : ""} ${!fn && o.sc ? `data-sc="${esc(o.sc)}"` : ""} title="${esc(o.t)} · kéo để xếp lại">${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">${esc(o.tn || o.t)}</span><button type="button" class="nav-unpin" data-unpin="${esc(k)}" title="Bỏ ghim" aria-label="Bỏ ghim">✕</button></a>`; }).join("")
+    + `<button type="button" class="nav-addpin" data-addpin title="Ghim trang / chức năng bất kỳ"><span>＋</span><span class="nav-t">Ghim lối tắt</span></button>`;
+  const r = typeof CUR_TAB !== "undefined" ? CUR_TAB : "";
+  $$("a[data-pin]", box).forEach((a) => a.classList.toggle("on", a.dataset.sc ? scOn(a.dataset.sc) : !!a.dataset.r && a.dataset.r === r && !(a.dataset.r === "botscalp" && pinList().some((k) => k.startsWith("#/bot/scalp|")) && false)));
+  const g = nav.querySelector(".nav-scg em"); if (g) g.textContent = "📌 ghim · ↻ hay vào";
+}
+function pinClick(e) {
+  const un = e.target.closest("[data-unpin]"); if (un) { e.preventDefault(); e.stopPropagation(); pinSave(pinList().filter((k) => k !== un.dataset.unpin)); return; }
+  if (e.target.closest("[data-addpin]")) { e.preventDefault(); pinPick(e.target.closest("[data-addpin]")); return; }
+  const a = e.target.closest("a[data-pin]"); if (!a) return; const k = a.dataset.pin;
+  if (k.startsWith("fn:")) { e.preventDefault(); PIN_FN.find((f) => f.k === k)?.run(); return; }
+  const sc = a.dataset.sc; if (!sc) return;
+  scShortEnv(sc); window.__scTab = sc === "live" ? "ov" : sc; lsSet("sctab", window.__scTab);
+  if (location.hash.startsWith("#/bot/scalp")) { e.preventDefault(); if (typeof scTabGo === "function") scTabGo(sc); else route(); }
+}
+function pinPick(anchor) {
+  if ($("#iosMenu")) iosMenuClose();
+  const cur = new Set(pinList()), L = [...cusOpts(), ...PIN_FN.map((f) => ({ ...f, g: "Chức năng" }))], r = anchor.getBoundingClientRect(), W = 300;
+  let g = "", rows = "";
+  for (const o of L) { if (o.g !== g) { g = o.g; rows += `<div class="ios-menu-h">${esc(g)}</div>`; } const k = o.k || cusKey(o);
+    rows += `<button type="button" role="menuitemcheckbox" aria-checked="${cur.has(k)}" data-pk="${esc(k)}" class="${o.sc ? "cus-sub" : ""}"><span class="ios-ck">${cur.has(k) ? "📌" : ""}</span><span class="ios-t">${esc(o.t)}</span><span class="ios-ic">${o.emo || o.svg || ""}</span></button>`; }
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
+  const top = Math.max(8, Math.min(innerHeight - 480, r.top - 40));
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in cus-menu pin-menu" role="menu" aria-label="Ghim lối tắt" style="left:${Math.round(r.right + 8)}px;width:${W}px;top:${top}px;max-height:min(480px,calc(100vh - 16px))"><div class="ios-menu-h cus-top">📌 Chọn trang / chức năng ghim lên thanh bên (tối đa 12) – bấm lại để bỏ</div>${rows}</div>`;
+  document.body.appendChild(m);
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("[data-pk]", m).forEach((b) => (b.onclick = () => { const k = b.dataset.pk, P = pinList(), on = P.includes(k); if (!on && P.length >= 12) { toast("Đã đủ 12 lối tắt – bỏ bớt trước"); return; } pinSave(on ? P.filter((x) => x !== k) : [...P, k]); b.setAttribute("aria-checked", !on); b.querySelector(".ios-ck").textContent = on ? "" : "📌"; }));
+  addEventListener("hashchange", iosMenuClose, { once: true });
+}
+// chuột phải lên mục bất kỳ của thanh bên → ghim / bỏ ghim
+document.addEventListener("contextmenu", (e) => {
+  if (!RAILQ.matches) return; const a = e.target.closest?.("#tabs a[href^='#']"); if (!a || a.closest("#navPins") || a.id === "navAuto" || a.classList.contains("rail-brand")) return;
+  e.preventDefault(); const k = a.getAttribute("href") + (a.dataset.sc ? "|" + a.dataset.sc : ""), P = pinList(), on = P.includes(k);
+  if (!on && P.length >= 12) { toast("Đã đủ 12 lối tắt"); return; }
+  pinSave(on ? P.filter((x) => x !== k) : [...P, k]); toast(on ? "Đã bỏ ghim khỏi Lối tắt" : "📌 Đã ghim vào Lối tắt (kéo để xếp lại)");
+});
+// ---- kéo giãn: thanh bên trái (--rail-w) và bảng phụ (--pnw); lưu trên máy này
+function dragEdge(el, o) {
+  const h = document.createElement("div"); h.className = "edge-grip " + (o.cls || ""); h.title = o.title; h.setAttribute("role", "separator"); h.setAttribute("aria-orientation", "vertical");
+  if (o.btn) h.innerHTML = `<button type="button" class="eg-btn" title="${esc(o.btnTitle)}" aria-label="${esc(o.btnTitle)}">${o.btn}</button>`;
+  el.appendChild(h);
+  let x0 = 0, w0 = 0, moved = false;
+  const mv = (e) => { const dx = e.clientX - x0; if (Math.abs(dx) > 3) moved = true; if (!moved) return; document.documentElement.classList.add("edge-drag"); o.set(w0 + dx, true); };
+  const up = (e) => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); document.documentElement.classList.remove("edge-drag"); if (moved) o.set(w0 + (e.clientX - x0), false); };
+  h.addEventListener("pointerdown", (e) => { if (e.button !== 0 || e.target.closest(".eg-btn")) return; e.preventDefault(); x0 = e.clientX; w0 = o.get(); moved = false; addEventListener("pointermove", mv); addEventListener("pointerup", up); });
+  h.addEventListener("dblclick", (e) => { if (!e.target.closest(".eg-btn")) o.reset(); });
+  h.querySelector(".eg-btn")?.addEventListener("click", (e) => { e.stopPropagation(); o.btnRun(); });
+}
+(function edgesInit() {
+  const D = document.documentElement, RW = lsGet("railw", null), PW = lsGet("pnw", null);
+  if (RW) D.style.setProperty("--rail-w", RW + "px"); if (PW) D.style.setProperty("--pnw", PW + "px");
+  const go = () => {
+    const tabs = $("#tabs"), pn = $("#pnav"); if (!tabs || !pn) return setTimeout(go, 300);
+    dragEdge(tabs, { cls: "eg-rail", title: "Kéo để đổi độ rộng thanh bên · kéo hẳn sang trái để thu gọn · nhấp đúp = mặc định",
+      get: () => (document.body.classList.contains("rail-auto") ? 64 : parseFloat(getComputedStyle(D).getPropertyValue("--rail-w")) || 224),
+      set: (w, live) => { if (w < 120) { if (!live) { $("#railPin")?.click?.(); } return; } const v = Math.round(Math.max(180, Math.min(340, w))); if (document.body.classList.contains("rail-auto") && !live) $("#railPin")?.click?.(); D.style.setProperty("--rail-w", v + "px"); if (!live) { lsSet("railw", v); dispatchEvent(new Event("resize")); } },
+      reset: () => { D.style.removeProperty("--rail-w"); lsSet("railw", null); dispatchEvent(new Event("resize")); } });
+    dragEdge(pn, { cls: "eg-pn", title: "Kéo để đổi độ rộng bảng phụ · kéo hẳn sang trái để ẩn · nhấp đúp = mặc định", btn: "‹", btnTitle: "Thu gọn bảng phụ", btnRun: () => pnOpen(false),
+      get: () => pn.getBoundingClientRect().width || 300,
+      set: (w, live) => { if (w < 190) { if (!live) pnOpen(false); return; } const v = Math.round(Math.max(240, Math.min(560, w))); D.style.setProperty("--pnw", v + "px"); if (!live) { lsSet("pnw", v); dispatchEvent(new Event("resize")); } },
+      reset: () => { D.style.removeProperty("--pnw"); lsSet("pnw", null); dispatchEvent(new Event("resize")); } });
+    pinDraw(); RAILQ.addEventListener?.("change", pinDraw);
+  };
+  if (document.readyState === "loading") addEventListener("DOMContentLoaded", go); else go();
+})();
