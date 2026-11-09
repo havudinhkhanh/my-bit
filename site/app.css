@@ -4432,3 +4432,59 @@ body.pn-sheet .pn-in{position:relative}
 .nt-swbg.arm i{background:rgba(255,255,255,.22);color:#fff}
 .nt-swbg b{font-size:.6875rem;font-weight:650;color:var(--ink-2);white-space:nowrap}.nt-swbg.arm b{color:#fff}
 @media (prefers-reduced-motion:reduce){.nt-swbg span{transition:none}}
+
+/* =====================================================================
+   PHONG CÁCH CHUNG (11/2026): ÍT VIỀN – DÙNG MẢNG MÀU.
+   Nút, chip, ô nhập, thẻ con dùng nền tô (tonal) thay cho viền; mục đang chọn tô đặc; panel không viền, tách nền bằng màu.
+   Chỉ giữ đường kẻ ở nơi cần đọc số (bảng) và lớp nổi (menu, popup).
+   ===================================================================== */
+:root{--fill:color-mix(in srgb,var(--ink) 6%,var(--surface));--fill-h:color-mix(in srgb,var(--ink) 11%,var(--surface));--fill-card:color-mix(in srgb,var(--ink) 3.5%,var(--surface));--sel:var(--ink);--sel-ink:var(--surface)}
+/* panel: không viền, không vòng bóng */
+.panel{border-color:transparent!important}
+:root[data-theme="light"] .panel{box-shadow:0 1px 2px rgba(18,26,38,.04)!important}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .panel{box-shadow:0 1px 2px rgba(18,26,38,.04)!important}}
+/* nút thường: nền tô, không viền */
+.btn:not(.primary):not(.danger):not(.pri){border-color:transparent!important;background:var(--fill)!important;color:var(--ink)}
+.btn:not(.primary):not(.danger):not(.pri):hover{background:var(--fill-h)!important}
+.btn.primary{border-color:transparent!important}
+.btn.danger{border-color:transparent!important;background:color-mix(in srgb,var(--down) 14%,var(--surface))!important;color:var(--down)!important}
+/* chip / nhóm nút chọn / tab con: nền tô; đang chọn = tô đặc */
+.chip,.nt-c,.ntp-ab,.bseg button,.bpre button,.bchips button,.seg button,.subtabs button,.lvw-seg button,.fd-sz button,.dj-seg a,.dj-seg button{border-color:transparent!important;background:var(--fill)!important;color:var(--ink-2)}
+.chip:hover,.nt-c:hover,.ntp-ab:hover,.bseg button:hover,.bpre button:hover,.bchips button:hover,.seg button:hover,.subtabs button:hover,.lvw-seg button:hover,.fd-sz button:hover{background:var(--fill-h)!important;color:var(--ink)}
+.chip.on,.nt-c.on,.bseg button.on,.bpre button.on,.bchips button.on,.seg button.on,.subtabs button.on,.lvw-seg button.on,.fd-sz button.on,.dj-seg .on{background:var(--sel)!important;color:var(--sel-ink)!important;border-color:transparent!important}
+.chip.on i,.nt-c.on i,.bseg button.on i,.lvw-seg button.on i{color:inherit!important;opacity:.75}
+/* ô nhập / chọn: nền tô, viền chỉ hiện khi đang gõ */
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),select,textarea{border-color:transparent!important;background-color:var(--fill)!important}
+input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):focus,select:focus,textarea:focus{background-color:var(--surface)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 45%,transparent)!important;outline:0}
+select[aria-expanded]{border-color:transparent!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 45%,transparent)!important}
+/* nút biểu tượng trong tiêu đề bảng nổi */
+.ntp-set,.ntp-x,.lvw-top button{border-color:transparent!important;background:var(--fill)!important}
+.ntp-set:hover,.ntp-x:hover,.lvw-top button:hover{background:var(--fill-h)!important}
+/* thẻ con trong panel: nền tô, không viền */
+.tx-kpi>div,.lv-kp>span,.tpk-f>div,.tx-how,.tx-drop,.cmp-c,.sc-oc,.jcard,.bh-card{border-color:transparent!important}
+.tx-kpi .hi{background:color-mix(in srgb,var(--brass,#d9a441) 12%,var(--surface))!important}
+.tx-how{background:var(--fill-card)}
+.tx-drop{background:var(--fill)!important;border:1.5px dashed transparent!important}.tx-drop.on{border-color:var(--brand)!important}
+/* ===== thông báo: thẻ tô màu, không viền, không bóng ===== */
+.ntp-l .nt-i,.nt-page .nt-i{border:0!important;box-shadow:none!important;background:var(--fill-card)!important;margin:0 0 6px}
+.ntp-l .nt-i:hover,.nt-page .nt-i:hover{background:var(--fill)!important}
+.ntp-l .nt-i.new,.nt-page .nt-i.new{background:color-mix(in srgb,var(--brand) 9%,var(--surface))!important}
+.ntp-l .nt-i.new:hover,.nt-page .nt-i.new:hover{background:color-mix(in srgb,var(--brand) 13%,var(--surface))!important}
+.ntp-l .nt-i.nt-real,.nt-page .nt-i.nt-real{background:color-mix(in srgb,#E8B931 13%,var(--surface))!important}
+.ntp-l .nt-i.nt-real:hover,.nt-page .nt-i.nt-real:hover{background:color-mix(in srgb,#E8B931 18%,var(--surface))!important}
+.ntp-l .nt-i.nt-demo,.nt-page .nt-i.nt-demo{background:color-mix(in srgb,#E8B931 7%,var(--surface))!important}
+.ntp-l .nt-i.nt-real::before,.nt-page .nt-i.nt-real::before,.ntp-l .nt-i.nt-demo::before,.nt-page .nt-i.nt-demo::before{display:none}
+.nt-ic{background:color-mix(in srgb,var(--ink) 7%,transparent)!important;box-shadow:none!important}
+.nt-i.sev2 .nt-ic{background:color-mix(in srgb,#f0a020 18%,transparent)!important}.nt-i.sev3 .nt-ic{background:color-mix(in srgb,var(--down) 18%,transparent)!important}
+.nt-rd,.nt-ur{border-color:transparent!important;background:color-mix(in srgb,var(--ink) 7%,transparent)!important}
+.nt-rd:hover{background:color-mix(in srgb,var(--up) 18%,transparent)!important;color:var(--up)}
+[data-nid].nt-sw{box-shadow:0 10px 24px -8px rgba(0,0,0,.35)!important}
+/* thanh live nổi: bỏ viền nhấn, dùng nền + bóng */
+.lvw-pill{border-color:transparent!important}.lvw.lvw-hot .lvw-pill{box-shadow:0 14px 34px -10px rgba(0,0,0,.62),0 3px 10px rgba(0,0,0,.28),inset 0 0 0 1.5px color-mix(in srgb,var(--up) 55%,transparent)!important}
+.lvw-card{border-color:transparent!important}
+/* nhóm chọn dạng thanh (Binance thật | Sàn thử, tab Bot Phản Xạ): rãnh tô màu, mục chọn nổi bằng nền – không viền */
+.sc-env{border:0!important;background:var(--fill)!important}
+.sc-env button.on{background:var(--surface)!important;box-shadow:0 1px 3px rgba(0,0,0,.14)!important}
+.sc-env button[data-scenv="live"].on{background:color-mix(in srgb,var(--brass,#d9a441) 20%,var(--surface))!important;box-shadow:0 1px 3px rgba(0,0,0,.14)!important}
+.sc-tabs{border-color:transparent!important}
+.sc-tabs button.on{box-shadow:0 1px 3px rgba(0,0,0,.14)!important}
