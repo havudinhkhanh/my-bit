@@ -5932,22 +5932,111 @@ function lvsPop(btn) {
   addEventListener("keydown", function k(e) { if (e.key === "Escape") { lvsPopClose(); removeEventListener("keydown", k); } });
   addEventListener("hashchange", lvsPopClose, { once: true });
 }
+// ---- 🟢 Ô LỆNH BOT NỔI (góc màn hình, mọi trang, cuộn vẫn đứng yên): thu gọn = viên nhỏ (sàn, số lệnh chờ / mở, lời/lỗ hôm nay, dòng chạy từng lệnh);
+//      bấm = mở rộng: từng lệnh đang mở (giá vào → giá hiện tại, lời/lỗ tạm tính, thanh thời gian tới lúc tự đóng), đang chờ (các mức chờ, còn cách bao nhiêu %, thời gian chờ còn lại),
+//      vừa đóng; Binance / Sàn thử. Kéo tới góc nào cũng được (tự hít vào góc gần nhất), nhớ vị trí & trạng thái mở/thu. Bấm 1 lệnh → trang chi tiết lệnh.
+const LVW = { open: !!lsGet("lvwopen", false), pos: lsGet("lvwpos", null), tab: lsGet("lvwtab", null), px: {}, pxAt: 0, sig: "", tick: 0 };
+const lvw$ = (v) => `${nz(v, 2) > 0 ? "+" : nz(v, 2) < 0 ? "−" : ""}$${nf(Math.abs(v), Math.abs(v) < 1 ? 3 : 2)}`;
+const lvwMs = (v) => (v == null ? null : typeof v === "number" ? v : lvsT(v));
+function lvwItems(D) {
+  const L = D?.live, P = D?.paper, out = { live: [], paper: [], lastL: [], lastP: [] }, acc = L?.env === "live" ? "live" : "demo";
+  for (const e of L?.ev || []) { const sym = String(e.sym).replace(/USDT$/, ""), Q = e.pos || {}, pend = (e.lv || []).filter((l) => l.st === "open" || l.st === "wait");
+    if (Q.q > 0) out.live.push({ acc, st: "open", sym, side: e.side, strat: "hook", e: Q.ap, q: Q.q, stop: e.stop, a: lvwMs(Q.t1) || lvwMs(e.t0), b: (lvwMs(Q.t1) || lvwMs(e.t0)) + (e.hold || 60) * 60e3, t: lvwMs(e.t0) });
+    if (pend.length) out.live.push({ acc, st: "wait", sym, side: e.side, strat: "hook", R: e.R, lv: pend.map((l) => ({ px: l.px, q: l.q })), a: lvwMs(e.t0), b: lvwMs(e.exp), t: lvwMs(e.t0) }); }
+  for (const p of L?.swp || []) out.live.push({ acc, st: "open", sym: String(p.sym).replace(/USDT$/, ""), side: -1, strat: "pump", e: p.ap, q: p.q, N: p.N, upnl: p.upnl, m: p.m, a: lvwMs(p.t0), b: lvwMs(p.exp), t: lvwMs(p.t0) });
+  for (const p of L?.qp || []) { const g = p.legs?.[0]; if (g) out.live.push({ acc, st: "open", sym: String(g.sym).replace(/USDT$/, ""), side: g.side, strat: p.name || p.k, e: g.e, stop: g.stop, upnl: p.upnl, a: lvwMs(p.t0), t: lvwMs(p.t0) }); }
+  for (const h of P?.hkL || []) out.paper.push({ acc: "paper", st: "wait", sym: h.k.split(":")[0], side: h.side, strat: "hook", R: h.R, lv: (h.lv || []).filter((l) => !l.f).map((l) => ({ px: l.px })), a: lvwMs(h.t0), b: lvwMs(h.exp), t: lvwMs(h.t0) });
+  for (const p of P?.posL || []) out.paper.push({ acc: "paper", st: "open", sym: p.k.split(":")[0], side: p.side, strat: p.strat, e: p.e, q: p.q, stop: p.sl, a: lvwMs(p.t0), b: lvwMs(p.t0) + (p.h || 0) * 1000, t: lvwMs(p.t0) });
+  for (const p of P?.swL || []) out.paper.push({ acc: "paper", st: "open", sym: String(p.sym).replace(/USDT$/, ""), side: -1, strat: p.k, e: p.e, q: p.q, N: p.N, upnl: p.upnl, m: p.m, a: lvwMs(p.t0), b: lvwMs(p.t1), t: lvwMs(p.t0) });
+  for (const p of P?.qL || []) { const g = p.legs?.[0]; if (g) out.paper.push({ acc: "paper", st: "open", sym: String(g.sym).replace(/USDT$/, ""), side: g.side, strat: p.k, e: g.e, m: g.m, upnl: p.upnl, a: lvwMs(p.t0), b: lvwMs(p.exp), t: lvwMs(p.t0) }); }
+  out.lastL = (L?.last || []).map((h) => ({ acc, sym: String(h.sym).replace(/USDT$/, ""), side: h.side, pnl: h.pnl, net: h.net, t: lvwMs(h.t2), why: h.why }));
+  out.lastP = (P?.last || []).map((h) => ({ acc: "paper", sym: String(h.k).split(":")[0], side: h.side, pnl: h.usd, net: h.net, t: lvwMs(h.t1), why: h.why }));
+  return out;
+}
+const lvwAgo = (t) => { const s = (Date.now() - t) / 1000; return s < 60 ? bi("vừa xong", "just now") : s < 3600 ? `${Math.round(s / 60)} ${bi("phút trước", "min ago")}` : s < 86400 ? `${Math.round(s / 3600)} ${bi("giờ trước", "h ago")}` : `${Math.round(s / 86400)} ${bi("ngày trước", "d ago")}`; };
+const LVW_NM = { hook: "🪝", sec: "⚡", pump: "🧪", list: "🆕" };
+function lvwRow(x) {
+  const mk = LVW.px[x.sym], href = `#/t/${x.acc}/${enc(x.sym)}/${x.t || Date.now()}`, sd = `<b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</b>`, now = Date.now();
+  const bar = x.a && x.b && x.b > x.a ? `<i class="lvw-bar"><b style="width:${Math.max(2, Math.min(100, (now - x.a) / (x.b - x.a) * 100)).toFixed(1)}%"></b></i>` : "";
+  const left = x.b ? (x.b - now > 0 ? `${x.st === "wait" ? bi("chờ thêm", "waits") : bi("tự đóng sau", "closes in")} ${lvsLeft(x.b - now)}` : bi("sắp hết giờ", "ending")) : "";
+  if (x.st === "open") {
+    const m = mk || x.m, u = isNum(m) && x.e > 0 ? x.side * (m / x.e - 1) : null, N = x.N || (x.q && x.e ? x.q * x.e : null), usdU = u != null && N ? u * N : x.upnl;
+    return `<a class="lvw-it open" href="${href}"><div class="lvw-r1"><span>${LVW_NM[x.strat] || "📐"} <b>${esc(x.sym)}</b> ${sd}</span><span class="lvw-pl ${cls(usdU)}">${isNum(usdU) ? lvw$(usdU) : "—"}${u != null ? `<small>${u >= 0 ? "+" : ""}${nf(u * 100, 2)}%</small>` : ""}</span></div>
+      <div class="lvw-r2"><span>${px(x.e)} → <b>${isNum(m) ? px(m) : "…"}</b></span>${x.stop ? `<span class="down">SL ${px(x.stop)}</span>` : ""}</div>${bar}<div class="lvw-r3">${left}</div></a>`;
+  }
+  const near = (x.lv || []).map((l) => ({ ...l, d: isNum(mk) ? Math.abs(mk / l.px - 1) * 100 : null })).sort((a, b) => (a.d ?? 1e9) - (b.d ?? 1e9))[0];
+  return `<a class="lvw-it wait" href="${href}"><div class="lvw-r1"><span>${LVW_NM[x.strat] || "📐"} <b>${esc(x.sym)}</b> ${sd}${x.R ? ` <small class="faint">${bi("sốc", "shock")} ${nf(Math.abs(x.R) / 100, 1)}%</small>` : ""}</span><span class="lvw-tag">⏳ ${bi("chờ khớp", "pending")}</span></div>
+    <div class="lvw-r2"><span>${(x.lv || []).map((l) => px(l.px)).join(" · ")}</span>${near?.d != null ? `<span>${bi("còn cách", "away")} <b>${nf(near.d, 2)}%</b></span>` : ""}</div>${bar}<div class="lvw-r3">${left}</div></a>`;
+}
+function lvwHtml(D) {
+  const L = D.live, I = lvwItems(D), liveOn = !!(L && (L.on || L.ev?.length || L.swp?.length || L.qp?.length));
+  const tab = LVW.tab === "paper" || !liveOn ? "paper" : "live", A = tab === "live" ? I.live : I.paper, last = tab === "live" ? I.lastL : I.lastP;
+  const nW = (X) => X.filter((x) => x.st === "wait").length, nO = (X) => X.filter((x) => x.st === "open").length;
+  const fresh = Date.now() - lvsT(D.at) < 150e3, st = !fresh ? "off" : L?.halt && tab === "live" ? "warn" : (nO(A) || nW(A)) ? "hot" : "on";
+  const day = tab === "live" ? L?.day : D.paper?.day, envL = tab === "live" ? (L.env === "live" ? bi("💵 Thật", "💵 Live") : "🟡 Demo") : `🧪 ${bi("Sàn thử", "Paper")}`;
+  const pill = `<button type="button" class="lvw-pill" data-lvw-t aria-expanded="${LVW.open}"><span class="lvs-dot ${st}"></span><b>${envL}</b>${nW(A) ? `<span class="lvw-c w">⏳ ${nW(A)}</span>` : ""}${nO(A) ? `<span class="lvw-c o">📌 ${nO(A)}</span>` : ""}${!nW(A) && !nO(A) ? `<span class="faint">${bi("chưa có lệnh", "no trades")}</span>` : ""}${isNum(day) ? `<span class="lvw-day ${cls(day)}">${lvw$(day)}</span>` : ""}${liveOn && tab === "live" && (nW(I.paper) || nO(I.paper)) ? `<span class="lvw-sub">🧪 ${nW(I.paper) + nO(I.paper)}</span>` : ""}<span class="lvw-tk" aria-live="polite"></span><span class="lvw-chev" aria-hidden="true">${LVW.open ? "▾" : "▴"}</span></button>`;
+  if (!LVW.open) return pill;
+  const seg = liveOn ? `<div class="lvw-seg">${[["live", L.env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", I.live.length], ["paper", bi("Sàn thử", "Paper"), I.paper.length]].map(([k, t, n]) => `<button type="button" data-lvw-tab="${k}" class="${tab === k ? "on" : ""}">${t}${n ? ` <i>${n}</i>` : ""}</button>`).join("")}</div>` : "";
+  const O = A.filter((x) => x.st === "open").sort((a, b) => (b.a || 0) - (a.a || 0)), W = A.filter((x) => x.st === "wait").sort((a, b) => (a.b || 0) - (b.b || 0));
+  const sec = (t, L2) => (L2.length ? `<div class="lvw-h">${t} <i>${L2.length}</i></div>${L2.map(lvwRow).join("")}` : "");
+  const lastH = last.length ? `<div class="lvw-h">${bi("Vừa đóng", "Just closed")}</div>${last.slice(0, 3).map((h) => `<a class="lvw-it done" href="#/t/${h.acc}/${enc(h.sym)}/${h.t || Date.now()}"><div class="lvw-r1"><span><b>${esc(h.sym)}</b> <b class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</b> <small class="faint">${h.t ? lvwAgo(h.t) : ""}</small></span><span class="lvw-pl ${cls(h.pnl)}">${lvw$(h.pnl || 0)}${isNum(h.net) ? `<small>${bps(h.net, 0)} bps</small>` : ""}</span></div></a>`).join("")}` : "";
+  return `${pill}<div class="lvw-card" role="dialog" aria-label="${bi("Lệnh bot trực tiếp", "Live bot trades")}"><div class="lvw-top" data-lvw-drag><b>${bi("Lệnh bot · trực tiếp", "Bot trades · live")}</b><small>${bi("cập nhật", "updated")} ${lvwAgo(lvsT(D.at))}</small><button type="button" data-lvw-mv title="${bi("Đổi góc màn hình (hoặc kéo dòng này)", "Move to another corner (or drag this bar)")}">⤢</button><button type="button" data-lvw-t title="${bi("Thu gọn", "Collapse")}">–</button></div>
+    ${seg}<div class="lvw-body">${tab === "live" && L?.halt ? `<p class="lvw-halt">⛔ ${esc(L.halt)}</p>` : ""}${sec(bi("Đang mở", "Open"), O)}${sec(bi("Đang chờ khớp", "Pending"), W)}${!O.length && !W.length ? `<p class="lvw-none">${bi("Không có lệnh nào đang mở hay đang chờ – bot đang canh cú sốc.", "No open or pending trades – the bot is watching for shocks.")}</p>` : ""}${lastH}</div>
+    <div class="lvw-f"><span>${bi("Hôm nay", "Today")} <b class="${cls(day)}">${isNum(day) ? lvw$(day) : "—"}</b>${tab === "live" && isNum(L?.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : tab === "paper" && isNum(D.paper?.eq) ? ` · ${bi("tài sản", "equity")} ${usd2(D.paper.eq)}` : ""}</span><a href="#/bot/scalp" data-lvw-go="${tab}">${bi("Bot Phản Xạ →", "Reflex Bot →")}</a></div></div>`;
+}
+const LVW_C = ["br", "bl", "tr", "tl"];
+function lvwPlace(el) { const c = LVW.pos || (MOB.matches ? "bl" : "br"); LVW_C.forEach((k) => el.classList.toggle("at-" + k, k === c)); }
 function lvsDraw() {
-  const h = lvsHtml(LVS.d), app_ = document.getElementById("app"); if (!app_) return;
-  let C = app_.querySelector(".crumb[data-nd]");
-  app_.querySelectorAll(".crumb[data-lvs]").forEach((x) => { if (C || !h) x.remove(); });
-  if (!h) { app_.querySelectorAll(".lvst").forEach((x) => x.remove()); return; }
-  if (!C) { C = app_.querySelector(".crumb[data-lvs]"); if (!C) { app_.insertAdjacentHTML("afterbegin", '<div class="crumb lvs-only" data-lvs></div>'); C = app_.querySelector(".crumb[data-lvs]"); } }
-  let el = C.querySelector(".lvst");
-  if (!el) { el = document.createElement("button"); el.type = "button"; el.className = "lvst"; el.title = "Lệnh đang chờ / đang mở của Bot Phản Xạ – bấm để xem"; el.addEventListener("click", (e) => { e.stopPropagation(); lvsPop(el); }); C.appendChild(el); }
-  if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; }
+  document.querySelectorAll("#app .lvst, #app .crumb[data-lvs]").forEach((x) => x.remove());      // bỏ viên cũ trong hàng đường dẫn
+  const D = LVS.d; let el = document.getElementById("lvw");
+  if (!D?.at) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement("div"); el.id = "lvw"; el.className = "lvw"; document.body.appendChild(el);
+    el.addEventListener("click", (e) => {
+      if (el.__drag) { e.preventDefault(); el.__drag = false; return; }
+      const t = e.target.closest("[data-lvw-t]"); if (t) { LVW.open = !LVW.open; lsSet("lvwopen", LVW.open); lvsDraw(); if (LVW.open) { lvwPx(); lvsPull(); } return; }
+      const tb = e.target.closest("[data-lvw-tab]"); if (tb) { LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw(); lvwPx(); return; }
+      if (e.target.closest("[data-lvw-mv]")) { const c = LVW.pos || (MOB.matches ? "bl" : "br"); LVW.pos = LVW_C[(LVW_C.indexOf(c) + 1) % 4]; lsSet("lvwpos", LVW.pos); lvwPlace(el); return; }
+      const go = e.target.closest("[data-lvw-go]"); if (go) { window.__scEnv = go.dataset.lvwGo === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); if (MOB.matches) { LVW.open = false; lsSet("lvwopen", false); } }
+      if (e.target.closest("a") && MOB.matches) { LVW.open = false; lsSet("lvwopen", false); setTimeout(lvsDraw, 50); }
+    });
+    // kéo tới góc khác: giữ & kéo viên (thu gọn) hoặc dòng tiêu đề (mở rộng) → thả ra hít vào góc gần nhất
+    el.addEventListener("pointerdown", (e) => {
+      const h = e.target.closest(".lvw-pill, [data-lvw-drag]"); if (!h || e.button !== 0 || e.target.closest("[data-lvw-mv]")) return;
+      const r = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY; let moved = false;
+      const mv = (ev) => { const dx = ev.clientX - x0, dy = ev.clientY - y0; if (!moved && Math.hypot(dx, dy) < 6) return; moved = true; el.classList.add("drag"); el.style.cssText = `left:${r.left + dx}px;top:${r.top + dy}px;right:auto;bottom:auto`; };
+      const up = (ev) => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); if (!moved) return; el.__drag = true; setTimeout(() => (el.__drag = false), 50);
+        const cx = ev.clientX, cy = ev.clientY, c = (cy < innerHeight / 2 ? "t" : "b") + (cx < innerWidth / 2 ? "l" : "r"); LVW.pos = c; lsSet("lvwpos", c); el.style.cssText = ""; el.classList.remove("drag"); lvwPlace(el); };
+      addEventListener("pointermove", mv); addEventListener("pointerup", up);
+    });
+    clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); }, 1000);
+  }
+  const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
+  if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ
+  LVW.sig = sig; el.classList.toggle("open", LVW.open); lvwPlace(el);
+  const sy = el.querySelector(".lvw-body")?.scrollTop || 0; el.innerHTML = lvwHtml(D); const bd = el.querySelector(".lvw-body"); if (bd) bd.scrollTop = sy;
+  lvwTick(true);
+}
+// dòng chạy trong viên thu gọn + thanh thời gian / số phút còn lại mỗi giây
+function lvwTick(now) {
+  const el = document.getElementById("lvw"); if (!el || !LVS.d) return; LVW.k = (LVW.k || 0) + 1;
+  const I = lvwItems(LVS.d), A = [...(LVW.tab === "paper" ? I.paper : I.live.length ? I.live : I.paper)], tk = el.querySelector(".lvw-tk");
+  if (tk && (now || LVW.k % 4 === 0)) { if (!A.length) tk.textContent = ""; else { const x = A[Math.floor(LVW.k / 4) % A.length], m = LVW.px[x.sym] || x.m, u = x.st === "open" && isNum(m) && x.e ? x.side * (m / x.e - 1) * 100 : null;
+    tk.innerHTML = `${esc(x.sym)} <b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</b>${u != null ? ` <span class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</span>` : x.st === "wait" ? " ⏳" : ""}${x.b && x.b > Date.now() ? ` <small>${lvsLeft(x.b - Date.now())}</small>` : ""}`; } }
+  if (LVW.open && LVW.k % 10 === 0) lvwPx().then(() => { const b = el.querySelector(".lvw-body"); if (b) { const y = b.scrollTop; lvsDraw(); const b2 = el.querySelector(".lvw-body"); if (b2) b2.scrollTop = y; } });
+}
+// giá hiện tại (Binance futures, công khai) cho các lệnh đang mở / chờ – chỉ lấy khi ô đang mở rộng
+async function lvwPx() {
+  if (!LVS.d || Date.now() - LVW.pxAt < 8000) return; LVW.pxAt = Date.now();
+  const I = lvwItems(LVS.d), S = [...new Set([...I.live, ...I.paper].map((x) => x.sym))].slice(0, 10);
+  await Promise.all(S.map(async (s) => { try { const r = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${s}USDT`); if (r.ok) { const j = await r.json(); if (+j.price > 0) LVW.px[s] = +j.price; } } catch (e) { /* bỏ qua */ } }));
 }
 async function lvsPull() {
   if (document.hidden || LVS.busy || !ME || ME.legacy) return; LVS.busy = true;
   try { const r = await fetch("api/scalpbrief", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { LVS.d = await r.json(); LVS.t = Date.now(); lvsDraw(); if (document.getElementById("lvsPop")) { /* giữ bảng đang mở */ } } } catch (e) { /* mất mạng: thử lại lần sau */ }
   LVS.busy = false;
 }
-setTimeout(lvsPull, 1500); setInterval(lvsPull, 30000);
+setTimeout(lvsPull, 1500); setInterval(() => { if (!LVW.open) lvsPull(); }, 30000); setInterval(() => { if (LVW.open) lvsPull(); }, 10000);      // mở rộng: 10 giây / lần
 document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - LVS.t > 20000) lvsPull(); });
 addEventListener("hashchange", () => setTimeout(lvsDraw, 120));
 
