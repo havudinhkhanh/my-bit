@@ -4184,13 +4184,6 @@ body.pn-sheet .pn-in{position:relative}
 @media (min-width:1180px) and (max-height:760px){.tabs a{padding:3px 12px!important;font-size:.8rem!important}.tabs a svg{width:15px!important;height:15px!important}}
 .acp-emc{flex-wrap:wrap;gap:8px}.acp-emc input{max-width:240px}
 /* ===== 11/2026 · Ô LỆNH BOT NỔI ở góc màn hình (thay viên trạng thái trong hàng đường dẫn) ===== */
-.lvw{position:fixed;z-index:1200;display:flex;flex-direction:column;gap:8px;max-width:calc(100vw - 24px);font-size:var(--fs-sm);transition:opacity .2s}
-.lvw.at-br{right:16px;bottom:16px;align-items:flex-end;flex-direction:column-reverse}.lvw.at-bl{left:calc(var(--rail,0px) + 16px);bottom:16px;align-items:flex-start;flex-direction:column-reverse}
-.lvw.at-tr{right:16px;top:calc(var(--stick,56px) + 10px);align-items:flex-end}.lvw.at-tl{left:calc(var(--rail,0px) + 16px);top:calc(var(--stick,56px) + 10px);align-items:flex-start}
-@media (max-width:979px){.lvw.at-br,.lvw.at-bl{bottom:calc(74px + env(safe-area-inset-bottom))}.lvw.at-bl{left:12px}.lvw.at-br{right:12px}.lvw.at-tl{left:12px}.lvw.at-tr{right:12px}}
-@media (min-width:1180px){body.pn-has:not(.pn-on) .lvw.at-bl{bottom:64px}}
-@media (max-width:979px){body.pn-has .lvw.at-br,body.pn-mini .lvw.at-br{bottom:calc(128px + env(safe-area-inset-bottom))}}
-.lvw.drag{transition:none;opacity:.85;cursor:grabbing}
 .lvw-pill{display:inline-flex;align-items:center;gap:8px;max-width:100%;height:36px;padding:0 12px 0 11px;border-radius:999px;border:1px solid var(--line);
   background:color-mix(in srgb,var(--surface) 88%,transparent);-webkit-backdrop-filter:saturate(1.6) blur(14px);backdrop-filter:saturate(1.6) blur(14px);color:var(--ink-2);font:inherit;font-size:var(--fs-sm);
   box-shadow:0 8px 28px rgba(0,0,0,.28);cursor:pointer;white-space:nowrap;touch-action:none;user-select:none}
@@ -4233,5 +4226,63 @@ body.pn-sheet .pn-in{position:relative}
 @media (max-width:640px){.lvw-tk{max-width:110px}.lvw-sub{display:none}}
 @media (prefers-reduced-motion:reduce){.lvs-dot.hot,.lvw.bump .lvw-pill,.lvw-card,.lvw-tk{animation:none}}
 @media print{.lvw{display:none}}
-@media (max-width:979px){.lvw.at-bl .lvw-pill,.lvw.at-tl .lvw-pill{max-width:calc(100vw - 96px);overflow:hidden}.lvw-pill{height:34px;gap:6px}}
 @media (max-width:420px){.lvw-tk{max-width:84px}}
+
+/* ===== Thanh lệnh bot trực tiếp v2: 3 chế độ (mở rộng · viên gọn · chấm), kéo tới mép bất kỳ, nổi khối rõ, chuyển động mượt =====
+   Đặt dưới thông báo (toast z 90–95, chuông 95) và dưới menu / bảng trượt → thông báo luôn đè lên. */
+.lvw{position:fixed;left:0;top:0;z-index:50;width:max-content;overflow:visible!important;padding:0!important;margin:0!important;border:0!important;background:none!important;box-shadow:none!important;font-size:var(--fs-sm);will-change:transform;
+  transition:transform .46s cubic-bezier(.32,.72,0,1);-webkit-tap-highlight-color:transparent}
+.lvw.noanim,.lvw.drag{transition:none}
+.lvw.drag .lvw-pill{transform:scale(1.06);box-shadow:0 22px 48px -8px rgba(0,0,0,.6),0 0 0 2px color-mix(in srgb,var(--brand) 55%,transparent);cursor:grabbing}
+.lvw.drag .lvw-card{opacity:.92}
+/* viên: khối nổi – nền sáng hơn mặt trang, viền nhấn, bóng 2 lớp, gờ sáng phía trên */
+.lvw-pill{position:relative;display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 6px 0 11px;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--brand) 34%,var(--line));color:var(--ink-2);font:inherit;font-size:var(--fs-sm);white-space:nowrap;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--surface) 86%,#fff 14%),color-mix(in srgb,var(--surface) 94%,#fff 6%));
+  box-shadow:0 14px 34px -10px rgba(0,0,0,.62),0 3px 10px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.10);
+  transition:transform .32s cubic-bezier(.32,.72,0,1),box-shadow .25s ease,border-color .2s}
+:root[data-theme="light"] .lvw-pill{background:linear-gradient(180deg,#fff,color-mix(in srgb,var(--surface) 92%,var(--sunk)));box-shadow:0 12px 30px -10px rgba(18,26,38,.35),0 2px 8px rgba(18,26,38,.12),inset 0 1px 0 #fff}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .lvw-pill{box-shadow:0 12px 30px -10px rgba(18,26,38,.35),0 2px 8px rgba(18,26,38,.12)}}
+.lvw-pill:active{transform:scale(.96)}
+.lvw.hot .lvw-pill{border-color:color-mix(in srgb,var(--up) 55%,var(--line))}
+.lvw-pi{display:inline-flex;align-items:center;gap:7px;min-width:0;overflow:hidden}
+.lvw-n{display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--brand);color:#fff;font:700 10px/16px system-ui,sans-serif;text-align:center;font-variant-numeric:tabular-nums}
+.lvw-n.z{background:transparent}
+.lvw-min{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:1px;border-radius:50%;color:var(--ink-3);background:color-mix(in srgb,var(--ink) 6%,transparent);transition:background-color .15s,color .15s}
+.lvw-min:hover{background:color-mix(in srgb,var(--ink) 14%,transparent);color:var(--ink)}
+.lvw.m-full .lvw-min{display:none}.lvw.m-full .lvw-pill{padding-right:12px}
+/* chấm: gọn tối đa, dính sát mép trái/phải như tay nắm */
+.lvw.m-dot .lvw-pill{height:30px;min-width:30px;padding:0 7px;gap:4px;justify-content:center}
+.lvw.m-dot .lvw-pi,.lvw.m-dot .lvw-min{display:none}
+.lvw.m-dot .lvw-n{display:inline-block}.lvw.m-dot .lvw-n.z{display:none}
+.lvw.m-dot.e-r .lvw-pill{border-radius:15px 0 0 15px;border-right:0;padding-right:9px}
+.lvw.m-dot.e-l .lvw-pill{border-radius:0 15px 15px 0;border-left:0;padding-left:9px}
+.lvw.pop .lvw-pill{animation:lvwPop .42s cubic-bezier(.32,.72,0,1)}
+@keyframes lvwPop{0%{transform:scale(.86);opacity:.6}60%{transform:scale(1.03);opacity:1}100%{transform:none}}
+.lvw.bump .lvw-pill{animation:lvwBump .7s ease}
+.lvw-tk.tk-in{animation:lvwTk .38s cubic-bezier(.32,.72,0,1)}
+/* thẻ mở rộng: luôn nằm sẵn trong DOM, mở/đóng bằng chuyển động (không dựng lại → không giựt) */
+.lvw-card{position:absolute;left:var(--lvw-cx,0);width:var(--lvw-cw,360px);max-height:var(--lvw-mh,560px);display:flex;flex-direction:column;border-radius:18px;overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--brand) 22%,var(--line));background:color-mix(in srgb,var(--surface) 96%,#fff 4%);
+  box-shadow:0 28px 60px -14px rgba(0,0,0,.6),0 6px 18px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.07);
+  opacity:0;visibility:hidden;pointer-events:none;transform:translateY(10px) scale(.94);
+  transition:opacity .2s ease,transform .34s cubic-bezier(.32,.72,0,1),visibility 0s linear .34s;animation:none}
+.lvw.up .lvw-card{bottom:calc(100% + 8px);transform-origin:var(--lvw-ox,right) bottom}
+.lvw:not(.up) .lvw-card{top:calc(100% + 8px);transform:translateY(-10px) scale(.94);transform-origin:var(--lvw-ox,right) top}
+.lvw.al{--lvw-ox:left}
+.lvw.m-full .lvw-card{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .18s ease,transform .38s cubic-bezier(.32,.72,0,1),visibility 0s}
+:root[data-theme="light"] .lvw-card{background:#fff;box-shadow:0 24px 54px -14px rgba(18,26,38,.32),0 4px 14px rgba(18,26,38,.1)}
+.lvw-top{display:flex;align-items:center;gap:6px;padding:9px 8px 8px 12px;border-bottom:1px solid var(--line-2);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.lvw-grip{width:4px;height:16px;border-radius:2px;background:repeating-linear-gradient(180deg,var(--ink-3) 0 2px,transparent 2px 4px);opacity:.5;flex:none}
+.lvw-top button{display:grid;place-items:center;width:28px;height:28px;border-radius:9px}
+.lvw-segw:empty{display:none}
+.lvw-body{flex:1 1 auto;min-height:0}
+.lvw-it{transition:background-color .15s,transform .15s}.lvw-it:active{transform:scale(.985)}
+@media (max-width:979px){
+  .lvw-pill{height:34px;gap:6px;padding-left:10px}
+  .lvw.m-mini .lvw-pill{max-width:calc(100vw - 24px)}
+  .lvw-card{border-radius:20px}
+  .lvw-it{padding:10px 12px}
+}
+@media (max-width:640px){.lvw.m-mini .lvw-tk,.lvw.m-mini .lvw-sub,.lvw.m-mini .lvw-nt{display:none}.lvw.m-mini .lvw-pill{height:32px}}
+@media (prefers-reduced-motion:reduce){.lvw,.lvw-pill,.lvw-card{transition:none!important}.lvw.pop .lvw-pill,.lvw-tk.tk-in{animation:none}}

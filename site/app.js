@@ -5935,7 +5935,12 @@ function lvsPop(btn) {
 // ---- 🟢 Ô LỆNH BOT NỔI (góc màn hình, mọi trang, cuộn vẫn đứng yên): thu gọn = viên nhỏ (sàn, số lệnh chờ / mở, lời/lỗ hôm nay, dòng chạy từng lệnh);
 //      bấm = mở rộng: từng lệnh đang mở (giá vào → giá hiện tại, lời/lỗ tạm tính, thanh thời gian tới lúc tự đóng), đang chờ (các mức chờ, còn cách bao nhiêu %, thời gian chờ còn lại),
 //      vừa đóng; Binance / Sàn thử. Kéo tới góc nào cũng được (tự hít vào góc gần nhất), nhớ vị trí & trạng thái mở/thu. Bấm 1 lệnh → trang chi tiết lệnh.
-const LVW = { open: !!lsGet("lvwopen", false), pos: lsGet("lvwpos", null), tab: lsGet("lvwtab", null), px: {}, pxAt: 0, sig: "", tick: 0 };
+// 3 chế độ: full (thẻ mở rộng) · mini (viên gọn) · dot (chấm nhỏ dính mép). Vị trí = mép (l/r/t/b) + tỉ lệ dọc theo mép (0–1) → kéo thả tới bất kỳ đâu trên mép màn hình.
+const LVW_OLD = { br: { e: "r", f: 0.96 }, bl: { e: "l", f: 0.96 }, tr: { e: "r", f: 0.03 }, tl: { e: "l", f: 0.03 } };
+const LVW = { mode: lsGet("lvwmode", null) || (lsGet("lvwopen", false) ? "full" : "mini"), rest: lsGet("lvwrest", "mini"), pos: lsGet("lvwpos", null), tab: lsGet("lvwtab", null), px: {}, pxAt: 0, sig: "", tick: 0, h: {} };
+if (typeof LVW.pos === "string") LVW.pos = LVW_OLD[LVW.pos] || null;
+if (!["full", "mini", "dot"].includes(LVW.mode)) LVW.mode = "mini"; if (!["mini", "dot"].includes(LVW.rest)) LVW.rest = "mini";
+Object.defineProperty(LVW, "open", { get: () => LVW.mode === "full" });
 const lvw$ = (v) => `${nz(v, 2) > 0 ? "+" : nz(v, 2) < 0 ? "−" : ""}$${nf(Math.abs(v), Math.abs(v) < 1 ? 3 : 2)}`;
 const lvwMs = (v) => (v == null ? null : typeof v === "number" ? v : lvsT(v));
 function lvwItems(D) {
@@ -5968,62 +5973,111 @@ function lvwRow(x) {
   return `<a class="lvw-it wait" href="${href}"><div class="lvw-r1"><span>${LVW_NM[x.strat] || "📐"} <b>${esc(x.sym)}</b> ${sd}${x.R ? ` <small class="faint">${bi("sốc", "shock")} ${nf(Math.abs(x.R) / 100, 1)}%</small>` : ""}</span><span class="lvw-tag">⏳ ${bi("chờ khớp", "pending")}</span></div>
     <div class="lvw-r2"><span>${(x.lv || []).map((l) => px(l.px)).join(" · ")}</span>${near?.d != null ? `<span>${bi("còn cách", "away")} <b>${nf(near.d, 2)}%</b></span>` : ""}</div>${bar}<div class="lvw-r3">${left}</div></a>`;
 }
-function lvwHtml(D) {
+function lvwParts(D) {
   const L = D.live, I = lvwItems(D), liveOn = !!(L && (L.on || L.ev?.length || L.swp?.length || L.qp?.length));
   const tab = LVW.tab === "paper" || !liveOn ? "paper" : "live", A = tab === "live" ? I.live : I.paper, last = tab === "live" ? I.lastL : I.lastP;
   const nW = (X) => X.filter((x) => x.st === "wait").length, nO = (X) => X.filter((x) => x.st === "open").length;
   const fresh = Date.now() - lvsT(D.at) < 150e3, st = !fresh ? "off" : L?.halt && tab === "live" ? "warn" : (nO(A) || nW(A)) ? "hot" : "on";
-  const day = tab === "live" ? L?.day : D.paper?.day, envL = tab === "live" ? (L.env === "live" ? bi("💵 Thật", "💵 Live") : "🟡 Demo") : `🧪 ${bi("Sàn thử", "Paper")}`;
-  const pill = `<button type="button" class="lvw-pill" data-lvw-t aria-expanded="${LVW.open}"><span class="lvs-dot ${st}"></span><b>${envL}</b>${nW(A) ? `<span class="lvw-c w">⏳ ${nW(A)}</span>` : ""}${nO(A) ? `<span class="lvw-c o">📌 ${nO(A)}</span>` : ""}${!nW(A) && !nO(A) ? `<span class="faint">${bi("chưa có lệnh", "no trades")}</span>` : ""}${isNum(day) ? `<span class="lvw-day ${cls(day)}">${lvw$(day)}</span>` : ""}${liveOn && tab === "live" && (nW(I.paper) || nO(I.paper)) ? `<span class="lvw-sub">🧪 ${nW(I.paper) + nO(I.paper)}</span>` : ""}<span class="lvw-tk" aria-live="polite"></span><span class="lvw-chev" aria-hidden="true">${LVW.open ? "▾" : "▴"}</span></button>`;
-  if (!LVW.open) return pill;
+  const day = tab === "live" ? L?.day : D.paper?.day, envL = tab === "live" ? (L.env === "live" ? bi("💵 Thật", "💵 Live") : "🟡 Demo") : `🧪 ${bi("Sàn thử", "Paper")}`, nAll = nW(A) + nO(A);
+  const pill = `<span class="lvs-dot ${st}"></span><span class="lvw-n${nAll ? "" : " z"}">${nAll || ""}</span><span class="lvw-pi"><b>${envL}</b>${nW(A) ? `<span class="lvw-c w">⏳ ${nW(A)}</span>` : ""}${nO(A) ? `<span class="lvw-c o">📌 ${nO(A)}</span>` : ""}${!nW(A) && !nO(A) ? `<span class="faint lvw-nt">${bi("chưa có lệnh", "no trades")}</span>` : ""}${isNum(day) ? `<span class="lvw-day ${cls(day)}">${lvw$(day)}</span>` : ""}${liveOn && tab === "live" && (nW(I.paper) || nO(I.paper)) ? `<span class="lvw-sub">🧪 ${nW(I.paper) + nO(I.paper)}</span>` : ""}<span class="lvw-tk" aria-live="polite"></span></span><span class="lvw-min" data-lvw-dot role="button" tabindex="-1" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M3 6h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>`;
   const seg = liveOn ? `<div class="lvw-seg">${[["live", L.env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", I.live.length], ["paper", bi("Sàn thử", "Paper"), I.paper.length]].map(([k, t, n]) => `<button type="button" data-lvw-tab="${k}" class="${tab === k ? "on" : ""}">${t}${n ? ` <i>${n}</i>` : ""}</button>`).join("")}</div>` : "";
   const O = A.filter((x) => x.st === "open").sort((a, b) => (b.a || 0) - (a.a || 0)), W = A.filter((x) => x.st === "wait").sort((a, b) => (a.b || 0) - (b.b || 0));
   const sec = (t, L2) => (L2.length ? `<div class="lvw-h">${t} <i>${L2.length}</i></div>${L2.map(lvwRow).join("")}` : "");
   const lastH = last.length ? `<div class="lvw-h">${bi("Vừa đóng", "Just closed")}</div>${last.slice(0, 3).map((h) => `<a class="lvw-it done" href="#/t/${h.acc}/${enc(h.sym)}/${h.t || Date.now()}"><div class="lvw-r1"><span><b>${esc(h.sym)}</b> <b class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</b> <small class="faint">${h.t ? lvwAgo(h.t) : ""}</small></span><span class="lvw-pl ${cls(h.pnl)}">${lvw$(h.pnl || 0)}${isNum(h.net) ? `<small>${bps(h.net, 0)} bps</small>` : ""}</span></div></a>`).join("")}` : "";
-  return `${pill}<div class="lvw-card" role="dialog" aria-label="${bi("Lệnh bot trực tiếp", "Live bot trades")}"><div class="lvw-top" data-lvw-drag><b>${bi("Lệnh bot · trực tiếp", "Bot trades · live")}</b><small>${bi("cập nhật", "updated")} ${lvwAgo(lvsT(D.at))}</small><button type="button" data-lvw-mv title="${bi("Đổi góc màn hình (hoặc kéo dòng này)", "Move to another corner (or drag this bar)")}">⤢</button><button type="button" data-lvw-t title="${bi("Thu gọn", "Collapse")}">–</button></div>
-    ${seg}<div class="lvw-body">${tab === "live" && L?.halt ? `<p class="lvw-halt">⛔ ${esc(L.halt)}</p>` : ""}${sec(bi("Đang mở", "Open"), O)}${sec(bi("Đang chờ khớp", "Pending"), W)}${!O.length && !W.length ? `<p class="lvw-none">${bi("Không có lệnh nào đang mở hay đang chờ – bot đang canh cú sốc.", "No open or pending trades – the bot is watching for shocks.")}</p>` : ""}${lastH}</div>
-    <div class="lvw-f"><span>${bi("Hôm nay", "Today")} <b class="${cls(day)}">${isNum(day) ? lvw$(day) : "—"}</b>${tab === "live" && isNum(L?.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : tab === "paper" && isNum(D.paper?.eq) ? ` · ${bi("tài sản", "equity")} ${usd2(D.paper.eq)}` : ""}</span><a href="#/bot/scalp" data-lvw-go="${tab}">${bi("Bot Phản Xạ →", "Reflex Bot →")}</a></div></div>`;
+  const body = `${tab === "live" && L?.halt ? `<p class="lvw-halt">⛔ ${esc(L.halt)}</p>` : ""}${sec(bi("Đang mở", "Open"), O)}${sec(bi("Đang chờ khớp", "Pending"), W)}${!O.length && !W.length ? `<p class="lvw-none">${bi("Không có lệnh nào đang mở hay đang chờ – bot đang canh cú sốc.", "No open or pending trades – the bot is watching for shocks.")}</p>` : ""}${lastH}`;
+  const foot = `<span>${bi("Hôm nay", "Today")} <b class="${cls(day)}">${isNum(day) ? lvw$(day) : "—"}</b>${tab === "live" && isNum(L?.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : tab === "paper" && isNum(D.paper?.eq) ? ` · ${bi("tài sản", "equity")} ${usd2(D.paper.eq)}` : ""}</span><a href="#/bot/scalp" data-lvw-go="${tab}">${bi("Bot Phản Xạ →", "Reflex Bot →")}</a>`;
+  return { pill, seg, body, foot, st, n: nAll };
 }
-const LVW_C = ["br", "bl", "tr", "tl"];
-function lvwPlace(el) { const c = LVW.pos || (MOB.matches ? "bl" : "br"); LVW_C.forEach((k) => el.classList.toggle("at-" + k, k === c)); }
+// vùng được phép đặt: dưới thanh đầu trang, trên thanh tab dưới (điện thoại), không đè thanh điều hướng trái / bảng phụ (máy tính)
+function lvwBounds() {
+  const W = innerWidth, H = innerHeight, mob = MOB.matches, hd = document.querySelector("header.top")?.getBoundingClientRect();
+  let L = 8, R = W - 8, T = Math.max(8, (hd && hd.bottom > 0 ? hd.bottom : 0) + 8), B = H - 8;
+  if (!mob) { L = (parseFloat(getComputedStyle(document.body).getPropertyValue("--rail")) || 0) + 10; const pn = document.body.classList.contains("pn-on") && document.getElementById("pnav")?.getBoundingClientRect(); if (pn && pn.width > 40 && pn.left > W / 2) R = pn.left - 10; }
+  const tb = mob && document.getElementById("tabs")?.getBoundingClientRect(); if (tb && tb.height && tb.top < H && tb.top > H / 2) B = tb.top - 8;
+  return { L, R, T, B, W, H };
+}
+function lvwPlace(el, anim = true) {
+  const pill = el.querySelector(".lvw-pill"); if (!pill) return;
+  const K = lvwBounds(), mob = MOB.matches, P = LVW.pos || (mob ? { e: "r", f: 0.72 } : { e: "r", f: 0.97 }), dot = LVW.mode === "dot" && LVW.mode !== "full";
+  const w = pill.offsetWidth, h = pill.offsetHeight, f = Math.max(0, Math.min(1, isNum(P.f) ? P.f : 0.5));
+  let x, y;
+  if (P.e === "l" || P.e === "r") { y = K.T + f * Math.max(0, K.B - K.T - h); x = P.e === "l" ? (dot ? K.L - 8 : K.L) : (dot ? K.R + 8 - w : K.R - w); }
+  else { x = K.L + f * Math.max(0, K.R - K.L - w); y = P.e === "t" ? K.T : K.B - h; }
+  // tránh nút bảng phụ nổi (điện thoại)
+  const fab = document.querySelector(".pnfab"), fr = fab && fab.offsetParent && fab.getBoundingClientRect();
+  if (fr && fr.width && x < fr.right && x + w > fr.left && y < fr.bottom && y + h > fr.top) y = y + h / 2 < fr.top + fr.height / 2 ? fr.top - h - 8 : fr.bottom + 8;
+  x = Math.round(Math.max(dot ? 0 : K.L, Math.min((dot ? K.W : K.R) - w, x))); y = Math.round(Math.max(K.T, Math.min(K.B - h, y)));
+  const cx = x + w / 2, cy = y + h / 2, up = P.e === "b" || (P.e !== "t" && cy - K.T > K.B - cy), al = P.e === "l" || (P.e !== "r" && cx < K.W / 2);
+  const cw = Math.min(360, K.W - 24), room = up ? y - K.T - 8 : K.B - (y + h) - 8;
+  const cl = Math.max(12 - x, Math.min(K.W - 12 - cw - x, al ? 0 : w - cw));
+  el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, room))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
+  ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-" + P.e)); el.classList.toggle("up", up); el.classList.toggle("al", al);
+  el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
+  if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
+}
+function lvwMode(m) {
+  if (m === LVW.mode) return; const el = document.getElementById("lvw"); LVW.mode = m; lsSet("lvwmode", m); if (m !== "full") { LVW.rest = m; lsSet("lvwrest", m); }
+  if (!el) return; lvsDraw(); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+  if (m === "full") { lvwPx().then(() => lvsDraw()); lvsPull(); }
+}
 function lvsDraw() {
   document.querySelectorAll("#app .lvst, #app .crumb[data-lvs]").forEach((x) => x.remove());      // bỏ viên cũ trong hàng đường dẫn
   const D = LVS.d; let el = document.getElementById("lvw");
   if (!D?.at) { el?.remove(); return; }
+  let first = false;
   if (!el) {
-    el = document.createElement("div"); el.id = "lvw"; el.className = "lvw"; document.body.appendChild(el);
+    first = true; LVW.h = {};
+    el = document.createElement("div"); el.id = "lvw"; el.className = "lvw noanim"; document.body.appendChild(el);
+    // khung cố định: chỉ thay phần nội dung đổi → không nháy, không chạy lại hiệu ứng mở
+    el.innerHTML = `<button type="button" class="lvw-pill" data-lvw-t data-lvw-drag></button><div class="lvw-card" role="dialog" aria-label="${bi("Lệnh bot trực tiếp", "Live bot trades")}"><div class="lvw-top" data-lvw-drag><span class="lvw-grip" aria-hidden="true"></span><b>${bi("Lệnh bot · trực tiếp", "Bot trades · live")}</b><small class="lvw-ago"></small><button type="button" data-lvw-m="dot" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="currentColor"/></svg></button><button type="button" data-lvw-m="mini" title="${bi("Thu gọn", "Collapse")}" aria-label="${bi("Thu gọn", "Collapse")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div><div class="lvw-segw"></div><div class="lvw-body"></div><div class="lvw-f"></div></div>`;
     el.addEventListener("click", (e) => {
-      if (el.__drag) { e.preventDefault(); el.__drag = false; return; }
-      const t = e.target.closest("[data-lvw-t]"); if (t) { LVW.open = !LVW.open; lsSet("lvwopen", LVW.open); lvsDraw(); if (LVW.open) { lvwPx(); lvsPull(); } return; }
-      const tb = e.target.closest("[data-lvw-tab]"); if (tb) { LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw(); lvwPx(); return; }
-      if (e.target.closest("[data-lvw-mv]")) { const c = LVW.pos || (MOB.matches ? "bl" : "br"); LVW.pos = LVW_C[(LVW_C.indexOf(c) + 1) % 4]; lsSet("lvwpos", LVW.pos); lvwPlace(el); return; }
-      const go = e.target.closest("[data-lvw-go]"); if (go) { window.__scEnv = go.dataset.lvwGo === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); if (MOB.matches) { LVW.open = false; lsSet("lvwopen", false); } }
-      if (e.target.closest("a") && MOB.matches) { LVW.open = false; lsSet("lvwopen", false); setTimeout(lvsDraw, 50); }
+      if (el.__drag) { e.preventDefault(); e.stopPropagation(); el.__drag = false; return; }
+      if (e.target.closest("[data-lvw-dot]")) { e.stopPropagation(); lvwMode("dot"); return; }
+      const m = e.target.closest("[data-lvw-m]"); if (m) { lvwMode(m.dataset.lvwM); return; }
+      if (e.target.closest("[data-lvw-t]")) { lvwMode(LVW.mode === "full" ? LVW.rest : "full"); return; }
+      const tb = e.target.closest("[data-lvw-tab]"); if (tb) { LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw(); lvwPx().then(() => lvsDraw()); return; }
+      const go = e.target.closest("[data-lvw-go]"); if (go) { window.__scEnv = go.dataset.lvwGo === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }
+      if (e.target.closest("a") && MOB.matches) setTimeout(() => lvwMode(LVW.rest), 60);
     });
-    // kéo tới góc khác: giữ & kéo viên (thu gọn) hoặc dòng tiêu đề (mở rộng) → thả ra hít vào góc gần nhất
+    // kéo thả: giữ viên / chấm / thanh tiêu đề → theo ngón tay → thả ra hít vào mép gần nhất, giữ đúng vị trí dọc theo mép
     el.addEventListener("pointerdown", (e) => {
-      const h = e.target.closest(".lvw-pill, [data-lvw-drag]"); if (!h || e.button !== 0 || e.target.closest("[data-lvw-mv]")) return;
-      const r = el.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY; let moved = false;
-      const mv = (ev) => { const dx = ev.clientX - x0, dy = ev.clientY - y0; if (!moved && Math.hypot(dx, dy) < 6) return; moved = true; el.classList.add("drag"); el.style.cssText = `left:${r.left + dx}px;top:${r.top + dy}px;right:auto;bottom:auto`; };
-      const up = (ev) => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); if (!moved) return; el.__drag = true; setTimeout(() => (el.__drag = false), 50);
-        const cx = ev.clientX, cy = ev.clientY, c = (cy < innerHeight / 2 ? "t" : "b") + (cx < innerWidth / 2 ? "l" : "r"); LVW.pos = c; lsSet("lvwpos", c); el.style.cssText = ""; el.classList.remove("drag"); lvwPlace(el); };
-      addEventListener("pointermove", mv); addEventListener("pointerup", up);
+      const hnd = e.target.closest("[data-lvw-drag]"); if (!hnd || (e.button !== 0 && e.pointerType === "mouse") || e.target.closest("[data-lvw-m],[data-lvw-dot]")) return;
+      const [x0, y0] = el.__xy || [0, 0], px0 = e.clientX, py0 = e.clientY, pill = el.querySelector(".lvw-pill"), pw = pill.offsetWidth, ph = pill.offsetHeight; let moved = false, raf = 0, lx = px0, ly = py0;
+      const mv = (ev) => { lx = ev.clientX; ly = ev.clientY; if (!moved && Math.hypot(lx - px0, ly - py0) < 7) return;
+        if (!moved) { moved = true; el.classList.add("drag"); try { hnd.setPointerCapture(e.pointerId); } catch (_) {} }
+        ev.preventDefault(); if (!raf) raf = requestAnimationFrame(() => { raf = 0; el.style.transform = `translate3d(${x0 + lx - px0}px,${y0 + ly - py0}px,0)`; }); };
+      const up = () => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); if (raf) cancelAnimationFrame(raf); if (!moved) return;
+        el.__drag = true; setTimeout(() => (el.__drag = false), 80); el.classList.remove("drag");
+        const K = lvwBounds(), cx = x0 + lx - px0 + pw / 2, cy = y0 + ly - py0 + ph / 2;
+        const d = { l: cx - K.L, r: K.R - cx, t: (cy - K.T) * 1.6, b: (K.B - cy) * 1.6 };      // ưu tiên mép trái/phải (đỡ che nội dung trên/dưới)
+        const eg = Object.keys(d).reduce((a, b) => (d[a] <= d[b] ? a : b));
+        const f = eg === "l" || eg === "r" ? (cy - ph / 2 - K.T) / Math.max(1, K.B - K.T - ph) : (cx - pw / 2 - K.L) / Math.max(1, K.R - K.L - pw);
+        LVW.pos = { e: eg, f: Math.round(Math.max(0, Math.min(1, f)) * 1000) / 1000 }; lsSet("lvwpos", LVW.pos); lvwPlace(el);
+        if (navigator.vibrate) try { navigator.vibrate(8); } catch (_) {} };
+      addEventListener("pointermove", mv, { passive: false }); addEventListener("pointerup", up); addEventListener("pointercancel", up);
     });
+    addEventListener("resize", () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); });
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); }, 1000);
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
   if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ
-  LVW.sig = sig; el.classList.toggle("open", LVW.open); lvwPlace(el);
-  const sy = el.querySelector(".lvw-body")?.scrollTop || 0; el.innerHTML = lvwHtml(D); const bd = el.querySelector(".lvw-body"); if (bd) bd.scrollTop = sy;
-  lvwTick(true);
+  LVW.sig = sig;
+  const P = lvwParts(D), set = (sel, k, html) => { if (LVW.h[k] === html) return; LVW.h[k] = html; const n = el.querySelector(sel); if (!n) return; if (k === "body") { const y = n.scrollTop; n.innerHTML = html; n.scrollTop = y; } else n.innerHTML = html; };
+  const pillEl = el.querySelector(".lvw-pill"); set(".lvw-pill", "pill", P.pill); pillEl.setAttribute("aria-expanded", String(LVW.mode === "full"));
+  pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot trực tiếp – bấm để mở, giữ & kéo để đổi chỗ", "Live bot trades – tap to open, hold & drag to move") : bi("Bấm để mở / thu · giữ & kéo tới mép bất kỳ", "Tap to open / close · hold & drag to any edge");
+  ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("open", LVW.mode === "full"); el.classList.toggle("hot", P.st === "hot"); el.classList.toggle("is-dot", LVW.mode === "dot");
+  if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); }
+  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag")); el.__pw = el.querySelector(".lvw-pill").offsetWidth;
 }
 // dòng chạy trong viên thu gọn + thanh thời gian / số phút còn lại mỗi giây
 function lvwTick(now) {
   const el = document.getElementById("lvw"); if (!el || !LVS.d) return; LVW.k = (LVW.k || 0) + 1;
   const I = lvwItems(LVS.d), A = [...(LVW.tab === "paper" ? I.paper : I.live.length ? I.live : I.paper)], tk = el.querySelector(".lvw-tk");
   if (tk && (now || LVW.k % 4 === 0)) { if (!A.length) tk.textContent = ""; else { const x = A[Math.floor(LVW.k / 4) % A.length], m = LVW.px[x.sym] || x.m, u = x.st === "open" && isNum(m) && x.e ? x.side * (m / x.e - 1) * 100 : null;
-    tk.innerHTML = `${esc(x.sym)} <b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</b>${u != null ? ` <span class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</span>` : x.st === "wait" ? " ⏳" : ""}${x.b && x.b > Date.now() ? ` <small>${lvsLeft(x.b - Date.now())}</small>` : ""}`; } }
-  if (LVW.open && LVW.k % 10 === 0) lvwPx().then(() => { const b = el.querySelector(".lvw-body"); if (b) { const y = b.scrollTop; lvsDraw(); const b2 = el.querySelector(".lvw-body"); if (b2) b2.scrollTop = y; } });
+    tk.innerHTML = `${esc(x.sym)} <b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</b>${u != null ? ` <span class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</span>` : x.st === "wait" ? " ⏳" : ""}${x.b && x.b > Date.now() ? ` <small>${lvsLeft(x.b - Date.now())}</small>` : ""}`; tk.classList.remove("tk-in"); void tk.offsetWidth; tk.classList.add("tk-in"); } }
+  if (!now && !el.classList.contains("drag")) { const pw = el.querySelector(".lvw-pill")?.offsetWidth; if (pw && pw !== el.__pw) { el.__pw = pw; lvwPlace(el); } }      // dòng chạy đổi độ dài → giữ viên trong màn hình
+  const ag = el.querySelector(".lvw-ago"); if (ag && (now || LVW.k % 5 === 0)) ag.textContent = `${bi("cập nhật", "updated")} ${lvwAgo(lvsT(LVS.d.at))}`;
+  if (LVW.mode === "full" && LVW.k % 10 === 0) lvwPx().then(() => lvsDraw());
 }
 // giá hiện tại (Binance futures, công khai) cho các lệnh đang mở / chờ – chỉ lấy khi ô đang mở rộng
 async function lvwPx() {
