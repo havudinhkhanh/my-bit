@@ -6,7 +6,7 @@ if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.
 // ================================================================ tiện ích
 const LANG = (() => { try { return JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { return "vi"; } })();
 const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
-const LOC = LANG === "en" ? "en-US" : "vi-VN";
+const LOC = { vi: "vi-VN", en: "en-US", de: "de-DE", fi: "fi-FI", it: "it-IT", zh: "zh-CN", fr: "fr-FR", ja: "ja-JP", ko: "ko-KR", es: "es-ES" }[LANG] || "en-US";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -4351,9 +4351,9 @@ function trTree(root) {
 }
 async function i18nInit() {
   document.documentElement.lang = I18N.lang;
-  if (I18N.lang !== "en") return;
+  if (I18N.lang === "vi") return;
   try {
-    I18N.d = await (await fetch("i18n-en.json", { cache: "no-store" })).json();      // no-store: luôn lấy bản dịch mới nhất, không qua bộ nhớ đệm của ứng dụng (bản cũ làm câu vừa dịch vẫn hiện tiếng Việt)
+    I18N.d = await (await fetch(`i18n-${I18N.lang}.json`, { cache: "no-store" })).json();      // no-store: luôn lấy bản dịch mới nhất, không qua bộ nhớ đệm của ứng dụng (bản cũ làm câu vừa dịch vẫn hiện tiếng Việt)
     const root = {};
     for (const k of Object.keys(I18N.d)) { let n = root; for (let i = 0; i < k.length; i++) n = Object.prototype.hasOwnProperty.call(n, k[i]) ? n[k[i]] : (n[k[i]] = {}); n[""] = k; }
     I18N.trie = root;
@@ -4365,7 +4365,27 @@ async function i18nInit() {
     if (!sch) { sch = true; queueMicrotask(() => { sch = false; const L = [...pend]; pend.clear(); L.forEach((x) => { if (x.isConnected) trTree(x); }); }); }
   }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTR });
 }
-function langToggle() { lsSet("lang", I18N.lang === "en" ? "vi" : "en"); location.reload(); }
+// danh sách ngôn ngữ: [mã, tên bằng chính tiếng đó, tên tiếng Việt, mã hiển thị trên nút]. Thêm tiếng mới (de, fi, it, zh…) = thêm 1 dòng ở đây
+// + 1 tệp từ điển i18n-<mã>.json (khoá là câu tiếng Việt như i18n-en.json) – nút ngôn ngữ, menu, đổi định dạng số/ngày tự nhận.
+const LANGS = [["vi", "Tiếng Việt", "Tiếng Việt", "VI"], ["en", "English", "Tiếng Anh", "EN"]];
+function langSet(k) { if (k === I18N.lang || !LANGS.some((l) => l[0] === k)) return; lsSet("lang", k); location.reload(); }
+function langToggle() { langSet(I18N.lang === "vi" ? "en" : "vi"); }
+const LANG_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 3.9 5.6 3.9 9s-1.3 6.4-3.9 9c-2.6-2.6-3.9-5.6-3.9-9S9.4 5.6 12 3Z"/></svg>';
+function langClose() { const m = $("#lgMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $("#lang")?.setAttribute("aria-expanded", "false"); }
+function langMenu(anchor = $("#lang")) {
+  if ($("#lgMenu")) { langClose(); return; }
+  const r = anchor.getBoundingClientRect(), W = 240, vw = document.documentElement.clientWidth, left = Math.max(8, Math.min(vw - W - 8, r.right - W)), cur = I18N.lang;
+  const m = document.createElement("div"); m.id = "lgMenu"; m.className = "ios-menu"; m.setAttribute("data-noi18n", "");
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${cur === "vi" ? "Ngôn ngữ" : "Language"}" style="left:${left}px;top:${r.bottom + 8}px;width:${W}px;transform-origin:${r.left + r.width / 2 - left}px -8px">
+    <div class="ios-menu-h">${cur === "vi" ? "Ngôn ngữ" : "Language"}</div>
+    ${LANGS.map(([k, nat, vi, code]) => `<button type="button" role="menuitemradio" aria-checked="${k === cur}" data-lgv="${k}" lang="${k}"><span class="ios-ck">${k === cur ? "✓" : ""}</span><span class="ios-t">${nat}${k !== "vi" && cur === "vi" ? `<small>${vi}</small>` : k === "vi" && cur !== "vi" ? "<small>Vietnamese</small>" : ""}</span><b class="lg-code">${code}</b></button>`).join("")}</div>`;
+  document.body.appendChild(m); anchor.setAttribute("aria-expanded", "true");
+  m.querySelector("[data-x]").onclick = langClose;
+  $$("[data-lgv]", m).forEach((b) => (b.onclick = () => { const k = b.dataset.lgv; langClose(); langSet(k); }));
+  const kd = (e) => { if (e.key === "Escape") { langClose(); removeEventListener("keydown", kd); } }; addEventListener("keydown", kd);
+  addEventListener("hashchange", langClose, { once: true }); addEventListener("resize", langClose, { once: true });
+  m.querySelector(`[data-lgv="${cur}"]`)?.focus({ preventScroll: true });
+}
 
 // ================================================================ PHƯƠNG PHÁP – giải thích từng khái niệm & cách dùng trên MyBit (song ngữ)
 const MG = { smc: ["Cấu trúc thị trường & Smart Money (SMC)", "Market structure & Smart Money (SMC)"], ta: ["Chỉ báo & mức giá kỹ thuật", "Indicators & technical levels"],
@@ -5061,7 +5081,7 @@ async function viewBacktest() {
 const TH_MQ = matchMedia("(prefers-color-scheme: dark)");
 const TH_OPT = [["light", "Sáng", '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
   ["dark", "Tối", '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>'],
-  ["system", "Theo hệ thống", '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>']];
+  ["system", "Theo hệ thống", '<rect x="3" y="4.5" width="18" height="11.5" rx="2"/><path d="M8.5 20h7M12 16v4"/>']];
 const thPref = () => { const v = lsGet("theme", "dark"); return TH_OPT.some((o) => o[0] === v) ? v : "dark"; };
 const thEff = (p = thPref()) => (p === "system" ? (TH_MQ.matches ? "dark" : "light") : p);
 const thSvg = (k, s = 18) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${(TH_OPT.find((o) => o[0] === k) || TH_OPT[1])[2]}</svg>`;
@@ -5201,7 +5221,7 @@ function cmdkItems(q) {
   const pages = $$("#tabs a[href^='#/']:not(.nav-cus)").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "" }));
   pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; } });
   const acts = [...TH_OPT.filter(([k]) => k !== thPref()).map(([k, t]) => ({ g: "Thao tác", label: `Giao diện: ${t}`, go: () => thApply(k) })),
-    { g: "Thao tác", label: I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English", go: () => langToggle() },
+    ...LANGS.filter((l) => l[0] !== I18N.lang).map(([k, nat, vi]) => ({ g: "Thao tác", label: I18N.lang === "vi" ? `Ngôn ngữ: ${vi} (${nat})` : `Language: ${nat}`, go: () => langSet(k) })),
     { g: "Thao tác", label: bi("Hiện lại thanh lệnh bot trực tiếp (về góc phải dưới)", "Show the live bot-trades bar again (bottom right)"), go: () => { LVW.pos = null; lsSet("lvwpos", null); LVW.mode = "mini"; lsSet("lvwmode", "mini"); LVW.rest = "mini"; lsSet("lvwrest", "mini"); document.getElementById("lvw")?.remove(); LVS.busy = false; lvsPull(); if (LVS.d) lvsDraw(); toast(LVS.d?.at ? bi("Đã đưa thanh lệnh bot về góc phải dưới", "Live bar moved back to the bottom right") : bi("Chưa có dữ liệu bot – kiểm tra máy chủ riêng", "No bot data yet – check your own server")); } },
     { g: "Thao tác", label: "Mở / đóng bảng phụ", sub: "điểm chính, mục lục, coin theo dõi, tính lệnh", go: () => $("#pnFab")?.click() }];
   if (!t) return [...pages, ...acts];
@@ -5896,7 +5916,7 @@ function initAccountUI() {
 
 (async function main() {
   await i18nInit();
-  const lb = $("#lang"); if (lb) { lb.textContent = I18N.lang === "en" ? "VI" : "EN"; lb.title = I18N.lang === "en" ? "Chuyển sang tiếng Việt" : "Switch to English"; lb.onclick = langToggle; lb.setAttribute("data-noi18n", ""); }
+  const lb = $("#lang"); if (lb) { const L = LANGS.find((l) => l[0] === I18N.lang) || LANGS[0]; lb.innerHTML = `${LANG_SVG}<span>${L[3]}</span>`; lb.title = I18N.lang === "vi" ? "Ngôn ngữ: Tiếng Việt" : `Language: ${L[1]}`; lb.setAttribute("aria-label", lb.title); lb.setAttribute("aria-haspopup", "menu"); lb.onclick = (e) => { e.stopPropagation(); langMenu(e.currentTarget); }; lb.setAttribute("data-noi18n", ""); }
   ME = await fetchMe();
   if (!ME) { location.replace("/login?next=" + encodeURIComponent("/" + location.hash)); return; }
   initTheme(); initSearch(); initPop(); initAccountUI(); plansData(); uiLoad();
