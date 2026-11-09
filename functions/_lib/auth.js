@@ -171,6 +171,20 @@ export async function auth(ctx, action) {
     await env.DB.prepare("UPDATE users SET name = ? WHERE id = ?").bind(String(b.name || "").trim().slice(0, 80) || null, u.id).run();
     return json({ ok: true, me: meOf(await getUser(env, u.id)) });
   }
+  if (action === "email") {      // đổi email đăng nhập: cần mật khẩu hiện tại; email cũ nhận thư báo; các phiên khác bị đăng xuất
+    const ne = String(b.email || "").trim().toLowerCase();
+    if (!validEmail(ne)) return err("Email không hợp lệ");
+    if (ne === u.email) return err("Email mới trùng email hiện tại");
+    if (await tooMany(env, "email:" + u.id)) return err("Sai quá nhiều lần – thử lại sau 15 phút", 429);
+    if (!u.pw) return err("Tài khoản đang đăng nhập bằng Google – đặt mật khẩu ở mục Bảo mật trước rồi mới đổi email");
+    if (!(await verifyPassword(String(b.password || ""), u.pw))) { await failAttempt(env, "email:" + u.id); return err("Mật khẩu hiện tại không đúng", 401); }
+    if (await env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(ne).first()) return err("Email này đã thuộc tài khoản khác", 409);
+    await env.DB.prepare("UPDATE users SET email = ?, sv = sv + 1 WHERE id = ?").bind(ne, u.id).run();
+    const u2 = await getUser(env, u.id);
+    await audit(env, u.id, "email", `${u.email} → ${ne}`);
+    try { await sendMail(env, u.email, "Email đăng nhập MyBit đã đổi", `<p>Email đăng nhập tài khoản MyBit của anh/chị vừa đổi sang <b>${ne}</b>.</p><p>Nếu không phải anh/chị đổi, hãy liên hệ quản trị viên ngay.</p>`); } catch (e) { /* bỏ qua */ }
+    return json({ ok: true, me: meOf(u2) }, 200, { "set-cookie": await makeCookie(env, u2, request.url) });
+  }
   if (action === "logout_all") {
     await env.DB.prepare("UPDATE users SET sv = sv + 1 WHERE id = ?").bind(u.id).run();
     return json({ ok: true }, 200, { "set-cookie": clearCookie() });

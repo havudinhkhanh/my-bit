@@ -5623,7 +5623,8 @@ function acPage(o) {
   <div class="acp-grid">
   <section class="acp-card"><h2>Hồ sơ</h2>
     ${acRow("Tên hiển thị", "Hiện trên đầu trang & trong thông báo", `<input id="acName" value="${esc(ME.name || "")}" placeholder="Tên của anh/chị"><button class="btn" id="acSave">Lưu</button>`)}
-    ${acRow("Email đăng nhập", "", `<span class="acp-v">${esc(ME.email)}</span>`)}
+    ${acRow("Email đăng nhập", ME.has_pw ? "Đổi email cần mật khẩu hiện tại · email cũ sẽ nhận thư báo" : "Đặt mật khẩu ở mục Bảo mật trước rồi mới đổi được email", `<span class="acp-v" id="acEmV">${esc(ME.email)}</span>${ME.has_pw ? `<button class="btn" id="acEmEdit">Đổi email</button>` : ""}`)}
+    <div class="acp-row acp-emf" id="acEmF" hidden><div class="acp-l"><b>Email mới</b><small>Sau khi đổi, các thiết bị khác phải đăng nhập lại bằng email mới</small></div><div class="acp-c acp-emc"><input id="acEm" type="email" autocomplete="email" placeholder="email@vidu.com"><input id="acEmPw" type="password" autocomplete="current-password" placeholder="Mật khẩu hiện tại"><button class="btn primary" id="acEmSave">Lưu email</button><button class="btn" id="acEmX">Huỷ</button></div></div>
     ${acRow("Giao diện", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
     ${uiPrefHtml()}
   </section>
@@ -5666,6 +5667,11 @@ async function viewAccount() {
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
   app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml() + '<section class="panel" id="pvBx"></section>', pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
   thSegBind(app()); uiPrefBind(); acBx();
+  if ($("#acEmEdit")) { const F = $("#acEmF");
+    $("#acEmEdit").onclick = () => { F.hidden = false; $("#acEm").value = ""; $("#acEmPw").value = ""; $("#acEm").focus(); };
+    $("#acEmX").onclick = () => { F.hidden = true; };
+    $("#acEmSave").onclick = async () => { const em = $("#acEm").value.trim(), pw = $("#acEmPw").value; if (!em || !pw) { toast(bi("Nhập email mới và mật khẩu hiện tại", "Enter the new email and your current password")); return; }
+      try { const j = await api("auth/email", "POST", { email: em, password: pw }); ME = { ...ME, ...j.me }; $("#acEmV").textContent = ME.email; const hp = $(".acp-id p"); if (hp) hp.textContent = ME.email; F.hidden = true; toast(bi(`Đã đổi email đăng nhập sang ${ME.email}`, `Login email changed to ${ME.email}`)); } catch (e) { toast(e.message); } }; }
   $("#acSave").onclick = async () => { try { const j = await api("auth/profile", "POST", { name: $("#acName").value }); ME = { ...ME, ...j.me }; toast("Đã lưu"); } catch (e) { toast(e.message); } };
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();
@@ -5888,16 +5894,16 @@ addEventListener("resize", () => document.querySelectorAll("details[open]").forE
 // ---- 💵 dải trạng thái Bot Phản Xạ ở góc phải hàng đường dẫn – mọi trang: lệnh đang chờ / đang mở trên Binance, lời/lỗ hôm nay.
 //      Bấm để xem từng lệnh. Lấy bản gọn (api/scalpbrief) 30 giây/lần khi trang đang mở.
 const LVS = { d: null, t: 0, busy: false };
-const lvsLeft = (ms) => { const s = ms / 1000; return s <= 0 ? "sắp hết" : s < 3600 ? `${Math.max(1, Math.round(s / 60))} phút` : s < 172800 ? `${Math.round(s / 3600)} giờ` : `${Math.round(s / 86400)} ngày`; };
+const lvsLeft = (ms) => { const s = ms / 1000; return s <= 0 ? bi("sắp hết", "ending") : s < 3600 ? `${Math.max(1, Math.round(s / 60))} ${bi("phút", "min")}` : s < 172800 ? `${Math.round(s / 3600)} ${bi("giờ", "h")}` : `${Math.round(s / 86400)} ${bi("ngày", "days")}`; };
 const lvsT = (v) => (typeof v === "number" ? v : Date.parse(/Z$/.test(String(v)) ? v : v + "Z"));
 function lvsItems(D) {
   const L = D?.live, I = [];
   for (const e of L?.ev || []) {
     const c = String(e.sym || "").replace(/USDT$/, ""), P = e.pos || {}, pend = (e.lv || []).filter((l) => l.st === "open" || l.st === "wait");
-    if (P.q > 0) I.push({ o: 1, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `đang mở ${qty(P.q)} @ ${px(P.ap)}${e.stop ? ` · cắt lỗ ${px(e.stop)}` : ""}`, r: P.t1 ? `tự đóng sau ${lvsLeft(P.t1 + (e.hold || 60) * 60e3 - Date.now())}` : "" });
-    if (pend.length) I.push({ o: 0, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `chờ ${e.side > 0 ? "mua" : "bán"} ${pend.map((l) => `${qty(l.q)} @ ${px(l.px)}`).join(" · ")}`, r: e.exp ? `còn ${lvsLeft(lvsT(e.exp) - Date.now())}` : "" });
+    if (P.q > 0) I.push({ o: 1, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `${bi("đang mở", "open")} ${qty(P.q)} @ ${px(P.ap)}${e.stop ? ` · ${bi("cắt lỗ", "stop")} ${px(e.stop)}` : ""}`, r: P.t1 ? `${bi("tự đóng sau", "auto-closes in")} ${lvsLeft(P.t1 + (e.hold || 60) * 60e3 - Date.now())}` : "" });
+    if (pend.length) I.push({ o: 0, h: `🪝 <b>${esc(c)}</b> <span class="${e.side > 0 ? "up" : "down"}">${e.side > 0 ? "Long" : "Short"}</span>`, s: `${e.side > 0 ? bi("chờ mua", "buy order") : bi("chờ bán", "sell order")} ${pend.map((l) => `${qty(l.q)} @ ${px(l.px)}`).join(" · ")}`, r: e.exp ? `${bi("còn", "")} ${lvsLeft(lvsT(e.exp) - Date.now())}${bi("", " left")}` : "" });
   }
-  for (const p of L?.swp || []) I.push({ o: 1, h: `🧪 <b>${esc(String(p.sym).replace(/USDT$/, ""))}</b> <span class="down">Short</span>`, s: `đang mở ${qty(p.q)} @ ${px(p.ap)} · <span class="${cls(p.upnl)}">${p.upnl >= 0 ? "+" : ""}${usd2(p.upnl)}</span> tạm tính`, r: p.exp ? `còn ${lvsLeft(lvsT(p.exp) - Date.now())}` : "" });
+  for (const p of L?.swp || []) I.push({ o: 1, h: `🧪 <b>${esc(String(p.sym).replace(/USDT$/, ""))}</b> <span class="down">Short</span>`, s: `${bi("đang mở", "open")} ${qty(p.q)} @ ${px(p.ap)} · <span class="${cls(p.upnl)}">${p.upnl >= 0 ? "+" : ""}${usd2(p.upnl)}</span> ${bi("tạm tính", "unrealized")}`, r: p.exp ? `${bi("còn", "")} ${lvsLeft(lvsT(p.exp) - Date.now())}${bi("", " left")}` : "" });
   return I;
 }
 function lvsHtml(D) {
@@ -5906,10 +5912,10 @@ function lvsHtml(D) {
   if (live) {
     const I = lvsItems(D), w = I.filter((x) => !x.o).length, o = I.filter((x) => x.o).length, day = L.day;
     const st = !fresh ? "off" : L.halt ? "warn" : "on";
-    return `<span class="lvs-dot ${st}"></span><b>${L.env === "live" ? "💵 Thật" : "🟡 Demo"}</b>${w ? `<span>⏳ ${w} chờ</span>` : ""}${o ? `<span>📌 ${o} mở</span>` : ""}${!w && !o ? `<span class="faint">${L.halt ? "đang dừng" : "không có lệnh"}</span>` : ""}${isNum(day) ? `<span class="${cls(day)}">${nz(day, 2) > 0 ? "+" : ""}${usd2(day)}</span>` : ""}`;
+    return `<span class="lvs-dot ${st}"></span><b>${L.env === "live" ? bi("💵 Thật", "💵 Live") : "🟡 Demo"}</b>${w ? `<span>⏳ ${w} ${bi("chờ", "pending")}</span>` : ""}${o ? `<span>📌 ${o} ${bi("mở", "open")}</span>` : ""}${!w && !o ? `<span class="faint">${L.halt ? bi("đang dừng", "halted") : bi("không có lệnh", "no trades")}</span>` : ""}${isNum(day) ? `<span class="${cls(day)}">${nz(day, 2) > 0 ? "+" : ""}${usd2(day)}</span>` : ""}`;
   }
   const n = (D.paper?.hk || 0) + (D.paper?.pos || 0);
-  return `<span class="lvs-dot ${fresh ? "on" : "off"}"></span><b>🧪 Sàn thử</b><span>${D.paper?.hk ? `⏳ ${D.paper.hk} chờ ` : ""}${D.paper?.pos ? `📌 ${D.paper.pos} mở` : ""}${n ? "" : "không có lệnh"}</span>`;
+  return `<span class="lvs-dot ${fresh ? "on" : "off"}"></span><b>🧪 ${bi("Sàn thử", "Paper")}</b><span>${D.paper?.hk ? `⏳ ${D.paper.hk} ${bi("chờ", "pending")} ` : ""}${D.paper?.pos ? `📌 ${D.paper.pos} ${bi("mở", "open")}` : ""}${n ? "" : bi("không có lệnh", "no trades")}</span>`;
 }
 function lvsPopClose() { const p = document.getElementById("lvsPop"); if (p) { p.classList.add("out"); setTimeout(() => p.remove(), 150); } }
 function lvsPop(btn) {
@@ -5918,8 +5924,8 @@ function lvsPop(btn) {
   const p = document.createElement("div"); p.id = "lvsPop"; p.className = "lvs-pop"; p.setAttribute("role", "dialog");
   p.style.cssText = `top:${Math.round(r.bottom + 6)}px;left:${Math.round(Math.max(8, Math.min(vw - W - 8, r.right - W)))}px;width:${W}px`;
   p.innerHTML = `<div class="lvs-ph"><b>${L && (L.on || I.length) ? (L.env === "live" ? "💵 Binance thật" : "🟡 Binance Demo") : "🧪 Sàn thử"}</b><small>${D?.at ? `cập nhật ${new Date(lvsT(D.at)).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : ""}</small></div>
-    ${I.length ? I.map((x) => `<div class="lvs-it"><div>${x.h} <small class="pill ${x.o ? "brand" : ""}">${x.o ? "mở" : "chờ"}</small></div><div class="lvs-s">${x.s}</div>${x.r ? `<div class="lvs-r">${x.r}</div>` : ""}</div>`).join("") : `<p class="lvs-none">${L?.halt ? `⛔ ${esc(L.halt)}` : "Không có lệnh nào đang chờ hay đang mở."}</p>`}
-    <div class="lvs-f">${L ? `<span>Hôm nay <b class="${cls(L.day)}">${isNum(L.day) ? `${nz(L.day, 2) > 0 ? "+" : ""}${usd2(L.day)}` : "—"}</b>${isNum(L.bal) ? ` · số dư ${usd2(L.bal)}` : ""}</span>` : "<span></span>"}<a href="#/bot/scalp" data-lvs-go>Mở Bot Phản Xạ →</a></div>`;
+    ${I.length ? I.map((x) => `<div class="lvs-it"><div>${x.h} <small class="pill ${x.o ? "brand" : ""}">${x.o ? bi("mở", "open") : bi("chờ", "pending")}</small></div><div class="lvs-s">${x.s}</div>${x.r ? `<div class="lvs-r">${x.r}</div>` : ""}</div>`).join("") : `<p class="lvs-none">${L?.halt ? `⛔ ${esc(L.halt)}` : bi("Không có lệnh nào đang chờ hay đang mở.", "No pending or open trades.")}</p>`}
+    <div class="lvs-f">${L ? `<span>Hôm nay <b class="${cls(L.day)}">${isNum(L.day) ? `${nz(L.day, 2) > 0 ? "+" : ""}${usd2(L.day)}` : "—"}</b>${isNum(L.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : ""}</span>` : "<span></span>"}<a href="#/bot/scalp" data-lvs-go>${bi("Mở Bot Phản Xạ →", "Open Reflex Bot →")}</a></div>`;
   document.body.appendChild(p);
   p.querySelector("[data-lvs-go]").addEventListener("click", () => { try { if (L?.on) { window.__scTab = "ov"; lsSet("sctab", "ov"); window.__scEnv = "live"; lsSet("scenv", "live"); } } catch (e) { /* bỏ qua */ } lvsPopClose(); });
   setTimeout(() => { const off = (e) => { if (!p.isConnected) return removeEventListener("pointerdown", off, true); if (!p.contains(e.target) && !btn.contains(e.target)) { lvsPopClose(); removeEventListener("pointerdown", off, true); } }; addEventListener("pointerdown", off, true); }, 0);

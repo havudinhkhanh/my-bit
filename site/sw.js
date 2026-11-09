@@ -73,7 +73,7 @@ self.addEventListener("fetch", (e) => {
   const u = new URL(req.url);
   if (u.origin !== self.location.origin || u.pathname.startsWith("/api/") || u.pathname === "/sw.js" || req.cache === "no-store") return;
   if (req.mode === "navigate") return e.respondWith(page(e));
-  if (u.pathname.startsWith("/data/")) return e.respondWith(data(e));
+  if (u.pathname.startsWith("/data/") || u.pathname === "/i18n-en.json") return e.respondWith(data(e));      // bản dịch: lấy mạng trước (trước đây dùng bản đệm cũ → vừa thêm câu dịch mà lần mở đầu vẫn hiện tiếng Việt)
   if (/\.(js|css|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|json|webmanifest)$/i.test(u.pathname)) return e.respondWith(asset(e, u.searchParams.has("v")));
 });
 

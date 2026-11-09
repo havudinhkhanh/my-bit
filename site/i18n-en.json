@@ -4763,5 +4763,20 @@
 "giá trực tiếp": "live prices",
 "dừng ở": "stops at",
 "lời": "win",
-"lệnh · dừng ở": "trades · stops at"
+"lệnh · dừng ở": "trades · stops at",
+"Đổi email": "Change email",
+"Email mới": "New email",
+"Lưu email": "Save email",
+"Đổi email cần mật khẩu hiện tại · email cũ sẽ nhận thư báo": "Changing email needs your current password · the old email gets a notice",
+"Đặt mật khẩu ở mục Bảo mật trước rồi mới đổi được email": "Set a password under Security first to change the email",
+"Sau khi đổi, các thiết bị khác phải đăng nhập lại bằng email mới": "After changing, other devices must log in again with the new email",
+"Email không hợp lệ": "Invalid email",
+"Email mới trùng email hiện tại": "The new email is the same as the current one",
+"Email này đã thuộc tài khoản khác": "This email belongs to another account",
+"Mật khẩu hiện tại không đúng": "Current password is wrong",
+"Tài khoản đang đăng nhập bằng Google – đặt mật khẩu ở mục Bảo mật trước rồi mới đổi email": "This account signs in with Google – set a password under Security first",
+"Sai quá nhiều lần – thử lại sau 15 phút": "Too many attempts – try again in 15 minutes",
+"Admin viên": "Administrator",
+"Đổi": "Change",
+"Sàn thử lệnh tay": "Manual paper trading"
 }
