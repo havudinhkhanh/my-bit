@@ -5356,6 +5356,25 @@ function ntBindRow(it, items, redraw) {
   ntPeekBind(it, items);
   ntSwipe(it, n);
 }
+// điện thoại: vuốt ngang ở vùng ngoài các dòng (tiêu đề, hàng nút, hàng mục, tiêu đề ngày, chỗ trống) → sang mục lọc kế bên (Tất cả → Chưa đọc → Bot…)
+function ntTabSwipe(root, list, go) {
+  let x0 = 0, y0 = 0, t0 = 0, ok = false;
+  root.addEventListener("touchstart", (e) => {
+    ok = false; if (e.touches.length !== 1) return; const t = e.target;
+    if (t.closest("[data-nid],input,textarea,select,.ntp-h")) return;
+    const cs = t.closest(".nt-cs"); if (cs && cs.scrollWidth > cs.clientWidth + 4) return;      // hàng mục đang tràn → để cuộn ngang
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now(); ok = true;
+  }, { passive: true });
+  root.addEventListener("touchend", (e) => {
+    if (!ok) return; ok = false; const t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.6 || Date.now() - t0 > 700) return;
+    const K = [...root.querySelectorAll("[data-nf]")].map((b) => b.dataset.nf), cur = K.indexOf(root.querySelector("[data-nf].on")?.dataset.nf ?? K[0]), nx = cur + (dx < 0 ? 1 : -1);
+    if (cur < 0 || nx < 0 || nx >= K.length) { list()?.classList.add("nt-edge"); setTimeout(() => list()?.classList.remove("nt-edge"), 280); return; }
+    navigator.vibrate?.(6); go(K[nx]);
+    const l = list(); if (l) { l.classList.remove("nt-in-l", "nt-in-r"); void l.offsetWidth; l.classList.add(dx < 0 ? "nt-in-l" : "nt-in-r"); }
+    root.querySelector(`[data-nf="${K[nx]}"]`)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, { passive: true });
+}
 // điện thoại: vuốt 1 thông báo sang trái = đã đọc, sang phải = chưa đọc (kéo theo ngón tay, quá 64px thì áp dụng)
 function ntSwipe(it, n) {
   let x0 = 0, y0 = 0, dx = 0, on = false, dead = false;
@@ -5529,7 +5548,7 @@ async function bellOpen() {
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
-    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw">vuốt ← đã đọc · → chưa đọc</small></div>
+    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="Đánh dấu mọi thông báo là đã đọc">✓ Đọc hết</button><a class="ntp-ab" href="#/notifications">Xem tất cả →</a><small class="ntp-sw">vuốt dòng: ← đã đọc · → chưa đọc · vuốt chỗ trống: đổi mục</small></div>
     <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";
@@ -5542,6 +5561,7 @@ async function bellOpen() {
     bindChips();
   };
   const bindChips = () => $$("[data-nf]", box).forEach((b) => (b.onclick = () => { f = b.dataset.nf; draw(); }));
+  ntTabSwipe(box.querySelector(".ntp-in"), () => box.querySelector(".ntp-l"), (k) => { f = k; draw(); });
   $$("[data-x]", box).forEach((x) => (x.onclick = bellClose));
   box.querySelector(".ntp-set").addEventListener("click", bellClose);
   box.querySelector('a[href="#/notifications"]').addEventListener("click", bellClose);
@@ -5562,6 +5582,7 @@ async function viewNotifications() {
       ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}</section>`;
     bindNtf(app(), items, draw);
     $$("[data-nf]", app()).forEach((b) => (b.onclick = () => { f = b.dataset.nf; lsSet("ntf_f", f); draw(); }));
+    const pg = app().querySelector(".nt-page"); if (pg && !pg._sw) { pg._sw = 1; ntTabSwipe(pg, () => app().querySelector(".nt-page .ntp-l"), (k) => { f = k; lsSet("ntf_f", f); draw(); }); }
     $("#nAll").onclick = async () => { await api("notifications/read", "POST", { all: true }); items.forEach((n) => (n.read_at ||= "x")); draw(); bellCount(); };
     $("#nDel").onclick = async () => { if (!confirm("Xoá mọi thông báo đã đọc?")) return; await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
     if ($("#nMore")) $("#nMore").onclick = load_;
