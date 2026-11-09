@@ -4634,3 +4634,13 @@ h1 small,.ph h1 small{font-size:15px!important}
 .rtc li{border-bottom-color:transparent!important}
 .bh-card footer{border-top-color:transparent!important}
 .note{border-left-color:transparent!important;background:color-mix(in srgb,var(--ref,#a27a00) 11%,var(--surface))!important;border-radius:10px}
+/* thẻ lệnh đang mở / chờ khớp: hàng đầu luôn 1 dòng (không lúc lên lúc xuống làm thẻ nhảy) – chiều lệnh "chờ Long" luôn hiện đủ, nhãn Futures/Spot & nhóm co lại nếu chật, giá bên phải giữ bề rộng cố định theo chữ số */
+.sc-oc .r1{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.sc-oc .r1>span{flex-wrap:nowrap!important;white-space:nowrap;overflow:hidden}
+.sc-oc .r1>span>*{flex:none}
+.sc-oc .r1>span>.sc-t,.sc-oc .r1>span>.jtag,.sc-oc .r1>span>.gtag,.sc-oc .r1>span>[class*="grp"]{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sc-oc .r1>b.lpx,.sc-oc .r1>b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sc-oc{container-type:inline-size}
+.sc-oc .r1>span>b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+@container (max-width:360px){.sc-oc .r1>span>.jtag{display:none}}
+@container (max-width:310px){.sc-oc .r1>span>.sc-t{display:none}}
