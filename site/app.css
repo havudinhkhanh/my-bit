@@ -4289,3 +4289,37 @@ body.pn-sheet .pn-in{position:relative}
 .lvw-min::after{content:"";position:absolute;inset:-8px -8px -8px -6px}      /* vùng chạm lớn hơn hình (≈40px) */
 @media (max-width:979px){.lvw-pill{max-width:calc(100vw - 20px)}.lvw-pi{flex:1 1 auto}.lvw-min{width:26px;height:26px}
   .lvw-top button{width:36px;height:36px;border-radius:11px}.lvw.m-dot .lvw-pill{height:34px;min-width:34px}.lvw.m-dot .lvw-pill::after{content:"";position:absolute;inset:-8px}}
+
+/* ===== Sổ thuế TNCN (tài sản mã hoá) ===== */
+.tx-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.tx-kpi>div{padding:12px 14px;border-radius:12px;background:var(--sunk);border:1px solid var(--line-2);display:grid;gap:3px}
+.tx-kpi i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;font-weight:650}
+.tx-kpi b{font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--ink)}.tx-kpi small{color:var(--ink-3);font-size:var(--fs-xs);line-height:1.35}
+.tx-kpi .hi{border-color:color-mix(in srgb,var(--brass,#d9a441) 45%,var(--line-2))}.tx-kpi .hi b{color:var(--brass,#d9a441)}
+@media (max-width:860px){.tx-kpi{grid-template-columns:1fr 1fr}}
+.tx-tw{overflow:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line-2);border-radius:10px}
+.tx-big{max-height:70vh}
+.tx-t{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.tx-t th,.tx-t td{padding:7px 10px;border-bottom:1px solid var(--line-2);text-align:left;white-space:nowrap;vertical-align:top}
+.tx-t th{position:sticky;top:0;background:var(--surface);color:var(--ink-3);font-size:var(--fs-xs);font-weight:650;z-index:1}
+.tx-t td.n{text-align:right}.tx-t td small{color:var(--ink-3)}.tx-t td .up,.tx-t td.up{color:var(--up)}.tx-t td.down{color:var(--down)}
+.tx-mx td{text-align:right}.tx-mx td:first-child{text-align:left}.tx-mx td small{display:block}
+.tx-led td:nth-child(14){white-space:normal;min-width:220px;max-width:360px}
+.tx-t tr.tx-dup td{opacity:.45;text-decoration:line-through}.tx-t tr.tx-pre td{color:var(--ink-3)}
+.tx-del{border:0;background:transparent;color:var(--ink-3);cursor:pointer;border-radius:6px;padding:2px 6px}.tx-del:hover{background:var(--sunk);color:var(--down)}
+.tx-note{margin:10px 2px 0;color:var(--ink-3);font-size:var(--fs-xs);line-height:1.5}.tx-note .warn,.tx-t .warn{color:var(--brass,#d9a441)}
+.tx-yr{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tx-f{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}.tx-f input[type=search]{flex:1 1 200px}
+.tx-drop{position:relative;border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;background:var(--sunk);transition:border-color .15s,background-color .15s}
+.tx-drop.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--sunk))}
+.tx-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}.tx-drop p{margin:0;line-height:1.5}.tx-drop small{color:var(--ink-3)}
+.tx-log{margin:10px 2px;font-size:var(--fs-sm);line-height:1.6;color:var(--ink-2)}.tx-log:empty{display:none}
+.tx-how{margin-top:12px;border:1px solid var(--line-2);border-radius:10px;padding:10px 14px}.tx-how summary{cursor:pointer;font-weight:600}
+.tx-how ol,.tx-how ul{margin:10px 0 0;padding-left:20px;display:grid;gap:8px;line-height:1.55;font-size:var(--fs-sm)}
+.tx-add{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-top:10px;align-items:end}
+.tx-add label,.tx-set label{display:grid;gap:4px;font-size:var(--fs-xs);color:var(--ink-3)}.tx-add label.w{grid-column:span 2}
+.tx-set{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:14px}
+.tx-h3{margin:16px 0 6px;font-size:var(--fs-base)}
+.tx-chips{display:flex;flex-wrap:wrap;gap:6px}.tx-chips span{padding:3px 9px;border-radius:999px;background:var(--sunk);font-size:var(--fs-xs);font-variant-numeric:tabular-nums}
+@media print{body.tx-print .tabs,body.tx-print header,body.tx-print .pnav,body.tx-print #lvw,body.tx-print .tx-drop,body.tx-print .tx-f,body.tx-print .tx-del,body.tx-print #txMore,body.tx-print .crumb,body.tx-print .pnfab{display:none!important}
+  body.tx-print .tx-big{max-height:none;overflow:visible}body.tx-print .tx-t th,body.tx-print .tx-t td{white-space:normal;font-size:9px;padding:3px 4px}}

@@ -46,7 +46,7 @@ function lazyJs(name) {
     document.head.appendChild(el);
   }));
 }
-const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__" };
+const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__" };
 // công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
 function drawHook(el, c, s, o, dkey) {
   if (!el || !dkey || el.clientHeight < 200) return;
@@ -485,7 +485,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["botsup", "#/bot/sup", "🛡️", "Rủi ro & giám sát"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/tax": "Sổ thuế", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
 // icon riêng cho từng tab con của Bot Phản Xạ trên thanh dưới (trước dùng chung tia sét của nút Bot → nút "Lệnh" trông y hệt nút "Bot")
 const SVG0 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const SC_SVG = { ov: SVG0('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'), ord: SVG0('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>'), pm: SVG0('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), log: SVG0('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'), set: SVG0('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>') };
@@ -1066,6 +1066,7 @@ async function route() {
     else if (r === "backtest") { setTab("backtest"); await viewBacktest(); }
     else if (r === "help") { window.__openHelp = true; Store.fast = false; location.replace("#/methods"); return; }      // Hướng dẫn đã gộp vào Phương pháp
     else if (r === "methods") { setTab("methods"); await viewMethods(arg[0]); }
+    else if (r === "tax") { setTab("tax"); await viewTax(); }
     else if (r === "account") { setTab(""); await viewAccount(); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
@@ -3841,6 +3842,7 @@ function dayLessons(D, T, H, C, env) {
 async function viewDays(...a) { await lazyJs("app-bot.js"); return viewDays(...a); }
 async function viewJournal(...a) { await lazyJs("app-bot.js"); return viewJournal(...a); }
 async function viewTrade(...a) { await lazyJs("app-bot.js"); return viewTrade(...a); }
+async function viewTax(...a) { await lazyJs("app-tax.js"); return viewTax(...a); }
 async function viewScalp(...a) { await lazyJs("app-bot.js"); return viewScalp(...a); }
 
 // ================================================================ SÀN GIẢ LẬP (paper trading) + KẾT NỐI BINANCE (Demo / Testnet / thật)
