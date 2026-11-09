@@ -786,7 +786,7 @@ async function viewScalp() {
     const LVT = C.lv_env === "live" ? "Tiền thật" : "Demo", LVI = C.lv_env === "live" ? "💰" : "🟡";
     const seg = (m, w) => {
       const P = w === "paper", on = P ? m.paper.on : m.live.on, none = !P && m.live.none, lock = !P && !none && !C.lv_on;
-      const val = P ? (on ? (m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>${m.nOpen ? ` · ${m.nOpen} mở` : ""}` : "chờ tín hiệu") : m.nOpen || m.tot ? `đã ${sg(m.tot)}` : "đang tắt")
+      const val = P ? (on ? (m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>${m.nOpen ? ` · ${m.nOpen} mở` : ""}` : "chờ tín hiệu") : m.nOpen || m.tot ? bi(`đã ${sg(m.tot)}`, `total ${sg(m.tot)}`) : "đang tắt")
         : none ? "không hỗ trợ" : lock ? "chưa bật Binance" : on ? (m.nlv ? `<b>${m.nlv}</b> lệnh mở` : "chờ tín hiệu") : "đang tắt";
       const tip = none ? m.live.none : lock ? "Tài khoản Binance của bot đang tắt – bật ở ⚙️ Thiết lập → 💵 trước" : `${on ? "Tắt" : "Bật"} ${m.name} trên ${P ? "sàn thử" : LVT === "Demo" ? "Binance Demo" : "tiền thật"}`;
       return `<button type="button" class="lb-seg ${P ? "p" : "l"}${on ? " on" : ""}${none || lock ? " dis" : ""}" ${none ? "disabled" : `data-lbt="${w}|${m.k}"`} role="switch" aria-checked="${on}" title="${esc(tip)}">
@@ -1625,7 +1625,7 @@ async function viewDays(envArg, dateArg, part) {
       ["Tài sản cuối ngày", isNum(D.eq1) ? usd2(D.eq1) : "—", "", isNum(D.eq0) ? `${bi("đầu ngày", "start of day")} ${usd2(D.eq0)}` : ""], ["BTC trong ngày", isNum(btc) ? pct(btc, 1) : "—", cls(btc), ""], ["Bộ lọc đã chặn", nf((D.f6 || 0) + (D.knife || 0) + (D.r15 || 0), 0), "", `${D.f6 || 0} bơm/xả · ${D.knife || 0} dao rơi · ${D.r15 || 0} xả sau bơm`]])}
     <div class="g g2w"><div><p class="sbh">📚 Bài học trong ngày</p><ul class="bot-rl dles">${LS_.L.map(([c, m]) => `<li class="${c}">${esc(m)}</li>`).join("")}</ul>
       <p class="sbh">➡️ Rút kinh nghiệm cho ngày tiếp theo</p><ul class="bot-rl dles">${(LS_.N.length ? LS_.N : ["Không có điều chỉnh – giữ nguyên thiết lập."]).map((m) => `<li>${esc(m)}</li>`).join("")}</ul>
-      <p class="sbh">📝 Ghi chú của anh</p><textarea id="dNote" rows="3" style="width:100%" placeholder="Ghi lại nhận định của anh về ngày này…">${esc(NOTES[nk] || "")}</textarea><div class="bsave"><button class="btn" id="dNoteSave">💾 Lưu ghi chú</button></div></div>
+      <p class="sbh">📝 Ghi chú của anh</p><textarea id="dNote" rows="3" style="width:100%" placeholder="${bi("Ghi lại nhận định của anh về ngày này…", "Write down your take on this day…")}">${esc(NOTES[nk] || "")}</textarea><div class="bsave"><button class="btn" id="dNoteSave">💾 Lưu ghi chú</button></div></div>
     <div><p class="sbh">Lời / lỗ theo coin</p>${coinBars}${T.length ? `<p class="sbh">Các lệnh</p>${trT}` : ""}</div></div>`);
   // so sánh Demo / thật với sàn thử cùng ngày
   let cmp = "";
