@@ -4530,12 +4530,27 @@ button:focus-visible,.btn:focus-visible,a:focus-visible{outline:2px solid color-
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sc-kp>div{background:color-mix(in srgb,var(--surface) 94%,#fff 3.5%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 10px 28px -16px rgba(0,0,0,.7)!important}}
 .panel .sc-kp>div{background:var(--fill-card)!important;box-shadow:none!important}
 /* tab Bot Phản Xạ (Tổng quan · Lệnh · …): mục chọn tô đặc như mọi nhóm chọn v2 – không gạch chân, không viền */
-.sc-tabs button.on{background:var(--sel)!important;color:var(--sel-ink)!important;box-shadow:0 2px 6px -2px rgba(0,0,0,.25)!important}
-.sc-tabs button.on::after{display:none!important}
-.sc-tabs button.on *{color:inherit!important}
-.sc-tabs button.on .sc-bdg,.sc-tabs button.on i{background:var(--sel-ink)!important;color:var(--sel)!important}
-.sc-tabs button:not(.on):hover{background:var(--fill)!important}
+.sc-tabs>button.on{background:var(--sel)!important;color:var(--sel-ink)!important;box-shadow:0 2px 6px -2px rgba(0,0,0,.25)!important}
+.sc-tabs>button.on::after{display:none!important}
+.sc-tabs>button.on *{color:inherit!important}
+.sc-tabs>button.on .sc-bdg,.sc-tabs>button.on i{background:var(--sel-ink)!important;color:var(--sel)!important}
+.sc-tabs>button:not(.on):hover{background:var(--fill)!important}
 .dtabs button{border-bottom-color:transparent!important;border-radius:9px}
 .dtabs button.on{background:var(--sel)!important;color:var(--sel-ink)!important;border-bottom-color:transparent!important}
 .dtabs button.on *{color:inherit!important}
 .subtabs button,.subtabs button.on{border-bottom-color:transparent!important}
+/* Binance thật | Sàn thử gộp vào hàng tab, nằm sát phải */
+.sc-tabs{align-items:center}
+.sc-env.sc-env-t{display:inline-grid;grid-template-columns:auto auto;margin:0 0 0 auto;padding:3px;gap:2px;border-radius:10px;flex:none;position:sticky;right:0}
+.sc-env.sc-env-t button{padding:7px 12px;font-size:.8125rem;border-radius:8px;white-space:nowrap}
+@media (min-width:980px){.sc-tabs{flex-wrap:nowrap}}
+@media (max-width:640px){.sc-env.sc-env-t button{padding:7px 9px;font-size:.75rem}}
+.sc-env.sc-env-t button{color:var(--ink-2)!important;box-shadow:none!important;background:transparent!important}
+.sc-env.sc-env-t button.on{background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 1px 3px rgba(0,0,0,.16)!important}
+.sc-env.sc-env-t button[data-scenv="live"].on{background:color-mix(in srgb,var(--brass,#d9a441) 26%,var(--surface))!important;color:var(--ink)!important}
+.sc-env.sc-env-t button::after{display:none!important}
+.sc-env.sc-env-t .sc-bdg{margin-left:4px}
+@media (max-width:979px){
+  .sc-env.sc-env-t{background:color-mix(in srgb,var(--ink) 7%,var(--surface))!important;box-shadow:-10px 0 12px -4px var(--surface)!important}
+  .sc-env.sc-env-t .et{display:none}.sc-env.sc-env-t button{padding:7px 10px;font-size:.9375rem}
+}
