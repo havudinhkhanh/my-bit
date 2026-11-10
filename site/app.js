@@ -6223,7 +6223,7 @@ function lvsDraw() {
   pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
   ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
   if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); lvwHold(el, D, P); }
-  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag")); el.__pw = el.querySelector(".lvw-pill").offsetWidth;
+  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && LVW.mode !== "full");      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang el.__pw = el.querySelector(".lvw-pill").offsetWidth;
 }
 // đổi tab Binance thật ↔ Sàn thử: thẻ GIỮ NGUYÊN chiều cao (= tab dài hơn, tối đa vừa màn hình) → hàng tab, nút, chân thẻ đứng yên đúng chỗ, mắt & chuột không phải dò lại
 function lvwHold(el, D, P) {
@@ -6242,7 +6242,7 @@ function lvwTick(now) {
   const I = lvwItems(LVS.d), A = [...(LVW.tab === "paper" ? I.paper : I.live.length ? I.live : I.paper)], tk = el.querySelector(".lvw-tk");
   if (tk && (now || LVW.k % 4 === 0)) { if (!A.length) tk.textContent = ""; else { const x = A[Math.floor(LVW.k / 4) % A.length], m = LVW.px[x.sym] || x.m, u = x.st === "open" && isNum(m) && x.e ? x.side * (m / x.e - 1) * 100 : null;
     tk.innerHTML = `${esc(x.sym)} <b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</b>${u != null ? ` <span class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</span>` : x.st === "wait" ? " ⏳" : ""}${x.b && x.b > Date.now() ? ` <small>${lvsLeft(x.b - Date.now())}</small>` : ""}`; tk.classList.remove("tk-in"); void tk.offsetWidth; tk.classList.add("tk-in"); } }
-  if (!now && !el.classList.contains("drag")) { const pw = el.querySelector(".lvw-pill")?.offsetWidth; if (pw && pw !== el.__pw) { el.__pw = pw; lvwPlace(el); } }      // dòng chạy đổi độ dài → giữ viên trong màn hình
+  if (!now && !el.classList.contains("drag")) { const pw = el.querySelector(".lvw-pill")?.offsetWidth; if (pw && pw !== el.__pw) { el.__pw = pw; lvwPlace(el, LVW.mode !== "full"); } }      // dòng chạy đổi độ dài → giữ viên trong màn hình
   const ag = el.querySelector(".lvw-ago"); if (ag && (now || LVW.k % 5 === 0)) ag.textContent = `${bi("cập nhật", "updated")} ${lvwAgo(lvsT(LVS.d.at))}`;
   if (LVW.mode === "full" && LVW.k % 10 === 0) lvwPx().then(() => lvsDraw());
 }
