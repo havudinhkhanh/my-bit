@@ -417,6 +417,7 @@ export class LiveExec {
     else if (k.startsWith("mx:")) { const [, sym, fr] = k.split(":"); await this.mClose(sym, Math.min(1, Math.max(0.01, +fr || 1))); }
     else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
     else if (k.startsWith("mw:")) { this.mAt = 0; await this.mSync(true); }
+    else if (k.startsWith("mcp:")) { const [, sym, sd, usd, lev, sl, tp, ex, ...rest] = k.split(":"); await this.mCopy(sym, +sd > 0 ? 1 : -1, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +ex || 0, rest.join(":")); }
     else if (k.startsWith("mlk:")) { const [, sym, sd, ex, ...rest] = k.split(":"); this.mLink(sym, +sd || 0, +ex || 0, rest.join(":")); this.save(); await this.mSync(true); }
   }
   // ---------------------------------------------------------------- ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot KHÔNG mở) – bot không tự đụng tới.
@@ -523,6 +524,31 @@ export class LiveExec {
       try { this.dayAdd({ env, sym: h.sym, side: h.side, pos: { q: h.q, ap: h.e, t1 }, t0: t1, lv: [{ fq: h.q }], fund: h.fund || 0, strat: "man" }, h.pnl, h.fee || 0, h.x, h.why, t2); } catch (e) { /* bỏ qua */ } }
     this.mNew = null;
     const keep = Object.values(H.L).sort((a, b) => (a.t2 < b.t2 ? -1 : 1)).slice(-300); H.L = Object.fromEntries(keep.map((h) => [h.id, h])); H.last = now; this.save();
+  }
+  // 📋 CHÉP 1 lệnh sàn thử sang Binance (anh bấm trên trang): vào bằng lệnh thị trường, ký quỹ CÔ LẬP, đòn bẩy anh chọn; rồi đặt cắt lỗ / chốt lời trên sàn
+  // và hẹn đóng đúng giờ của lệnh sàn thử (+ đóng ngay khi sàn thử đóng lệnh đó). Sau đó là 1 lệnh tay bình thường (thẻ ✋ trên trang).
+  async mCopy(sym, sd, usd, lev, sl, tp, exp, pk) {
+    const tag = `📋 Chép ${pk ? this.pkName(pk) : "lệnh sàn thử"} → ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`;
+    if (this.env() !== "live" && this.env() !== "demo") return;
+    if (this.botSyms().has(sym)) { this.say(`${tag}: bot đang có lệnh trên mã này – không chép (Binance gộp chung vị thế)`, "info"); return; }
+    const F = await this.filters(sym); if (!F) { this.say(`${tag}: mã không giao dịch futures được`, "info"); return; }
+    const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
+    const P = (L || []).find((x) => x.symbol === sym && +x.positionAmt !== 0); if (P) { this.say(`${tag}: anh đang có vị thế ${coin(sym)} (${P.positionAmt}) – không chép để khỏi gộp`, "info"); return; }
+    const mk = +((L || []).find((x) => x.symbol === sym)?.markPrice) || this.mark(coin(sym) + ":F");
+    if (!(mk > 0) || !(usd > 0)) { this.say(`${tag}: thiếu giá / số tiền`, "info"); return; }
+    if (sl > 0 && (sd > 0 ? sl >= mk : sl <= mk)) { this.say(`${tag}: cắt lỗ ${sl} đã nằm sai phía giá hiện tại ${mk} – không chép`, "info"); return; }
+    const q = fl(usd / mk, F.step); if (!(q >= F.minQ) || q * mk < F.minN) { this.say(`${tag}: ${usd} USDT nhỏ hơn mức tối thiểu của sàn (${F.minN} USDT)`, "info"); return; }
+    await this.req("POST", "/fapi/v1/marginType", { symbol: sym, marginType: "ISOLATED" }).catch((e) => { if (e.code !== -4046) throw e; });
+    await this.req("POST", "/fapi/v1/leverage", { symbol: sym, leverage: lev }); delete this.lev[sym];      // bot đặt lại đòn bẩy của nó khi cần
+    const dual = await this.req("GET", "/fapi/v1/positionSide/dual").catch(() => ({})), p = { symbol: sym, side: sd > 0 ? "BUY" : "SELL", type: "MARKET", quantity: q.toFixed(F.sd), newOrderRespType: "RESULT" };
+    if (dual?.dualSidePosition) p.positionSide = sd > 0 ? "LONG" : "SHORT";
+    const o = await this.req("POST", "/fapi/v1/order", p), ap = +o.avgPrice || mk;
+    this.say(`${tag}: đã vào ${q.toFixed(F.sd)} @ ${ap} (lệnh thị trường, ${LTAG(this.env())}, ký quỹ cô lập x${lev}, ~${(q * ap).toFixed(2)} USDT)`, "win");
+    this.mAt = 0; await this.mSync(true);
+    if (sl > 0) await this.mCond(sym, "sl", sl).catch((e) => this.err(`${tag}: đặt cắt lỗ`, e));
+    if (tp > 0) await this.mCond(sym, "tp", tp).catch((e) => this.err(`${tag}: đặt chốt lời`, e));
+    if (exp > Date.now() || pk) { this.mLink(sym, sd, exp, pk); this.save(); }
+    this.mAt = 0; await this.mSync(true);
   }
   async mClose(sym, frac = 1) {
     if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – vị thế gộp chung, đóng ở thẻ lệnh của bot`, "info"); return; }
