@@ -259,7 +259,10 @@ export async function onRequest(ctx) {
           hkL: Object.entries(X.hk || {}).map(([k, h]) => ({ k, side: h.side, R: h.R, c0: h.c0, t0: h.t0, exp: h.exp, lv: (h.lv || []).map((l) => ({ px: l.px, f: l.f ? 1 : 0 })) })),
           posL: Object.entries(X.pos || {}).map(([k, p]) => ({ k, side: p.side, e: p.e, q: p.q, t0: p.t0, h: p.h, sl: p.sl, strat: p.strat || "sec" })), swL: sw, qL: qo,
           last: (X.trades || []).slice(-5).reverse().map((t) => ({ k: t.k, side: t.side, usd: t.usd, net: t.net, t1: t.t1, why: t.why, strat: t.strat || "sec" })) },
-        live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: L.dayE?.[E] ? (L.dayE[E].d === new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10) ? L.dayE[E].pnl : 0) : null,      // chỉ lời/lỗ HÔM NAY (giờ VN) – ngày cũ chưa có lệnh đóng thì = 0
+        live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: (() => {      // hôm nay (giờ VN) = lệnh bot + ✋ lệnh tay đã đóng hôm nay
+            const td = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), vd = (t) => new Date(Date.parse(String(t).slice(0, 19) + "Z") + 7 * 3600e3).toISOString().slice(0, 10);
+            const b = L.dayE?.[E] ? (L.dayE[E].d === td ? L.dayE[E].pnl : 0) : null, m = (L.mh || []).filter((h) => (h.env || "live") === E && h.t2 && vd(h.t2) === td).reduce((a, h) => a + (+h.pnl || 0), 0);
+            return b == null && !m ? null : +((b || 0) + m).toFixed(4); })(),      // chỉ lời/lỗ HÔM NAY (giờ VN) – ngày cũ chưa có lệnh đóng thì = 0
           ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, c0: e.c0, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
           swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp, t0: p.t0 })),
           qp: (L.qp?.open || []).map((p) => ({ id: p.id, k: p.k, name: p.name, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.ap ?? l.e, stop: l.stop })), upnl: p.upnl, t0: p.t0 })),

@@ -4787,3 +4787,8 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 :where(.btn,.chip,.mchip,.bseg button,.seg button,.sc-tabs>button,.sc-env button,.lvw-seg button,.nt-c,.sc-mx,.iconbtn,.cmdk-i,.ios-menu-in>button,.ios-menu-in>a){transition:background-color .16s var(--ease-out),color .16s var(--ease-out),box-shadow .2s var(--ease-out),transform .12s var(--ease-out)}
 :where(.btn,.chip,.mchip,.bseg button,.seg button,.sc-tabs>button,.sc-env button,.lvw-seg button,.nt-c,.sc-mx,.cmdk-i):active{transform:scale(.97)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* viên lệnh trực tiếp: CÙNG một màu nền ở mọi tab (Binance thật / Sàn thử) – có lệnh đang mở chỉ báo bằng chấm xanh nhấp nháy, không đổi màu cả viên */
+.lvw.lvw-hot .lvw-pill{background:var(--surface)!important}
+:root[data-theme="dark"] .lvw.lvw-hot .lvw-pill,:root[data-theme="dark"] .lvw .lvw-pill{background:color-mix(in srgb,var(--ink) 8%,var(--surface))!important}
+.lvw.lvw-hot .lvw-pill:hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))!important}
+:root[data-theme="dark"] .lvw .lvw-pill:hover{background:color-mix(in srgb,var(--ink) 12%,var(--surface))!important}
