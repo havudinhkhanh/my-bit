@@ -4907,3 +4907,17 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   .tabs a.nav-m svg,.tabs .nav-more svg{margin:2px 0 4px}
   .tabs a.nav-m::before,.tabs .nav-more::before{top:5px;height:28px}
 }
+/* Đóng lệnh: hàng Giá vào → Giá bây giờ · Khối lượng – 3 dòng thẳng hàng (nhãn / số / phụ) ở mọi cột */
+.cx-px{align-items:start!important}
+.cx-px>div{grid-template-rows:auto auto auto}
+.cx-px small,.cx-px b,.cx-px span{line-height:1.35}
+.cx-px .cx-ar b{font-weight:400;color:var(--ink-3)}
+.cx-px .cx-ar small,.cx-px .cx-ar span{visibility:hidden}
+@media (max-width:420px){.cx-px>div:last-child{display:grid}.cx-px{grid-template-columns:1fr auto 1fr}.cx-px>div:nth-child(4){display:none}}
+/* thanh dưới điện thoại: viên chỉ báo vẽ NGAY trên biểu tượng (padding quanh icon) → luôn đúng tâm, mọi biểu tượng */
+@media (max-width:979px){
+  .tabs a.nav-m::before,.tabs .nav-more::before{display:none!important}
+  .tabs a.nav-m svg,.tabs .nav-more svg{box-sizing:content-box;padding:4px 16px;margin:-2px -16px 0!important;border-radius:999px;background:transparent;transition:background-color .22s ease,color .2s ease,transform .3s var(--ease-spring,cubic-bezier(.32,.72,0,1))}
+  .tabs a.nav-m.on svg,.tabs .nav-more.on svg{background:var(--sel);animation:navPill .34s var(--ease-spring,cubic-bezier(.32,.72,0,1))}
+  @keyframes navPill{from{transform:scaleX(.55);opacity:.4}to{transform:none;opacity:1}}
+}
