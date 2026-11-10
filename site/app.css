@@ -4974,3 +4974,4 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   body.rail-auto .tabs:not(.open) .nav-pin .nav-unpin{display:none!important}
 }
 .about{margin:0 0 var(--gap,14px)}      /* "… làm gì?" cách khối bên dưới đúng bằng khoảng giữa các cột */
+.iconbtn{justify-content:center;justify-items:center}      /* biểu tượng luôn nằm giữa vùng sáng khi bấm (nút kính lúp trước bị lệch trái vì flex không căn giữa ngang) */
