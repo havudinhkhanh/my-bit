@@ -4,6 +4,14 @@ if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.
 "use strict";
 
 // ================================================================ tiện ích
+// ngày giờ nhanh: toLocale*String tạo bộ định dạng Intl MỚI mỗi lần gọi (~0,1 ms) – trang bot gọi hàng nghìn lần mỗi lần vẽ lại (≈ 120 ms giật).
+// Dùng lại bộ định dạng theo (ngôn ngữ, tuỳ chọn) → kết quả y hệt, nhanh hơn ~50 lần.
+(() => {
+  const C = new Map(), P = Date.prototype, DEF = { t: { hour: "numeric", minute: "numeric", second: "numeric" }, d: { year: "numeric", month: "numeric", day: "numeric" }, s: { year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", second: "numeric" } };
+  const KEYS = { t: ["hour", "minute", "second", "dayPeriod", "timeStyle"], d: ["year", "month", "day", "weekday", "era", "dateStyle"], s: ["year", "month", "day", "weekday", "era", "hour", "minute", "second", "dayPeriod", "dateStyle", "timeStyle"] };
+  const fm = (kind, loc, o) => { const k = kind + "|" + (loc || "") + "|" + (o ? JSON.stringify(o) : ""); let f = C.get(k); if (!f) { const oo = { ...(o || {}) }; if (!KEYS[kind].some((x) => x in oo)) Object.assign(oo, DEF[kind]); f = new Intl.DateTimeFormat(loc, oo); C.set(k, f); } return f; };
+  for (const [n, kind] of [["toLocaleTimeString", "t"], ["toLocaleDateString", "d"], ["toLocaleString", "s"]]) { const o0 = P[n]; P[n] = function (loc, o) { if (isNaN(this.getTime())) return o0.call(this, loc, o); try { return fm(kind, loc, o).format(this); } catch (e) { return o0.call(this, loc, o); } }; }
+})();
 const LANG = (() => { try { return JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { return "vi"; } })();
 const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
 const LOC = { vi: "vi-VN", en: "en-US", de: "de-DE", fi: "fi-FI", it: "it-IT", zh: "zh-CN", fr: "fr-FR", ja: "ja-JP", ko: "ko-KR", es: "es-ES" }[LANG] || "en-US";
@@ -290,8 +298,10 @@ function twFit(tw) {
     if (idx.length) {
       t.dataset.tf ||= String(++TWN);
       let st = $("#twfit-" + t.dataset.tf); if (!st) { st = document.createElement("style"); st.id = "twfit-" + t.dataset.tf; document.head.appendChild(st); }
-      // ẩn từng cột phụ (từ phải sang) tới khi vừa
-      for (let k = idx.length; k >= 1; k--) {
+      // ẩn từng cột phụ (từ phải sang) tới khi vừa – ước trước số cột cần ẩn từ bề rộng tiêu đề (1 lần đo) rồi mới thử, đỡ tính lại cả bảng nhiều lần (bảng 500 coin ~30 ms/lần)
+      let over = t.scrollWidth - tw.clientWidth, k0 = idx.length;
+      { const W = idx.map((n) => hs[n - 1].offsetWidth); let acc = 0; for (let k = idx.length; k >= 1; k--) { acc += W[k - 1]; k0 = k; if (acc >= over) break; } }
+      for (let k = k0; k >= 1; k--) {
         const hide = idx.slice(k - 1);
         st.textContent = hide.map((n) => `table[data-tf="${t.dataset.tf}"][data-tfh] tr>:nth-child(${n})`).join(",") + "{display:none}";
         t.setAttribute("data-tfh", ""); if (!ov()) break;

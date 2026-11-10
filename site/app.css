@@ -3605,7 +3605,7 @@ a:not([class]):hover{color:color-mix(in srgb,var(--brand) 72%,var(--ink))}
 .lb-card footer .pill{font-size:.6875rem}
 .lb-chg{font-size:.6875rem;padding:2px 6px;border-radius:999px;background:color-mix(in srgb,var(--brass,#d9a23a) 16%,transparent);color:var(--ink-2)}
 .lb-acts{margin-left:auto;display:inline-flex;gap:4px}
-.lb-tg{width:32px;height:28px;border-radius:9px;border:1px solid var(--bd);background:var(--surface);cursor:pointer;font-size:.84375rem;filter:grayscale(1);opacity:.55;transition:all .15s}
+.lb-tg{width:32px;height:28px;border-radius:9px;border:1px solid var(--bd);background:var(--surface);cursor:pointer;font-size:.84375rem;filter:grayscale(1);opacity:.55;transition:opacity .15s,filter .15s,background-color .15s}
 .lb-tg:hover:not([disabled]){opacity:1;filter:none;border-color:var(--ink-3)}
 .lb-tg.on{filter:none;opacity:1}.lb-tg.p.on{background:color-mix(in srgb,var(--up) 16%,var(--surface));border-color:color-mix(in srgb,var(--up) 55%,var(--bd))}
 .lb-tg.l.on{background:color-mix(in srgb,var(--brand) 18%,var(--surface));border-color:var(--brand)}
@@ -3718,7 +3718,7 @@ html.lb-lock,html.lb-lock body{overflow:hidden}
 .lb-chip .lb-v{flex:1;min-width:0;display:flex;align-items:baseline;gap:5px;font-size:.84375rem;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
 .lb-chip .lb-v small{font-size:.6875rem;color:var(--ink-3)}
 .lb-chip .lb-x{flex:none;width:20px;height:20px;opacity:.5}.lb-chip:hover .lb-x{opacity:1}
-.lb-slot{flex:1;height:30px;border-radius:9px;border:1.5px dashed color-mix(in srgb,var(--ink) 14%,transparent);background:transparent;color:var(--ink-3);font:600 .75rem/1 inherit;cursor:pointer;opacity:.55;transition:all .15s;display:grid;place-items:center}
+.lb-slot{flex:1;height:30px;border-radius:9px;border:1.5px dashed color-mix(in srgb,var(--ink) 14%,transparent);background:transparent;color:var(--ink-3);font:600 .75rem/1 inherit;cursor:pointer;opacity:.55;transition:opacity .15s,background-color .15s,color .15s;display:grid;place-items:center}
 .lb-slot:hover{opacity:1;border-color:var(--ink-3);color:var(--ink);background:var(--surface)}
 .lb-slot.no{cursor:default;opacity:.4;font-weight:500;font-size:.6875rem}.lb-slot.no:hover{background:transparent;border-color:color-mix(in srgb,var(--ink) 14%,transparent);color:var(--ink-3)}
 .lb-slot.lock{opacity:.35}
@@ -4761,3 +4761,29 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .lvw.lvw-hot .lvw-pill{box-shadow:0 10px 28px -8px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.18)!important}
 :root[data-theme="light"] .lvw.lvw-hot .lvw-pill{box-shadow:0 10px 26px -8px rgba(18,26,38,.28),0 2px 8px rgba(18,26,38,.10)!important}
 :root[data-theme="dark"] .lvw:not(.lvw-hot) .lvw-pill{background:color-mix(in srgb,var(--ink) 8%,var(--surface))!important}
+/* ===== v3 rà soát toàn app (đợt cuối) ===== */
+/* menu kiểu iOS (giao diện, ngôn ngữ, menu ⋯): bỏ đường kẻ giữa các dòng – dòng là khối bo góc, rê chuột / chạm = nền tô */
+.ios-menu-in{padding:6px!important}
+.ios-menu-h{border-bottom:0!important;padding-bottom:4px!important}
+.ios-menu-in>button+button,.ios-menu-in>a+a{border-top:0!important}
+.ios-menu-in>button,.ios-menu-in>a{border-radius:10px}
+/* nút kéo mép bảng phụ */
+.eg-btn{border-color:transparent!important;background:color-mix(in srgb,var(--ink) 8%,var(--surface))!important}
+/* lịch lời/lỗ: ngày đang chọn = nổi lên + số ngày tô đặc (không viền) */
+.cal-d.sel{outline:0!important;box-shadow:0 10px 22px -8px rgba(0,0,0,.38)!important;transform:translateY(-2px);position:relative;z-index:1}
+.cal-d.sel .cal-n{background:var(--sel);color:var(--sel-ink)!important;border-radius:6px;padding:1px 6px;margin-left:-6px}
+.cal-d.sel .cal-n::after{background:var(--sel-ink)!important}
+.cal-d{transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease}
+/* ===== hiệu năng & chuyển động (rà soát toàn app) =====
+   • thanh dính khi cuộn: bỏ blur nền (nền đã gần đặc – blur gần như không thấy mà tốn GPU mỗi khung hình cuộn); thanh trên cùng giữ blur nhẹ
+   • phần tử nổi trên trang đang cuộn (viên lệnh): nền đặc, không blur
+   • đường cong chuyển động thống nhất kiểu app native (iOS): nhanh lúc đầu, dừng êm */
+:root{--ease-out:cubic-bezier(.22,.8,.24,1);--ease-spring:cubic-bezier(.32,.72,0,1)}
+.sc-tabs{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--surface)!important}
+.subtabs.stick{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:var(--bg)!important}
+.lvw .lvw-pill{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+@media (min-width:980px){.top{-webkit-backdrop-filter:blur(8px)!important;backdrop-filter:blur(8px)!important}}
+/* nút / chip / thẻ bấm: phản hồi tức thì khi nhấn (thu nhỏ nhẹ), hover chuyển màu mượt */
+:where(.btn,.chip,.mchip,.bseg button,.seg button,.sc-tabs>button,.sc-env button,.lvw-seg button,.nt-c,.sc-mx,.iconbtn,.cmdk-i,.ios-menu-in>button,.ios-menu-in>a){transition:background-color .16s var(--ease-out),color .16s var(--ease-out),box-shadow .2s var(--ease-out),transform .12s var(--ease-out)}
+:where(.btn,.chip,.mchip,.bseg button,.seg button,.sc-tabs>button,.sc-env button,.lvw-seg button,.nt-c,.sc-mx,.cmdk-i):active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
