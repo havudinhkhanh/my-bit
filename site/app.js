@@ -434,15 +434,54 @@ function navCtx(r) {
   const kids = [...($("#tabs")?.children || [])]; let g = null, gi = 0; const items = [];
   kids.forEach((n) => { if (n.classList.contains("nav-scg") || n.classList.contains("nav-cus")) return; if (n.classList.contains("nav-g")) { g = n; gi++; } else if (n.tagName === "A") items.push({ a: n, g, gi }); });
   const i = items.findIndex((x) => x.a.dataset.r === r);
-  return i < 0 ? null : { cur: items[i], next: items[i + 1] || null };
+  return i < 0 ? null : { cur: items[i], next: items[i + 1] || null, prev: items[i - 1] || null, items, i };
 }
+// ---------------------------------------------------------------- thanh vị trí "4 Bot › Bot Phản Xạ" dùng được: ‹ › sang trang trước / sau, bấm nhóm = bản đồ mọi trang, bấm tên trang = các trang cùng nhóm
+const navName = (x) => x?.a.querySelector(".nav-t")?.textContent.trim() || "";
+const navGName = (x) => x?.g?.querySelector("b")?.textContent.trim() || "";
+function navMenu(anchor, title, list, curA) {
+  if ($("#iosMenu")) { const same = anchor.getAttribute("aria-expanded") === "true"; iosMenuClose(); if (same) return; }
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(340, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left - 6));
+  const maxH = Math.max(220, innerHeight - r.bottom - 24);
+  let g = "";
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu nav-mn";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${esc(title)}" style="left:${left}px;width:${W}px;top:${Math.round(r.bottom + 6)}px;max-height:${maxH}px;overflow:auto;transform-origin:${Math.min(r.left + r.width / 2 - left, 40)}px -8px">
+    ${title ? `<div class="ios-menu-h">${esc(title)}</div>` : ""}
+    ${list.map((x) => { const on = x.a === curA, gh = x.gh && x.gh !== g ? `<div class="ios-menu-h nav-mn-g"><i>${x.gi}</i>${esc((g = x.gh))}</div>` : "";
+      return `${gh}<a role="menuitemradio" aria-checked="${on}" href="${x.a.getAttribute("href")}"><span class="ios-ck">${on ? "✓" : ""}</span><span class="ios-t">${esc(navName(x))}${x.a.dataset.h ? `<small>${esc(x.a.dataset.h)}</small>` : ""}</span><span class="ios-ic">${x.a.querySelector("svg")?.outerHTML || ""}</span>${ksHint(x.a.getAttribute("href"))}</a>`; }).join("")}</div>`;
+  document.body.appendChild(m); anchor.setAttribute("aria-expanded", "true"); anchor.dataset.iosm = "1";
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("a", m).forEach((a) => a.addEventListener("click", (e) => { if (a.getAttribute("href") === location.hash) e.preventDefault(); iosMenuClose(); }));
+  m.querySelector('a[aria-checked="true"]')?.scrollIntoView({ block: "nearest" });
+  const k = (e) => { if (!$("#iosMenu")) { removeEventListener("keydown", k); return; }
+    const L = $$("a", m), i = L.indexOf(document.activeElement);
+    if (e.key === "Escape") { iosMenuClose(); removeEventListener("keydown", k); anchor.focus?.({ preventScroll: true }); }
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); (L[(i < 0 ? L.findIndex((a) => a.getAttribute("aria-checked") === "true") : i) + (e.key === "ArrowDown" ? 1 : -1)] || L[e.key === "ArrowDown" ? 0 : L.length - 1])?.focus(); } };
+  addEventListener("keydown", k, true);
+  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
+}
+function navStep(d) {
+  const X = navCtx(CUR_TAB), n = X && (d > 0 ? X.next : X.prev); if (!n) return false;
+  const h = n.a.getAttribute("href"); if (n.a.dataset.r === "botscalp") { window.__scMode = null; }
+  location.hash = h; return true;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest?.(".crumb [data-crn], .crumb [data-crg], .crumb [data-crs]"); if (!b) return;
+  e.preventDefault(); const X = navCtx(CUR_TAB); if (!X) return;
+  if (b.dataset.crn) { navStep(+b.dataset.crn); return; }
+  if (b.dataset.crg !== undefined) { navMenu(b, bi("Mọi trang", "All pages"), X.items.map((x) => ({ ...x, gh: navGName(x) })), X.cur.a); return; }
+  navMenu(b, navGName(X.cur), X.items.filter((x) => x.gi === X.cur.gi), X.cur.a);
+});
 function navDecor(r) {
   const app_ = $("#app"); if (!app_) return;
   app_.querySelectorAll(".crumb[data-nd], .nextstep[data-nd]").forEach((x) => x.remove());
   const X = navCtx(r); if (!X) return;
   const gname = X.cur.g?.querySelector("b")?.textContent || "", name = X.cur.a.querySelector(".nav-t")?.textContent || "";
   const ph = app_.querySelector(".ph");
-  const crumb = `<div class="crumb" data-nd><i>${X.cur.gi}</i>${esc(gname)} <span>›</span> ${esc(name)}</div>`;
+  const chev = (d) => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d < 0 ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"}"/></svg>`;
+  const dn = '<svg class="cr-dn" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const nb = (x, d) => `<button type="button" class="cr-nv" data-crn="${d}"${x ? "" : " disabled"} title="${x ? esc(`${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}: ${navName(x)} (${d < 0 ? "Shift+," : "Shift+."})`) : ""}" aria-label="${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}">${chev(d)}</button>`;
+  const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(X.prev, -1)}${nb(X.next, 1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
   if (ph) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);
   try { lvsDraw(); } catch (e) { /* bỏ qua */ }
   if (X.next) {
@@ -6506,6 +6545,8 @@ const KS = [
     { k: ["g", "o"], t: ["Trang thông báo", "Notifications page"], h: "#/notifications" },
     { k: ["g", "a"], t: ["Tài khoản & cài đặt", "Account & settings"], h: "#/account" },
     { k: ["g", "?"], t: ["Trang phím tắt này", "This shortcuts page"], h: "#/keys" },
+    { k: ["<"], t: ["Trang trước theo thứ tự menu", "Previous page in menu order"], run: () => navStep(-1) },
+    { k: [">"], t: ["Trang sau theo thứ tự menu", "Next page in menu order"], run: () => navStep(1) },
     { k: ["Alt+←"], t: ["Quay lại trang trước", "Back to the previous page"] },
   ] },
   { id: "page", t: ["Trong trang", "On the page"], d: ["Đọc và chuyển phần trong trang đang mở", "Move around the open page"], it: [

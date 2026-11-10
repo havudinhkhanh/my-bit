@@ -4975,3 +4975,28 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 }
 .about{margin:0 0 var(--gap,14px)}      /* "… làm gì?" cách khối bên dưới đúng bằng khoảng giữa các cột */
 .iconbtn{justify-content:center;justify-items:center}      /* biểu tượng luôn nằm giữa vùng sáng khi bấm (nút kính lúp trước bị lệch trái vì flex không căn giữa ngang) */
+/* ứng dụng iPhone: vùng thanh trạng thái (giờ, pin) là một phần của thanh MyBit – cùng một nền, cùng độ mờ.
+   Trước: thanh MyBit dính cách mép trên đúng bằng tai thỏ → phần phía trên lộ nền trang (màu khác thanh MyBit). */
+.top{top:0!important;padding-top:env(safe-area-inset-top,0px)}
+/* thanh vị trí dùng được: ‹ › trang trước/sau · nhóm ▾ = bản đồ mọi trang · tên trang ▾ = trang cùng nhóm */
+.crumb[data-nd]{gap:4px}
+.crumb .cr-nav{display:inline-flex;gap:2px;margin-right:4px}
+.crumb .cr-nv{display:inline-grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:7px;background:var(--fill);color:var(--ink-2);cursor:pointer;transition:background-color .14s ease,color .14s ease}
+.crumb .cr-nv:hover:not(:disabled){background:var(--fill-h);color:var(--ink)}
+.crumb .cr-nv:disabled{opacity:.35;cursor:default}
+.crumb .cr-b{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 7px;margin:0 -1px;border:0;border-radius:7px;background:transparent;color:var(--ink-3);font:inherit;font-weight:500;cursor:pointer;transition:background-color .14s ease,color .14s ease;white-space:nowrap}
+.crumb .cr-b:hover,.crumb .cr-b[aria-expanded="true"]{background:var(--fill);color:var(--ink)}
+.crumb .cr-b.cr-cur{color:var(--ink-2);font-weight:600}
+.crumb .cr-b i{margin-right:1px}
+.crumb .cr-dn{opacity:.55;flex:none;transition:transform .18s ease}
+.crumb .cr-b[aria-expanded="true"] .cr-dn{transform:rotate(180deg)}
+.crumb .cr-nv:active,.crumb .cr-b:active{transform:scale(.95)}
+.nav-mn .ios-menu-in a{position:relative}
+.nav-mn .ks-hint{margin-left:6px;flex:none;opacity:.7}
+.nav-mn .nav-mn-g{display:flex;align-items:center;gap:7px;margin-top:4px}
+.nav-mn .nav-mn-g i{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:4px;background:var(--fill-h);font-style:normal;font-size:.6875rem;color:var(--ink-2)}
+.nav-mn .ios-t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+@media (pointer:coarse){.nav-mn .ks-hint{display:none}.crumb .cr-nv{width:30px;height:28px}.crumb .cr-b{height:28px}}
+@media (max-width:979px){.crumb .cr-b i{display:none}}
+.nav-mn .ios-menu-in>a{grid-template-columns:18px minmax(0,1fr) auto auto!important}
+.nav-mn .ios-t small{max-width:none}
