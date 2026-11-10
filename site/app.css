@@ -4732,3 +4732,9 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .cp-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 10px}
 .cp-g label{display:grid;gap:4px;font-size:12px;color:var(--ink-2);text-align:left}
 .cp-g input{height:36px;border-radius:9px;border:0;padding:0 10px;font:inherit;font-size:15px;font-variant-numeric:tabular-nums;background:var(--fill)!important;color:var(--ink);width:100%;box-sizing:border-box}
+/* thẻ số Bot Phản Xạ (Binance): 4 cột trên máy tính – hàng 1 tài sản + hôm nay (tổng · bot · tay), hàng 2 các thẻ còn lại, thẻ cuối kéo dài lấp chỗ trống */
+@media (min-width:1100px){
+  .sc-kp{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .sc-kp>.st:last-child:nth-child(4n+3){grid-column:span 2}
+  .sc-kp>.st:last-child:nth-child(4n+2){grid-column:span 3}
+}

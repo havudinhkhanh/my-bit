@@ -527,7 +527,13 @@ async function viewScalp() {
       <div class="rk-b ${dd >= L.dd * 100 ? "full" : dd >= L.dd * 75 ? "hi" : ""}" title="${bi(`số dư thấp hơn mức cao nhất ${L.dd * 100}% thì ngừng mở lệnh mới`, "")}"><span>${bi("Sụt từ đỉnh", "Drawdown")}</span><i><b style="width:${Math.min(100, dd / (L.dd * 100) * 100).toFixed(1)}%"></b></i><small>${nf(Math.max(0, dd), 1)}% / ${L.dd * 100}%</small></div></div>`; })();
   const lvCards = `<dl class="stats sc-kp">${[
     [bi("Tài sản futures", "Futures equity"), isNum(lvEq) ? u$(lvEq) : "—", `${bi("ví", "wallet")} ${isNum(WL?.fut?.wallet ?? lvSt.bal) ? usd2(WL?.fut?.wallet ?? lvSt.bal) : "—"} · ${bi("khả dụng", "available")} ${isNum(lvSt.avail) ? usd2(lvSt.avail) : "—"}`, WL?.fut ? sgn(WL.fut.upnl) : 0, "", spark(EQL.map((q) => q[1]), { w: 150, h: 30 })],
-    [bi("Hôm nay", "Today"), LV?.day ? sg$(LVD0) + pTag(LVD0) : "—", `${nTd} ${bi("lệnh", "trades")} · ${bi("dừng ở −", "stop at −")}${usd2(LV?.size?.dayLim ?? C.lv_cap * C.lv_daily / 100)}`, sgn(LVD0)],
+    ...(() => {      // hôm nay: tổng · bot · lệnh tay (lệnh tay đang mở: lời/lỗ tạm tính để riêng)
+      const td = vnToday(), T = LH.filter((h) => vnDayOf(h.t2) === td), Tb = T.filter((h) => h.strat !== "man"), Tm = T.filter((h) => h.strat === "man"), sum = (A) => A.reduce((a, h) => a + (h.pnl || 0), 0), win = (A) => A.filter((h) => h.pnl > 0).length;
+      const sb = sum(Tb), sm = sum(Tm), st = sb + sm, upM = MAN.L.reduce((a, p) => a + (p.up || 0), 0);
+      return [[bi("Hôm nay · tổng", "Today · total"), T.length || LV?.day ? sg$(st) + pTag(st) : "—", `${T.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${win(T)}`, sgn(st)],
+        [`🤖 ${bi("Hôm nay · bot", "Today · bot")}`, Tb.length || LV?.day ? sg$(sb) + pTag(sb) : "—", `${Tb.length} ${bi("lệnh", "trades")} · ${bi("dừng ở −", "stop at −")}${usd2(LV?.size?.dayLim ?? C.lv_cap * C.lv_daily / 100)}`, sgn(sb)],
+        [`✋ ${bi("Hôm nay · lệnh tay", "Today · manual")}`, Tm.length ? sg$(sm) + pTag(sm) : "$0", `${Tm.length} ${bi("lệnh đóng", "closed")}${MAN.L.length ? ` · ${MAN.L.length} ${bi("đang mở", "open")} ${sg$(upM)}` : ""}`, sgn(sm)]];
+    })(),
     [bi("7 ngày", "7 days"), l7.length ? sg$(ls7) + pTag(ls7) : "—", l7.length ? bi(`${l7.filter((v) => v > 0).length}/${l7.length} ngày lời`, `${l7.filter((v) => v > 0).length}/${l7.length} winning days`) : bi("chưa có số liệu", "no data yet"), sgn(ls7), "", spark(cum(l7), { w: 150, h: 30 })],
     [bi("Tỉ lệ thắng", "Win rate"), LT.n ? nf(LT.win / LT.n * 100, 0) + "%" : "—", LT.n ? bi(`${LT.n} lệnh · ròng ${sg$(LT.pnl)} · phí ${usd2(LT.fees)}`, `${LT.n} trades · net ${sg$(LT.pnl)} · fees ${usd2(LT.fees)}`) : bi("chưa có lệnh", "no trades yet"), sgn(LT.pnl), "", spark(cum(LHs.map((h) => h.pnl)), { w: 150, h: 30 })],
     // Tổng tài sản các ví chỉ ở trang Tài khoản Binance (trang tiền) – thẻ ở đây là hiệu quả của bot
