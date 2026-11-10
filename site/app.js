@@ -986,7 +986,7 @@ function sclApply() {
     el.innerHTML = `<b>${usd >= 0 ? "+" : ""}${usd2(usd)}</b> <small>${b >= 0 ? "+" : ""}${nf(b, 1)} bps</small>${ok(sl) && ok(tp) ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i style="left:${w.toFixed(0)}%"></i></span>` : ""}`;
   });
   document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100; el.textContent = EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`; });
-  document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; el.textContent = g > 0 ? (EN ? `${nf(g, 2)}% to go` : `còn ${nf(g, 2)}% nữa`) : bi("đang chạm mức", "at the level"); });
+  document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); if (el.textContent !== t) el.textContent = t; });
   const u = document.getElementById("scUpnl");
   if (u && nn) { u.className = "sc-up " + cls(tot); u.textContent = `${tot >= 0 ? "+" : ""}${usd2(tot)}`; }
   document.querySelectorAll("[data-lt0]").forEach((el) => {
