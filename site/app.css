@@ -4738,3 +4738,10 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   .sc-kp>.st:last-child:nth-child(4n+3){grid-column:span 2}
   .sc-kp>.st:last-child:nth-child(4n+2){grid-column:span 3}
 }
+/* Tìm nhanh: ô tìm luôn đúng 1 chiều cao (không bị danh sách dài ép mỏng lại), nền mờ không dùng blur (blur trên trang nặng làm gõ phím bị giật) */
+.cmdk-q{flex:none!important}
+@media (pointer:fine) and (min-width:601px){.cmdk-q{height:46px!important;min-height:46px}}
+.cmdk-bg{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(5,8,12,.6)!important}
+.cmdk-l{min-height:0;flex:1 1 auto;contain:content}
+.cmdk{contain:layout style}
+.cmdk-in{transform:translateZ(0)}

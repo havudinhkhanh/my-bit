@@ -389,7 +389,7 @@ function gauge(v, lo = 0, hi = 100, label = "") {
 // - vẽ lại xong: giữ khung đang xem ở đúng vị trí trên màn hình, giữ vị trí cuộn của từng bảng, giữ mục đang mở
 const UI = { t: 0 };
 ["touchstart", "touchmove", "wheel", "pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => (UI.t = Date.now()), { passive: true, capture: true }));
-const userBusy = (ms = 6000) => Date.now() - UI.t < ms;
+const userBusy = (ms = 6000) => Date.now() - UI.t < ms || document.body.classList.contains("cmdk-on") || !!document.getElementById("iosSheet");      // đang mở Tìm nhanh / bảng xác nhận → không vẽ lại trang phía sau
 const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) === "0"; } catch (e) { return false; } };
 // Tự làm mới trang (mỗi vài giây) mà KHÔNG làm trang nhảy:
 //  • chỉ vẽ khi vẫn đang ở đúng trang lúc bắt đầu (anh đã chuyển trang trong lúc tải dữ liệu → bỏ, không vẽ đè trang mới)
@@ -5306,7 +5306,7 @@ function cmdk(open = true) {
     const mark = () => { $$(".cmdk-i", L).forEach((b, i) => b.classList.toggle("on", i === sel)); $(".cmdk-i.on", L)?.scrollIntoView({ block: "nearest" }); };
     const run = (i) => { const x = items[i]; if (!x) return; cmdk(false); x.go(); };
     el._draw = () => { sel = 0; draw(); };
-    q.addEventListener("input", () => { sel = 0; draw(); });
+    let raf = 0; q.addEventListener("input", () => { sel = 0; if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); });      // gõ nhanh: gộp các phím trong 1 khung hình
     q.addEventListener("keydown", (e) => {
       if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); sel = (sel + (e.key === "ArrowDown" ? 1 : items.length - 1)) % Math.max(1, items.length); mark(); }
       else if (e.key === "Enter") { e.preventDefault(); run(sel); }
