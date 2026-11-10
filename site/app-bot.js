@@ -2148,7 +2148,7 @@ async function tPeek(env, sym, ms, box) {
     r.R ? [bi("Cú sốc", "Shock"), `<b>${nf(Math.abs(r.R) / 100, 1)}%</b>`, r.c0 ? `${bi("giá sau sốc", "post-shock")} ${px(r.c0)}` : ""] : null,
   ].filter(Boolean);
   box.innerHTML = `<div class="tpk-h"><span class="pill ${ST[1]}">${ST[0]}</span><span class="${r.side > 0 ? "up" : "down"}"><b>${esc(sym)} ${r.side > 0 ? "Long" : "Short"}</b></span><span class="tpk-r">${big}</span></div>
-    <div class="tpk-c" id="tpkC"><p class="faint">${bi("Đang tải nến…", "Loading candles…")}</p></div>
+    <div class="tpk-c" id="tpkC">${skChart(220)}</div>
     <dl class="tpk-f">${F.map(([a, b, c]) => `<div><dt>${a}</dt><dd>${b}${c ? `<small>${c}</small>` : ""}</dd></div>`).join("")}</dl>`;
   // nến 1 phút (Bắt râu / lướt giây) hoặc 1 giờ (giữ nhiều ngày), quanh lệnh
   const sec = r.strat === "pump" || r.strat === "list" ? 3600 : (r.t1 || now) - (r.t0 || ms) > 6 * 3600e3 ? 900 : 60, tf = { 60: "1m", 900: "15m", 3600: "1h" }[sec];
@@ -2174,7 +2174,7 @@ async function tPeek(env, sym, ms, box) {
 // xem nhanh coin (cảnh báo giá, cơ hội…): nến 15 phút 24 giờ qua + giá hiện tại
 async function coinPeek(sym, box) {
   sym = String(sym || "").toUpperCase().replace(/USDT$/, "");
-  box.innerHTML = `<div class="tpk-c" id="tpkC"><p class="faint">${bi("Đang tải nến…", "Loading candles…")}</p></div><dl class="tpk-f" id="tpkF"></dl>`;
+  box.innerHTML = `<div class="tpk-c" id="tpkC">${skChart(220)}</div><dl class="tpk-f" id="tpkF"></dl>`;
   let K = null; for (const u of [`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}USDT&interval=15m&limit=96`, `https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=15m&limit=96`]) { try { const q = await fetch(u); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử nguồn khác */ } }
   const el = box.querySelector("#tpkC"); if (!el || !el.isConnected) return;
   if (!K || typeof LightweightCharts === "undefined") { el.innerHTML = `<p class="faint">${bi("Không lấy được nến.", "Couldn't load candles.")}</p>`; return; }

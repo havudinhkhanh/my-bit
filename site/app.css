@@ -5000,3 +5000,35 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 @media (max-width:979px){.crumb .cr-b i{display:none}}
 .nav-mn .ios-menu-in>a{grid-template-columns:18px minmax(0,1fr) auto auto!important}
 .nav-mn .ios-t small{max-width:none}
+
+/* ================================================================ KHUNG XƯƠNG (skeleton): khối xám bo tròn + vệt sáng chạy chéo, đồng bộ mọi khối, chỉ dùng transform → nhẹ */
+:root{--sk-b:color-mix(in srgb,var(--ink) 7%,transparent);--sk-hi:rgba(255,255,255,.6)}
+:root[data-theme="dark"]{--sk-b:color-mix(in srgb,var(--ink) 8%,transparent);--sk-hi:rgba(255,255,255,.07)}
+.sk{display:block;position:relative;overflow:hidden;flex:none;max-width:100%;border-radius:7px;background:var(--sk-b);isolation:isolate}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(100deg,transparent 20%,var(--sk-hi) 50%,transparent 80%);animation:skSh 1.5s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes skSh{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
+.sk-t{border-radius:9px}.sk-m{margin:8px 0 6px}.sk-gap{margin-top:12px;border-radius:12px}
+.skw{display:flex;flex-direction:column;gap:var(--gap,14px);animation:skIn .25s ease-out both}
+@keyframes skIn{from{opacity:0}to{opacity:1}}
+.skh{display:flex;flex-direction:column;gap:9px;margin:2px 0 2px}
+.skp{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border-radius:var(--rad,10px);background:var(--surface)}
+.skg{display:grid;gap:var(--gap,14px);min-width:0}
+.skg-k{grid-template-columns:repeat(4,minmax(0,1fr))}
+.skg-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.skg-2w{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}
+.skg-3{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,.9fr)}
+.skg-bar{display:flex;gap:8px;flex-wrap:wrap}
+.skt{display:flex;gap:6px;overflow:hidden}.skt .sk{border-radius:10px}.skt .skt-on{background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.skl{display:flex;flex-direction:column;gap:9px;padding:2px 0}
+.skr{display:flex;flex-direction:column}
+.skr>div{display:flex;align-items:center;gap:12px;padding:10px 0}
+.skr>div+div{box-shadow:inset 0 .5px 0 color-mix(in srgb,var(--ink) 7%,transparent)}
+.skr>div>span{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.skr .skr-av{border-radius:50%}
+.skc{position:relative;min-height:120px}
+.skc .skc-b{position:absolute;inset:0;border-radius:12px}
+.skc .skc-l{position:absolute;left:4%;right:4%;top:18%;width:92%;height:64%;fill:none;stroke:color-mix(in srgb,var(--ink) 10%,transparent);stroke-width:2.2;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+/* trang mới chưa tới trong 140 ms: khung trang cũ mờ đi rồi thay bằng khung xương – không còn chữ "Đang tải…" */
+@media (max-width:1099px){.skg-3,.skg-2w{grid-template-columns:minmax(0,1fr)}.skg-3>:nth-child(n+3){display:none}}
+@media (max-width:859px){.skg-k{grid-template-columns:repeat(2,minmax(0,1fr))}.skg-2{grid-template-columns:minmax(0,1fr)}.skg-2>:nth-child(2){display:none}}
+@media (prefers-reduced-motion:reduce){.sk::after{animation:none;display:none}.skw{animation:none}}

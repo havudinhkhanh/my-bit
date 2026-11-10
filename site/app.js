@@ -777,7 +777,7 @@ function botMenu(anchor, up) {
     e.preventDefault(); window.__scMode = null; window.__scTab = "ov"; lsSet("sctab", "ov");
     if (location.hash === "#/bot/scalp") { if (typeof scTabGo === "function" && $("#app .sc-tabs")) scTabGo("ov"); else route(); }
     else location.hash = "#/bot/scalp";
-    setTimeout(() => { if (location.hash === "#/bot/scalp" && !$("#app .sc-tabs") && !$("#app .skel")) route(); }, 1500);
+    setTimeout(() => { if (location.hash === "#/bot/scalp" && !$("#app .sc-tabs") && !$("#app .skel, #app .skw")) route(); }, 1500);
   }, true);
   document.addEventListener("contextmenu", (e) => { const a = e.target.closest?.(sel); if (!a || !MOB.matches) return; e.preventDefault(); botMenu(a, true); });
 })();
@@ -981,7 +981,12 @@ function pageIn() {
   if (window.__vt) return;
   const a = document.getElementById("app"); if (!a) return;
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  if (a.animate) { try { pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); return; } catch (e) { /* trình duyệt cũ */ } }
+  if (a.animate) { try {
+    pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
+    // các khung lần lượt trồi lên nhẹ (8px, cách nhau 35 ms, tối đa 8 khung đầu đang thấy) – chỉ transform/opacity nên không tốn
+    const P = [...a.querySelectorAll(".panel, .lane, .kpis > *, .sc-kp > *")].filter((p) => !p.parentElement.closest(".panel, .lane")).filter((p) => { const r = p.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; }).slice(0, 8);
+    P.forEach((p, i) => p.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: i * 35, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }));
+    return; } catch (e) { /* trình duyệt cũ */ } }
   a.classList.remove("pg-in"); requestAnimationFrame(() => a.classList.add("pg-in"));
 }
 
@@ -1152,6 +1157,28 @@ document.addEventListener("pointermove", (e) => {
   tip.innerHTML = `<b>${new Date(k[0]).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}</b><span>${bi("Mở", "O")} ${px(k[1])}</span><span>${bi("Cao", "H")} ${px(k[2])}</span><span>${bi("Thấp", "L")} ${px(k[3])}</span><span>${bi("Đóng", "C")} ${px(k[4])} <i class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : ""}${nf(ch, 2)}%</i></span>`;
   const px0 = x / (svg.viewBox.baseVal.width) * r.width; tip.style.left = `${Math.min(r.width - tip.offsetWidth - 4, Math.max(4, px0 + 12))}px`;
 }, { passive: true });
+// ================================================================ KHUNG XƯƠNG (skeleton) – khối xám có vệt sáng chạy qua, đúng hình trang sắp hiện, thay chữ "Đang tải…"
+const SKL = () => bi("Đang tải…", "Loading…");
+const sk = (w = "100%", h = 12, x = "") => `<i class="sk${x ? " " + x : ""}" style="width:${w};height:${typeof h === "number" ? h + "px" : h}"></i>`;
+const skLines = (n = 3, last = "60%") => `<div class="skl" role="status" aria-label="${SKL()}">${Array.from({ length: n }, (_, i) => sk(i === n - 1 ? last : `${92 - (i % 3) * 9}%`, 11)).join("")}</div>`;
+const skChart = (h = 300) => `<div class="skc" role="status" aria-label="${SKL()}" style="height:${h}px">${sk("100%", "100%", "skc-b")}<svg class="skc-l" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 72 L30 64 L55 70 L85 48 L110 55 L140 36 L170 44 L200 28 L230 34 L260 18 L300 24"/></svg></div>`;
+const skRows = (n = 5, av) => `<div class="skr" role="status" aria-label="${SKL()}">${Array.from({ length: n }, (_, i) => `<div>${av ? sk("32px", 32, "skr-av") : ""}<span>${sk(`${70 - (i % 3) * 12}%`, 12)}${sk(`${44 - (i % 2) * 10}%`, 10)}</span>${sk("58px", 14)}</div>`).join("")}</div>`;
+const skCard = (inner, x = "") => `<div class="skp${x ? " " + x : ""}">${inner}</div>`;
+const skKpis = (n = 4) => `<div class="skg skg-k">${Array.from({ length: n }, () => skCard(`${sk("46%", 10)}${sk("62%", 22, "sk-m")}${sk("38%", 9)}`)).join("")}</div>`;
+const skTabs = (n = 5) => `<div class="skt">${Array.from({ length: n }, (_, i) => sk(`${[88, 64, 96, 78, 70, 84, 60][i % 7]}px`, 34, i === 0 ? "skt-on" : "")).join("")}</div>`;
+const skHead = () => `<div class="skh">${sk("120px", 10)}${sk("min(260px,60%)", 26, "sk-t")}${sk("min(420px,80%)", 11)}</div>`;
+// hình khung theo từng trang – gần đúng bố cục thật để khi nội dung hiện ra không bị nhảy
+function skPage(r, a0) {
+  const tbl = (n) => skCard(`${sk("30%", 14)}${skRows(n)}`);
+  let b;
+  if (!r) b = `${skKpis(4)}<div class="skg skg-2">${skCard(`${sk("34%", 14)}${skChart(240)}`)}${skCard(`${sk("40%", 14)}${skLines(6)}`)}</div>${skCard(`${sk("28%", 14)}${skChart(200)}`)}`;
+  else if (r === "c" || r === "plan") b = `${skTabs(7)}${skCard(skLines(2, "70%"))}<div class="skg skg-3">${skCard(`${sk("30%", 14)}${skChart(380)}`)}${skCard(`${sk("60%", 14)}${skLines(5)}`)}${skCard(`${sk("40%", 14)}${skLines(7)}`)}</div>`;
+  else if (r === "bot") b = `${a0 === "days" ? "" : skTabs(5)}${skKpis(4)}<div class="skg skg-2">${skCard(`${sk("36%", 14)}${skRows(4, 1)}`)}${skCard(`${sk("30%", 14)}${skRows(5)}`)}</div>`;
+  else if (/^(coins|live|radar|futures|pairs|sectors|tax|notifications)$/.test(r)) b = `<div class="skg skg-bar">${sk("min(320px,100%)", 34)}${sk("90px", 34)}${sk("90px", 34)}</div>${tbl(10)}`;
+  else if (r === "paper") b = `<div class="skg skg-2w">${skCard(`${sk("26%", 14)}${skChart(360)}`)}${skCard(`${sk("100%", 34)}${sk("100%", 34)}${skLines(4)}${sk("100%", 42)}`)}</div>`;
+  else b = `<div class="skg skg-3">${skCard(skLines(4))}${skCard(skLines(4))}${skCard(skLines(4))}</div>${skCard(`${sk("30%", 14)}${skChart(260)}`)}`;
+  return `<div class="skw" role="status" aria-busy="true" aria-label="${SKL()}">${skHead()}${b}</div>`;
+}
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
@@ -1163,7 +1190,8 @@ async function route() {
   window.scrollTo(0, 0);
   app().classList.add("pg-wait");      // trang cũ mờ đi ngay khi chuyển (chỉ hiện nếu trang mới tải > 60 ms)
   Store.fast = true;      // chuyển trang: dữ liệu tài khoản vừa tải (≤ 90 giây) dùng lại ngay, bản mới tải ở nền
-  if (!app().querySelector(".panel")) app().innerHTML = `<div class="skel"><i></i><i></i><i></i><i class="w"></i><i class="w"></i></div>`;
+  if (!app().querySelector(".panel")) { app().innerHTML = skPage(r, arg[0]); app().classList.remove("pg-wait"); }
+  else if (!SR_H) { const root = app(), old = root.firstElementChild, h0 = location.hash; clearTimeout(route.sk); route.sk = setTimeout(() => { if (location.hash === h0 && root.firstElementChild === old && root.classList.contains("pg-wait")) { root.innerHTML = skPage(r, arg[0]); root.classList.remove("pg-wait"); } }, 140); }
   try {
     if (!r) { setTab("market"); await viewMarket(); }
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
@@ -1194,7 +1222,7 @@ async function route() {
     console.error(e);
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
   }
-  Store.fast = false;
+  Store.fast = false; clearTimeout(route.sk);
   app().classList.remove("pg-wait");
   // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
   { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
@@ -1982,7 +2010,7 @@ function drawO(D, el, o, tf, src) {
 async function priceChart(D, el, tf) {
   closeWs();
   const r = D.row, [base, ag] = TFB[tf] || ["1d"];
-  el.innerHTML = `<p class="muted" style="padding:20px">Đang tải nến ${esc(tf)}…</p>`;
+  el.innerHTML = skChart(Math.max(260, Math.min(520, el.clientHeight || 380)));
   const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
   if (L) {
     let raw = L.o, o = aggO(raw, ag);
@@ -3384,7 +3412,7 @@ function rtFlip(k, tf, E) {
   }
   return false;
 }
-const rtBox = () => `<div id="rt"><div class="rt-body"><p class="muted">Đang tải nến khung lớn để đánh giá…</p></div>
+const rtBox = () => `<div id="rt"><div class="rt-body">${skLines(4)}${sk("100%", 64, "sk-gap")}</div>
   <div class="rt-act"><button class="btn primary" id="rtTk">Lên lệnh theo đánh giá này →</button><label class="chk"><input type="checkbox" id="rtN" ${lsGet("rtNtf", false) ? "checked" : ""}> Báo trên trình duyệt khi trạng thái đổi</label></div><div class="rt-tk"></div></div>`;
 function rtStats(D, tf) {
   const st = STAT_TF[tf]; if (!st) return null;
@@ -3550,12 +3578,12 @@ function smcSrv(s, nm) {
 function tabSmc(D) {
   const X = D.smc || {}, IJ = D._ij || {}, up = COINS?.btc_up ?? IJ.btc_up;
   const st = ["d", "h4"].flatMap((tf) => SMC_SET.map((s) => { const x = IJ.stats?.[tf]?.[s]; const a = x && (x[up ? "up" : "down"] || x.all); if (!a) return ""; return `<tr><td class="l">${TFV[tf]}</td><td class="l">${esc(IDEA_NAMES[s] || s)}</td><td>${nf(a.n, 0)}</td><td>${nf(a.win1, 0)}%</td><td class="${cls(a.avgR)}">${nf(a.avgR, 2)}R</td><td class="${cls(a.avgR_2y)}">${isNum(a.avgR_2y) ? nf(a.avgR_2y, 2) + "R" : "—"}</td><td>${durTxt(a.d1, tf === "d" ? 1 : 1 / 6)}</td></tr>`; })).join("");
-  return `${panel(`🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không? ${mLink("mtf")}`, `<div id="mtf"><p class="muted">Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
+  return `${panel(`🧭 Đa khung thời gian – khung nhỏ có bị tuần / tháng / quý chặn không? ${mLink("mtf")}`, `<div id="mtf">${skRows(5)}<p class="muted" hidden>Đang tải 9 khung (1 phút → quý)…</p></div>`, "giây/phút/ngày so với tuần/tháng/quý")}
   <div class="g g2w">
     ${panel(`Biểu đồ Smart Money – vẽ lại theo từng nến ${mLink("bos", "BOS?")} ${mLink("choch", "CHoCH?")} ${mLink("ob", "OB?")} ${mLink("fvg", "FVG?")}`, `${chartBox(D, 520)}<p class="faint" style="font-size:.75rem">Hộp xanh/đỏ = Order Block (nến ngược chiều cuối cùng trước cú phá cấu trúc) · hộp tím = FVG (khoảng trống giá chưa lấp) · đường liền = BOS (phá cấu trúc cùng xu hướng), đứt = CHoCH (đổi tính chất – đảo chiều) · đường chấm vàng $$$ = đỉnh/đáy bằng nhau (thanh khoản chờ bị quét) · chấm vàng = vừa quét thanh khoản · nền đỏ nhạt trên EQ = Premium (đắt), xanh nhạt = Discount (rẻ).</p>`)}
     <div>${panel(`⚡ Vào lệnh lúc này? – đánh giá thời gian thực ${mLink("rt")}`, rtBox(), "theo khung đang xem · tính lại mỗi 1,5 giây")}
       ${panel("Cấu trúc SMC theo khung (máy chủ, cập nhật 15 phút – 4 giờ)", smcSrv(X.d, "Ngày") + smcSrv(X.h4, "4 giờ") + smcSrv(X.h1, "1 giờ") || `<p class="muted">Chưa có dữ liệu.</p>`)}</div></div>
-    ${panel(`🧲 Vùng giá sẽ về – SMC + học máy ${mLink("magnet")}`, `<div id="mag"><p class="muted">Đang tải mô hình…</p></div>`, "theo khung đang xem trên biểu đồ · xác suất chạm & chạm rồi thì sao")}
+    ${panel(`🧲 Vùng giá sẽ về – SMC + học máy ${mLink("magnet")}`, `<div id="mag">${skLines(3)}</div>`, "theo khung đang xem trên biểu đồ · xác suất chạm & chạm rồi thì sao")}
     ${st ? panel(`Thiết lập SMC có thật sự hiệu quả? (kiểm chứng trên toàn bộ coin, BTC ${up ? "trên" : "dưới"} MA200)`, `<div class="tw"><table><thead><tr><th class="l">Khung</th><th class="l">Thiết lập</th><th>Số lần</th><th>Chạm MT1</th><th>Lãi TB/lệnh</th><th>2 năm gần nhất</th><th>Tới MT1</th></tr></thead><tbody>${st}</tbody></table></div>
       <p class="faint" style="font-size:.75rem">Cách đo: vào ở giá đóng cửa nến xác nhận (hoặc khi chạm lại OB), cắt lỗ dưới râu quét/OB, MT1 = đỉnh/đáy swing đối diện, đã trừ phí; nến chạm cả điểm vào lẫn cắt lỗ tính là thua −1R. Quét thanh khoản + phá cấu trúc là thiết lập tốt nhất anh có trong hệ thống; hồi về OB có lợi thế nhỏ hơn. Khung dưới 4h chưa kiểm chứng – đánh nhỏ.</p>`) : ""}`;
 }
@@ -5720,7 +5748,7 @@ async function bellOpen() {
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
     <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}">✓ ${bi("Đọc hết", "Mark all read")}</button><a class="ntp-ab" href="#/notifications">${bi("Xem tất cả →", "See all →")}</a><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
-    <div class="nt-cs"></div><div class="ntp-l"><p class="nt-empty">Đang tải…</p></div></div>`;
+    <div class="nt-cs"></div><div class="ntp-l">${skRows(4, 1)}</div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   let items = [], f = "all";
   const draw = (chips = true) => {
