@@ -4746,3 +4746,18 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .cmdk{contain:layout style}
 .cmdk-in{transform:translateZ(0)}
 .lvw-body{align-content:start}
+/* thanh lệnh trực tiếp (viên nổi) – thiết kế v3: không viền, không vòng trong; nổi khối bằng nền đặc + bóng; đang có lệnh = nền ánh xanh */
+.lvw .lvw-pill{border:0!important;background:var(--surface)!important;box-shadow:0 10px 28px -8px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.18)!important}
+:root[data-theme="light"] .lvw .lvw-pill{box-shadow:0 10px 26px -8px rgba(18,26,38,.28),0 2px 8px rgba(18,26,38,.10)!important}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]) .lvw .lvw-pill{box-shadow:0 10px 26px -8px rgba(18,26,38,.28),0 2px 8px rgba(18,26,38,.10)!important}}
+.lvw.lvw-hot .lvw-pill{background:color-mix(in srgb,var(--up) 13%,var(--surface))!important}
+:root[data-theme="dark"] .lvw.lvw-hot .lvw-pill{background:color-mix(in srgb,var(--up) 18%,var(--surface))!important}
+.lvw .lvw-pill:hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))!important}
+.lvw.lvw-hot .lvw-pill:hover{background:color-mix(in srgb,var(--up) 19%,var(--surface))!important}
+.lvw.drag .lvw-pill{box-shadow:0 22px 48px -8px rgba(0,0,0,.5)!important}
+.lvw.bump .lvw-pill{animation:lvwBump3 .7s ease}
+@keyframes lvwBump3{0%{transform:scale(1)}30%{transform:scale(1.06)}100%{transform:scale(1)}}
+.lvw .lvw-card{border:0!important}
+.lvw.lvw-hot .lvw-pill{box-shadow:0 10px 28px -8px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.18)!important}
+:root[data-theme="light"] .lvw.lvw-hot .lvw-pill{box-shadow:0 10px 26px -8px rgba(18,26,38,.28),0 2px 8px rgba(18,26,38,.10)!important}
+:root[data-theme="dark"] .lvw:not(.lvw-hot) .lvw-pill{background:color-mix(in srgb,var(--ink) 8%,var(--surface))!important}
