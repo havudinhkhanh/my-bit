@@ -4973,3 +4973,4 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   .tabs .nav-pin:hover .nav-t{padding-right:22px}
   body.rail-auto .tabs:not(.open) .nav-pin .nav-unpin{display:none!important}
 }
+.about{margin:0 0 var(--gap,14px)}      /* "… làm gì?" cách khối bên dưới đúng bằng khoảng giữa các cột */
