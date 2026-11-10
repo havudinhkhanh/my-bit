@@ -523,7 +523,7 @@ function cusDraw() {
   let a = $("#navCus"); if (!a) { a = document.createElement("a"); a.id = "navCus"; a.className = "nav-m nav-cus"; nav.insertBefore(a, more); cusBind(a);
     const g = document.createElement("span"); g.className = "nav-g nav-scg"; g.innerHTML = "<b>Lối tắt</b><em>★ tự chọn · ↻ hay vào</em>"; nav.insertBefore(g, a); }
   const o = cusCur(); a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `${o.t} – giữ lâu để đổi nút này`;
-  a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
+  { const h = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "★"}</span>`}<span class="nav-t">★ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`; if (a.__h !== h) { a.__h = h; a.innerHTML = h; } }      // chỉ vẽ lại khi nút thật sự đổi – vẽ lại mỗi lần chuyển trang làm viên chỉ báo chạy lại hiệu ứng (nháy)
   if (o.sc) a.classList.toggle("on", scOn(o.sc));
   try { autoDraw(); } catch (e) { /* bỏ qua */ }
   try { if (typeof pinDraw === "function" && $("#navPins")) pinDraw(); } catch (e) { /* bỏ qua */ }
@@ -613,7 +613,7 @@ function autoDraw() {
   if (!window.__autoO || window.__autoO.cus !== lsGet("navcus", "#/portfolio")) window.__autoO = { cus: lsGet("navcus", "#/portfolio"), o: autoTop(1)[0] || navOpt("#/bot/days") || { href: "#/bot/days", t: "Kết quả & sổ lệnh", short: "Kết quả", emo: "📒" } };
   const o = window.__autoO.o;
   a.href = o.href; a.dataset.r = o.r || ""; a.dataset.sc = o.sc || ""; a.title = `Hay vào: ${o.t} – tự đổi theo trang anh vào nhiều nhất · giữ lâu để xem danh sách`;
-  a.innerHTML = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "↻"}</span>`}<span class="nav-t">↻ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`;
+  { const h = `${o.nsvg || o.svg || `<span class="nav-emo">${o.emo || "↻"}</span>`}<span class="nav-t">↻ ${esc(o.tn || o.t)}</span><span class="nav-s">${esc(o.short)}</span>`; if (a.__h !== h) { a.__h = h; a.innerHTML = h; } }
   if (o.sc) a.classList.toggle("on", scOn(o.sc));
 }
 function autoBind(a) {

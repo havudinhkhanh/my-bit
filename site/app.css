@@ -4965,3 +4965,11 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .ks-hl.panel,.lane.ks-hl{animation:ksHl .9s ease-out}
 @media (prefers-reduced-motion:reduce){.ks-hud{transition:none}.panel.ks-hl,.lane.ks-hl{animation:none}}
 @media (pointer:coarse) and (not (any-pointer:fine)){.tabs a.nav-kb{display:none}}
+
+/* Lối tắt (thanh bên máy tính): nút bỏ ghim nằm đè ở mép phải, luôn có sẵn nhưng ẩn → rê chuột không làm dòng cao lên */
+@media (min-width:980px){
+  .tabs .nav-pin .nav-unpin{display:inline-flex!important;align-items:center;justify-content:center;position:absolute;right:6px;top:50%;margin:-10px 0 0;opacity:0;pointer-events:none;transition:opacity .12s ease}
+  .tabs .nav-pin:hover .nav-unpin,.tabs .nav-pin:focus-visible .nav-unpin{opacity:1;pointer-events:auto}
+  .tabs .nav-pin:hover .nav-t{padding-right:22px}
+  body.rail-auto .tabs:not(.open) .nav-pin .nav-unpin{display:none!important}
+}
