@@ -4691,3 +4691,11 @@ h1 small,.ph h1 small{font-size:15px!important}
 td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!important}
 .sc-hc{text-align:left;width:100%}
 .sc-hc .hk2w{max-width:1100px}
+/* thẻ lệnh không bao giờ rộng hơn khung chứa: cột tối thiểu 250px nhưng co theo khung hẹp hơn */
+.sc-ocs{grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr))!important}
+.sc-ocs>*{min-width:0;max-width:100%}
+.sc-oc{min-width:0;max-width:100%;box-sizing:border-box}
+.sc-oc .r2,.sc-oc .r3,.sc-oc .r4{min-width:0}
+.sc-oc .r3{flex-wrap:wrap}
+.sc-oc .r4:not(:has(.sc-cd)){white-space:normal!important;flex-wrap:wrap!important}
+.sc-oc .r4:not(:has(.sc-cd))>small{flex:0 1 auto;min-width:0}
