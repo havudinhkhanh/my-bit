@@ -101,6 +101,15 @@ function lvEqBind() {
 }
 // ✋ Đóng tay: trước khi gửi, hiện bảng ƯỚC TÍNH lời/lỗ ròng nếu đóng NGAY (giá sống − phí đã trả − phí lúc đóng − trượt giá ± funding),
 // giá hoà vốn sau phí, % tổng tài sản. Nút xác nhận mở sau 1,2 giây để không lỡ tay bấm liền. Số tự cập nhật mỗi giây theo giá.
+// ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot không mở). Máy chủ riêng đọc 20 giây/lần (man) – bản máy chủ cũ: lấy từ ví (5 phút/lần, chỉ xem).
+// Bỏ các mã bot đang có lệnh (Binance gộp chung vị thế cùng mã → đã hiện ở thẻ của bot).
+function scManual(LV) {
+  if (!LV) return { L: [], at: null, ctl: false };
+  const env = LV.env || "live", bot = new Set([...(LV.ev || []).map((e) => e.sym), ...(LV.qp?.open || []).flatMap((p) => p.legs.map((L) => L.sym)), ...(LV.swp?.open || []).map((p) => p.sym)]);
+  if (LV.man && LV.man.env === env) return { L: (LV.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => ({ ...p, ord: LV.man.ord?.[p.sym] || [] })), at: LV.man.at, ctl: true };
+  const W = LV.wal?.[env];
+  return { L: (W?.pos || []).filter((x) => !bot.has(x[0])).map(([sym, amt, ep, mk, lev, up, liq, mt, im]) => ({ sym, amt, ep, mk, lev, up, liq, mt, im, ord: [] })), at: W?.at || null, ctl: false };
+}
 function mxCalc(x) {
   if (!x || x.nofill) return null;
   const m = (x.pk && SCL.px[x.pk]) || x.m || x.e, q = +x.q, e = +x.e, sd = +x.sd; if (!(q > 0 && e > 0 && m > 0)) return null;
@@ -265,7 +274,7 @@ async function viewScalp() {
   const SWX = X.sw || null, swPos = SWX ? ["list", "pump"].reduce((a, k) => a + (SWX[k]?.pos?.length || 0), 0) : 0;
   const QX = X.q || null, QK = ["ou", "rsi2", "fund", "orb", "vwap", "liq"], qPos = QX ? QK.reduce((a, k) => a + (QX[k]?.pos?.length || 0), 0) : 0;
   const nHook = Object.keys(HK).length + posH.length;
-  const nLive = (LV?.ev || []).length + (LV?.qp?.open?.length || 0) + (LV?.swp?.open?.length || 0), nPaper = nHook + posS.length + swPos + qPos;
+  const MAN = scManual(LV), nLive = (LV?.ev || []).length + (LV?.qp?.open?.length || 0) + (LV?.swp?.open?.length || 0) + MAN.L.length, nPaper = nHook + posS.length + swPos + qPos;
   const badge = { ord: nLive + nPaper };      // số lệnh đang mở của CẢ 2 sàn – không đổi khi bấm công tắc sàn (từng sàn: số trên nút Binance / Sàn thử)
   const tabBar = `<nav class="sc-tabs" role="tablist" aria-label="Các phần của bot">${TABS.map(([k, t, sep]) => `<button type="button" role="tab" aria-selected="${k === TOP}" data-sctab="${k}" class="${k === TOP ? "on" : ""}">${t}${badge[k] ? `<i class="sc-bdg">${badge[k]}</i>` : ""}</button>${sep ? '<i class="sc-tsep" aria-hidden="true"></i>' : ""}`).join("")}</nav>`;
   const cnt = (n) => (n ? ` <i class="sc-bdg">${n}</i>` : "");
@@ -544,6 +553,27 @@ async function viewScalp() {
     return `<div class="sc-ht"><div class="lvt-r"><span class="lvt-a"><small class="faint">${jTm(h.t2)}</small> 🧪 ${L.map((x) => `<b>${esc(String(x.sym).replace(/USDT$/, ""))}</b> <span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span>`).join(" · ")} ${L[0] ? grpTag(L[0].sym) : ""}</span><span class="lvt-v"><b class="${cls(h.net)}">${sg$(h.net || 0)}</b>${isNum(h.pct) ? `<em class="${cls(h.pct)}">${h.pct >= 0 ? "+" : ""}${nf(h.pct, 1)}%</em>` : ""}</span><span></span>
       <small class="lvt-b faint">${esc(XNM[h.k] || h.k)} · ${L.map((x) => `${px(x.e)} → ${px(x.x)}`).join(" · ")}${h.N ? ` · ${bi("giá trị", "size")} ${usd2(h.N)}` : ""} · ${XWHY[h.why] || esc(h.why || "")}${isNum(hold) && hold > 0 ? ` · ${bi("giữ", "held")} ${jHold(hold)}` : ""}</small></div></div>`; }).join("")}</div>` : empty(bi("Chưa có lệnh thử nghiệm nào đã đóng trên sàn thử.", "No closed experimental trades yet."));
   const xOpenL = (LV?.qp?.open || []).map((p) => xCard(p, LV?.env === "live" ? "live" : "demo", true, `lq:${p.id}`, null)).join("");
+  // ✋ thẻ lệnh tay: giá & lời/lỗ trực tiếp, cắt lỗ / chốt lời đang đặt trên sàn, giá thanh lý; nút đóng (cả / ½) và đặt / sửa / huỷ cắt lỗ – chốt lời
+  const manOpenL = MAN.L.map((p) => {
+    const k = p.sym.replace(/USDT$/, "") + ":F", sd = p.amt > 0 ? 1 : -1, q = Math.abs(p.amt), real = (LV?.env || "live") === "live", nm = `${k.split(":")[0]} ${sd > 0 ? "Long" : "Short"} (${bi("lệnh tay", "manual")}${real ? bi(", TIỀN THẬT", ", REAL") : ", Demo"})`;
+    const cond = (re) => (p.ord || []).filter((o) => re.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || 0, SL = cond(/^STOP/), TP = cond(/^TAKE_PROFIT/);
+    const fr = C.fee_t ?? 0.05, est = (f) => ({ pk: k, e: p.ep, q: q * f, sd, f0: 0, fr, m: p.mk, sl: 0, long: 1 });
+    MXE["mx:" + p.sym + ":0.5"] = est(0.5);
+    const busyF = window.__mCondBusy?.[p.sym];
+    const ctl = MAN.ctl ? `<div class="sc-mform" data-mf="${esc(p.sym)}" hidden>
+        <label>${bi("Cắt lỗ", "Stop")}<input type="number" step="any" inputmode="decimal" data-mfsl value="${SL || ""}" placeholder="${bi("không đặt", "none")}"></label>
+        <label>${bi("Chốt lời", "Target")}<input type="number" step="any" inputmode="decimal" data-mftp value="${TP || ""}" placeholder="${bi("không đặt", "none")}"></label>
+        <div class="sc-mfq">${[-10, -5, -2].map((d) => `<button type="button" class="mchip" data-mfq="sl" data-d="${d}">${bi("Cắt", "Stop")} ${d}%</button>`).join("")}${[3, 5, 10].map((d) => `<button type="button" class="mchip" data-mfq="tp" data-d="${d}">${bi("Chốt", "Target")} +${d}%</button>`).join("")}</div>
+        <button type="button" class="btn sm primary" data-mfgo="${esc(p.sym)}" data-sd="${sd}" data-ep="${p.ep}" data-sl0="${SL}" data-tp0="${TP}">${bi("Đặt trên sàn", "Place on exchange")}</button>
+        <small class="faint">${bi("Lệnh điều kiện đóng CẢ vị thế, kích hoạt theo giá mark. Xoá trống ô = huỷ lệnh đang có. % tính theo giá vào.", "Conditional orders close the WHOLE position, triggered by mark price. Clear a box = cancel the existing one. % from entry.")}</small></div>` : "";
+    const btns = MAN.ctl ? `<button type="button" class="sc-mx sc-me" data-mft="${esc(p.sym)}"${busyF ? " disabled" : ""}>${busyF ? bi("Đang gửi…", "Sending…") : bi("🎯 Cắt lỗ / chốt", "🎯 Stop / target")}</button><button type="button" class="sc-mx${real ? " real" : ""}" data-mclose="mx:${esc(p.sym)}:0.5" data-mname="${esc(nm)} · ${bi("đóng một nửa", "close half")}" data-mreal="${real ? 1 : 0}">${bi("Đóng ½", "Close ½")}</button>` : "";
+    const html = `<div class="sc-oc lv man ${sd > 0 ? "L" : "S"}" data-omk="man"><div class="r1"><span>✋ <b>${scK(k)}</b> <span class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</span> <span class="jtag">x${nf(p.lev || 1, 0)} ${p.mt === "iso" ? bi("cô lập", "isolated") : "cross"}</span></span><b class="lpx" data-lpx="${esc(k)}">${px(p.mk)}</b></div>
+      <div class="r1s">${accT(real ? "live" : "demo")} ${bi("Lệnh tay (anh tự mở)", "Manual (opened by you)")}</div>
+      <div class="r2" data-lpnl="${esc(k)}" data-e="${p.ep}" data-q="${q}" data-sd="${sd}" data-f0="0" data-fr="${fr}" data-sl="${SL}" data-tp="${TP}"><b class="${cls(p.up)}">${sg$(p.up || 0)}</b></div>
+      <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.ep)}</b> · ${qty(q)} · ${bi("giá trị", "size")} <b>${usd2(q * p.ep)}</b></small>${SL ? `<small class="down" data-lsd="${esc(k)}" data-sl="${SL}" data-sd="${sd}">${bi("cắt lỗ", "stop")} ${px(SL)}</small>` : `<small class="warn">${bi("chưa đặt cắt lỗ", "no stop set")}</small>`}${TP ? `<small class="up">${bi("chốt", "target")} ${px(TP)}</small>` : ""}${p.liq > 0 ? `<small class="faint">${bi("thanh lý", "liq.")} ${px(p.liq)}</small>` : ""}</div>
+      ${MAN.ctl ? "" : `<div class="r4"><small class="faint">${bi("Chỉ xem – cần cập nhật máy chủ riêng để đóng / đặt cắt lỗ ngay trên trang", "View only – update the private server to close / set stops here")}${MAN.at ? ` · ${bi("đọc lúc", "read at")} ${hms(MAN.at)}` : ""}</small></div>`}${ctl}</div>`;
+    return MAN.ctl ? withMx(html, "mx:" + p.sym + ":1", nm, real, est(1)).replace('<div class="sc-mxr">', `<div class="sc-mxr">${btns}`) : html;
+  }).join("");
   const LVEV = (LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "lv" })).map((e) => ({ ...e, c: /🔍/.test(e.m) ? "skip" : evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
   // ---- 📈 tài sản futures: chọn khoảng (24 giờ / 7 ngày / 30 ngày / từ đầu) & cách xem (Tài sản · Lời/lỗ thật = bỏ tiền nạp/rút)
   const EQ5 = EQL, EQHR = LV?.eqHr?.[LVE] || [], EQDY = LV?.eqDay?.[LVE] || [], FLW = (LV?.flow?.[LVE] || []).slice().sort((a, b) => a[0] - b[0]);
@@ -685,7 +715,7 @@ async function viewScalp() {
   const openCardsP = [...POS.map(([k, p]) => omk(pcard(k, p), p.strat === "hook" ? "hook" : "sec")), ...Object.entries(HK).map(([k, h]) => omk(hcard(k, h), "hook"))].join("") + xOpenP;
   const allOrd = (n) => `<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ord">${bi(`Xem tất cả lệnh${n ? ` (${n} đang mở)` : ""} →`, `All trades${n ? ` (${n} open)` : ""} →`)}</button></p>`;
   const openP = panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi(`Chưa có lệnh nào đang mở. 🪝 Bắt râu sập chờ cú sốc ≥ ${nf(C.hk_r / 100, 1)}%/phút – vài lần mỗi ngày, có ngày không có.`, `No open trades. 🪝 Wick Catcher waits for a ≥ ${nf(C.hk_r / 100, 1)}%/minute shock – a few times a day, some days none.`))}${ords ? `<ul class="bot-rl">${ords}</ul>` : ""}`, bi(`${POS.length + swPos + qPos} lệnh · ${Object.keys(HK).length} chờ khớp`, `${POS.length + swPos + qPos} open · ${Object.keys(HK).length} pending`));
-  const openL = panel(bi("Đang mở & chờ khớp", "Open & pending"), lvOpen || swOpenL || xOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`);
+  const openL = panel(bi("Đang mở & chờ khớp", "Open & pending"), lvOpen || swOpenL || xOpenL || manOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}${manOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange.")), `${(LV?.ev || []).length} ${bi("lần bắt", "catches")}`);
   const halt = LV?.halt ? `<p class="sc-pause">⛔ ${esc(LV.halt)} <button type="button" class="btn sm" id="lvRes">${bi("▶ Chạy lại", "▶ Resume")}</button></p>` : "";
   const LMS = (LV?.miss || []).filter((m) => (m.env || LVE) === LVE).slice().reverse(), OL = window.__scOl || "all";
   const olChips = `<div class="bseg sc-om" role="tablist" aria-label="${bi("Lọc lệnh", "Filter")}">${[["all", bi("Tất cả", "All")], ["open", `${bi("Đang mở", "Open")}${nLive ? ` <i class="sc-bdg">${nLive}</i>` : ""}`], ["closed", `${bi("Đã đóng", "Closed")} <small>${LH.length}</small>`], ["miss", `${bi("Hụt", "Missed")} <small>${LMS.length}</small>`], ["cmp", bi("So sàn thử", "Vs paper")]].map(([k, t]) => `<button type="button" data-scol="${k}" class="${OL === k ? "on" : ""}">${t}</button>`).join("")}</div>`;
@@ -697,9 +727,9 @@ async function viewScalp() {
       <div class="sc-g2">${panel("📌 Đang mở & đang chờ", `${openCardsP ? `<div class="sc-ocs">${openCardsP}</div>` : empty(bi("Chưa có lệnh nào đang mở trên sàn thử.", "No open paper trades."))}${allOrd(nPaper)}`)}${panel("Sự kiện", `${feed((EVS.filter((e) => e.c !== "sys" && e.s !== "lv").length ? EVS.filter((e) => e.c !== "sys" && e.s !== "lv") : EVS).slice(0, 8), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>`}
       <!--LB-->`
     : lvOff ? `${lvOffP}<!--LB-->` : `${halt}${lvCards}${/rk-b (full|hi)/.test(lvRisk) ? `<p class="sc-goord sc-rkw"><span>⚠️ ${bi("Giới hạn an toàn của tài khoản sắp đầy – bot có thể ngừng mở lệnh mới", "Account safety limits nearly full – the bot may stop opening trades")}</span><a class="btn sm" href="#/bot/binance">${bi("Xem →", "View →")}</a></p>` : ""}
-      ${lvOpen || swOpenL || xOpenL ? `<div class="sc-g2">${panel(bi("Đang mở & chờ khớp", "Open & pending"), `${lvOpen || swOpenL || xOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
+      ${lvOpen || swOpenL || xOpenL || manOpenL ? `<div class="sc-g2">${panel(bi("Đang mở & chờ khớp", "Open & pending"), `${lvOpen || swOpenL || xOpenL || manOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}${manOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>
       ${lvEqChart}` : `${lvEqChart}
-      <div class="sc-g2">${panel(bi("Đang mở & chờ khớp", "Open & pending"), `${lvOpen || swOpenL || xOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>`}
+      <div class="sc-g2">${panel(bi("Đang mở & chờ khớp", "Open & pending"), `${lvOpen || swOpenL || xOpenL || manOpenL ? `<div class="sc-ocs">${lvOpen}${swOpenL}${xOpenL}${manOpenL}</div>` : empty(bi("Không có lệnh nào đang mở trên sàn.", "No open orders on the exchange."))}${allOrd(nLive)}`)}${panel(bi("📜 Sự kiện tài khoản", "📜 Account events"), `${feed(LVEV.slice(0, 12), false)}<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ev">Xem tất cả sự kiện →</button></p>`)}</div>`}
       <!--LB--><p class="sc-goord"><span>${bi("Tổng tài sản các ví, giới hạn an toàn, trạng thái khoá của tài khoản", "Total assets across wallets, safety limits, key status")}</span><a class="btn sm" href="#/bot/binance">${bi("Tài khoản Binance →", "Binance account →")}</a></p>`;
   else if (TB === "ord") body = ENV === "paper" ? `${omChips}<div data-om="open">${openP}</div>
       <div data-om="hook">${panel("Bắt râu sập · đã đóng", `${hkTrades}<p class="faint sc-cap">Bấm 📈 để xem nến 1 phút quanh cú sốc: giá sau cú sốc, 2 mức chờ, điểm khớp và điểm thoát (giá lấy trực tiếp từ Binance).</p>`, `${HT.length} lệnh gần nhất`)}</div>
@@ -1246,7 +1276,31 @@ async function viewScalp() {
   $("#scReset").onclick = async () => { if (!confirm(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`)) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
   if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
-  sclSync([...Object.keys(X.pos || {}), ...Object.keys(X.hk || {}), ...(X.live?.ev || []).map((e) => e.sym.replace(/USDT$/, "") + ":F"), ...rows.slice(0, 24).map(([id]) => id)]); sclApply();
+  // ✋ lệnh tay: mở / đóng khung cắt lỗ – chốt lời, nút % nhanh, gửi lệnh (đường nhanh ~1 giây tới máy chủ riêng)
+  const mfSave = (f) => { (window.__mfDraft ||= {})[f.dataset.mf] = { sl: f.querySelector("[data-mfsl]").value, tp: f.querySelector("[data-mftp]").value }; };
+  $$("[data-mft]").forEach((b) => (b.onclick = () => { const f = $(`[data-mf="${CSS.escape(b.dataset.mft)}"]`); if (f) { f.hidden = !f.hidden; (window.__mfOpen ||= {})[b.dataset.mft] = !f.hidden; } }));
+  $$("[data-mf]").forEach((f) => {
+    if (window.__mfOpen?.[f.dataset.mf]) f.hidden = false;
+    const d = window.__mfDraft?.[f.dataset.mf]; if (d) { f.querySelector("[data-mfsl]").value = d.sl; f.querySelector("[data-mftp]").value = d.tp; }
+    f.querySelectorAll("input").forEach((i) => i.addEventListener("input", () => mfSave(f)));
+  });
+  $$("[data-mfq]").forEach((b) => (b.onclick = () => { const f = b.closest("[data-mf]"), g = f.querySelector("[data-mfgo]"), ep = +g.dataset.ep, sd = +g.dataset.sd, d = +b.dataset.d / 100;
+    f.querySelector(b.dataset.mfq === "sl" ? "[data-mfsl]" : "[data-mftp]").value = +(ep * (1 + sd * d)).toPrecision(6); mfSave(f); }));
+  $$("[data-mfgo]").forEach((b) => (b.onclick = async () => {
+    const sym = b.dataset.mfgo, f = b.closest("[data-mf]"), sl = +f.querySelector("[data-mfsl]").value || 0, tp = +f.querySelector("[data-mftp]").value || 0, sl0 = +b.dataset.sl0 || 0, tp0 = +b.dataset.tp0 || 0;
+    const sd = +b.dataset.sd, m = SCL.px[sym.replace(/USDT$/, "") + ":F"] || +b.dataset.ep;
+    if (sl && (sd > 0 ? sl >= m : sl <= m)) { toast(bi(`Cắt lỗ phải ${sd > 0 ? "thấp" : "cao"} hơn giá hiện tại ${px(m)}`, `Stop must be ${sd > 0 ? "below" : "above"} the current price ${px(m)}`), { type: "warn" }); return; }
+    if (tp && (sd > 0 ? tp <= m : tp >= m)) { toast(bi(`Chốt lời phải ${sd > 0 ? "cao" : "thấp"} hơn giá hiện tại ${px(m)}`, `Target must be ${sd > 0 ? "above" : "below"} the current price ${px(m)}`), { type: "warn" }); return; }
+    if (sl === sl0 && tp === tp0) { toast(bi("Không có gì thay đổi", "Nothing changed")); return; }
+    const now = new Date().toISOString();
+    if (sl !== sl0) await scCmd("close", `mst:${sym}:${sl}`, now);
+    if (tp !== tp0) await scCmd("close", `mtp:${sym}:${tp}`, now);
+    (window.__mCondBusy ||= {})[sym] = 1; setTimeout(() => { delete window.__mCondBusy?.[sym]; }, 25e3);
+    delete window.__mfDraft?.[sym]; if (window.__mfOpen) window.__mfOpen[sym] = false; f.hidden = true;
+    toast(bi("Đã gửi – máy chủ đặt lệnh trên Binance trong vài giây", "Sent – the server places it on Binance in a few seconds"));
+  }));
+  if (LV && (!window.__mwAt || Date.now() - window.__mwAt > 120e3)) { window.__mwAt = Date.now(); scCmd("close", "mw:", new Date().toISOString()); }      // mở trang → máy chủ đọc lại lệnh tay ngay (không chờ 20 giây)
+  sclSync([...Object.keys(X.pos || {}), ...Object.keys(X.hk || {}), ...(X.live?.ev || []).map((e) => e.sym.replace(/USDT$/, "") + ":F"), ...MAN.L.map((p) => p.sym.replace(/USDT$/, "") + ":F"), ...rows.slice(0, 24).map(([id]) => id)]); sclApply();
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); document.body.classList.remove("sc-set-on"); return; }

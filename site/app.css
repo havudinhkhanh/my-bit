@@ -4714,3 +4714,14 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 }
 #cmdkQ,#cmdkQ:focus{background:transparent!important;box-shadow:none!important;border:0!important;outline:0!important}
 @media (pointer:fine) and (min-width:601px){#cmdkQ{padding:0!important;height:100%;font-size:15px}}
+/* ✋ lệnh tay trên Binance: khung đặt cắt lỗ / chốt lời ngay trong thẻ */
+.sc-oc.man .r1s{white-space:normal}
+.sc-mform{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;padding:10px;border-radius:10px;background:var(--fill)}
+.sc-mform[hidden]{display:none}
+.sc-mform label{display:grid;gap:4px;font-size:12px;color:var(--ink-2);min-width:0}
+.sc-mform input{width:100%;min-width:0;height:34px;padding:0 10px;border-radius:8px;border:0;background:var(--surface)!important;font:inherit;font-size:13.5px;font-variant-numeric:tabular-nums;color:var(--ink);box-sizing:border-box}
+.sc-mform .sc-mfq{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px}
+.sc-mform .sc-mfq .mchip{font-size:11px;padding:3px 8px}
+.sc-mform .btn{grid-column:1/-1;justify-self:start}
+.sc-mform>small{grid-column:1/-1;font-size:11px;line-height:1.45}
+.sc-oc.man .sc-mxr{flex-wrap:wrap}

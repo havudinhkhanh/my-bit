@@ -275,6 +275,7 @@ export class LiveExec {
       await this.qManage();
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
       await this.accrue();
+      await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
   }
@@ -411,6 +412,72 @@ export class LiveExec {
     } }
     else if (k.startsWith("swp:")) { const p = this.S.swp?.[k.slice(4)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng Short bơm ${p.sym} trên trang`, "info"); await this.swClose(p, "MANUAL"); } }
     else if (k.startsWith("lq:")) { const p = this.S.qp?.[k.slice(3)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng 📐 ${p.name} ${p.legs.map((L) => coin(L.sym)).join("/")} trên trang`, "info"); await this.qClose(p, "MANUAL"); } }
+    else if (k.startsWith("mx:")) { const [, sym, fr] = k.split(":"); await this.mClose(sym, Math.min(1, Math.max(0.01, +fr || 1))); }
+    else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
+    else if (k.startsWith("mw:")) { this.mAt = 0; await this.mSync(true); }
+  }
+  // ---------------------------------------------------------------- ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot KHÔNG mở) – bot không tự đụng tới.
+  // Đọc 20 giây/lần (vị thế + lệnh cắt lỗ / chốt lời đang chờ) để trang hiện & cho anh tự quản lý: đóng (cả / một nửa), đặt / sửa / huỷ cắt lỗ, chốt lời.
+  // Mọi thao tác chỉ chạy khi anh bấm trên trang. Mã nào bot đang có lệnh → không thao tác ở đây (Binance gộp chung vị thế cùng mã).
+  botSyms() { const s = new Set(); for (const e of this.active()) s.add(e.sym); for (const p of this.qOpen()) for (const L of p.legs) s.add(L.sym); for (const p of this.swOpen()) s.add(p.sym); return s; }
+  async mSync(force) {
+    const env = this.env(); if (!this.keys(env)) { this.S.man = null; return; }
+    if (!force && Date.now() - (this.mAt || 0) < 20e3) return; this.mAt = Date.now();
+    const L = await this.req("GET", "/fapi/v2/positionRisk", {}).catch(() => this.req("GET", "/fapi/v3/positionRisk", {})), bot = this.botSyms();
+    const pos = (L || []).filter((x) => +x.positionAmt !== 0).map((x) => ({ sym: x.symbol, amt: +x.positionAmt, ep: +x.entryPrice, mk: +x.markPrice, lev: +x.leverage || 1, up: +(+x.unRealizedProfit || 0).toFixed(4),
+      liq: +x.liquidationPrice || 0, mt: x.marginType === "isolated" ? "iso" : "cross", im: +(+x.isolatedMargin || 0).toFixed(4), ps: x.positionSide || "BOTH", bot: bot.has(x.symbol) }));
+    const ord = {};
+    if (pos.some((p) => !p.bot)) {
+      const want = new Set(pos.filter((p) => !p.bot).map((p) => p.sym)), put = (o) => { if (want.has(o.sym)) (ord[o.sym] ||= []).push(o); };
+      const O = await this.req("GET", "/fapi/v1/openOrders", {}).catch(() => []);
+      for (const o of O || []) put({ sym: o.symbol, id: o.orderId, algo: 0, type: o.type, side: o.side, px: +(+o.stopPrice || +o.price || 0), q: +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
+      const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
+      for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
+    }
+    this.S.man = { env, at: iso(Date.now()), pos, ord };
+  }
+  async mClose(sym, frac = 1) {
+    if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – vị thế gộp chung, đóng ở thẻ lệnh của bot`, "info"); return; }
+    const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
+    const P = (L || []).find((x) => x.symbol === sym && +x.positionAmt !== 0), F = await this.filters(sym);
+    if (!P || !F) { this.say(`✋ ${coin(sym)}: không còn vị thế để đóng`, "info"); this.mAt = 0; return; }
+    const amt = +P.positionAmt, q0 = Math.abs(amt); let q = frac >= 0.999 ? q0 : fl(q0 * frac, F.step);
+    if (q < F.minQ) q = q0;
+    const p = { symbol: sym, side: amt > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), newOrderRespType: "RESULT" };
+    if ((P.positionSide || "BOTH") !== "BOTH") p.positionSide = P.positionSide; else p.reduceOnly = "true";
+    const o = await this.req("POST", "/fapi/v1/order", p), ax = +o.avgPrice || +P.markPrice, pnl = (ax - +P.entryPrice) * (amt > 0 ? 1 : -1) * q;
+    this.say(`✋ Anh đóng ${q >= q0 ? "" : `${Math.round(q / q0 * 100)}% `}lệnh tay ${coin(sym)} ${amt > 0 ? "Long" : "Short"} ${q.toFixed(F.sd)} @ ${ax} · ước ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (chưa trừ phí)`, pnl >= 0 ? "win" : "loss");
+    if (q >= q0) await this.mCancel(sym, () => true);      // đóng hết → huỷ cắt lỗ / chốt lời còn treo của mã này
+    this.mAt = 0; await this.mSync(true);
+  }
+  async mCancel(sym, pick) {
+    const O = await this.req("GET", "/fapi/v1/openOrders", { symbol: sym }).catch(() => []);
+    for (const o of O || []) if (/STOP|TAKE_PROFIT/.test(o.type) && pick(o.type)) await this.req("DELETE", "/fapi/v1/order", { symbol: sym, orderId: o.orderId }).catch(() => {});
+    const A = await this.req("GET", "/fapi/v1/openAlgoOrders", { symbol: sym }).catch(() => []);
+    for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) if (o.symbol === sym && pick(o.orderType || o.type || "")) await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: o.algoId }).catch(() => {});
+  }
+  // đặt / sửa (px > 0) hoặc huỷ (px = 0) cắt lỗ / chốt lời cho cả vị thế lệnh tay – lệnh điều kiện đóng toàn bộ vị thế, kích hoạt theo giá mark
+  async mCond(sym, kind, px) {
+    if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – không đặt ${kind === "sl" ? "cắt lỗ" : "chốt lời"} riêng`, "info"); return; }
+    const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
+    const P = (L || []).find((x) => x.symbol === sym && +x.positionAmt !== 0), F = await this.filters(sym);
+    if (!P || !F) { this.say(`✋ ${coin(sym)}: không còn vị thế`, "info"); return; }
+    const sd = +P.positionAmt > 0 ? 1 : -1, mk = +P.markPrice, T = kind === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", nm = kind === "sl" ? "cắt lỗ" : "chốt lời";
+    const re = kind === "sl" ? /^STOP/ : /^TAKE_PROFIT/;
+    if (px > 0) {
+      const bad = kind === "sl" ? (sd > 0 ? px >= mk : px <= mk) : (sd > 0 ? px <= mk : px >= mk);
+      if (bad) { this.say(`✋ ${coin(sym)}: giá ${nm} ${px} nằm sai phía giá hiện tại ${mk} – không đặt`, "info"); return; }
+    }
+    await this.mCancel(sym, (t) => re.test(t));
+    if (px > 0) {
+      const pxs = (sd > 0 ? (kind === "sl" ? ce(px, F.tick) : fl(px, F.tick)) : (kind === "sl" ? fl(px, F.tick) : ce(px, F.tick))).toFixed(F.td);
+      const p = { symbol: sym, side: sd > 0 ? "SELL" : "BUY", type: T, stopPrice: pxs, closePosition: "true", workingType: "MARK_PRICE" };
+      if ((P.positionSide || "BOTH") !== "BOTH") p.positionSide = P.positionSide;
+      try { await this.req("POST", "/fapi/v1/order", p); }
+      catch (e) { const a = { algoType: "CONDITIONAL", symbol: sym, side: p.side, type: T, triggerPrice: pxs, closePosition: "true", workingType: "MARK_PRICE" }; if (p.positionSide) a.positionSide = p.positionSide; await this.req("POST", "/fapi/v1/algoOrder", a); }
+      this.say(`✋ ${nm[0].toUpperCase() + nm.slice(1)} lệnh tay ${coin(sym)} ${sd > 0 ? "Long" : "Short"} tại ${pxs} (đặt trên sàn, đóng cả vị thế)`, "info");
+    } else this.say(`✋ Huỷ ${nm} lệnh tay ${coin(sym)}`, "info");
+    this.mAt = 0; await this.mSync(true);
   }
   // rủi ro đang mở của tài khoản đang dùng: giá trị lệnh, ký quỹ, mức mất tối đa (cắt lỗ đặt trên sàn / thanh lý ký quỹ cô lập)
   riskNow() {
@@ -685,7 +752,7 @@ export class LiveExec {
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: vnDay(Date.now()), pnl: D.d === vnDay(Date.now()) ? +D.pnl.toFixed(2) : 0 }])),      // sang ngày mới chưa có lệnh đóng → 0, không hiện lời ngày cũ tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
+      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
       eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
 }
