@@ -367,7 +367,7 @@ export class ScalpCore {
         if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
       else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
       else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
-      else if (/^(lv|swp|lq|mx|mst|mtp|mw):/.test(k)) this.io.onManual?.(k);      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
+      else if (/^(lv|swp|lq|mx|mst|mtp|mw|mlk):/.test(k)) this.io.onManual?.(k);      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
     return true;
   }

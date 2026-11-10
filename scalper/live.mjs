@@ -275,6 +275,7 @@ export class LiveExec {
       await this.qManage();
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
       await this.accrue();
+      await this.mManage().catch((e) => this.err("hẹn đóng lệnh tay", e));
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
@@ -415,6 +416,7 @@ export class LiveExec {
     else if (k.startsWith("mx:")) { const [, sym, fr] = k.split(":"); await this.mClose(sym, Math.min(1, Math.max(0.01, +fr || 1))); }
     else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
     else if (k.startsWith("mw:")) { this.mAt = 0; await this.mSync(true); }
+    else if (k.startsWith("mlk:")) { const [, sym, sd, ex, ...rest] = k.split(":"); this.mLink(sym, +sd || 0, +ex || 0, rest.join(":")); this.save(); await this.mSync(true); }
   }
   // ---------------------------------------------------------------- ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot KHÔNG mở) – bot không tự đụng tới.
   // Đọc 20 giây/lần (vị thế + lệnh cắt lỗ / chốt lời đang chờ) để trang hiện & cho anh tự quản lý: đóng (cả / một nửa), đặt / sửa / huỷ cắt lỗ, chốt lời.
@@ -434,7 +436,39 @@ export class LiveExec {
       const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
-    this.S.man = { env, at: iso(Date.now()), pos, ord };
+    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {} };
+  }
+  // ⏱ hẹn đóng lệnh tay: theo giờ (exp) và/hoặc theo 1 lệnh sàn thử (pk) – sàn thử đóng lệnh đó (chốt / cắt / hết giờ / anh đóng) → máy chủ đóng lệnh thật luôn
+  paperOpen(pk) {
+    const S = this.core.S; if (!S) return true;      // chưa nạp xong trạng thái sàn thử → coi như còn mở, không đóng bừa
+    const [t, a, b] = pk.split(":");
+    if (t === "pp") return !!S.pos?.[pk.slice(3)];
+    if (t === "sw") return !!S.sw?.[a]?.pos?.[b];
+    if (t === "q") return !!S.q?.[a]?.pos?.[b];
+    return true;
+  }
+  pkName(pk) { const [t, a, b] = String(pk).split(":"); return t === "pp" ? `🧪 ${coin(a)} (sàn thử)` : t === "sw" ? `🧪 ${a === "pump" ? "Short coin vừa bơm" : "Short coin mới niêm yết"} #${b}` : t === "q" ? `🧪 định lượng ${a} #${b}` : pk; }
+  mLink(sym, sd, exp, pk) {
+    const L = (this.S.mlk ||= {});
+    if (!exp && !pk) { if (L[sym]) { delete L[sym]; this.say(`⏱ Huỷ hẹn đóng lệnh tay ${coin(sym)}`, "info"); } return; }
+    if (pk && !this.paperOpen(pk)) { this.say(`⏱ Lệnh tay ${coin(sym)}: lệnh ${this.pkName(pk)} không còn mở – không gắn theo`, "info"); pk = ""; if (!exp) return; }
+    if (!pk && !(exp > Date.now())) { this.say(`⏱ Lệnh tay ${coin(sym)}: giờ hẹn đã qua – không hẹn`, "info"); return; }
+    L[sym] = { sd, exp: exp > Date.now() ? exp : 0, pk, at: Date.now() };
+    const t = L[sym].exp ? new Date(L[sym].exp + 7 * 3600e3).toISOString().slice(0, 16).replace("T", " ") : "";
+    this.say(`⏱ Hẹn đóng lệnh tay ${coin(sym)} ${sd > 0 ? "Long" : "Short"}:${t ? ` lúc ${t} (giờ VN)` : ""}${pk ? `${t ? " hoặc" : ""} khi lệnh ${this.pkName(pk)} đóng` : ""}`, "info");
+  }
+  async mManage() {
+    const L = this.S.mlk; if (!L || !Object.keys(L).length) return;
+    const man = this.S.man;
+    for (const [sym, x] of Object.entries(L)) {
+      const P = man?.pos?.find((p) => p.sym === sym);
+      if (man && Date.now() - Date.parse(man.at + "Z") < 120e3 && (!P || Math.sign(P.amt) !== x.sd)) { delete L[sym]; this.save(); continue; }      // vị thế đã đóng / đổi chiều → bỏ hẹn
+      const why = x.exp && Date.now() >= x.exp ? "tới giờ hẹn" : x.pk && !this.paperOpen(x.pk) ? `lệnh ${this.pkName(x.pk)} vừa đóng` : "";
+      if (!why) continue;
+      delete L[sym]; this.save();
+      this.say(`⏱ Lệnh tay ${coin(sym)}: ${why} → đóng theo hẹn`, "info");
+      await this.mClose(sym, 1);
+    }
   }
   async mClose(sym, frac = 1) {
     if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – vị thế gộp chung, đóng ở thẻ lệnh của bot`, "info"); return; }

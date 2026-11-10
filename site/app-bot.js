@@ -554,24 +554,35 @@ async function viewScalp() {
       <small class="lvt-b faint">${esc(XNM[h.k] || h.k)} · ${L.map((x) => `${px(x.e)} → ${px(x.x)}`).join(" · ")}${h.N ? ` · ${bi("giá trị", "size")} ${usd2(h.N)}` : ""} · ${XWHY[h.why] || esc(h.why || "")}${isNum(hold) && hold > 0 ? ` · ${bi("giữ", "held")} ${jHold(hold)}` : ""}</small></div></div>`; }).join("")}</div>` : empty(bi("Chưa có lệnh thử nghiệm nào đã đóng trên sàn thử.", "No closed experimental trades yet."));
   const xOpenL = (LV?.qp?.open || []).map((p) => xCard(p, LV?.env === "live" ? "live" : "demo", true, `lq:${p.id}`, null)).join("");
   // ✋ thẻ lệnh tay: giá & lời/lỗ trực tiếp, cắt lỗ / chốt lời đang đặt trên sàn, giá thanh lý; nút đóng (cả / ½) và đặt / sửa / huỷ cắt lỗ – chốt lời
+  // các lệnh sàn thử đang mở – để lệnh tay "theo" 1 lệnh: chép giờ đóng, cắt lỗ, chốt lời; sàn thử đóng lệnh đó → máy chủ đóng lệnh thật
+  const SWN = { pump: bi("Short coin vừa bơm", "Pumped-coin short"), list: bi("Short coin mới niêm yết", "New-listing short") };
+  const PAPO = [...POS.map(([k, p]) => ({ pk: "pp:" + k, c: k.split(":")[0], sd: p.side, nm: p.strat === "hook" ? bi("Bắt râu sập", "Wick Catcher") : bi("Lướt giây", "Scalp"), exp: +p.t0 + (+p.h || 0) * 1000, sl: +p.sl || 0, tp: +p.tp || 0 })),
+    ...(SWX ? ["pump", "list"].flatMap((kk) => (SWX[kk]?.pos || []).map((p) => ({ pk: `sw:${kk}:${p.id}`, c: String(p.sym).replace(/USDT$/, ""), sd: -1, nm: SWN[kk], exp: Date.parse(p.t1 + "Z"), sl: 0, tp: 0 }))) : []),
+    ...(QX ? QK.flatMap((kk) => (QX[kk]?.pos || []).filter((p) => (p.legs || []).length === 1).map((p) => ({ pk: `q:${kk}:${p.id}`, c: String(p.legs[0].sym).replace(/USDT$/, ""), sd: p.legs[0].side, nm: bi("Định lượng", "Quant") + " " + kk, exp: Date.parse(p.exp + "Z"), sl: +p.sl || 0, tp: +p.tp || 0 }))) : [])]
+    .filter((x) => isNum(x.exp) && x.exp > Date.now());
+  const leftT = (ms) => { const s2 = Math.max(0, (ms - Date.now()) / 1000); return s2 >= 86400 ? `${Math.floor(s2 / 86400)} ${bi("ngày", "d")} ${Math.floor((s2 % 86400) / 3600)} ${bi("giờ", "h")}` : `${Math.floor(s2 / 3600)} ${bi("giờ", "h")} ${Math.floor((s2 % 3600) / 60)} ${bi("phút", "m")}`; };
   const manOpenL = MAN.L.map((p) => {
     const k = p.sym.replace(/USDT$/, "") + ":F", sd = p.amt > 0 ? 1 : -1, q = Math.abs(p.amt), real = (LV?.env || "live") === "live", nm = `${k.split(":")[0]} ${sd > 0 ? "Long" : "Short"} (${bi("lệnh tay", "manual")}${real ? bi(", TIỀN THẬT", ", REAL") : ", Demo"})`;
     const cond = (re) => (p.ord || []).filter((o) => re.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || 0, SL = cond(/^STOP/), TP = cond(/^TAKE_PROFIT/);
     const fr = C.fee_t ?? 0.05, est = (f) => ({ pk: k, e: p.ep, q: q * f, sd, f0: 0, fr, m: p.mk, sl: 0, long: 1 });
     MXE["mx:" + p.sym + ":0.5"] = est(0.5);
-    const busyF = window.__mCondBusy?.[p.sym];
+    const busyF = window.__mCondBusy?.[p.sym], LK = LV?.man?.lk?.[p.sym] || null, lkP = LK?.pk ? PAPO.find((x) => x.pk === LK.pk) : null;
+    const opts = PAPO.slice().sort((a, b) => (b.c === k.split(":")[0]) - (a.c === k.split(":")[0]) || (b.sd === sd) - (a.sd === sd));
+    const lkRow = LK ? `<div class="r4"${LK.exp ? ` data-lt0="${LK.at}" data-lh="${(LK.exp - LK.at) / 1000}"` : ""}>${LK.exp ? `<span class="sc-cd"><i></i></span><small></small>` : ""}<small class="faint">⏱ ${LK.exp ? bi("tự đóng", "auto-close") : ""}${LK.pk ? `${LK.exp ? bi(" · ", " · ") : ""}${bi("theo", "follows")} 🧪 ${esc(lkP ? `${lkP.c} ${lkP.nm}` : LK.pk)}` : ""}</small></div>` : "";
     const ctl = MAN.ctl ? `<div class="sc-mform" data-mf="${esc(p.sym)}" hidden>
         <label>${bi("Cắt lỗ", "Stop")}<input type="number" step="any" inputmode="decimal" data-mfsl value="${SL || ""}" placeholder="${bi("không đặt", "none")}"></label>
         <label>${bi("Chốt lời", "Target")}<input type="number" step="any" inputmode="decimal" data-mftp value="${TP || ""}" placeholder="${bi("không đặt", "none")}"></label>
+        <label class="sc-mfw">🔗 ${bi("Theo lệnh sàn thử", "Follow a paper trade")}<select data-mfpk><option value="">— ${bi("không theo", "none")} —</option>${opts.map((x) => `<option value="${esc(x.pk)}" data-exp="${x.exp}" data-sl="${x.sl}" data-tp="${x.tp}" data-sd="${x.sd}"${LK?.pk === x.pk ? " selected" : ""}>${esc(x.c)} ${x.sd > 0 ? "Long" : "Short"} · ${esc(x.nm)} · ${bi("đóng sau", "closes in")} ${leftT(x.exp)}${x.c === k.split(":")[0] && x.sd === sd ? " ✓" : ""}</option>`).join("")}</select></label>
+        <label class="sc-mfw">⏱ ${bi("Tự đóng sau", "Auto-close in")}<span class="sc-mfd"><input type="number" min="0" step="1" inputmode="numeric" data-mfdd value="${LK?.exp ? Math.floor((LK.exp - Date.now()) / 864e5) : ""}" placeholder="0"> ${bi("ngày", "days")} <input type="number" min="0" step="any" inputmode="decimal" data-mfhh value="${LK?.exp ? +(((LK.exp - Date.now()) % 864e5) / 36e5).toFixed(1) : ""}" placeholder="0"> ${bi("giờ", "hours")}</span></label>
         <div class="sc-mfq">${[-10, -5, -2].map((d) => `<button type="button" class="mchip" data-mfq="sl" data-d="${d}">${bi("Cắt", "Stop")} ${d}%</button>`).join("")}${[3, 5, 10].map((d) => `<button type="button" class="mchip" data-mfq="tp" data-d="${d}">${bi("Chốt", "Target")} +${d}%</button>`).join("")}</div>
-        <button type="button" class="btn sm primary" data-mfgo="${esc(p.sym)}" data-sd="${sd}" data-ep="${p.ep}" data-sl0="${SL}" data-tp0="${TP}">${bi("Đặt trên sàn", "Place on exchange")}</button>
-        <small class="faint">${bi("Lệnh điều kiện đóng CẢ vị thế, kích hoạt theo giá mark. Xoá trống ô = huỷ lệnh đang có. % tính theo giá vào.", "Conditional orders close the WHOLE position, triggered by mark price. Clear a box = cancel the existing one. % from entry.")}</small></div>` : "";
-    const btns = MAN.ctl ? `<button type="button" class="sc-mx sc-me" data-mft="${esc(p.sym)}"${busyF ? " disabled" : ""}>${busyF ? bi("Đang gửi…", "Sending…") : bi("🎯 Cắt lỗ / chốt", "🎯 Stop / target")}</button><button type="button" class="sc-mx${real ? " real" : ""}" data-mclose="mx:${esc(p.sym)}:0.5" data-mname="${esc(nm)} · ${bi("đóng một nửa", "close half")}" data-mreal="${real ? 1 : 0}">${bi("Đóng ½", "Close ½")}</button>` : "";
+        <button type="button" class="btn sm primary" data-mfgo="${esc(p.sym)}" data-sd="${sd}" data-ep="${p.ep}" data-sl0="${SL}" data-tp0="${TP}" data-pk0="${esc(LK?.pk || "")}" data-ex0="${LK?.exp || 0}">${bi("Đặt trên sàn", "Place on exchange")}</button>
+        <small class="faint">${bi("Cắt lỗ / chốt lời: lệnh điều kiện trên sàn, đóng CẢ vị thế theo giá mark; xoá trống ô = huỷ. Theo lệnh sàn thử: chép giờ đóng (và cắt lỗ / chốt lời nếu cùng chiều); khi sàn thử đóng lệnh đó – chốt, cắt, hết giờ, anh đóng hay làm lại sàn thử – máy chủ đóng lệnh thật luôn. Xoá trống giờ & bỏ theo = huỷ hẹn.", "Stop / target: exchange conditional orders closing the WHOLE position at mark price; clear = cancel. Follow a paper trade: copies its close time (and stop / target if same side); when paper closes it – target, stop, time, by you or a paper reset – the server closes the real one too. Clear time & none = cancel.")}</small></div>` : "";
+    const btns = MAN.ctl ? `<button type="button" class="sc-mx sc-me" data-mft="${esc(p.sym)}"${busyF ? " disabled" : ""}>${busyF ? bi("Đang gửi…", "Sending…") : bi("🎯 Cắt lỗ · chốt · hẹn đóng", "🎯 Stop · target · timer")}</button><button type="button" class="sc-mx${real ? " real" : ""}" data-mclose="mx:${esc(p.sym)}:0.5" data-mname="${esc(nm)} · ${bi("đóng một nửa", "close half")}" data-mreal="${real ? 1 : 0}">${bi("Đóng ½", "Close ½")}</button>` : "";
     const html = `<div class="sc-oc lv man ${sd > 0 ? "L" : "S"}" data-omk="man"><div class="r1"><span>✋ <b>${scK(k)}</b> <span class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</span> <span class="jtag">x${nf(p.lev || 1, 0)} ${p.mt === "iso" ? bi("cô lập", "isolated") : "cross"}</span></span><b class="lpx" data-lpx="${esc(k)}">${px(p.mk)}</b></div>
       <div class="r1s">${accT(real ? "live" : "demo")} ${bi("Lệnh tay (anh tự mở)", "Manual (opened by you)")}</div>
       <div class="r2" data-lpnl="${esc(k)}" data-e="${p.ep}" data-q="${q}" data-sd="${sd}" data-f0="0" data-fr="${fr}" data-sl="${SL}" data-tp="${TP}"><b class="${cls(p.up)}">${sg$(p.up || 0)}</b></div>
       <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.ep)}</b> · ${qty(q)} · ${bi("giá trị", "size")} <b>${usd2(q * p.ep)}</b></small>${SL ? `<small class="down" data-lsd="${esc(k)}" data-sl="${SL}" data-sd="${sd}">${bi("cắt lỗ", "stop")} ${px(SL)}</small>` : `<small class="warn">${bi("chưa đặt cắt lỗ", "no stop set")}</small>`}${TP ? `<small class="up">${bi("chốt", "target")} ${px(TP)}</small>` : ""}${p.liq > 0 ? `<small class="faint">${bi("thanh lý", "liq.")} ${px(p.liq)}</small>` : ""}</div>
-      ${MAN.ctl ? "" : `<div class="r4"><small class="faint">${bi("Chỉ xem – cần cập nhật máy chủ riêng để đóng / đặt cắt lỗ ngay trên trang", "View only – update the private server to close / set stops here")}${MAN.at ? ` · ${bi("đọc lúc", "read at")} ${hms(MAN.at)}` : ""}</small></div>`}${ctl}</div>`;
+      ${lkRow}${MAN.ctl ? "" : `<div class="r4"><small class="faint">${bi("Chỉ xem – cần cập nhật máy chủ riêng để đóng / đặt cắt lỗ ngay trên trang", "View only – update the private server to close / set stops here")}${MAN.at ? ` · ${bi("đọc lúc", "read at")} ${hms(MAN.at)}` : ""}</small></div>`}${ctl}</div>`;
     return MAN.ctl ? withMx(html, "mx:" + p.sym + ":1", nm, real, est(1)).replace('<div class="sc-mxr">', `<div class="sc-mxr">${btns}`) : html;
   }).join("");
   const LVEV = (LV?.log || []).map((l) => ({ t: l.t, m: l.m, k: l.k, s: "lv" })).map((e) => ({ ...e, c: /🔍/.test(e.m) ? "skip" : evCat(e) })).sort((a, b) => (a.t < b.t ? 1 : -1));
@@ -1277,12 +1288,19 @@ async function viewScalp() {
   if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
   // ✋ lệnh tay: mở / đóng khung cắt lỗ – chốt lời, nút % nhanh, gửi lệnh (đường nhanh ~1 giây tới máy chủ riêng)
-  const mfSave = (f) => { (window.__mfDraft ||= {})[f.dataset.mf] = { sl: f.querySelector("[data-mfsl]").value, tp: f.querySelector("[data-mftp]").value }; };
+  const mfSave = (f) => { (window.__mfDraft ||= {})[f.dataset.mf] = { sl: f.querySelector("[data-mfsl]").value, tp: f.querySelector("[data-mftp]").value, pk: f.querySelector("[data-mfpk]").value, dd: f.querySelector("[data-mfdd]").value, hh: f.querySelector("[data-mfhh]").value }; };
   $$("[data-mft]").forEach((b) => (b.onclick = () => { const f = $(`[data-mf="${CSS.escape(b.dataset.mft)}"]`); if (f) { f.hidden = !f.hidden; (window.__mfOpen ||= {})[b.dataset.mft] = !f.hidden; } }));
   $$("[data-mf]").forEach((f) => {
     if (window.__mfOpen?.[f.dataset.mf]) f.hidden = false;
-    const d = window.__mfDraft?.[f.dataset.mf]; if (d) { f.querySelector("[data-mfsl]").value = d.sl; f.querySelector("[data-mftp]").value = d.tp; }
+    const d = window.__mfDraft?.[f.dataset.mf]; if (d) { f.querySelector("[data-mfsl]").value = d.sl; f.querySelector("[data-mftp]").value = d.tp; f.querySelector("[data-mfpk]").value = d.pk; f.querySelector("[data-mfdd]").value = d.dd; f.querySelector("[data-mfhh]").value = d.hh; }
     f.querySelectorAll("input").forEach((i) => i.addEventListener("input", () => mfSave(f)));
+    f.querySelector("[data-mfpk]").addEventListener("change", (e) => {      // chọn lệnh sàn thử → chép giờ đóng còn lại, cắt lỗ / chốt lời (nếu cùng chiều)
+      const o = e.target.selectedOptions[0], g = f.querySelector("[data-mfgo]");
+      if (o?.value) { const left = Math.max(0, +o.dataset.exp - Date.now()); f.querySelector("[data-mfdd]").value = Math.floor(left / 864e5); f.querySelector("[data-mfhh]").value = +((left % 864e5) / 36e5).toFixed(2);
+        if (+o.dataset.sd === +g.dataset.sd) { if (+o.dataset.sl > 0) f.querySelector("[data-mfsl]").value = +o.dataset.sl; if (+o.dataset.tp > 0) f.querySelector("[data-mftp]").value = +o.dataset.tp; }
+        else toast(bi("Lệnh sàn thử này ngược chiều – chỉ chép giờ đóng", "That paper trade is the opposite side – only the close time is copied"), { type: "warn" }); }
+      mfSave(f);
+    });
   });
   $$("[data-mfq]").forEach((b) => (b.onclick = () => { const f = b.closest("[data-mf]"), g = f.querySelector("[data-mfgo]"), ep = +g.dataset.ep, sd = +g.dataset.sd, d = +b.dataset.d / 100;
     f.querySelector(b.dataset.mfq === "sl" ? "[data-mfsl]" : "[data-mftp]").value = +(ep * (1 + sd * d)).toPrecision(6); mfSave(f); }));
@@ -1291,8 +1309,11 @@ async function viewScalp() {
     const sd = +b.dataset.sd, m = SCL.px[sym.replace(/USDT$/, "") + ":F"] || +b.dataset.ep;
     if (sl && (sd > 0 ? sl >= m : sl <= m)) { toast(bi(`Cắt lỗ phải ${sd > 0 ? "thấp" : "cao"} hơn giá hiện tại ${px(m)}`, `Stop must be ${sd > 0 ? "below" : "above"} the current price ${px(m)}`), { type: "warn" }); return; }
     if (tp && (sd > 0 ? tp <= m : tp >= m)) { toast(bi(`Chốt lời phải ${sd > 0 ? "cao" : "thấp"} hơn giá hiện tại ${px(m)}`, `Target must be ${sd > 0 ? "above" : "below"} the current price ${px(m)}`), { type: "warn" }); return; }
-    if (sl === sl0 && tp === tp0) { toast(bi("Không có gì thay đổi", "Nothing changed")); return; }
+    const pk = f.querySelector("[data-mfpk]").value, dd = +f.querySelector("[data-mfdd]").value || 0, hh = +f.querySelector("[data-mfhh]").value || 0, pk0 = b.dataset.pk0 || "", ex0 = +b.dataset.ex0 || 0;
+    const exp = dd || hh ? Date.now() + (dd * 24 + hh) * 3600e3 : 0, lkCh = pk !== pk0 || Math.abs(exp - ex0) > 120e3;
+    if (sl === sl0 && tp === tp0 && !lkCh) { toast(bi("Không có gì thay đổi", "Nothing changed")); return; }
     const now = new Date().toISOString();
+    if (lkCh) await scCmd("close", `mlk:${sym}:${sd}:${Math.round(exp)}:${pk}`, now);
     if (sl !== sl0) await scCmd("close", `mst:${sym}:${sl}`, now);
     if (tp !== tp0) await scCmd("close", `mtp:${sym}:${tp}`, now);
     (window.__mCondBusy ||= {})[sym] = 1; setTimeout(() => { delete window.__mCondBusy?.[sym]; }, 25e3);

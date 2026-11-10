@@ -4725,3 +4725,7 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .sc-mform .btn{grid-column:1/-1;justify-self:start}
 .sc-mform>small{grid-column:1/-1;font-size:11px;line-height:1.45}
 .sc-oc.man .sc-mxr{flex-wrap:wrap}
+.sc-mform .sc-mfw{grid-column:1/-1}
+.sc-mform select{width:100%;min-width:0;height:34px;padding:0 8px;border-radius:8px;border:0;background:var(--surface)!important;font:inherit;font-size:13px;color:var(--ink)}
+.sc-mfd{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2)}
+.sc-mfd input{width:64px!important;flex:none}
