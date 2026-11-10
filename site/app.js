@@ -359,7 +359,9 @@ function lineDraw(series, opt, W, H, cx) {
   const tv = lg ? Array.from({ length: nY + 1 }, (_, k) => 10 ** (tmn + (tmx - tmn) * k / nY)) : niceTicks(mn, mx, nY);
   const pl = Math.max(30, Math.min(70, Math.max(...tv.map((v) => String(fmt(v)).length)) * 6.2 + 10));
   const n = Math.max(...series.map((s) => s.pts.length));
-  const X = (i) => pl + (i / Math.max(1, n - 1)) * (W - pl - pr);
+  // có cột (bars): chia ô đều, mỗi điểm nằm GIỮA ô → cột đầu / cuối không lấn sang trục giá bên trái hay mép phải
+  const band = series.some((se) => se.bars), cw = W - pl - pr;
+  const X = band ? (i) => pl + (i + 0.5) / Math.max(1, n) * cw : (i) => pl + (i / Math.max(1, n - 1)) * cw;
   const Y = (v) => pt + (1 - (TF(v) - tmn) / (tmx - tmn)) * (H - pt - pb);
   let s = `<svg class="svgchart" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(opt.label || "biểu đồ")}">`;
   (opt.bands || []).forEach((b) => { const y1 = Y(Math.min(mx, b.hi)), y2 = Y(Math.max(mn, b.lo)); if (y2 > y1) s += `<rect x="${pl}" width="${W - pl - pr}" y="${y1}" height="${y2 - y1}" fill="${b.color}" opacity="${b.op ?? 0.1}"/>`; });
@@ -368,7 +370,7 @@ function lineDraw(series, opt, W, H, cx) {
   series.forEach((se) => {
     if (se.dots) { se.pts.forEach((p, i) => { if (isNum(p.y)) s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.4" fill="${p.c || se.color}" stroke="var(--surface)" stroke-width="1.2"/>`; }); return; }
     if (se.bars) {
-      const bw = Math.max(1, (W - pl - pr) / n - 1);
+      const bw = Math.max(1, band ? Math.min(cw / n * 0.82, cw / n - 2) : cw / n - 1);
       se.pts.forEach((p, i) => { if (!isNum(p.y)) return; const y0 = Y(Math.max(mn, Math.min(mx, 0))), y1 = Y(p.y); s += `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Math.min(y0, y1).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0.5, Math.abs(y1 - y0)).toFixed(1)}" fill="${se.color || (p.y >= 0 ? css("--up") : css("--down"))}" opacity=".75"/>`; });
       return;
     }
@@ -378,11 +380,11 @@ function lineDraw(series, opt, W, H, cx) {
   const ref = series[0].pts;
   const nx = Math.max(2, Math.floor((W - pl - pr) / 90)), step = Math.max(1, Math.ceil(ref.length / nx));
   const lastW = String(ref[ref.length - 1]?.x ?? "").length * 6.2;
-  ref.forEach((p, i) => { if (i % step === 0 && (ref.length - 1 - i) * (W - pl - pr) / Math.max(1, n - 1) > Math.max(40, lastW + String(p.x).length * 3.3 + 8) || i === ref.length - 1) s += `<text x="${X(i).toFixed(1)}" y="${H - 5}" text-anchor="${i === ref.length - 1 ? "end" : i === 0 ? "start" : "middle"}" class="xa">${esc(p.x)}</text>`; });
+  ref.forEach((p, i) => { if (i % step === 0 && (ref.length - 1 - i) * (W - pl - pr) / Math.max(1, n - 1) > Math.max(40, lastW + String(p.x).length * 3.3 + 8) || i === ref.length - 1) s += `<text x="${X(i).toFixed(1)}" y="${H - 5}" text-anchor="${band ? (X(i) + String(p.x).length * 3.3 > W ? "end" : "middle") : i === ref.length - 1 ? "end" : i === 0 ? "start" : "middle"}" class="xa">${esc(p.x)}</text>`; });
   s += `</svg>`;
   cx.hover = (mx2) => {
     if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;
-    const i = Math.max(0, Math.min(n - 1, Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
+    const i = Math.max(0, Math.min(n - 1, band ? Math.floor((mx2 - pl) / cw * n) : Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
     const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b>${se.pts[i]?.tip ? ` <small class="${se.pts[i].tc || ""}">${esc(se.pts[i].tip)}</small>` : ""}</span>` : ""; }).join("");
     return rows ? { x: X(i), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
   };
