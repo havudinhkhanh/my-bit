@@ -1016,25 +1016,68 @@ async function hkChartOpen(t, box) {
       try { const r = await fetch(`${base}/fapi/v1/klines?symbol=${sym}&interval=1m&startTime=${st}&endTime=${en}&limit=200`); if (!r.ok) continue; const J = await r.json(); if (Array.isArray(J) && J.length) { K = J.map((k) => [+k[0], +k[1], +k[2], +k[3], +k[4]]); src = base; break; } } catch (e) { /* thử sàn khác */ }
     }
     if (!K) throw new Error(bi("không có nến", "no candles"));
-    box.innerHTML = hkSvg(K, t, ts, tf, tx) + (t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "");
+    box.innerHTML = hkSvg(K, t, ts, tf, tx, box.clientWidth - 2) + (t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "");
   } catch (e) { box.innerHTML = `<p class="faint">Không lấy được nến từ Binance (${esc(e.message)}).</p>`; }
 }
-function hkSvg(K, t, ts, tf, tx) {
-  const W = 720, H = 250, pl = 64, pr = 12, pt = 12, pb = 24, n = K.length;
-  const lines = [t.c0 ? [t.c0, css("--brass") || css("--brand"), "giá sau cú sốc"] : null, ...(t.lvp || []).map((v, i) => [v, css("--ink-3"), `mức chờ ${i + 1}`]), [t.e, css("--brand"), "giá vào TB"], [t.x, t.usd >= 0 ? css("--up") : css("--down"), "giá ra"]].filter(Boolean);
-  let mn = Math.min(...K.map((k) => k[3]), ...lines.map((l) => l[0])), mx = Math.max(...K.map((k) => k[2]), ...lines.map((l) => l[0])); const pd = (mx - mn) * 0.06 || mx * 0.01; mn -= pd; mx += pd;
-  const X = (i) => pl + (i + 0.5) / n * (W - pl - pr), Y = (v) => pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb), bw = Math.max(1.5, (W - pl - pr) / n * 0.62);
+function hkSvg(K, t, ts, tf, tx, W0) {
+  // nến 1 phút quanh lệnh: trước lệnh mờ đi, khoảng giữ lệnh nổi lên; các mức giá chỉ vẽ từ lúc sốc; nhãn giá xếp ở lề phải không đè nhau; rê chuột xem từng nến
+  const W = Math.max(320, Math.round(W0 || 720)), mob = W < 560, H = mob ? 250 : 300, pl = mob ? 6 : 8, pr = mob ? 104 : 132, pt = 26, pb = 24, n = K.length;
+  const up = css("--up"), dn = css("--down"), br = css("--brass") || css("--brand"), ink3 = css("--ink-3"), win = (t.usd ?? t.pnl ?? 0) >= 0;
+  const nF = t.lv ?? t.nl ?? (t.lvp || []).length, sd = t.side ?? (t.lvp && t.c0 ? (t.lvp[0] < t.c0 ? 1 : -1) : 1);
+  const lv = [t.c0 ? { v: t.c0, c: br, lab: mob ? bi("sốc", "shock") : bi("sau sốc", "post-shock"), k: "c0" } : null,
+    ...(t.lvp || []).map((v, i) => ({ v, c: i < nF ? css("--ink-2") : ink3, lab: mob ? `${bi("M", "L")}${i + 1}${i < nF ? "✓" : ""}` : `${bi("mức", "lvl")} ${i + 1}${i < nF ? " ✓" : ""}`, k: "l", dim: i >= nF })),
+    { v: t.e, c: css("--brand"), lab: mob ? bi("TB", "avg") : bi("vào TB", "avg in"), k: "e" }, { v: t.x, c: win ? up : dn, lab: bi("ra", "exit"), k: "x" }].filter((l) => l && isNum(l.v));
+  let mn = Math.min(...K.map((k) => k[3]), ...lv.map((l) => l.v)), mx = Math.max(...K.map((k) => k[2]), ...lv.map((l) => l.v)); const pd = (mx - mn) * 0.08 || mx * 0.01; mn -= pd; mx += pd;
+  const cw = W - pl - pr, X = (i) => pl + (i + 0.5) / n * cw, Y = (v) => pt + (1 - (v - mn) / (mx - mn)) * (H - pt - pb), bw = Math.max(1.6, cw / n * 0.6);
   const ix = (ms) => Math.max(0, Math.min(n - 1, Math.round((ms - K[0][0]) / 60000)));
-  let s = `<svg class="svgchart" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Nến 1 phút quanh lệnh">`;
-  s += `<rect x="${X(ix(tf)) - bw}" y="${pt}" width="${Math.max(2, X(ix(tx)) - X(ix(tf)) + 2 * bw)}" height="${H - pt - pb}" fill="${css("--brand")}" opacity=".07"/>`;
-  if (ts) s += `<rect x="${X(ix(ts)) - bw}" y="${pt}" width="${2 * bw}" height="${H - pt - pb}" fill="${css("--brass") || css("--warn")}" opacity=".18"/>`;
-  niceTicks(mn, mx, 5).forEach((v) => { const y = Y(v).toFixed(1); s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" class="g"/><text x="${pl - 6}" y="${+y + 3.5}" text-anchor="end" class="ya">${esc(px(v))}</text>`; });
-  K.forEach((k, i) => { const up = k[4] >= k[1], c = up ? css("--up") : css("--down"); s += `<line x1="${X(i)}" x2="${X(i)}" y1="${Y(k[2])}" y2="${Y(k[3])}" stroke="${c}"/><rect x="${X(i) - bw / 2}" y="${Math.min(Y(k[1]), Y(k[4]))}" width="${bw}" height="${Math.max(1, Math.abs(Y(k[1]) - Y(k[4])))}" fill="${c}"/>`; });
-  lines.forEach(([v, c, lab]) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-dasharray="5 4" opacity=".9"/><text x="${W - pr - 2}" y="${Y(v) - 3}" text-anchor="end" style="fill:${c};font-size:.6875rem">${esc(lab)} ${esc(px(v))}</text>`; });
-  s += `<circle cx="${X(ix(tf))}" cy="${Y(t.e)}" r="5" fill="${css("--brand")}" stroke="var(--surface)" stroke-width="1.5"/><circle cx="${X(ix(tx))}" cy="${Y(t.x)}" r="5" fill="${t.usd >= 0 ? css("--up") : css("--down")}" stroke="var(--surface)" stroke-width="1.5"/>`;
-  [0, Math.floor(n / 2), n - 1].forEach((i) => { s += `<text x="${X(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" class="xa">${esc(new Date(K[i][0]).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))}</text>`; });
-  return `<div class="sc-hk">${s}</svg><div class="leg">${ts ? `<span><i style="background:${css("--brass") || css("--warn")}"></i>nến sốc</span>` : ""}<span><i style="background:${css("--brand")}"></i>vào lệnh ${hms(t.t0)}</span><span><i style="background:${t.usd >= 0 ? css("--up") : css("--down")}"></i>ra ${hms(t.t1)} · ${t.usd >= 0 ? "+" : ""}${usd2(t.usd)}</span>${t.c0 ? "" : `<span class="faint">lệnh cũ – chưa lưu giá sau sốc & mức chờ</span>`}</div></div>`;
+  const iS = ts ? ix(ts) : ix(tf), iA = ix(tf), iB = ix(tx), fmtT = (ms) => new Date(ms).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
+  let s = `<svg class="svgchart hk2" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${bi("Nến 1 phút quanh lệnh", "1-minute candles around the trade")}">`;
+  // khoảng giữ lệnh: nền nhẹ + nhãn thời gian giữ phía trên
+  const xa = X(iA) - bw, xb = X(iB) + bw, hold = Math.round((tx - tf) / 60000);
+  s += `<rect x="${xa}" y="${pt - 8}" width="${Math.max(4, xb - xa)}" height="${H - pt - pb + 8}" rx="6" fill="var(--fill)"/>`;
+  s += `<text x="${(xa + xb) / 2}" y="${pt - 12}" text-anchor="middle" class="hk-hold">${bi("giữ", "held")} ${hold} ${bi("phút", "min")}</text>`;
+  // lưới ngang nhạt + giá ở lề phải (sau nhãn mức)
+  niceTicks(mn, mx, mob ? 3 : 4).forEach((v) => { const y = Y(v); if (y < pt - 2 || y > H - pb + 2) return; s += `<line x1="${pl}" x2="${pl + cw}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" class="hk-g"/>`; });
+  // nến: trước lệnh & sau khi ra mờ đi
+  K.forEach((k, i) => { const u = k[4] >= k[1], c = u ? up : dn, op = i < iS - 5 || i > iB ? 0.38 : 1; s += `<g opacity="${op}"><line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${Y(k[2]).toFixed(1)}" y2="${Y(k[3]).toFixed(1)}" stroke="${c}" stroke-width="1"/><rect x="${(X(i) - bw / 2).toFixed(1)}" y="${Math.min(Y(k[1]), Y(k[4])).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(1, Math.abs(Y(k[1]) - Y(k[4]))).toFixed(1)}" rx="${bw > 4 ? 1 : 0}" fill="${c}"/></g>`; });
+  // mức giá: chỉ từ lúc sốc → hết lệnh; vào TB = đường liền trong lúc giữ
+  lv.forEach((l) => { const x1 = l.k === "e" ? X(iA) : X(iS), x2 = l.k === "x" ? X(iB) : pl + cw; if (l.k === "x") return;
+    s += `<line x1="${x1}" x2="${x2}" y1="${Y(l.v)}" y2="${Y(l.v)}" stroke="${l.c}" stroke-width="${l.k === "e" ? 1.6 : 1}" ${l.k === "e" ? "" : 'stroke-dasharray="3 4"'} opacity="${l.dim ? 0.45 : 0.9}"/>`; });
+  // cú sốc: mũi tên nhỏ ở nến sốc
+  if (ts) { s += `<line x1="${X(iS)}" x2="${X(iS)}" y1="${pt - 6}" y2="${H - pb}" stroke="${br}" stroke-width="1" opacity=".45"/><text x="${X(iS) - 4}" y="${pt - 12}" text-anchor="end" class="hk-sk" style="fill:${br}">${sd > 0 ? "▲" : "▼"} ${bi("sốc", "shock")}${t.shock || t.R ? ` ${sd > 0 ? "−" : "+"}${nf((t.shock || t.R) / 100, 1)}%` : ""}</text>`; }
+  // vào / ra: chấm
+  s += `<circle cx="${X(iA)}" cy="${Y(t.e)}" r="4.5" fill="${css("--brand")}" stroke="var(--surface)" stroke-width="2"/>`;
+  s += `<line x1="${X(iB)}" x2="${pl + cw}" y1="${Y(t.x)}" y2="${Y(t.x)}" stroke="${win ? up : dn}" stroke-width="1" stroke-dasharray="2 3" opacity=".7"/><circle cx="${X(iB)}" cy="${Y(t.x)}" r="5" fill="${win ? up : dn}" stroke="var(--surface)" stroke-width="2"/>`;
+  // nhãn ở lề phải: sắp theo giá, đẩy nhau cách ≥ 17px, có đường dẫn nếu bị đẩy
+  const L = lv.map((l) => ({ ...l, y0: Y(l.v), y: Y(l.v) })).sort((a, b) => a.y0 - b.y0), G = 17;
+  for (let i = 1; i < L.length; i++) if (L[i].y - L[i - 1].y < G) L[i].y = L[i - 1].y + G;
+  const over = L.length ? L[L.length - 1].y - (H - pb + 4) : 0; if (over > 0) L.forEach((l) => (l.y -= over));
+  for (let i = L.length - 2; i >= 0; i--) if (L[i + 1].y - L[i].y < G) L[i].y = L[i + 1].y - G;
+  const lx = pl + cw + 8;
+  L.forEach((l) => { const strong = l.k === "e" || l.k === "x";
+    if (Math.abs(l.y - l.y0) > 1) s += `<path d="M${pl + cw} ${l.y0.toFixed(1)} L${lx - 2} ${l.y.toFixed(1)}" stroke="${l.c}" stroke-width="1" fill="none" opacity=".5"/>`;
+    s += `<g class="hk-lb${strong ? " st" : ""}" opacity="${l.dim ? 0.6 : 1}"><rect x="${lx}" y="${(l.y - 8).toFixed(1)}" width="${pr - 10}" height="16" rx="5" fill="${strong ? l.c : "var(--fill)"}"/>`
+      + `<text x="${lx + 6}" y="${(l.y + 3.6).toFixed(1)}" style="fill:${strong ? "#fff" : l.c}">${esc(l.lab)}</text><text x="${lx + pr - 16}" y="${(l.y + 3.6).toFixed(1)}" text-anchor="end" class="hk-px" style="fill:${strong ? "#fff" : "var(--ink)"}">${esc(px(l.v))}</text></g>`; });
+  // trục thời gian
+  const ticks = mob ? [0, iA, n - 1] : [0, iS, iB, n - 1]; let lastX = -99;
+  [...new Set(ticks)].forEach((i) => { const x = X(i); if (x - lastX < 46) return; lastX = x; s += `<text x="${x}" y="${H - 6}" text-anchor="${i === 0 ? "start" : "middle"}" class="hk-x">${esc(fmtT(K[i][0]))}</text>`; });
+  s += `<g class="hk-cur" style="display:none"><line y1="${pt - 8}" y2="${H - pb}" class="hk-cl"/></g><rect class="hk-hit" x="${pl}" y="0" width="${cw}" height="${H}" fill="transparent"/></svg>`;
+  const res = (t.usd ?? t.pnl), bpsV = t.net;
+  const head = `<div class="hk-hd"><span class="hk-k"><i style="background:${css("--brand")}"></i>${bi("vào", "in")} ${hms(t.t0)} · ${px(t.e)}</span><span class="hk-k"><i style="background:${win ? up : dn}"></i>${bi("ra", "out")} ${hms(t.t1)} · ${px(t.x)}</span><b class="${win ? "up" : "down"}">${isNum(res) ? `${res >= 0 ? "+" : "−"}${usd2(Math.abs(res))}` : ""}${isNum(bpsV) ? ` <small>${bpsV >= 0 ? "+" : ""}${nf(bpsV / 100, 2)}%</small>` : ""}</b></div>`;
+  const id = "hk" + Math.random().toString(36).slice(2, 8);
+  window.__hkK = window.__hkK || {}; window.__hkK[id] = { K, X0: pl, cw, n, H, pt, pb };
+  return `<div class="sc-hk hk2w" data-hk="${id}">${head}<div class="hk-box">${s}<div class="hk-tip" hidden></div></div>${t.c0 ? "" : `<p class="faint sc-cap">${bi("Lệnh cũ – chưa lưu giá sau sốc & mức chờ.", "Older trade – post-shock price & levels not stored.")}</p>`}</div>`;
 }
+// rê chuột / chạm trên biểu đồ nến quanh lệnh: đường dọc + ô giá của nến đó
+document.addEventListener("pointermove", (e) => {
+  const hit = e.target.closest?.(".hk2w .hk-hit"); const all = document.querySelectorAll(".hk2w .hk-cur"); if (!hit) { all.forEach((g) => (g.style.display = "none")); document.querySelectorAll(".hk2w .hk-tip").forEach((x) => (x.hidden = true)); return; }
+  const w = hit.closest(".hk2w"), D = window.__hkK?.[w.dataset.hk]; if (!D) return; const svg = hit.ownerSVGElement, r = svg.getBoundingClientRect(), sx = (e.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
+  const i = Math.max(0, Math.min(D.n - 1, Math.floor((sx - D.X0) / D.cw * D.n))), k = D.K[i], x = D.X0 + (i + 0.5) / D.n * D.cw, g = w.querySelector(".hk-cur"), tip = w.querySelector(".hk-tip");
+  g.style.display = ""; g.querySelector("line").setAttribute("x1", x); g.querySelector("line").setAttribute("x2", x);
+  const ch = (k[4] / k[1] - 1) * 100; tip.hidden = false;
+  tip.innerHTML = `<b>${new Date(k[0]).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}</b><span>${bi("Mở", "O")} ${px(k[1])}</span><span>${bi("Cao", "H")} ${px(k[2])}</span><span>${bi("Thấp", "L")} ${px(k[3])}</span><span>${bi("Đóng", "C")} ${px(k[4])} <i class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "+" : ""}${nf(ch, 2)}%</i></span>`;
+  const px0 = x / (svg.viewBox.baseVal.width) * r.width; tip.style.left = `${Math.min(r.width - tip.offsetWidth - 4, Math.max(4, px0 + 12))}px`;
+}, { passive: true });
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới

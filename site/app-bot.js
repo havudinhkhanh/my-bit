@@ -929,7 +929,7 @@ async function viewScalp() {
   $$("[data-scevd]").forEach((b) => (b.onclick = () => { window.__scEvD = b.dataset.scevd; $$("[data-scevd]").forEach((x) => x.classList.toggle("on", x === b)); evApply(); }));
   if ($(".sc-evf")) evApply();
   $$("[data-hkc]").forEach((b) => (b.onclick = () => hkChartOpen(HT[+b.dataset.hkc], $("#hkc" + b.dataset.hkc))));
-  $$("[data-lvc]").forEach((b) => (b.onclick = () => { const h = LHr[+b.dataset.lvc]; hkChartOpen({ k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase }, $("#lvc" + b.dataset.lvc)); }));
+  $$("[data-lvc]").forEach((b) => (b.onclick = () => { const h = LHr[+b.dataset.lvc]; hkChartOpen({ k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase, side: h.side, nl: h.nl, R: h.R }, $("#lvc" + b.dataset.lvc)); }));
   rsTables($("#app"));
   { const tb = $(".sc-tabs"), on = tb?.querySelector("button.on"), x0 = window.__scTabX; window.__scTabX = null;      // tab đang chọn luôn nằm GIỮA thanh tab
     if (tb && on && tb.scrollWidth > tb.clientWidth + 2) {
