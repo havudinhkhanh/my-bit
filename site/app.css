@@ -5032,3 +5032,18 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 @media (max-width:1099px){.skg-3,.skg-2w{grid-template-columns:minmax(0,1fr)}.skg-3>:nth-child(n+3){display:none}}
 @media (max-width:859px){.skg-k{grid-template-columns:repeat(2,minmax(0,1fr))}.skg-2{grid-template-columns:minmax(0,1fr)}.skg-2>:nth-child(2){display:none}}
 @media (prefers-reduced-motion:reduce){.sk::after{animation:none;display:none}.skw{animation:none}}
+/* ===== Lịch lời/lỗ – v3: không viền, chỉ khối màu; mọi ô cao bằng nhau (kể cả ngày trống / ngày chưa tới) ===== */
+.cal{grid-template-rows:auto;grid-auto-rows:1fr}      /* hàng T2…CN giữ thấp, các hàng ngày cao bằng nhau */
+.cal-d,.cal-d.up,.cal-d.down,.cal-d.none,.cal-d.flat,.cal-d.fut{border:0!important;outline:0}
+.cal-d.none,.cal-d.flat{background:var(--fill)}
+.cal-d.fut,.cal-d.fut:disabled{min-height:inherit!important;padding-top:inherit!important;padding-bottom:inherit!important;opacity:1;background:color-mix(in srgb,var(--ink) 2.5%,transparent)}
+.cal-d.fut .cal-n{color:var(--ink-3);opacity:.55}
+.cal-d.none .cal-0{color:var(--ink-3);opacity:.6}
+.cal-c{border-top:0!important;padding-top:6px}
+.cal-d:not(:disabled):not(.sel):hover{transform:translateY(-1px);box-shadow:0 6px 16px -10px rgba(0,0,0,.35)}
+.cal-d.none:not(:disabled):hover{background:var(--fill-h)}
+@media (min-width:980px){.cal-d,.cal-d.fut{min-height:100px!important}}
+@media (max-width:979px){.cal-d,.cal-d.fut{min-height:78px!important}}
+@media (max-width:560px){.cal-d,.cal-d.fut{min-height:72px!important}}
+.cal-d.up{background:color-mix(in srgb,var(--up) calc(var(--a,0%) + 8%),var(--fill))!important}
+.cal-d.down{background:color-mix(in srgb,var(--down) calc(var(--a,0%) + 8%),var(--fill))!important}
