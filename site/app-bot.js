@@ -119,35 +119,33 @@ function mxCalc(x) {
   return { e, m, gross, f0, fx, sl, fund, net, N, be, live: !!(x.pk && SCL.px[x.pk]) };
 }
 function mxAsk(key, name, real, pend) {
+  // ĐÓNG LỆNH – hộp xác nhận: kết quả ròng nổi bật trên cùng → giá vào / bây giờ → bóc tách từ lời giá tới ròng (phí, funding) → 1 dòng kết luận → nút chính đúng màu kết quả
+  const $v = (v, d) => `${nz(v, d ?? 3) > 0 ? "+" : nz(v, d ?? 3) < 0 ? "−" : ""}$${nf(Math.abs(v), d ?? (Math.abs(v) < 1 ? 3 : 2))}`, cl = (v) => (nz(v, 3) > 0 ? "up" : nz(v, 3) < 0 ? "down" : "");
   const sgP = (v, d) => `${nz(v, d) > 0 ? "+" : nz(v, d) < 0 ? "−" : ""}${nf(Math.abs(v), d)}`;
-  const $v = (v, d) => `${v > 0 ? "+" : v < 0 ? "−" : ""}$${nf(Math.abs(v), d ?? (Math.abs(v) < 1 ? 3 : 2))}`, cl = (v) => (nz(v, 3) > 0 ? "up" : nz(v, 3) < 0 ? "down" : "");
-  const x0 = window.__MXE?.[key], tot = () => (x0?.paper ? window.__MXT?.paper : window.__MXT?.real);
-  const nothing = !x0 || x0.nofill || pend;
+  const x0 = window.__MXE?.[key], tot = () => (x0?.paper ? window.__MXT?.paper : window.__MXT?.real), nothing = !x0 || x0.nofill || pend;
+  const venue = /^(pp|sw|q):/.test(key) || x0?.paper ? ["paper", bi("🧪 Sàn thử", "🧪 Paper")] : real ? ["real", bi("💵 Tiền thật", "💵 Real money")] : ["demo", "🟡 Demo"];
+  const head = `<div class="cx-id"><span class="cx-nm">${esc(name)}</span><span class="cx-v ${venue[0]}">${venue[1]}</span></div>`;
   const body = () => {
     const x = window.__MXE?.[key] || x0, r = mxCalc(x);
-    if (nothing || !r) return `<p style="margin:2px 0 0;text-align:center">${esc(name)}</p><div class="mxw inf">${pend || x?.nofill ? bi("Chưa khớp lệnh nào → chỉ HUỶ lệnh chờ, không tốn phí, không lời/lỗ.", "Nothing filled → only cancels pending orders, no fees, no P/L.") : bi("Không có đủ số liệu để ước tính lời/lỗ – đóng theo giá thị trường lúc máy chủ xử lý.", "Not enough data to estimate P/L – closes at market when the server runs it.")}</div>${real ? `<div class="mxw">⚠️ ${bi("Lệnh TIỀN THẬT trên Binance.", "REAL-money order on Binance.")}</div>` : ""}`;
-    const T = tot(), pT = T > 0 ? r.net / T * 100 : null, bp = r.net / r.N * 1e4, mv = (r.m / r.e - 1) * 100, dBe = (r.be / r.m - 1) * 100, sd = +x.sd;
-    const fundRow = isNum(x.fund) ? `<tr><td>${nz(r.fund, 3) === 0 ? `Funding<small>${bi("chưa qua kỳ chốt funding nào", "no funding settlement yet")}</small>` : `${bi("Funding đã", "Funding so far")} ${r.fund > 0 ? bi("nhận", "received") : bi("trả", "paid")}`}</td><td class="${cl(r.fund)}">${$v(r.fund)}</td></tr>`
-      : `<tr><td>Funding<small>${x.long ? bi("chưa đọc được từ sàn (cần cập nhật máy chủ) – lệnh giữ nhiều ngày nên có thể lệch", "not read from the exchange yet (server update needed) – multi-day hold, may differ") : bi("chưa đọc được – lệnh giữ ngắn, thường ≈ 0", "not read yet – short hold, usually ≈ 0")}</small></td><td class="faint">?</td></tr>`;
-    let warn = "";
-    if (r.gross >= 0 && r.net < 0) warn = `<div class="mxw">⚠️ <b>${bi("Nhìn giá đang lời/hoà nhưng đóng bây giờ là LỖ", "Price looks flat/green but closing now is a LOSS")} ${$v(r.net)}</b> ${bi("vì phí", "because of fees")}${r.fund < 0 ? " + funding" : ""}. ${bi("Hoà vốn sau phí khi giá", "Break-even after costs when price")} ${sd > 0 ? "≥" : "≤"} <b>${px(r.be)}</b> (${bi("cách", "away")} ${nf(Math.abs(dBe), 2)}%).</div>`;
-    else if (r.net < 0) warn = `<div class="mxw">🔻 ${bi("Đóng bây giờ chịu lỗ", "Closing now realises a loss of")} <b>${$v(r.net)}</b>. ${bi("Hoà vốn sau phí khi giá", "Break-even after costs when price")} ${sd > 0 ? "≥" : "≤"} <b>${px(r.be)}</b> (${bi("cách", "away")} ${nf(Math.abs(dBe), 2)}%).</div>`;
-    else warn = `<div class="mxw ok">✅ ${bi("Đã trừ hết phí vẫn lời", "Still in profit after all costs:")} <b>${$v(r.net)}</b>${r.net < r.gross * 0.5 ? ` – ${bi("nhưng phí ăn", "but costs eat")} ${nf((1 - r.net / r.gross) * 100, 0)}% ${bi("tiền lời giá", "of the price gain")}` : ""}.</div>`;
-    return `<p style="margin:2px 0 4px;text-align:center">${esc(name)}</p>
-      <table class="mxe"><tbody>
-      <tr><td>${bi("Giá vào → giá bây giờ", "Entry → now")}<small>${r.live ? bi("giá khớp trực tiếp từ Binance", "live trade price from Binance") : bi("giá máy chủ gửi gần nhất", "last price from the server")}</small></td><td>${px(r.e)} → <b>${px(r.m)}</b><small class="${cl(mv * sd)}">${sgP(mv, 2)}%</small></td></tr>
-      <tr><td>${bi("Lời/lỗ theo giá", "Price P/L")}<small>${qty(+x.q)} · ${bi("giá trị", "notional")} $${nf(r.N, 2)}</small></td><td class="${cl(r.gross)}">${$v(r.gross)}</td></tr>
-      <tr><td>${bi("Phí lúc vào (đã trả)", "Entry fees (paid)")}</td><td class="down">${$v(-r.f0)}</td></tr>
-      <tr><td>${bi("Phí lúc đóng", "Exit fee")}<small>${bi("lệnh thị trường", "market order")} ${nf(+x.fr, 3)}%</small></td><td class="down">${$v(-r.fx)}</td></tr>
-      ${x.sl ? `<tr><td>${bi("Trượt giá ước tính", "Est. slippage")}<small>~${nf(+x.sl, 2)}% ${bi("(chênh mua/bán, khớp lệnh thị trường)", "(spread, market fill)")}</small></td><td class="down">${$v(-r.sl)}</td></tr>` : ""}
-      ${fundRow}
-      <tr class="tot"><td>${bi("Ròng nếu đóng ngay", "Net if closed now")}</td><td class="${cl(r.net)}">${$v(r.net)}<small>${sgP(bp, 1)} bps${pT != null ? ` · ${sgP(pT, Math.abs(pT) < 0.01 ? 3 : 2)}% ${bi("tổng tài sản", "of total")}` : ""}</small></td></tr>
-      </tbody></table>${warn}${real ? `<div class="mxw">⚠️ ${bi("Lệnh TIỀN THẬT trên Binance – số thật có thể lệch chút theo giá lúc khớp.", "REAL-money order on Binance – the actual result may differ slightly at fill.")}</div>` : ""}${x.pend ? `<p class="mxn">${bi("Các lệnh chờ chưa khớp cũng được huỷ.", "Unfilled pending orders are cancelled too.")}</p>` : ""}
-      <p class="mxn">${bi("Ước tính – máy chủ đóng trong ≤ 30 giây nên giá có thể khác lúc bấm.", "Estimate – the server closes within 30 s, so the price may move.")}</p>`;
+    if (nothing || !r) return `${head}<div class="cx-hero inf"><small>${pend || x?.nofill ? bi("Chưa khớp mức nào", "Nothing filled") : bi("Không đủ số liệu để ước tính", "Not enough data to estimate")}</small><b>${pend || x?.nofill ? bi("Chỉ huỷ lệnh chờ", "Cancel pending only") : bi("Đóng giá thị trường", "Close at market")}</b><span>${pend || x?.nofill ? bi("không tốn phí · không lời / lỗ", "no fees · no P/L") : bi("máy chủ đóng ngay khi nhận lệnh", "the server closes as soon as it receives it")}</span></div>`;
+    const T = tot(), pT = T > 0 ? r.net / T * 100 : null, bp = r.net / r.N * 1e4, mv = (r.m / r.e - 1) * 100, sd = +x.sd, dBe = (r.be / r.m - 1) * 100;
+    const row = (lab, cap, v, k = "") => `<div class="cx-r ${k}"><span>${lab}${cap ? `<small>${cap}</small>` : ""}</span><b class="${v == null ? "faint" : cl(v)}">${v == null ? "?" : $v(v)}</b></div>`;
+    const fund = isNum(x.fund) ? row(nz(r.fund, 3) === 0 ? "Funding" : `Funding ${r.fund > 0 ? bi("đã nhận", "received") : bi("đã trả", "paid")}`, nz(r.fund, 3) === 0 ? bi("chưa qua kỳ chốt", "no settlement yet") : "", r.fund)
+      : row("Funding", x.long ? bi("chưa đọc được từ sàn – lệnh giữ nhiều ngày, có thể lệch", "not read yet – multi-day hold, may differ") : bi("lệnh ngắn, thường ≈ 0", "short hold, usually ≈ 0"), null);
+    const verdict = r.gross >= 0 && r.net < 0 ? ["warn", `${bi("Giá đang lời / hoà nhưng đóng bây giờ LỖ vì phí", "Price looks green but closing now LOSES because of fees")}${r.fund < 0 ? " + funding" : ""}. ${bi("Hoà vốn sau phí khi giá", "Break-even after costs at")} ${sd > 0 ? "≥" : "≤"} ${px(r.be)} (${bi("cách", "away")} ${nf(Math.abs(dBe), 2)}%).`]
+      : r.net < 0 ? ["bad", `${bi("Đóng bây giờ chịu lỗ. Hoà vốn sau phí khi giá", "Closing now realises a loss. Break-even after costs at")} ${sd > 0 ? "≥" : "≤"} ${px(r.be)} (${bi("cách", "away")} ${nf(Math.abs(dBe), 2)}%).`]
+      : ["ok", `${bi("Đã trừ hết phí vẫn lời", "Still in profit after all costs")}${r.gross > 0 && r.net < r.gross * 0.5 ? ` – ${bi("phí ăn", "costs eat")} ${nf((1 - r.net / r.gross) * 100, 0)}% ${bi("tiền lời giá", "of the price gain")}` : ""}.`];
+    return `${head}
+      <div class="cx-hero ${cl(r.net) || "flat"}"><small>${bi("Ròng nếu đóng ngay", "Net if closed now")}</small><b>${$v(r.net, 2)}</b><span>${sgP(bp, 1)} bps${pT != null ? ` · ${sgP(pT, Math.abs(pT) < 0.01 ? 3 : 2)}% ${bi("tổng tài sản", "of total assets")}` : ""}</span></div>
+      <div class="cx-px"><div><small>${bi("Giá vào", "Entry")}</small><b>${px(r.e)}</b></div><i aria-hidden="true">→</i><div><small>${bi("Giá bây giờ", "Now")}${r.live ? ` <em class="cx-live" title="${bi("giá khớp trực tiếp từ Binance", "live Binance trade price")}"></em>` : ""}</small><b>${px(r.m)}</b><span class="${cl(mv * sd)}">${sgP(mv, 2)}%</span></div><div><small>${bi("Khối lượng", "Size")}</small><b>${qty(+x.q)}</b><span class="faint">$${nf(r.N, 2)}</span></div></div>
+      <div class="cx-wf">${row(bi("Lời / lỗ theo giá", "Price P/L"), "", r.gross)}${row(bi("Phí lúc vào", "Entry fee"), bi("đã trả", "paid"), -r.f0)}${row(bi("Phí lúc đóng", "Exit fee"), `${bi("lệnh thị trường", "market")} ${nf(+x.fr, 3)}%`, -r.fx)}${x.sl ? row(bi("Trượt giá ước tính", "Est. slippage"), `~${nf(+x.sl, 2)}%`, -r.sl) : ""}${fund}
+        <div class="cx-r tot"><span>${bi("Ròng", "Net")}</span><b class="${cl(r.net)}">${$v(r.net)}</b></div></div>
+      <div class="cx-ver ${verdict[0]}">${verdict[1]}</div>
+      <p class="cx-fine">${real ? bi("Lệnh TIỀN THẬT – số khớp thật có thể lệch chút. ", "REAL money – the actual fill may differ slightly. ") : ""}${x.pend ? bi("Lệnh chờ chưa khớp cũng được huỷ. ", "Unfilled pending orders are cancelled too. ") : ""}${bi("Ước tính theo giá lúc này – máy chủ đóng trong vài giây.", "Estimate at the current price – the server closes within seconds.")}</p>`;
   };
   const lab = () => { const r = nothing ? null : mxCalc(window.__MXE?.[key] || x0);
-    return nothing ? [bi("Huỷ lệnh chờ", "Cancel pending orders"), false] : r ? [r.net < 0 ? `${bi("Đóng – chịu lỗ", "Close – take loss")} ${$v(r.net)}` : `${bi("Đóng – chốt lời", "Close – take profit")} ${$v(r.net)}`, real || r.net < 0] : [bi("Đóng bằng lệnh thị trường", "Close at market"), real]; };
-  return iosSheet({ title: nothing ? bi("Huỷ lệnh chờ?", "Cancel pending?") : bi("Đóng lệnh ngay?", "Close now?"), body, ok: lab, cancel: bi("Giữ lệnh", "Keep it"), wait: nothing ? 600 : 1200 });
+    return nothing ? [bi("Huỷ lệnh chờ", "Cancel pending orders"), false, "ink"] : r ? [`${r.net < 0 ? bi("Đóng · chịu lỗ", "Close · take loss") : bi("Đóng · chốt lời", "Close · take profit")} ${$v(r.net, 2)}`, false, r.net < 0 ? "down" : "up"] : [bi("Đóng giá thị trường", "Close at market"), real, "ink"]; };
+  return iosSheet({ title: nothing ? bi("Huỷ lệnh chờ", "Cancel pending order") : bi("Đóng lệnh", "Close trade"), body, ok: lab, cancel: bi("Giữ lệnh", "Keep it"), wait: nothing ? 600 : 1200 });
 }
 async function viewScalp() {
   window.__scDirty = false;

@@ -676,25 +676,37 @@ const BOTSUB = { bothome: "Mọi bot ở một chỗ: đang chạy, lời/lỗ h
 const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : (h.startsWith("#/bot/journal") || h.startsWith("#/bot/miss")) ? "botdays" : h.startsWith("#/bot/sup") ? "botsup" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
-function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0 } = {}) {
+// ---- HỘP XÁC NHẬN của MyBit (dùng cho mọi xác nhận: đóng lệnh, bật phương pháp, chép lệnh…) – nhận diện riêng của app:
+//      tiêu đề trái + nút ✕, nội dung trên nền mặt thẻ, 2 nút cạnh nhau (phụ = nền tô, chính = nền đặc theo ý nghĩa: lời xanh / lỗ đỏ / thường đậm);
+//      máy tính: hộp giữa màn hình phóng nhẹ ra; điện thoại: tấm trượt từ dưới lên có tay nắm. Lệnh tiền thật: nút chính đếm giờ (tô dần) rồi mới bấm được.
+//      ok: chuỗi hoặc hàm trả [nhãn, nguy hiểm?, tông "up"|"down"|"ink"]; body: chuỗi hoặc hàm (vẽ lại mỗi giây để số liệu chạy theo giá).
+function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "Huỷ", wait = 0, sub = "" } = {}) {
   return new Promise((res) => {
     document.getElementById("iosSheet")?.remove();
     const m = document.createElement("div"), live = typeof body === "function" || typeof ok === "function", B = () => { try { return typeof body === "function" ? body() : body; } catch (e) { return ""; } };
     const O = () => { try { return typeof ok === "function" ? ok() : [ok, danger]; } catch (e) { return ["OK", danger]; } }, o0 = O();
-    m.id = "iosSheet"; m.className = "ios-sheet";
-    m.innerHTML = `<div class="ios-sheet-bg" data-x></div><div class="ios-sheet-w" role="alertdialog" aria-modal="true"><div class="ios-sheet-c"><div class="ios-sheet-h">${title}</div><div class="ios-sheet-b">${B()}</div>
-      <button type="button" class="ios-sheet-ok${o0[1] ? " red" : ""}" data-ok${wait ? " disabled" : ""}><span>${o0[0]}</span>${wait ? '<i class="ios-sheet-wt"></i>' : ""}</button></div><button type="button" class="ios-sheet-x" data-x>${cancel}</button></div>`;
+    const tone = (o) => o[2] || (o[1] ? "down" : "ink");
+    m.id = "iosSheet"; m.className = "ios-sheet mbd";
+    m.innerHTML = `<div class="ios-sheet-bg" data-x></div><div class="ios-sheet-w mbd-w" role="alertdialog" aria-modal="true" aria-labelledby="mbdT"><i class="mbd-grab" aria-hidden="true"></i>
+      <div class="mbd-h"><div><b id="mbdT">${title}</b>${sub ? `<small>${sub}</small>` : ""}</div><button type="button" class="mbd-x" data-x aria-label="${bi("Đóng", "Close")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="ios-sheet-b mbd-b">${B()}</div>
+      <div class="mbd-f"><button type="button" class="ios-sheet-x mbd-c" data-x>${cancel}</button><button type="button" class="ios-sheet-ok mbd-ok t-${tone(o0)}${o0[1] ? " red" : ""}" data-ok${wait ? " disabled" : ""}><span>${o0[0]}</span>${wait ? '<i class="ios-sheet-wt"></i>' : ""}</button></div></div>`;
     document.body.appendChild(m);
     const okB = m.querySelector("[data-ok]"), bd = m.querySelector(".ios-sheet-b"); let done = false;
     if (wait) { const w = m.querySelector(".ios-sheet-wt"); w.style.animationDuration = wait + "ms"; setTimeout(() => { okB.disabled = false; w.remove(); }, wait); }
-    const iv = live ? setInterval(() => { if (!document.body.contains(m)) return clearInterval(iv); bd.innerHTML = B(); const o = O(); okB.firstChild.innerHTML = o[0]; okB.classList.toggle("red", !!o[1]); }, 1000) : 0;
+    const iv = live ? setInterval(() => { if (!document.body.contains(m)) return clearInterval(iv); const y = bd.scrollTop; bd.innerHTML = B(); bd.scrollTop = y; const o = O(); okB.firstChild.innerHTML = o[0]; okB.classList.toggle("red", !!o[1]); okB.className = okB.className.replace(/\bt-\w+/, "t-" + tone(o)); }, 1000) : 0;
     const fin = (v) => { if (done) return; done = true; clearInterval(iv); removeEventListener("keydown", kd); m.classList.add("out"); setTimeout(() => m.remove(), 200); res(v); };
-    const kd = (e) => { if (e.key === "Escape") fin(false); };
+    const kd = (e) => { if (e.key === "Escape") fin(false); else if (e.key === "Enter" && !okB.disabled && document.activeElement === okB) fin(true); };
     addEventListener("keydown", kd); addEventListener("hashchange", () => fin(false), { once: true });
     m.querySelectorAll("[data-x]").forEach((x) => (x.onclick = () => fin(false)));
     okB.onclick = () => { if (!okB.disabled) fin(true); };
     m.querySelector(".ios-sheet-bg").addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
-    m.querySelector(".ios-sheet-x").focus({ preventScroll: true });
+    // điện thoại: kéo tay nắm / đầu tấm xuống để đóng
+    const w = m.querySelector(".mbd-w"); let y0 = null, dy = 0;
+    w.addEventListener("touchstart", (e) => { if (!e.target.closest(".mbd-grab, .mbd-h") || e.target.closest("button")) return; y0 = e.touches[0].clientY; dy = 0; w.style.transition = "none"; }, { passive: true });
+    w.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0); w.style.transform = `translateY(${dy}px)`; }, { passive: true });
+    w.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; w.style.transition = ""; if (dy > 90) fin(false); else w.style.transform = ""; });
+    w.tabIndex = -1; w.focus({ preventScroll: true });      // giữ phím Esc / Tab trong hộp, không tô vòng focus lên nút khi mở bằng chuột
   });
 }
 function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $$("[aria-expanded=true][data-iosm]").forEach((b) => b.setAttribute("aria-expanded", "false")); }
