@@ -4699,3 +4699,18 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .sc-oc .r3{flex-wrap:wrap}
 .sc-oc .r4:not(:has(.sc-cd)){white-space:normal!important;flex-wrap:wrap!important}
 .sc-oc .r4:not(:has(.sc-cd))>small{flex:0 1 auto;min-width:0}
+/* bảng tìm nhanh (máy tính): ô tìm là 1 khối tô nền, mép trùng mép các dòng kết quả; chữ, biểu tượng thẳng hàng 20px từ mép bảng */
+@media (pointer:fine) and (min-width:601px){
+  .cmdk-in{border-radius:16px;overflow:hidden}
+  .cmdk-q{margin:10px 10px 4px;padding:0 10px 0 12px;height:46px;border-radius:11px;border:0!important;background:var(--fill,color-mix(in srgb,var(--ink) 7%,transparent));gap:10px}
+  .cmdk-q:focus-within{background:var(--fill-h,color-mix(in srgb,var(--ink) 10%,transparent))}
+  .cmdk-q input,.cmdk-q input:focus{background:transparent!important;box-shadow:none!important;border:0!important;outline:0!important;padding:0!important;height:100%;font-size:15px}
+  .cmdk-q kbd{flex:none}
+  .cmdk-l{padding:4px 10px 10px}
+  .cmdk-g{margin:12px 12px 6px}
+  .cmdk-i{padding:10px 12px;border-radius:10px;font-size:13.5px}
+  .cmdk-i.on{background:var(--fill)}
+  .cmdk-f{padding:10px 22px 12px;border-top:0!important;background:color-mix(in srgb,var(--ink) 3%,transparent)}
+}
+#cmdkQ,#cmdkQ:focus{background:transparent!important;box-shadow:none!important;border:0!important;outline:0!important}
+@media (pointer:fine) and (min-width:601px){#cmdkQ{padding:0!important;height:100%;font-size:15px}}
