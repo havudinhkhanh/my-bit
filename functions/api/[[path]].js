@@ -263,6 +263,12 @@ export async function onRequest(ctx) {
           ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, c0: e.c0, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
           swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp, t0: p.t0 })),
           qp: (L.qp?.open || []).map((p) => ({ id: p.id, k: p.k, name: p.name, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.ap ?? l.e, stop: l.stop })), upnl: p.upnl, t0: p.t0 })),
+          man: (() => {      // ✋ lệnh tay anh tự mở trên Binance (bỏ mã bot đang có lệnh) – từ máy chủ riêng (20 giây/lần) hoặc ví (5 phút/lần)
+            const bot = new Set([...(L.ev || []).map((e) => e.sym), ...(L.qp?.open || []).flatMap((p) => (p.legs || []).map((l) => l.sym)), ...(L.swp?.open || []).map((p) => p.sym)]);
+            if (L.man && L.man.env === E) return (L.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => { const O = L.man.ord?.[p.sym] || [], sd = p.amt > 0 ? 1 : -1, sl = O.filter((o) => /^STOP/.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || null;
+              return { sym: p.sym, amt: p.amt, ep: p.ep, mk: p.mk, up: p.up, lev: p.lev, sl, lk: L.man.lk?.[p.sym] || null }; });
+            return (L.wal?.[E]?.pos || []).filter((x) => !bot.has(x[0])).map(([sym, amt, ep, mk, lev, up]) => ({ sym, amt, ep, mk, up, lev, sl: null, lk: null }));
+          })(),
           last: (L.hist || []).filter((h) => (h.env || "demo") === E).slice(-5).reverse().map((h) => ({ sym: h.sym, side: h.side, pnl: h.pnl, net: h.net, t2: h.t2, why: h.why, strat: h.strat || "hook" })) } : null });
     }
     if (!USER_KEYS.has(key)) return err("Không có API này", 404);
