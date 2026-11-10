@@ -1149,6 +1149,7 @@ async function route() {
     else if (r === "account") { setTab(""); await viewAccount(); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
+    else if (r === "keys") { setTab("keys"); await viewKeys(); }
     else app().innerHTML = `<div class="empty">Không có trang này. <a href="#/">Về trang Thị trường</a></div>`;
   } catch (e) {
     console.error(e);
@@ -5297,12 +5298,15 @@ function initPop() {
 // ================================================================ Ctrl K – bảng lệnh nhanh: tìm coin, nhảy tới mọi trang, đổi giao diện / ngôn ngữ
 function cmdkItems(q) {
   const t = fold(q.trim()), T = q.trim().toUpperCase(), out = [];
-  const pages = $$("#tabs a[href^='#/']:not(.nav-cus)").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "" }));
-  pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; } });
+  const pages = $$("#tabs a[href^='#/']:not(.nav-cus)").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "", right: ksHint(a.getAttribute("href")) }));
+  pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; }, right: ksHint("#/account") });
+  if (!pages.some((p) => p.label === "Phím tắt" || p.label === "Shortcuts")) pages.push({ g: "Trang", label: bi("Phím tắt", "Shortcuts"), sub: bi("Danh sách mọi phím tắt · bấm ? ở bất kỳ đâu", "Every shortcut · press ? anywhere"), go: () => { location.hash = "#/keys"; }, right: ksHint("#/keys") });
   const acts = [...TH_OPT.filter(([k]) => k !== thPref()).map(([k, t]) => ({ g: "Thao tác", label: `Giao diện: ${t}`, go: () => thApply(k) })),
     ...LANGS.filter((l) => l[0] !== I18N.lang).map(([k, nat, vi]) => ({ g: "Thao tác", label: I18N.lang === "vi" ? `Ngôn ngữ: ${vi} (${nat})` : `Language: ${nat}`, go: () => langSet(k) })),
-    { g: "Thao tác", label: bi("Hiện lại thanh lệnh bot trực tiếp (về góc phải dưới)", "Show the live bot-trades bar again (bottom right)"), go: () => { LVW.pos = null; lsSet("lvwpos", null); LVW.mode = "mini"; lsSet("lvwmode", "mini"); LVW.rest = "mini"; lsSet("lvwrest", "mini"); document.getElementById("lvw")?.remove(); LVS.busy = false; lvsPull(); if (LVS.d) lvsDraw(); toast(LVS.d?.at ? bi("Đã đưa thanh lệnh bot về góc phải dưới", "Live bar moved back to the bottom right") : bi("Chưa có dữ liệu bot – kiểm tra máy chủ riêng", "No bot data yet – check your own server")); } },
-    { g: "Thao tác", label: "Mở / đóng bảng phụ", sub: "điểm chính, mục lục, coin theo dõi, tính lệnh", go: () => $("#pnFab")?.click() }];
+    { g: "Thao tác", label: bi("Hiện lại thanh lệnh bot trực tiếp (về góc phải dưới)", "Show the live bot-trades bar again (bottom right)"), go: lvwReset, right: ksKey("Shift+W") },
+    { g: "Thao tác", label: "Mở / đóng bảng phụ", sub: "điểm chính, mục lục, coin theo dõi, tính lệnh", go: () => $("#pnFab")?.click(), right: ksKey("p") },
+    { g: "Thao tác", label: bi("Xem bảng phím tắt", "Show keyboard shortcuts"), sub: bi("mọi phím tắt của MyBit", "every MyBit shortcut"), go: () => setTimeout(ksSheet, 30), right: ksKey("?") },
+    { g: "Thao tác", label: bi("Tải lại dữ liệu trang này", "Reload this page's data"), go: ksReload, right: ksKey("r") }];
   if (!t) return [...pages, ...acts];
   const coinsHit = (COINS?.rows || []).filter((r) => r.k.startsWith(T) || fold(r.n).includes(t))
     .sort((a, b) => (b.k === T) - (a.k === T) || (b.k.startsWith(T) - a.k.startsWith(T)) || (b.mc || 0) - (a.mc || 0)).slice(0, 6)
@@ -5319,7 +5323,7 @@ function cmdk(open = true) {
   if (!el) {
     document.body.insertAdjacentHTML("beforeend", `<div id="cmdk" class="cmdk" hidden><div class="cmdk-bg" data-x></div><div class="cmdk-in" role="dialog" aria-label="Tìm nhanh">
       <div class="cmdk-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="cmdkQ" type="search" autocomplete="off" spellcheck="false" placeholder="Tìm coin, trang hoặc thao tác…"><kbd>Esc</kbd><button type="button" class="cmdk-x" data-x>Huỷ</button></div>
-      <div class="cmdk-l" id="cmdkL" role="listbox"></div><div class="cmdk-f"><span><kbd>↑</kbd><kbd>↓</kbd> chọn</span><span><kbd>Enter</kbd> mở</span><span><kbd>Ctrl</kbd><kbd>K</kbd> mở / đóng</span></div></div></div>`);
+      <div class="cmdk-l" id="cmdkL" role="listbox"></div><div class="cmdk-f"><span><kbd>↑</kbd><kbd>↓</kbd> chọn</span><span><kbd>Enter</kbd> mở</span><span><kbd>Ctrl</kbd><kbd>K</kbd> mở / đóng</span><span class="cmdk-fk"><kbd>?</kbd> mọi phím tắt</span></div></div></div>`);
     el = $("#cmdk");
     const q = $("#cmdkQ"), L = $("#cmdkL"); let items = [], sel = 0;
     const draw = () => {
@@ -6415,3 +6419,193 @@ document.addEventListener("wheel", (e) => {
   sc.__wg = Math.max(0, Math.min(max, base + dy)); sc.__wt = now;
   if (Math.abs(dy) < 40 || matchMedia("(prefers-reduced-motion: reduce)").matches) sc.scrollTop = sc.__wg; else sc.scrollTo({ top: sc.__wg, behavior: "smooth" });
 }, { passive: false });
+
+// ================================================================ PHÍM TẮT – 1 danh sách duy nhất: vừa chạy phím, vừa vẽ trang #/keys, bảng "?" và gợi ý phím trong Ctrl K
+// k = dãy phím (["g","m"] = gõ g rồi m) · run = việc làm · on(r) = chỉ chạy ở trang đó · không có run = phím do chỗ khác xử lý, chỉ để liệt kê
+const KS_MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const ksR = () => { const p = location.hash.replace(/^#\/?/, "").split("/"); return p[0] === "bot" ? "bot/" + (p[1] || "") : p[0] || "market"; };
+const ksCoin = () => { const p = location.hash.replace(/^#\/?/, "").split("/"); return /^(c|plan|paper)$/.test(p[0]) && p[1] ? decodeURIComponent(p[1]).toUpperCase() : p[0] === "paper" ? (typeof PV !== "undefined" && PV.k) || "" : ""; };
+const ksGo = (h) => () => { if (location.hash === h || (h === "#/" && !location.hash)) { scrollTo({ top: 0, behavior: "smooth" }); return; } location.hash = h; };
+const ksClick = (sel) => { const b = typeof sel === "string" ? document.querySelector(sel) : sel; if (!b || b.disabled) return false; b.click(); return true; };
+function lvwReset() {
+  LVW.pos = null; lsSet("lvwpos", null); LVW.mode = "mini"; lsSet("lvwmode", "mini"); LVW.rest = "mini"; lsSet("lvwrest", "mini"); document.getElementById("lvw")?.remove(); LVS.busy = false; lvsPull(); if (LVS.d) lvsDraw();
+  toast(LVS.d?.at ? bi("Đã đưa thanh lệnh bot về góc phải dưới", "Live bar moved back to the bottom right") : bi("Chưa có dữ liệu bot – kiểm tra máy chủ riêng", "No bot data yet – check your own server"));
+}
+// trang có thẻ con (Bot Phản Xạ: Tổng quan · Lệnh · Phương pháp…; trang khác: thanh thẻ đầu tiên)
+function ksTabs() {
+  const bar = document.querySelector("#app .sc-tabs") || [...document.querySelectorAll("#app [role=tablist]")].find((x) => x.offsetParent);
+  return bar ? [...bar.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent && !b.disabled) : [];
+}
+function ksTab(i, rel) {
+  const L = ksTabs(); if (!L.length) return false;
+  if (rel) { const c = L.findIndex((b) => b.classList.contains("on") || b.getAttribute("aria-selected") === "true"); i = (Math.max(0, c) + rel + L.length) % L.length; }
+  if (!L[i]) return false; L[i].click(); L[i].focus?.({ preventScroll: true }); return true;
+}
+// nhảy mục: j xuống mục sau · k lên mục trước (khung .panel của trang)
+function ksSec(d) {
+  const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--toph")) || 56) + 14;
+  const P = [...document.querySelectorAll("#app .panel, #app .lane")].filter((p) => p.offsetParent && !p.parentElement.closest(".panel, .lane") && p.offsetHeight > 30);
+  if (!P.length) return false;
+  const tops = P.map((p) => p.getBoundingClientRect().top - top);
+  const t = d > 0 ? P[tops.findIndex((y) => y > 6)] : P[tops.map((y, i) => [y, i]).filter(([y]) => y < -6).pop()?.[1] ?? -1];
+  if (!t) { scrollTo({ top: d > 0 ? document.documentElement.scrollHeight : 0, behavior: "smooth" }); return true; }
+  t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  t.classList.remove("ks-hl"); void t.offsetWidth; t.classList.add("ks-hl"); setTimeout(() => t.classList.remove("ks-hl"), 900);
+  return true;
+}
+// biểu đồ dưới con trỏ chuột (không có thì biểu đồ đầu tiên đang thấy trên màn hình)
+let KS_HOV = null;
+document.addEventListener("pointerover", (e) => { const b = e.target.closest?.(".cbox, .lwbox"); if (b) KS_HOV = b; }, { passive: true });
+function ksChart() {
+  const ok = (b) => b?.isConnected && b.querySelector("[data-cz]");
+  if (ok(KS_HOV)) return KS_HOV;
+  return [...document.querySelectorAll("#app .cbox, #app .lwbox")].find((b) => { const r = b.getBoundingClientRect(); return ok(b) && r.bottom > 80 && r.top < innerHeight - 80; });
+}
+function ksReload() {
+  for (const k of Object.keys(SCACHE)) delete SCACHE[k];
+  toast(bi("Đang tải lại dữ liệu trang…", "Reloading page data…"));
+  softRender(() => route());
+}
+function ksTheme() { const L = TH_OPT.map((o) => o[0]), n = L[(L.indexOf(thPref()) + 1) % L.length]; thApply(n); toast(bi(`Giao diện: ${TH_OPT.find((o) => o[0] === n)[1]}`, `Theme: ${{ light: "Light", dark: "Dark", system: "System" }[n]}`)); }
+const KS = [
+  { id: "gen", t: ["Chung", "General"], d: ["Dùng ở mọi trang", "Works on every page"], it: [
+    { k: [KS_MAC ? "⌘+K" : "Ctrl+K"], t: ["Bảng tìm nhanh: coin, trang, thao tác", "Quick palette: coins, pages, actions"] },
+    { k: ["?"], t: ["Xem nhanh bảng phím tắt", "Show the shortcut list"], run: () => ksSheet() },
+    { k: ["/"], t: ["Tìm coin · lọc trong trang (trang có bảng phụ)", "Search coins · filter the page (pages with a side panel)"] },
+    { k: ["Esc"], t: ["Đóng hộp thoại, menu, biểu đồ toàn màn hình", "Close dialog, menu, full-screen chart"] },
+    { k: ["r"], t: ["Tải lại dữ liệu trang này (không tải lại cả web)", "Reload this page's data (not the whole site)"], run: ksReload },
+    { k: ["t"], t: ["Đổi giao diện: Sáng → Tối → Theo hệ thống", "Cycle theme: Light → Dark → System"], run: ksTheme },
+    { k: ["Shift+L"], t: ["Đổi ngôn ngữ", "Switch language"], run: () => { const i = LANGS.findIndex((l) => l[0] === I18N.lang); langSet(LANGS[(i + 1) % LANGS.length][0]); } },
+    { k: ["n"], t: ["Mở / đóng thông báo", "Open / close notifications"], run: () => { if (!$("#bell")) return false; bellOpen(); return true; } },
+    { k: ["p"], t: ["Mở / đóng bảng phụ (tóm tắt, đi tới, của tôi, tính lệnh)", "Open / close the side panel"], run: () => ksClick("#pnFab") },
+    { k: ["["], t: ["Ghim / tự thu gọn thanh bên (máy tính)", "Pin / auto-hide the sidebar (desktop)"] },
+    { k: ["w"], t: ["Thanh lệnh bot trực tiếp: mở rộng / thu lại", "Live bot bar: expand / collapse"], run: () => { if (!document.getElementById("lvw")) { lvwReset(); return true; } lvwMode(LVW.mode === "full" ? LVW.rest : "full"); return true; } },
+    { k: ["Shift+W"], t: ["Đưa thanh lệnh bot về góc phải dưới", "Move the live bot bar back to the bottom right"], run: lvwReset },
+  ] },
+  { id: "go", t: ["Đi tới trang", "Go to page"], d: ["Gõ g, thả ra, rồi gõ chữ cái", "Press g, release, then the letter"], it: [
+    { k: ["g", "m"], t: ["Tổng quan thị trường", "Market overview"], h: "#/" },
+    { k: ["g", "l"], t: ["Bảng giá trực tiếp", "Live prices"], h: "#/live" },
+    { k: ["g", "f"], t: ["Phái sinh & funding", "Derivatives & funding"], h: "#/futures" },
+    { k: ["g", "s"], t: ["Nhóm ngành", "Sectors"], h: "#/sectors" },
+    { k: ["g", "y"], t: ["Coin cùng nhịp", "Correlated coins"], h: "#/pairs" },
+    { k: ["g", "i"], t: ["Cơ hội hôm nay", "Today's ideas"], h: "#/ideas" },
+    { k: ["g", "r"], t: ["Radar tín hiệu", "Signal radar"], h: "#/radar" },
+    { k: ["g", "c"], t: ["Tra cứu coin", "Coin lookup"], h: "#/coins" },
+    { k: ["g", "k"], t: ["Lên kế hoạch lệnh", "Trade planner"], h: "#/plan" },
+    { k: ["g", "t"], t: ["Sàn thử lệnh tay", "Paper trading"], h: "#/paper" },
+    { k: ["g", "d"], t: ["Danh mục", "Portfolio"], h: "#/portfolio" },
+    { k: ["g", "u"], t: ["Công cụ tính", "Calculators"], h: "#/tools" },
+    { k: ["g", "b"], t: ["Tổng quan bot", "Bot overview"], h: "#/bot/home" },
+    { k: ["g", "x"], t: ["Bot Phản Xạ", "Reflex Bot"], h: "#/bot/scalp" },
+    { k: ["g", "j"], t: ["Kết quả & sổ lệnh", "Results & trade log"], h: "#/bot/days" },
+    { k: ["g", "n"], t: ["Tài khoản Binance", "Binance account"], h: "#/bot/binance" },
+    { k: ["g", "v"], t: ["Rủi ro & giám sát bot", "Bot risk & supervision"], h: "#/bot/sup" },
+    { k: ["g", "e"], t: ["Sổ thuế TNCN", "Crypto tax ledger"], h: "#/tax" },
+    { k: ["g", "h"], t: ["Cẩm nang chỉ báo", "Indicator guide"], h: "#/methods" },
+    { k: ["g", "z"], t: ["Kiểm chứng", "Verification"], h: "#/backtest" },
+    { k: ["g", "o"], t: ["Trang thông báo", "Notifications page"], h: "#/notifications" },
+    { k: ["g", "a"], t: ["Tài khoản & cài đặt", "Account & settings"], h: "#/account" },
+    { k: ["g", "?"], t: ["Trang phím tắt này", "This shortcuts page"], h: "#/keys" },
+    { k: ["Alt+←"], t: ["Quay lại trang trước", "Back to the previous page"] },
+  ] },
+  { id: "page", t: ["Trong trang", "On the page"], d: ["Đọc và chuyển phần trong trang đang mở", "Move around the open page"], it: [
+    { k: ["j"], t: ["Xuống mục kế tiếp", "Next section"], run: () => ksSec(1) },
+    { k: ["k"], t: ["Lên mục trước", "Previous section"], run: () => ksSec(-1) },
+    { k: ["g", "g"], t: ["Lên đầu trang", "Top of page"], run: () => scrollTo({ top: 0, behavior: "smooth" }) },
+    { k: ["Shift+G"], t: ["Xuống cuối trang", "Bottom of page"], run: () => scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }) },
+    { k: ["1 … 9"], t: ["Chọn thẻ thứ 1 … 9 của trang (Tổng quan · Lệnh · Phương pháp…)", "Pick tab 1 … 9 of the page (Overview · Trades · Methods…)"] },
+    { k: ["Shift+←", "Shift+→"], sep: "/", t: ["Thẻ trước / thẻ sau", "Previous / next tab"] },
+    { k: ["f"], t: ["Biểu đồ dưới con trỏ: phóng to toàn màn hình / thu lại", "Chart under the pointer: full screen / back"], run: () => { const b = ksChart(); if (!b) return false; czToggle(b, "full"); return true; } },
+  ] },
+  { id: "bot", t: ["Bot Phản Xạ", "Reflex Bot"], d: ["Trang #/bot/scalp", "On #/bot/scalp"], it: [
+    { k: ["1 … 5"], t: ["Tổng quan · Lệnh · Phương pháp · Hoạt động · Thiết lập", "Overview · Trades · Methods · Activity · Settings"] },
+    { k: ["e"], t: ["Đổi Binance thật ⇄ Sàn thử (nút giữ nguyên chỗ)", "Switch Binance ⇄ Paper (controls stay put)"], on: (r) => r === "bot/scalp", run: () => ksClick("#app [data-scenv]:not(.on)") },
+    { k: ["o"], t: ["Thẻ Lệnh: Tất cả → Đang mở → Đã đóng → Hụt → So sàn thử", "Trades tab: All → Open → Closed → Missed → Vs paper"], on: (r) => r === "bot/scalp", run: () => { const L = [...document.querySelectorAll("#app [data-scol]")]; if (!L.length) return false; const i = L.findIndex((b) => b.classList.contains("on")); L[(i + 1) % L.length].click(); return true; } },
+  ] },
+  { id: "coin", t: ["Coin đang xem", "Current coin"], d: ["Trang coin, Lên lệnh, Sàn thử", "Coin, planner and paper pages"], it: [
+    { k: ["s"], t: ["Theo dõi / bỏ theo dõi coin (★)", "Watch / unwatch the coin (★)"], on: (r) => r === "c", run: () => ksClick("#wlb") },
+    { k: ["Shift+C"], t: ["Mở trang phân tích coin này", "Open this coin's analysis"], run: () => { const k = ksCoin(); if (!k) return false; location.hash = `#/c/${k}`; return true; } },
+    { k: ["Shift+P"], t: ["Lên kế hoạch lệnh cho coin này", "Plan a trade for this coin"], run: () => { const k = ksCoin(); if (!k) return false; location.hash = `#/plan/${k}`; return true; } },
+    { k: ["Shift+T"], t: ["Mở Sàn thử với coin này", "Open paper trading with this coin"], run: () => { const k = ksCoin(); if (!k) return false; location.hash = `#/paper/${k}`; return true; } },
+  ] },
+  { id: "paper", t: ["Sàn thử lệnh tay", "Paper trading"], d: ["Trang #/paper", "On #/paper"], it: [
+    { k: ["e"], t: ["Đổi Giả lập MyBit ⇄ Tài khoản Binance", "Switch MyBit sim ⇄ Binance account"], on: (r) => r === "paper", run: () => ksClick("#pvEnv button:not(.on)") },
+    { k: ["Shift+B"], t: ["Chọn Long / Mua", "Pick Long / Buy"], on: (r) => r === "paper", run: () => ksClick('#fSide [data-s="buy"]') },
+    { k: ["Shift+S"], t: ["Chọn Short / Bán", "Pick Short / Sell"], on: (r) => r === "paper", run: () => ksClick('#fSide [data-s="sell"]') },
+    { k: ["Shift+M"], t: ["Đổi kiểu lệnh: Giới hạn → Thị trường → Dừng → Chốt lời", "Cycle order type: Limit → Market → Stop → Take profit"], on: (r) => r === "paper", run: () => { const L = [...document.querySelectorAll("#fType button")]; if (!L.length) return false; L[(L.findIndex((b) => b.classList.contains("on")) + 1) % L.length].click(); return true; } },
+    { k: ["q"], t: ["Đặt con trỏ vào ô số lượng", "Focus the quantity box"], on: (r) => r === "paper", run: () => { const i = $("#fQ"); if (!i) return false; i.focus(); i.select(); return true; } },
+    { k: ["Shift+K"], t: ["Đổi coin (đặt con trỏ vào ô mã coin)", "Change coin (focus the symbol box)"], on: (r) => r === "paper", run: () => { const i = $("#pvK"); if (!i) return false; i.focus(); i.select(); return true; } },
+  ] },
+  { id: "pal", t: ["Trong bảng tìm nhanh, menu, hộp thoại", "Inside the palette, menus, dialogs"], d: ["", ""], it: [
+    { k: ["↑", "↓"], sep: "/", t: ["Chọn dòng", "Move selection"] },
+    { k: ["Enter"], t: ["Mở / xác nhận", "Open / confirm"] },
+    { k: ["Tab"], t: ["Sang nút kế tiếp", "Next control"] },
+    { k: ["Esc"], t: ["Đóng", "Close"] },
+  ] },
+];
+KS.forEach((g) => g.it.forEach((x) => { if (x.h && !x.run) x.run = ksGo(x.h); }));
+const KS_GO = Object.fromEntries(KS.flatMap((g) => g.it).filter((x) => x.h).map((x) => [x.h, x.k]));
+// vẽ phím: "Shift+L" → [Shift][L] · ["g","m"] → [G] rồi [M]
+const ksKey = (c) => c.split("+").map((p) => `<kbd>${esc(p.length === 1 ? p.toUpperCase() : p === "Shift" ? (KS_MAC ? "⇧" : "Shift") : p === "Alt" ? (KS_MAC ? "⌥" : "Alt") : p)}</kbd>`).join("");
+const ksKeys = (x) => x.k.map(ksKey).join(x.sep ? `<i class="ks-th">${x.sep}</i>` : `<i class="ks-th">${bi("rồi", "then")}</i>`);
+const ksHint = (h) => (KS_GO[h] ? `<span class="ks-hint">${KS_GO[h].map(ksKey).join("")}</span>` : "");
+function ksHTML(compact) {
+  return `<div class="ks-grid${compact ? " ks-c" : ""}">${KS.map((g) => `<section class="ks-g${compact ? "" : " panel"}" data-ksg="${g.id}"><div class="ks-gh"><h2>${bi(...g.t)}</h2>${g.d[0] ? `<small>${bi(...g.d)}</small>` : ""}</div>
+    <div class="ks-rows">${g.it.map((x) => `<div class="ks-r" data-kst="${esc(fold(bi(...x.t) + " " + x.k.join(" ")))}"><span class="ks-t">${esc(bi(...x.t))}</span><span class="ks-k">${ksKeys(x)}</span></div>`).join("")}</div></section>`).join("")}</div>`;
+}
+async function viewKeys() {
+  const touch = matchMedia("(pointer:coarse)").matches && !matchMedia("(any-pointer:fine)").matches;
+  app().innerHTML = `<div class="ph"><h1>${bi("Phím tắt", "Keyboard shortcuts")}</h1><span class="meta">${bi("Làm gần như mọi việc trên MyBit mà không cần chuột", "Do almost everything in MyBit without the mouse")}</span></div>
+    ${touch ? `<p class="ks-note">${bi("Phím tắt dùng trên máy tính hoặc iPad có bàn phím rời.", "Shortcuts work on a computer or an iPad with a keyboard.")}</p>` : ""}
+    <div class="ks-top"><div class="ks-tip"><span>${ksKey("?")}</span><p>${bi("Bấm <b>?</b> ở bất kỳ trang nào để xem nhanh danh sách này", "Press <b>?</b> on any page to see this list")}</p></div>
+      <div class="ks-tip"><span>${ksKey("g")}<i class="ks-th">${bi("rồi", "then")}</i>${ksKey("m")}</span><p>${bi("Gõ <b>g</b> sẽ hiện bảng chữ cái để nhảy trang", "Press <b>g</b> to show the page letters")}</p></div>
+      <div class="ks-tip"><span>${ksKey(KS_MAC ? "⌘+K" : "Ctrl+K")}</span><p>${bi("Bảng tìm nhanh – mỗi trang có ghi kèm phím tắt", "Quick palette – every page shows its shortcut")}</p></div></div>
+    <label class="msearch sbx-s ks-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ksQ" type="search" autocomplete="off" placeholder="${bi("Tìm phím tắt, ví dụ: biểu đồ, giao diện, Binance…", "Find a shortcut, e.g. chart, theme, Binance…")}" aria-label="${bi("Tìm phím tắt", "Find a shortcut")}"></label>
+    ${ksHTML(false)}<p class="faint ks-foot">${bi("Phím tắt không chạy khi anh đang gõ trong ô nhập – bấm Esc hoặc bấm ra ngoài ô trước.", "Shortcuts pause while you type in a box – press Esc or click outside first.")}</p>`;
+  const q = $("#ksQ");
+  q.oninput = () => { const t = fold(q.value.trim()); $$("#app .ks-r").forEach((r) => (r.hidden = !!t && !r.dataset.kst.includes(t))); $$("#app .ks-g").forEach((g) => (g.hidden = !g.querySelector(".ks-r:not([hidden])"))); };
+  q.onkeydown = (e) => { if (e.key === "Escape") { q.value = ""; q.oninput(); q.blur(); } };
+}
+function ksSheet() {
+  if (document.getElementById("iosSheet")) return;
+  iosSheet({ title: bi("Phím tắt", "Keyboard shortcuts"), sub: bi("Gõ g rồi chữ cái để nhảy trang · không chạy khi đang gõ trong ô", "g then a letter jumps to a page · paused while typing"), body: ksHTML(true), ok: bi("Mở trang phím tắt", "Open shortcuts page"), cancel: bi("Đóng", "Close") }).then((v) => { if (v) location.hash = "#/keys"; });
+  document.getElementById("iosSheet")?.classList.add("ks-sheet");
+}
+// bảng chữ cái hiện ra sau khi gõ g (như which-key) – nhìn là biết gõ chữ gì tiếp
+function ksHud(on) {
+  let h = document.getElementById("ksHud");
+  if (!on) { if (h) { h.classList.remove("on"); clearTimeout(h._t); h._t = setTimeout(() => h.remove(), 160); } return; }
+  if (!h) { h = document.createElement("div"); h.id = "ksHud"; h.className = "ks-hud"; h.setAttribute("role", "status"); document.body.appendChild(h); }
+  clearTimeout(h._t);
+  const go = KS.find((g) => g.id === "go").it.filter((x) => x.k[0] === "g").concat(KS.find((g) => g.id === "page").it.filter((x) => x.k[0] === "g"));
+  h.innerHTML = `<div class="ks-hh">${ksKey("g")}<span>${bi("rồi gõ…", "then…")}</span><small>Esc ${bi("huỷ", "cancel")}</small></div><div class="ks-hg">${go.map((x) => `<span${x.h && (location.hash || "#/") === x.h ? ' class="cur"' : ""}>${ksKey(x.k[1])}${esc(bi(...x.t))}</span>`).join("")}</div>`;
+  requestAnimationFrame(() => h.classList.add("on"));
+}
+(() => {
+  let pend = "", pt = 0;
+  const done = () => { pend = ""; clearTimeout(pt); ksHud(false); };
+  const combo = (e) => { const k = e.key; if (k.length === 1 && /[a-z]/i.test(k)) return (e.shiftKey ? "Shift+" : "") + k.toLowerCase(); if (/^Arrow/.test(k)) return (e.shiftKey ? "Shift+" : "") + { ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" }[k]; return k; };
+  const blocked = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
+  addEventListener("keydown", (e) => {
+    if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || blocked()) { if (pend) done(); return; }
+    const c = combo(e);
+    if (c === "Shift" || c === "Control" || c === "Alt" || c === "Meta" || c === "CapsLock") return;
+    const modal = document.getElementById("iosSheet") || document.body.classList.contains("cmdk-on") || document.getElementById("thMenu") || document.querySelector(".cz-full");
+    if (pend) {
+      const want = pend; done();
+      if (c === "Escape") { e.preventDefault(); return; }
+      const x = KS.flatMap((g) => g.it).find((x) => x.k.length === 2 && x.k[0] === want && x.k[1].toLowerCase() === c.toLowerCase() && x.run);
+      if (x) { e.preventDefault(); x.run(); }
+      return;
+    }
+    if (modal && c !== "Escape" && !(c === "f" && document.querySelector(".cz-full"))) return;      // hộp thoại đang mở: chỉ Esc (do hộp thoại xử lý); biểu đồ toàn màn hình: f để thu lại
+    if (c === "g") { e.preventDefault(); pend = "g"; pt = setTimeout(done, 2500); setTimeout(() => pend === "g" && ksHud(true), 350); return; }
+    const r = ksR();
+    if (/^[1-9]$/.test(c) && !e.shiftKey) { if (ksTab(+c - 1)) e.preventDefault(); return; }
+    if (c === "Shift+←" || c === "Shift+→") { if (ksTab(0, c === "Shift+→" ? 1 : -1)) e.preventDefault(); return; }
+    const x = KS.flatMap((g) => g.it).find((x) => x.k.length === 1 && x.k[0].toLowerCase() === c.toLowerCase() && x.run && (!x.on || x.on(r)));
+    if (!x) return;
+    if (x.run() !== false) e.preventDefault();
+  });
+  addEventListener("hashchange", () => { if (pend) done(); });
+})();

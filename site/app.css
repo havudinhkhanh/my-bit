@@ -4921,3 +4921,47 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   .tabs a.nav-m.on svg,.tabs .nav-more.on svg{background:var(--sel);animation:navPill .34s var(--ease-spring,cubic-bezier(.32,.72,0,1))}
   @keyframes navPill{from{transform:scaleX(.55);opacity:.4}to{transform:none;opacity:1}}
 }
+
+/* ================================================================ PHÍM TẮT – trang #/keys, bảng "?", bảng chữ cái sau phím g */
+.ks-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:4px 0 12px}
+.ks-tip{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:var(--fill-card)}
+.ks-tip>span{flex:none;display:inline-flex;align-items:center;gap:3px}
+.ks-tip p{margin:0;font-size:.8125rem;color:var(--ink-2);line-height:1.4}.ks-tip p b{color:var(--ink)}
+.ks-note{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:var(--fill);font-size:.8125rem;color:var(--ink-2)}
+.ks-q{max-width:440px;margin:0 0 12px}
+.ks-grid{columns:3 340px;column-gap:12px}
+.ks-g{break-inside:avoid;display:block}
+.ks-g.panel{margin:0 0 12px}
+.ks-gh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 6px}
+.ks-gh h2{margin:0;font-size:.9375rem}.ks-gh small{color:var(--ink-3);font-size:.75rem}
+.ks-rows{display:flex;flex-direction:column}
+.ks-r{display:flex;align-items:center;gap:12px;min-height:38px;padding:5px 8px;margin:0 -8px;border-radius:9px}
+.ks-r:hover{background:var(--fill)}
+.ks-r[hidden],.ks-g[hidden]{display:none}
+.ks-t{flex:1;min-width:0;font-size:.8125rem;color:var(--ink);line-height:1.35}
+.ks-k{flex:none;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.ks-k kbd,.ks-tip kbd,.ks-hud kbd,.ks-hint kbd{min-width:22px;height:22px;padding:0 6px;border:0!important;border-radius:6px;background:var(--fill-h)!important;color:var(--ink);font:600 11.5px/22px ui-monospace,SFMono-Regular,Menlo,monospace;text-align:center;box-shadow:inset 0 -1.5px 0 color-mix(in srgb,var(--ink) 14%,transparent)}
+.ks-th{font-style:normal;font-size:.6875rem;color:var(--ink-3);margin:0 3px}
+.ks-foot{margin:14px 0 4px;font-size:.75rem}
+.ks-hint{display:inline-flex;gap:2px;opacity:.85}.ks-hint kbd{min-width:18px;height:18px;line-height:18px;font-size:10.5px;padding:0 4px}
+.cmdk-i em .ks-hint,.cmdk-i em>kbd{vertical-align:middle}
+.cmdk-i em>kbd{min-width:18px;height:18px;line-height:18px;font-size:10.5px;padding:0 4px;border:0;background:var(--fill-h)}
+/* bảng xem nhanh "?" – rộng hơn hộp thoại thường, 2 cột trên màn rộng */
+.mbd.ks-sheet .mbd-w{width:min(860px,100%)}
+.ks-c{columns:2 320px;column-gap:26px;padding:2px 0 6px}
+.ks-c .ks-g{padding:8px 0 4px}
+.ks-c .ks-gh{margin:0 0 2px}.ks-c .ks-gh h2{font-size:.8125rem;text-transform:none;color:var(--ink)}
+.ks-c .ks-r{min-height:32px;padding:3px 8px}
+.ks-c .ks-t{font-size:.78rem;color:var(--ink-2)}
+/* bảng chữ cái sau phím g */
+.ks-hud{position:fixed;left:50%;bottom:24px;z-index:9000;width:min(720px,calc(100vw - 32px));padding:12px 14px 14px;border-radius:16px;background:color-mix(in srgb,var(--surface) 92%,var(--ink));color:var(--ink);box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.12);transform:translate(-50%,10px) scale(.98);opacity:0;transition:opacity .16s ease,transform .2s var(--ease-out,cubic-bezier(.2,.8,.2,1));pointer-events:none}
+.ks-hud.on{opacity:1;transform:translate(-50%,0) scale(1)}
+.ks-hh{display:flex;align-items:center;gap:8px;margin:0 0 9px;font-size:.8125rem;font-weight:600}.ks-hh small{margin-left:auto;font-weight:500;color:var(--ink-3);font-size:.6875rem}
+.ks-hg{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:4px 10px}
+.ks-hg span{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--ink-2);padding:3px 6px;border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ks-hg span.cur{background:var(--sel);color:var(--sel-ink)}.ks-hg span.cur kbd{background:color-mix(in srgb,var(--sel-ink) 22%,transparent)!important;color:var(--sel-ink)}
+/* j / k: khung vừa nhảy tới loé nhẹ để mắt bắt được */
+@keyframes ksHl{0%{box-shadow:0 0 0 3px color-mix(in srgb,var(--ink) 22%,transparent)}100%{box-shadow:0 0 0 3px transparent}}
+.ks-hl.panel,.lane.ks-hl{animation:ksHl .9s ease-out}
+@media (prefers-reduced-motion:reduce){.ks-hud{transition:none}.panel.ks-hl,.lane.ks-hl{animation:none}}
+@media (pointer:coarse) and (not (any-pointer:fine)){.tabs a.nav-kb{display:none}}
