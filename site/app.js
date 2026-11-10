@@ -6222,8 +6222,19 @@ function lvsDraw() {
   const pillEl = el.querySelector(".lvw-pill"); set(".lvw-pill", "pill", P.pill); pillEl.setAttribute("aria-expanded", String(LVW.mode === "full"));
   pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
   ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
-  if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); }
+  if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); lvwHold(el, D, P); }
   lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag")); el.__pw = el.querySelector(".lvw-pill").offsetWidth;
+}
+// đổi tab Binance thật ↔ Sàn thử: thẻ GIỮ NGUYÊN chiều cao (= tab dài hơn, tối đa vừa màn hình) → hàng tab, nút, chân thẻ đứng yên đúng chỗ, mắt & chuột không phải dò lại
+function lvwHold(el, D, P) {
+  const b = el.querySelector(".lvw-body"), card = el.querySelector(".lvw-card"); if (!b || !card) return;
+  if (!P.seg) { b.style.minHeight = ""; return; }
+  const t0 = LVW.tab; LVW.tab = t0 === "paper" ? "live" : "paper"; let other = ""; try { other = lvwParts(D).body; } finally { LVW.tab = t0; }
+  let m = LVW.meas; if (!m || !m.isConnected) { m = LVW.meas = document.createElement("div"); m.className = "lvw-body"; m.setAttribute("aria-hidden", "true"); m.style.cssText = "position:absolute;left:0;top:0;visibility:hidden;pointer-events:none;height:auto;min-height:0;max-height:none;overflow:visible"; card.appendChild(m); }
+  m.style.width = b.clientWidth + "px";
+  const h = (html) => { m.innerHTML = html; return m.scrollHeight; }, hMax = Math.max(h(P.body), h(other)); m.innerHTML = "";
+  const mh = parseFloat(getComputedStyle(el).getPropertyValue("--lvw-mh")) || 560, chrome = card.offsetHeight - b.offsetHeight;
+  b.style.minHeight = `${Math.max(0, Math.min(hMax, mh - chrome))}px`;
 }
 // dòng chạy trong viên thu gọn + thanh thời gian / số phút còn lại mỗi giây
 function lvwTick(now) {
