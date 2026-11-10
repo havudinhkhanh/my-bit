@@ -1005,10 +1005,18 @@ function rsTables(root) {
   });
 }
 // 🪝 nến 1 phút quanh một lệnh Bắt râu sập (lấy thẳng từ Binance trong trình duyệt): cú sốc, giá sau sốc, 2 mức chờ, điểm vào / ra
-async function hkChartOpen(t, box) {
-  if (!t || !box) return; if (!box.hidden) { box.hidden = true; return; }
-  box.hidden = false; box.innerHTML = `<p class="faint">Đang lấy nến 1 phút từ Binance…</p>`;
+// biểu đồ đang mở được nhớ (theo lệnh) cùng nến đã tải → trang tự làm mới vẫn mở lại đúng biểu đồ, không tải lại, không nháy
+const HKO = (window.__hkOpen ||= new Map());
+const hkKey = (t) => `${t.k}|${t.t0}|${t.t1}`;
+async function hkChartOpen(t, box, reopen) {
+  if (!t || !box) return; const key = hkKey(t);
+  if (!reopen && !box.hidden) { box.hidden = true; HKO.delete(key); return; }
+  box.hidden = false;
+  const draw = (c) => { const W0 = Math.max(box.clientWidth, (box.closest(".tw, .panel")?.clientWidth || 0) - 28); box.innerHTML = hkSvg(c.K, t, ts, tf, tx, Math.min(W0, 1100) - 2) + c.note; };
   const sym = t.k.split(":")[0] + "USDT", tf = Date.parse(t.t0 + "Z"), tx = Date.parse(t.t1 + "Z"), ts = t.ts ? Date.parse(t.ts + "Z") : null;
+  const got = HKO.get(key); if (got) { draw(got); return; }
+  if (reopen) { box.innerHTML = `<p class="faint">${bi("Đang lấy nến 1 phút từ Binance…", "Loading 1-minute candles from Binance…")}</p>`; return; }
+  HKO.set(key, null); box.innerHTML = `<p class="faint">${bi("Đang lấy nến 1 phút từ Binance…", "Loading 1-minute candles from Binance…")}</p>`;
   const st = Math.min(ts || tf, tf) - 20 * 60e3, en = tx + 6 * 60e3;
   try {
     let K = null, src = "";
@@ -1016,8 +1024,11 @@ async function hkChartOpen(t, box) {
       try { const r = await fetch(`${base}/fapi/v1/klines?symbol=${sym}&interval=1m&startTime=${st}&endTime=${en}&limit=200`); if (!r.ok) continue; const J = await r.json(); if (Array.isArray(J) && J.length) { K = J.map((k) => [+k[0], +k[1], +k[2], +k[3], +k[4]]); src = base; break; } } catch (e) { /* thử sàn khác */ }
     }
     if (!K) throw new Error(bi("không có nến", "no candles"));
-    const W0 = Math.max(box.clientWidth, (box.closest(".tw, .panel")?.clientWidth || 0) - 28); box.innerHTML = hkSvg(K, t, ts, tf, tx, Math.min(W0, 1100) - 2) + (t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "");
-  } catch (e) { box.innerHTML = `<p class="faint">Không lấy được nến từ Binance (${esc(e.message)}).</p>`; }
+    const c = { K, note: t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "" };
+    if (!HKO.has(key)) return;      // anh đã đóng trong lúc tải
+    HKO.set(key, c);
+    const live = document.querySelector(`[data-hkbox="${CSS.escape(key)}"]`) || box; box = live; draw(c);
+  } catch (e) { HKO.delete(key); box.innerHTML = `<p class="faint">${bi("Không lấy được nến từ Binance", "Couldn't load candles from Binance")} (${esc(e.message)}).</p>`; }
 }
 function hkSvg(K, t, ts, tf, tx, W0) {
   // nến 1 phút quanh lệnh: trước lệnh mờ đi, khoảng giữ lệnh nổi lên; các mức giá chỉ vẽ từ lúc sốc; nhãn giá xếp ở lề phải không đè nhau; rê chuột xem từng nến
