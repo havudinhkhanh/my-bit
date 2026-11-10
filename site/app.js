@@ -1016,7 +1016,7 @@ async function hkChartOpen(t, box) {
       try { const r = await fetch(`${base}/fapi/v1/klines?symbol=${sym}&interval=1m&startTime=${st}&endTime=${en}&limit=200`); if (!r.ok) continue; const J = await r.json(); if (Array.isArray(J) && J.length) { K = J.map((k) => [+k[0], +k[1], +k[2], +k[3], +k[4]]); src = base; break; } } catch (e) { /* thử sàn khác */ }
     }
     if (!K) throw new Error(bi("không có nến", "no candles"));
-    box.innerHTML = hkSvg(K, t, ts, tf, tx, box.clientWidth - 2) + (t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "");
+    const W0 = Math.max(box.clientWidth, (box.closest(".tw, .panel")?.clientWidth || 0) - 28); box.innerHTML = hkSvg(K, t, ts, tf, tx, Math.min(W0, 1100) - 2) + (t.base && src !== t.base ? `<p class="faint sc-cap">${bi("Không đọc được nến của sàn Demo – đang hiện nến sàn thật.", "Couldn't read Demo candles – showing real-market candles.")}</p>` : t.base ? `<p class="faint sc-cap">${bi("Nến của sàn Demo.", "Demo candles.")}</p>` : "");
   } catch (e) { box.innerHTML = `<p class="faint">Không lấy được nến từ Binance (${esc(e.message)}).</p>`; }
 }
 function hkSvg(K, t, ts, tf, tx, W0) {
