@@ -269,7 +269,7 @@ export async function onRequest(ctx) {
               return { sym: p.sym, amt: p.amt, ep: p.ep, mk: p.mk, up: p.up, lev: p.lev, sl, lk: L.man.lk?.[p.sym] || null }; });
             return (L.wal?.[E]?.pos || []).filter((x) => !bot.has(x[0])).map(([sym, amt, ep, mk, lev, up]) => ({ sym, amt, ep, mk, up, lev, sl: null, lk: null }));
           })(),
-          last: (L.hist || []).filter((h) => (h.env || "demo") === E).slice(-5).reverse().map((h) => ({ sym: h.sym, side: h.side, pnl: h.pnl, net: h.net, t2: h.t2, why: h.why, strat: h.strat || "hook" })) } : null });
+          last: [...(L.hist || []).filter((h) => (h.env || "demo") === E), ...(L.mh || []).filter((h) => (h.env || "live") === E)].sort((a, b) => (String(a.t2) < String(b.t2) ? -1 : 1)).slice(-5).reverse().map((h) => ({ sym: h.sym, side: h.side, pnl: h.pnl, net: h.net, t2: h.t2, why: h.why, strat: h.strat || "hook" })) } : null });
     }
     if (!USER_KEYS.has(key)) return err("Không có API này", 404);
     if (m === "GET") {

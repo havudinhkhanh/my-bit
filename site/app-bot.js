@@ -525,6 +525,10 @@ async function viewScalp() {
     [bi("7 ngày", "7 days"), l7.length ? sg$(ls7) + pTag(ls7) : "—", l7.length ? bi(`${l7.filter((v) => v > 0).length}/${l7.length} ngày lời`, `${l7.filter((v) => v > 0).length}/${l7.length} winning days`) : bi("chưa có số liệu", "no data yet"), sgn(ls7), "", spark(cum(l7), { w: 150, h: 30 })],
     [bi("Tỉ lệ thắng", "Win rate"), LT.n ? nf(LT.win / LT.n * 100, 0) + "%" : "—", LT.n ? bi(`${LT.n} lệnh · ròng ${sg$(LT.pnl)} · phí ${usd2(LT.fees)}`, `${LT.n} trades · net ${sg$(LT.pnl)} · fees ${usd2(LT.fees)}`) : bi("chưa có lệnh", "no trades yet"), sgn(LT.pnl), "", spark(cum(LHs.map((h) => h.pnl)), { w: 150, h: 30 })],
     // Tổng tài sản các ví chỉ ở trang Tài khoản Binance (trang tiền) – thẻ ở đây là hiệu quả của bot
+    // ✋ lệnh tay (anh tự mở trên Binance): tách riêng khỏi hiệu quả bot – đã đóng (30 ngày máy chủ đọc lại), hôm nay, đang mở
+    (() => { const M = (LV?.mh || []).filter((h) => (h.env || LVE) === LVE), td = vnToday(), mt = M.filter((h) => vnDayOf(String(h.t2).slice(0, 19)) === td), s0 = M.reduce((a, h) => a + (h.pnl || 0), 0), st = mt.reduce((a, h) => a + (h.pnl || 0), 0), up = MAN.L.reduce((a, p) => a + (p.up || 0), 0);
+      if (!M.length && !MAN.L.length) return null;
+      return ["✋ " + bi("Lệnh tay", "Manual trades"), M.length ? sg$(s0) : sg$(up), `${M.length ? `${M.length} ${bi("đã đóng", "closed")} · ${bi("thắng", "won")} ${M.filter((h) => h.pnl > 0).length}` : bi("chưa có lệnh đóng", "none closed yet")} · ${bi("hôm nay", "today")} ${sg$(st)}${MAN.L.length ? ` · ${MAN.L.length} ${bi("đang mở", "open")} ${sg$(up)}` : ""}`, sgn(M.length ? s0 : up), "", M.length > 1 ? spark(cum(M.map((h) => h.pnl || 0)), { w: 150, h: 30 }) : ""]; })(),
   ].filter(Boolean).map((x) => stc(x)).join("")}</dl>`;
   const lvk = (e) => e.k || e.sym.replace(/USDT$/, "") + ":F";
   const lvOpen = (LV?.ev || []).map(lvCard).join("");
@@ -1784,14 +1788,15 @@ async function viewDays(envArg, dateArg, part) {
 
 // ================================================================ 📒 SỔ LỆNH & BÀI HỌC – toàn bộ lịch sử giao dịch (sàn thử / Demo / thật) + bài học tổng hợp
 // Nguồn: sổ lệnh đầy đủ máy chủ riêng lưu mãi (scalpledger, 5 phút/lần) + lệnh vừa đóng trong trạng thái trực tiếp (chưa kịp vào sổ).
-const JSTRAT = { hook: ["🪝", "Bắt râu sập"], sec: ["⚡", "Lướt giây"], pump: ["🧪", "Short coin vừa bơm"], list: ["🆕", "Short coin mới niêm yết"] };
-const JWHY = { TP: "chốt lời", SL: "cắt lỗ", TIME: "hết giờ giữ", "TIME+": "hết giờ (đã giữ thêm)", TRAIL: "cắt lỗ đuổi", REV: "tín hiệu đảo chiều", BTC: "BTC sốc ngược chiều", STALE: "mất dữ liệu giá", MANUAL: "anh đóng tay", GONE: "đã đóng trên sàn", LIQ: "thanh lý / mất trắng", DELIST: "ngừng giao dịch" };
+const JSTRAT = { hook: ["🪝", "Bắt râu sập"], sec: ["⚡", "Lướt giây"], pump: ["🧪", "Short coin vừa bơm"], list: ["🆕", "Short coin mới niêm yết"], man: ["✋", "Lệnh tay"] };
+const JWHY = { TP: "chốt lời", SL: "cắt lỗ", TIME: "hết giờ giữ", "TIME+": "hết giờ (đã giữ thêm)", TRAIL: "cắt lỗ đuổi", REV: "tín hiệu đảo chiều", BTC: "BTC sốc ngược chiều", STALE: "mất dữ liệu giá", MANUAL: "anh đóng tay", GONE: "đã đóng trên sàn", LIQ: "thanh lý / mất trắng", DELIST: "ngừng giao dịch", EXCH: "đóng trên Binance (tay / cắt lỗ / chốt)", TIMER: "tới giờ hẹn đóng", FOLLOW: "theo lệnh sàn thử đã đóng" };
 const JENV = [["live", "Binance thật", "Thật"], ["demo", "Demo", "Demo"], ["paper", "Sàn thử", "Sàn thử"], ["all", "Tất cả", "Tất cả"]];
 const jT = (s) => (s ? Date.parse(/Z$/.test(s) ? s : s + "Z") : NaN);
 function jRows(LG, X) {
   const M = new Map(), put = (r) => { if (!r.t2 || !(r.q > 0) || !(r.e > 0)) return; const k = `${r.env}|${r.k}|${String(r.t2).slice(0, 19)}`; if (!M.has(k)) M.set(k, r); };
   for (const a of LG?.rows || []) put({ env: a[0], strat: a[1], k: a[2], side: a[3], q: a[4], e: a[5], x: a[6], t1: a[7], t2: a[8], fee: a[9], fund: a[10], pnl: a[11], why: a[12], lv: a[13], R: a[14], tot: a[15], note: a[16] });
   for (const h of X?.live?.hist || []) put({ env: h.env || "demo", strat: h.strat || "hook", k: h.k || String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note });
+  for (const h of X?.live?.mh || []) put({ env: h.env || "live", strat: "man", k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: 1 });      // ✋ lệnh tay (chưa kịp vào sổ)
   for (const t of X?.trades || []) { const n0 = t.net && t.usd ? Math.abs(t.usd / (t.net / 1e4)) : null; if (n0) put({ env: "paper", strat: t.strat || "sec", k: t.k, side: t.side, q: n0 / t.e, e: t.e, x: t.x, t1: t.t0, t2: t.t1, fee: (t.fee || 0) * n0 / 1e4, fund: t.fu || 0, pnl: t.usd, why: t.why, lv: t.lv, R: t.shock }); }
   for (const s of ["list", "pump"]) for (const h of X?.sw?.[s]?.hist || []) put({ env: "paper", strat: s, k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.N / h.e, e: h.e, x: h.x, t1: h.t0, t2: h.t2, fee: h.fee, fund: h.fund, pnl: h.net, why: h.why, note: h.note });
   return [...M.values()].map((r) => { const N = r.q * r.e, g = r.side * r.q * (r.x - r.e); return { ...r, fee: +r.fee || 0, fund: +r.fund || 0, pnl: +r.pnl || 0, N, g, bps: (+r.pnl || 0) / N * 1e4, mv: r.side * (r.x / r.e - 1) * 100, hold: (jT(r.t2) - jT(r.t1)) / 1000, d: vnDayOf(String(r.t2).slice(0, 19)) }; })

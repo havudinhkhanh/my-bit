@@ -490,7 +490,7 @@ const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/fut
 // icon riêng cho từng tab con của Bot Phản Xạ trên thanh dưới (trước dùng chung tia sét của nút Bot → nút "Lệnh" trông y hệt nút "Bot")
 const SVG0 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const SC_SVG = { ov: SVG0('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'), ord: SVG0('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>'), pm: SVG0('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), log: SVG0('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'), set: SVG0('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>') };
-const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜" };
+const SC_ICON = { ov: "📊", live: "💵", ord: "🧾", pm: "🎯", log: "📜", set: "⚙️", hook: "🪝", sec: "⚡", lab: "🧪", learn: "🧠", ev: "📜", man: "✋" };
 function cusOpts() {
   const out = []; let g = "";
   for (const n of $("#tabs").children) {
@@ -3868,6 +3868,7 @@ function dayLessons(D, T, H, C, env) {
     }
     // chiến lược
     const by = D.by || {};
+    if (by.man?.n) L.push(["", bi(`✋ Lệnh tay (anh tự mở trên Binance): ${sg(by.man.usd)}${usd2(by.man.usd)} (${by.man.n} lệnh, thắng ${by.man.win}) – đã gộp trong tổng ngày.`, `✋ Manual trades (opened by you on Binance): ${sg(by.man.usd)}${usd2(by.man.usd)} (${by.man.n} trades, ${by.man.win} won) – included in the day total.`)]);
     if (by.hook?.n && by.sec?.n) L.push(["", bi(`Bắt râu sập ${sg(by.hook.usd)}${usd2(by.hook.usd)} (${by.hook.n} lệnh) · lướt giây ${sg(by.sec.usd)}${usd2(by.sec.usd)} (${by.sec.n} lệnh).`, `Wick Catcher ${sg(by.hook.usd)}${usd2(by.hook.usd)} (${by.hook.n} trades) · scalping ${sg(by.sec.usd)}${usd2(by.sec.usd)} (${by.sec.n} trades).`)]);
     // các lệnh lỗ sâu sau khi vào (giá đi tiếp ngược)
     const deep = T.filter((t) => t[5] <= -1000);
@@ -6102,7 +6103,7 @@ function lvwItems(D) {
   for (const p of P?.posL || []) out.paper.push({ acc: "paper", st: "open", sym: p.k.split(":")[0], side: p.side, strat: p.strat, e: p.e, q: p.q, stop: p.sl, a: lvwMs(p.t0), b: lvwMs(p.t0) + (p.h || 0) * 1000, t: lvwMs(p.t0) });
   for (const p of P?.swL || []) out.paper.push({ acc: "paper", st: "open", sym: String(p.sym).replace(/USDT$/, ""), side: -1, strat: p.k, e: p.e, q: p.q, N: p.N, upnl: p.upnl, m: p.m, a: lvwMs(p.t0), b: lvwMs(p.t1), t: lvwMs(p.t0) });
   for (const p of P?.qL || []) { const g = p.legs?.[0]; if (g) out.paper.push({ acc: "paper", st: "open", sym: String(g.sym).replace(/USDT$/, ""), side: g.side, strat: p.k, e: g.e, m: g.m, upnl: p.upnl, a: lvwMs(p.t0), b: lvwMs(p.exp), t: lvwMs(p.t0) }); }
-  out.lastL = (L?.last || []).map((h) => ({ acc, sym: String(h.sym).replace(/USDT$/, ""), side: h.side, pnl: h.pnl, net: h.net, t: lvwMs(h.t2), why: h.why }));
+  out.lastL = (L?.last || []).map((h) => ({ acc, sym: String(h.sym).replace(/USDT$/, ""), side: h.side, pnl: h.pnl, net: h.net, t: lvwMs(h.t2), why: h.why, man: h.strat === "man" }));
   out.lastP = (P?.last || []).map((h) => ({ acc: "paper", sym: String(h.k).split(":")[0], side: h.side, pnl: h.usd, net: h.net, t: lvwMs(h.t1), why: h.why }));
   return out;
 }
@@ -6131,7 +6132,7 @@ function lvwParts(D) {
   const seg = liveOn ? `<div class="lvw-seg">${[["live", L.env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", I.live.length], ["paper", bi("Sàn thử", "Paper"), I.paper.length]].map(([k, t, n]) => `<button type="button" data-lvw-tab="${k}" class="${tab === k ? "on" : ""}">${t}${n ? ` <i>${n}</i>` : ""}</button>`).join("")}</div>` : "";
   const O = A.filter((x) => x.st === "open").sort((a, b) => (b.a || 0) - (a.a || 0)), W = A.filter((x) => x.st === "wait").sort((a, b) => (a.b || 0) - (b.b || 0));
   const sec = (t, L2) => (L2.length ? `<div class="lvw-h">${t} <i>${L2.length}</i></div>${L2.map(lvwRow).join("")}` : "");
-  const lastH = last.length ? `<div class="lvw-h">${bi("Vừa đóng", "Just closed")}</div>${last.slice(0, 3).map((h) => `<a class="lvw-it done" href="#/t/${h.acc}/${enc(h.sym)}/${h.t || Date.now()}"><div class="lvw-r1"><span><b>${esc(h.sym)}</b> <b class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</b> <small class="faint">${h.t ? lvwAgo(h.t) : ""}</small></span><span class="lvw-pl ${cls(h.pnl)}">${lvw$(h.pnl || 0)}${isNum(h.net) ? `<small>${bps(h.net, 0)} bps</small>` : ""}</span></div></a>`).join("")}` : "";
+  const lastH = last.length ? `<div class="lvw-h">${bi("Vừa đóng", "Just closed")}</div>${last.slice(0, 3).map((h) => `<a class="lvw-it done" href="#/t/${h.acc}/${enc(h.sym)}/${h.t || Date.now()}"><div class="lvw-r1"><span>${h.man ? "✋ " : ""}<b>${esc(h.sym)}</b> <b class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</b> <small class="faint">${h.t ? lvwAgo(h.t) : ""}</small></span><span class="lvw-pl ${cls(h.pnl)}">${lvw$(h.pnl || 0)}${isNum(h.net) ? `<small>${bps(h.net, 0)} bps</small>` : ""}</span></div></a>`).join("")}` : "";
   const body = `${tab === "live" && L?.halt ? `<p class="lvw-halt">⛔ ${esc(L.halt)}</p>` : ""}${sec(bi("Đang mở", "Open"), O)}${sec(bi("Đang chờ khớp", "Pending"), W)}${!O.length && !W.length ? `<p class="lvw-none">${bi("Không có lệnh nào đang mở hay đang chờ – bot đang canh cú sốc.", "No open or pending trades – the bot is watching for shocks.")}</p>` : ""}${lastH}`;
   const foot = `<span>${bi("Hôm nay", "Today")} <b class="${cls(day)}">${isNum(day) ? lvw$(day) : "—"}</b>${tab === "live" && isNum(L?.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : tab === "paper" && isNum(D.paper?.eq) ? ` · ${bi("tài sản", "equity")} ${usd2(D.paper.eq)}` : ""}</span><a href="#/bot/scalp" data-lvw-go="${tab}">${bi("Bot Phản Xạ →", "Reflex Bot →")}</a>`;
   return { pill, seg, body, foot, st, n: nAll };

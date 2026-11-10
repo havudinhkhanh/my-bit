@@ -270,8 +270,8 @@ async function txBotRows() {
     const out = [];
     for (const r of A) {
       const b = String(r.k).split(":")[0], t1 = jT(r.t1), t2 = jT(r.t2);
-      if (isNum(t1)) out.push({ id: "bot1" + txH(`${r.k}|${r.t1}`), t: t1, src: "bot", cat: "fut", side: r.side > 0 ? "buy" : "sell", base: b, quote: "USDT", qty: r.q, px: r.e, usd: r.q * r.e, fee: null, ref: `${bi("Bot", "Bot")} ${(JSTRAT[r.strat] || ["", r.strat])[1]} · ${bi("mở", "open")}` });
-      if (isNum(t2)) out.push({ id: "bot2" + txH(`${r.k}|${r.t2}`), t: t2, src: "bot", cat: "fut", side: r.side > 0 ? "sell" : "buy", base: b, quote: "USDT", qty: r.q, px: r.x, usd: r.q * r.x, fee: r.fee, feeC: "USDT", pnl: r.pnl, ref: `${bi("Bot", "Bot")} ${(JSTRAT[r.strat] || ["", r.strat])[1]} · ${bi("đóng", "close")} · ${JWHY[r.why] || r.why || ""}` });
+      if (isNum(t1)) out.push({ id: "bot1" + txH(`${r.k}|${r.t1}`), t: t1, src: "bot", cat: "fut", side: r.side > 0 ? "buy" : "sell", base: b, quote: "USDT", qty: r.q, px: r.e, usd: r.q * r.e, fee: null, ref: `${r.strat === "man" ? "" : bi("Bot", "Bot") + " "}${(JSTRAT[r.strat] || ["", r.strat])[1]} · ${bi("mở", "open")}` });
+      if (isNum(t2)) out.push({ id: "bot2" + txH(`${r.k}|${r.t2}`), t: t2, src: "bot", cat: "fut", side: r.side > 0 ? "sell" : "buy", base: b, quote: "USDT", qty: r.q, px: r.x, usd: r.q * r.x, fee: r.fee, feeC: "USDT", pnl: r.pnl, ref: `${r.strat === "man" ? "" : bi("Bot", "Bot") + " "}${(JSTRAT[r.strat] || ["", r.strat])[1]} · ${bi("đóng", "close")} · ${JWHY[r.why] || r.why || ""}` });
     }
     return out;
   } catch (e) { return []; }

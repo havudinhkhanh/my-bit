@@ -502,6 +502,7 @@ export class LiveExec {
           const t2 = t.time, bot = W.some(([a, b]) => a && t2 >= a - 60e3 && R.t1 <= (b || now) + 60e3);
           if (!bot && R.eq > 0 && R.xq > 0) {
             const key = `${sym}|${R.t1}`, wy = this.S.mxWhy?.[sym], why = wy && Math.abs(wy.at - t2) < 180e3 ? wy.why : "EXCH", e = R.ev / R.eq, x = R.xv / R.xq;
+            if (!H.L[key]) (this.mNew ||= new Set()).add(key);
             H.L[key] = { id: key, strat: "man", sym, side: R.sd, q: +R.maxQ.toPrecision(10), e: +e.toPrecision(8), x: +x.toPrecision(8), pnl: +(R.pnl - R.fee).toFixed(4), gross: +R.pnl.toFixed(4), fee: +R.fee.toFixed(4), t1: iso(R.t1), t2: iso(t2), why, env,
               N: +(R.eq * e).toFixed(4), net: +((R.pnl - R.fee) / Math.max(1e-9, R.eq * e) * 1e4).toFixed(1) };
           }
@@ -516,6 +517,11 @@ export class LiveExec {
       for (let a = a0; a < now; a += 7 * 864e5) F.push(...((await this.req("GET", "/fapi/v1/income", { incomeType: "FUNDING_FEE", startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" }).catch(() => [])) || []));
       for (const h of need) { const a = Date.parse(h.t1 + "Z"), b = Date.parse(h.t2 + "Z"); h.fund = +F.filter((x) => x.symbol === h.sym && +x.time >= a && +x.time <= b).reduce((s2, x) => s2 + +x.income, 0).toFixed(4); h.pnl = +(h.pnl + h.fund).toFixed(4); h.net = +(h.pnl / Math.max(1e-9, h.N || h.q * h.e) * 1e4).toFixed(1); }
     }
+    // lệnh tay mới đóng → sổ lệnh (Sổ lệnh, Sổ thuế, biểu đồ) + tổng kết ngày (trang Kết quả) – 1 lần cho mỗi lệnh
+    for (const key of this.mNew || []) { const h = H.L[key]; if (!h) continue; const t1 = Date.parse(h.t1 + "Z"), t2 = Date.parse(h.t2 + "Z");
+      try { this.led({ ...h, k: coin(h.sym) + ":F", nl: 1 }); } catch (e) { /* bỏ qua */ }
+      try { this.dayAdd({ env, sym: h.sym, side: h.side, pos: { q: h.q, ap: h.e, t1 }, t0: t1, lv: [{ fq: h.q }], fund: h.fund || 0, strat: "man" }, h.pnl, h.fee || 0, h.x, h.why, t2); } catch (e) { /* bỏ qua */ } }
+    this.mNew = null;
     const keep = Object.values(H.L).sort((a, b) => (a.t2 < b.t2 ? -1 : 1)).slice(-300); H.L = Object.fromEntries(keep.map((h) => [h.id, h])); H.last = now; this.save();
   }
   async mClose(sym, frac = 1) {
@@ -802,15 +808,15 @@ export class LiveExec {
     this.save();
   }
   // ---------------------------------------------------------------- kết quả theo ngày, tách riêng Demo / Thật
-  dayAdd(ev, pnl, fee, px, why) {
-    const env = ev.env, d = vnDay(Date.now()), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] });
+  dayAdd(ev, pnl, fee, px, why, at = Date.now()) {
+    const env = ev.env, d = vnDay(at), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] });
     const n0 = Math.max(1e-9, ev.pos.q * ev.pos.ap), bps = ev.pos.ap ? pnl / n0 * 1e4 : 0, coin = ev.sym.replace(/USDT$/, "");      // bps ròng: giá + phí + funding thật
     D.n++; D.usd += pnl; D.bps += bps; D.fees += fee; if (pnl > 0) D.win++; if (ev.fund) D.fund = +((D.fund || 0) + ev.fund).toFixed(4);
     const b = (D.by[ev.strat || "hook"] ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += pnl; if (pnl > 0) b.win++;
     const k = (D.coins[coin] ||= [0, 0]); k[0]++; k[1] += pnl;
     const w = (D.why[why] ||= [0, 0]); w[0]++; w[1] += pnl;
     const T = (((this.S.dtr ||= {})[env] ||= {})[d] ||= []);
-    if (T.length < 400) T.push([iso(Date.now()).slice(11, 16), coin + ":F", ev.side, ev.strat || "hook", +pnl.toFixed(3), +bps.toFixed(1), why, ev.lv.filter((l) => l.fq > 0).length || null, Math.round((Date.now() - (ev.pos.t1 || ev.t0)) / 1000)]);
+    if (T.length < 400) T.push([iso(at).slice(11, 16), coin + ":F", ev.side, ev.strat || "hook", +pnl.toFixed(3), +bps.toFixed(1), why, ev.lv.filter((l) => l.fq > 0).length || null, Math.round((at - (ev.pos.t1 || ev.t0)) / 1000)]);
   }
   dayEvent(m) { const env = this.env(), d = vnDay(Date.now()), E = ((this.S.days ||= {})[env] ||= {}), D = (E[d] ||= { n: 0, usd: 0, bps: 0, fees: 0, win: 0, by: {}, coins: {}, why: {}, ev: [] }); D.ev = [...(D.ev || []).slice(-9), [iso(Date.now()).slice(11, 16), String(m).slice(0, 160)]]; }
   daysOut(env) {
