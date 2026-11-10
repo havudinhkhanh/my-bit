@@ -4875,3 +4875,35 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .mbd .mxn{color:var(--ink-3);opacity:1}
 @media (max-width:420px){.cx-px{grid-template-columns:1fr auto 1fr}.cx-px>div:last-child{display:none}.cx-hero b{font-size:26px}}
 .mbd .mbd-w:focus{outline:0}
+/* ===== THANH ĐIỀU HƯỚNG – mục đang chọn nhận ra ngay (v3: khối màu đặc, không vạch / viền) =====
+   máy tính: mục đang chọn = viên nền đặc (--sel) + chữ đậm tương phản, biểu tượng ánh đồng; rê chuột = nền tô nhẹ
+   điện thoại: kiểu "viên chỉ báo" của app native – biểu tượng nằm trong viên đặc bung ra mượt, chữ đậm; mục khác chìm xuống */
+@media (min-width:980px){
+  .tabs a.on::before{display:none!important}
+  .tabs a{transition:background-color .16s var(--ease-out,ease),color .16s var(--ease-out,ease)}
+  .tabs a:not(.on):hover{background:var(--fill)!important;color:var(--ink)!important}
+  .tabs a.on{background:var(--sel)!important;color:var(--sel-ink)!important;box-shadow:0 6px 16px -10px rgba(0,0,0,.55)}
+  .tabs a.on .nav-t{font-weight:650;color:inherit!important}
+  .tabs a.on svg{color:color-mix(in srgb,var(--brass,#d9a441) 85%,var(--sel-ink))!important}
+  :root[data-theme="dark"] .tabs a.on svg{color:color-mix(in srgb,var(--brass,#d9a441) 70%,var(--sel-ink))!important}
+  .tabs a:not(.on) svg{color:var(--ink-3)}
+  .tabs a:not(.on):hover svg{color:var(--ink-2)}
+}
+@media (max-width:979px){
+  .tabs{box-shadow:0 -8px 24px -12px rgba(0,0,0,.25)!important;border-top-color:transparent!important}
+  .tabs a.nav-m,.tabs .nav-more{position:relative;color:var(--ink-3)!important;font-weight:500}
+  .tabs a.nav-m svg,.tabs .nav-more svg{position:relative;z-index:1;color:var(--ink-3)!important;transition:color .2s ease,transform .3s var(--ease-spring,cubic-bezier(.32,.72,0,1))}
+  .tabs a.nav-m::before,.tabs .nav-more::before{content:"";position:absolute;left:50%;top:3px;width:54px;height:30px;margin-left:-27px;border-radius:999px;background:var(--sel);opacity:0;transform:scaleX(.45);
+    transition:transform .32s var(--ease-spring,cubic-bezier(.32,.72,0,1)),opacity .2s ease;z-index:0;pointer-events:none}
+  .tabs a.nav-m.on::before,.tabs .nav-more.on::before{opacity:1;transform:none}
+  .tabs a.nav-m.on svg,.tabs .nav-more.on svg{color:var(--sel-ink)!important}
+  .tabs a.nav-m.on,.tabs .nav-more.on{color:var(--ink)!important;font-weight:700}
+  .tabs a.nav-m.on .nav-s{color:var(--ink)!important}
+  .tabs a.nav-m:active svg{transform:scale(.9)}
+  .tabs a.nav-cus::after,.tabs a.nav-auto::after{z-index:2}
+  .tabs a.par:not(.on) svg{color:var(--ink-2)!important}
+}
+@media (max-width:979px){
+  .tabs a.nav-m svg,.tabs .nav-more svg{margin:2px 0 4px}
+  .tabs a.nav-m::before,.tabs .nav-more::before{top:5px;height:28px}
+}
