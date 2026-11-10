@@ -1077,7 +1077,7 @@ function hkSvg(K, t, ts, tf, tx, W0) {
   const head = `<div class="hk-hd"><span class="hk-k"><i style="background:${css("--brand")}"></i>${bi("vào", "in")} ${hms(t.t0)} · ${px(t.e)}</span><span class="hk-k"><i style="background:${win ? up : dn}"></i>${bi("ra", "out")} ${hms(t.t1)} · ${px(t.x)}</span><b class="${win ? "up" : "down"}">${isNum(res) ? `${res >= 0 ? "+" : "−"}${usd2(Math.abs(res))}` : ""}${isNum(bpsV) ? ` <small>${bpsV >= 0 ? "+" : ""}${nf(bpsV / 100, 2)}%</small>` : ""}</b></div>`;
   const id = "hk" + Math.random().toString(36).slice(2, 8);
   window.__hkK = window.__hkK || {}; window.__hkK[id] = { K, X0: pl, cw, n, H, pt, pb };
-  return `<div class="sc-hk hk2w" data-hk="${id}">${head}<div class="hk-box">${s}<div class="hk-tip" hidden></div></div>${t.c0 ? "" : `<p class="faint sc-cap">${bi("Lệnh cũ – chưa lưu giá sau sốc & mức chờ.", "Older trade – post-shock price & levels not stored.")}</p>`}</div>`;
+  return `<div class="sc-hk hk2w" data-hk="${id}">${head}<div class="hk-box">${s}<div class="hk-tip" hidden></div></div>${t.c0 || t.man ? "" : `<p class="faint sc-cap">${bi("Lệnh cũ – chưa lưu giá sau sốc & mức chờ.", "Older trade – post-shock price & levels not stored.")}</p>`}</div>`;
 }
 // rê chuột / chạm trên biểu đồ nến quanh lệnh: đường dọc + ô giá của nến đó
 document.addEventListener("pointermove", (e) => {

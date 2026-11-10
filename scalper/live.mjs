@@ -276,6 +276,7 @@ export class LiveExec {
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
       await this.accrue();
       await this.mManage().catch((e) => this.err("hẹn đóng lệnh tay", e));
+      await this.mHist().catch((e) => { if (!this.mhErrAt || Date.now() - this.mhErrAt > 900e3) { this.mhErrAt = Date.now(); this.err("đọc lệnh tay đã đóng", e); } });
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
@@ -467,8 +468,55 @@ export class LiveExec {
       if (!why) continue;
       delete L[sym]; this.save();
       this.say(`⏱ Lệnh tay ${coin(sym)}: ${why} → đóng theo hẹn`, "info");
-      await this.mClose(sym, 1);
+      this.mWhyNext = x.pk && !(x.exp && Date.now() >= x.exp) ? "FOLLOW" : "TIMER"; await this.mClose(sym, 1);
     }
+  }
+  // 🧾 LỆNH TAY ĐÃ ĐÓNG: dựng lại từ sổ khớp lệnh của Binance (userTrades) – mỗi lần vị thế từ 0 → mở → về 0 = 1 lệnh; lời/lỗ, phí, funding lấy đúng số của sàn.
+  // Mã có lời/lỗ thực hiện (income REALIZED_PNL) mới đọc sổ khớp; bỏ các lệnh trùng thời gian với lệnh của bot cùng mã. 5 phút/lần, lần đầu đọc lại 30 ngày.
+  async mHist() {
+    const env = this.env(); if (!this.keys(env) || Date.now() - (this.mhAt || 0) < 300e3) return; this.mhAt = Date.now();
+    const H = ((this.S.mh ||= {})[env] ||= { last: Date.now() - 30 * 864e5, L: {} }), now = Date.now(), syms = new Set();
+    for (let a = H.last - 2 * 3600e3; a < now; a += 7 * 864e5) {
+      const I = await this.req("GET", "/fapi/v1/income", { incomeType: "REALIZED_PNL", startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" });
+      for (const x of I || []) syms.add(x.symbol);
+    }
+    if (!syms.size) { H.last = now; return; }
+    const ms = (t) => (t ? (typeof t === "number" ? t : Date.parse(String(t) + (String(t).endsWith("Z") ? "" : "Z"))) : 0);
+    const win = (sym) => [...(this.S.hist || []).filter((h) => h.sym === sym).map((h) => [ms(h.t1 || h.ts), ms(h.t2)]), ...this.active().filter((e) => e.sym === sym).map((e) => [e.t0, now]),
+      ...Object.values(this.S.swp || {}).filter((p) => p.sym === sym).map((p) => [p.t0, p.t2 || now]), ...Object.values(this.S.qp || {}).filter((p) => p.legs?.some((L) => L.sym === sym)).map((p) => [p.t0, p.t2 || now])];
+    const cur = new Map((this.S.man?.pos || []).map((p) => [p.sym, p.amt]));
+    for (const sym of syms) {
+      const T = [];
+      for (let a = H.last - 7 * 864e5; a < now; a += 7 * 864e5) { const R = await this.req("GET", "/fapi/v1/userTrades", { symbol: sym, startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" }); T.push(...(R || [])); }
+      T.sort((x, y) => x.time - y.time || x.id - y.id);
+      const sq = (t) => (t.side === "BUY" ? 1 : -1) * +t.qty;
+      let pos = (cur.get(sym) || 0) - T.reduce((s2, t) => s2 + sq(t), 0); if (Math.abs(pos) < 1e-9) pos = 0;
+      let R = null; const W = win(sym);
+      for (const t of T) {
+        const q = sq(t), before = pos; pos = +(pos + q).toFixed(10);
+        if (before === 0 && pos !== 0) R = { sd: Math.sign(pos), t1: t.time, eq: 0, ev: 0, xq: 0, xv: 0, pnl: 0, fee: 0, maxQ: 0 };
+        if (!R) continue;
+        const open = Math.sign(q) === R.sd; if (open) { R.eq += Math.abs(q); R.ev += Math.abs(q) * +t.price; } else { R.xq += Math.abs(q); R.xv += Math.abs(q) * +t.price; }
+        R.pnl += +t.realizedPnl || 0; R.fee += /^(USDT|USDC|FDUSD)$/.test(t.commissionAsset) ? +t.commission : +t.commission * (this.pxm?.[t.commissionAsset] || 0); R.maxQ = Math.max(R.maxQ, Math.abs(pos));      // phí trả bằng BNB → quy USDT theo giá spot
+        if (pos === 0 || Math.sign(pos) !== R.sd) {
+          const t2 = t.time, bot = W.some(([a, b]) => a && t2 >= a - 60e3 && R.t1 <= (b || now) + 60e3);
+          if (!bot && R.eq > 0 && R.xq > 0) {
+            const key = `${sym}|${R.t1}`, wy = this.S.mxWhy?.[sym], why = wy && Math.abs(wy.at - t2) < 180e3 ? wy.why : "EXCH", e = R.ev / R.eq, x = R.xv / R.xq;
+            H.L[key] = { id: key, strat: "man", sym, side: R.sd, q: +R.maxQ.toPrecision(10), e: +e.toPrecision(8), x: +x.toPrecision(8), pnl: +(R.pnl - R.fee).toFixed(4), gross: +R.pnl.toFixed(4), fee: +R.fee.toFixed(4), t1: iso(R.t1), t2: iso(t2), why, env,
+              N: +(R.eq * e).toFixed(4), net: +((R.pnl - R.fee) / Math.max(1e-9, R.eq * e) * 1e4).toFixed(1) };
+          }
+          R = pos !== 0 ? { sd: Math.sign(pos), t1: t.time, eq: Math.abs(pos), ev: Math.abs(pos) * +t.price, xq: 0, xv: 0, pnl: 0, fee: 0, maxQ: Math.abs(pos) } : null;      // đảo chiều trong 1 lệnh khớp → mở lệnh mới
+        }
+      }
+    }
+    // funding trong thời gian giữ (đọc 1 lần cho các lệnh chưa có)
+    const need = Object.values(H.L).filter((h) => h.fund == null);
+    if (need.length) {
+      const a0 = Math.min(...need.map((h) => Date.parse(h.t1 + "Z"))), F = [];
+      for (let a = a0; a < now; a += 7 * 864e5) F.push(...((await this.req("GET", "/fapi/v1/income", { incomeType: "FUNDING_FEE", startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" }).catch(() => [])) || []));
+      for (const h of need) { const a = Date.parse(h.t1 + "Z"), b = Date.parse(h.t2 + "Z"); h.fund = +F.filter((x) => x.symbol === h.sym && +x.time >= a && +x.time <= b).reduce((s2, x) => s2 + +x.income, 0).toFixed(4); h.pnl = +(h.pnl + h.fund).toFixed(4); h.net = +(h.pnl / Math.max(1e-9, h.N || h.q * h.e) * 1e4).toFixed(1); }
+    }
+    const keep = Object.values(H.L).sort((a, b) => (a.t2 < b.t2 ? -1 : 1)).slice(-300); H.L = Object.fromEntries(keep.map((h) => [h.id, h])); H.last = now; this.save();
   }
   async mClose(sym, frac = 1) {
     if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – vị thế gộp chung, đóng ở thẻ lệnh của bot`, "info"); return; }
@@ -480,6 +528,7 @@ export class LiveExec {
     const p = { symbol: sym, side: amt > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), newOrderRespType: "RESULT" };
     if ((P.positionSide || "BOTH") !== "BOTH") p.positionSide = P.positionSide; else p.reduceOnly = "true";
     const o = await this.req("POST", "/fapi/v1/order", p), ax = +o.avgPrice || +P.markPrice, pnl = (ax - +P.entryPrice) * (amt > 0 ? 1 : -1) * q;
+    (this.S.mxWhy ||= {})[sym] = { why: this.mWhyNext || "MANUAL", at: Date.now() }; this.mWhyNext = null; this.mhAt = 0;
     this.say(`✋ Anh đóng ${q >= q0 ? "" : `${Math.round(q / q0 * 100)}% `}lệnh tay ${coin(sym)} ${amt > 0 ? "Long" : "Short"} ${q.toFixed(F.sd)} @ ${ax} · ước ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (chưa trừ phí)`, pnl >= 0 ? "win" : "loss");
     if (q >= q0) await this.mCancel(sym, () => true);      // đóng hết → huỷ cắt lỗ / chốt lời còn treo của mã này
     this.mAt = 0; await this.mSync(true);
@@ -786,7 +835,7 @@ export class LiveExec {
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: vnDay(Date.now()), pnl: D.d === vnDay(Date.now()) ? +D.pnl.toFixed(2) : 0 }])),      // sang ngày mới chưa có lệnh đóng → 0, không hiện lời ngày cũ tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
+      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, mh: Object.values(this.S.mh?.[this.env()]?.L || {}).slice(-150), walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
       eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
 }
