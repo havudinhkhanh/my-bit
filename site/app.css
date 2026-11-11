@@ -5219,3 +5219,28 @@ html:has(body.pn-sheet),body.pn-sheet{overflow:hidden!important;overscroll-behav
 body.pn-sheet .pnav,body.pn-sheet .pn-scroll{overscroll-behavior:contain}
 body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .pnshade{touch-action:none}
+/* ===== kéo lên từ thanh tab dưới: nhãn gợi ý (trái = tìm kiếm, phải = thông báo) ===== */
+.tp-hint{position:fixed;z-index:70;display:flex;align-items:center;gap:7px;height:38px;padding:0 15px;border-radius:999px;background:var(--surface);color:var(--ink);font-weight:650;font-size:.875rem;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);pointer-events:none;transform-origin:bottom center;opacity:calc(.35 + var(--p,0) * .65);transform:translateY(calc((1 - var(--p,0)) * 14px)) scale(calc(.82 + var(--p,0) * .18));transition:background .15s,color .15s}
+.tp-hint.l{left:16px;transform-origin:bottom left}.tp-hint.r{right:16px;transform-origin:bottom right}
+.tp-hint svg{width:17px;height:17px;flex:none}
+.tp-hint.go{background:var(--sel);color:var(--sel-ink);animation:tpPop .32s cubic-bezier(.34,1.56,.64,1)}
+.tp-hint.out{opacity:0;transition:opacity .18s}
+@keyframes tpPop{0%{transform:scale(.94)}60%{transform:scale(1.06)}100%{transform:scale(1)}}
+/* ===== tấm thông báo nảy kiểu iOS: phần nền kéo dài xuống dưới mép màn hình để lúc nảy quá đích không hở khe ===== */
+@media (max-width:979px){.ntp-in.jl{animation:none!important;box-shadow:0 -6px 30px rgba(0,0,0,.18),0 80px 0 0 var(--surface)!important}}
+/* ===== 🔍 tìm nhanh trên điện thoại kiểu iOS: danh sách ở trên, ô tìm nằm ĐÁY – ngay trên bàn phím (bám vùng màn hình đang thấy) ===== */
+@media (pointer:coarse),(max-width:600px){
+  .cmdk-in{position:fixed!important;left:0;right:0;top:var(--vvt,0px)!important;height:var(--vvh,100dvh)!important;width:100%!important;border-radius:0!important;background:var(--bg)!important;box-shadow:none!important}
+  .cmdk-l{order:1;flex:1 1 auto;padding:6px 10px 8px!important}
+  .cmdk-q{order:2;flex:none!important;display:flex;align-items:center;gap:10px;margin:0!important;height:auto!important;padding:8px 12px calc(10px + env(safe-area-inset-bottom,0px))!important;border:0!important;border-radius:0!important;background:color-mix(in srgb,var(--bg) 86%,transparent)!important;-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);position:relative}
+  body.kb-on .cmdk-q{padding-bottom:8px!important}
+  .cmdk-q>svg{display:block!important;position:absolute;left:26px;top:50%;margin-top:-9px;width:18px;height:18px;color:var(--ink-3);pointer-events:none;z-index:1}
+  body:not(.kb-on) .cmdk-q>svg{margin-top:calc(-9px - env(safe-area-inset-bottom,0px) / 2)}
+  .cmdk-q input{flex:1;height:44px!important;padding:0 14px 0 40px!important;border-radius:999px!important;background:var(--surface)!important;box-shadow:0 2px 10px rgba(0,0,0,.08)!important;font-size:17px!important}
+  .cmdk-x{padding:6px 4px!important;font-weight:600}
+  .cmdk-f{display:none!important}
+  .cmdk-l .cmdk-i{background:var(--surface);margin-bottom:4px;border-radius:12px}
+  .cmdk-l .cmdk-i.on{background:var(--fill)}
+}
+@media (pointer:coarse),(max-width:600px){.cmdk-i kbd,.cmdk-i .cmdk-k{display:none!important}}

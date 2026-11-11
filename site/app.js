@@ -991,6 +991,39 @@ function swIn(dir) {
   };
   addEventListener("touchend", end); addEventListener("touchcancel", end);
 })();
+// ---------------------------------------------------------------- KÉO LÊN TỪ THANH TAB DƯỚI (điện thoại): nửa TRÁI = 🔍 tìm kiếm · nửa PHẢI = 🔔 thông báo
+// thanh tab nhích lên theo ngón tay (có lực cản), nhãn nhỏ phía trên lớn dần; qua ngưỡng thì rung nhẹ, thả ra là mở (bảng nảy kiểu iOS). Kéo chưa tới / kéo ngang = như chạm thường.
+(function tabsPull() {
+  const T = document.getElementById("tabs"); if (!T) return;
+  const mq = matchMedia("(max-width:979px)"), TH = 56;
+  let st = null, hint = null;
+  const ico = { s: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>', n: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' };
+  const mkHint = (side) => { hint?.remove(); hint = document.createElement("div"); hint.className = `tp-hint ${side === "s" ? "l" : "r"}`; hint.setAttribute("aria-hidden", "true");
+    hint.innerHTML = `${ico[side]}<span>${side === "s" ? bi("Tìm kiếm", "Search") : bi("Thông báo", "Notifications")}</span>`; hint.style.bottom = `${Math.round(innerHeight - T.getBoundingClientRect().top + 10)}px`; document.body.appendChild(hint); };
+  T.addEventListener("touchstart", (e) => {
+    st = null; if (!mq.matches || e.touches.length !== 1 || document.body.classList.contains("cmdk-on") || $("#bellBox")) return;
+    const x = e.touches[0].clientX, side = x < innerWidth / 2 ? "s" : "n";
+    if (side === "n" && !$("#bell")) return;      // chưa đăng nhập: không có thông báo
+    st = { x0: x, y0: e.touches[0].clientY, side, t: Date.now(), dy: 0, lock: false, armed: false };
+  }, { passive: true });
+  T.addEventListener("touchmove", (e) => {
+    if (!st) return; const dx = e.touches[0].clientX - st.x0, dy = e.touches[0].clientY - st.y0;
+    if (!st.lock) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { st = null; return; } if (dy > -10) return; st.lock = true; mkHint(st.side); T.style.transition = "none"; }
+    if (e.cancelable) e.preventDefault();
+    const d = Math.max(0, -dy), p = Math.min(1, d / TH), lift = 22 * (1 - 1 / (d / 40 + 1));      // lực cản: càng kéo càng nặng, tối đa ~22px
+    st.dy = d; T.style.transform = `translateY(${-lift}px)`;
+    hint.style.setProperty("--p", p.toFixed(3)); if (p >= 1 && !st.armed) { st.armed = true; hint.classList.add("go"); navigator.vibrate?.(8); } else if (p < 1 && st.armed) { st.armed = false; hint.classList.remove("go"); }
+  }, { passive: false });
+  const end = () => {
+    if (!st) return; const s = st; st = null; if (!s.lock) return;
+    const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => removeEventListener("click", eat, { capture: true }), 400);      // không coi là chạm vào nút tab
+    T.style.transition = ""; if (jellyOK()) T.animate(springKF(-22 * (1 - 1 / (s.dy / 40 + 1)), 0, (v) => ({ transform: `translateY(${v}px)` }), { z: 0.5, w: 20 }), { duration: 420, easing: "linear" }); T.style.transform = "";
+    const h = hint; hint = null; h?.classList.add("out"); setTimeout(() => h?.remove(), 200);
+    const v = s.dy / Math.max(1, Date.now() - s.t);
+    if (s.dy >= TH || (v > 0.45 && s.dy > 24)) { if (s.side === "s") cmdk(true); else bellOpen(); }      // gọi ngay trong lúc nhấc tay → iOS cho bật bàn phím
+  };
+  T.addEventListener("touchend", end); T.addEventListener("touchcancel", () => { if (st?.lock) { T.style.transform = ""; hint?.remove(); hint = null; } st = null; });
+})();
 // ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
 // Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng.
 (function swipePanel() {
@@ -5455,6 +5488,13 @@ function cmdkItems(q) {
   if (T && /^[A-Z0-9]{2,12}$/.test(T) && coinsHit.length) out.push({ g: "Thao tác", label: `Lên kế hoạch lệnh cho ${coinsHit[0].label}`, go: () => { location.hash = `#/plan/${coinsHit[0].label}`; } });
   return out;
 }
+// ---- 🍮 lò xo kiểu iOS (hơi nảy): khung hình tính sẵn từ dao động tắt dần – không phụ thuộc trình duyệt có hỗ trợ easing linear() hay không
+function springKF(from, to, fmt, { z = 0.7, w = 16, n = 40, dur = 560 } = {}) {
+  const wd = w * Math.sqrt(1 - z * z), K = [];
+  for (let i = 0; i <= n; i++) { const t = (i / n) * dur / 1000, x = 1 - Math.exp(-z * w * t) * (Math.cos(wd * t) + ((z * w) / wd) * Math.sin(wd * t)); K.push({ ...fmt(from + (to - from) * x), offset: i / n }); }
+  K[n] = { ...fmt(to), offset: 1 }; return K;
+}
+const jellyOK = () => !matchMedia("(prefers-reduced-motion: reduce)").matches && !!document.body.animate;
 function cmdk(open = true) {
   let el = $("#cmdk");
   if (!open) { if (el) { el.hidden = true; document.body.classList.remove("cmdk-on"); } return; }
@@ -5485,6 +5525,10 @@ function cmdk(open = true) {
   if (!COINS) coins().then(() => !el.hidden && el._draw());
   el.hidden = false; document.body.classList.add("cmdk-on"); popClose();
   const q = $("#cmdkQ"); q.value = ""; el._draw(); q.focus();
+  if (matchMedia("(pointer:coarse),(max-width:600px)").matches && jellyOK()) {      // điện thoại: ô tìm nảy lên từ đáy (ngay trên bàn phím), danh sách hiện mờ dần
+    $(".cmdk-q", el).animate(springKF(70, 0, (v) => ({ transform: `translateY(${v}px) scale(${1 - v / 900})` })), { duration: 560, easing: "linear" });
+    $(".cmdk-l", el).animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" });
+    $(".cmdk-in", el).animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); }
 }
 
 async function drawTicker() {
@@ -5821,6 +5865,8 @@ async function bellOpen() {
     <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}">✓ ${bi("Đọc hết", "Mark all read")}</button><a class="ntp-ab" href="#/notifications">${bi("Xem tất cả →", "See all →")}</a><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
     <div class="nt-cs"></div><div class="ntp-l">${skRows(4, 1)}</div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
+  if (matchMedia("(max-width:979px)").matches && jellyOK()) { const sh = box.querySelector(".ntp-in"); sh.classList.add("jl"); const H = sh.offsetHeight || innerHeight * 0.8;      // tấm trượt lên kiểu lò xo, nảy nhẹ quá đích rồi về
+    sh.animate(springKF(H, 0, (v) => ({ transform: `translateY(${v}px)` }), { z: 0.68, w: 15 }), { duration: 600, easing: "linear" }); }
   let items = [], f = "all";
   const draw = (chips = true) => {
     const un = items.filter((n) => !n.read_at).length;
@@ -6164,13 +6210,13 @@ function initAccountUI() {
   const isTxt = (el) => !!el && (el.tagName === "TEXTAREA" || el.isContentEditable || (el.tagName === "INPUT" && !/^(checkbox|radio|range|button|submit|reset|color|file|image)$/i.test(el.type || "")));
   let tm = 0;
   const fit = () => {
-    if (vv) root.style.setProperty("--vvh", Math.round(vv.height) + "px");
+    if (vv) { root.style.setProperty("--vvh", Math.round(vv.height) + "px"); root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px"); }      // --vvt: iOS đẩy vùng thấy lên khi mở bàn phím → bảng cố định bám theo
     const a = document.activeElement;
     if (isTxt(a) && !a.closest(".cmdk,.pal,.top")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* bỏ qua */ } }, 80); }
   };
   document.addEventListener("focusin", (e) => { if (isTxt(e.target)) { document.body.classList.add("kb-on"); setTimeout(fit, 350); } });
   document.addEventListener("focusout", () => setTimeout(() => { if (!isTxt(document.activeElement)) document.body.classList.remove("kb-on"); }, 150));
-  vv?.addEventListener("resize", fit); fit();
+  vv?.addEventListener("resize", fit); vv?.addEventListener("scroll", () => root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px")); fit();
 })();
 
 // ================================================================ MENU BẬT RA KHÔNG TRÀN MÀN HÌNH: mọi <details> mở ra một khung nổi (⋯, bộ lọc, chọn…) → đẩy khung vào trong màn hình
