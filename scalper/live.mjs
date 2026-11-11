@@ -402,7 +402,7 @@ export class LiveExec {
   // (cắt lỗ đặt trên sàn, cắt lỗ đuổi, giữ tối đa hk_h phút tính từ lúc vào)
   onEnter(id) { (this.qe ||= []).push(id); }
   async enterNow(id) {
-    const ev = this.S.ev[id]; if (!ev || ev.done) return;
+    const ev = this.S.ev[id]; if (!ev || ev.done) return; ev.ivE = 1;      // ✋ anh bấm "vào ngay" → ghi là có can thiệp
     const F = await this.filters(ev.sym); if (!F) return;
     let rem = 0;
     for (const l of ev.lv) {
@@ -868,7 +868,9 @@ export class LiveExec {
       const d = vnDay(Date.now()), DE = ((this.S.dayE ||= {})[ev.env] ||= { d, pnl: 0 }); if (DE.d !== d) { DE.d = d; DE.pnl = 0; } DE.pnl += pnl; }
     this.dayAdd(ev, pnl, fee, px, why);
     const tot0 = +this.S.wal?.[ev.env]?.total || 0;      // tổng tài sản Binance (mọi ví) lúc đóng – để tính lời/lỗ lệnh này bằng bao nhiêu % tổng tài sản
-    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined }];
+    this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined,
+      // ✋ can thiệp tay (biểu đồ "Bot tự động vs có can thiệp"): close = anh đóng · ext = gia hạn · keep = giữ / chờ hoà vốn / đỉnh nảy · enter = vào ngay; h0 = giờ giữ GỐC (phút)
+      iv: [why === "MANUAL" && "close", ev.x0 != null && "ext", ev.xm && "keep", ev.ivE && "enter"].filter(Boolean).join(",") || undefined, h0: ev.x0 != null && P.t1 ? +((ev.x0 - P.t1) / 60e3).toFixed(1) : ev.hold }];
     this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
