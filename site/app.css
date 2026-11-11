@@ -1915,7 +1915,7 @@ h4.sub{margin:12px 0 6px;font-size:.84375rem;color:var(--ink-2)}
   .shell{display:block}
   body.pn-on .shell{display:grid;grid-template-columns:300px minmax(0,1fr);max-width:calc(1920px + 300px);margin:0 auto}
   body.pn-on main{max-width:none;margin:0;min-width:0}
-  body.pn-on .pnav{display:block;position:sticky;top:var(--stick,56px);height:calc(100vh - var(--stick,56px));height:calc(100dvh - var(--stick,56px));padding:16px 0 16px 18px}
+  body.pn-on .pnav{display:block;position:sticky;top:var(--stick0,var(--stick,56px));height:calc(100vh - var(--stick0,var(--stick,56px)));height:calc(100dvh - var(--stick0,var(--stick,56px)));padding:16px 0 16px 18px}
   body:not(.pn-on) .pnav{display:none}
   body.pn-on .pn-in{height:100%}
   body.pn-has:not(.pn-on) .pnfab{display:inline-flex;position:fixed;left:calc(var(--rail) + 10px);bottom:16px}
@@ -5190,3 +5190,24 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 #app>.crumb[data-nd]>*{flex:none}
 #app>.crumb[data-nd]>.lvst{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #sup{scroll-margin-top:calc(var(--stick,100px) + 12px)}
+/* bảng lệnh đã đóng (Binance & Sàn thử): tự gọn theo bề rộng khung – không bắt cuộn ngang */
+.lvt-tw{container-type:inline-size}
+.lvt-t .lvt-xc{display:none}
+@container (max-width:960px){
+  .lvt-t th:nth-child(5),.lvt-t td:nth-child(5):not([colspan]),.lvt-t th:nth-child(7),.lvt-t td:nth-child(7):not([colspan]){display:none}
+  .lvt-t .lvt-xc{display:inline}
+  .lvt-t td.lvt-why{white-space:normal;min-width:120px}
+  .lvt-t th,.lvt-t td{padding-left:8px;padding-right:8px}
+  .lvt-t td:nth-child(3) small,.lvt-t td:nth-child(4) small{display:block}
+  .lvt-t td:nth-child(2) .jtag{display:table;margin-top:2px}
+  .lvt-t .lvt-xc{display:block;white-space:nowrap}.lvt-t .lvt-xd{display:none}
+}
+@container (max-width:780px){
+  .lvt-t th,.lvt-t td{padding-left:6px;padding-right:6px}
+  .lvt-t .lvt-xc{white-space:normal}
+  .lvt-t td.lvt-why{min-width:100px}
+  .lvt-t td:nth-child(3) small{display:block}
+  .lvt-t td:nth-child(4) small{display:block}
+  .lvt-t .lvt-pl small{display:block}
+}
+.lvt-t .lvt-xc>span{white-space:nowrap}
