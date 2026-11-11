@@ -5292,5 +5292,4 @@ body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
 @media (pointer:coarse),(max-width:600px){
   html:has(body.cmdk-on){background:var(--bg)}
   body.cmdk-on>*:not(#cmdk):not(#toasts):not(script){visibility:hidden!important}
-  .cmdk{top:-50vh!important;bottom:-50vh!important}
 }
