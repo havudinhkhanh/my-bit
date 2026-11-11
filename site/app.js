@@ -6058,7 +6058,7 @@ function initAccountUI() {
   const tabF = { backtest: "backtest" };
   $$("#tabs a").forEach((a) => { const f = tabF[a.dataset.r]; if (f && !can(f)) a.classList.add("locked"); });
   if (!can("pdf")) $("#pdfBtn")?.remove();
-  bellCount(); setInterval(bellCount, 20000);
+  bellCount(); setInterval(() => { if (!document.hidden) bellCount(); }, 60000);      // 60 giây & chỉ khi đang xem trang (chuông còn cập nhật ngay khi có thông báo đẩy / mở lại app)
   navigator.serviceWorker?.addEventListener?.("message", (e) => { if (e.data?.t === "push") bellCount(); });   // thông báo đẩy tới → chuông cập nhật ngay
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bellCount(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});

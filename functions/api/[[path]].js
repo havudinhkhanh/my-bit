@@ -82,11 +82,14 @@ function checkLimits(key, body, lim) {
 // ---------------------------------------------------------------- cổng cho bot Phản Xạ chạy ở MÁY CHỦ RIÊNG (VPS)
 // Xác thực bằng khoá riêng anh tạo trên trang (chỉ lưu mã băm SHA-256 trong D1 – khoá thật chỉ nằm trên VPS).
 // GET  → thiết lập bot Phản Xạ của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
+const RUNNER_AUTH = new Map();
 async function scalpRunner({ request, env }, sub) {
   const key = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[0-9a-f]{64}$/.test(key)) return err("Thiếu hoặc sai khoá máy chủ riêng", 401);
   const h = await sha256Hex(key);
-  const u = await env.DB.prepare("SELECT d.user_id AS id, u.role, u.plan, u.plan_until, u.status FROM user_data d JOIN users u ON u.id = d.user_id WHERE d.key = 'scalpkey' AND json_extract(d.value, '$.h') = ?").bind(h).first();
+  // nhớ kết quả xác thực 5 phút trong bộ nhớ (máy chủ bot gọi lên vài lần mỗi 10 giây – không cần hỏi D1 mỗi lần)
+  const hit = RUNNER_AUTH.get(h); let u = hit && Date.now() - hit.at < 300e3 ? hit.u : null;
+  if (!u) { u = await env.DB.prepare("SELECT d.user_id AS id, u.role, u.plan, u.plan_until, u.status FROM user_data d JOIN users u ON u.id = d.user_id WHERE d.key = 'scalpkey' AND json_extract(d.value, '$.h') = ?").bind(h).first(); if (u) { RUNNER_AUTH.set(h, { u, at: Date.now() }); if (RUNNER_AUTH.size > 50) RUNNER_AUTH.delete(RUNNER_AUTH.keys().next().value); } }
   if (!u || u.status !== "active") return err("Khoá không hợp lệ hoặc đã bị thay", 401);
   const p = u.plan_until && u.plan_until < nowIso().slice(0, 10) ? "free" : u.plan;
   if (!can({ r: u.role, p }, "bot")) return err("Bot Phản Xạ dành cho gói Pro", 402);
