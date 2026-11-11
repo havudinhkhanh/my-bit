@@ -106,7 +106,7 @@ function lvEqBind() {
 function scManual(LV) {
   if (!LV) return { L: [], at: null, ctl: false };
   const env = LV.env || "live", bot = new Set([...(LV.ev || []).map((e) => e.sym), ...(LV.qp?.open || []).flatMap((p) => p.legs.map((L) => L.sym)), ...(LV.swp?.open || []).map((p) => p.sym)]);
-  if (LV.man && LV.man.env === env) return { L: (LV.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => ({ ...p, ord: LV.man.ord?.[p.sym] || [] })), at: LV.man.at, ctl: true };
+  if (LV.man && LV.man.env === env) return { L: (LV.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => ({ ...p, ord: LV.man.ord?.[p.sym] || [] })), at: LV.man.at, ctl: true, lk: LV.man.lk || {} };
   const W = LV.wal?.[env];
   return { L: (W?.pos || []).filter((x) => !bot.has(x[0])).map(([sym, amt, ep, mk, lev, up, liq, mt, im]) => ({ sym, amt, ep, mk, lev, up, liq, mt, im, ord: [] })), at: W?.at || null, ctl: false };
 }
@@ -1344,21 +1344,28 @@ async function viewScalp() {
   // 📋 chép lệnh sàn thử → Binance: bảng xác nhận (số tiền, đòn bẩy; xem lại cắt lỗ / chốt lời / giờ đóng sẽ chép) → máy chủ riêng vào lệnh thị trường
   $$("[data-mcopy]").forEach((b) => (b.onclick = async () => {
     const d = b.dataset, sym = d.sym, sd = +d.sd, c0 = sym.replace(/USDT$/, ""), m = SCL.px[c0 + ":F"] || null, real = LV?.env === "live", exp = +d.exp || 0, sl = +d.sl || 0, tp = +d.tp || 0;
-    const busy = MAN.L.some((p) => p.sym === sym) || (LV?.ev || []).some((e) => e.sym === sym) || (LV?.swp?.open || []).some((p) => p.sym === sym);
-    if (busy) { toast(bi(`Đang có vị thế ${c0} trên Binance – không chép để khỏi gộp chung`, `There's already a ${c0} position on Binance – not copying to avoid merging`), { type: "warn" }); return; }
+    if ((LV?.ev || []).some((e) => e.sym === sym) || (LV?.swp?.open || []).some((p) => p.sym === sym)) { toast(bi(`Bot đang có lệnh ${c0} trên Binance – không chép (sàn gộp chung vị thế với bot)`, `The bot holds ${c0} on Binance – not copying (the exchange would merge it with the bot's position)`), { type: "warn" }); return; }
+    // đã có lệnh tay cùng mã: cùng chiều → chép = vào thêm để BÌNH QUÂN giá; ngược chiều (chế độ 1 chiều) → lệnh mới sẽ đóng bớt vị thế cũ → không chép
+    const P0 = MAN.L.find((p) => p.sym === sym && (p.ps === "BOTH" || !p.ps || p.ps === (sd > 0 ? "LONG" : "SHORT")));
+    if (P0 && (P0.ps === "BOTH" || !P0.ps) && Math.sign(P0.amt) !== sd) { toast(bi(`Đang có ${c0} ${P0.amt > 0 ? "Long" : "Short"} – ngược chiều lệnh này, chép sẽ đóng bớt vị thế đó chứ không mở lệnh mới`, `You hold ${c0} ${P0.amt > 0 ? "Long" : "Short"} – opposite to this trade; copying would reduce it instead of opening`), { type: "warn" }); return; }
+    const avg = !!P0, q0 = avg ? Math.abs(P0.amt) : 0, e0 = avg ? P0.ep : 0, lk0 = avg && MAN.lk?.[sym];
+    const avgRow = (usd) => { const mm = m || P0?.mk; if (!avg || !(mm > 0) || !(usd > 0)) return ""; const q1 = usd / mm, e1 = (q0 * e0 + q1 * mm) / (q0 + q1); return `<tr><td>${bi("Giá vào bình quân", "Average entry")}<small>${bi("vị thế sau khi gộp", "position after merging")}</small></td><td>${px(e0)} → <b>~${px(e1)}</b><small>${qty(q0)} → ${qty(q0 + q1)}</small></td></tr>`; };
     const left = exp > Date.now() ? (() => { const s2 = (exp - Date.now()) / 1000; return s2 >= 86400 ? `${Math.floor(s2 / 86400)} ${bi("ngày", "d")} ${Math.floor((s2 % 86400) / 3600)} ${bi("giờ", "h")}` : `${Math.floor(s2 / 3600)} ${bi("giờ", "h")} ${Math.floor((s2 % 3600) / 60)} ${bi("phút", "m")}`; })() : null;
     const n0 = Math.max(6, Math.round(+d.n || 10));
     const body = `<p style="margin:2px 0 8px;text-align:center"><b>${esc(c0)}</b> <b class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</b> · ${esc(d.nm)}</p>
-      <div class="cp-g"><label>${bi("Số tiền (USDT, giá trị lệnh)", "Amount (USDT notional)")}<input type="number" id="cpUsd" min="6" step="1" value="${n0}" inputmode="decimal"></label><label>${bi("Đòn bẩy (ký quỹ cô lập)", "Leverage (isolated)")}<input type="number" id="cpLev" min="1" max="20" step="1" value="${+d.lev || 1}" inputmode="numeric"></label></div>
+      ${avg ? `<div class="mxw" style="margin:0 0 8px">➕ ${bi(`Đang có ${c0} ${sd > 0 ? "Long" : "Short"} ${qty(q0)} giá vào ${px(e0)} – chép = <b>vào thêm để bình quân giá</b>. Binance gộp thành 1 vị thế: cắt lỗ / chốt lời / hẹn đóng áp cho CẢ vị thế.`, `You already hold ${c0} ${sd > 0 ? "Long" : "Short"} ${qty(q0)} at ${px(e0)} – copying <b>adds to average the entry</b>. Binance merges it into one position: stop / target / auto-close apply to the WHOLE position.`)}</div>` : ""}
+      <div class="cp-g"><label>${bi("Số tiền (USDT, giá trị lệnh)", "Amount (USDT notional)")}<input type="number" id="cpUsd" min="6" step="1" value="${n0}" inputmode="decimal"></label><label>${avg ? bi("Đòn bẩy (giữ như vị thế đang có)", "Leverage (kept from the position)") : bi("Đòn bẩy (ký quỹ cô lập)", "Leverage (isolated)")}<input type="number" id="cpLev" min="1" max="20" step="1" value="${avg ? P0.lev || 1 : +d.lev || 1}" inputmode="numeric"${avg ? " disabled" : ""}></label></div>
       <table class="mxe"><tbody>
       <tr><td>${bi("Vào lệnh", "Entry")}<small>${bi("lệnh thị trường lúc máy chủ nhận", "market order when the server receives it")}</small></td><td>${m ? `~<b>${px(m)}</b>` : bi("giá thị trường", "market")}</td></tr>
-      <tr><td>${bi("Cắt lỗ", "Stop")}</td><td>${sl ? `<b class="down">${px(sl)}</b>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
-      <tr><td>${bi("Chốt lời", "Target")}</td><td>${tp ? `<b class="up">${px(tp)}</b>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
-      <tr><td>${bi("Tự đóng", "Auto-close")}<small>${bi("và đóng ngay khi sàn thử đóng lệnh này", "and closes as soon as paper closes this trade")}</small></td><td>${left ? `${bi("sau", "in")} <b>${left}</b>` : bi("theo sàn thử", "with paper")}</td></tr>
+      <tbody id="cpAvg">${avgRow(n0)}</tbody><tbody>
+      <tr><td>${bi("Cắt lỗ", "Stop")}${avg ? `<small>${bi("cho cả vị thế", "whole position")}</small>` : ""}</td><td>${sl ? `<b class="down">${px(sl)}</b>` : avg ? `<span class="faint">${bi("giữ như đang đặt", "keep current")}</span>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
+      <tr><td>${bi("Chốt lời", "Target")}${avg ? `<small>${bi("cho cả vị thế", "whole position")}</small>` : ""}</td><td>${tp ? `<b class="up">${px(tp)}</b>` : avg ? `<span class="faint">${bi("giữ như đang đặt", "keep current")}</span>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
+      <tr><td>${bi("Tự đóng", "Auto-close")}<small>${lk0 ? bi("vị thế đã có hẹn đóng – giữ hẹn cũ", "the position already has an auto-close – kept") : bi("và đóng ngay khi sàn thử đóng lệnh này", "and closes as soon as paper closes this trade")}</small></td><td>${lk0 ? bi("giữ như cũ", "unchanged") : left ? `${bi("sau", "in")} <b>${left}</b>` : bi("theo sàn thử", "with paper")}</td></tr>
       </tbody></table><div class="mxw">⚠️ ${real ? bi("Lệnh TIỀN THẬT trên Binance. Giá vào là giá thị trường lúc khớp nên khác giá vào của sàn thử.", "REAL-money order on Binance. Entry is the market price at fill, so it differs from the paper entry.") : bi("Lệnh trên Binance Demo.", "Order on Binance Demo.")}</div>
       <p class="mxn">${bi("Sau khi vào, lệnh hiện ở thẻ ✋ lệnh tay – sửa cắt lỗ / chốt lời / giờ đóng hoặc đóng ở đó.", "Afterwards it shows as a ✋ manual trade – edit stop / target / timer or close it there.")}</p>`;
     let usd = n0, lev = +d.lev || 1;
-    const ok = await iosSheet({ title: bi("📋 Chép lệnh sàn thử sang Binance?", "📋 Copy the paper trade to Binance?"), body, ok: real ? bi("Vào lệnh TIỀN THẬT", "Place REAL order") : bi("Vào lệnh Demo", "Place Demo order"), danger: real, cancel: bi("Thôi", "Cancel"), wait: 1200 }).then((v) => { usd = +($("#cpUsd")?.value || usd); lev = +($("#cpLev")?.value || lev); return v; });
+    if (avg) setTimeout(() => { const i = $("#cpUsd"); if (i) i.addEventListener("input", () => { const t = $("#cpAvg"); if (t) t.innerHTML = avgRow(+i.value || 0); }); }, 0);
+    const ok = await iosSheet({ title: avg ? bi(`➕ Bình quân ${c0} – chép lệnh sàn thử?`, `➕ Average ${c0} – copy the paper trade?`) : bi("📋 Chép lệnh sàn thử sang Binance?", "📋 Copy the paper trade to Binance?"), body, ok: real ? bi("Vào lệnh TIỀN THẬT", "Place REAL order") : bi("Vào lệnh Demo", "Place Demo order"), danger: real, cancel: bi("Thôi", "Cancel"), wait: 1200 }).then((v) => { usd = +($("#cpUsd")?.value || usd); lev = +($("#cpLev")?.value || lev); return v; });
     if (!ok) return;
     if (!(usd >= 5)) { toast(bi("Số tiền tối thiểu khoảng 5–6 USDT (mức nhỏ nhất của sàn)", "Minimum about 5–6 USDT (exchange minimum)"), { type: "warn" }); return; }
     lev = Math.max(1, Math.min(20, Math.round(lev || 1)));
