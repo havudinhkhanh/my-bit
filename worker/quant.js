@@ -501,7 +501,7 @@ export class QuantLab {
     for (const k of Object.keys(QS)) {
       const B = W[k]; if (!B) continue;
       o[k] = { ...this.R(k), on: this.on(k), st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
-        pos: Object.values(B.pos).map((P) => { let u = 0; for (const L of P.legs) u += L.side * L.q * ((this.mid(L.sym) || L.last || L.e) - L.e); return { id: P.id, keep: P.keep ? 1 : 0, legs: P.legs.map((L) => ({ sym: L.sym, side: L.side, e: L.e, m: this.mid(L.sym) || L.last })), N: P.N, t0: P.t0, exp: iso(P.exp), sl: P.sl, tp: P.tpDyn ?? P.tp, why: P.why, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
+        pos: Object.values(B.pos).map((P) => { let u = 0; for (const L of P.legs) u += L.side * L.q * ((this.mid(L.sym) || L.last || L.e) - L.e); return { id: P.id, keep: P.keep ? 1 : 0, xm: P.xm || null, xu: P.xu || null, xs: P.xs || null, x0: P.x0 || null, legs: P.legs.map((L) => ({ sym: L.sym, side: L.side, e: L.e, m: this.mid(L.sym) || L.last })), N: P.N, t0: P.t0, exp: iso(P.exp), sl: P.sl, tp: P.tpDyn ?? P.tp, why: P.why, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
         hist: B.hist.slice(-15).map((h) => ({ ...h, note: undefined })) };
     }
     return o;

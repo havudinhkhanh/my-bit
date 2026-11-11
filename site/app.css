@@ -5080,3 +5080,14 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .sc-mx.sc-keep:hover{background:var(--fill-h)!important;color:var(--ink)!important}
 .sc-mx.sc-keep.on{background:var(--sel)!important;color:var(--sel-ink)!important}
 .sc-mxr{flex-wrap:wrap;row-gap:6px}
+/* ⏱ bảng gia hạn / giữ lệnh */
+.ext-h{margin:0 0 8px;text-align:center}
+.ext-st{padding:9px 12px;border-radius:var(--r-in,10px);background:var(--fill);font-size:.8125rem;margin:0 0 8px}.ext-st small{display:block;color:var(--ink-3);font-size:.6875rem;margin-bottom:2px}
+.ext-g{margin:12px 0 6px;font-size:.6875rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.ext-t{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:6px}
+.ext-c{min-height:38px;border:0;border-radius:var(--r-ctl,8px);background:var(--fill);color:var(--ink);font:inherit;font-weight:600;font-size:.84375rem;cursor:pointer;transition:background-color .15s ease,transform .15s ease}
+.ext-c:hover{background:var(--fill-h)}.ext-c:active,.ext-o:active{transform:scale(.97)}
+.ext-o{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;margin:0 0 6px;padding:10px 12px;border:0;border-radius:var(--r-in,10px);background:var(--fill);color:var(--ink);font:inherit;cursor:pointer;transition:background-color .15s ease,transform .15s ease}
+.ext-o:hover{background:var(--fill-h)}.ext-o.on{background:var(--sel);color:var(--sel-ink)}.ext-o.on small{color:inherit;opacity:.75}
+.ext-o b{display:block;font-size:.875rem}.ext-o small{display:block;font-size:.75rem;color:var(--ink-3);line-height:1.35;margin-top:2px}
+.ext-ic{font-size:1.1rem;line-height:1.2}

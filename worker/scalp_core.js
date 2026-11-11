@@ -240,6 +240,34 @@ export function sgVA(y) {
   const B = sty / s2, C = (w * st2y - s2 * sy) / (w * s4 - s2 * s2);
   return { v: B + 2 * C * h, a: 2 * C };
 }
+// ⏱ GIA HẠN / GIỮ LỆNH (anh chọn trên thẻ lệnh): spec "t<phút>" dời giờ đóng · "peak" ra ở đỉnh nhịp nảy kế tiếp (tối đa thêm 60 phút)
+//   · "be" ra khi về hoà vốn (lời ≥ 15 bps, đủ phí) · "man" giữ, anh tự đóng (nhắc mỗi 30 phút, hoãn nhắc được) · "0" bỏ hết, áp lại chiến lược gốc (giờ đóng gốc)
+// o = lệnh; end = giờ đóng hiện tại (ms); setEnd(ms) ghi giờ đóng mới theo kiểu của từng loại lệnh. Trả câu mô tả để ghi nhật ký.
+export function extSet(o, spec, now, end, setEnd) {
+  spec = spec === "1" ? "man" : String(spec || "0");
+  if (o.x0 == null) o.x0 = end;
+  delete o.keep; delete o.xm; delete o.xu; delete o.pm; delete o.pmi;
+  if (spec === "0") { setEnd(o.x0); delete o.x0; delete o.xs; return "áp lại chiến lược gốc – đóng theo giờ gốc" + (now >= end ? " (đã quá giờ → đóng ngay)" : ""); }
+  if (spec[0] === "t") { const n = Math.max(1, Math.min(10080, +spec.slice(1) || 0)), e = Math.max(end, now) + n * 60e3; setEnd(e); return `gia hạn thêm ${n >= 1440 ? n / 1440 + " ngày" : n >= 60 ? n / 60 + " giờ" : n + " phút"} → đóng lúc ${new Date(e + 7 * 3600e3).toISOString().slice(11, 16)} (giờ VN)`; }
+  o.keep = 1; o.xm = spec === "peak" || spec === "be" ? spec : "man";
+  if (o.xm === "peak") { o.xu = now + 60 * 60e3; return "ra ở đỉnh nhịp nảy kế tiếp (tối đa thêm 60 phút)"; }
+  if (o.xm === "be") return "ra khi về hoà vốn (lời ≥ 15 bps, đủ phí)";
+  o.xr = now; return "giữ – anh tự đóng (nhắc mỗi 30 phút)";
+}
+// gọi mỗi lần có giá: pr = lời/lỗ hiện tại (bps). Trả lý do đóng hoặc null
+export function extExit(o, pr, now) {
+  if (!o?.xm || !Number.isFinite(pr)) return null;
+  if (o.xm === "be") return pr >= 15 ? "BE" : null;
+  if (o.xm !== "peak") return null;
+  if (o.xu && now >= o.xu) return "EXT";
+  const mi = Math.floor(now / 60000); if (mi === o.pmi) return null;
+  o.pmi = mi; const A = (o.pm ||= []); A.push(Math.round(pr)); if (A.length > 30) A.shift();
+  if (A.length < 8) return null;
+  const d1 = sgVA(A.slice(-7)), d0 = sgVA(A.slice(-8, -1));
+  return d1.v <= 0 && d1.a < 0 && d0.v > 0 ? "PEAK" : null;
+}
+// lệnh đang "giữ tay" (không giá / giờ ra) → đến lượt nhắc chưa (30 phút / lần, trừ khi anh hoãn nhắc)
+export const extRemind = (o, now) => o?.xm === "man" && !(o.xs > now) && now - (o.xr || 0) >= 30 * 60e3 ? ((o.xr = now), true) : false;
 export class ScalpCore {
   constructor(io) {
     this.io = io; this.kv = io.kv; this.where = io.where || "cf"; this.ORD = io.ord || ORD_CF;
@@ -382,11 +410,15 @@ export class ScalpCore {
         if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
       else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
       else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
-      else if (k.startsWith("kp:")) {      // 📌 giữ lệnh – KHÔNG tự đóng khi hết giờ giữ (60 phút / 7 ngày…): kp:<mã lệnh>:1 bật · :0 bỏ (hết giờ rồi thì đóng ở lượt kế)
-        const on = k.endsWith(":1"), ref = k.slice(3, -2), nm = on ? "📌 Giữ" : "📌 Bỏ giữ";
+      else if (k.startsWith("kp:") || k.startsWith("kz:")) {      // ⏱ gia hạn / giữ lệnh (kp:<mã lệnh>:<spec>) · 🔕 hoãn nhắc (kz:<mã lệnh>:<phút>)
+        const spec = k.slice(k.lastIndexOf(":") + 1), ref = k.slice(3, k.lastIndexOf(":"));
         if (/^(lv|swp|lq):/.test(ref)) this.io.onManual?.(k);
-        else { let P = null; if (ref.startsWith("pp:")) P = this.S.pos[ref.slice(3)]; else { const [t, kk, id] = ref.split(":"); P = t === "sw" ? this.S.sw?.[kk]?.pos?.[id] : t === "q" ? this.S.q?.[kk]?.pos?.[id] : null; }
-          if (P) { if (on) P.keep = 1; else delete P.keep; this.say(now, `${nm} lệnh sàn thử ${ref.split(":").slice(1).join(" ")}${on ? " – không tự đóng khi hết giờ, anh tự đóng" : " – hết giờ thì tự đóng như thường"}`, "info"); } }
+        else { let P = null, end = 0, set = null; const [t, kk, id] = ref.split(":");
+          if (t === "pp") { P = this.S.pos[ref.slice(3)]; if (P) { end = P.t0 + P.h * 1000; set = (ms) => { P.h = Math.max(1, (ms - P.t0) / 1000); }; } }
+          else if (t === "sw") { P = this.S.sw?.[kk]?.pos?.[id]; if (P) { end = Date.parse(P.t1 + "Z"); set = (ms) => { P.t1 = new Date(ms).toISOString().slice(0, 19); }; } }
+          else if (t === "q") { P = this.S.q?.[kk]?.pos?.[id]; if (P) { end = +P.exp; set = (ms) => { P.exp = ms; }; } }
+          if (P && k.startsWith("kz:")) { P.xs = +spec > 0 ? now + +spec * 60e3 : 0; this.say(now, `🔕 Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${+spec > 0 ? `hoãn nhắc ${+spec >= 60 ? +spec / 60 + " giờ" : spec + " phút"}` : "nhắc lại như thường"}`, "info"); }
+          else if (P) this.say(now, `⏱ Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${extSet(P, spec, now, end, set)}`, "info"); }
       }
       else if (/^(lv|swp|lq|mx|mst|mtp|mw|mlk|mcp):/.test(k)) this.io.onManual?.(k);      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
@@ -521,7 +553,14 @@ export class ScalpCore {
     this.bn = { at: iso(Date.now()), ...res };
   }
   // gọi mỗi 10 giây (Cloudflare: alarm; máy chủ riêng: setInterval). Trả về true nếu bot còn phải chạy ở nơi này.
+  // 🔔 nhắc lệnh sàn thử đang "giữ tay" (không giá / giờ ra) – 30 phút / lần, trừ khi anh hoãn nhắc
+  keepRemind(now) {
+    const S = this.S; if (!S) return;
+    const L = [...Object.entries(S.pos || {}).map(([id, P]) => [`pp:${id}`, P, id.split(":")[0]]), ...Object.entries(S.sw || {}).flatMap(([kk, B]) => Object.values(B?.pos || {}).map((P) => [`sw:${kk}:${P.id}`, P, P.sym])), ...Object.entries(S.q || {}).flatMap(([kk, B]) => Object.values(B?.pos || {}).map((P) => [`q:${kk}:${P.id}`, P, P.legs?.[0]?.sym]))];
+    for (const [ref, P, sym] of L) if (extRemind(P, now)) this.note(`kpr:${ref}:${Math.floor(now / 18e5)}`, 2, `🧪 SÀN THỬ · ✋ ${String(sym || "").replace(/USDT$/, "")} đang giữ – chưa có giá / giờ ra`, `Anh đã chọn giữ lệnh này, bot không tự đóng khi hết giờ. Mở thẻ lệnh để gia hạn có giờ, chọn cách ra (đỉnh nhịp nảy / hoà vốn) hoặc hoãn nhắc.`);
+  }
   async tick() {
+    try { this.keepRemind(Date.now()); } catch (e) { /* bỏ qua */ }
     await this.loadCfg(false);
     if (!this.here()) { this.closeAll("tắt / chạy ở nơi khác"); if (!this.cfg?.enabled) await this.snapshot(); return false; }
     await this.ensureFeeds();
@@ -823,6 +862,7 @@ export class ScalpCore {
     const P = this.S?.pos?.[x.id]; if (!P) return;
     const exitPx = P.side > 0 ? x.bid : x.ask;
     if (P.side > 0 ? exitPx <= P.sl : exitPx >= P.sl) this.close1(x, exitPx, "SL", now);
+    else if (P.xm && P.e > 0 && (this.xw = extExit(P, P.side * (exitPx / P.e - 1) * 1e4, now))) this.close1(x, exitPx, this.xw, now);      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
     else if (P.strat === "hook" && this.cfg.hk_tra > 0 && P.e > 0) {      // 🪝 cắt lỗ đuổi: đã lời ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời
       const pr = P.side * (exitPx / P.e - 1) * 1e4; if (!(pr <= P.pk)) P.pk = pr;
       if (P.pk >= this.cfg.hk_tra && pr <= P.pk - this.cfg.hk_trg) this.close1(x, exitPx, "TRAIL", now);

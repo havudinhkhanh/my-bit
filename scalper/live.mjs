@@ -11,7 +11,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { sgVA } from "../worker/scalp_core.js";
+import { sgVA, extSet, extExit, extRemind } from "../worker/scalp_core.js";
 
 const BASE = { live: "https://fapi.binance.com", demo: process.env.MYBIT_DEMO_BASE || "https://demo-fapi.binance.com" };     // MYBIT_DEMO_BASE: chỉ để kiểm thử với sàn giả lập
 const SAPI = process.env.MYBIT_SAPI || "https://api.binance.com";      // MYBIT_SAPI: chỉ để kiểm thử
@@ -266,7 +266,14 @@ export class LiveExec {
     this.save();
   }
   // ---------------------------------------------------------------- 2) vòng quản lý (mỗi 2 giây)
+  // 🔔 nhắc lệnh Binance đang "giữ tay" (không giá / giờ ra) – 30 phút / lần, trừ khi anh hoãn nhắc
+  remindKept() {
+    const now = Date.now();
+    for (const [o, ref] of [...this.active().map((e) => [e, "lv:" + e.id]), ...this.swOpen().map((p) => [p, "swp:" + p.id]), ...this.qOpen().map((p) => [p, "lq:" + p.id])])
+      if (extRemind(o, now)) { this.save(); this.note(`kpr:${ref}:${Math.floor(now / 18e5)}`, 2, `${LTAG(this.env())} · ✋ ${coin(o.sym || o.legs?.[0]?.sym || "")} đang giữ – chưa có giá / giờ ra`, `Anh đã chọn giữ lệnh này, bot KHÔNG tự đóng khi hết giờ (cắt lỗ trên sàn vẫn còn). Mở thẻ lệnh để gia hạn có giờ, chọn cách ra (đỉnh nhịp nảy / hoà vốn) hoặc hoãn nhắc.`); }
+  }
   async tick() {
+    try { this.remindKept(); } catch (e) { /* bỏ qua */ }
     if (this.busy) return; this.busy = true;
     try {
       while (this.q.length) { const h = this.q.shift(); try { await this.place(h); } catch (e) { this.err(`đặt lệnh ${h.id}`, e); } }
@@ -304,7 +311,9 @@ export class LiveExec {
       await this.ensureStop(ev);
       const m = this.mark(ev.k), sp = ev.stop?.px;
       const hitSoft = m && sp && (ev.side > 0 ? m <= sp * 0.995 : m >= sp * 1.005);      // sàn lẽ ra đã cắt – kiểm tra & đóng dự phòng
-      if (!ev.keep && now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");      // 📌 ev.keep: anh bấm Giữ → không tự đóng khi hết giờ
+      const xw = ev.xm && m && ev.pos.ap > 0 ? extExit(ev, ev.side * (m / ev.pos.ap - 1) * 1e4, now) : null;      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
+      if (xw) await this.close(ev, xw);
+      else if (!ev.keep && now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");      // ev.keep: anh chọn giữ → không tự đóng khi hết giờ
       else if (hitSoft) await this.close(ev, "SL");
       // cắt lỗ đuổi chỉ cho lệnh CHỜ: với "mua ngay" nó cắt mất cú hồi lớn (vòng 9, 1.863 lệnh: giữ 60 phút +125 bps/lệnh, đuổi 1,5%/1% chỉ +60) – tiền thật giữ đủ giờ
       else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !(ev.env === "live" && ev.lv.some((l) => l.mk && l.fq > 0)) && this.trail(ev, m, c)) await this.close(ev, "TRAIL");
@@ -426,10 +435,16 @@ export class LiveExec {
     } }
     else if (k.startsWith("swp:")) { const p = this.S.swp?.[k.slice(4)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng Short bơm ${p.sym} trên trang`, "info"); await this.swClose(p, "MANUAL"); } }
     else if (k.startsWith("lq:")) { const p = this.S.qp?.[k.slice(3)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng 📐 ${p.name} ${p.legs.map((L) => coin(L.sym)).join("/")} trên trang`, "info"); await this.qClose(p, "MANUAL"); } }
-    else if (k.startsWith("kp:")) {      // 📌 giữ lệnh bot trên Binance – không tự đóng khi hết giờ (cắt lỗ trên sàn / cắt lỗ đuổi vẫn chạy)
-      const on = k.endsWith(":1"), ref = k.slice(3, -2), [t, id] = [ref.split(":")[0], ref.slice(ref.indexOf(":") + 1)];
+    else if (k.startsWith("kp:") || k.startsWith("kz:")) {      // ⏱ gia hạn / giữ lệnh bot trên Binance (cắt lỗ trên sàn / cắt lỗ đuổi vẫn chạy) · 🔕 hoãn nhắc
+      const spec = k.slice(k.lastIndexOf(":") + 1), ref = k.slice(3, k.lastIndexOf(":")), t = ref.split(":")[0], id = ref.slice(ref.indexOf(":") + 1);
       const o = t === "lv" ? this.S.ev?.[id] : t === "swp" ? this.S.swp?.[id] : t === "lq" ? this.S.qp?.[id] : null;
-      if (o && !o.done) { if (on) o.keep = 1; else delete o.keep; this.save(); this.say(`📌 ${on ? "Giữ" : "Bỏ giữ"} lệnh ${coin(o.sym || o.legs?.[0]?.sym || "")} trên ${LTAG(this.env())} – ${on ? "KHÔNG tự đóng khi hết giờ, anh tự đóng trên trang" : "hết giờ thì tự đóng như thường"}`, "info"); }
+      if (o && !o.done) {
+        const nm = `${coin(o.sym || o.legs?.[0]?.sym || "")} trên ${LTAG(this.env())}`, now = Date.now();
+        if (k.startsWith("kz:")) { o.xs = +spec > 0 ? now + +spec * 60e3 : 0; this.say(`🔕 ${nm}: ${+spec > 0 ? `hoãn nhắc ${+spec >= 60 ? +spec / 60 + " giờ" : spec + " phút"}` : "nhắc lại như thường"}`, "info"); }
+        else if (t === "lv") { if (o.pos?.q > 0) this.say(`⏱ ${nm}: ${extSet(o, spec, now, o.pos.t1 + o.hold * 60e3, (ms) => { o.hold = Math.max(1, (ms - o.pos.t1) / 60e3); })}`, "info"); }
+        else this.say(`⏱ ${nm}: ${extSet(o, spec, now, o.exp, (ms) => { o.exp = ms; })}`, "info");
+        this.save();
+      }
     }
     else if (k.startsWith("mx:")) { const [, sym, fr] = k.split(":"); await this.mClose(sym, Math.min(1, Math.max(0.01, +fr || 1))); }
     else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
@@ -856,8 +871,8 @@ export class LiveExec {
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined }];
     this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
-    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy (còn lỗ sau phút 40)", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
-    this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", PEAK: "Ra ở đỉnh nhịp nảy", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
+    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
+    this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", PEAK: "Ra ở đỉnh nhịp nảy", BE: "Về hoà vốn", EXT: "Hết giờ gia hạn", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
     if (this.S.day.pnl <= -this.base() * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
   }
@@ -890,11 +905,11 @@ export class LiveExec {
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
       qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq", "sec"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
-        open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, keep: p.keep ? 1 : 0, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
-      swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, keep: p.keep ? 1 : 0, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +(p.feeA ?? p.fees ?? 0).toFixed(4), fund: p.fundA ?? null }; }) },
+        open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
+      swp: { on: !!this.cfg().sw_lv_pump, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +(p.feeA ?? p.fees ?? 0).toFixed(4), fund: p.fundA ?? null }; }) },
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: vnDay(Date.now()), pnl: D.d === vnDay(Date.now()) ? +D.pnl.toFixed(2) : 0 }])),      // sang ngày mới chưa có lệnh đóng → 0, không hiện lời ngày cũ tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
-      ev: this.active().map((e) => ({ id: e.id, keep: e.keep ? 1 : 0, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
+      ev: this.active().map((e) => ({ id: e.id, keep: e.keep ? 1 : 0, xm: e.xm || null, xu: e.xu || null, xs: e.xs || null, x0: e.x0 || null, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
       hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, mh: Object.values(this.S.mh?.[this.env()]?.L || {}).slice(-150), walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
       eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
