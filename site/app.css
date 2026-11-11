@@ -5254,3 +5254,9 @@ body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
   .cmdk-g{color:var(--ink-3)}
 }
 @media (pointer:coarse),(max-width:600px){#cmdkQ,#cmdkQ:focus{background:var(--fill-card,color-mix(in srgb,var(--ink) 9%,var(--bg)))!important}}
+/* tìm nhanh trên điện thoại: kết quả dồn xuống đáy sát ô tìm (tầm ngón cái), khớp nhất ở dưới cùng */
+@media (pointer:coarse),(max-width:600px){
+  .cmdk-l.rev{display:flex;flex-direction:column-reverse;justify-content:flex-start}
+  .cmdk-l.rev>*{flex:none}
+  .cmdk-l.rev .cmdk-g{margin:14px 12px 6px}
+}
