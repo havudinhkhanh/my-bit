@@ -5100,3 +5100,49 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .iv-k{padding:10px 12px;border-radius:var(--r-in,10px);background:var(--fill-card)}.iv-k small{display:block;font-size:.75rem;color:var(--ink-3)}.iv-k b{display:block;font-size:1.15rem;margin:2px 0}.iv-k em{font-style:normal;font-size:.6875rem;color:var(--ink-3)}
 .iv-t{margin-top:10px}.iv-d{margin-top:8px}.iv-d summary{cursor:pointer;font-size:.8125rem;color:var(--ink-2);padding:4px 0}
 @media (max-width:560px){.iv-ks{grid-template-columns:1fr 1fr}.iv-ks>:last-child{grid-column:1/-1}}
+
+/* ================================================================ MENU THẢ XUỐNG v3 (chuyển trang, bộ lọc, chọn bot…) – thẻ nổi đặc, mục bo tròn,
+   mục đang chọn = khối đặc --sel (không dấu ✓), biểu tượng trái trong ô nhỏ, mô tả 1 dòng mờ, nhóm = chữ nhỏ; giống nhau trên máy tính & điện thoại */
+.ios-menu .ios-menu-in{padding:6px!important;border-radius:14px!important;background:var(--surface)!important;color:var(--ink)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+  box-shadow:0 22px 48px -16px rgba(0,0,0,.35),0 6px 16px -6px rgba(0,0,0,.18),0 0 0 1px color-mix(in srgb,var(--ink) 6%,transparent)!important;font:500 .84375rem/1.3 inherit;
+  animation:mbMenuIn .18s var(--ease-out,cubic-bezier(.2,.8,.2,1)) both!important}
+:root[data-theme="dark"] .ios-menu .ios-menu-in{background:color-mix(in srgb,var(--ink) 4%,var(--surface))!important;box-shadow:0 24px 52px -14px rgba(0,0,0,.75),0 0 0 1px color-mix(in srgb,var(--ink) 9%,transparent)!important}
+@keyframes mbMenuIn{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+.ios-menu.out .ios-menu-in{animation:mbMenuOut .12s ease-in both!important}@keyframes mbMenuOut{to{opacity:0;transform:translateY(-3px) scale(.985)}}
+.ios-menu .ios-menu-h{padding:8px 10px 4px!important;margin:0!important;border:0!important;font-size:.6875rem!important;font-weight:650!important;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)!important;display:flex;align-items:center;gap:6px}
+.ios-menu .ios-menu-h:not(:first-child){margin-top:4px!important}
+.ios-menu .ios-menu-in>a,.ios-menu .ios-menu-in>button{display:grid!important;grid-template-columns:0 minmax(0,1fr) auto auto!important;gap:10px!important;align-items:center;min-height:38px!important;padding:7px 10px!important;border:0!important;border-radius:10px!important;
+  background:transparent!important;color:var(--ink)!important;text-align:left;font:inherit;font-size:.84375rem!important;cursor:pointer;transition:background-color .12s ease}
+.ios-menu .ios-menu-in>a+a,.ios-menu .ios-menu-in>button+button{border-top:0!important;margin-top:1px}
+.ios-menu .ios-menu-in>a:hover,.ios-menu .ios-menu-in>button:hover,.ios-menu .ios-menu-in>a:focus-visible,.ios-menu .ios-menu-in>button:focus-visible{background:var(--fill)!important;outline:0}
+.ios-menu .ios-menu-in>a[aria-checked="true"],.ios-menu .ios-menu-in>button[aria-checked="true"]{background:var(--sel)!important;color:var(--sel-ink)!important}
+.ios-menu .ios-menu-in>[aria-checked="true"] small,.ios-menu .ios-menu-in>[aria-checked="true"] .ios-ic{color:inherit!important;opacity:.72}
+.ios-menu .ios-ck{display:none!important}
+.ios-menu .ios-t{font-weight:600;min-width:0}.ios-menu .ios-t small{display:block;margin-top:1px;font-weight:450;font-size:.71875rem!important;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ios-menu .ios-ic{display:inline-grid;place-items:center;font-size:14px;color:var(--ink-3)}
+.ios-menu .ios-ic svg{width:16px;height:16px}
+.ios-menu .nav-mn-g i{background:var(--fill-h)!important}
+@media (max-width:979px){.ios-menu .ios-menu-in>a,.ios-menu .ios-menu-in>button{min-height:44px!important}}
+@media (prefers-reduced-motion:reduce){.ios-menu .ios-menu-in,.ios-menu.out .ios-menu-in{animation:none!important}}
+
+/* tab Lệnh: 1 hàng – trạng thái là thanh chuyển gọn (rãnh nền, mục chọn đặc), phương pháp là nút thả xuống ở phải */
+.sc-ofl{flex-direction:row!important;align-items:center;gap:8px!important;flex-wrap:wrap}
+.sc-ofl>.bseg.sc-om{display:inline-flex!important;gap:2px!important;padding:3px!important;border-radius:11px;background:var(--fill)!important;flex:0 1 auto;min-width:0}
+.sc-ofl>.bseg.sc-om>button{min-height:30px!important;padding:0 12px!important;border-radius:8px!important;background:transparent!important;color:var(--ink-2)!important;font-size:.8125rem;font-weight:600;box-shadow:none!important}
+.sc-ofl>.bseg.sc-om>button:hover{color:var(--ink)!important;background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+.sc-ofl>.bseg.sc-om>button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.sc-ofl>.bseg.sc-om>button small,.sc-ofl>.bseg.sc-om>button .sc-bdg{opacity:.7;margin-left:3px}
+.sc-omdd{display:inline-flex;align-items:center;gap:7px;margin-left:auto;min-height:36px;padding:0 12px;border:0;border-radius:11px;background:var(--fill);color:var(--ink);font:inherit;font-size:.8125rem;font-weight:600;cursor:pointer;transition:background-color .14s ease}
+.sc-omdd:hover,.sc-omdd[aria-expanded="true"]{background:var(--fill-h)}
+.sc-omdd.on{background:var(--sel);color:var(--sel-ink)}
+.sc-omdd .cr-dn{opacity:.6;transition:transform .18s ease}.sc-omdd[aria-expanded="true"] .cr-dn{transform:rotate(180deg)}
+@media (max-width:640px){.sc-ofl>.bseg.sc-om{flex:1 1 100%;overflow-x:auto;scrollbar-width:none}.sc-ofl>.bseg.sc-om::-webkit-scrollbar{display:none}.sc-ofl>.bseg.sc-om>button{flex:0 0 auto}.sc-omdd{margin-left:0}}
+/* bố cục mục menu: [biểu tượng] [tên + mô tả] [phải: phím tắt / số] – tên luôn chiếm phần rộng nhất */
+.ios-menu.ios-menu .ios-menu-in>a,.ios-menu.ios-menu .ios-menu-in>button{grid-template-columns:minmax(0,1fr) auto!important;grid-auto-flow:column}
+.ios-menu.ios-menu .ios-menu-in>a:has(>.ios-ic),.ios-menu.ios-menu .ios-menu-in>button:has(>.ios-ic){grid-template-columns:22px minmax(0,1fr) auto!important}
+.ios-menu.ios-menu .ios-menu-in>*>.ios-ic{grid-column:1;grid-row:1}
+.ios-menu.ios-menu .ios-menu-in>*:has(>.ios-ic)>.ios-t{grid-column:2;grid-row:1}
+.ios-menu.ios-menu .ios-menu-in>*>.ks-hint,.ios-menu.ios-menu .ios-menu-in>*>.ios-r{grid-row:1;justify-self:end;display:inline-flex;gap:2px}
+.ios-menu .ios-r .sc-bdg{font-style:normal}
+.ios-menu .ios-menu-in>[aria-checked="true"] .ks-hint kbd{background:color-mix(in srgb,var(--sel-ink) 18%,transparent)!important;color:var(--sel-ink)!important;box-shadow:none!important}
+@media (max-width:640px){.sc-ofl>.bseg.sc-om>button{padding:0 8px!important;font-size:.775rem}.sc-ofl>.bseg.sc-om>button small{margin-left:2px}}

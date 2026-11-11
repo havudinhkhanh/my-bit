@@ -460,6 +460,19 @@ function navMenu(anchor, title, list, curA) {
   addEventListener("keydown", k, true);
   addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
 }
+// menu chọn 1 trong nhiều (bộ lọc…) – cùng kiểu với menu chuyển trang
+function pickMenu(anchor, title, items, onPick) {
+  if ($("#iosMenu")) { const same = anchor.getAttribute("aria-expanded") === "true"; iosMenuClose(); if (same) return; }
+  const r = anchor.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(280, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.right - W));
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu nav-mn";
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" style="left:${left}px;width:${W}px;top:${Math.round(r.bottom + 6)}px;transform-origin:${Math.min(W - 20, Math.max(20, r.left + r.width / 2 - left))}px -8px">${title ? `<div class="ios-menu-h">${esc(title)}</div>` : ""}
+    ${items.map((x, i) => `<button type="button" role="menuitemradio" aria-checked="${!!x.on}" data-i="${i}"><span class="ios-ck">${x.on ? "✓" : ""}</span><span class="ios-t">${x.label}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span>${x.right ? `<span class="ios-r">${x.right}</span>` : ""}</button>`).join("")}</div>`;
+  document.body.appendChild(m); anchor.setAttribute("aria-expanded", "true"); anchor.dataset.iosm = "1";
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  $$("button[data-i]", m).forEach((b) => (b.onclick = () => { iosMenuClose(); onPick(items[+b.dataset.i]); }));
+  const k = (e) => { if (!$("#iosMenu")) { removeEventListener("keydown", k, true); return; } if (e.key === "Escape") { iosMenuClose(); anchor.focus?.({ preventScroll: true }); } }; addEventListener("keydown", k, true);
+  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
+}
 function navStep(d) {
   const X = navCtx(CUR_TAB), n = X && (d > 0 ? X.next : X.prev); if (!n) return false;
   const h = n.a.getAttribute("href"); if (n.a.dataset.r === "botscalp") { window.__scMode = null; }
@@ -788,7 +801,7 @@ function botSeg() {
   h.insertAdjacentHTML("beforeend", '<svg class="ttl-cv" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
   h.onclick = () => botMenu(h, false); h.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); botMenu(h, false); } };
 }
-new MutationObserver(() => botSeg()).observe(document.getElementById("app"), { childList: true });
+// 11/2026: bỏ menu ở tiêu đề "Bot Phản Xạ ▾" – thanh vị trí phía trên (‹ › · nhóm ▾ · trang ▾) đã chuyển trang được, 2 chỗ cùng việc là thừa
 
 // ================================================================ ĐIỆN THOẠI: cảm giác như ứng dụng iPhone
 // - bảng trượt từ dưới lên (chuông, tài khoản, "Thêm", thiết lập bot Phản Xạ): có vạch kéo, vuốt xuống để đóng, chạm nền tối để đóng
