@@ -5146,3 +5146,32 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .ios-menu .ios-r .sc-bdg{font-style:normal}
 .ios-menu .ios-menu-in>[aria-checked="true"] .ks-hint kbd{background:color-mix(in srgb,var(--sel-ink) 18%,transparent)!important;color:var(--sel-ink)!important;box-shadow:none!important}
 @media (max-width:640px){.sc-ofl>.bseg.sc-om>button{padding:0 8px!important;font-size:.775rem}.sc-ofl>.bseg.sc-om>button small{margin-left:2px}}
+
+/* ================================================================ BOT – thẻ con & bộ lọc cùng MỘT kiểu (v3): rãnh nền, mục chọn khối đặc, 1 dòng
+   (Phương pháp › Tất cả/Bắt râu sập/Lướt giây · Hoạt động › Sự kiện/Học · Bot › Tổng quan/Rủi ro · Kết quả › Theo ngày/Sổ lệnh/Hụt · lọc sự kiện) */
+.sc-sub2,.bh-tabs{display:inline-flex!important;flex-wrap:nowrap;gap:2px!important;padding:3px!important;margin:0 0 12px!important;border-radius:11px;background:var(--fill);max-width:100%;overflow-x:auto;scrollbar-width:none;grid-template-columns:none!important}
+.sc-sub2::-webkit-scrollbar,.bh-tabs::-webkit-scrollbar{display:none}
+.sc-sub2>button,.sc-sub2>a,.bh-tabs>a{flex:0 0 auto;flex-direction:row!important;align-items:center!important;min-height:32px;padding:0 14px!important;border:0!important;border-radius:8px!important;background:transparent!important;color:var(--ink-2)!important;font-size:.84375rem;font-weight:600;box-shadow:none!important;text-decoration:none!important;white-space:nowrap}
+.sc-sub2>button:hover,.sc-sub2>a:hover,.bh-tabs>a:hover{color:var(--ink)!important;background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+.sc-sub2>.on,.bh-tabs>.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.sc-sub2 small,.bh-tabs small{display:none!important}
+.sc-sub2 .sc-bdg{margin-left:4px}
+.bseg.sc-evf,.bseg.sc-evd{display:flex!important;flex-wrap:nowrap;gap:2px!important;padding:3px!important;margin:0 0 6px!important;border-radius:11px;background:var(--fill)!important;overflow-x:auto;scrollbar-width:none;width:fit-content;max-width:100%}
+.bseg.sc-evf::-webkit-scrollbar,.bseg.sc-evd::-webkit-scrollbar{display:none}
+.bseg.sc-evf>button,.bseg.sc-evd>button{flex:0 0 auto;min-height:28px!important;padding:0 11px!important;border-radius:8px!important;background:transparent!important;color:var(--ink-2)!important;font-size:.78rem;font-weight:600;box-shadow:none!important}
+.bseg.sc-evf>button.on,.bseg.sc-evd>button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.bseg.sc-evf>button small,.bseg.sc-evd>button small{opacity:.65;margin-left:3px}
+.sc-msum{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;padding:10px 14px;border-radius:var(--rad,14px);background:var(--surface);margin:0 0 var(--gap,14px)}
+.sc-msum-t{font-size:.75rem;font-weight:650;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em;margin-right:4px}
+.sc-msum-c{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;background:var(--fill);font-size:.8125rem;font-weight:600}.sc-msum-c small{font-size:.75rem}
+.sc-msum .btn{margin-left:auto}
+/* track items: chỉ thẻ đang chọn có nền – thẻ khác trong suốt trên rãnh (thắng các lớp unify cũ) */
+.sc-sub2>*:not(.on):not(#_),.dj-seg>a:not(.on):not(#_),.bseg.dseg.d3>a:not(.on):not(#_){background:transparent!important;color:var(--ink-2)!important;box-shadow:none!important}
+.sc-sub2>*:not(.on):not(#_):hover,.dj-seg>a:not(.on):not(#_):hover,.bseg.dseg.d3>a:not(.on):not(#_):hover{background:color-mix(in srgb,var(--ink) 6%,transparent)!important;color:var(--ink)!important}
+.dj-seg{grid-template-columns:none!important;max-width:100%!important}
+.dj-seg>a{padding:0 14px!important}
+.bseg.dseg.d3{display:flex!important;flex-wrap:nowrap;gap:2px!important;padding:3px!important;border-radius:11px;background:var(--fill)!important;width:fit-content;max-width:100%;overflow-x:auto;scrollbar-width:none;grid-template-columns:none!important;margin-bottom:12px}
+.bseg.dseg.d3>a{flex:0 0 auto;display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;min-height:32px;padding:0 14px!important;border:0!important;border-radius:8px!important;font-size:.84375rem;font-weight:600;text-decoration:none;white-space:nowrap}
+.bseg.dseg.d3>a.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.bseg.dseg.d3 .ds{display:none!important}.bseg.dseg.d3 .dl{display:inline!important}
+.bseg.dseg.d3 small{font-size:.72rem;opacity:.7;font-weight:600}
