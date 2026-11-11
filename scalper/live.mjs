@@ -174,6 +174,19 @@ export class LiveExec {
     return this.fx[sym] || null;
   }
   mark(id) { const x = this.core.M?.[id]; return x?.bid && x?.ask ? (x.bid + x.ask) / 2 : null; }
+  // ⏰ SẮP TỚI GIỜ TỰ ĐÓNG MÀ LỆNH ĐANG LỖ → thông báo hỏi anh làm gì tiếp (để bot đóng / gia hạn / ra ở đỉnh nhịp nảy / về hoà vốn / đóng ngay).
+  //    1 lần cho mỗi mốc giờ đóng (gia hạn → mốc mới → có thể hỏi lại). Lệnh anh đã chọn giữ / gia hạn kiểu khác (xm) thì không hỏi. Không tự đổi gì.
+  askNear(o, kind, id, sym, end, hold, upnl, pr) {
+    if (!o || o.keep || o.xm || !(end > 0) || !isFinite(pr) || !isFinite(upnl)) return;
+    const now = Date.now(), left = end - now, lead = Math.min(kind === "swp" ? 3 * 3600e3 : 15 * 60e3, Math.max(3 * 60e3, hold * 0.17));
+    if (left <= 0 || left > lead || pr > -0.1 || o.askAt === end) return;
+    o.askAt = end; this.save();
+    const mm = Math.max(1, Math.round(left / 60e3)), hm = new Date(end + 7 * 3600e3).toISOString().slice(11, 16), lt = mm >= 120 ? `${(mm / 60).toFixed(1)} giờ` : `${mm} phút`;
+    const tip = kind === "lv" ? " · Kiểm chứng 22 tháng: lệnh còn lỗ gần hết giờ, ra ở đỉnh nhịp nảy kế tiếp nhỉnh hơn đóng đúng giờ (+154% so với +146% cả giai đoạn)." : "";
+    this.note(`ask${kind === "lv" ? "" : kind === "swp" ? "w" : "q"}:${id}:${Math.round(end / 6e4)}`, 2,
+      `${LTAG(o.env || this.env())} · ⏰ ${coin(sym)} sắp tự đóng – đang lỗ ${upnl.toFixed(2)} USDT (${pr.toFixed(2)}%)`,
+      `Bot sẽ đóng lúc ${hm} (còn ${lt}) theo chiến lược. Anh muốn: để bot đóng đúng giờ · gia hạn thêm giờ · ra ở đỉnh nhịp nảy · chờ về hoà vốn · hay đóng ngay?${tip}`, `lv:${id}`);
+  }
   active() { return Object.values(this.S.ev).filter((e) => !e.done); }
   // ---------------------------------------------------------------- 1) phương pháp vừa đặt lệnh chờ trên sàn thử → đặt lệnh thật tương ứng
   onHook(h) { this.q.push(h); }
@@ -312,6 +325,7 @@ export class LiveExec {
       const m = this.mark(ev.k), sp = ev.stop?.px;
       const hitSoft = m && sp && (ev.side > 0 ? m <= sp * 0.995 : m >= sp * 1.005);      // sàn lẽ ra đã cắt – kiểm tra & đóng dự phòng
       const xw = ev.xm && m && ev.pos.ap > 0 ? extExit(ev, ev.side * (m / ev.pos.ap - 1) * 1e4, now) : null;      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
+      if (m && ev.pos.ap > 0) this.askNear(ev, "lv", ev.id, ev.sym, ev.pos.t1 + ev.hold * 60e3, ev.hold * 60e3, ev.side * ev.pos.q * (m - ev.pos.ap), ev.side * (m / ev.pos.ap - 1) * 100);
       if (xw) await this.close(ev, xw);
       else if (!ev.keep && now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");      // ev.keep: anh chọn giữ → không tự đóng khi hết giờ
       else if (hitSoft) await this.close(ev, "SL");
@@ -694,6 +708,7 @@ export class LiveExec {
     for (const p of this.swOpen()) {
       try {
         if (!p.keep && now >= p.exp) { await this.swClose(p, "TIME"); continue; }
+        { const m = this.core.sw?.px?.[p.sym]?.m; if (m > 0 && p.ap > 0) this.askNear(p, "swp", p.id, p.sym, p.exp, p.exp - p.t0, -p.q * (m - p.ap), -(m / p.ap - 1) * 100); }
         if (now - (p.chk || 0) < 5 * 60e3) continue;
         p.chk = now; const pr = await this.pos(p.sym);
         if (!pr.amt) await this.swClose(p, "GONE");      // sàn đã thanh lý (giá ×2) hoặc anh tự đóng trên Binance
@@ -760,6 +775,7 @@ export class LiveExec {
     for (const p of this.qOpen()) {
       try {
         if (!p.keep && now >= p.exp) { await this.qClose(p, "TIME"); continue; }
+        { let u = 0, ok = true; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym); if (!(m > 0)) { ok = false; break; } u += L.side * L.q * (m - L.ap); } if (ok && p.N > 0) this.askNear(p, "lq", p.id, p.legs[0]?.sym, p.exp, p.exp - p.t0, u, u / p.N * 100); }
         if (now - (p.chk || 0) < 5 * 60e3) continue; p.chk = now;
         let gone = 0; for (const L of p.legs) { const pr = await this.pos(L.sym); if (!pr.amt) gone++; }
         if (gone) await this.qClose(p, gone === p.legs.length ? "GONE" : "LEG");      // sàn đã cắt lỗ / anh tự đóng trên Binance → đóng nốt phần còn lại

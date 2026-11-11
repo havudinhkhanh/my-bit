@@ -36,6 +36,7 @@ export function ntRef(key) {
   if ((m = k.match(/^lv:(open|fill|close):([^:]+)/))) return { ref: "lv:" + m[2], st: m[1] === "close" ? "closed" : m[1] };
   if ((m = k.match(/^lv:sw([oc]):([^:]+)/))) return { ref: "swp:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
   if ((m = k.match(/^lv:q([oc]):([^:]+)/))) return { ref: "lq:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^lv:ask([wq]?):([^:]+)/))) return { ref: ({ "": "lv:", w: "swp:", q: "lq:" })[m[1]] + m[2], st: "ask" };      // ⏰ sắp tự đóng mà đang lỗ → hỏi việc tiếp theo
   if ((m = k.match(/^(?:lv:)?kpr:(.+):\d+$/))) return { ref: m[1], st: "keep" };
   return null;
 }
@@ -46,6 +47,7 @@ export function ntActs(r) {
   if (r.st === "open") return [{ a: "close", t: "Huỷ lệnh chờ…", u: u("close") }, { a: "show", t: "Xem lệnh", u: u("show") }];
   if (r.st === "fill") return [{ a: "close", t: "Đóng lệnh…", u: u("close") }, { a: "ext", t: "Gia hạn…", u: u("ext") }];
   if (r.st === "keep") return [{ a: "snz", t: "🔕 Nhắc sau 1 giờ", u: u("snz") }, { a: "close", t: "Đóng lệnh…", u: u("close") }];
+  if (r.st === "ask") return [{ a: "ext", t: "⏱ Gia hạn / cách ra…", u: u("ext") }, { a: "close", t: "Đóng ngay…", u: u("close") }];
   return [];
 }
 const SEV_MIN = { all: 0, normal: 1, important: 2, off: 99 };

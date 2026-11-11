@@ -5660,10 +5660,11 @@ function ntRefC(key) {
   if ((m = k.match(/^lv:(open|fill|close):([^:]+)/))) return { ref: "lv:" + m[2], st: m[1] === "close" ? "closed" : m[1] };
   if ((m = k.match(/^lv:sw([oc]):([^:]+)/))) return { ref: "swp:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
   if ((m = k.match(/^lv:q([oc]):([^:]+)/))) return { ref: "lq:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^lv:ask([wq]?):([^:]+)/))) return { ref: ({ "": "lv:", w: "swp:", q: "lq:" })[m[1]] + m[2], st: "ask" };      // ⏰ sắp tự đóng mà đang lỗ → hỏi việc tiếp theo
   if ((m = k.match(/^(?:lv:)?kpr:(.+):\d+$/))) return { ref: m[1], st: "keep" };
   return null;
 }
-const NT_ST = { open: ["⏳", "Chờ khớp", "Waiting"], fill: ["✅", "Khớp", "Filled"], keep: ["✋", "Đang giữ", "Holding"], closed: ["🏁", "Đóng", "Closed"] };
+const NT_ST = { open: ["⏳", "Chờ khớp", "Waiting"], fill: ["✅", "Khớp", "Filled"], ask: ["⏰", "Sắp đóng · lỗ", "Closing soon · red"], keep: ["✋", "Đang giữ", "Holding"], closed: ["🏁", "Đóng", "Closed"] };
 // gom các thông báo của CÙNG một lệnh (chờ → khớp → giữ → đóng) thành 1 thẻ: mốc mới nhất ở trên, các mốc trước thành dòng thời gian nhỏ
 function ntThread(L) {
   const out = [], by = new Map();
@@ -5686,6 +5687,7 @@ function ntActsHtml(n) {
   if (!n._ref || n._st === "closed") return "";
   const A = n._st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]]
     : n._st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]]
+    : n._st === "ask" ? [["ext", bi("⏱ Gia hạn / cách ra…", "⏱ Extend / exit plan…")], ["close", bi("Đóng ngay…", "Close now…")], ["show", bi("Để bot đóng · xem lệnh", "Let it close · view")]]
     : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]];
   return `<div class="nt-acts">${A.map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" data-ntdo href="#/bot/scalp?do=${d}&k=${encodeURIComponent(n._ref)}">${t}</a>`).join("")}</div>`;
 }
@@ -6024,7 +6026,7 @@ function ntBanner(list) {
   let title = em ? n.title.slice(em[0].length) : n.title || ""; const ic = em ? em[1] : ntfIcon(n.kind), pl = ntPL(title);
   if (pl) title = title.replace(/\s*[+\-−]\s?[\d.,]+\s*USDT(?:\s*\([^)]*\))?/, "");
   const real = /TIỀN THẬT|LỆNH THẬT/.test(n.title || ""), go = r && r.st !== "closed" ? `#/bot/scalp?do=show&k=${encodeURIComponent(r.ref)}` : ntTradeUrl(n) || n.url || "#/notifications";
-  const A = r && r.st !== "closed" ? (r.st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]] : r.st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]] : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]]).map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" href="#/bot/scalp?do=${d}&k=${encodeURIComponent(r.ref)}">${t}</a>`)
+  const A = r && r.st !== "closed" ? (r.st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]] : r.st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]] : r.st === "ask" ? [["ext", bi("⏱ Gia hạn / cách ra…", "⏱ Extend / exit plan…")], ["close", bi("Đóng ngay…", "Close now…")], ["show", bi("Để bot đóng · xem lệnh", "Let it close · view")]] : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]]).map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" href="#/bot/scalp?do=${d}&k=${encodeURIComponent(r.ref)}">${t}</a>`)
     : [`<a class="nt-ab" href="${esc(go)}">${bi(r ? "Xem lệnh" : "Mở", r ? "View trade" : "Open")}</a>`, ...(r ? [`<a class="nt-ab" href="#/bot/journal/${real ? "live" : "paper"}">${bi("Sổ lệnh", "Trade book")}</a>`] : [])];
   A.push(`<button type="button" class="nt-ab" data-nbrd>✓ ${bi("Đã đọc", "Read")}</button>`);
   const box = document.createElement("div"); box.className = `nb${real ? " nb-real" : ""} sev${n.sev || 0}`; box.setAttribute("role", "status");

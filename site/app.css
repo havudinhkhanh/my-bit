@@ -5393,3 +5393,4 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 @media (max-width:1180px){.pvs .pvs-a>.btn{width:auto;min-height:34px}}
 .trade>.panel{margin-top:0!important;margin-bottom:0!important}      /* 3 khung biểu đồ | sổ lệnh | đặt lệnh: cùng mép trên (trước 2 khung sau bị ".panel+.panel" đẩy xuống 14px) */
 .mdet>.panel{margin-top:0!important}      /* Cẩm nang: khung chính | khung bên cùng mép trên */
+.nt-pl b::before,.nt-st b::before{display:none!important}      /* chấm "chưa đọc" chỉ ở tiêu đề, không ở nhãn lời/lỗ */
