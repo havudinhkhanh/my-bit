@@ -678,7 +678,10 @@ async function viewScalp() {
   };
   const lvSeries = (a, b) => {      // ghép: ngày (cũ) → giờ → 5 phút (mới nhất), mỗi phần chỉ dùng trước điểm đầu của phần chi tiết hơn
     const f0 = EQ5[0]?.[0] ?? Infinity, h0 = EQHR[0]?.[0] ?? f0, ma = a / 60000, mb = b / 60000;
-    let A = [...EQDY.filter((q) => q[0] < Math.min(h0, f0)), ...EQHR.filter((q) => q[0] < f0), ...EQ5].filter((q) => q[0] >= ma && q[0] <= mb);
+    // máy chủ ghi điểm GIỜ / NGÀY = số MỚI NHẤT của giờ / ngày đó nhưng gắn mốc ĐẦU giờ / ngày → đổi về mốc CUỐI (lúc số được đo).
+    // Không đổi thì tiền nạp trong ngày bị trừ 2 lần: điểm ngày đã gồm tiền nạp, rồi lần nạp (giờ sau mốc đầu ngày) lại bị trừ tiếp → "sụt" giả bằng đúng số tiền nạp.
+    const lim = Math.min(h0, f0);
+    let A = [...EQDY.filter((q) => q[0] < lim).map((q) => [Math.min(q[0] + 1439, lim - 1), q[1]]), ...EQHR.filter((q) => q[0] < f0).map((q) => [Math.min(q[0] + 59, f0 - 1), q[1]]), ...EQ5].filter((q) => q[0] >= ma && q[0] <= mb);
     if (A.length > 800) { const k = Math.ceil(A.length / 800); A = A.filter((_, i) => i % k === 0 || i === A.length - 1); }
     return A;
   };
@@ -706,7 +709,7 @@ async function viewScalp() {
         let f = 0; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) f += FLW[fi++][1];
         if (f) { FLAT[i] = A[i][1]; FLC[i] = f > 0 ? "#3B82F6" : "#F59E0B"; }
         net += f; PL.push(A[i][1] - A[0][1] - net);
-        if (A[i - 1][1] > 0) tw *= (A[i][1] - f) / A[i - 1][1];
+        if (A[i - 1][1] > 0) { const g = (A[i][1] - f) / A[i - 1][1]; if (g > 0.05 && g < 20) tw *= g; }      // tỉ số vô lý (điểm đo lỗi / nạp-rút lệch giờ) → bỏ, không để 1 điểm làm % thành −100%
         pk = Math.max(pk, tw); const dd = (tw / pk - 1) * 100; DD.push(dd); if (dd < mdd) { mdd = dd; ddAt = i; }
       }
       const E0 = A[0][1], E1 = A[A.length - 1][1], pl = E1 - E0 - net, twr = (tw - 1) * 100, fx = lvFmtX((A[A.length - 1][0] - A[0][0]) * 60000);
