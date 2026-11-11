@@ -952,13 +952,13 @@ function swIn(dir) {
   const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   if (IOS && !STANDALONE) return;
   const EDGE = 24;
-  const blocked = () => !MOB.matches || document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
+  const blocked = () => !MOB.matches || document.body.classList.contains("pn-sheet") || document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
   let st = null;
   const ui = () => { let u = document.getElementById("swNav"); if (!u) { u = document.createElement("div"); u.id = "swNav"; u.setAttribute("aria-hidden", "true"); u.innerHTML = '<div class="sw-under"><span class="sw-t"></span></div><i class="sw-ar"></i>'; document.body.appendChild(u); } return u; };
   addEventListener("touchstart", (e) => {
     st = null; if (e.touches.length !== 1 || blocked()) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, W = innerWidth, i = navI();
-    const dir = x <= EDGE && i > 1 ? "back" : x >= W - EDGE && i < NAVH.max ? "fwd" : null;
+    const dir = x <= EDGE && i > 1 ? "back" : x >= W - EDGE && i < NAVH.max && !document.body.classList.contains("pn-has") ? "fwd" : null;      // trang có Bảng phụ: mép phải dành để kéo Bảng phụ ra (swipePanel)
     if (dir) st = { dir, x, y, t: Date.now(), dx: 0, lock: false };
   }, { passive: true });
   addEventListener("touchmove", (e) => {
@@ -988,6 +988,40 @@ function swIn(dir) {
       window.__swNav = s.dir; s.dir === "back" ? history.back() : history.forward();
       setTimeout(() => { if (window.__swNav) { window.__swNav = null; swIn(s.dir); } }, 900);      // không đổi trang được (hết lịch sử) → trả trang về chỗ cũ
     }, 170);
+  };
+  addEventListener("touchend", end); addEventListener("touchcancel", end);
+})();
+// ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
+// Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng.
+(function swipePanel() {
+  const EDGE = 24, mq = matchMedia("(max-width:1179px)");
+  const busy = () => document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
+  const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
+  let st = null;
+  addEventListener("touchstart", (e) => {
+    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || !b.classList.contains("pn-has")) return;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
+    if (!open && x >= innerWidth - EDGE && !busy()) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
+    else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
+  }, { passive: true });
+  addEventListener("touchmove", (e) => {
+    if (!st) return; const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
+    if (!st.lock) {
+      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
+      if (Math.abs(dx) < 8 || (st.m === "open" ? dx > 0 : dx < 0)) return;
+      st.lock = true; if (st.m === "open") { N.style.transform = "translateX(100%)"; S.style.opacity = "0"; document.body.classList.add("pn-sheet"); }
+      st.W = N.offsetWidth || innerWidth * 0.88;
+    }
+    if (e.cancelable) e.preventDefault();
+    st.off = st.m === "open" ? Math.max(0, Math.min(st.W, st.W + dx)) : Math.max(0, Math.min(st.W, dx));
+    N.style.transform = `translateX(${st.off}px)`; S.style.opacity = String(1 - st.off / st.W);
+  }, { passive: false });
+  const end = () => {
+    if (!st) return; const s = st; st = null; if (!s.lock) return;
+    const shown = 1 - s.off / s.W, v = (s.m === "open" ? s.W - s.off : s.off) / Math.max(1, Date.now() - s.t);
+    const open = s.m === "open" ? shown > 0.33 || v > 0.5 : !(s.off / s.W > 0.33 || v > 0.5);
+    if (open && s.m === "open") navigator.vibrate?.(6);
+    pnSheet(open);
   };
   addEventListener("touchend", end); addEventListener("touchcancel", end);
 })();
@@ -1404,8 +1438,21 @@ function pnSpy() {
   $$("#pnlist a[data-i]").forEach((a) => { const on = PN.items[+a.dataset.i] === cur; a.classList.toggle("on", on); if (on) a.scrollIntoView({ block: "nearest" }); });
   $$("#pnlist .pn-g").forEach((g) => g.classList.toggle("cur", !!g.querySelector("a.on")));
 }
+// Bảng phụ dạng tấm (điện thoại / máy tính bảng): trượt vào từ mép phải, trượt ra khi đóng; kéo dở bằng tay (vuốt mép) thì đi tiếp từ chỗ ngón tay thả
+const PN_EASE = "cubic-bezier(.2,.8,.2,1)";
+function pnSheet(v) {
+  const b = document.body, N = $("#pnav"), S = $("#pnShade"), on = b.classList.contains("pn-sheet"), still = matchMedia("(prefers-reduced-motion: reduce)").matches || !N?.animate;
+  if (v) { if (!on) b.classList.add("pn-sheet"); if (still) { N.style.transform = ""; S.style.opacity = ""; return; }
+    const x0 = N.style.transform || (on ? "none" : "translateX(100%)"), o0 = S.style.opacity || (on ? "1" : "0");
+    N.animate([{ transform: x0 }, { transform: "none" }], { duration: 240, easing: PN_EASE }); S.animate([{ opacity: o0 }, { opacity: 1 }], { duration: 240 }); N.style.transform = ""; S.style.opacity = ""; return; }
+  if (!on) return;
+  const done = () => { b.classList.remove("pn-sheet"); N.style.transform = ""; S.style.opacity = ""; };
+  if (still) return done();
+  const x0 = N.style.transform || "none", o0 = S.style.opacity || "1"; N.style.transform = "translateX(100%)"; S.style.opacity = "0";
+  N.animate([{ transform: x0 }, { transform: "translateX(100%)" }], { duration: 200, easing: PN_EASE }).onfinish = done; S.animate([{ opacity: o0 }, { opacity: 0 }], { duration: 200 });
+}
 function pnOpen(v) {
-  if (innerWidth < 1180 || document.body.classList.contains("pn-mini")) { document.body.classList.toggle("pn-sheet", v); return; }
+  if (innerWidth < 1180 || document.body.classList.contains("pn-mini")) { pnSheet(v); return; }
   pnLS("open", v); document.body.classList.toggle("pn-on", v && document.body.classList.contains("pn-has"));
   window.dispatchEvent(new Event("resize"));
 }
