@@ -994,12 +994,15 @@ function swIn(dir) {
 // ---------------------------------------------------------------- KÉO LÊN TỪ THANH TAB DƯỚI (điện thoại): nửa TRÁI = 🔍 tìm kiếm · nửa PHẢI = 🔔 thông báo
 // thanh tab nhích lên theo ngón tay (có lực cản), nhãn nhỏ phía trên lớn dần; qua ngưỡng thì rung nhẹ, thả ra là mở (bảng nảy kiểu iOS). Kéo chưa tới / kéo ngang = như chạm thường.
 (function tabsPull() {
+  // thanh tab ĐỨNG YÊN (không nhấc lên – trước bị hở nền bên dưới & nhãn đè lên thanh); một viên nhỏ mọc ra ngay phía trên chỗ ngón tay,
+  // lớn dần + trồi lên theo độ kéo, đủ ngưỡng thì tô đặc + nảy nhẹ + rung; thả ra là mở (bảng nảy kiểu iOS). Kéo chưa tới / kéo ngang = như chạm thường.
   const T = document.getElementById("tabs"); if (!T) return;
   const mq = matchMedia("(max-width:979px)"), TH = 56;
   let st = null, hint = null;
   const ico = { s: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>', n: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' };
-  const mkHint = (side) => { hint?.remove(); hint = document.createElement("div"); hint.className = `tp-hint ${side === "s" ? "l" : "r"}`; hint.setAttribute("aria-hidden", "true");
-    hint.innerHTML = `${ico[side]}<span>${side === "s" ? bi("Tìm kiếm", "Search") : bi("Thông báo", "Notifications")}</span>`; hint.style.bottom = `${Math.round(innerHeight - T.getBoundingClientRect().top + 10)}px`; document.body.appendChild(hint); };
+  const mkHint = (side, x) => { hint?.remove(); hint = document.createElement("div"); hint.className = "tp-hint"; hint.setAttribute("aria-hidden", "true");
+    hint.innerHTML = `<span class="tp-i">${ico[side]}</span><span class="tp-t">${side === "s" ? bi("Tìm kiếm", "Search") : bi("Thông báo", "Notifications")}</span>`;
+    hint.style.setProperty("--x", `${Math.max(64, Math.min(innerWidth - 64, x))}px`); hint.style.setProperty("--b", `${Math.round(innerHeight - T.getBoundingClientRect().top + 10)}px`); document.body.appendChild(hint); };
   T.addEventListener("touchstart", (e) => {
     st = null; if (!mq.matches || e.touches.length !== 1 || document.body.classList.contains("cmdk-on") || $("#bellBox")) return;
     const x = e.touches[0].clientX, side = x < innerWidth / 2 ? "s" : "n";
@@ -1008,21 +1011,21 @@ function swIn(dir) {
   }, { passive: true });
   T.addEventListener("touchmove", (e) => {
     if (!st) return; const dx = e.touches[0].clientX - st.x0, dy = e.touches[0].clientY - st.y0;
-    if (!st.lock) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { st = null; return; } if (dy > -10) return; st.lock = true; mkHint(st.side); T.style.transition = "none"; }
+    if (!st.lock) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { st = null; return; } if (dy > -10) return; st.lock = true; mkHint(st.side, st.x0); T.classList.add("tp-pull"); try { setTab(CUR_TAB); } catch (x) { /* bỏ qua */ } }      // chạm thanh tab đã sáng sẵn nút dưới ngón tay (phản hồi nhanh) → đang kéo thì trả lại đúng nút của trang hiện tại
     if (e.cancelable) e.preventDefault();
-    const d = Math.max(0, -dy), p = Math.min(1, d / TH), lift = 22 * (1 - 1 / (d / 40 + 1));      // lực cản: càng kéo càng nặng, tối đa ~22px
-    st.dy = d; T.style.transform = `translateY(${-lift}px)`;
-    hint.style.setProperty("--p", p.toFixed(3)); if (p >= 1 && !st.armed) { st.armed = true; hint.classList.add("go"); navigator.vibrate?.(8); } else if (p < 1 && st.armed) { st.armed = false; hint.classList.remove("go"); }
+    const d = Math.max(0, -dy), p = Math.min(1, d / TH); st.dy = d;
+    hint.style.setProperty("--p", p.toFixed(3)); hint.style.setProperty("--lift", `${(16 * (1 - 1 / (d / 50 + 1))).toFixed(1)}px`);      // trồi lên tối đa ~16px, càng kéo càng nặng
+    if (p >= 1 && !st.armed) { st.armed = true; hint.classList.add("go"); navigator.vibrate?.(8); } else if (p < 1 && st.armed) { st.armed = false; hint.classList.remove("go"); }
   }, { passive: false });
+  const drop = () => { T.classList.remove("tp-pull"); const h = hint; hint = null; if (h) { h.classList.add("out"); setTimeout(() => h.remove(), 220); } };
   const end = () => {
     if (!st) return; const s = st; st = null; if (!s.lock) return;
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => removeEventListener("click", eat, { capture: true }), 400);      // không coi là chạm vào nút tab
-    T.style.transition = ""; if (jellyOK()) T.animate(springKF(-22 * (1 - 1 / (s.dy / 40 + 1)), 0, (v) => ({ transform: `translateY(${v}px)` }), { z: 0.5, w: 20 }), { duration: 420, easing: "linear" }); T.style.transform = "";
-    const h = hint; hint = null; h?.classList.add("out"); setTimeout(() => h?.remove(), 200);
+    drop();
     const v = s.dy / Math.max(1, Date.now() - s.t);
     if (s.dy >= TH || (v > 0.45 && s.dy > 24)) { if (s.side === "s") cmdk(true); else bellOpen(); }      // gọi ngay trong lúc nhấc tay → iOS cho bật bàn phím
   };
-  T.addEventListener("touchend", end); T.addEventListener("touchcancel", () => { if (st?.lock) { T.style.transform = ""; hint?.remove(); hint = null; } st = null; });
+  T.addEventListener("touchend", end); T.addEventListener("touchcancel", () => { st = null; drop(); });
 })();
 // ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
 // Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng.
