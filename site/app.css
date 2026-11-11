@@ -5178,3 +5178,6 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 #sup{scroll-margin-top:72px}
 /* công tắc sàn dính góc phải thanh tab: chữ tab phía dưới mờ dần thay vì bị cắt ngang */
 .sc-env.sc-env-t::before{content:"";position:absolute;top:-3px;bottom:-3px;right:100%;width:34px;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--surface) 0%,transparent),var(--surface) 85%)}
+/* khối lọc trong tab Lệnh (data-ol) có thể chứa nhiều thẻ, có thẻ bọc trong div (#ivBox) → dùng gap thay cho .panel+.panel để không dính / đè nhau */
+[data-ol]:not([hidden]){display:grid;gap:12px;min-width:0}
+[data-ol]>.panel,[data-ol]>div>.panel{margin:0!important}
