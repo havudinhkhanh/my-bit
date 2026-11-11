@@ -5288,3 +5288,9 @@ body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .nt-ab:hover{background:var(--fill-h)}.nt-ab:active{transform:scale(.96)}
 .nt-ab.dn{color:var(--down)!important;background:color-mix(in srgb,var(--down) 12%,transparent)}
 @media (max-width:979px){.nt-ab{height:34px;padding:0 14px;font-size:.8125rem}.nt-acts{padding-left:50px}}
+/* tìm nhanh trên điện thoại: iOS dời khung màn hình khi mở bàn phím, thanh ^ ∨ ✓ trong suốt nhìn xuyên xuống → ẩn hẳn trang phía sau, chỗ nào lộ ra cũng chỉ là nền trơn */
+@media (pointer:coarse),(max-width:600px){
+  html:has(body.cmdk-on){background:var(--bg)}
+  body.cmdk-on>*:not(#cmdk):not(#toasts):not(script){visibility:hidden!important}
+  .cmdk{top:-50vh!important;bottom:-50vh!important}
+}
