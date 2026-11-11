@@ -5335,3 +5335,26 @@ body:has(#tabs.tp-pull) .pnfab{opacity:0;transition:opacity .15s}      /* nút B
 .nb.out .nb-c,.nb.out .nb-stk{transform:translateY(-130%);opacity:0;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .25s}
 .nb.out2 .nb-c,.nb.out2 .nb-stk{opacity:0;transition:opacity .25s}
 @media (min-width:980px){.nb.out .nb-c{transform:translateX(110%)}}
+/* ===== Kết quả › Theo ngày: lịch gọn bên trái + chi tiết ngày bên phải (khung đủ rộng); hẹp thì xếp dọc như cũ ===== */
+.dgw{container-type:inline-size;margin-top:var(--gap,14px)}
+.dlay{display:grid;gap:var(--gap,14px);grid-template-columns:minmax(0,1fr)}
+.dlay .panel{margin:0!important}
+.dside{display:grid;gap:var(--gap,14px);min-width:0;align-content:start}
+.dside>div:empty{display:none}
+#dCal{container-type:inline-size;min-width:0}
+@container (min-width:640px){      /* (trang có thu phóng chữ → px trong @container lớn hơn px màn hình ~1,2×: 640 ≈ 770px thật) */
+  .dlay{grid-template-columns:minmax(350px,460px) minmax(0,1fr);align-items:start}
+  .dlay>#dCal{position:sticky;top:calc(var(--stick,91px) + 8px)}
+}
+/* lịch trong khung hẹp: ô gọn, số lũy kế xếp dọc – không còn ô cao trống */
+@container (max-width:620px){
+  .cal{gap:4px!important}
+  .cal-d{min-height:70px!important;padding:5px 4px 4px!important;border-radius:9px!important}
+  .cal-p{font-size:var(--fs-base,.875rem)!important}
+  .cal-c{display:none!important}      /* lũy kế: đã có ở dòng "Lũy kế" trên lịch + biểu đồ cộng dồn → ô gọn 3 dòng */
+  .cal-d{min-height:58px!important;justify-content:center}
+}
+
+/* chi tiết ngày ở cột phải: khung hẹp → "bài học | theo coin & các lệnh" xếp dọc để bảng lệnh đủ chỗ */
+.dside{container-type:inline-size}
+@container (max-width:620px){.dside .g2w{grid-template-columns:minmax(0,1fr)!important}}

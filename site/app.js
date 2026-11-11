@@ -320,7 +320,7 @@ const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
   big.forEach((t) => t.classList.add("tw-meas")); tws.forEach(twFit); big.forEach((t) => t.classList.remove("tw-meas"));
   const grids = new Set();
   tws.forEach((tw) => { if (!tw.classList.contains("over")) return; let g = tw.closest(".panel")?.parentElement;
-    for (let k = 0; g && g.id !== "app" && k < 3; k++, g = g.parentElement) { const cs = getComputedStyle(g); if (cs.display === "grid" && cs.gridTemplateColumns.split(" ").length === 2) { grids.add(g); return; } } });
+    for (let k = 0; g && g.id !== "app" && k < 3; k++, g = g.parentElement) { const cs = getComputedStyle(g); if (cs.display === "grid" && cs.gridTemplateColumns.split(" ").length === 2) { if (!g.hasAttribute("data-nostack")) grids.add(g); return; } } });      // data-nostack: bố cục chủ ý 2 cột (lịch | chi tiết) – không xếp dọc vì 1 bảng con
   if (!grids.size) return;
   grids.forEach((g) => g.classList.add("tw-stack"));
   big.forEach((t) => t.classList.add("tw-meas")); grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit)); big.forEach((t) => t.classList.remove("tw-meas"));
