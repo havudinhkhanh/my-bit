@@ -395,7 +395,14 @@ async function viewScalp() {
   const mxRow = (key, name, real, est) => { const b = window.__mClosing?.[key]; if (est) MXE[key] = est; return `<div class="sc-mxr"><button type="button" class="sc-mx${real ? " real" : ""}${b ? " busy" : ""}" data-mclose="${esc(key)}" data-mname="${esc(name)}" data-mreal="${real ? 1 : 0}" ${b ? "disabled" : ""}>${b ? bi("⏳ Đang gửi lệnh đóng…", "⏳ Closing…") : bi("✕ Đóng lệnh", "✕ Close")}</button></div>`; };
   // ✋ "Vào ngay" cho lệnh Bắt râu sập đang chờ khớp (sàn thử / Binance): huỷ lệnh chờ còn lại, vào phần còn thiếu bằng giá thị trường
   const enterBtn = (key, name, real) => { const b = window.__mEntering?.[key]; return `<button type="button" class="sc-mx sc-me${real ? " real" : ""}${b ? " busy" : ""}" data-menter="${esc(key)}" data-mname="${esc(name)}" data-mreal="${real ? 1 : 0}" ${b ? "disabled" : ""}>${b ? "Đang gửi…" : "Vào ngay"}</button>`; };
-  const withMx = (html, key, name, real, est, enter) => html.replace(/<\/div>\s*$/, mxRow(key, name, real, est).replace('<div class="sc-mxr">', `<div class="sc-mxr">${enter ? enterBtn(key, name, real) : ""}`) + "</div>");
+  // 📌 GIỮ LỆNH: không tự đóng khi hết giờ giữ (60 phút / 7 ngày / hạn phương pháp) – chỉ lệnh ĐÃ KHỚP; cắt lỗ / chốt lời / cắt lỗ đuổi vẫn chạy
+  const keepOf = (key) => { const w = window.__keepUI?.[key]; if (w && Date.now() - w.at < 60e3) return w.on;
+    const [t, a, b2] = key.split(":"), id = key.slice(key.indexOf(":") + 1), f = (L) => (Array.isArray(L) ? L : Object.values(L || {})).find((p) => String(p.id) === String(t === "sw" || t === "q" ? b2 : id));
+    const o = t === "pp" ? X.pos?.[id] : t === "sw" ? f(X.sw?.[a]?.pos) : t === "q" ? f(X.q?.[a]?.pos) : t === "lv" ? f(LV?.ev) : t === "swp" ? f(LV?.swp?.open) : t === "lq" ? f(LV?.qp?.open) : null;
+    return o ? !!o.keep : null; };
+  const keepBtn = (key, real) => { const on = keepOf(key); if (on == null) return ""; return `<button type="button" class="sc-mx sc-keep${on ? " on" : ""}" data-mkeep="${esc(key)}" data-on="${on ? 1 : 0}" data-mreal="${real ? 1 : 0}" title="${on ? bi("Đang giữ: hết giờ KHÔNG tự đóng – bấm để bỏ giữ", "Kept: will NOT auto-close at time limit – tap to release") : bi("Giữ lệnh: hết giờ (60 phút / 7 ngày…) không tự đóng, anh tự đóng", "Keep: do not auto-close at the time limit")}">${on ? bi("📌 Đang giữ", "📌 Kept") : bi("📌 Giữ", "📌 Keep")}</button>`; };
+  const keepTxt = (html, key) => keepOf(key) ? html.replace(/(tự đóng sau|auto-closes (?:after|in)) [^<·]*/, bi("📌 đang giữ – hết giờ không tự đóng ", "📌 kept – no auto-close ")) : html;
+  const withMx = (html, key, name, real, est, enter) => keepTxt(html, key).replace(/<\/div>\s*$/, mxRow(key, name, real, est).replace('<div class="sc-mxr">', `<div class="sc-mxr">${enter ? enterBtn(key, name, real) : ""}${est?.nofill || /^mx:/.test(key) ? "" : keepBtn(key, real)}`) + "</div>");
   const pcard0 = (k, p) => `<div class="sc-oc ${p.side > 0 ? "L" : "S"}"><div class="r1"><span>${p.strat === "hook" ? "🪝" : "⚡"} <b>${scK(k)}</b> <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span></span><b class="lpx" data-lpx="${esc(k)}">${px(isNum(p.m) ? p.m : p.e)}</b></div>
       <div class="r1s">${accT("paper")} ${p.strat === "hook" ? `${bi("Bắt râu sập · sốc", "Wick Catcher · shock")} ${nf((p.R || 0) / 100, 1)}%` : esc(p.how || "")}</div>
       <div class="r2" data-lpnl="${esc(k)}" data-e="${p.e}" data-q="${p.q}" data-sd="${p.side}" data-f0="${p.fee || 0}" data-fr="${frOf(p)}" data-sl="${p.sl}" data-tp="${p.tp}"><b>—</b></div>
@@ -1340,6 +1347,13 @@ async function viewScalp() {
     (window.__mCondBusy ||= {})[sym] = 1; setTimeout(() => { delete window.__mCondBusy?.[sym]; }, 25e3);
     delete window.__mfDraft?.[sym]; if (window.__mfOpen) window.__mfOpen[sym] = false; f.hidden = true;
     toast(bi("Đã gửi – máy chủ đặt lệnh trên Binance trong vài giây", "Sent – the server places it on Binance in a few seconds"));
+  }));
+  $$("[data-mkeep]").forEach((b) => (b.onclick = async () => {
+    const key = b.dataset.mkeep, on = b.dataset.on !== "1", real = b.dataset.mreal === "1";
+    if (on && real && !confirm(bi("Giữ lệnh này trên Binance: hết giờ giữ bot sẽ KHÔNG tự đóng – anh phải tự đóng. Cắt lỗ trên sàn vẫn giữ nguyên. Tiếp tục?", "Keep this Binance trade: the bot will NOT auto-close it at the time limit – you close it yourself. The exchange stop stays. Continue?"))) return;
+    await scCmd("close", `kp:${key}:${on ? 1 : 0}`, new Date().toISOString());
+    (window.__keepUI ||= {})[key] = { on, at: Date.now() }; b.dataset.on = on ? "1" : "0"; b.classList.toggle("on", on); b.textContent = on ? bi("📌 Đang giữ", "📌 Kept") : bi("📌 Giữ", "📌 Keep");
+    toast(on ? bi("📌 Đã giữ – hết giờ không tự đóng, anh tự đóng khi muốn", "📌 Kept – no auto-close at the time limit") : bi("Đã bỏ giữ – hết giờ thì tự đóng như thường", "Released – auto-closes at the time limit again"));
   }));
   // 📋 chép lệnh sàn thử → Binance: bảng xác nhận (số tiền, đòn bẩy; xem lại cắt lỗ / chốt lời / giờ đóng sẽ chép) → máy chủ riêng vào lệnh thị trường
   $$("[data-mcopy]").forEach((b) => (b.onclick = async () => {

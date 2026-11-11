@@ -382,6 +382,12 @@ export class ScalpCore {
         if (k.startsWith("pp:")) { const id = k.slice(3), x = this.M[id], P = this.S.pos[id]; if (P) { const px = x?.bid && x?.ask ? (P.side > 0 ? x.bid : x.ask) : P.e; this.close1(x || { id, t: P.t, sym: id }, px, "MANUAL", now); delete this.S.hk?.[id]; this.say(now, `✋ Anh đóng tay lệnh sàn thử ${id.split(":")[0]}`, "info"); } else if (this.S.hk?.[id]) { delete this.S.hk[id]; this.say(now, `✋ Anh huỷ lệnh chờ sàn thử ${id.split(":")[0]}`, "info"); } }
       else if (k.startsWith("sw:")) { const [, kk, id] = k.split(":"), B = this.S.sw?.[kk], P = B?.pos?.[id]; if (P) this.sw.close(kk, B, P, this.sw.px[P.sym]?.m || P.last || P.e, "MANUAL", now); }
       else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
+      else if (k.startsWith("kp:")) {      // 📌 giữ lệnh – KHÔNG tự đóng khi hết giờ giữ (60 phút / 7 ngày…): kp:<mã lệnh>:1 bật · :0 bỏ (hết giờ rồi thì đóng ở lượt kế)
+        const on = k.endsWith(":1"), ref = k.slice(3, -2), nm = on ? "📌 Giữ" : "📌 Bỏ giữ";
+        if (/^(lv|swp|lq):/.test(ref)) this.io.onManual?.(k);
+        else { let P = null; if (ref.startsWith("pp:")) P = this.S.pos[ref.slice(3)]; else { const [t, kk, id] = ref.split(":"); P = t === "sw" ? this.S.sw?.[kk]?.pos?.[id] : t === "q" ? this.S.q?.[kk]?.pos?.[id] : null; }
+          if (P) { if (on) P.keep = 1; else delete P.keep; this.say(now, `${nm} lệnh sàn thử ${ref.split(":").slice(1).join(" ")}${on ? " – không tự đóng khi hết giờ, anh tự đóng" : " – hết giờ thì tự đóng như thường"}`, "info"); } }
+      }
       else if (/^(lv|swp|lq|mx|mst|mtp|mw|mlk|mcp):/.test(k)) this.io.onManual?.(k);      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
     return true;
@@ -836,8 +842,8 @@ export class ScalpCore {
     const o = this.S.ord[x.id];
     if (o && now - o.t0 > 3000) delete this.S.ord[x.id];          // maker chờ quá 3 giây → huỷ
     const P = this.S.pos[x.id];
-    if (P && P.dx) { const why = now - x.tb > 30000 ? "STALE" : this.dynExit(x, P.side, P.t0, P.h, P.e, now); if (why) this.close1(x, P.side > 0 ? x.bid : x.ask, why, now); }
-    else if (P && now - P.t0 >= P.h * 1000) this.close1(x, P.side > 0 ? x.bid : x.ask, "TIME", now);
+    if (P && P.dx) { const why = now - x.tb > 30000 ? "STALE" : this.dynExit(x, P.side, P.t0, P.h, P.e, now); if (why && !(P.keep && /^TIME/.test(why))) this.close1(x, P.side > 0 ? x.bid : x.ask, why, now); }
+    else if (P && !P.keep && now - P.t0 >= P.h * 1000) this.close1(x, P.side > 0 ? x.bid : x.ask, "TIME", now);      // 📌 P.keep: anh bấm "Giữ" → không tự đóng khi hết giờ (cắt lỗ / chốt lời / cắt lỗ đuổi vẫn chạy)
     else if (P && now - x.tb > 30000) this.close1(x, P.side > 0 ? x.bid : x.ask, "STALE", now);   // mất dữ liệu coin này > 30 giây → đóng ở giá cuối
   }
   // PHÍ FUNDING (futures): lệnh còn mở đúng giờ chốt funding thì trả/nhận funding như trên sàn thật – Long trả khi tỉ lệ > 0, Short trả khi < 0.

@@ -252,7 +252,7 @@ export class QuantLab {
         const tp = P.tpDyn ?? P.tp;
         if (tp && (L.side > 0 ? m >= tp : m <= tp)) { this.close(k, P, "TP", now); continue; }
       }
-      if (now >= P.exp) this.close(k, P, "TIME", now);
+      if (!P.keep && now >= P.exp) this.close(k, P, "TIME", now);
     }
   }
   close(k, P, why, now = Date.now()) {
@@ -319,7 +319,7 @@ export class QuantLab {
       const P = Object.values(B.pos).find((x) => x.meta?.pair === Q.id);
       if (P) {
         const held = (now - Date.parse(P.t0 + "Z")) / HR;
-        const why = Math.abs(z) < 0.5 ? "X" : Math.abs(z) > 3.5 ? "SL" : held >= Math.max(24, 10 * Q.hl) || now >= mEnd - 2 * HR ? "TIME" : null;
+        const why = Math.abs(z) < 0.5 ? "X" : Math.abs(z) > 3.5 ? "SL" : !P.keep && (held >= Math.max(24, 10 * Q.hl) || now >= mEnd - 2 * HR) ? "TIME" : null;
         if (why) this.close("ou", P, why, now);
         continue;
       }
@@ -501,7 +501,7 @@ export class QuantLab {
     for (const k of Object.keys(QS)) {
       const B = W[k]; if (!B) continue;
       o[k] = { ...this.R(k), on: this.on(k), st: { ...B.st, pnl: r2(B.st.pnl, 2), fee: r2(B.st.fee, 2), fund: r2(B.st.fund, 2) },
-        pos: Object.values(B.pos).map((P) => { let u = 0; for (const L of P.legs) u += L.side * L.q * ((this.mid(L.sym) || L.last || L.e) - L.e); return { id: P.id, legs: P.legs.map((L) => ({ sym: L.sym, side: L.side, e: L.e, m: this.mid(L.sym) || L.last })), N: P.N, t0: P.t0, exp: iso(P.exp), sl: P.sl, tp: P.tpDyn ?? P.tp, why: P.why, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
+        pos: Object.values(B.pos).map((P) => { let u = 0; for (const L of P.legs) u += L.side * L.q * ((this.mid(L.sym) || L.last || L.e) - L.e); return { id: P.id, keep: P.keep ? 1 : 0, legs: P.legs.map((L) => ({ sym: L.sym, side: L.side, e: L.e, m: this.mid(L.sym) || L.last })), N: P.N, t0: P.t0, exp: iso(P.exp), sl: P.sl, tp: P.tpDyn ?? P.tp, why: P.why, upnl: r2(u + P.fund - P.fee, 3), pct: r2((u + P.fund - P.fee) / P.N * 100, 2) }; }),
         hist: B.hist.slice(-15).map((h) => ({ ...h, note: undefined })) };
     }
     return o;

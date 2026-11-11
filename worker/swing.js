@@ -108,7 +108,7 @@ export class SwingLab {
       } else if (!P.fnext && x.next > now) { P.fnext = x.next; P.frate = x.r; }
       else if (x.next === P.fnext) P.frate = x.r;
       if (P.side < 0 && m >= 2 * P.e) this.close(k, B, P, 2 * P.e, "LIQ", now);           // x1: giá ×2 → mất trắng phần ký quỹ
-      else if (now >= Date.parse(P.t1 + "Z")) this.close(k, B, P, m, "TIME", now);
+      else if (!P.keep && now >= Date.parse(P.t1 + "Z")) this.close(k, B, P, m, "TIME", now);
     }
   }
   close(k, B, P, px, why, now) {

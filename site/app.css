@@ -5075,3 +5075,8 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 /* chuyển động dùng chung: mọi thẻ bấm được nhấc nhẹ cùng một nhịp */
 :where(.ocard,.otr,.bh-card,.lb-seg,.sf-c){transition:background-color .16s var(--ease-out,ease),transform .18s var(--ease-out,ease),box-shadow .18s ease}
 :where(a.bh-card,a.otr,.lb-seg):active{transform:scale(.985)}
+/* 📌 Giữ lệnh – nút trung tính (không đỏ như nút đóng); đang giữ = khối đặc */
+.sc-mx.sc-keep{border-color:transparent!important;background:var(--fill)!important;color:var(--ink-2)!important}
+.sc-mx.sc-keep:hover{background:var(--fill-h)!important;color:var(--ink)!important}
+.sc-mx.sc-keep.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.sc-mxr{flex-wrap:wrap;row-gap:6px}
