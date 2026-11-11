@@ -5370,3 +5370,24 @@ body:has(#tabs.tp-pull) .pnfab{opacity:0;transition:opacity .15s}      /* nút B
   .cal-c{white-space:nowrap;font-size:.53rem!important;column-gap:3px}
   .cal-d{padding:5px 3px 4px!important}
 }
+/* Sàn thử lệnh tay: 6 ô số liệu chia đều hết chiều ngang (mép trái/phải thẳng hàng với 3 khung bên dưới), nút "Làm lại" là 1 ô gọn cuối hàng */
+.pvs{grid-template-columns:repeat(6,minmax(0,1fr)) auto!important;gap:var(--gap,14px)!important}
+.pvs>div{border:0!important}
+.pvs .pvs-a{background:var(--fill)!important;justify-content:center;padding:9px 10px!important}
+.pvs .pvs-a .btn{background:transparent!important}
+@media (max-width:1180px){.pvs{grid-template-columns:repeat(3,minmax(0,1fr))!important}.pvs .pvs-a{grid-column:1/-1;justify-content:flex-end;background:transparent!important;padding:0!important}.pvs .pvs-a .btn{background:var(--fill)!important}}
+@media (max-width:560px){.pvs{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+/* khung xương nhớ bố cục: các khối đặt đúng vị trí trang thật */
+.skw.skm{position:relative;padding:0!important;margin:0!important}
+.skm>*{position:absolute;box-sizing:border-box}
+.skm-c{display:flex;align-items:center;gap:10px;padding:10px 0 6px}
+.skm-h{display:flex;flex-direction:column;justify-content:center;gap:8px}
+.skm-t{border-radius:12px!important}
+.skm-p{display:flex;flex-direction:column;gap:14px;padding:16px!important;margin:0!important;overflow:hidden}
+.skw-c{display:flex;align-items:center;gap:10px;padding:10px 0 12px}
+
+main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu đúng chỗ trang thật (trang thật: thanh vị trí sát trên, không lề trên) */
+.pvs .pvs-a{padding:0!important;background:transparent!important;align-items:stretch}
+.pvs .pvs-a>.btn{width:100%;min-height:100%;padding:0 18px;border-radius:12px!important;background:var(--fill)!important;font-weight:650}
+.pvs .pvs-a>.btn:hover{background:var(--fill-h)!important}
+@media (max-width:1180px){.pvs .pvs-a>.btn{width:auto;min-height:34px}}

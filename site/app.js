@@ -1251,8 +1251,43 @@ const skCard = (inner, x = "") => `<div class="skp${x ? " " + x : ""}">${inner}<
 const skKpis = (n = 4) => `<div class="skg skg-k">${Array.from({ length: n }, () => skCard(`${sk("46%", 10)}${sk("62%", 22, "sk-m")}${sk("38%", 9)}`)).join("")}</div>`;
 const skTabs = (n = 5) => `<div class="skt">${Array.from({ length: n }, (_, i) => sk(`${[88, 64, 96, 78, 70, 84, 60][i % 7]}px`, 34, i === 0 ? "skt-on" : "")).join("")}</div>`;
 const skHead = () => `<div class="skh">${sk("120px", 10)}${sk("min(260px,60%)", 26, "sk-t")}${sk("min(420px,80%)", 11)}</div>`;
+// 🧠 KHUNG XƯƠNG NHỚ BỐ CỤC THẬT: mỗi lần trang hiện xong, ghi lại vị trí các khối (thanh vị trí, tiêu đề, thanh tab, các khung) của trang đó;
+//    lần sau mở lại → khung xương vẽ ĐÚNG các khối ấy (cùng chỗ, cùng cỡ) → nội dung thật hiện ra không nhảy. Lần đầu (chưa có) dùng mẫu theo loại trang.
+const SKM_K = "skm2", skmKey = (h = location.hash) => String(h || "#/").split("?")[0].replace(/^#\/(c|t|plan|paper|sector|s)\/.*/, "#/$1/*").replace(/\/\d{4}-\d{2}-\d{2}$/, "/*") + (innerWidth < 980 ? "|m" : "|d");
+function skmSave() {
+  const root = $("#app"); if (!root || root.querySelector(".skw") || !root.firstElementChild) return;
+  const cs = getComputedStyle(root), R0 = root.getBoundingClientRect(), R = { left: R0.left + parseFloat(cs.paddingLeft), top: R0.top + parseFloat(cs.paddingTop), width: root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) }, lim = innerHeight * 1.6, B = [];      // toạ độ theo vùng NỘI DUNG (trừ lề trong) – khung xương đặt trong cùng vùng đó
+  const push = (t, el) => { const r = el.getBoundingClientRect(); if (r.height < 8 || r.width < 20 || r.top - R.top > lim) return; B.push([t, Math.round(r.left - R.left), Math.round(r.top - R.top), Math.round(r.width), Math.round(Math.min(r.height, lim - (r.top - R.top)))]); };
+  root.querySelectorAll(":scope > .crumb[data-nd]").forEach((e) => push("c", e));
+  root.querySelectorAll(".ph").forEach((e) => { if (!e.closest(".panel")) push("h", e); });
+  // khối có NỀN (thẻ, ô số liệu, thanh tab, khung) – lấy khối ngoài cùng, không lấy khối con nằm trong khối đã lấy
+  const bgOn = (e) => { const c = getComputedStyle(e).backgroundColor, m = c.match(/[\d.]+/g); return m && (m.length < 4 || +m[3] > 0.02) && c !== "transparent"; };
+  const walk = (el, d) => { for (const e of el.children) { if (B.length >= 48) return; if (e.matches(".crumb, .ph, script, style, .pg-mark, .nextstep") || e.closest(".skw")) continue;
+      const r = e.getBoundingClientRect(); if (r.height < 26 || r.width < 50) continue; if (r.top - R.top > lim) return;
+      if (bgOn(e)) { push(e.matches(".sc-tabs, .sc-sub2, .bseg, .sc-ofl, .lv-rng, .seg") || r.height < 52 ? "t" : "p", e); continue; }
+      if (d < 6) walk(e, d + 1); } };
+  walk(root, 0);
+  if (!B.length) return;
+  let M = {}; try { M = JSON.parse(localStorage.getItem(SKM_K) || "{}"); } catch (e) { /* bỏ qua */ }
+  M[skmKey()] = { w: Math.round(R.width), at: Date.now(), b: B.slice(0, 48) };
+  const ks = Object.keys(M); if (ks.length > 60) ks.sort((x, y) => M[x].at - M[y].at).slice(0, ks.length - 60).forEach((k) => delete M[k]);
+  try { localStorage.setItem(SKM_K, JSON.stringify(M)); } catch (e) { /* đầy bộ nhớ */ }
+}
+function skmPage() {
+  let M = null; try { M = JSON.parse(localStorage.getItem(SKM_K) || "{}")[skmKey()]; } catch (e) { return null; }
+  const ap = $("#app"), cs = ap ? getComputedStyle(ap) : null, W = ap ? ap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : innerWidth; if (!M || !M.b?.length || Math.abs(M.w - W) > 48) return null;      // bề rộng khác nhiều (mở/đóng bảng phụ…) → mẫu theo loại trang
+  const H = Math.max(...M.b.map((x) => x[2] + x[4])), f = W / M.w;
+  const blk = ([t, x, y, w, h]) => { const st = `left:${Math.round(x * f)}px;top:${y}px;width:${Math.round(w * f)}px;height:${h}px`;
+    if (t === "c") return `<div class="skm-c" style="${st}">${sk("52px", 24)}${sk("150px", 12)}</div>`;
+    if (t === "h") return `<div class="skm-h" style="${st}">${sk("min(260px,60%)", Math.min(26, h - 6), "sk-t")}${h > 44 ? sk("min(380px,70%)", 10) : ""}</div>`;
+    if (t === "t") return `<i class="sk skm-t" style="${st}"></i>`;
+    const n = Math.max(0, Math.min(8, Math.floor((h - 52) / 24)));
+    return `<div class="skp skm-p" style="${st}">${sk("34%", 13)}${n ? `<div class="skl">${Array.from({ length: n }, (_, i) => sk(i === n - 1 ? "55%" : `${92 - (i % 3) * 9}%`, 10)).join("")}</div>` : ""}</div>`; };
+  return `<div class="skw skm" role="status" aria-busy="true" aria-label="${SKL()}" style="height:${H}px">${M.b.map(blk).join("")}</div>`;
+}
 // hình khung theo từng trang – gần đúng bố cục thật để khi nội dung hiện ra không bị nhảy
 function skPage(r, a0) {
+  const mem = skmPage(); if (mem) return mem;
   const tbl = (n) => skCard(`${sk("30%", 14)}${skRows(n)}`);
   let b;
   if (!r) b = `${skKpis(4)}<div class="skg skg-2">${skCard(`${sk("34%", 14)}${skChart(240)}`)}${skCard(`${sk("40%", 14)}${skLines(6)}`)}</div>${skCard(`${sk("28%", 14)}${skChart(200)}`)}`;
@@ -1261,8 +1296,11 @@ function skPage(r, a0) {
   else if (/^(coins|live|radar|futures|pairs|sectors|tax|notifications)$/.test(r)) b = `<div class="skg skg-bar">${sk("min(320px,100%)", 34)}${sk("90px", 34)}${sk("90px", 34)}</div>${tbl(10)}`;
   else if (r === "paper") b = `<div class="skg skg-2w">${skCard(`${sk("26%", 14)}${skChart(360)}`)}${skCard(`${sk("100%", 34)}${sk("100%", 34)}${skLines(4)}${sk("100%", 42)}`)}</div>`;
   else b = `<div class="skg skg-3">${skCard(skLines(4))}${skCard(skLines(4))}${skCard(skLines(4))}</div>${skCard(`${sk("30%", 14)}${skChart(260)}`)}`;
-  return `<div class="skw" role="status" aria-busy="true" aria-label="${SKL()}">${skHead()}${b}</div>`;
+  return `<div class="skw" role="status" aria-busy="true" aria-label="${SKL()}"><div class="skw-c">${sk("52px", 24)}${sk("150px", 12)}</div>${skHead()}${b}</div>`;      // thanh vị trí (‹ › nhóm › trang) cũng có chỗ sẵn → nội dung thật không bị đẩy xuống
 }
+// mở app lần đầu (tải lại trang): khung xương tĩnh trong index.html được thay NGAY bằng khung đúng trang này (nhớ bố cục / mẫu theo loại trang)
+//   – không chờ đăng nhập xong; trước đây khung tĩnh chung hiện suốt lúc chờ rồi nội dung thật nhảy hẳn sang bố cục khác
+try { const a0 = document.getElementById("app"); if (a0?.firstElementChild?.classList.contains("skw")) { const hp = location.hash.replace(/^#\/?/, "").split("?")[0].split("/"); a0.innerHTML = skPage(hp[0], hp[1]); } } catch (e) { /* bỏ qua */ }
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
@@ -1313,6 +1351,7 @@ async function route() {
   // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
   { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
   if (r === "bot") botWarm();
+  { const h0 = location.hash; clearTimeout(route.skm); route.skm = setTimeout(() => { if (location.hash === h0 && !document.hidden) try { skmSave(); } catch (e) { /* bỏ qua */ } }, 1600); }      // ghi bố cục thật cho khung xương lần sau
   try { navFreqHit(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(() => app().focus({ preventScroll: true }));
   pnRoute(r, arg);
