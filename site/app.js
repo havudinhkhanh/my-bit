@@ -495,7 +495,8 @@ function navDecor(r) {
   const dn = '<svg class="cr-dn" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   const nb = (x, d) => `<button type="button" class="cr-nv" data-crn="${d}"${x ? "" : " disabled"} title="${x ? esc(`${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}: ${navName(x)} (${d < 0 ? "Shift+," : "Shift+."})`) : ""}" aria-label="${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}">${chev(d)}</button>`;
   const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(X.prev, -1)}${nb(X.next, 1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
-  if (ph) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);
+  if (ph && ph.parentElement === app_) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);      // luôn là con trực tiếp của #app → dính được suốt trang (tiêu đề nằm trong khung con thì đặt lên đầu trang)
+  requestAnimationFrame(() => stickH());
   try { lvsDraw(); } catch (e) { /* bỏ qua */ }
   if (X.next) {
     const n = X.next, nn = n.a.querySelector(".nav-t")?.textContent || "", ng = n.g?.querySelector("b")?.textContent || "";
@@ -1414,8 +1415,14 @@ function stickH() {
   // ứng dụng (thêm vào màn hình chính): thanh đầu dính ở env(safe-area-inset-top) – phải cộng phần tai thỏ / thanh trạng thái, không thì thanh tab & tiêu đề dính bị thanh MyBit che mất
   const safe = top ? parseFloat(getComputedStyle(top).top) || 0 : 0;
   const h = (top?.offsetHeight || 51) + safe, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
-  d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick", h + tbs + "px");
+  // thanh điều hướng (‹ › · nhóm › trang) dính ngay dưới thanh đầu → mọi thứ dính khác (tab Bot Phản Xạ, khung bên…) lùi xuống thêm đúng chiều cao của nó
+  const cr = document.querySelector("#app > .crumb[data-nd]"), crh = cr && getComputedStyle(cr).position === "sticky" ? cr.offsetHeight : 0;
+  d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick0", h + tbs + "px"); d.style.setProperty("--stick", h + tbs + crh + "px");
+  crStuck();
 }
+// thanh điều hướng đang dính (đã cuộn qua chỗ gốc) → hiện viền mảnh bên dưới để tách với nội dung chạy bên dưới
+function crStuck() { const c = document.querySelector("#app > .crumb[data-nd]"); if (!c) return; const s0 = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stick0")) || 0; c.classList.toggle("cr-stuck", scrollY > 2 && c.getBoundingClientRect().top <= s0 + 0.5); }
+if (!window.__crSc) { window.__crSc = 1; addEventListener("scroll", () => { if (!crStuck.r) crStuck.r = requestAnimationFrame(() => { crStuck.r = 0; crStuck(); }); }, { passive: true }); addEventListener("hashchange", () => setTimeout(stickH, 450)); }
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
 function pnInit() {
   const nav = $("#pnav"); if (!nav) return;

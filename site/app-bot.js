@@ -698,15 +698,26 @@ async function viewScalp() {
     if (A.length < 3) eqP = segM + empty(bi("Chưa có điểm tài sản trong khoảng này (máy chủ riêng lưu 5 phút 1 điểm).", "No equity points in this range (the server stores one every 5 minutes)."));
     else {
       // nạp/rút trong từng đoạn → lời/lỗ thật (tài sản − tiền nạp ròng), % theo thời gian (TWR) và mức sụt từ đỉnh của chỉ số TWR (nạp/rút không làm sai)
+      // ⚠️ mốc giờ của lần nạp/rút (sổ thu chi Binance) và mốc của điểm tài sản không luôn khớp: điểm đầu kỳ có thể ĐÃ gồm tiền nạp ghi sau nó, hoặc số dư cập nhật trễ 1 nhịp.
+      // Trừ thẳng thì lời/lỗ "sụt" giả đúng bằng số tiền nạp. → Mỗi nhịp có nạp/rút: chọn cách ghép (đã vào số dư / chưa vào) cho biến động còn lại hợp lý nhất;
+      // tiền chưa thấy trong số dư thì treo lại, ≤ 24 giờ sau vẫn không thấy → coi như đã nằm sẵn trong số dư đầu kỳ (không trừ).
       let fi = 0; while (fi < FLW.length && FLW[fi][0] <= A[0][0]) fi++;
-      let net = 0, tw = 1, pk = 1, mdd = 0, ddAt = 0; const PL = [0], DD = [0], FLAT = A.map(() => null), FLC = A.map(() => null);
+      let net = 0, tw = 1, pk = 1, mdd = 0, ddAt = 0, U = [], drop = 0; const PL = [0], DD = [0], FLAT = A.map(() => null), FLC = A.map(() => null);
       for (let i = 1; i < A.length; i++) {
-        let f = 0; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) f += FLW[fi++][1];
-        if (f) { FLAT[i] = A[i][1]; FLC[i] = f > 0 ? "#3B82F6" : "#F59E0B"; }
-        net += f; PL.push(A[i][1] - A[0][1] - net);
-        if (A[i - 1][1] > 0) { const g = (A[i][1] - f) / A[i - 1][1]; if (g > 0.05 && g < 20) tw *= g; }      // tỉ số vô lý (điểm đo lỗi / nạp-rút lệch giờ) → bỏ, không để 1 điểm làm % thành −100%
+        const nw = []; while (fi < FLW.length && FLW[fi][0] <= A[i][0]) nw.push(FLW[fi++]);
+        const fN = nw.reduce((x, q) => x + q[1], 0), fU = U.reduce((x, q) => x + q[1], 0), d = A[i][1] - A[i - 1][1], E = Math.max(A[i - 1][1], 1);
+        if (fN) { FLAT[i] = A[i][1]; FLC[i] = fN > 0 ? "#3B82F6" : "#F59E0B"; }
+        let ap = fN + fU;
+        if (fN || fU) {      // 4 cách ghép: cả 2 đã vào / chỉ phần treo / chỉ phần mới / chưa phần nào – lấy cách để lời/lỗ nhịp này nhỏ nhất, nếu cách "trừ hết" vô lý (> 20% tài sản 1 nhịp)
+          if (Math.abs(d - ap) > 0.2 * E) ap = [fN + fU, fU, fN, 0].reduce((b, c) => (Math.abs(d - c) < Math.abs(d - b) ? c : b), fN + fU);
+          U = ap === fN + fU ? [] : ap === fU ? nw.slice() : ap === fN ? U : [...U, ...nw];
+          const old = U.filter((q) => A[i][0] - q[0] > 1440); if (old.length) { drop += old.reduce((x, q) => x + q[1], 0); U = U.filter((q) => A[i][0] - q[0] <= 1440); }
+        }
+        net += ap; PL.push(A[i][1] - A[0][1] - net);
+        if (A[i - 1][1] > 0) { const g = (A[i][1] - ap) / A[i - 1][1]; if (g > 0.05 && g < 20) tw *= g; }      // tỉ số vô lý (điểm đo lỗi) → bỏ, không để 1 điểm làm % thành −100%
         pk = Math.max(pk, tw); const dd = (tw / pk - 1) * 100; DD.push(dd); if (dd < mdd) { mdd = dd; ddAt = i; }
       }
+      drop += U.reduce((x, q) => x + q[1], 0);      // cuối kỳ còn treo (chưa thấy trong số dư) → không tính vào lời/lỗ
       const E0 = A[0][1], E1 = A[A.length - 1][1], pl = E1 - E0 - net, twr = (tw - 1) * 100, fx = lvFmtX((A[A.length - 1][0] - A[0][0]) * 60000);
       const mk = A.map(() => null), mc = A.map(() => null), tip = A.map(() => null);
       const yv = (i) => (md === "pl" ? PL[i] : md === "dd" ? DD[i] : A[i][1]);
@@ -718,7 +729,7 @@ async function viewScalp() {
       if (FLAT.some((v) => v != null)) S.push({ name: bi("Nạp (xanh) / rút (cam)", "Deposit (blue) / withdraw (orange)"), dots: true, color: "#3B82F6", pts: FLAT.map((y, i) => ({ x: "", y: y == null ? null : yv(i), c: FLC[i] })) });
       const hl = md === "eq" ? [{ y: Math.max(...A.map((q) => q[1])), color: "var(--ink-3)", label: bi("đỉnh", "peak") }] : md === "dd" && mdd < 0 ? [{ y: mdd, color: css("--down"), label: `${bi("sụt sâu nhất", "max DD")} ${nf(mdd, 2)}%` }] : [];
       const nW = TR.filter((h) => h.pnl > 0).length;
-      const sum = `<div class="lv-kp"><span><i>${bi("Lời/lỗ thật", "Real P/L")}</i><b class="${cls(pl)}">${sg$(pl)}</b><small class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</small></span><span><i>${bi("Sụt sâu nhất", "Max drawdown")}</i><b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b><small>${mdd < 0 ? fx(A[ddAt][0] * 60000) : "—"}</small></span><span><i>${bi("Nạp/rút ròng", "Net transfers")}</i><b>${net ? sg$(net) : "$0"}</b><small>${u$(E0)} → ${u$(E1)}</small></span><span><i>${bi("Lệnh đóng", "Closed trades")}</i><b>${TR.length}</b><small>${TR.length ? `${bi("thắng", "won")} ${nf(nW / TR.length * 100, 0)}%` : "—"}</small></span></div>`;
+      const sum = `<div class="lv-kp"><span><i>${bi("Lời/lỗ thật", "Real P/L")}</i><b class="${cls(pl)}">${sg$(pl)}</b><small class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</small></span><span><i>${bi("Sụt sâu nhất", "Max drawdown")}</i><b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b><small>${mdd < 0 ? fx(A[ddAt][0] * 60000) : "—"}</small></span><span${Math.abs(drop) >= 0.01 ? ` title="${esc(bi(`Sổ Binance ghi thêm ${sg$(drop)} nạp/rút không thấy làm đổi số dư trong kỳ (đã nằm sẵn trong số dư đầu kỳ hoặc ghi trùng) – không trừ vào lời/lỗ`, `Binance lists ${sg$(drop)} more transfers that never moved the balance in this range (already in the opening balance or duplicated) – not deducted`))}"` : ""}><i>${bi("Nạp/rút ròng", "Net transfers")}</i><b>${net ? sg$(net) : "$0"}${Math.abs(drop) >= 0.01 ? " *" : ""}</b><small>${u$(E0)} → ${u$(E1)}</small></span><span><i>${bi("Lệnh đóng", "Closed trades")}</i><b>${TR.length}</b><small>${TR.length ? `${bi("thắng", "won")} ${nf(nW / TR.length * 100, 0)}%` : "—"}</small></span></div>`;
       eqP = segM + sum + lineSvg(S, { h: 210, dec: 2, zero: md !== "eq", hlines: hl, fmt: md === "dd" ? (v) => nf(v, 1) + "%" : null });
       DK.eq = { t: md === "pl" ? bi("Lời/lỗ thật", "Real P/L") : md === "dd" ? bi("Sụt từ đỉnh", "Drawdown") : bi("Tài sản futures", "Futures equity"), v: md === "dd" ? `${nf(DD[DD.length - 1], 2)}%` : md === "pl" ? sg$(pl) : u$(E1), vc: md === "eq" ? "" : cls(md === "dd" ? DD[DD.length - 1] : pl),
         s: md === "eq" ? `<b class="${cls(pl)}">${sg$(pl)}</b> · <span class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</span>` : `${bi("sụt sâu nhất", "max DD")} <b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b>`,
