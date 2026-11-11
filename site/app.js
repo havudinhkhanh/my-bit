@@ -1418,11 +1418,8 @@ function stickH() {
   // thanh điều hướng (‹ › · nhóm › trang) dính ngay dưới thanh đầu → mọi thứ dính khác (tab Bot Phản Xạ, khung bên…) lùi xuống thêm đúng chiều cao của nó
   const cr = document.querySelector("#app > .crumb[data-nd]"), crh = cr && getComputedStyle(cr).position === "sticky" ? cr.offsetHeight : 0;
   d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick0", h + tbs + "px"); d.style.setProperty("--stick", h + tbs + crh + "px");
-  crStuck();
 }
-// thanh điều hướng đang dính (đã cuộn qua chỗ gốc) → hiện viền mảnh bên dưới để tách với nội dung chạy bên dưới
-function crStuck() { const c = document.querySelector("#app > .crumb[data-nd]"); if (!c) return; const s0 = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stick0")) || 0; c.classList.toggle("cr-stuck", scrollY > 2 && c.getBoundingClientRect().top <= s0 + 0.5); }
-if (!window.__crSc) { window.__crSc = 1; addEventListener("scroll", () => { if (!crStuck.r) crStuck.r = requestAnimationFrame(() => { crStuck.r = 0; crStuck(); }); }, { passive: true }); addEventListener("hashchange", () => setTimeout(stickH, 450)); }
+if (!window.__crSc) { window.__crSc = 1; addEventListener("hashchange", () => setTimeout(stickH, 450)); }
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
 function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
@@ -1437,6 +1434,13 @@ function pnInit() {
   { let ft = 0; addEventListener("scroll", () => { document.body.classList.add("fab-hide"); clearTimeout(ft); ft = setTimeout(() => document.body.classList.remove("fab-hide"), 650); }, { passive: true }); }
   $("#pnFab").onclick = () => pnOpen(innerWidth < 1180 || document.body.classList.contains("pn-mini") ? !document.body.classList.contains("pn-sheet") : true);
   $("#pnShade").onclick = () => pnOpen(false);
+  // tấm Bảng phụ: vuốt ở vùng tối hoặc vuốt quá đầu/cuối Bảng phụ không được cuộn trang phía sau (iOS bỏ qua overscroll-behavior ở nhiều bản)
+  $("#pnShade").addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+  { let y0 = 0, x0 = 0; nav.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; }, { passive: true });
+    nav.addEventListener("touchmove", (e) => { if (!document.body.classList.contains("pn-sheet") || !e.cancelable) return;
+      const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0; if (Math.abs(dx) > Math.abs(dy)) return;      // vuốt ngang (hàng chip…) để trình duyệt tự xử lý
+      let sc = null; for (let n = e.target; n && n !== nav; n = n.parentElement) if (n.scrollHeight > n.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(n).overflowY)) { sc = n; break; }
+      if (!sc || (dy > 0 && sc.scrollTop <= 0) || (dy < 0 && sc.scrollTop + sc.clientHeight >= sc.scrollHeight - 1)) e.preventDefault(); }, { passive: false }); }
   let raf = 0; addEventListener("scroll", () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; pnSpy(); }); }, { passive: true });
   // chỉ khi có KHỐI mới thêm/bớt (đổi giá, đổi chữ từng giây thì bỏ qua – không cần dựng lại mục lục)
   const elm = (L) => { for (const n of L) if (n.nodeType === 1) return true; return false; };

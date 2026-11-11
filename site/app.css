@@ -5184,9 +5184,8 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 /* PG() chèn 1 <i class="pg-mark"> giữa 2 thẻ → ".panel+.panel" không còn khớp → 2 thẻ dính nhau. Giữ khoảng cách khi có mốc nhóm ở giữa (trừ khung lưới đã có gap) */
 :not(.sc-body):not(.sc-setp):not([data-ol])>:is(.panel,.g,.sc-g2,section)+.pg-mark+:is(.panel,.g,.sc-g2,section){margin-top:var(--gap,14px)}
 /* thanh điều hướng ‹ › · nhóm › trang: luôn dính dưới thanh đầu, nền trùng nền trang, phủ cả khe 2 bên để nội dung cuộn bên dưới không lộ */
-#app>.crumb[data-nd]{position:sticky;top:var(--stick0,var(--toph,51px));z-index:30;background:var(--bg);margin:0 0 6px;padding:8px 0 8px;box-shadow:0 0 0 12px var(--bg);clip-path:inset(0 -12px -6px);flex-wrap:nowrap;min-width:0}
-#app>.crumb[data-nd]::after{content:"";position:absolute;left:-12px;right:-12px;bottom:-6px;height:1px;background:var(--hair,color-mix(in srgb,var(--ink) 10%,transparent));opacity:0;transition:opacity .15s}
-#app>.crumb[data-nd].cr-stuck::after{opacity:1}
+#app>.crumb[data-nd]{position:sticky;top:var(--stick0,var(--toph,51px));z-index:30;background:var(--bg);margin:0 0 6px;padding:10px 0 6px;box-shadow:0 0 0 12px var(--bg);clip-path:inset(0 -12px -6px);flex-wrap:nowrap;min-width:0}
+/* (bỏ vạch kẻ dưới thanh điều hướng – v3 không kẻ viền) */
 #app>.crumb[data-nd]>*{flex:none}
 #app>.crumb[data-nd]>.lvst{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 #sup{scroll-margin-top:calc(var(--stick,100px) + 12px)}
@@ -5211,3 +5210,12 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
   .lvt-t .lvt-pl small{display:block}
 }
 .lvt-t .lvt-xc>span{white-space:nowrap}
+
+/* thanh điều hướng đứng yên ngay từ đầu (không trượt lên khi bắt đầu cuộn): bỏ khoảng đệm trên của vùng nội dung, thanh tự đệm; ngang hàng mép trên Bảng phụ */
+main#app:has(>.crumb[data-nd]){padding-top:0!important}
+@media (min-width:1180px){body.pn-on .pnav{padding-top:10px!important}}
+/* Bảng phụ dạng tấm trượt (điện thoại / máy tính bảng): khoá cuộn trang phía sau, chỉ bảng phụ cuộn */
+html:has(body.pn-sheet),body.pn-sheet{overflow:hidden!important;overscroll-behavior:none}
+body.pn-sheet .pnav,body.pn-sheet .pn-scroll{overscroll-behavior:contain}
+body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.pnshade{touch-action:none}
