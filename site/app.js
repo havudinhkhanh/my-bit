@@ -871,7 +871,7 @@ const SHEETS = [
   }, { passive: true });
 })();
 // đổi giao diện sáng/tối → màu thanh trạng thái điện thoại đi theo
-const themeMeta = () => { const m = document.getElementById("thc"); if (m) m.content = document.documentElement.dataset.theme === "light" ? "#FFFFFF" : "#151C22"; };
+const themeMeta = () => { const m = document.getElementById("thc"); if (!m) return; const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(); m.content = bg || (document.documentElement.dataset.theme === "light" ? "#ECEEF1" : "#0B1119"); };      // màu thanh trạng thái = nền trang → liền với thanh MyBit
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
 // tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn

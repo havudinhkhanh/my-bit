@@ -5215,7 +5215,7 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 main#app:has(>.crumb[data-nd]){padding-top:0!important}
 @media (min-width:1180px){body.pn-on .pnav{padding-top:10px!important}}
 /* Bảng phụ dạng tấm trượt (điện thoại / máy tính bảng): khoá cuộn trang phía sau, chỉ bảng phụ cuộn */
-html:has(body.pn-sheet),body.pn-sheet{overflow:hidden!important;overscroll-behavior:none}
+body.pn-sheet{overflow:hidden}      /* chỉ khoá body (giống các tấm khác) – khoá cả html làm body thành khung cuộn riêng → thanh đầu dính bị đẩy mất, lộ thanh tab của trang */
 body.pn-sheet .pnav,body.pn-sheet .pn-scroll{overscroll-behavior:contain}
 body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .pnshade{touch-action:none}
@@ -5260,3 +5260,11 @@ body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
   .cmdk-l.rev>*{flex:none}
   .cmdk-l.rev .cmdk-g{margin:14px 12px 6px}
 }
+
+/* ===== điện thoại: thanh MyBit liền một khối với vùng giờ/pin phía trên (iOS tô vùng đó bằng nền trang) – cùng nền trang, không kẻ viền ===== */
+@media (max-width:979px){
+  .top{background:var(--bg)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border-bottom:0!important;box-shadow:none!important}
+}
+/* tấm Bảng phụ: nút ✕ có chỗ riêng ở góc phải – không đè lên ô giá BTC của hàng chỉ số đầu */
+@media (pointer:coarse){body.pn-sheet #pnHide{display:none!important}}      /* điện thoại: đóng bằng chạm vùng tối / vuốt sang phải như tấm iOS – ✕ cũ đè lên giá BTC */
+@media (pointer:fine){body.pn-sheet #pnpulse{margin-right:34px}}
