@@ -1083,8 +1083,8 @@ async function hkChartOpen(t, box, reopen) {
   const draw = (c) => { const W0 = Math.max(box.clientWidth, (box.closest(".tw, .panel")?.clientWidth || 0) - 28); box.innerHTML = hkSvg(c.K, t, ts, tf, tx, Math.min(W0, 1100) - 2) + c.note; };
   const sym = t.k.split(":")[0] + "USDT", tf = Date.parse(t.t0 + "Z"), tx = Date.parse(t.t1 + "Z"), ts = t.ts ? Date.parse(t.ts + "Z") : null;
   const got = HKO.get(key); if (got) { draw(got); return; }
-  if (reopen) { box.innerHTML = `<p class="faint">${bi("Đang lấy nến 1 phút từ Binance…", "Loading 1-minute candles from Binance…")}</p>`; return; }
-  HKO.set(key, null); box.innerHTML = `<p class="faint">${bi("Đang lấy nến 1 phút từ Binance…", "Loading 1-minute candles from Binance…")}</p>`;
+  if (reopen) { box.innerHTML = skChart(180); return; }
+  HKO.set(key, null); box.innerHTML = skChart(180);
   const st = Math.min(ts || tf, tf) - 20 * 60e3, en = tx + 6 * 60e3;
   try {
     let K = null, src = "";
@@ -2494,7 +2494,7 @@ async function viewPlan(k0) {
   const go = async () => {
     const k = $("#plK").value.trim().toUpperCase(); if (!BYK[k]) { $("#plOut").innerHTML = `<p class="muted">Chọn coin có trong danh sách.</p>`; return; }
     lsSet("plk", k); lsSet("pltf", $("#plTf").value); lsSet("plside", $("#plSide").value);
-    $("#plOut").innerHTML = `<p class="muted">Đang tính ${esc(k)}…</p>`;
+    $("#plOut").innerHTML = skLines(4);
     const D = await load(`data/c/${enc(k)}.json`);
     const t = makeTicket(D, IJ, { tf: $("#plTf").value, side: $("#plSide").value }); if (t.none) t.k = k;
     if (t.none) { $("#plOut").innerHTML = ticketCard(t); return; }
@@ -4282,7 +4282,7 @@ async function viewPaper(k0) {
     <div class="trade">
       <section class="panel tr-ch"><div class="tr-h"><input id="pvK" list="pvList" value="${esc(PV.k)}" class="tr-k"><datalist id="pvList">${COINS.rows.filter((r) => r.sp || r.bf).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>
         <b id="pvP" class="tr-p">—</b><small id="pvR"></small><span class="faint" id="pvInfo"></span></div><div id="pvChart"></div></section>
-      <section class="panel tr-ob"><div class="ph"><h2>Sổ lệnh</h2><span class="meta" id="pvObS">Binance</span></div><div id="pvBook" class="book"><p class="muted">Đang kết nối…</p></div></section>
+      <section class="panel tr-ob"><div class="ph"><h2>Sổ lệnh</h2><span class="meta" id="pvObS">Binance</span></div><div id="pvBook" class="book">${skRows(6)}</div></section>
       <section class="panel tr-form" id="pvForm"></section>
     </div>
     <section class="panel"><div class="subtabs" id="pvTabs">${[["pos", "Vị thế futures"], ["spot", "Tài sản spot"], ["ord", "Lệnh đang chờ"], ["hist", "Lịch sử lệnh"], ["tr", "Nhật ký lãi/lỗ"], ["eq", "Đường tài sản"]].map(([k, n]) => `<button data-t="${k}" class="${PV.tab === k ? "on" : ""}">${n}</button>`).join("")}</div><div id="pvTab"></div></section>
@@ -4318,7 +4318,7 @@ async function viewPaper(k0) {
     const lev = Math.min(+lsGet("pvlev", 2), G.cap);
     $("#pvForm").innerHTML = `<div class="seg wide" id="fMkt"><button data-m="spot" class="${!fut ? "on" : ""}" ${r.sp ? "" : "disabled"}>Spot</button><button data-m="fut" class="${fut ? "on" : ""}" ${r.bf ? "" : "disabled"}>Futures USDⓈ-M</button></div>
       <div class="seg wide sides" id="fSide"><button data-s="buy" class="b ${L ? "on" : ""}">${fut ? "Long / Mua" : "Mua"}</button><button data-s="sell" class="s ${!L ? "on" : ""}">${fut ? "Short / Bán" : "Bán"}</button></div>
-      <div class="seg wide" id="fType">${[["limit", "Giới hạn"], ["market", "Thị trường"], ["stop", "Dừng (cắt lỗ)"], ["tp", "Chốt lời"]].map(([k, n]) => `<button data-t="${k}" class="${PV.type === k ? "on" : ""}">${n}</button>`).join("")}</div>
+      <div class="seg wide" id="fType">${[["limit", "Giới hạn"], ["market", "Thị trường"], ["stop", "Dừng lỗ"], ["tp", "Chốt lời"]].map(([k, n]) => `<button data-t="${k}" class="${PV.type === k ? "on" : ""}">${n}</button>`).join("")}</div>
       <div class="ff">${PV.type !== "market" ? `<label>${PV.type === "stop" ? "Giá kích hoạt" : "Giá"}</label><input id="fPx" inputmode="decimal" value="${(papPx(PV.k, PV.mkt) || r.p || 0).toPrecision(6) * 1}">` : ""}
         <label>Số lượng ${esc(PV.k)}</label><input id="fQ" inputmode="decimal" placeholder="0"><label>hoặc giá trị USDT</label><input id="fU" inputmode="decimal" placeholder="0">
         <div class="seg wide" id="fPct">${[10, 25, 50, 100].map((p) => `<button data-p="${p}">${p}%</button>`).join("")}</div>
@@ -4437,7 +4437,7 @@ async function bxPanel() {
 }
 async function bxAccount() {
   const el = $("#bxAcc"); if (!el) return;
-  el.innerHTML = `<p class="muted">Đang đọc tài khoản Binance…</p>`;
+  el.innerHTML = skRows(3);
   const out = [];
   try {
     const a = await bx("spot", "GET", "/api/v3/account", { omitZeroBalances: "true" });

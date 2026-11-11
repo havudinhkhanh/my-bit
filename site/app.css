@@ -5047,3 +5047,31 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 @media (max-width:560px){.cal-d,.cal-d.fut{min-height:72px!important}}
 .cal-d.up{background:color-mix(in srgb,var(--up) calc(var(--a,0%) + 8%),var(--fill))!important}
 .cal-d.down{background:color-mix(in srgb,var(--down) calc(var(--a,0%) + 8%),var(--fill))!important}
+
+/* ================================================================ LỚP THỐNG NHẤT v3 (11/2026) – một thang bo góc, một kiểu nút chuyển, không vạch màu ở mép, bảng một nét kẻ
+   Thang bo góc: khung trang 14 · thẻ nằm trong khung 10 · nút / ô nhập 8 · nhãn tròn 999 */
+:root{--rad:14px;--r-in:10px;--r-ctl:8px;--hair:color-mix(in srgb,var(--ink) 8%,transparent)}
+.st,.stgs .st,.sc-kp .st,.ocard,.opp,.otr,.sf-c,.sc-oc,.lb-seg,.lb-nm,.ks-tip,.cal-d,.about,.skp,.bh-card,.kpis>*{border-radius:var(--r-in)!important}
+.panel,.lane,.about,.skp,.bh-card{border-radius:var(--rad)!important}
+.panel .panel,.lane .panel,.panel .skp{border-radius:var(--r-in)!important}
+/* vạch màu ở mép trái / trên → nền nhuộm nhẹ đúng màu đó (v3: chỉ khối màu) */
+.ocard{border-left:0!important;background:color-mix(in srgb,var(--lc,var(--ink)) 6%,var(--fill-card))!important}
+.otr{border-left:0!important;background:color-mix(in srgb,var(--lc,var(--ink)) 7%,var(--fill-card))!important}
+.otr:hover{background:color-mix(in srgb,var(--lc,var(--ink)) 13%,var(--fill-card))!important}
+.st.g{box-shadow:none!important;background:color-mix(in srgb,var(--up) 9%,var(--fill-card))!important}
+.st.b{box-shadow:none!important;background:color-mix(in srgb,var(--down) 9%,var(--fill-card))!important}
+.sf-c.on{box-shadow:none!important;border-color:transparent!important;background:color-mix(in srgb,var(--up) 9%,var(--fill-card))!important}
+.lb-seg,.lb-seg.on{border-color:transparent!important}
+/* nút chuyển (segment) – cùng chiều cao, cùng bo góc ở mọi trang */
+.seg button,.bseg button,.bseg a,.views button,.seg.oview button{min-height:32px;border-radius:var(--r-ctl)!important;white-space:nowrap}
+.seg.oview{border:0!important;gap:4px;overflow:visible}
+.seg.wide button{min-height:36px;padding-left:2px;padding-right:2px;font-size:.78rem;letter-spacing:-.1px}
+.subtabs button{border-radius:var(--r-in)!important}
+.chip{border-radius:999px!important}
+/* nút hành động chính của phiếu lệnh giữ màu Mua / Bán đặc */
+.btn.buyb:not(.primary):not(.danger):not(.pri){background:var(--up)!important;color:#fff!important}.btn.sellb:not(.primary):not(.danger):not(.pri){background:var(--down)!important;color:#fff!important}
+/* bảng: một nét kẻ rất mảnh dùng chung */
+#app table td,#app table th{border-bottom-color:var(--hair)!important;border-top-color:var(--hair)!important}
+/* chuyển động dùng chung: mọi thẻ bấm được nhấc nhẹ cùng một nhịp */
+:where(.ocard,.otr,.bh-card,.lb-seg,.sf-c){transition:background-color .16s var(--ease-out,ease),transform .18s var(--ease-out,ease),box-shadow .18s ease}
+:where(a.bh-card,a.otr,.lb-seg):active{transform:scale(.985)}
