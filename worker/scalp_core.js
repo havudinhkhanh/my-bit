@@ -624,7 +624,10 @@ export class ScalpCore {
       this.say(now, `🎯 ${S.pause.why}`, "info"); this.note(`target:${day}`, 2, `🎯 Bot Phản Xạ đạt mục tiêu ngày +${dayPct.toFixed(2)}%`, "Chốt lời, ngừng mở lệnh thật tới hết ngày – lệnh ảo vẫn chạy để học.");
     }
     S.hk ||= {}; S.hkc ||= {}; S.byS ||= {};
-    for (const [id, H] of Object.entries(S.hk)) if (now > H.exp) { delete S.hk[id]; if (!H.lv.some((l) => l.f)) this.say(now, `🪝 ${id.split(":")[0]}: hết ${c.hk_w} phút giá không xuống tới lệnh chờ – huỷ`, "info"); }
+    for (const [id, H] of Object.entries(S.hk)) if (now > H.exp) { delete S.hk[id]; if (!H.lv.some((l) => l.f)) { this.say(now, `🪝 ${id.split(":")[0]}: hết ${c.hk_w} phút giá không xuống tới lệnh chờ – huỷ`, "info");
+      // 📋 lệnh HỤT của sàn thử (giống tài khoản Binance) – tab Lệnh › Hụt: mức chờ gần nhất, giá đi tới đâu, còn thiếu bao nhiêu %
+      const L0 = H.lv.filter((l) => !l.mk).sort((a, b) => a.d - b.d)[0]; if (L0) { const bx = H.bx || H.c0, gap = Math.max(0, H.side * (bx / L0.px - 1) * 100);
+        (S.hkMiss ||= []).push({ k: id, side: H.side, t0: iso(H.t0), R: H.R, lvl: L0.px, gap: r2(gap, 2), what: "nofill", env: "paper" }); if (S.hkMiss.length > 60) S.hkMiss.splice(0, S.hkMiss.length - 60); } } }
     const kk = c.k + (S.kadd || 0), hourN = this.tradesLastHour(now), nOpen = Object.values(S.pos).filter((p) => p.strat !== "hook").length + Object.keys(S.ord).length;
     const live = {}, cnt = { all: 0, learn: 0, fee: 0, go: 0, skip: 0, hold: 0, stale: 0 }, cand = [];
     const bx = this.M["BTC:F"] || this.M["BTC:S"], bz = bx ? this.trendZ(bx, 5) : null;      // BTC 5 phút: dẫn dắt cả thị trường
@@ -1088,6 +1091,7 @@ export class ScalpCore {
   }
   hookTrade(x, p, now) {
     const H = this.S.hk[x.id]; if (!H) return;
+    if (!(H.side > 0 ? p >= H.bx : p <= H.bx)) H.bx = p;      // giá xa nhất đã tới trong lúc chờ (đo lệnh hụt thiếu bao nhiêu)
     for (const l of H.lv) { if (l.f) continue; const th = l.px * (1 - H.side * 5 / 1e4); if (H.side > 0 ? p < th : p > th) { l.f = 1; this.hookFill(x, H, l, now); } }
     if (H.lv.every((l) => l.f)) delete this.S.hk[x.id];
   }
@@ -1301,7 +1305,7 @@ export class ScalpCore {
       eq: r2(eq, 2), start: S.start, peak: r2(S.peak, 2), day: S.day, pause: S.pause, kadd: S.kadd, used: r2(this.used(), 2),
       stats: { ...S.stats, gross: r2(S.stats.gross, 2), fees: r2(S.stats.fees, 2), net: r2(S.stats.net, 2) }, by: S.by, cnt: this.cnt,
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
-      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
+      radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, miss: (S.hkMiss || []).slice(-40), byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
       sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-200), cfg: this.cfg, sw: this.sw.out(), q: this.q.out() };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
