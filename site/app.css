@@ -5268,3 +5268,23 @@ body.pn-sheet .pn-scroll{-webkit-overflow-scrolling:touch;touch-action:pan-y}
 /* tấm Bảng phụ: nút ✕ có chỗ riêng ở góc phải – không đè lên ô giá BTC của hàng chỉ số đầu */
 @media (pointer:coarse){body.pn-sheet #pnHide{display:none!important}}      /* điện thoại: đóng bằng chạm vùng tối / vuốt sang phải như tấm iOS – ✕ cũ đè lên giá BTC */
 @media (pointer:fine){body.pn-sheet #pnpulse{margin-right:34px}}
+/* thẻ lệnh được mở từ thông báo: sáng lên 1 nhịp để mắt tìm ra ngay */
+.nt-hl{animation:ntHl 1.6s ease-out}
+@keyframes ntHl{0%,30%{box-shadow:0 0 0 3px var(--brass,var(--brand)),0 0 24px -4px var(--brass,var(--brand))}100%{box-shadow:0 0 0 0 transparent}}
+/* ===== 🔔 thông báo kiểu mới: thẻ theo lệnh (dòng thời gian chờ › khớp › đóng), nhãn lời/lỗ, nút làm nhanh ===== */
+.nt-i{flex-wrap:wrap}
+.nt-h1{display:flex;align-items:flex-start;gap:10px;min-width:0}.nt-h1>b{flex:1;min-width:0}
+.nt-pl{flex:none;display:flex;flex-direction:column;align-items:flex-end;line-height:1.15;padding:3px 8px;border-radius:8px;font-variant-numeric:tabular-nums}
+.nt-pl b{font-size:.875rem!important;font-weight:750!important}.nt-pl small{font-size:.6875rem;font-weight:600;opacity:.85}
+.nt-pl.up{background:color-mix(in srgb,var(--up) 14%,transparent);color:var(--up)}.nt-pl.down{background:color-mix(in srgb,var(--down) 14%,transparent);color:var(--down)}
+.nt-tl{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:2px}
+.nt-st{display:inline-flex;align-items:center;gap:4px;padding:2px 8px 2px 6px;border-radius:999px;background:var(--fill);font-size:.6875rem;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.nt-st i{font-style:normal;font-size:.75rem}.nt-st.cur{background:var(--sel);color:var(--sel-ink)}
+.nt-ar{color:var(--ink-3);font-size:.75rem}
+.nt-sb{display:inline-flex;align-items:center;gap:3px;padding:0 7px;border-radius:999px;background:var(--fill);font-weight:650;color:var(--ink-2)}
+.nt-sb.s-fill,.nt-sb.s-keep{background:color-mix(in srgb,var(--brass,var(--brand)) 18%,transparent);color:var(--ink)}
+.nt-acts{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;padding:0 8px 10px 50px;margin-top:-4px}
+.nt-ab{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--fill);color:var(--ink)!important;font-size:.78rem;font-weight:650;text-decoration:none!important;white-space:nowrap;transition:background-color .14s ease,transform .1s ease}
+.nt-ab:hover{background:var(--fill-h)}.nt-ab:active{transform:scale(.96)}
+.nt-ab.dn{color:var(--down)!important;background:color-mix(in srgb,var(--down) 12%,transparent)}
+@media (max-width:979px){.nt-ab{height:34px;padding:0 14px;font-size:.8125rem}.nt-acts{padding-left:50px}}

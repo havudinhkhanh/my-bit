@@ -29,6 +29,25 @@ async function vapid(jwk, endpoint, sub) {
   const sig = b64u(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, enc.encode(`${head}.${body}`)));
   return `vapid t=${head}.${body}.${sig}, k=${b64u(cat(new Uint8Array([4]), unb64u(jwk.x), unb64u(jwk.y)))}`;
 }
+// 🔗 thông báo lệnh bot → "ref" của lệnh (dùng chung với nút trên trang Bot: lv:<id>, swp:<id>, lq:<id>, pp:…) + trạng thái của mốc đó.
+//    Khoá do máy chủ bot đặt: sc:lv:open:<id> · sc:lv:fill:<id>:<q> · sc:lv:close:<id> · sc:lv:swo|swc:<id> · sc:lv:qo|qc:<id> · sc:(lv:)kpr:<ref>:<n>
+export function ntRef(key) {
+  const k = String(key || "").replace(/^sc:/, ""); let m;
+  if ((m = k.match(/^lv:(open|fill|close):([^:]+)/))) return { ref: "lv:" + m[2], st: m[1] === "close" ? "closed" : m[1] };
+  if ((m = k.match(/^lv:sw([oc]):([^:]+)/))) return { ref: "swp:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^lv:q([oc]):([^:]+)/))) return { ref: "lq:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^(?:lv:)?kpr:(.+):\d+$/))) return { ref: m[1], st: "keep" };
+  return null;
+}
+// nút làm nhanh theo trạng thái lệnh – mọi nút đổi lệnh đều MỞ APP tới bảng xác nhận (không đóng / gia hạn tiền thật thẳng từ thông báo)
+export function ntActs(r) {
+  if (!r) return [];
+  const u = (d) => `#/bot/scalp?do=${d}&k=${encodeURIComponent(r.ref)}`;
+  if (r.st === "open") return [{ a: "close", t: "Huỷ lệnh chờ…", u: u("close") }, { a: "show", t: "Xem lệnh", u: u("show") }];
+  if (r.st === "fill") return [{ a: "close", t: "Đóng lệnh…", u: u("close") }, { a: "ext", t: "Gia hạn…", u: u("ext") }];
+  if (r.st === "keep") return [{ a: "snz", t: "🔕 Nhắc sau 1 giờ", u: u("snz") }, { a: "close", t: "Đóng lệnh…", u: u("close") }];
+  return [];
+}
 const SEV_MIN = { all: 0, normal: 1, important: 2, off: 99 };
 // items: [{ key, sev, title, body, url, kind }] – đã được ghi vào bảng thông báo; hàm này chỉ ĐẨY tới điện thoại theo tuỳ chọn của người dùng
 export async function pushNotify(env, uid, items, opt = {}) {
@@ -49,18 +68,23 @@ export async function pushNotify(env, uid, items, opt = {}) {
   // việc lẻ khác gộp thành 1 thông báo. Trên chuông web vẫn giữ đủ lịch sử.
   const bySev = (L) => [...L].sort((a, b) => (b.sev || 0) - (a.sev || 0)), G = new Map(), loose = [];
   for (const x of want) { if (x.grp) { if (!G.has(x.grp)) G.set(x.grp, []); G.get(x.grp).push(x); } else loose.push(x); }
-  const msgs = [...G.entries()].slice(0, 4).map(([g, L]) => { const t = bySev(L)[0]; return { sev: t.sev || 0, title: t.title, body: t.body || "", url: t.url || "#/", tag: "mybit-o-" + String(g).slice(0, 60) }; });
+  // mốc MỚI NHẤT của lệnh quyết định nút (chờ → khớp → đóng); bấm vào thông báo = mở đúng lệnh trên tab Lệnh
+  const rich = (t, L) => { const r = ntRef(t.key); return { ref: r?.ref || null, st: r?.st || null, acts: ntActs(r), keys: L.map((x) => x.key), url: r && r.st !== "closed" ? `#/bot/scalp?do=show&k=${encodeURIComponent(r.ref)}` : t.url || "#/" }; };
+  const msgs = [...G.entries()].slice(0, 4).map(([g, L]) => { const t = L[L.length - 1], top = bySev(L)[0], R = rich(t, L); return { sev: top.sev || 0, title: t.title, body: t.body || "", tag: "mybit-o-" + String(g).slice(0, 60), ...R }; });
   if (loose.length) {
     const top = bySev(loose), one = top.length === 1;
-    msgs.push({ sev: top[0].sev || 0, title: one ? top[0].title : `MyBit: ${top.length} việc mới`, body: one ? top[0].body || "" : top.slice(0, 4).map((x) => x.title).join(" · "),
-      url: one ? top[0].url || "#/" : "#/notifications", tag: "mybit-" + String(top[0].key).slice(0, 40) });
+    const R1 = one ? rich(top[0], top) : { keys: top.map((x) => x.key), acts: [] };
+    msgs.push({ sev: top[0].sev || 0, title: one ? top[0].title : `MyBit: ${top.length} việc mới`, body: one ? top[0].body || "" : top.slice(0, 5).map((x) => "• " + x.title).join("\n"),
+      tag: "mybit-" + String(top[0].key).slice(0, 40), ...R1, url: one ? R1.url : "#/notifications" });
   }
   const badge = Number.isFinite(opt.badge) ? { badge: opt.badge } : {};
   const jwk = JSON.parse(cfg.vapid_private_jwk), subject = "mailto:" + (cfg.smtp_user || "admin@example.com");
   let ok = 0;
   for (const s of subs) for (const m of msgs) {
     try {
-      const data = JSON.stringify({ title: m.title, body: String(m.body).slice(0, 180), url: base + m.url, tag: m.tag, ...badge });
+      // tải trọng ≤ ~3 KB (giới hạn đẩy 4 KB sau mã hoá): nội dung đủ 3–5 dòng, nút làm nhanh, mốc giờ, khoá để đánh dấu đã đọc khi bấm
+      const data = JSON.stringify({ title: m.title, body: String(m.body).slice(0, 400), url: base + m.url, tag: m.tag, sev: m.sev, ts: Date.now(), st: m.st || null, ref: m.ref || null,
+        acts: (m.acts || []).slice(0, 2).map((a) => ({ a: a.a, t: a.t, u: base + a.u })), nk: (m.keys || []).slice(0, 8).map((k) => String(k).slice(0, 180)), ...badge });
       const r = await fetch(s.endpoint, { method: "POST", body: await encrypt(data, s.p256dh, s.auth), headers: { Authorization: await vapid(jwk, s.endpoint, subject), "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream", TTL: "43200", Urgency: m.sev >= 2 ? "high" : "normal" } });
       if (r.status >= 200 && r.status < 300) { ok++; await env.DB.prepare("UPDATE push_subs SET last_ok = ?, fails = 0 WHERE id = ?").bind(new Date().toISOString(), s.id).run(); }
       else if (r.status === 404 || r.status === 410) await env.DB.prepare("DELETE FROM push_subs WHERE id = ?").bind(s.id).run();

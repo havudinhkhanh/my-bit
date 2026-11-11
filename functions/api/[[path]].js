@@ -194,7 +194,7 @@ export async function onRequest(ctx) {
           let act = null; try { if (a && Date.now() - Date.parse(a.updated_at) < 900e3) act = JSON.parse(a.value); } catch (e) { /* bỏ qua */ }
           return json({ unread, act });
         }
-        const { results } = await env.DB.prepare("SELECT id, kind, sev, title, body, url, sym, created_at, read_at FROM notifications WHERE user_id = ? AND id < ? ORDER BY id DESC LIMIT ?")
+        const { results } = await env.DB.prepare("SELECT id, key, kind, sev, title, body, url, sym, created_at, read_at FROM notifications WHERE user_id = ? AND id < ? ORDER BY id DESC LIMIT ?")
           .bind(uid, before, limit).all();
         return json({ items: results, unread });
       }
@@ -203,6 +203,8 @@ export async function onRequest(ctx) {
         try { b = await request.json(); } catch (e) { /* rỗng */ }
         if (b.all) await env.DB.prepare("UPDATE notifications SET read_at = ? WHERE user_id = ? AND read_at IS NULL").bind(nowIso(), uid).run();
         else for (const id of (b.ids || []).slice(0, 200)) await env.DB.prepare("UPDATE notifications SET read_at = ? WHERE user_id = ? AND id = ? AND read_at IS NULL").bind(nowIso(), uid, Number(id)).run();
+        // bấm vào thông báo trên điện thoại (máy dịch vụ gửi khoá, không có id) → đánh dấu đã đọc theo khoá
+        for (const k of (b.keys || []).slice(0, 20)) await env.DB.prepare("UPDATE notifications SET read_at = ? WHERE user_id = ? AND key = ? AND read_at IS NULL").bind(nowIso(), uid, String(k).slice(0, 200)).run();
         return json({ ok: true });
       }
       if (m === "POST" && sub === "unread") {      // đánh dấu CHƯA đọc lại

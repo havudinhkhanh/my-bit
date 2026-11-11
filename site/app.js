@@ -1264,6 +1264,8 @@ function skPage(r, a0) {
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
 async function route() {
+  // đường dẫn từ thông báo: #/bot/scalp?do=close|ext|snz|show&k=<ref> → nhớ việc cần làm, bỏ phần ?… khỏi địa chỉ (bấm lùi / tải lại không làm lại lần nữa)
+  if (location.hash.includes("?")) { const [h0, q] = location.hash.split("?"); const P = new URLSearchParams(q); if (P.get("do") && P.get("k")) window.__ntDo = { do: P.get("do"), k: P.get("k"), at: Date.now() }; history.replaceState(null, "", h0 || "#/"); }
   disposeCharts();
   const h = location.hash.replace(/^#\/?/, "");
   const parts = h.split("/");
@@ -5610,20 +5612,61 @@ function ntTradeUrl(n) {
   const sym = (n.sym ? String(n.sym).replace(/USDT$/, "") : null) || pick(after) || pick(T); if (!sym) return null;
   const t = Date.parse(n.created_at); return isNaN(t) ? null : `#/t/${env}/${encodeURIComponent(sym)}/${t}`;
 }
+// 🔗 thông báo lệnh bot → lệnh nào (ref dùng chung với nút trên trang Bot) + mốc nào – giống ntRef ở functions/_lib/push.js
+function ntRefC(key) {
+  const k = String(key || "").replace(/^sc:/, ""); let m;
+  if ((m = k.match(/^lv:(open|fill|close):([^:]+)/))) return { ref: "lv:" + m[2], st: m[1] === "close" ? "closed" : m[1] };
+  if ((m = k.match(/^lv:sw([oc]):([^:]+)/))) return { ref: "swp:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^lv:q([oc]):([^:]+)/))) return { ref: "lq:" + m[2], st: m[1] === "c" ? "closed" : "fill" };
+  if ((m = k.match(/^(?:lv:)?kpr:(.+):\d+$/))) return { ref: m[1], st: "keep" };
+  return null;
+}
+const NT_ST = { open: ["⏳", "Chờ khớp", "Waiting"], fill: ["✅", "Khớp", "Filled"], keep: ["✋", "Đang giữ", "Holding"], closed: ["🏁", "Đóng", "Closed"] };
+// gom các thông báo của CÙNG một lệnh (chờ → khớp → giữ → đóng) thành 1 thẻ: mốc mới nhất ở trên, các mốc trước thành dòng thời gian nhỏ
+function ntThread(L) {
+  const out = [], by = new Map();
+  for (const n of L) {
+    delete n._steps; delete n._ref; delete n._st; delete n._un;
+    const r = ntRefC(n.key); if (!r) { out.push(n); continue; }
+    const h = by.get(r.ref);
+    if (h) { h._steps.push({ n, st: r.st }); if (!n.read_at) h._un = true; continue; }
+    n._ref = r.ref; n._st = r.st; n._steps = []; by.set(r.ref, n); out.push(n);
+  }
+  return out;
+}
+// lời/lỗ trong tiêu đề ("… +0.10 USDT (+0.02% tổng tài sản)") → nhãn màu bên phải thẻ
+function ntPL(t) {
+  const m = String(t || "").match(/([+\-−])\s?([\d.,]+)\s*USDT(?:\s*\(([+\-−][\d.,]+)%)?/); if (!m) return null;
+  const v = parseFloat(m[2].replace(/,/g, "")) * (m[1] === "+" ? 1 : -1), p = m[3] ? parseFloat(m[3].replace(/−/, "-").replace(/,/g, "")) : null;
+  return isFinite(v) ? { v, p } : null;
+}
+function ntActsHtml(n) {
+  if (!n._ref || n._st === "closed") return "";
+  const A = n._st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]]
+    : n._st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]]
+    : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]];
+  return `<div class="nt-acts">${A.map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" data-ntdo href="#/bot/scalp?do=${d}&k=${encodeURIComponent(n._ref)}">${t}</a>`).join("")}</div>`;
+}
 function ntfRow(n) {
   const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : ntTradeUrl(n) || n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt; lệnh bot → trang chi tiết lệnh
   const tm = new Date(n.created_at).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" }), g = ntfGrp(n.kind);
   const em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);      // tiêu đề có sẵn biểu tượng → dùng làm biểu tượng, không lặp 2 lần
-  const ic = em ? em[1] : ntfIcon(n.kind), title = em ? n.title.slice(em[0].length) : n.title;
+  const ic = em ? em[1] : ntfIcon(n.kind); let title = em ? n.title.slice(em[0].length) : n.title;
   // lệnh bot: TIỀN THẬT (viền vàng + nhãn) / DEMO / SÀN THỬ (mờ hơn) – nhìn là biết lệnh nào là tiền thật
   const T = n.title || "", acc = /^💰 TIỀN THẬT|LỆNH THẬT/.test(T) ? "real" : /^🟡 DEMO|^💵 Demo/.test(T) ? "demo" : /^🧪 SÀN THỬ/.test(T) || (/^scalp/.test(n.kind || "") && /^[🪝⚡]/u.test(T)) ? "paper" : "";
-  return `<div class="nt-i ${n.read_at ? "" : "new"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
-    <span class="nt-b"><b>${esc(viDec(title))}</b>${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m"><span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
-    ${n.read_at ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}</div>`;
+  const unr = !n.read_at || n._un, pl = ntPL(title), hm = (iso) => new Date(iso).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" });
+  if (pl) title = String(title).replace(/\s*[+\-−]\s?[\d.,]+\s*USDT(?:\s*\([^)]*\))?/, "");      // số lời/lỗ đã có nhãn màu bên phải → bỏ khỏi tiêu đề cho gọn
+  const plc = pl ? `<span class="nt-pl ${pl.v >= 0 ? "up" : "down"}"><b>${pl.v >= 0 ? "+" : "−"}$${nf(Math.abs(pl.v), 2)}</b>${pl.p != null ? `<small>${pl.p >= 0 ? "+" : "−"}${nf(Math.abs(pl.p), 2)}%</small>` : ""}</span>` : "";
+  // dòng thời gian của lệnh: các mốc trước → mốc hiện tại
+  const tl = n._steps?.length ? `<span class="nt-tl">${[...n._steps].reverse().concat([{ n, st: n._st }]).map((s, i, A) => `<span class="nt-st${i === A.length - 1 ? " cur" : ""}"><i>${NT_ST[s.st]?.[0] || "•"}</i>${bi(NT_ST[s.st]?.[1] || "", NT_ST[s.st]?.[2] || "")} ${hm(s.n.created_at)}</span>`).join('<span class="nt-ar" aria-hidden="true">›</span>')}</span>` : "";
+  const stb = n._ref && !n._steps?.length ? `<span class="nt-sb s-${n._st}">${NT_ST[n._st]?.[0] || ""} ${bi(NT_ST[n._st]?.[1] || "", NT_ST[n._st]?.[2] || "")}</span>` : "";
+  return `<div class="nt-i ${unr ? "new" : ""} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
+    <span class="nt-b"><span class="nt-h1"><b>${esc(viDec(title))}</b>${plc}</span>${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}${tl}<small class="nt-m">${stb}<span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
+    ${!unr ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}${ntActsHtml(n)}</div>`;
 }
 // danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm
 function ntfList(items, f) {
-  const L = items.filter((n) => f === "all" || (f === "new" ? !n.read_at : ntfGrp(n.kind)[0] === f));
+  const L = ntThread(items.filter((n) => f === "all" || (f === "new" ? !n.read_at : ntfGrp(n.kind)[0] === f)));
   if (!L.length) return `<p class="nt-empty">${items.length ? "Không có thông báo nào trong mục này." : NEMPTY}</p>`;
   const by = []; for (const n of L) { const d = ntfDay(n.created_at); if (!by.length || by[by.length - 1][0] !== d) by.push([d, []]); by[by.length - 1][1].push(n); }
   return by.map(([d, X]) => `<h4 class="nt-d">${esc(d)}</h4>${X.map(ntfRow).join("")}`).join("");
@@ -5638,7 +5681,8 @@ function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => n
 function ntBindRow(it, items, redraw) {
   if (it._b) return; it._b = { items, redraw };
   const n = () => items?.find((x) => x.id === Number(it.dataset.nid));
-  it.querySelector(".nt-a")?.addEventListener("click", () => { const x = n(); if (x && !x.read_at) ntSetRead(x, true, it._b, false); bellClose(); });
+  it.querySelector(".nt-a")?.addEventListener("click", () => { const x = n(); if (x && (!x.read_at || x._un)) ntSetRead(x, true, it._b, false); bellClose(); });
+  it.querySelectorAll("[data-ntdo]").forEach((b) => b.addEventListener("click", () => { const x = n(); if (x && (!x.read_at || x._un)) ntSetRead(x, true, it._b, false); bellClose(); }));      // nút làm nhanh: tới tab Lệnh, mở bảng xác nhận
   const rd = it.querySelector("[data-rd]"), ur = it.querySelector("[data-ur]");
   if (rd) rd.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, true, it._b); };
   if (ur) ur.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, false, it._b); };
@@ -5697,9 +5741,10 @@ function ntSwipe(it, n) {
 }
 // đánh dấu đã đọc / CHƯA đọc 1 thông báo: gọi máy chủ, vẽ lại đúng dòng đó (mọi nơi đang hiện), cập nhật số trên chuông
 function ntSetRead(n, read, ctx, rerow = true) {
-  if (!!n.read_at === read) return;
-  api(read ? "notifications/read" : "notifications/unread", "POST", { ids: [n.id] }).then(bellCount).catch(() => {});
-  n.read_at = read ? new Date().toISOString() : null;
+  const S = read ? (n._steps || []).map((s) => s.n).filter((x) => !x.read_at) : [];      // đã đọc 1 thẻ lệnh = đã đọc mọi mốc của lệnh đó
+  if (!!n.read_at === read && !S.length) return;
+  api(read ? "notifications/read" : "notifications/unread", "POST", { ids: [n.id, ...S.map((x) => x.id)] }).then(bellCount).catch(() => {});
+  n.read_at = read ? new Date().toISOString() : null; S.forEach((x) => (x.read_at = n.read_at)); if (read) n._un = false;
   if (rerow) $$(`[data-nid="${n.id}"]`).forEach((it) => { const t = document.createElement("div"); t.innerHTML = ntfRow(n); const nw = t.firstElementChild; const c = it._b || ctx; it.replaceWith(nw); ntBindRow(nw, c?.items, c?.redraw); });
   ctx?.redraw?.(false);
 }
@@ -6180,7 +6225,10 @@ function initAccountUI() {
   $$("#tabs a").forEach((a) => { const f = tabF[a.dataset.r]; if (f && !can(f)) a.classList.add("locked"); });
   if (!can("pdf")) $("#pdfBtn")?.remove();
   bellCount(); setInterval(() => { if (!document.hidden) bellCount(); }, 60000);      // 60 giây & chỉ khi đang xem trang (chuông còn cập nhật ngay khi có thông báo đẩy / mở lại app)
-  navigator.serviceWorker?.addEventListener?.("message", (e) => { if (e.data?.t === "push") bellCount(); });   // thông báo đẩy tới → chuông cập nhật ngay
+  navigator.serviceWorker?.addEventListener?.("message", (e) => {
+    if (e.data?.t === "push") bellCount();      // thông báo đẩy tới → chuông cập nhật ngay
+    if (e.data?.t === "go" && e.data.url) { try { const u = new URL(e.data.url, location.href); if (u.origin === location.origin) { if (location.hash === u.hash) route(); else location.hash = u.hash; setTimeout(bellCount, 800); } } catch (x) { /* bỏ qua */ } }      // bấm thông báo khi app đang mở → tới đúng chỗ
+  });   // thông báo đẩy tới → chuông cập nhật ngay
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bellCount(); });
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
 }

@@ -204,6 +204,9 @@ function mxAsk(key, name, real, pend) {
 }
 async function viewScalp() {
   window.__scDirty = false;
+  // 🔔 tới từ thông báo (#/bot/scalp?do=…&k=<ref>): mở tab Lệnh, đúng sàn, bỏ bộ lọc – rồi cuối hàm làm việc được yêu cầu (ntDoRun)
+  const ND = window.__ntDo && Date.now() - window.__ntDo.at < 60e3 ? window.__ntDo : null;
+  if (ND) { window.__scTab = "ord"; window.__scEnv = /^(lv|swp|lq):/.test(ND.k) ? "live" : "paper"; window.__scOl = "all"; window.__scOm = "all"; }
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   // đổi tab con: dùng lại dữ liệu vừa tải (< 20 giây) → vẽ ngay, không chờ mạng (trang không "giật")
   const cc = window.__scCache, useC = window.__scUseCache && cc && Date.now() - cc.t < 20000; window.__scUseCache = false;
@@ -1103,6 +1106,7 @@ async function viewScalp() {
    ...$$("[data-lvc]").filter((b) => !b.closest("#lvEqBox")).map((b) => { const h = LHr[+b.dataset.lvc]; return [b, h && { k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase, side: h.side, nl: h.nl, R: h.R, man: h.strat === "man" }, "#lvc" + b.dataset.lvc]; })]
     .forEach(([b, t, sel]) => { if (!t) return; const box = $(sel); if (box) box.dataset.hkbox = hkKey(t); b.onclick = () => hkChartOpen(t, $(sel)); if (HKO.has(hkKey(t))) hkChartOpen(t, box, true); });
   rsTables($("#app"));
+  if (ND) { window.__ntDo = null; setTimeout(() => ntDoRun(ND), 120); }
   { const tb = $(".sc-tabs"), on = tb?.querySelector("button.on"), x0 = window.__scTabX; window.__scTabX = null;      // tab đang chọn luôn nằm GIỮA thanh tab
     if (tb && on && tb.scrollWidth > tb.clientWidth + 2) {
       if (x0 != null) tb.scrollLeft = x0;
@@ -2376,3 +2380,15 @@ async function lvDockGo() {
 if (!window.__lvDockW) { window.__lvDockW = 1; let q = 0;
   addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; lvDockVis(); }); }, { passive: true });
   addEventListener("hashchange", () => setTimeout(lvDockVis, 50)); addEventListener("resize", () => lvDockVis()); }
+
+// 🔔 việc yêu cầu từ thông báo: tìm đúng thẻ lệnh trên tab Lệnh → làm sáng + cuộn tới; đóng / gia hạn = bấm đúng nút (mở bảng XÁC NHẬN như bấm tay); hoãn nhắc = gửi luôn (không đổi lệnh)
+async function ntDoRun(D) {
+  const k = D.k, q = (a) => document.querySelector(`[${a}="${CSS.escape(k)}"]`);
+  const btn = q("data-mclose") || q("data-mkeep"), card = btn?.closest(".sc-oc, .sc-ht, tr") || null;
+  if (!btn) { toast(bi("Lệnh này đã đóng hoặc không còn đang mở – xem lại trong mục Đã đóng.", "This trade is already closed.")); window.__scOl = "closed"; document.querySelector('[data-scol="closed"]')?.click(); return; }
+  if (card) { card.scrollIntoView({ block: "center", behavior: "smooth" }); card.classList.remove("nt-hl"); void card.offsetWidth; card.classList.add("nt-hl"); }
+  await new Promise((r) => setTimeout(r, 380));
+  if (D.do === "close") q("data-mclose")?.click();
+  else if (D.do === "ext") { const kb = q("data-mkeep"); if (kb) kb.click(); else toast(bi("Lệnh này không có tuỳ chọn gia hạn.", "This trade can't be extended.")); }
+  else if (D.do === "snz") { await scCmd("close", `kz:${k}:60`, new Date().toISOString()); toast(bi("🔕 Đã hoãn nhắc 1 giờ", "🔕 Reminders snoozed for 1 hour")); }
+}

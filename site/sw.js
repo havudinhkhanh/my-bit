@@ -77,16 +77,25 @@ self.addEventListener("fetch", (e) => {
   if (/\.(js|css|svg|png|jpe?g|webp|gif|ico|woff2?|ttf|json|webmanifest)$/i.test(u.pathname)) return e.respondWith(asset(e, u.searchParams.has("v")));
 });
 
+// 🔔 THÔNG BÁO ĐẨY – mỗi lệnh 1 thông báo tự đè (chờ → khớp → đóng), nội dung nhiều dòng, nút làm nhanh (Android / máy tính; iPhone chưa hỗ trợ nút → bấm vào thông báo là mở đúng lệnh).
+// Nút đổi lệnh (đóng / gia hạn) chỉ MỞ APP tới bảng xác nhận – không làm thẳng từ thông báo (tiền thật luôn qua bước xác nhận).
 self.addEventListener("push", (e) => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { title: APP, body: e.data ? e.data.text() : "" }; }
   // số trên biểu tượng app (vd. số lệnh bot đang chờ + đang mở) – iPhone (iOS 16.4+, app đã thêm vào màn hình chính), Android, máy tính
   const nb = self.navigator;
   const badge = typeof d.badge === "number" && nb && nb.setAppBadge ? (d.badge > 0 ? nb.setAppBadge(d.badge) : nb.clearAppBadge()).catch(() => {}) : null;
+  const sev = Number(d.sev) || 0, acts = Array.isArray(d.acts) ? d.acts.slice(0, 2) : [];
   e.waitUntil(Promise.all([
     badge,
     self.registration.showNotification(d.title || APP, {
-      body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag, icon: "/apple-touch-icon.png", badge: "/icon-192.png", data: { url: d.url || "/" },
+      body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag && sev >= 1, icon: "/apple-touch-icon.png", badge: "/icon-192.png",
+      timestamp: Number(d.ts) || Date.now(),
+      requireInteraction: sev >= 3,                     // ⛔ ngừng / lỗi nặng: ở lại tới khi anh xem
+      silent: sev === 0,                                // tin nhỏ: không kêu, không rung
+      vibrate: sev >= 3 ? [90, 60, 90, 60, 160] : sev >= 2 ? [70, 50, 70] : [40],
+      actions: acts.map((a) => ({ action: a.a, title: a.t })),
+      data: { url: d.url || "/", acts, nk: d.nk || [], ref: d.ref || null },
     }),
     // trang đang mở → cập nhật chuông ngay
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => cs.forEach((c) => c.postMessage({ t: "push" }))),
@@ -94,9 +103,12 @@ self.addEventListener("push", (e) => {
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "/";
-  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
-    for (const c of cs) { if ("focus" in c) { c.navigate(url).catch(() => {}); return c.focus(); } }
+  const D = e.notification.data || {}, act = e.action && (D.acts || []).find((a) => a.a === e.action);
+  const url = (act && act.u) || D.url || "/";
+  // đã xem thông báo này → đánh dấu đã đọc trên chuông (theo khoá – máy dịch vụ không biết số thứ tự)
+  const rd = D.nk && D.nk.length ? fetch("/api/notifications/read", { method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" }, body: JSON.stringify({ keys: D.nk }) }).catch(() => {}) : null;
+  e.waitUntil(Promise.all([rd, self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+    for (const c of cs) { if ("focus" in c) { c.postMessage({ t: "go", url }); return c.focus().catch(() => {}); } }      // app đang mở: chỉ đổi trang trong app (nhanh, không tải lại)
     return self.clients.openWindow(url);
-  }));
+  })]));
 });
