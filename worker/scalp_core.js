@@ -33,9 +33,11 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   // 🧪 CHỈ SÀN THỬ (11/2026, vòng 15 & 16 – research/r15_result.md, r16_result.md). Tài khoản Binance không dùng 2 mục này cho tới khi Jason quyết định.
   // hk_u40: lệnh còn LỖ từ phút hk_u40 → ra ở đỉnh nhịp nảy kế tiếp (đạo hàm bậc 1 của đường lời/lỗ từng phút vừa đổi từ dương sang ≤ 0, đạo hàm bậc 2 < 0;
   //         khớp parabol trượt hk_uw phút) thay vì chờ hết giờ. Kiểm chứng 22 tháng: +154% so với +146%, sụt 9,2% so với 9,4%. 0 = tắt.
-  // hk_ag:  nến sốc có ≥ hk_ag phần khối lượng là lệnh CHỦ ĐỘNG cùng chiều cú sốc (bán tháo) → cỡ lệnh Long × hk_agX. Kiểm chứng: nhóm này TB +162 / +336 bps
+  // hk_ag:  nến sốc có ≥ hk_ag % khối lượng là lệnh CHỦ ĐỘNG cùng chiều cú sốc (bán tháo) → cỡ lệnh Long × hk_agX. Kiểm chứng: nhóm này TB +162 / +336 bps
   //         ở 2 nửa thời gian (các nhóm khác +62…+150), thắng 95–96%; cỡ ×2: +228% so với +141%, sụt như cũ, ngày tệ nhất −5,2% so với −3,3%. 0 = tắt.
-  hk_u40: 40, hk_uw: 9, hk_ag: 0.725, hk_agX: 2,
+  hk_u40: 40, hk_uw: 9, hk_ag: 72.5, hk_agX: 2,
+  // 💰 công tắc áp 2 mục trên cho TÀI KHOẢN BINANCE (mặc định TẮT – chỉ Jason bật): lv_u40 = ra ở đỉnh nhịp nảy · lv_ag = tăng cỡ lệnh khi bán tháo chủ động
+  lv_u40: false, lv_ag: false,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
   lv_on: false, lv_env: "demo", lv_cap: 100, lv_all: false, lv_lev: 2, lv_daily: 10, lv_small: "near", sw_lv_pump: false, sw_lv_sz: 5, sw_lv_max: 2,
   // 📐 ĐỊNH LƯỢNG (worker/quant.js): q_on = cả nhóm trên sàn thử; q_<k> = từng phương pháp trên sàn thử (mặc định bật);
@@ -93,9 +95,9 @@ function norm(c) {
   n("hmax", 2, 1800); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
-  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000); n("hk_u40", 0, 600); n("hk_uw", 5, 15); n("hk_ag", 0, 1); n("hk_agX", 1, 3);
+  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000); n("hk_u40", 0, 600); n("hk_uw", 5, 15); if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; n("hk_ag", 0, 100); n("hk_agX", 1, 3);
   c.hk_ad = !!c.hk_ad; n("hk_adH", 0, 23); n("hk_adD1", 0, 4); n("hk_adD2", 0, 4); c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.lq_sec = !!c.lq_sec; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
-  n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
+  n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.lv_u40 = !!c.lv_u40; c.lv_ag = !!c.lv_ag; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
   return c;
@@ -1014,7 +1016,7 @@ export class ScalpCore {
   hkLiveFill(now) { const D = this.dayRec(now); D.hfl = (D.hfl || 0) + 1; }
   hookPlace(x, side, b, r, R, z, med, now, r15 = null) {
     const c = this.cfg, S = this.S, H = this.hkStat, base = x.id.split(":")[0];
-    const ag = b[5] >= 0 && b[5] <= 1 ? (side > 0 ? 1 - b[5] : b[5]) : null, agX = c.hk_ag > 0 && c.hk_agX > 1 && side > 0 && ag != null && ag >= c.hk_ag ? c.hk_agX : 1;      // 🧪 bán tháo chủ động ≥ hk_ag → cỡ lệnh sàn thử × hk_agX (chỉ Long)
+    const ag = b[5] >= 0 && b[5] <= 1 ? (side > 0 ? 1 - b[5] : b[5]) : null, agX = c.hk_ag > 0 && c.hk_agX > 1 && side > 0 && ag != null && ag * 100 >= c.hk_ag ? c.hk_agX : 1;      // 🧪 bán tháo chủ động ≥ hk_ag → cỡ lệnh sàn thử × hk_agX (chỉ Long)
     const eq = this.equity(), lev = x.t === "F" ? c.lev : 1, free = Math.max(0, eq - this.used()) * lev, notional = Math.min(eq * c.hk_size / 100 * agX, free);
     const AD = this.hkLv(now), lvs = AD.lv; if (!lvs.length || notional < 10) { H.last.why = "không đủ vốn"; return; }
     const mv = Math.abs(Math.expm1(r)), c0 = b[1], each = notional / lvs.length;
@@ -1024,14 +1026,14 @@ export class ScalpCore {
     if (mk && mkN >= 10) LV.unshift({ d: 0, mk: 1, px: x.ask, q: mkN / x.ask, f: 0 });
     if (!c.hk_on) {      // 🧪 sàn thử tắt, 💰 tiền thật bật: chỉ gửi tín hiệu cho tài khoản Binance, không đặt lệnh ảo
       S.hkc[x.id] = now + 30 * 60000; H.last.why = "sàn thử tắt – chỉ gửi tiền thật";
-      try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })) }); } catch (e) { this.err("live " + e.message); }
+      try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })), ag }); } catch (e) { this.err("live " + e.message); }
       this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps → chỉ gửi tài khoản Binance (sàn thử Bắt râu sập đang tắt)`, "info");
       return;
     }
     S.hk[x.id] = { t: x.t, side, t0: now, exp: now + c.hk_w * 60000, mv, R: r2(R, 0), z: r2(z, 1), c0, r15: r15 != null ? r2(r15, 0) : null, lv: LV, ag: ag != null ? r2(ag, 3) : null, agX };
-    if (agX > 1) this.say(now, `🧪 ${base}: ${(ag * 100).toFixed(0)}% khối lượng nến sốc là bán tháo chủ động (≥ ${(c.hk_ag * 100).toFixed(0)}%) → cỡ lệnh sàn thử ×${c.hk_agX}`, "info");
+    if (agX > 1) this.say(now, `🧪 ${base}: ${(ag * 100).toFixed(0)}% khối lượng nến sốc là bán tháo chủ động (≥ ${c.hk_ag}%) → cỡ lệnh sàn thử ×${c.hk_agX}`, "info");
     S.hkc[x.id] = now + 30 * 60000; H.placed++; this.dayRec(now).placed++; H.last.why = "đã đặt lệnh chờ"; if (LV[0].mk) H.mk = (H.mk || 0) + 1;
-    try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })) }); } catch (e) { this.err("live " + e.message); }
+    try { this.io.onHook?.({ id: x.id, side, c0, mv, R: r2(R, 0), z: r2(z, 1), t0: now, exp: now + c.hk_w * 60000, hold: c.hk_h, stop: c.hk_stop, mkS: LV[0].mk ? c.hk_mkS : 0, lv: LV.map((l) => ({ d: l.d, px: l.px, mk: l.mk || 0 })), ag }); } catch (e) { this.err("live " + e.message); }
     const pxs = LV.filter((l) => !l.mk).map((l) => +l.px.toPrecision(6)).join(" / ");
     const mkTx = LV[0].mk ? ` + MUA NGAY ${+x.ask.toPrecision(6)} (15 phút trước đã giảm ${(-r15 / 100).toFixed(1)}%)` : "";
     this.say(now, `🪝 ${base} ${side > 0 ? "sập" : "vọt"} ${Math.abs(r * 1e4).toFixed(0)} bps trong 1 phút (z ${z.toFixed(1)}, khối lượng ${(b[4] / med).toFixed(1)}×) → chờ ${side > 0 ? "mua" : "bán"} ở ${pxs}${mkTx}${AD.ad ? " · ngày vắng → chờ gần" : ""}`, "info");

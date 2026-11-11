@@ -11,6 +11,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { sgVA } from "../worker/scalp_core.js";
 
 const BASE = { live: "https://fapi.binance.com", demo: process.env.MYBIT_DEMO_BASE || "https://demo-fapi.binance.com" };     // MYBIT_DEMO_BASE: chỉ để kiểm thử với sàn giả lập
 const SAPI = process.env.MYBIT_SAPI || "https://api.binance.com";      // MYBIT_SAPI: chỉ để kiểm thử
@@ -196,8 +197,10 @@ export class LiveExec {
     const used = A.reduce((a, e) => a + e.lv.reduce((b, l) => b + (l.st === "cxl" ? 0 : l.px * l.q), 0), 0) / c.lv_lev;
     // mức "vào ngay" (mk, lệnh thị trường) dùng hk_mkS % vốn; các mức chờ chia đều hk_size %
     const lim = h.lv.filter((l) => !l.mk), mkL = h.lv.filter((l) => l.mk);
-    let per = Math.max(B * c.hk_size / 100 / Math.max(1, lim.length), F.minN * 1.1), lv = h.lv, small = false;
-    const perMk = Math.max(B * (h.mkS || 0) / 100, F.minN * 1.1);
+    // 💰 tuỳ chọn (lv_ag, mặc định tắt): nến sốc có ≥ hk_ag khối lượng là bán tháo chủ động → cỡ lệnh Long × hk_agX (vòng 16). Mọi giới hạn vốn / rủi ro bên dưới vẫn áp như cũ.
+    const agX = c.lv_ag && c.hk_ag > 0 && c.hk_agX > 1 && h.side > 0 && h.ag != null && h.ag * 100 >= c.hk_ag ? c.hk_agX : 1;
+    let per = Math.max(B * c.hk_size / 100 * agX / Math.max(1, lim.length), F.minN * 1.1), lv = h.lv, small = false;
+    const perMk = Math.max(B * (h.mkS || 0) / 100 * agX, F.minN * 1.1);
     const tot = (L) => L.reduce((a, l) => a + (l.mk ? perMk : per), 0);
     if (env === "live") {
       // VỐN NHỎ (chỉ tiền thật): sàn bắt mỗi lệnh ≥ ~5 USDT nên không chia đủ các mức theo 5% được → giữ các mức có lời kỳ vọng cao nhất
@@ -305,6 +308,7 @@ export class LiveExec {
       else if (hitSoft) await this.close(ev, "SL");
       // cắt lỗ đuổi chỉ cho lệnh CHỜ: với "mua ngay" nó cắt mất cú hồi lớn (vòng 9, 1.863 lệnh: giữ 60 phút +125 bps/lệnh, đuổi 1,5%/1% chỉ +60) – tiền thật giữ đủ giờ
       else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !(ev.env === "live" && ev.lv.some((l) => l.mk && l.fq > 0)) && this.trail(ev, m, c)) await this.close(ev, "TRAIL");
+      else if (c.lv_u40 && c.hk_u40 > 0 && m && ev.pos.ap > 0 && this.peak(ev, m, c, now)) await this.close(ev, "PEAK");      // 💰 tuỳ chọn (mặc định tắt): còn lỗ từ phút hk_u40 → ra ở đỉnh nhịp nảy (vòng 15)
       else if (!ev.pAt || now - ev.pAt > 20000) {      // vị thế còn không? (cắt lỗ trên sàn đã chạy / anh tự đóng)
         ev.pAt = now; const p = await this.pos(ev.sym);
         if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) await this.finish(ev, "SL", sp || ev.pos.ap, "vị thế đã được đóng trên sàn (cắt lỗ chạy hoặc anh tự đóng)");
@@ -335,6 +339,14 @@ export class LiveExec {
     this.note(`fill:${ev.id}:${P.q}`, 2, `${LTAG(ev.env)} · ✅ Khớp ${ev.side > 0 ? "Long" : "Short"} ${coin(ev.sym)}`, `${+q.toFixed(8)} @ ${+px.toPrecision(8)} – tự đóng sau ${ev.hold} phút, cắt lỗ trên sàn ${ev.stopPct}%`, `lv:${ev.id}`);
   }
   // 🪝 cắt lỗ đuổi (như sàn thử): lời theo giá giữa ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời. Đỉnh lời tính lại khi khớp thêm mức (giá TB đổi).
+  // ghi lời/lỗ (bps) mỗi phút từ lúc khớp; từ phút hk_u40 mà còn lỗ → true khi nhịp nảy vừa tạo đỉnh (đạo hàm bậc 1 đổi từ > 0 sang ≤ 0, bậc 2 < 0) – giống sàn thử (hookPeak)
+  peak(ev, m, c, now) {
+    const mi = Math.floor((now - ev.pos.t1) / 60000); if (!(mi > (ev.pmi || 0))) return false;
+    const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; ev.pmi = mi; const A = (ev.pm ||= []); A.push(Math.round(pr)); if (A.length > 70) A.shift();
+    const w = c.hk_uw || 9; if (mi < c.hk_u40 || !(pr < 0) || A.length < w + 1) return false;
+    const d1 = sgVA(A.slice(-w)), d0 = sgVA(A.slice(-w - 1, -1));
+    return d1.v <= 0 && d1.a < 0 && d0.v > 0;
+  }
   trail(ev, m, c) { const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.pk)) ev.pk = pr; return ev.pk >= c.hk_tra && pr <= ev.pk - c.hk_trg; }
   async ensureStop(ev) {
     if (!ev.needStop || !ev.stopPct) return;
@@ -828,8 +840,8 @@ export class LiveExec {
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined }];
     this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
-    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
-    this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
+    this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy (còn lỗ sau phút 40)", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
+    this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", PEAK: "Ra ở đỉnh nhịp nảy", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
     if (this.S.day.pnl <= -this.base() * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
   }
