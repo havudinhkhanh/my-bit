@@ -5343,7 +5343,7 @@ body:has(#tabs.tp-pull) .pnfab{opacity:0;transition:opacity .15s}      /* nút B
 .dside>div:empty{display:none}
 #dCal{container-type:inline-size;min-width:0}
 @container (min-width:640px){      /* (trang có thu phóng chữ → px trong @container lớn hơn px màn hình ~1,2×: 640 ≈ 770px thật) */
-  .dlay{grid-template-columns:minmax(350px,460px) minmax(0,1fr);align-items:start}
+  .dlay{grid-template-columns:minmax(360px,520px) minmax(0,1fr);align-items:start}
   .dlay>#dCal{position:sticky;top:calc(var(--stick,91px) + 8px)}
 }
 /* lịch trong khung hẹp: ô gọn, số lũy kế xếp dọc – không còn ô cao trống */
@@ -5351,10 +5351,22 @@ body:has(#tabs.tp-pull) .pnfab{opacity:0;transition:opacity .15s}      /* nút B
   .cal{gap:4px!important}
   .cal-d{min-height:70px!important;padding:5px 4px 4px!important;border-radius:9px!important}
   .cal-p{font-size:var(--fs-base,.875rem)!important}
-  .cal-c{display:none!important}      /* lũy kế: đã có ở dòng "Lũy kế" trên lịch + biểu đồ cộng dồn → ô gọn 3 dòng */
-  .cal-d{min-height:58px!important;justify-content:center}
+  /* lũy kế từ đầu: 1 dòng nhỏ dưới cùng (USD · %), xuống 2 dòng khi số dài */
+  .cal-c{display:flex!important;flex-direction:row!important;flex-wrap:wrap;justify-content:center;column-gap:4px;row-gap:0;font-size:.5625rem!important;letter-spacing:-.15px;padding-top:3px!important;margin-top:auto}
+  .cal-d{min-height:64px!important}
 }
 
 /* chi tiết ngày ở cột phải: khung hẹp → "bài học | theo coin & các lệnh" xếp dọc để bảng lệnh đủ chỗ */
 .dside{container-type:inline-size}
 @container (max-width:620px){.dside .g2w{grid-template-columns:minmax(0,1fr)!important}}
+
+/* số ngày trong ô đang chọn: viên đặc canh GIỮA (trước lệch trái/trên vì padding + chấm "hôm nay" nằm trong viên) */
+.cal-d.sel .cal-n{display:inline-flex!important;align-items:center;justify-content:center;gap:3px;min-width:20px;height:18px;padding:0 5px!important;margin:0 0 0 -3px!important;line-height:1!important;border-radius:6px;box-sizing:border-box;font-variant-numeric:tabular-nums}
+.cal-d.sel .cal-n::after{margin:0!important;vertical-align:0!important;width:4px!important;height:4px!important}
+/* lịch khung hẹp: hàng tự cao theo nội dung (tuần chưa tới không bị kéo cao bằng tuần có số), ô tương lai thấp hơn */
+@container (max-width:620px){
+  .cal{grid-auto-rows:auto!important}
+  .cal .cal-d.fut,.cal .cal-d.fut:disabled{min-height:46px!important}
+  .cal-c{white-space:nowrap;font-size:.53rem!important;column-gap:3px}
+  .cal-d{padding:5px 3px 4px!important}
+}
