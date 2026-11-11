@@ -1722,8 +1722,10 @@ async function viewBot(sel) {
   }, 60000);
 }
 
-async function viewSup() {
-  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
+async function viewSup(OUT) {
+  const RE = () => (location.hash.startsWith("#/bot/sup") || location.hash.startsWith("#/bot/home") ? viewBotHome(location.hash.startsWith("#/bot/sup") ? "sup" : "") : viewBotHome());      // 11/2026: Rủi ro & giám sát là 1 phần của trang Tổng quan bot (không còn tab riêng)
+  OUT = OUT || app();
+  if (ME && !can("bot")) { OUT.innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   const [rc, rs, rq, rv] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate")]);
   let B = botsOf(rc.data).map((b, i) => ({ ...BOT_DEF, ...b, id: b.id || "b" + (i + 1) }));
   const SS = statesOf(rs.data), ss = rv.data || {}, C = { ...SUP_DEF, ...(rq.data || {}) }, a = ss.acct || {}, TH = ss.think || {};
@@ -1759,7 +1761,7 @@ async function viewSup() {
   const feeP = `${kpis([["Phí đã trả", usd2(fees)], ["Funding (+ = trả)", usd2(fund), fund > 0 ? "down" : "up"], ["Phí TB mỗi lệnh", fR.length ? nf(fR.reduce((s, c) => s + c.feeR, 0) / fR.length, 3) + "R" : "—"], ["Phí / lãi gộp (cao nhất)", cv.some((c) => isNum(c.fee_share)) ? nf(Math.max(...cv.filter((c) => isNum(c.fee_share)).map((c) => c.fee_share)), 0) + "%" : "—", "", "bot có tỷ lệ phí / lãi gộp cao nhất"]])}
     <p class="sbp">Phí khứ hồi tính theo R = (phí mở + phí đóng + trượt giá 2 chiều) ÷ khoảng cách tới cắt lỗ. Futures 0,05%/chiều, spot 0,1%/chiều, trượt giá 0,05%/chiều → cắt lỗ cách 2%: futures tốn ≈ <b>0,10R</b>, spot ≈ <b>0,15R</b> mỗi lệnh; cắt lỗ cách 0,8% thì futures đã tốn ≈ 0,25R. Bot giám sát trừ phí này vào mọi phép so (đổi lệnh, chấm điểm) và học để bỏ lệnh có cắt lỗ quá hẹp so với phí.</p>`;
   const logH = (ss.log || []).slice().reverse().slice(0, 120).map((l) => { const d = SUP_D[l.k] || ["", ""]; return `<li class="${l.k === "stop" ? "stop" : ""}"><small>${dt(l.t + "Z")}</small>${d[0] ? ` <span class="pill ${d[1]}">${d[0]}</span>` : ""} ${esc(l.m)}</li>`; }).join("");
-  app().innerHTML = `${botHubHead("sup")}<p class="faint bh-help" style="margin-top:0">🛡️ Giám sát rủi ro · quản lý danh mục – đứng trên ${B.length} bot · chạy mỗi phút trên máy chủ · sàn thử</p>
+  OUT.innerHTML = `${PG("Rủi ro & giám sát")}<h3 class="bh-sub" id="sup">🛡️ Rủi ro & giám sát</h3><p class="faint bh-help" style="margin-top:0">Giám sát rủi ro · quản lý danh mục – đứng trên ${B.length} bot xu hướng · chạy mỗi phút trên máy chủ · sàn thử</p>
     <section class="panel hero bot-hero"><div class="bot-st"><span class="pill ${status[1]} big">${status[0]}</span><small>${esc(status[2])}</small>
       <span class="bot-btns">${ss.halt ? `<button class="btn primary" id="sRes">Mở khoá tài khoản</button>` : ""}<button class="btn ${C.enabled ? "" : "primary"}" id="sOn">${C.enabled ? "⏸ Tắt giám sát" : "▶ Bật giám sát"}</button></span></div>
       <p class="bth-h">${esc(TH.head || "")}</p>
@@ -1812,24 +1814,24 @@ async function viewSup() {
         <div class="field"><label>Dời hoà vốn khi lệnh đi +1R</label><select id="s_be1">${[["auto", "Tự động khi có bài học"], ["on", "Luôn bật"], ["off", "Tắt"]].map(([v, t]) => `<option value="${v}" ${C.be1 === v ? "selected" : ""}>${t}</option>`).join("")}</select></div></div>
       <div class="bsave"><button class="btn primary" id="sSave">💾 Lưu</button><small class="faint">Áp dụng từ phút kế tiếp.</small></div>`;
     $$("#sForm [data-mode]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.mode; f(); }));
-    $("#sSave").onclick = async () => { rd(); await Store.put("sup", C); toast("Đã lưu thiết lập bot giám sát"); viewSup(); };
-    $("#sGoalR").onclick = async () => { if (!confirm("Bắt đầu năm mục tiêu mới từ hôm nay? Lợi nhuận tính lại từ 0%, sàn và đường mục tiêu tính từ hôm nay.")) return; rd(); C.goal_reset_at = new Date().toISOString(); await Store.put("sup", C); toast("Năm mục tiêu mới bắt đầu từ phút kế tiếp"); viewSup(); };
+    $("#sSave").onclick = async () => { rd(); await Store.put("sup", C); toast("Đã lưu thiết lập bot giám sát"); RE(); };
+    $("#sGoalR").onclick = async () => { if (!confirm("Bắt đầu năm mục tiêu mới từ hôm nay? Lợi nhuận tính lại từ 0%, sàn và đường mục tiêu tính từ hôm nay.")) return; rd(); C.goal_reset_at = new Date().toISOString(); await Store.put("sup", C); toast("Năm mục tiêu mới bắt đầu từ phút kế tiếp"); RE(); };
   };
   const rd = () => { ["cut", "rotate", "lessons", "pause_bots", "engine"].forEach((k) => (C[k] = $("#s_" + k).checked)); ["acct_dd", "acct_day", "min_edge", "min_trades", "goal_floor", "goal_x", "goal_x2", "max_risk", "kelly"].forEach((k) => { const v = numIn($("#s_" + k).value); if (isFinite(v)) C[k] = v; }); C.max_risk = Math.min(2, C.max_risk); C.be1 = $("#s_be1").value; };
   f();
-  $("#sOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("sup", C); toast(C.enabled ? "Đã bật bot giám sát" : "Đã tắt bot giám sát – các bot tự chạy theo kỷ luật riêng"); viewSup(); };
-  if ($("#sRes")) $("#sRes").onclick = async () => { if (!confirm("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại.")) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); viewSup(); };
-  $$("[data-off]").forEach((b) => (b.onclick = async () => { const id = b.dataset.off; C.off = C.off.includes(id) ? C.off.filter((x) => x !== id) : [...C.off, id]; await Store.put("sup", C); toast("Đã lưu"); viewSup(); }));
+  $("#sOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("sup", C); toast(C.enabled ? "Đã bật bot giám sát" : "Đã tắt bot giám sát – các bot tự chạy theo kỷ luật riêng"); RE(); };
+  if ($("#sRes")) $("#sRes").onclick = async () => { if (!confirm("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại.")) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); RE(); };
+  $$("[data-off]").forEach((b) => (b.onclick = async () => { const id = b.dataset.off; C.off = C.off.includes(id) ? C.off.filter((x) => x !== id) : [...C.off, id]; await Store.put("sup", C); toast("Đã lưu"); RE(); }));
   $$("[data-sug]").forEach((b) => (b.onclick = async () => {
     const [bid, i] = decodeURIComponent(b.dataset.sug).split("|"), s = ss.cards?.[bid]?.sug?.[+i], bot = B.find((x) => x.id === bid);
     if (!s?.patch || !bot || !confirm(`Áp dụng cho ${bot.name}: ${s.t}?`)) return;
-    Object.assign(bot, s.patch); await Store.put("bot", { v: 2, bots: B }); toast("Đã chỉnh thiết lập bot"); viewSup();
+    Object.assign(bot, s.patch); await Store.put("bot", { v: 2, bots: B }); toast("Đã chỉnh thiết lập bot"); RE();
   }));
   clearInterval(window.__supT);
   window.__supT = setInterval(async () => {
-    if (location.hash !== "#/bot/sup") { clearInterval(window.__supT); return; }
+    if (!/^#\/bot\/(sup|home)$/.test(location.hash)) { clearInterval(window.__supT); return; }
     if (document.hidden || userBusy() || document.activeElement?.closest?.("#sForm")) return;
-    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) softRender(() => viewSup()); } catch (e) { /* bỏ qua */ }
+    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) softRender(() => RE()); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 
@@ -2104,7 +2106,7 @@ async function viewJournal(envArg, mode) {
 }
 
 // ================================================================ 🤖 BOT CỦA TÔI – 1 cửa vào cho mọi bot: đang chạy không, lời/lỗ hôm nay, lệnh mở, tiền thật, rủi ro chung
-async function viewBotHome() {
+async function viewBotHome(focus) {
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot của tôi</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
   const [rc, rs, rq, rv, rk, rx] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate"), Store.get("scalp"), Store.get("scalpstate")]);
   const X0 = rx.data || {}, X = X0.v === 2 ? X0 : { at: X0.at }, C = { ...SCALP_DEF, ...(typeof scMig === "function" ? scMig(rk.data) : rk.data || {}) }, LV = X.live || null;
@@ -2130,22 +2132,22 @@ async function viewBotHome() {
     ["Số bot", `${B.length} bot · ${trOn} đang chạy`], ["Đang mở", `${trPos} lệnh`],
     ["Kết quả", tr.length ? tr.map((x) => `${esc(x.b.name)} ${sp(x.r)}`).join(" · ") : "—"]], "Khung ngày / 4 giờ · sàn thử · mở");
   const ss = rv.data, sc = { ...(typeof SUP_DEF === "object" ? SUP_DEF : {}), ...(rq.data || {}) }, a = ss?.acct || {};
-  const supCard = card("#/bot/sup", "🛡️", "Giám sát rủi ro", !sc.enabled ? ["Đang tắt", ""] : ss?.halt ? ["⛔ Khoá", "sell"] : ["● Đang giám sát", "buy"], [
-    ["Tài sản chung", isNum(a.eq) ? `${usd2(a.eq)} · sụt ${nf(a.dd, 1)}%` : "—"], ["Rủi ro đang mở", isNum(a.heat) ? `${nf(a.heat, 1)}%` : "—"], ["Nhận xét", esc(ss?.think?.head || "chờ lượt chạy đầu tiên")]],
-    "Giới hạn rủi ro chung, khám nghiệm lệnh · mở");
   const resCard = card("#/bot/days", "📒", "Kết quả & sổ lệnh", ["mọi bot", ""], [["Theo ngày", "lãi/lỗ từng ngày, sàn thử & Binance"], ["Sổ lệnh", "mọi lệnh: giá vào/ra, phí, funding"], ["Bài học", "tổng hợp từ lệnh đã đóng"]], "Xem báo cáo");
   const binCard = card("#/bot/binance", "💵", "Tài khoản Binance", C.lv_on ? [LV?.halt ? "⛔ Ngừng mở mới" : `● ${lvEnv}`, LV?.halt ? "sell" : "buy"] : ["Bot chưa nối", ""], [
     ["Số dư futures", isNum(LV?.st?.bal) ? usd2(LV.st.bal) : "—"], ["Hôm nay", C.lv_on ? su(LV?.day?.pnl ?? 0) : "—"], ["Kết nối", "khoá API trên máy chủ · không có quyền rút tiền"]], "Số dư, ví, khoá API · mở");
   app().innerHTML = `${botHubHead("home")}
     ${PG("Tổng quan bot")}
-    <div class="bh-grid">${C.lv_on ? binCard + scCard : scCard + binCard}${resCard}${supCard}</div>
+    <div class="bh-grid">${C.lv_on ? binCard + scCard : scCard + binCard}${resCard}</div>
     <h3 class="bh-sub">🧪 Thử nghiệm</h3><div class="bh-grid">${trCard}</div>
-    <p class="faint bh-help">Gợi ý: <b>⚡ Bot Phản Xạ</b> là bot đánh tiền thật trên Binance (bắt râu sập) · <b>📒 Kết quả & sổ lệnh</b> gộp kết quả của mọi bot · <b>💵 Tài khoản Binance</b>: số dư, ví, khoá API · <b>🛡️ Rủi ro & giám sát</b> theo dõi rủi ro chung · <b>📈 Bot xu hướng</b> đang thử nghiệm trên sàn thử.</p>`;
+    <p class="faint bh-help">Gợi ý: <b>⚡ Bot Phản Xạ</b> là bot đánh tiền thật trên Binance (bắt râu sập) · <b>📒 Kết quả & sổ lệnh</b> gộp kết quả của mọi bot · <b>💵 Tài khoản Binance</b>: số dư, ví, khoá API · <b>📈 Bot xu hướng</b> đang thử nghiệm trên sàn thử · <a href="#/bot/sup">🛡️ Rủi ro & giám sát</a> ở ngay bên dưới.</p>
+    <div id="bhSup"></div>`;
+  await viewSup($("#bhSup"));
+  if (focus === "sup") requestAnimationFrame(() => $("#sup")?.scrollIntoView({ block: "start" }));
 }
 // đầu trang chung của trang chính Bot: 2 tab con "Tổng quan" (mọi bot) và "Rủi ro & giám sát" (Bot giám sát cũ) – cùng 1 trang
 function botHubHead(on) {
   return `<div class="ph"><h1>Bot</h1><span class="meta">Lời/lỗ · lệnh mở · rủi ro chung</span></div>
-    <div class="sc-sub2 bh-tabs" role="tablist">${[["home", "#/bot/home", "Tổng quan", "mọi bot · hôm nay"], ["sup", "#/bot/sup", "Rủi ro & giám sát", "giới hạn chung · khám nghiệm lệnh"]].map(([k, h, t, d]) => `<a role="tab" href="${h}" class="${on === k ? "on" : ""}" aria-selected="${on === k}" title="${d}"><span>${t}</span><small>${d}</small></a>`).join("")}</div>`;
+`;
 }
 
 // ================================================================ 🔎 CHI TIẾT 1 LỆNH (#/t/<sàn>/<COIN>/<mốc ms>) – bấm thông báo của bot là tới đây
