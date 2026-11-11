@@ -553,7 +553,11 @@ export class LiveExec {
     // lệnh tay mới đóng → sổ lệnh (Sổ lệnh, Sổ thuế, biểu đồ) + tổng kết ngày (trang Kết quả) – 1 lần cho mỗi lệnh
     for (const key of this.mNew || []) { const h = H.L[key]; if (!h) continue; const t1 = Date.parse(h.t1 + "Z"), t2 = Date.parse(h.t2 + "Z");
       try { this.led({ ...h, k: coin(h.sym) + ":F", nl: 1 }); } catch (e) { /* bỏ qua */ }
-      try { this.dayAdd({ env, sym: h.sym, side: h.side, pos: { q: h.q, ap: h.e, t1 }, t0: t1, lv: [{ fq: h.q }], fund: h.fund || 0, strat: "man" }, h.pnl, h.fee || 0, h.x, h.why, t2); } catch (e) { /* bỏ qua */ } }
+      try { this.dayAdd({ env, sym: h.sym, side: h.side, pos: { q: h.q, ap: h.e, t1 }, t0: t1, lv: [{ fq: h.q }], fund: h.fund || 0, strat: "man" }, h.pnl, h.fee || 0, h.x, h.why, t2); } catch (e) { /* bỏ qua */ }
+      // 🔔 lệnh tay vừa đóng → thông báo như lệnh bot (chỉ lệnh đóng trong 1 giờ qua – lần đầu đọc lại 30 ngày không bắn thông báo cũ)
+      if (now - t2 < 3600e3) { const tot0 = +this.S.wal?.[env]?.total || 0, mv = h.e > 0 ? h.side * (h.x / h.e - 1) * 100 : 0, hm = Math.max(0, (t2 - t1) / 60e3);
+        this.note(`mclose:${key}`, 2, `${LTAG(env)} · ${h.pnl >= 0 ? "🟢" : "🔴"} ✋ ${coin(h.sym)} ${h.side > 0 ? "Long" : "Short"} ${h.pnl >= 0 ? "+" : ""}${h.pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${h.pnl >= 0 ? "+" : ""}${(h.pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`,
+          `Lệnh tay · ${{ MANUAL: "anh đóng trên MyBit", TIMER: "tới giờ hẹn đóng", FOLLOW: "theo lệnh sàn thử", EXCH: "đóng trên Binance (tay / cắt lỗ / chốt lời)", TP: "chốt lời", SL: "cắt lỗ" }[h.why] || h.why} · ${+h.e.toPrecision(6)} → ${+h.x.toPrecision(6)} (${mv >= 0 ? "+" : ""}${mv.toFixed(2)}%) · giá trị ${(h.N || 0).toFixed(2)} USDT · giữ ${hm < 120 ? Math.round(hm) + " phút" : (hm / 60).toFixed(1) + " giờ"} · phí ${(h.fee || 0).toFixed(3)}${h.fund ? ` · funding ${h.fund >= 0 ? "+" : ""}${h.fund.toFixed(3)}` : ""}`); } }
     this.mNew = null;
     const keep = Object.values(H.L).sort((a, b) => (a.t2 < b.t2 ? -1 : 1)).slice(-300); H.L = Object.fromEntries(keep.map((h) => [h.id, h])); H.last = now; this.save();
   }

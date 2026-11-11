@@ -5968,14 +5968,55 @@ async function bellCount() {
     if (navigator.setAppBadge && "act" in j) { const n = j.act?.n || 0; (n > 0 ? navigator.setAppBadge(Math.min(99, n)) : navigator.clearAppBadge()).catch(() => {}); }
     // có thông báo mới trong lúc đang mở trang → banner kiểu iPhone (chạm để mở đúng chỗ)
     if (__bellN > n0 || __bellTop == null) {
-      const L = (await api("notifications?limit=3").catch(() => ({ items: [] }))).items || [];
+      const L = (await api("notifications?limit=6").catch(() => ({ items: [] }))).items || [];
       const top = Math.max(0, ...L.map((x) => x.id));
-      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at); if (nw.length) { const x = nw[0]; toast(nw.length > 1 ? `${x.title} · và ${nw.length - 1} thông báo khác` : x.body || "", { title: nw.length > 1 ? "MyBit" : x.title, icon: NK[x.kind] || (/^scalp/.test(x.kind) ? "⚡" : /^bot/.test(x.kind) ? "🤖" : "🔔"), href: nw.length > 1 ? "#/notifications" : x.url || "#/notifications" }); } }
+      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at); if (nw.length) ntBanner(nw); }
       __bellTop = Math.max(__bellTop || 0, top);
     }
   } catch (e) { /* bỏ qua */ }
 }
 
+// 🔔 BANNER THÔNG BÁO TRONG APP (kiểu iOS): trượt xuống từ trên, tự ẩn sau 7 giây.
+//    Vuốt XUỐNG (hoặc bấm ⌄) = mở rộng: đủ nội dung + nút làm nhanh (Xem / Gia hạn / Đóng / Nhắc sau / Đã đọc) + các thông báo khác cùng lúc; vuốt LÊN = ẩn; chạm = mở đúng lệnh.
+function ntBanner(list) {
+  const n = list[0], more = list.slice(1, 4), r = ntRefC(n.key);
+  document.querySelectorAll(".nb").forEach((x) => x.__out?.());
+  const em = String(n.title || "").match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:️|‍|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u);
+  let title = em ? n.title.slice(em[0].length) : n.title || ""; const ic = em ? em[1] : ntfIcon(n.kind), pl = ntPL(title);
+  if (pl) title = title.replace(/\s*[+\-−]\s?[\d.,]+\s*USDT(?:\s*\([^)]*\))?/, "");
+  const real = /TIỀN THẬT|LỆNH THẬT/.test(n.title || ""), go = r && r.st !== "closed" ? `#/bot/scalp?do=show&k=${encodeURIComponent(r.ref)}` : ntTradeUrl(n) || n.url || "#/notifications";
+  const A = r && r.st !== "closed" ? (r.st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]] : r.st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]] : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]]).map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" href="#/bot/scalp?do=${d}&k=${encodeURIComponent(r.ref)}">${t}</a>`)
+    : [`<a class="nt-ab" href="${esc(go)}">${bi(r ? "Xem lệnh" : "Mở", r ? "View trade" : "Open")}</a>`, ...(r ? [`<a class="nt-ab" href="#/bot/journal/${real ? "live" : "paper"}">${bi("Sổ lệnh", "Trade book")}</a>`] : [])];
+  A.push(`<button type="button" class="nt-ab" data-nbrd>✓ ${bi("Đã đọc", "Read")}</button>`);
+  const box = document.createElement("div"); box.className = `nb${real ? " nb-real" : ""} sev${n.sev || 0}`; box.setAttribute("role", "status");
+  box.innerHTML = `<div class="nb-c"><a class="nb-h" href="${esc(go)}"><span class="nb-ic" aria-hidden="true">${ic}</span><span class="nb-b"><span class="nb-t1"><b>${esc(viDec(title))}</b>${pl ? `<span class="nt-pl ${pl.v >= 0 ? "up" : "down"}"><b>${pl.v >= 0 ? "+" : "−"}$${nf(Math.abs(pl.v), 2)}</b>${pl.p != null ? `<small>${pl.p >= 0 ? "+" : "−"}${nf(Math.abs(pl.p), 2)}%</small>` : ""}</span>` : ""}</span>${n.body ? `<span class="nb-tx">${esc(viDec(n.body))}</span>` : ""}</span><time>${bi("bây giờ", "now")}</time></a>
+    <button type="button" class="nb-ex" aria-label="${bi("Mở rộng", "Expand")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="nb-x"><div class="nb-xi"><div class="nt-acts nb-acts">${A.join("")}</div>${more.length ? `<div class="nb-more">${more.map((x) => `<a href="${esc(ntTradeUrl(x) || x.url || "#/notifications")}" class="nb-mi"><b>${esc(viDec(String(x.title).slice(0, 90)))}</b><small>${esc(viDec(String(x.body || "").slice(0, 110)))}</small></a>`).join("")}<a class="nb-all" href="#/notifications">${bi("Tất cả thông báo", "All notifications")} →</a></div>` : ""}</div></div>
+    <i class="nb-g" aria-hidden="true"></i></div>${more.length ? `<div class="nb-stk" aria-hidden="true"><span>+${list.length - 1}</span></div>` : ""}`;
+  document.body.appendChild(box);
+  const card = box.querySelector(".nb-c"), mob = matchMedia("(max-width:979px)").matches;
+  let gone = false, tm = 0, open = false;
+  const out = (up = true) => { if (gone) return; gone = true; clearTimeout(tm); box.classList.add(up ? "out" : "out2"); setTimeout(() => box.remove(), 340); };
+  box.__out = out;
+  const arm = (ms = 7000) => { clearTimeout(tm); if (!open) tm = setTimeout(out, ms); };
+  const read = () => { api("notifications/read", "POST", { ids: [n.id, ...more.map((x) => x.id)] }).then(bellCount).catch(() => {}); };
+  const setOpen = (v) => { open = v; box.classList.toggle("open", v); if (v) { clearTimeout(tm); navigator.vibrate?.(5); } else arm(4000); };
+  if (jellyOK()) card.animate(springKF(-90, 0, (v) => ({ transform: `translateY(${v}px)`, opacity: Math.min(1, 1 + v / 90) })), { duration: 620, easing: "linear" });
+  box.querySelector(".nb-ex").onclick = (e) => { e.preventDefault(); setOpen(!open); };
+  box.querySelector("[data-nbrd]").onclick = () => { read(); out(); };
+  box.querySelectorAll(".nb-h, .nb-x a").forEach((x) => x.addEventListener("click", () => { read(); out(); bellClose(); }));
+  box.addEventListener("mouseenter", () => clearTimeout(tm)); box.addEventListener("mouseleave", () => arm(3500));
+  // vuốt: xuống = mở rộng (thẻ giãn theo ngón tay), lên = ẩn
+  let y0 = null, dy = 0, moved = false;
+  card.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; dy = 0; moved = false; clearTimeout(tm); card.style.transition = "none"; }, { passive: true });
+  card.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 6) moved = true; if (!moved) return; if (e.cancelable) e.preventDefault();
+    card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, dy / 70).toFixed(3)); }, { passive: false });
+  card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.style.removeProperty("--pull");
+    if (!moved) { arm(); return; }
+    const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; card.addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => card.removeEventListener("click", eat, { capture: true }), 350);
+    if (dy < -28) out(); else if (dy > 36 && !open) setOpen(true); else if (dy < -10 && open) setOpen(false); else arm(); }, { passive: true });
+  arm(mob ? 7000 : 8000);
+}
 // ---- thông báo đẩy
 const u8 = (b64) => { const s = atob((b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/")); return Uint8Array.from(s, (c) => c.charCodeAt(0)); };
 async function pushState() {
