@@ -1375,10 +1375,11 @@ function skmSave() {
   root.querySelectorAll(":scope > .crumb[data-nd]").forEach((e) => push("c", e));
   root.querySelectorAll(".ph").forEach((e) => { if (!e.closest(".panel")) push("h", e); });
   // khối có NỀN (thẻ, ô số liệu, thanh tab, khung) – lấy khối ngoài cùng, không lấy khối con nằm trong khối đã lấy
+  const SURF = (() => { const t = document.createElement("i"); t.style.cssText = "position:absolute;visibility:hidden;background:var(--surface)"; root.append(t); const c = getComputedStyle(t).backgroundColor; t.remove(); return c; })();      // thanh nền trắng (thanh tab) → khung xương cũng là thanh trắng, không phải vạch xám
   const bgOn = (e) => { const c = getComputedStyle(e).backgroundColor, m = c.match(/[\d.]+/g); return m && (m.length < 4 || +m[3] > 0.02) && c !== "transparent"; };
   const walk = (el, d) => { for (const e of el.children) { if (B.length >= 48) return; if (e.matches(".crumb, .ph, script, style, .pg-mark, .nextstep") || e.closest(".skw")) continue;
       const r = e.getBoundingClientRect(); if (r.height < 26 || r.width < 50) continue; if (r.top - R.top > lim) return;
-      if (bgOn(e)) { push(e.matches(".sc-tabs, .sc-sub2, .bseg, .sc-ofl, .lv-rng, .seg") || r.height < 52 ? "t" : "p", e); continue; }
+      if (bgOn(e)) { const bar = e.matches(".sc-tabs, .sc-sub2, .bseg, .sc-ofl, .lv-rng, .seg") || r.height < 52; push(bar ? (getComputedStyle(e).backgroundColor === SURF ? "w" : "t") : "p", e); continue; }
       if (d < 6) walk(e, d + 1); } };
   walk(root, 0);
   if (!B.length) return;
@@ -1395,6 +1396,7 @@ function skmPage() {
     if (t === "c") return `<div class="skm-c" style="${st}">${sk("52px", 24)}${sk("150px", 12)}</div>`;
     if (t === "h") return `<div class="skm-h" style="${st}">${sk("min(260px,60%)", Math.min(26, h - 6), "sk-t")}${h > 44 ? sk("min(380px,70%)", 10) : ""}</div>`;
     if (t === "t") return `<i class="sk skm-t" style="${st}"></i>`;
+    if (t === "w") { const n = Math.max(1, Math.min(6, Math.floor(w * f / 110))); return `<div class="skm-w" style="${st}">${Array.from({ length: n }, (_, i) => sk(`${[72, 52, 80, 66, 58, 70][i]}px`, Math.max(10, Math.min(14, h - 26)), i === 0 ? "skt-on" : "")).join("")}</div>`; }
     const n = Math.max(0, Math.min(8, Math.floor((h - 52) / 24)));
     return `<div class="skp skm-p" style="${st}">${sk("34%", 13)}${n ? `<div class="skl">${Array.from({ length: n }, (_, i) => sk(i === n - 1 ? "55%" : `${92 - (i % 3) * 9}%`, 10)).join("")}</div>` : ""}</div>`; };
   return `<div class="skw skm" role="status" aria-busy="true" aria-label="${SKL()}" style="height:${H}px">${M.b.map(blk).join("")}</div>`;

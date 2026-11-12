@@ -5717,7 +5717,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 /* 🫧 kính cho các ô số / thẻ nhỏ trong khung (KPI, thống kê, thẻ tổng quan…) */
 :root{--g-tile:linear-gradient(160deg,rgba(255,255,255,.7),rgba(255,255,255,.18) 55%,rgba(255,255,255,.05));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent),0 6px 18px -14px rgba(0,0,0,.35)}
 :root:not([data-theme=light]){--g-tile:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.025) 55%,rgba(255,255,255,0));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.06),0 8px 20px -14px rgba(0,0,0,.7)}
-.kpis>*,.st,.stgs .st,.sc-kp .st,.bh-card,.ocard,.opp,.exm-r,.occ-k,.dtl-r,.kpis.dd-kp,.ks-tip,.cx-hero{background:var(--g-tile),var(--fill-card,var(--sunk))!important;box-shadow:var(--g-tile-sh)!important;border:0!important}
+.ocard,.opp,.dtl-r,.ks-tip,.cx-hero{background:var(--g-tile),var(--fill-card,var(--sunk))!important;box-shadow:var(--g-tile-sh)!important;border:0!important}
 .kpis{gap:6px!important;background:transparent!important;border:0!important;overflow:visible!important}
 .kpis.dd-kp{background:transparent!important;box-shadow:none!important}
 .kpis.dd-kp>div{border-radius:var(--r-in)!important}
@@ -5725,3 +5725,74 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 /* lòng thanh không có lề trong → viên kính vẫn cách mép trên / dưới 3px (kiểu iOS), không chạm / lòi khỏi mép thanh */
 .gseg[data-one]>.gthumb{top:max(var(--gpt,3px),3px)!important;bottom:max(var(--gpb,3px),3px)!important}
 .gseg[data-one]:not(.sc-tabs)>.gthumb{border-radius:5px!important}
+/* ── v4 · ô KPI NỔI (thay lớp kính xám chìm): nền trắng nâng lên khi đặt trên nền trang, nền nhạt có viền mảnh khi nằm trong khung;
+   số to – đậm – tô màu theo tín hiệu, vạch màu bên trái, nhãn rõ hơn, sparkline đậm hơn ── */
+:root{--kt-top:var(--surface);--kt-in:color-mix(in srgb,var(--sunk) 62%,var(--surface));
+  --kt-hl:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,0) 42%);
+  --kt-sh:0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),0 1px 2px rgba(16,24,40,.06),0 12px 26px -16px rgba(16,24,40,.32);
+  --kt-sh-h:0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent),0 2px 4px rgba(16,24,40,.07),0 18px 32px -18px rgba(16,24,40,.4);
+  --kt-sh-in:inset 0 0 0 1px color-mix(in srgb,var(--ink) 7%,transparent),inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(16,24,40,.04)}
+:root:not([data-theme=light]){--kt-top:color-mix(in srgb,var(--surface),#fff 3.5%);--kt-in:color-mix(in srgb,var(--sunk),#fff 3%);
+  --kt-hl:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0) 45%);
+  --kt-sh:0 0 0 .5px rgba(255,255,255,.09),inset 0 1px 0 rgba(255,255,255,.07),0 14px 30px -16px rgba(0,0,0,.85);
+  --kt-sh-h:0 0 0 .5px rgba(255,255,255,.14),inset 0 1px 0 rgba(255,255,255,.09),0 18px 34px -16px rgba(0,0,0,.9);
+  --kt-sh-in:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.05)}
+:is(.st,:is(.kpis,.stg)>div,.bh-card,.exm-r,.occ-k):not(#_k){--kt-base:var(--kt-in);--kt-tint:linear-gradient(transparent,transparent);
+  background:var(--kt-tint),var(--kt-hl),var(--kt-base)!important;box-shadow:var(--kt-sh-in)!important;border:0!important;position:relative}
+/* đứng thẳng trên nền trang (không nằm trong khung) → thẻ trắng nổi có bóng */
+:is(.st,:is(.kpis,.stg)>div,.bh-card):not(.panel *):not(.occ *):not(.ntp *):not(#_k){--kt-base:var(--kt-top);box-shadow:var(--kt-sh)!important;transition:box-shadow .2s,transform .25s var(--g-spring,ease)}
+:is(.st,.bh-card):not(.panel *):not(.occ *):hover{box-shadow:var(--kt-sh-h)!important;transform:translateY(-1px)}
+/* tín hiệu tốt / xấu: phủ màu rất nhẹ góc trên-trái + vạch màu bên trái + số cùng màu */
+:is(.st.g,:is(.kpis,.stg)>div:has(>dd.up)){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
+:is(.st.b,:is(.kpis,.stg)>div:has(>dd.down)){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
+:is(.st.g,.st.b,:is(.kpis,.stg)>div:has(>dd.up),:is(.kpis,.stg)>div:has(>dd.down))::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
+:is(.st.b,:is(.kpis,.stg)>div:has(>dd.down))::after{background:var(--down)}
+.st.g>dd{color:var(--up)}.st.b>dd{color:var(--down)}
+/* chữ: nhãn rõ (ink-2, đậm vừa), số to – đậm – số cố định bề rộng */
+.st>dt,:is(.kpis,.stg)>div>dt{color:var(--ink-2)!important;font-weight:550;letter-spacing:.005em}
+.st>dd,:is(.kpis,.stg)>div>dd,.bh-card b,.exm-r b,.occ-k b{font-variant-numeric:tabular-nums}
+.st>dd{font-weight:700!important;letter-spacing:-.01em}
+:is(.kpis,.stg)>div>dd{font-weight:700!important}
+.sc-kp{gap:10px!important}
+.sc-kp .st{padding:13px 15px 13px!important;min-height:96px}
+.sc-kp .st>dt{font-size:.75rem}
+.sc-kp .st>dd{font-size:1.75rem!important;line-height:1.1;margin-top:5px}
+.sc-kp .st>small{margin-top:4px;font-size:.71875rem;color:var(--ink-2)}
+.stgs .st>dd{font-size:1.4375rem!important}
+:is(.kpis,.stg)>div{padding:8px 11px 9px!important}
+:is(.kpis,.stg)>div>dd{font-size:1.125rem}
+ .kpis.lg>div>dd{font-size:1.4375rem}
+.kpis.dd-kp>div>dd{font-size:1rem}
+/* sparkline đậm, nét không bị kéo giãn */
+.st .spk{opacity:1!important}
+.st .spk polyline{stroke-width:1.9;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+@media (max-width:700px){.sc-kp .st>dd{font-size:1.375rem!important}.sc-kp .st{min-height:84px;padding:11px 12px!important}}
+/* các biến thể ô số khác (thẻ trong khung Tài sản / Lời-lỗ cộng dồn, thuế, so sánh, nhóm phương pháp…) → cùng một kiểu ô nổi */
+:is(.lv-kp>span,.tx-kpi>div,.cmp-sum>span,.cmp-sum>button,.sbstat>span,.bcard,.sc-pcard):not(#_k){--kt-base:var(--kt-in);--kt-tint:linear-gradient(transparent,transparent);
+  position:relative;background:var(--kt-tint),var(--kt-hl),var(--kt-base)!important;box-shadow:var(--kt-sh-in);border-color:transparent!important;border-radius:var(--r-in)!important}
+:is(.tx-kpi>div,.bcard):not(.panel *):not(#_k){--kt-base:var(--kt-top);box-shadow:var(--kt-sh)}
+.bcard.on{box-shadow:inset 0 0 0 1.5px var(--brand),var(--kt-sh-in)!important}
+:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.up){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
+:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.down){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
+:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):is(:has(>b.up),:has(>b.down))::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
+:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.down)::after{background:var(--down)}
+.lv-kp>span{padding:10px 12px!important;gap:2px!important}
+.lv-kp i,.cmp-sum i,.tx-kpi i{color:var(--ink-2)!important;font-weight:550}
+.lv-kp>span>b{font-size:1.25rem!important;font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.lv-kp small,.cmp-sum small{color:var(--ink-2)!important}
+.tx-kpi>div>b{font-size:1.5rem!important;font-weight:700;letter-spacing:-.01em}
+.cmp-sum>:is(span,button){padding:8px 9px!important}.cmp-sum>*>b{font-size:1.0625rem!important;font-weight:700}
+.sbstat>span{border-top:0!important;padding:7px 4px 6px!important}.sbstat>span::before{content:"";position:absolute;left:10px;right:10px;top:0;height:2px;border-radius:0 0 2px 2px;background:var(--lc,var(--line))}
+.sbstat>span>b{font-size:1.1875rem!important;font-weight:700}
+.bcard-v{font-size:1.4375rem!important;letter-spacing:-.01em}
+.sc-pcard .r2{font-weight:700}
+
+:is(.kpis,.stg)>div>dd.up{color:var(--up)!important}:is(.kpis,.stg)>div>dd.down{color:var(--down)!important}
+.stg>div>dd{font-size:1.25rem!important;font-weight:700!important;letter-spacing:-.01em}
+.stg>div{padding:11px 13px 11px!important}.stg>div>small{color:var(--ink-2)!important}
+/* điện thoại: ô hẹp → sparkline xuống góc dưới phải (không đè nhãn), dòng phụ chừa chỗ cho nó */
+@media (max-width:700px){.sc-kp .st .spk{top:auto!important;bottom:10px!important;height:18px!important;width:32%!important;right:10px!important}
+  .sc-kp .st:has(.spk) dt{padding-right:0!important}.sc-kp .st:has(.spk)>small{padding-right:34%}}
+/* thanh tab cuộn ngang: nút chọn môi trường dính phải phải có nền ĐẶC (lớp kính mờ 6% để lộ chữ tab cuộn bên dưới – "Hoạt động" bị đè) */
+.sc-env.sc-env-t.gseg:not(#_g){z-index:3;background:linear-gradient(var(--g-track,transparent),var(--g-track,transparent)),var(--surface)!important}
+.skm-w{display:flex;align-items:center;gap:22px;padding:0 16px;background:var(--surface);border-radius:var(--rad,10px);overflow:hidden}
