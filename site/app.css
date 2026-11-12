@@ -5712,8 +5712,8 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .btn,.gib:not(.gbar .gib),.iconbtn,.cv-fsb,.oc-ch,.occ-tg button,.cbar .chk,.cv-chart .cops .chk{border-radius:6px!important}
 .tfseg.gseg,.occ-tf{border-radius:8px!important}
 /* khung hiện ra mượt khi đổi trang / đổi thẻ */
-.pin{animation:pinIn .28s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--pin-d,0ms)}
-@keyframes pinIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pin{animation:pinIn .22s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--pin-d,0ms)}
+@keyframes pinIn{from{opacity:.25;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* 🫧 kính cho các ô số / thẻ nhỏ trong khung (KPI, thống kê, thẻ tổng quan…) */
 :root{--g-tile:linear-gradient(160deg,rgba(255,255,255,.7),rgba(255,255,255,.18) 55%,rgba(255,255,255,.05));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent),0 6px 18px -14px rgba(0,0,0,.35)}
 :root:not([data-theme=light]){--g-tile:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.025) 55%,rgba(255,255,255,0));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.06),0 8px 20px -14px rgba(0,0,0,.7)}

@@ -305,13 +305,26 @@ function gPlaceAll(list) {
     put(p); GPOS.set(k, p);
   }
 }
-let PIN_T = 0;
-document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); if (b?.parentElement?.matches?.(GSEL) || b?.closest?.("#tabs, .crumb, .subtabs")) PIN_T = Date.now() + 900; }, true);
-addEventListener("hashchange", () => { PIN_T = Date.now() + 900; });
+// 📱 iPhone/Safari: nút Binance thật | Sàn thử dính mép phải TRONG thanh tab cuộn ngang – Safari đôi khi giao cú chạm cho tab nằm khuất bên dưới
+// (“Hoạt động”…) thay vì nút dính → xét theo TOẠ ĐỘ chạm: rơi trong khung nút dính thì bấm đúng nút đó, chặn tab bên dưới.
+const envHit = (e) => { const bar = e.target.closest?.(".sc-tabs"); const env = bar?.querySelector(":scope > .sc-env-t"); if (!env || env.contains(e.target) || !isFinite(e.clientX)) return null;
+  const r = env.getBoundingClientRect(); if (e.clientX < r.left - 2 || e.clientX > r.right + 2 || e.clientY < r.top - 6 || e.clientY > r.bottom + 6) return null;
+  const B = [...env.querySelectorAll(":scope > button")]; return B.find((b) => { const q = b.getBoundingClientRect(); return e.clientX >= q.left && e.clientX <= q.right; }) || B.sort((x, y) => Math.abs(x.getBoundingClientRect().left - e.clientX) - Math.abs(y.getBoundingClientRect().left - e.clientX))[0] || null; };
+addEventListener("click", (e) => { if (!e.isTrusted) return; const b = envHit(e); if (!b) return; e.preventDefault(); e.stopImmediatePropagation(); b.click(); }, true);
+let PIN_T = 0, PIN_K = null;
+// khung hiện dần CHỈ khi thật sự mới: bấm tab / nút trong trang → các khung đã có (cùng tiêu đề – thanh trạng thái, thanh tab, khung đổi số) thay tại chỗ, không chớp;
+// chỉ khung mới xuất hiện (nội dung tab vừa mở) mới hiện dần nhẹ. Đổi trang (hashchange) → cả trang hiện dần như cũ.
+const pinKey = (x) => ([":scope > .ph h2", ":scope > .ph h3", ":scope > h2", ":scope > h3"].reduce((f, q) => f || x.querySelector(q), null)?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 60) || (x.id ? "#" + x.id : x.className.replace(/\b(pin|on)\b/g, "").trim().split(/\s+/).slice(0, 2).join("."));
+const pinSnap = () => new Set([...document.querySelectorAll("#app .panel, #app .lane, #app .sc-oc, #app .bh-card")].map(pinKey));
+document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); if (!b) return; if (b.closest("#tabs") || (b.tagName === "A" && (b.getAttribute("href") || "").startsWith("#/") && b.getAttribute("href").split("?")[0] !== location.hash.split("?")[0])) return;      // sang trang khác → để hashchange lo
+  if (!b.closest(".sc-env, .bseg, .seg, .dseg, .czseg") && (b.matches("[role=tab], [data-sctab]") || b.closest(".sc-tabs, .sc-sub2, .subtabs, .crumb, [role=tablist]"))) { PIN_T = Date.now() + 900; PIN_K = pinSnap(); }      // đổi TAB → khung của tab mới hiện dần nhẹ
+  else PIN_T = 0; }, true);      // nút khác (đổi sàn, khoảng ngày, bộ lọc…) → thay số tại chỗ, KHÔNG chớp
+addEventListener("hashchange", () => { PIN_T = Date.now() + 900; PIN_K = null; });
 new MutationObserver((M) => {
   if (Date.now() > PIN_T || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   let i = 0; for (const m of M) for (const n of m.addedNodes) { if (n.nodeType !== 1) continue; const L = n.matches?.(".panel, .lane, .sc-oc, .bh-card") ? [n] : [...(n.querySelectorAll?.(":scope .panel, :scope .lane") || [])].filter((x) => !x.parentElement.closest(".panel")).slice(0, 8);
-    for (const x of L) { if (x.closest(".pin-skip")) continue; x.style.setProperty("--pin-d", `${Math.min(i++, 6) * 28}ms`); x.classList.remove("pin"); void x.offsetWidth; x.classList.add("pin"); } }
+    for (const x of L) { if (x.closest(".pin-skip") || x.matches(".sc-hero") || (PIN_K && PIN_K.has(pinKey(x)))) continue; x.style.setProperty("--pin-d", `${Math.min(i++, 5) * 24}ms`); x.classList.remove("pin"); void x.offsetWidth; x.classList.add("pin"); } }
+  if (PIN_K) PIN_K = pinSnap();      // lượt vẽ lại tiếp theo (vòng tự cập nhật) không làm chớp lại khung vừa hiện
 }).observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
 let gRq = 0; const gAll = () => { if (!gRq) gRq = requestAnimationFrame(() => { gRq = 0; gPlaceAll(document.querySelectorAll(GSEL)); }); };
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.matches?.(GSEL) || n.querySelector?.(GSEL))) { gAll(); return; } }).observe(document.documentElement, { childList: true, subtree: true });

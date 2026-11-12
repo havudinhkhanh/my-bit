@@ -21,7 +21,7 @@ async function scTabGo(k) {
   window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
   await viewScalp();
   try { cusDraw(); } catch (e) { /* bỏ qua */ }      // lối tắt ★ / ↻ sáng đúng tab vừa mở
-  try { if (matchMedia("(max-width:979px) and (pointer:coarse)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.2, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab – chỉ điện thoại (cảm giác lật trang của app); máy tính đổi nội dung tại chỗ, không chuyển động
+  try { if (matchMedia("(max-width:979px) and (pointer:coarse)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.55, transform: `translateX(${dir * 10}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab – chỉ điện thoại (cảm giác lật trang của app); máy tính đổi nội dung tại chỗ, không chuyển động
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
 // ✋ lệnh tay qua ĐƯỜNG NHANH: ghi khoá nhỏ "scalpcmd" – máy chủ riêng đang chờ sẵn (hỏi kiểu chờ dài) nên nhận trong ~1 giây
@@ -762,7 +762,7 @@ async function viewScalp() {
     return `${bar}<div class="sc-g2">${panel(bi("Tài sản futures", "Futures equity"), `${eqP}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh (rê chuột để xem coin & lời/lỗ). <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền nạp/rút ví futures; <b>%</b> và <b>Sụt từ đỉnh</b> tính kiểu quỹ đầu tư (nối % từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm số đẹp giả.", "Includes unrealized P/L · dots = trade closes (hover for coin & P/L). <b>Real P/L</b> = equity change minus futures-wallet transfers; <b>%</b> and <b>Drawdown</b> are time-weighted, so deposits don't flatter the numbers.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), cumP, `${TR.length} ${bi("lệnh trong khoảng", "trades in range")}`)}</div>`;
   };
   const lvEqChart = `<div id="lvEqBox">${lvEqHtml()}</div>`;
-  window.__lvEqRedraw = () => { const b2 = $("#lvEqBox"); if (b2) { b2.innerHTML = lvEqHtml(); lvEqBind(); } };
+  window.__lvEqRedraw = () => { const b2 = $("#lvEqBox"); if (b2) { b2.style.minHeight = b2.offsetHeight + "px"; b2.innerHTML = lvEqHtml(); lvEqBind(); setTimeout(() => { b2.style.minHeight = ""; }, 600); } };      // giữ chiều cao trong lúc vẽ lại biểu đồ → trang không co rồi giãn (giật)
   // so với sàn thử: cùng cú sốc (cùng coin, cách nhau ≤ 20 phút)
   const PH = AT.filter((t) => t.strat === "hook"), tms = (x) => Date.parse((x || "") + "Z");
   const pFind = (k, tm) => PH.find((t) => t.k === k && Math.abs(tms(t.ts || t.t0) - tm) < 20 * 60e3);
