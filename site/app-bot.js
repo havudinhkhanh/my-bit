@@ -1372,7 +1372,7 @@ async function viewScalp() {
   const DR = $("#lbDr");
   if (DR) {
     document.body.appendChild(DR);      // ra ngoài #app: không bị hiệu ứng chuyển trang làm lệch vị trí cố định
-    const show = (k, anim = true) => { DR.querySelectorAll("[data-lbdr]").forEach((c) => (c.hidden = c.dataset.lbdr !== k)); DR.hidden = false; window.__lmOpen = k; requestAnimationFrame(() => DR.classList.add("on")); if (!anim) DR.classList.add("on", "now"); DR.querySelector(".lb-dr-p").scrollTop = window.__lbDrY?.[k] || 0; document.documentElement.classList.add("lb-lock"); };
+    const show = (k, anim = true) => { DR.querySelectorAll("[data-lbdr]").forEach((c) => (c.hidden = c.dataset.lbdr !== k)); const was = !DR.hidden && DR.classList.contains("on"); DR.hidden = false; window.__lmOpen = k; if (!anim || was) DR.classList.add("on", "now"); else { DR.classList.remove("now"); void DR.offsetWidth; requestAnimationFrame(() => DR.classList.add("on")); } /* đọc lại bố cục 1 lần → có trạng thái đầu để trượt mượt */ DR.querySelector(".lb-dr-p").scrollTop = window.__lbDrY?.[k] || 0; document.documentElement.classList.add("lb-lock"); };
     const hide = () => { window.__lmOpen = null; DR.classList.remove("on", "now"); document.documentElement.classList.remove("lb-lock"); setTimeout(() => { if (!DR.classList.contains("on")) DR.hidden = true; }, 260); };
     DR.querySelector(".lb-dr-p").addEventListener("scroll", (e) => { if (window.__lmOpen) (window.__lbDrY ||= {})[window.__lmOpen] = e.target.scrollTop; }, { passive: true });
     $$("[data-lbopen]").forEach((b) => (b.onclick = () => show(b.dataset.lbopen)));
