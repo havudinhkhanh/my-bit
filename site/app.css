@@ -5496,11 +5496,17 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .cv-chart .cbar-act{flex:none;display:flex;gap:4px}
 .cv-fsb{display:grid;place-items:center;width:32px;height:30px;border:0;border-radius:9px;background:var(--fill);color:var(--ink-2);cursor:pointer}
 .cv-fsb svg{width:16px;height:16px}.cv-fsb:hover{background:var(--fill-h);color:var(--ink)}.cv-fsb.on{background:var(--sel);color:var(--sel-ink)}
-.cv-chart .chart-xl{height:clamp(380px,calc(100dvh - 330px),820px)!important;border-radius:10px}
+.cv-chart .chart-xl{height:420px!important;border-radius:10px;transition:height .2s ease}
+.cv-chart .chart-xl[data-sz="s"]{height:300px!important}
+.cv-chart .chart-xl[data-sz="m"]{height:420px!important}
+.cv-chart .chart-xl[data-sz="l"]{height:clamp(420px,calc(100dvh - 330px),820px)!important}
+.cv-sz{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--fill)}
+.cv-sz button{min-width:28px;height:26px;border:0;border-radius:7px;background:transparent;color:var(--ink-2);font:600 .75rem/1 var(--num,inherit);cursor:pointer}
+.cv-sz button:hover{color:var(--ink)}.cv-sz button.on{background:var(--sel);color:var(--sel-ink)}
 .cv-chart .lwbox>.cbt{display:none!important}      /* nút phóng to cũ (đè lên trục giá) → đã có nút trong thanh công cụ */
 .cv-chart .panes .lwbox,.cv-chart .panes>div{border-radius:8px}
 @media (max-width:1100px){.cv-chart .cbar{flex-wrap:wrap}.cv-chart .tfseg{flex:1 1 100%}.cv-chart #csrc{order:9;flex-basis:100%;text-align:left}}
-@media (max-width:640px){.cv-chart .chart-xl{height:max(340px,58dvh)!important}.cv-chart .cops{overflow-x:auto;scrollbar-width:none;flex:1 1 auto}}
+@media (max-width:640px){.cv-chart .chart-xl[data-sz="s"]{height:260px!important}.cv-chart .chart-xl[data-sz="m"]{height:max(320px,44dvh)!important}.cv-chart .chart-xl[data-sz="l"]{height:max(380px,62dvh)!important}.cv-chart .cops{overflow-x:auto;scrollbar-width:none;flex:1 1 auto}}
 /* toàn màn hình cả khối */
 .cv-chart.cv-fs{position:fixed;inset:0;z-index:95;margin:0;background:var(--bg);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));overflow:auto;overscroll-behavior:contain}
 .cv-chart.cv-fs>.panel{min-height:100%;display:flex;flex-direction:column;margin:0}
