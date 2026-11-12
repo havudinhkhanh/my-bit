@@ -1041,7 +1041,7 @@ const SHEETS = [
 })();
 // đổi giao diện sáng/tối → màu thanh trạng thái điện thoại đi theo
 const themeMeta = () => { const m = document.getElementById("thc"); if (!m) return; const d = document.documentElement, bg = getComputedStyle(d).getPropertyValue("--bg").trim() || (d.dataset.theme === "light" ? "#ECEEF1" : "#0B1119");
-  let c = bg; if (d.dataset.nl && /^#[0-9a-f]{6}$/i.test(bg)) { const o = +d.style.getPropertyValue("--nl") || 0.26, W = [255, 138, 36]; c = "#" + [1, 3, 5].map((i, j) => Math.round(parseInt(bg.slice(i, i + 2), 16) * (1 - o + o * W[j] / 255)).toString(16).padStart(2, "0")).join(""); }      // 🌙 ánh sáng ấm: thanh trạng thái iPhone cũng ngả vàng như trang
+  let c = bg; if (d.dataset.nl) c = d.style.getPropertyValue("--nl-top") || nlMul(bg, +d.style.getPropertyValue("--nl") || 0.26);      // 🌙 thanh trạng thái iPhone = đúng màu thanh MyBit đã ngả ấm      // 🌙 ánh sáng ấm: thanh trạng thái iPhone cũng ngả vàng như trang
   m.content = c; };      // màu thanh trạng thái = nền trang → liền với thanh MyBit
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
@@ -5682,17 +5682,27 @@ function thApply(p, rerender = true) {
   const e = thEff(), ch = document.documentElement.dataset.theme !== e;
   document.documentElement.dataset.theme = e; document.documentElement.dataset.thp = thPref();
   if (typeof themeMeta === "function") themeMeta(); thIcon();
+  try { nlApply(); } catch (e) { /* lớp ấm chưa sẵn lúc khởi động */ }      // đổi Sáng/Tối → tính lại màu ấm của thanh trên & nền
   if (ch && rerender) { document.documentElement.classList.add("th-x"); setTimeout(() => { route(); setTimeout(() => document.documentElement.classList.remove("th-x"), 260); }, 20); }
 }
 TH_MQ.addEventListener?.("change", () => { if (thPref() === "system") thApply(); });
 // ---- 🌙 ÁNH SÁNG ẤM (Night Light): phủ một lớp cam lên cả trang (nhân màu – bớt ánh xanh), dùng được với Sáng / Tối / Hệ thống
 //      độ vàng chỉnh 0–100 · tuỳ chọn tự bật 19:00 → 6:00 (theo giờ máy) · lưu trên máy, áp dụng ngay cả trước khi trang tải xong (index.html)
+function nlOp(w) { return 0.05 + w / 100 * 0.55; }      // tông vàng giấy (amber nhạt 255·186·112) – thanh lịch hơn cam đậm
+function nlMul(hex, o) { const W = [255, 186, 112]; return /^#[0-9a-f]{6}$/i.test(hex) ? "#" + [1, 3, 5].map((i, j) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - o + o * W[j] / 255)).toString(16).padStart(2, "0")).join("") : hex; }
+const nlTopH = () => { const t = $(".top"); if (t) document.documentElement.style.setProperty("--top-h", Math.round(t.getBoundingClientRect().height) + "px"); };
+addEventListener("resize", () => { clearTimeout(nlTopH._t); nlTopH._t = setTimeout(nlTopH, 120); });
 const nlGet = () => ({ on: false, w: 45, auto: false, ...(lsGet("nl", {}) || {}) });
 const nlActive = (n = nlGet()) => { const h = new Date().getHours(); return !!n.on && (!n.auto || h >= 19 || h < 6); };
 function nlApply(patch) {
   const n = { ...nlGet(), ...(patch || {}) }; if (patch) lsSet("nl", n);
   const d = document.documentElement, on = nlActive(n);
-  if (on) { d.dataset.nl = "1"; d.style.setProperty("--nl", String(0.06 + n.w / 100 * 0.44)); } else { delete d.dataset.nl; }
+  if (on) { const o = nlOp(n.w), cs = getComputedStyle(d), hx = (v) => { const c = cs.getPropertyValue(v).trim(); return /^#[0-9a-f]{6}$/i.test(c) ? c : null; };
+    d.dataset.nl = "1"; d.style.setProperty("--nl", String(o)); nlTopH();
+    const bg = hx("--bg"); if (bg) d.style.setProperty("--nl-bg", nlMul(bg, o));
+    const T = $(".top"); if (T) { delete d.dataset.nl; const m = getComputedStyle(T).backgroundColor.match(/[\d.]+/g); d.dataset.nl = "1";      // màu GỐC của thanh (đọc khi tạm tắt lớp ấm) → nhân ấm
+      if (m && m.length >= 3) d.style.setProperty("--nl-top", nlMul("#" + m.slice(0, 3).map((x) => Math.round(+x).toString(16).padStart(2, "0")).join(""), o)); }
+  } else { delete d.dataset.nl; }
   $$("[data-nlon]").forEach((x) => { x.setAttribute("aria-checked", String(!!n.on)); x.classList.toggle("on", !!n.on); });
   $$("[data-nlw]").forEach((x) => { if (+x.value !== n.w) x.value = n.w; x.style.setProperty("--v", n.w + "%"); x.disabled = !n.on; });
   $$("[data-nlauto]").forEach((x) => { x.checked = !!n.auto; x.disabled = !n.on; });

@@ -5873,19 +5873,23 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>a.scrub svg{transition:transform .25s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),color .15s}
 }
 /* ================================================================ 🌙 ÁNH SÁNG ẤM – lớp cam nhân màu phủ cả trang (không chặn chạm), độ đậm = --nl */
-html[data-nl]::after{content:"";position:fixed;inset:calc(-50vh - env(safe-area-inset-top,0px)) 0 calc(-50vh - env(safe-area-inset-bottom,0px));z-index:2147483647;pointer-events:none;background:rgb(255,138,36);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
-#theme.nl-on{position:relative}#theme.nl-on::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:2px;background:#F2A33A;box-shadow:0 0 6px #F2A33A}
+html[data-nl]::after{content:"";position:fixed;left:0;right:0;top:var(--top-h,calc(56px + env(safe-area-inset-top,0px)));bottom:calc(-50vh - env(safe-area-inset-bottom,0px));z-index:2147483647;pointer-events:none;background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
+/* thanh trên cùng (MyBit) KHÔNG nằm dưới lớp phủ → Safari iPhone lấy đúng màu NỀN ĐẶC của thanh để tô vùng giờ/pin (trước: lớp phủ nằm trên cùng → Safari cho chữ trang chạy lộ lên);
+   thanh tự mang màu ấm đã tính sẵn (--nl-top), vùng kéo nảy dưới đáy dùng --nl-bg */
+html[data-nl] .top:not(#_t){background:var(--nl-top,var(--surface))!important}
+html[data-nl]{background-color:var(--nl-bg,var(--bg))!important}
+#theme.nl-on{position:relative}#theme.nl-on::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:2px;background:#E2B072;box-shadow:0 0 5px #E2B072}
 .ios-menu-sep{height:6px;background:color-mix(in srgb,var(--ink) 7%,transparent)}
 .nl-box{display:grid;gap:2px;padding:4px 0 8px}
 .nl-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:10px 14px 8px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
-.nl-ic{color:#E39A2E;display:inline-flex}
+.nl-ic{color:#C99350;display:inline-flex}
 .nl-t{display:grid;font-weight:600;font-size:.875rem;line-height:1.25}.nl-t small{font-weight:400;font-size:.6875rem;color:var(--ink-3)}
 .nl-sw{width:40px;height:24px;border-radius:7px;background:color-mix(in srgb,var(--ink) 18%,transparent);position:relative;transition:background .2s}
 .nl-sw::after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:5px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .3s var(--g-spring,cubic-bezier(.3,1.28,.45,1))}
-.nl-row[aria-checked="true"] .nl-sw{background:#E39A2E}.nl-row[aria-checked="true"] .nl-sw::after{transform:translateX(16px)}
+.nl-row[aria-checked="true"] .nl-sw{background:#D9A25C}.nl-row[aria-checked="true"] .nl-sw::after{transform:translateX(16px)}
 .nl-sl{display:grid;grid-template-columns:auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:2px 14px 2px 42px;font-size:.75rem;color:var(--ink-2)}
 .nl-sl b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600;color:var(--ink)}
-.nl-sl input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;margin:8px 0;background:linear-gradient(90deg,#F6E7C9,#F2A33A 60%,#E0761C);outline:none}
+.nl-sl input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;margin:8px 0;background:linear-gradient(90deg,#FBF3E6,#F3D3A3 55%,#E7AE68);outline:none}
 .nl-sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:18px;border-radius:5px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);cursor:pointer}
 .nl-sl input[type=range]::-moz-range-thumb{width:22px;height:18px;border:0;border-radius:5px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25)}
 .nl-au{display:flex;align-items:center;gap:7px;padding:2px 14px 0 42px;font-size:.75rem;color:var(--ink-2);cursor:pointer}
@@ -5900,8 +5904,6 @@ html[data-nl]::after{content:"";position:fixed;inset:calc(-50vh - env(safe-area-
   .pnfab{border-radius:12px!important}
 }
 
-/* 🌙 nền gốc (vùng iPhone vẽ phía sau thanh trạng thái khi kéo nảy) cũng ngả ấm */
-html[data-nl]{background-color:color-mix(in srgb,var(--bg) 100%,transparent);background-image:linear-gradient(rgba(255,138,36,calc(var(--nl,.26) * .55)),rgba(255,138,36,calc(var(--nl,.26) * .55)))}
 /* tay nắm kéo đổi bề rộng (thanh bên / bảng phụ) chỉ có trên màn hình rộng ≥1180px – dưới đó và khi bảng phụ mở dạng tấm trượt thì ẩn hẳn
    (trước: nút xám nhỏ lòi ra ở góc dưới-trái bảng phụ trên điện thoại) */
 @media (max-width:1179px){.edge-grip,.eg-btn{display:none!important}}
