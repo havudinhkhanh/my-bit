@@ -237,7 +237,7 @@ function cbMount(root) {
   (root || document).querySelectorAll?.(".cbox:not([data-m])").forEach((el) => {
     const r = CB.get(+el.dataset.cb); if (!r) return;
     el.dataset.m = 1; r.el = el;
-    { const sz = czSaved(el); el.dataset.sz = sz; if (sz === "s") el.classList.add("cz-s"); else if (sz === "l") { el.classList.add("cz-l", "cz-wide"); el._span = czSpanEl(el); el._span?.classList.add("cz-span"); } el.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === sz)); el.querySelector(":scope > .cbt")?.style.setProperty("--i", { s: 0, m: 1, l: 2 }[sz]); }
+    { const sz = czSaved(el); el.dataset.sz = sz; if (sz === "s") { el.classList.add("cz-s"); el._sbox = czSpanEl(el); el._sbox?.classList.add("cz-box-s"); } else if (sz === "l") { el.classList.add("cz-l", "cz-wide"); el._span = czSpanEl(el); el._span?.classList.add("cz-span"); } el.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === sz)); el.querySelector(":scope > .cbt")?.style.setProperty("--i", { s: 0, m: 1, l: 2 }[sz]); }
     const c = el.querySelector(".cbc");
     // đo (đọc bố cục) và vẽ (ghi DOM) tách riêng: khi nhiều biểu đồ cùng hiện, đo hết rồi mới vẽ → trình duyệt chỉ tính bố cục 1 lần thay vì 1 lần/biểu đồ
     const measure = () => {
@@ -287,11 +287,11 @@ function czSet(box, mode, save = true) {
   if (!box) return false;
   if (mode === "wide") mode = "l";
   const full = mode === "full" ? !box.classList.contains("cz-full") : false, sz = mode === "full" ? box.dataset.sz || czSaved(box) : mode;
-  box.classList.remove("cz-s", "cz-l", "cz-wide", "cz-full"); (box._span || czSpanEl(box))?.classList.remove("cz-span"); document.body.classList.remove("cz-lock");
+  box.classList.remove("cz-s", "cz-l", "cz-wide", "cz-full"); (box._span || czSpanEl(box))?.classList.remove("cz-span"); (box._sbox || czSpanEl(box))?.classList.remove("cz-box-s"); document.body.classList.remove("cz-lock");
   if (!box.dataset.title) box.dataset.title = (box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || "").replace(/\s+/g, " ").trim();
   box.dataset.sz = sz;
   if (full) { box.classList.add("cz-full"); document.body.classList.add("cz-lock"); }
-  else if (sz === "s") box.classList.add("cz-s");
+  else if (sz === "s") { box.classList.add("cz-s"); box._sbox = czSpanEl(box); box._sbox?.classList.add("cz-box-s"); }
   else if (sz === "l") { box.classList.add("cz-l", "cz-wide"); box._span = czSpanEl(box); box._span?.classList.add("cz-span"); }
   if (save && mode !== "full") { const M = { ...(lsGet("czSize", {}) || {}) }; if (sz === "m") delete M[czKey(box)]; else M[czKey(box)] = sz; lsSet("czSize", M); }
   if (box.classList.contains("lwbox")) {      // biểu đồ nến: đổi chiều cao thật (thư viện tự vẽ lại theo khung)
@@ -448,7 +448,7 @@ function gauge(v, lo = 0, hi = 100, label = "") {
 // - vẽ lại xong: giữ khung đang xem ở đúng vị trí trên màn hình, giữ vị trí cuộn của từng bảng, giữ mục đang mở
 const UI = { t: 0 };
 ["touchstart", "touchmove", "wheel", "pointerdown", "keydown"].forEach((ev) => addEventListener(ev, () => (UI.t = Date.now()), { passive: true, capture: true }));
-const userBusy = (ms = 6000) => Date.now() - UI.t < ms || document.body.classList.contains("cmdk-on") || !!document.getElementById("iosSheet");      // đang mở Tìm nhanh / bảng xác nhận → không vẽ lại trang phía sau
+const userBusy = (ms = 6000) => Date.now() - UI.t < ms || document.body.classList.contains("cmdk-on") || !!document.getElementById("iosSheet") || !!document.getElementById("ocChart") || !!document.querySelector(".cz-full, .cv-fs");      // đang mở Tìm nhanh / biểu đồ lớn / bảng xác nhận → không vẽ lại trang phía sau
 const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) === "0"; } catch (e) { return false; } };
 // Tự làm mới trang (mỗi vài giây) mà KHÔNG làm trang nhảy:
 //  • chỉ vẽ khi vẫn đang ở đúng trang lúc bắt đầu (anh đã chuyển trang trong lúc tải dữ liệu → bỏ, không vẽ đè trang mới)
@@ -2240,13 +2240,17 @@ async function priceChart(D, el, tf) {
 }
 // 📈 BIỂU ĐỒ NHANH CHO THẺ LỆNH ĐANG MỞ / ĐANG CHỜ (mọi thẻ .sc-oc): bấm nút 📈 trên thẻ → cửa sổ biểu đồ lớn, đủ khung 1s … Năm,
 //    vẽ giá vào (TB), cắt lỗ, chốt lời, các mức lệnh chờ; nến cập nhật trực tiếp. Hợp đồng futures: giá theo đúng mã hợp đồng (1000PEPE…) nên khớp giá vào.
-const OCC = { ws: null, info: null, tf: null };
+const OCC = { ws: null, info: null, tf: null, rc: null };
+const ocOpt = (k) => lsGet("oc_" + k, k !== "rsi");
 function ocInfo(card) {
   const g = (sel, a) => card.querySelector(sel)?.dataset?.[a];
   const k = g("[data-lpx]", "lpx") || g("[data-lpnl]", "lpnl") || g("[data-lgap]", "lgap") || ((card.querySelector(".r1 b b")?.textContent || "").trim() + ":F");
   const n = (v) => (isNum(v) && +v > 0 && +v < 1e17 ? +v : null);
   const sd = +(g("[data-lpnl]", "sd") || g("[data-lsd]", "sd") || (card.classList.contains("S") ? -1 : 1));
+  const lt = g("[data-lt0]", "lt0") || "", lh = +g("[data-lt0]", "lh"), t0 = isFinite(+lt) && +lt > 0 ? +lt : Date.parse(/Z$|[+-]\d\d:\d\d$/.test(lt) ? lt : lt + "Z");
   return { k, base: String(k).split(":")[0], fut: !/:S$/.test(k), side: sd > 0 ? 1 : -1, e: n(g("[data-lpnl]", "e")), sl: n(g("[data-lpnl]", "sl")) || n(g("[data-lsd]", "sl")), tp: n(g("[data-lpnl]", "tp")),
+    q: n(g("[data-lpnl]", "q")), f0: +g("[data-lpnl]", "f0") || 0, fr: +g("[data-lpnl]", "fr") || 0.05, end: t0 > 0 && lh > 0 ? (t0 < 1e11 ? t0 * 1000 : t0) + lh * 1000 : null,
+    what: (card.querySelector(".r1s")?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 90),
     lv: [...card.querySelectorAll("[data-lgap][data-px]")].map((x) => n(x.dataset.px)).filter(Boolean) };
 }
 function ocDeco(root = document) {
@@ -2257,6 +2261,7 @@ function ocDeco(root = document) {
 }
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
+const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; const m = document.getElementById("ocChart"); if (m) { m.classList.remove("on"); setTimeout(() => m.remove(), 220); } document.body.classList.remove("cz-lock"); }
 function ocOpen(I) {
   ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
@@ -2266,13 +2271,17 @@ function ocOpen(I) {
   m.innerHTML = `<div class="occ-bg" data-occx></div><div class="occ-p" role="dialog" aria-modal="true" aria-label="${bi("Biểu đồ", "Chart")} ${esc(I.base)}">
     <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
       <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}">${bi("Phân tích", "Analysis")} →</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
-    <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span></div>
+    ${I.what ? `<div class="occ-what faint">${esc(I.what)}</div>` : ""}
+    <div class="occ-st" id="occSt"></div>
+    <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
+      <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"]].map(([k, t]) => `<button type="button" data-octg="${k}" class="${ocOpt(k) ? "on" : ""}">${t}</button>`).join("")}</span></div>
     <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}<small class="faint" id="occSrc"></small></div>
-    <div class="occ-c" id="occC"></div></div>`;
+    <div class="occ-c" id="occC"></div><div class="occ-ohlc" id="occO"></div><div class="occ-rsi" id="occR"></div></div>`;
   document.body.appendChild(m); document.body.classList.add("cz-lock");
   requestAnimationFrame(() => m.classList.add("on"));
   m.querySelectorAll("[data-occx]").forEach((x) => (x.onclick = ocClose));
   m.querySelector(".occ-go").onclick = () => ocClose();
+  m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg, v = !ocOpt(k); lsSet("oc_" + k, v); b.classList.toggle("on", v); ocDraw(); }));
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   ocDraw();
@@ -2295,13 +2304,40 @@ async function ocDraw() {
   const lvP = I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4);      // mức đã khớp trùng giá vào → không vẽ 2 lần
   lvP.forEach((v) => lines.push({ price: v, color: css("--ink-3"), title: bi("chờ", "limit"), style: 1 }));
   el.innerHTML = "";
-  const ch = candleChart(el, o, { ma: [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)] });
+  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)] });
+  ch.c.applyOptions({ crosshair: { mode: 1 }, handleScale: { axisPressedMouseMove: { time: true, price: true } } });
+  // chú thích nến dưới con trỏ (mặc định nến mới nhất): giờ · mở · cao · thấp · đóng · % · khối lượng
+  const oEl = document.getElementById("occO"), idx = new Map(o.t.map((t, i) => [t, i]));
+  const fT = (t) => new Date(t * 1000 + 7 * 3600e3).toISOString().replace("T", " ").slice(intraTf(tf) ? 5 : 0, /s$/.test(tf) ? 19 : intraTf(tf) ? 16 : 10).replace(/-/g, "/");
+  const leg = (i) => { if (!oEl || i == null || i < 0) return; const S = OCC.src || o, c0 = S.c[i - 1] ?? S.o[i], d = (S.c[i] / c0 - 1) * 100;
+    oEl.innerHTML = `<span>${fT(S.t[i])}</span><span>${bi("M", "O")} <b>${px(S.o[i])}</b></span><span>${bi("C", "H")} <b>${px(S.h[i])}</b></span><span>${bi("T", "L")} <b>${px(S.l[i])}</b></span><span>${bi("Đ", "C")} <b class="${cls(d)}">${px(S.c[i])}</b></span><span class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</span><span>${bi("KL", "Vol")} <b>${usd(S.v[i] || 0)}</b></span><span class="faint">${bi("biên", "range")} ${nf((S.h[i] / S.l[i] - 1) * 100, 2)}%</span>`; };
+  OCC.src = o; leg(n - 1);
+  ch.c.subscribeCrosshairMove((pm) => { const i = pm?.time != null ? idx.get(pm.time) : null; leg(i != null ? i : (OCC.src || o).t.length - 1); });
+  // RSI 14 (tuỳ chọn) – khung nhỏ dưới, cùng trục thời gian
+  const rEl = document.getElementById("occR"); OCC.rc = null;
+  if (rEl) { rEl.innerHTML = ""; rEl.hidden = !ocOpt("rsi"); if (ocOpt("rsi")) { const rc = LightweightCharts.createChart(rEl, { ...themeOpts(), autoSize: true, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 } }); charts.push(rc);
+    const rs = rc.addLineSeries({ color: css("--ref"), lineWidth: 1, priceLineVisible: false }); const rv = IND.rsi(o.c, 14); rs.setData(o.t.map((t, i) => (rv[i] == null ? null : { time: t, value: rv[i] })).filter(Boolean));
+    [70, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
+    ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 } });
+    ch.c.timeScale().subscribeVisibleLogicalRangeChange((r2) => { if (r2) rc.timeScale().setVisibleLogicalRange(r2); }); rc.timeScale().setVisibleLogicalRange(ch.c.timeScale().getVisibleLogicalRange()); OCC.rc = { rs, rv }; } }
   {      // khung giá luôn thấy giá vào & lệnh chờ; cắt lỗ / chốt lời chỉ kéo vào khi trong khoảng ±15% giá hiện tại (cắt lỗ thảm hoạ −35% sẽ làm nến dẹt)
     const cur = o.c[n - 1], keep = [I.e, ...lvP, ...[I.sl, I.tp].filter((v) => v && Math.abs(v / cur - 1) < 0.15)].filter(Boolean);
     if (keep.length) ch.cs.applyOptions({ autoscaleInfoProvider: (orig) => { const r0 = orig(); if (!r0?.priceRange) return r0; return { ...r0, priceRange: { minValue: Math.min(r0.priceRange.minValue, ...keep), maxValue: Math.max(r0.priceRange.maxValue, ...keep) } }; } });
   }
   const sEl = document.getElementById("occSrc"); if (sEl) sEl.textContent = `${L.src} ${L.sym} · ${bi("trực tiếp", "live")}`;
-  const pEl = document.getElementById("occPx"), setPx = (v) => { if (pEl) { const d = I.e ? I.side * (v / I.e - 1) * 100 : null; pEl.innerHTML = `${px(v)}${isNum(d) ? ` <small class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</small>` : ""}`; } };
+  const pEl = document.getElementById("occPx"), stEl = document.getElementById("occSt");
+  const chip = (t, v, c = "", tip = "") => `<span class="occ-k"${tip ? ` title="${esc(tip)}"` : ""}><small>${t}</small><b class="${c}">${v}</b></span>`;
+  const setPx = (v) => {
+    const d = I.e ? I.side * (v / I.e - 1) * 100 : null;
+    if (pEl) pEl.innerHTML = `${px(v)}${isNum(d) ? ` <small class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</small>` : ""}`;
+    if (!stEl) return;
+    const pnl = I.e && I.q ? I.side * I.q * (v - I.e) - I.f0 - I.q * v * I.fr / 100 : null, dSL = I.sl ? Math.abs(v / I.sl - 1) * 100 : null, dTP = I.tp ? Math.abs(I.tp / v - 1) * 100 : null;
+    const left = I.end ? Math.max(0, I.end - Date.now()) / 1000 : null, lv1 = lvP.length ? lvP.reduce((a, x) => (Math.abs(x - v) < Math.abs(a - v) ? x : a)) : null;
+    stEl.innerHTML = [I.e ? chip(bi("Giá vào", "Entry"), px(I.e)) : "", isNum(pnl) ? chip(bi("Lời/lỗ (sau phí)", "P/L (net)"), `${pnl >= 0 ? "+" : "−"}$${nf(Math.abs(pnl), 2)}`, cls(pnl), bi("ước tính theo giá hiện tại, đã trừ phí vào + phí ra", "estimate at the current price, net of fees")) : "",
+      I.q && I.e ? chip(bi("Khối lượng", "Size"), `${nf(I.q, I.q < 10 ? 4 : 0)} · $${nf(I.q * I.e, 2)}`) : "", I.sl ? chip(bi("Cắt lỗ", "Stop"), `${px(I.sl)} <small>${nf(dSL, 1)}%</small>`, "down", bi("khoảng cách từ giá hiện tại", "distance from the current price")) : "",
+      I.tp ? chip(bi("Chốt lời", "Target"), `${px(I.tp)} <small>${nf(dTP, 1)}%</small>`, "up") : "", lv1 ? chip(bi("Lệnh chờ gần nhất", "Nearest limit"), `${px(lv1)} <small>${nf(Math.abs(lv1 / v - 1) * 100, 2)}%</small>`) : "",
+      isNum(left) ? chip(I.e ? bi("Tự đóng sau", "Auto-close in") : bi("Còn chờ", "Waiting"), left >= 3600 ? `${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}p` : `${Math.floor(left / 60)}p ${Math.floor(left % 60)}s`) : ""].join("");
+  };
   setPx(o.c[n - 1]);
   if (L.kind === "okx") return;
   try {
@@ -2313,7 +2349,7 @@ async function ocDraw() {
       else if (t > raw.t[i]) { raw.t.push(t); raw.o.push(bar[0]); raw.h.push(bar[1]); raw.l.push(bar[2]); raw.c.push(bar[3]); raw.v.push(bar[4]); }
       const a = ag ? aggO({ t: raw.t.slice(-40), o: raw.o.slice(-40), h: raw.h.slice(-40), l: raw.l.slice(-40), c: raw.c.slice(-40), v: raw.v.slice(-40) }, ag) : null, j = a ? a.t.length - 1 : raw.t.length - 1, s2 = a || raw;
       try { ch.cs.update({ time: s2.t[j], open: s2.o[j], high: s2.h[j], low: s2.l[j], close: s2.c[j] }); } catch (e2) { /* nến cũ */ }
-      setPx(bar[3]);
+      const nw = Date.now(); if (nw - (OCC.pt || 0) > 250) { OCC.pt = nw; setPx(bar[3]); }      // chữ cập nhật ≤ 4 lần/giây (nến vẫn từng nhịp) – nhẹ máy
     };
   } catch (e) { /* trình duyệt chặn websocket */ }
 }
