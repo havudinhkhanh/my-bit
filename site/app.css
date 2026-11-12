@@ -5404,3 +5404,27 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 .ktip .ks-th{font-style:normal;font-size:.6875rem;color:var(--ink-3);margin:0 2px}
 @media (prefers-reduced-motion:reduce){.ktip{transition:none}}
 @media (hover:none),(pointer:coarse){.ktip{display:none}}
+/* 📆 chi tiết 1 ngày (Kết quả & sổ lệnh) – gọn: tiêu đề kiểu người đọc, ô số nhỏ, ghi chú tự lưu */
+.dd-p>.ph{align-items:baseline;gap:10px}
+.dd-p .dd-ti{font-size:1.0625rem;letter-spacing:-.01em}
+.dd-p .dd-rel{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-3);font-weight:500}
+.dd-live{width:7px;height:7px;border-radius:50%;background:var(--up);box-shadow:0 0 0 3px color-mix(in srgb,var(--up) 22%,transparent)}
+.kpis.dd-kp{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));border:0;border-radius:12px;background:var(--fill-card,var(--sunk));margin:2px 0 4px}
+.kpis.dd-kp>div{padding:7px 11px 8px;border:0!important}
+.kpis.dd-kp dt{font-size:.6875rem;color:var(--ink-3);margin-bottom:1px}
+.kpis.dd-kp dd{font-size:.9375rem;font-weight:650;line-height:1.3;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+.kpis.dd-kp dd small{display:block;white-space:nowrap;font-size:.6875rem;font-weight:500;color:var(--ink-3);margin-top:1px}
+.kpis.dd-kp dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpis.dd-kp dd.up small,.kpis.dd-kp dd.down small{color:inherit;opacity:.8}
+.dd-p .dd-g{gap:6px 18px;margin-top:4px}
+.dd-p .sbh{margin:10px 2px 3px}
+.dd-p .dles{margin:0;padding-left:18px;font-size:.8125rem;line-height:1.45}.dd-p .dles li+li{margin-top:2px}
+.dd-p .dbars{gap:4px}
+.dnote{display:block;position:relative;margin-top:2px}
+.dnote .sbh{display:block}
+#dDetail .dnote textarea{display:block;width:100%;min-height:58px;resize:none;border:0!important;border-radius:12px;background-color:var(--fill)!important;padding:9px 12px 20px;font-size:.8125rem!important;line-height:1.5;transition:background-color .15s ease,box-shadow .15s ease;outline:none}
+#dDetail .dnote textarea:hover{background-color:var(--fill-h)!important}
+#dDetail .dnote textarea:focus{background-color:var(--surface)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--ink) 18%,transparent),0 6px 18px -10px rgba(0,0,0,.35)}
+#dDetail .dnote textarea::placeholder{color:var(--ink-3)}
+.dnote-s{position:absolute;right:10px;bottom:6px;font-size:.6875rem;color:var(--ink-3);pointer-events:none}
+.dnote-s.ok{color:var(--up)}.dnote-s.bad{color:var(--down)}
