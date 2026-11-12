@@ -309,7 +309,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-
 // 📈 cỡ biểu đồ trang coin: S nhỏ · M vừa (mặc định) · L cao theo màn hình · ⛶ toàn màn hình – nhớ lựa chọn
 const cvSz = () => { const v = lsGet("cvSize", "m"); return ["s", "m", "l"].includes(v) ? v : "m"; };
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cvsz]"); if (!b) return; e.preventDefault(); lsSet("cvSize", b.dataset.cvsz);
-  const c = document.getElementById("pchart"); if (c) c.dataset.sz = b.dataset.cvsz; document.querySelectorAll("[data-cvsz]").forEach((x) => x.classList.toggle("on", x === b));
+  const c = document.getElementById("pchart"); if (c) c.dataset.sz = b.dataset.cvsz; const g = document.querySelector(".cv-grid"); if (g) g.dataset.sz = b.dataset.cvsz; document.querySelectorAll("[data-cvsz]").forEach((x) => x.classList.toggle("on", x === b));
   if (document.querySelector(".cv-chart.cv-fs")) cvFs(false); requestAnimationFrame(() => window.dispatchEvent(new Event("resize"))); });
 // 📈 biểu đồ trang coin: toàn màn hình CẢ khối (thanh khung giờ + nến + RSI/MACD/CVD), như ứng dụng giao dịch
 function cvFs(on) {
@@ -2248,16 +2248,16 @@ function bindChart(D) {
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
   [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><span class="cv-sz" role="group" aria-label="Cỡ biểu đồ">${[["s", "S", "Nhỏ"], ["m", "M", "Vừa"], ["l", "L", "Lớn – cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><span class="cv-sz" role="group" aria-label="Cỡ biểu đồ">${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
-  return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="cv-chart">
+  return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="cv-grid" data-sz="${cvSz()}"><div class="cv-chart">
     ${panel("Biểu đồ", `${chartBox(D, 440, true)}<p class="faint" style="font-size:.75rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}</div>
-    <div class="g g2w cv-below"><div class="col">
+    <div class="col cv-side">
       ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
-      ${planSummary(D)}</div>
-    <div class="col">
+      ${planSummary(D)}</div></div>
+    <div class="g g2w cv-below"><div class="col">
       ${panel("Tóm tắt", `${kpis([["Định giá", vdPill(V.verdict)], ["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
         ["Vốn hoá", usd(r.mc)], ["FDV", usd(r.fdv), "", "Vốn hoá nếu toàn bộ tổng cung lưu hành"], ["Lưu hành", isNum(V.float_pct) ? nf(V.float_pct, 0) + "%" : "—", V.float_pct < 35 ? "down" : ""],
         ["KL 24h", usd(r.vol)], ["Từ đỉnh", pct(r.ath, 0), "down", cg.ath_date ? `Đỉnh ${px(cg.ath)} ngày ${fmtD(cg.ath_date)}` : ""],
@@ -2265,6 +2265,7 @@ function tabOverview(D) {
         r.oi ? ["OI futures", usd(r.oi)] : null, r.oi ? ["Funding 8h", f8s(r.f8), f8c(r.f8)] : null, D.hedge?.beta ? ["Beta với BTC", nf(D.hedge.beta, 2), "", `Tương quan ${nf(D.hedge.corr, 2)} · biến động năm hoá ${nf(D.hedge.vol90, 0)}%`] : null])}
         ${why.length ? `<ul class="why">${why.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
         ${(D.crowd || []).length ? `<div class="note">${D.crowd.map((c) => `<p><b>${esc(c.t)}</b>: ${esc(c.d)}</p>`).join("")}</div>` : ""}`)}
+    </div><div class="col">
       ${(D.news || []).length ? panel("Tin tức", `<div class="ntfs">${D.news.slice(0, 12).map((n) => newsRow(n)).join("")}</div>`) : ""}
     </div></div>`;
 }

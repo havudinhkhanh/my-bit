@@ -5527,3 +5527,26 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 @media (hover:none){.cbt.cbt-o{opacity:.85}}
 .cv-chart .cbt{display:none!important}
 .cz-span{grid-column:1/-1!important}
+/* 📐 S / M / L đổi cả CHIỀU NGANG
+   trang coin: S = biểu đồ ½ hàng + "Vào lệnh lúc này?" bên cạnh · M = ⅔ hàng + cột bên cạnh · L = cả hàng (cột kia xuống dưới) */
+.cv-grid{display:grid;gap:var(--gap,12px);grid-template-columns:minmax(0,1fr);align-items:start;margin-bottom:var(--gap,12px)}
+.cv-grid>.cv-chart{margin:0;min-width:0}.cv-grid>.cv-side{min-width:0}
+@media (min-width:1100px){
+  .cv-grid[data-sz="s"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .cv-grid[data-sz="m"]{grid-template-columns:minmax(0,1.85fr) minmax(0,1fr)}
+  .cv-grid[data-sz="l"]{grid-template-columns:minmax(0,1fr)}
+  .cv-grid[data-sz="l"]>.cv-side{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:var(--gap,12px);align-items:start}
+}
+.cv-grid[data-sz="s"] .cv-chart .cops .chk{padding:0 8px!important}
+/* biểu đồ khác: S = hẹp (tối đa 560px) · M = rộng bằng khung (mặc định) · L = cả hàng của lưới */
+.cbox.cz-s,.lwbox.cz-s{max-width:min(100%,560px)}
+.lwbox.cz-s+.cbt-o{margin-left:max(0px,calc(min(100%,560px) - 124px))}
+/* thanh công cụ biểu đồ coin theo bề ngang KHUNG (S/M hẹp hơn): khung giờ 1 hàng riêng, nút bật/tắt + cỡ hàng dưới */
+.cv-chart{container-type:inline-size;container-name:cvc}
+@container cvc (max-width:980px){
+  .cv-chart .cbar{flex-wrap:wrap!important;row-gap:6px}
+  .cv-chart .tfseg{flex:1 1 100%!important}
+  .cv-chart .cops{flex:1 1 0!important;min-width:0;overflow-x:auto;scrollbar-width:none}
+  .cv-chart .cops::-webkit-scrollbar{display:none}
+  .cv-chart #csrc{display:none}
+}
