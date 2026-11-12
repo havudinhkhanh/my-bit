@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ["RS_LOG"] = "round18b.log"
+os.environ.setdefault("RS_LOG", "round18b.log")
 import round18 as M  # noqa: E402
 
 E, R6 = M.E, M.R6
