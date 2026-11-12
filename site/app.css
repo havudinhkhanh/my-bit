@@ -5468,3 +5468,10 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 .exm-r>b{font-variant-numeric:tabular-nums;white-space:nowrap}
 /* máy tính: nền mờ toàn màn hình của bảng tìm nhanh / xem trước thông báo cũng bỏ làm mờ (nặng, giật khi mở) – chỉ phủ tối */
 @media (pointer:fine){.cmdk-bg,.ntpk-bg{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}.cmdk-bg{background:rgba(5,8,12,.5)}.ntpk-bg{background:rgba(0,0,0,.5)}}
+/* bảng chi tiết phương pháp (flyout): bỏ làm mờ nền (làm mờ cả màn hình mỗi khung hình rất nặng → giật), lớp riêng cho chuyển động */
+.lb-dr-bg{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;background:rgba(10,14,20,.42)}
+.lb-dr-p{will-change:transform;contain:layout paint;backface-visibility:hidden}
+.lb-dr:not(.on) .lb-dr-p{pointer-events:none}
+/* khoá cuộn: chỉ body (tràn của body chuyển lên khung nhìn) – khoá cả html làm body thành khung cuộn → thanh trên & thanh thẻ dính (sticky) bật khỏi chỗ, trang nhảy */
+html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock body{overflow:hidden!important}
+@media (prefers-reduced-motion:reduce){.lb-dr-p,.lb-dr-bg{transition:none!important}}
