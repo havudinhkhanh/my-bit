@@ -6980,10 +6980,25 @@ function ksHud(on) {
   const blocked = () => { const a = document.activeElement; if (!a) return false; if (a.isContentEditable || a.tagName === "TEXTAREA") return true;
     if (a.tagName === "INPUT") return !/^(checkbox|radio|range|button|submit|reset|color|file)$/i.test(a.type || "");
     if (a.tagName === "SELECT") return POP.host === a; return false; };
+  // Unikey/Telex gõ "e" lần 2 → bộ gõ gửi ký tự "ê" dạng gói Unicode: phím báo "Unidentified"/"Process", không có mã phím vật lý → chờ sự kiện keypress (có ký tự thật);
+  // không có thì coi là lặp lại phím tắt chữ cái vừa bấm (ee → ê, oo → ô, dd → đ đều là bấm lại cùng phím)
+  let waitP = 0, lastK = "", lastT = 0, bsT = 0;
+  const UNK = (c) => c === "Process" || c === "Unidentified" || c === "Dead" || c === "" || (c.length === 1 && c.charCodeAt(0) > 127);
   addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || blocked() || (e.isComposing && document.activeElement?.isContentEditable)) { if (pend) done(); return; }
-    if (e.key === "Backspace" && !pend) return;      // Unikey xoá ký tự trước khi gõ dấu – ngoài ô nhập thì bỏ qua
+    // Unikey xoá ký tự trước khi gõ dấu (Backspace rồi ký tự mới): ký tự mới tới ngay thì dùng nó; trình duyệt không báo ký tự mới thì coi là lặp lại phím chữ vừa bấm
+    if (e.key === "Backspace" && !pend) { const t0 = Date.now(); bsT = t0; if (lastK && t0 - lastT < 2500) setTimeout(() => { if (bsT === t0) { bsT = 0; run(lastK, { shiftKey: false, preventDefault() {} }); } }, 120); return; }
+    bsT = 0;
     const c = combo(e);
+    if (UNK(c)) { const t0 = Date.now(); (window.__ksDbg ||= []).push([e.key, e.code, e.keyCode]); if (window.__ksDbg.length > 12) window.__ksDbg.shift();
+      waitP = t0; setTimeout(() => { if (waitP === t0) { waitP = 0; if (lastK && t0 - lastT < 2500) run(lastK, { shiftKey: false, preventDefault() {} }); } }, 80); return; }
+    run(c, e);
+  });
+  addEventListener("keypress", (e) => {
+    bsT = 0; if (!waitP || blocked()) return; waitP = 0;
+    const k = VI[String(e.key).toLowerCase()] || String(e.key).toLowerCase(); if (k.length === 1 && /[a-z0-9]/.test(k)) run(k, e);
+  });
+  function run(c, e) {
     if (c === "Shift" || c === "Control" || c === "Alt" || c === "Meta" || c === "CapsLock") return;
     const modal = document.getElementById("iosSheet") || document.body.classList.contains("cmdk-on") || document.getElementById("thMenu") || document.querySelector(".cz-full");
     if (pend) {
@@ -7000,7 +7015,8 @@ function ksHud(on) {
     if (c === "Shift+←" || c === "Shift+→") { if (ksTab(0, c === "Shift+→" ? 1 : -1)) e.preventDefault(); return; }
     const x = KS.flatMap((g) => g.it).find((x) => x.k.length === 1 && x.k[0].toLowerCase() === c.toLowerCase() && x.run && (!x.on || x.on(r)));
     if (!x) return;
+    if (/^[a-z]$/.test(c)) { lastK = c; lastT = Date.now(); }
     if (x.run() !== false) e.preventDefault();
-  });
+  }
   addEventListener("hashchange", () => { if (pend) done(); });
 })();
