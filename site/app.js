@@ -6757,7 +6757,7 @@ function lvwReset() {
 }
 // trang có thẻ con (Bot Phản Xạ: Tổng quan · Lệnh · Phương pháp…; trang khác: thanh thẻ đầu tiên)
 function ksTabs() {
-  const bar = document.querySelector("#app .sc-tabs") || [...document.querySelectorAll("#app [role=tablist]")].find((x) => x.offsetParent);
+  const bar = [...document.querySelectorAll("#app .sc-tabs, #app .sc-sub2")].find((x) => x.offsetParent) || [...document.querySelectorAll("#app [role=tablist]")].find((x) => x.offsetParent && !x.closest(".sc-env, #pvEnv"));
   return bar ? [...bar.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent && !b.disabled) : [];
 }
 function ksTab(i, rel) {
@@ -6776,6 +6776,21 @@ function ksSec(d) {
   t.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   t.classList.remove("ks-hl"); void t.offsetWidth; t.classList.add("ks-hl"); setTimeout(() => t.classList.remove("ks-hl"), 900);
   return true;
+}
+// 🔁 nhóm nút "đổi sàn" (e) và "thẻ con" (o / Shift+O) – dùng chung mọi trang: lấy nhóm đang thấy đầu tiên, bấm nút kế tiếp sau nút đang chọn
+const KS_ENVSEL = "#app .sc-env > [data-scenv], #pvEnv button, #app .dseg > a";
+const KS_SUBSEL = "#app [data-scol], #app .ks-sub > button, #app .ks-sub > a";
+function ksEnv() { for (const s of ["#app .sc-env", "#pvEnv", "#app .dseg"]) { const g = [...document.querySelectorAll(s)].find((x) => x.offsetParent); if (g) return [...g.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent && !b.disabled); } return []; }
+function ksSubs() {
+  const col = [...document.querySelectorAll("#app [data-scol]")].filter((b) => b.offsetParent); if (col.length) return col;
+  const main = ksTabs()[0]?.parentElement;
+  const bar = [...document.querySelectorAll("#app [role=tablist], #app .bseg")].find((b) => b.offsetParent && b !== main && !b.closest(".sc-env, #pvEnv, .dseg") && !b.matches(".sc-env, .dseg") && b.querySelectorAll(":scope > button, :scope > a").length > 1);
+  return bar ? [...bar.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent && !b.disabled) : [];
+}
+function ksCycle(L, d) {
+  if (!L.length) return false;
+  const c = L.findIndex((b) => b.classList.contains("on") || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-pressed") === "true");
+  const b = L[(Math.max(0, c) + d + L.length) % L.length]; b.click(); b.focus?.({ preventScroll: true }); return true;
 }
 // biểu đồ dưới con trỏ chuột (không có thì biểu đồ đầu tiên đang thấy trên màn hình)
 let KS_HOV = null;
@@ -6841,12 +6856,15 @@ const KS = [
     { k: ["Shift+G"], t: ["Xuống cuối trang", "Bottom of page"], run: () => scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }) },
     { k: ["1 … 9"], t: ["Chọn thẻ thứ 1 … 9 của trang (Tổng quan · Lệnh · Phương pháp…)", "Pick tab 1 … 9 of the page (Overview · Trades · Methods…)"] },
     { k: ["Shift+←", "Shift+→"], sep: "/", t: ["Thẻ trước / thẻ sau", "Previous / next tab"] },
+    { k: ["o"], t: ["Thẻ con kế tiếp (Tất cả → Đang mở → Đã đóng…, các nút chọn ngay dưới thẻ chính)", "Next sub-tab (All → Open → Closed…)"], run: () => ksCycle(ksSubs(), 1), sel: KS_SUBSEL },
+    { k: ["Shift+O"], t: ["Thẻ con trước", "Previous sub-tab"], run: () => ksCycle(ksSubs(), -1) },
+    { k: ["e"], t: ["Đổi sàn / tài khoản đang xem: Binance thật ⇄ Sàn thử (Bot), Giả lập ⇄ Binance (Sàn thử tay), Thử / Demo / Thật (Kết quả)", "Switch venue / account being viewed"], run: () => ksCycle(ksEnv(), 1), sel: KS_ENVSEL },
     { sel: '[data-cz="full"]', k: ["f"], t: ["Biểu đồ dưới con trỏ: phóng to toàn màn hình / thu lại", "Chart under the pointer: full screen / back"], run: () => { const b = ksChart(); if (!b) return false; czToggle(b, "full"); return true; } },
   ] },
   { id: "bot", t: ["Bot Phản Xạ", "Reflex Bot"], d: ["Trang #/bot/scalp", "On #/bot/scalp"], it: [
     { k: ["1 … 5"], t: ["Tổng quan · Lệnh · Phương pháp · Hoạt động · Thiết lập", "Overview · Trades · Methods · Activity · Settings"] },
-    { k: ["e"], t: ["Đổi Binance thật ⇄ Sàn thử (nút giữ nguyên chỗ)", "Switch Binance ⇄ Paper (controls stay put)"], on: (r) => r === "bot/scalp", run: () => ksClick("#app [data-scenv]:not(.on)"), sel: "#app [data-scenv]" },
-    { sel: "#app [data-scol]", k: ["o"], t: ["Thẻ Lệnh: Tất cả → Đang mở → Đã đóng → Hụt → So sàn thử", "Trades tab: All → Open → Closed → Missed → Vs paper"], on: (r) => r === "bot/scalp", run: () => { const L = [...document.querySelectorAll("#app [data-scol]")]; if (!L.length) return false; const i = L.findIndex((b) => b.classList.contains("on")); L[(i + 1) % L.length].click(); return true; } },
+    { k: ["e"], t: ["Đổi Binance thật ⇄ Sàn thử (nút giữ nguyên chỗ)", "Switch Binance ⇄ Paper (controls stay put)"] },
+    { k: ["o"], t: ["Thẻ Lệnh: Tất cả → Đang mở → Đã đóng → Hụt → So sàn thử", "Trades tab: All → Open → Closed → Missed → Vs paper"] },
   ] },
   { id: "coin", t: ["Coin đang xem", "Current coin"], d: ["Trang coin, Lên lệnh, Sàn thử", "Coin, planner and paper pages"], it: [
     { k: ["s"], t: ["Theo dõi / bỏ theo dõi coin (★)", "Watch / unwatch the coin (★)"], on: (r) => r === "c", run: () => ksClick("#wlb"), sel: "#wlb" },
@@ -6855,7 +6873,7 @@ const KS = [
     { k: ["Shift+T"], t: ["Mở Sàn thử với coin này", "Open paper trading with this coin"], run: () => { const k = ksCoin(); if (!k) return false; location.hash = `#/paper/${k}`; return true; } },
   ] },
   { id: "paper", t: ["Sàn thử lệnh tay", "Paper trading"], d: ["Trang #/paper", "On #/paper"], it: [
-    { k: ["e"], t: ["Đổi Giả lập MyBit ⇄ Tài khoản Binance", "Switch MyBit sim ⇄ Binance account"], on: (r) => r === "paper", run: () => ksClick("#pvEnv button:not(.on)"), sel: "#pvEnv button" },
+    { k: ["e"], t: ["Đổi Giả lập MyBit ⇄ Tài khoản Binance", "Switch MyBit sim ⇄ Binance account"] },
     { k: ["Shift+B"], t: ["Chọn Long / Mua", "Pick Long / Buy"], on: (r) => r === "paper", run: () => ksClick('#fSide [data-s="buy"]'), sel: '#fSide [data-s="buy"]' },
     { k: ["Shift+S"], t: ["Chọn Short / Bán", "Pick Short / Sell"], on: (r) => r === "paper", run: () => ksClick('#fSide [data-s="sell"]'), sel: '#fSide [data-s="sell"]' },
     { sel: "#fType button", k: ["Shift+M"], t: ["Đổi kiểu lệnh: Giới hạn → Thị trường → Dừng → Chốt lời", "Cycle order type: Limit → Market → Stop → Take profit"], on: (r) => r === "paper", run: () => { const L = [...document.querySelectorAll("#fType button")]; if (!L.length) return false; L[(L.findIndex((b) => b.classList.contains("on")) + 1) % L.length].click(); return true; } },
@@ -6953,10 +6971,18 @@ function ksHud(on) {
 (() => {
   let pend = "", pt = 0;
   const done = () => { pend = ""; clearTimeout(pt); ksHud(false); };
-  const combo = (e) => { const k = e.key; if (k.length === 1 && /[a-z]/i.test(k)) return (e.shiftKey ? "Shift+" : "") + k.toLowerCase(); if (/^Arrow/.test(k)) return (e.shiftKey ? "Shift+" : "") + { ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" }[k]; return k; };
-  const blocked = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
+  // bộ gõ tiếng Việt (Unikey / Telex / VNI, bộ gõ macOS): gõ "e" lần 2 thành "ê", "o" → "ô", "w" → "ư", hoặc phím báo "Process" → lấy lại phím vật lý
+  const VI = { "ê": "e", "ô": "o", "ơ": "o", "â": "a", "ă": "a", "ư": "w", "đ": "d", "ế": "e", "ố": "o" };
+  const combo = (e) => { let k = e.key;
+    if (k === "Process" || k === "Unidentified" || k === "Dead" || (k.length === 1 && k.charCodeAt(0) > 127)) k = /^Key[A-Z]$/.test(e.code || "") ? e.code.slice(3).toLowerCase() : /^Digit\d$/.test(e.code || "") ? e.code.slice(5) : VI[k.toLowerCase()] || k;
+    if (k.length === 1 && /[a-z]/i.test(k)) return (e.shiftKey ? "Shift+" : "") + k.toLowerCase(); if (/^Arrow/.test(k)) return (e.shiftKey ? "Shift+" : "") + { ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓" }[k]; return k; };
+  // ô nhập chữ đang có con trỏ → phím tắt nghỉ; hộp chọn (select) / ô tích / thanh trượt chỉ chặn khi đang mở danh sách – bấm chọn xong vẫn dùng phím tắt được ngay
+  const blocked = () => { const a = document.activeElement; if (!a) return false; if (a.isContentEditable || a.tagName === "TEXTAREA") return true;
+    if (a.tagName === "INPUT") return !/^(checkbox|radio|range|button|submit|reset|color|file)$/i.test(a.type || "");
+    if (a.tagName === "SELECT") return POP.host === a; return false; };
   addEventListener("keydown", (e) => {
-    if (e.defaultPrevented || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || blocked()) { if (pend) done(); return; }
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || blocked() || (e.isComposing && document.activeElement?.isContentEditable)) { if (pend) done(); return; }
+    if (e.key === "Backspace" && !pend) return;      // Unikey xoá ký tự trước khi gõ dấu – ngoài ô nhập thì bỏ qua
     const c = combo(e);
     if (c === "Shift" || c === "Control" || c === "Alt" || c === "Meta" || c === "CapsLock") return;
     const modal = document.getElementById("iosSheet") || document.body.classList.contains("cmdk-on") || document.getElementById("thMenu") || document.querySelector(".cz-full");
