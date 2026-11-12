@@ -5627,3 +5627,54 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .occ-ohlc b{font-weight:600;color:var(--ink)}
 .occ-rsi{height:110px;flex:none;margin-top:6px;border-radius:10px;overflow:hidden;contain:strict}.occ-rsi[hidden]{display:none}
 @media (max-width:640px){.occ-tg{display:none}.occ-k{padding:5px 9px}.occ-rsi{height:80px}}
+/* =====================================================================================================================
+   v4 – KÍNH iOS (11/2026): thanh chọn có "viên kính" trượt lò xo · nút kính có ánh sáng mép trên · bo góc giảm nhẹ
+   Thang bo góc v4: khung trang 10 · thẻ trong khung 8 · nút / ô nhập 7 · nhãn tròn 999 (v3: 14 · 10 · 8)
+   ===================================================================================================================== */
+:root{--rad:10px;--r-in:8px;--r-ctl:7px;
+  --g-track:color-mix(in srgb,var(--ink) 6%,transparent);
+  --g-thumb:linear-gradient(180deg,#fff,color-mix(in srgb,#fff 82%,var(--surface)));
+  --g-thumb-sh:0 1px 2px rgba(0,0,0,.10),0 4px 12px -4px rgba(0,0,0,.20),inset 0 0 0 .5px rgba(0,0,0,.06),inset 0 1px 0 #fff;
+  --g-btn:linear-gradient(180deg,color-mix(in srgb,#fff 55%,transparent),color-mix(in srgb,#fff 18%,transparent));
+  --g-btn-sh:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),inset 0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),0 1px 2px rgba(0,0,0,.06);
+  --g-spring:cubic-bezier(.3,1.28,.45,1)}
+:root:not([data-theme=light]){
+  --g-track:color-mix(in srgb,var(--ink) 7%,transparent);
+  --g-thumb:linear-gradient(180deg,color-mix(in srgb,var(--ink) 24%,var(--surface)),color-mix(in srgb,var(--ink) 15%,var(--surface)));
+  --g-thumb-sh:inset 0 1px 0 rgba(255,255,255,.20),inset 0 0 0 .5px rgba(255,255,255,.10),0 6px 16px -8px rgba(0,0,0,.7);
+  --g-btn:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
+  --g-btn-sh:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 .5px rgba(255,255,255,.07),0 1px 2px rgba(0,0,0,.3)}
+/* thanh chọn */
+.gseg{position:relative!important;isolation:isolate}
+.gseg>.gthumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;opacity:0;border-radius:var(--r-ctl);background:var(--g-thumb);box-shadow:var(--g-thumb-sh);
+  transition:transform .52s var(--g-spring),width .42s var(--g-spring),height .3s ease,opacity .2s ease;will-change:transform}
+.gseg>button,.gseg>a{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;transition:color .25s ease,transform .18s ease}
+.gseg>button:active,.gseg>a:active{transform:scale(.95)}
+.gseg>.on,.gseg>[aria-selected=true],.gseg>[aria-current=page]{color:var(--ink)!important}
+.gseg>.on .sc-bdg{background:var(--sel)!important;color:var(--sel-ink)!important}
+.bseg.gseg,.dseg.gseg,.sc-om.gseg,.seg.gseg,.sc-env.gseg,.sc-sub2.gseg{background:var(--g-track)!important;border:0!important}
+/* nút kính */
+.btn:not(.primary):not(.danger):not(.pri),.gib,.iconbtn,.ntp-set,.ntp-x,.cv-fsb,.oc-ch,.occ-x,.occ-tg button{background:var(--g-btn),var(--fill)!important;box-shadow:var(--g-btn-sh)!important;
+  transition:background-color .2s ease,transform .22s var(--g-spring),box-shadow .2s ease!important}
+.btn:not(.primary):not(.danger):not(.pri):hover,.gib:hover,.iconbtn:hover,.cv-fsb:hover,.oc-ch:hover,.occ-x:hover,.occ-tg button:hover{background:var(--g-btn),var(--fill-h)!important}
+.btn:active,.gib:active,.iconbtn:active,.cv-fsb:active,.oc-ch:active,.occ-x:active,.occ-tg button:active{transform:scale(.94)}
+/* nhóm nút biểu tượng (vd. đầu bảng thông báo): 1 viên kính chứa nhiều nút tròn */
+.gbar{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--g-btn),var(--fill);box-shadow:var(--g-btn-sh)}
+.gbar .gib{display:inline-grid;place-items:center;width:32px;height:30px;padding:0;border:0!important;border-radius:999px!important;background:transparent!important;box-shadow:none!important;color:var(--ink-2);cursor:pointer;text-decoration:none}
+.gbar .gib svg{width:16px;height:16px}
+.gbar .gib:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)!important;color:var(--ink)}
+.ntp-h{gap:10px}.ntp-ic{margin-left:auto}.ntp-act:has(> .ntp-sw:only-child){padding-top:0}
+/* bo góc v4: các khối lớn trước đây 14–22px */
+.lb-col,.lb-bg,.acp-card,.acp-hero,.cx-hero,.ks-tip,.bh-card,.ntp-l .nt-i,.nt-page .nt-i,.nt-swbg,.ios-menu-in,.lvs-pop,.hz .sc-menu,.hz2 .sc-menu{border-radius:var(--rad)!important}
+.sc-tabs{border-radius:12px!important}
+.occ-p{border-radius:14px!important}.cmdk-in,.lvw-card,.mbd .mbd-w{border-radius:16px!important}
+@media (prefers-reduced-motion:reduce){.gseg>.gthumb{transition:none!important}}
+/* viên kính phải thắng kiểu "đang chọn = nền đặc" cũ của từng thanh */
+.gseg.gseg>button,.gseg.gseg>a,.gseg.gseg>button.on,.gseg.gseg>a.on,.gseg.gseg>[aria-selected=true],.gseg.gseg>[aria-current=page]{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
+.gseg.gseg>button.on,.gseg.gseg>a.on,.gseg.gseg>[aria-selected=true],.gseg.gseg>[aria-current=page]{color:var(--ink)!important}
+.gseg.gseg>.on small,.gseg.gseg>.on .ds{color:var(--ink-2)!important}
+.sc-env.gseg>.gthumb:has(~ [data-scenv=live].on){background:linear-gradient(180deg,color-mix(in srgb,#E8B931 30%,var(--surface)),color-mix(in srgb,#E8B931 20%,var(--surface)))}
+/* (độ ưu tiên cao hơn mọi kiểu "đang chọn" cũ – kể cả kiểu dùng :not(#_)) */
+.gseg:not(#_g):not(#_h)>button,.gseg:not(#_g):not(#_h)>a{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
+.gseg:not(#_g):not(#_h)>button.on,.gseg:not(#_g):not(#_h)>a.on,.gseg:not(#_g):not(#_h)>[aria-selected=true],.gseg:not(#_g):not(#_h)>[aria-current=page]{color:var(--ink)!important}
+.gseg:not(#_g):not(#_h)>:not(.on):not([aria-selected=true]):not([aria-current=page]):hover{color:var(--ink)!important;background:color-mix(in srgb,var(--ink) 5%,transparent)!important}

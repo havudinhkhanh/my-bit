@@ -276,6 +276,31 @@ function cbMount(root) {
   const ms = todo.map(([m]) => m());
   todo.forEach(([, p], i) => p(ms[i]));
 }
+// 🫧 v4 – KÍNH iOS cho mọi thanh chọn (thẻ trang, thẻ con, đổi sàn, bộ lọc, khung giờ…): 1 "viên kính" trượt mượt tới nút đang chọn.
+//    Nhớ vị trí theo từng thanh → trang vẽ lại (đổi sàn, đổi thẻ) viên kính vẫn trượt từ chỗ cũ sang chỗ mới thay vì nhảy.
+const GSEL = ".sc-tabs, .sc-env, .sc-om, .bseg, .dseg, .sc-sub2, .seg, .czseg";
+const GPOS = new Map();
+const gOn = (g) => [...g.querySelectorAll(":scope > button, :scope > a")].find((b) => b.offsetParent && (b.classList.contains("on") || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-current") === "page"));
+const gKey = (g) => `${location.hash.split("?")[0]}|${g.className.replace(/\s*\b(gseg|on)\b/g, "").trim()}|${g.getAttribute("aria-label") || ""}|${g.querySelectorAll(":scope > button, :scope > a").length}`;
+function gPlaceAll(list) {
+  const R = [];
+  const G = [...list].filter((g) => g.isConnected && !g.classList.contains("czseg") && !g.closest(".cbt"));
+  G.forEach((g) => { if (!g.classList.contains("gseg")) g.classList.add("gseg"); });      // ghi 1 lượt (khung thành gốc toạ độ) …
+  for (const g of G) { const on = gOn(g); R.push([g, on, on ? { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight, r: getComputedStyle(on).borderRadius } : null]); }      // … rồi đọc hết, rồi mới ghi tiếp
+  for (const [g, on, p] of R) {
+    let th = g.querySelector(":scope > .gthumb");
+    if (!p) { if (th) th.style.opacity = "0"; continue; }
+    if (!th) { th = document.createElement("i"); th.className = "gthumb"; th.setAttribute("aria-hidden", "true"); g.prepend(th); g.classList.add("gseg"); }
+    const k = gKey(g), prev = GPOS.get(k), put = (q) => { th.style.width = q.w + "px"; th.style.height = q.h + "px"; th.style.transform = `translate(${q.x}px,${q.y}px)`; if (q.r && q.r !== "0px") th.style.borderRadius = q.r; };
+    if (!th._set) { th._set = 1; th.style.transition = "none"; put(prev && Math.abs(prev.y - p.y) < 2 ? prev : p); th.style.opacity = "1"; void th.offsetWidth; th.style.transition = ""; }
+    put(p); GPOS.set(k, p);
+  }
+}
+let gRq = 0; const gAll = () => { if (!gRq) gRq = requestAnimationFrame(() => { gRq = 0; gPlaceAll(document.querySelectorAll(GSEL)); }); };
+new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.matches?.(GSEL) || n.querySelector?.(GSEL))) { gAll(); return; } }).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); const g = b?.parentElement; if (g?.matches?.(GSEL)) { requestAnimationFrame(() => gPlaceAll([g])); setTimeout(gAll, 60); } }, true);
+addEventListener("resize", () => { clearTimeout(gAll._t); gAll._t = setTimeout(gAll, 120); });
+document.fonts?.ready?.then(gAll);
 // 📐 CỠ BIỂU ĐỒ DÙNG CHUNG (mọi biểu đồ nến & biểu đồ SVG): S nhỏ · M vừa (mặc định) · L lớn (chiếm cả hàng) · ⛶ toàn màn hình
 //    nhớ theo từng biểu đồ (trang + tên khung) trong máy; nút nằm DƯỚI biểu đồ, không đè lên trục giá / nến
 const CZ_BTN = `<i class="czs-th" aria-hidden="true"></i><button type="button" data-cz="s" title="Nhỏ – khung hẹp & thấp lại, khung bên cạnh rộng ra">S</button><button type="button" data-cz="m" title="Vừa">M</button><button type="button" data-cz="l" title="Lớn – chiếm cả hàng">L</button><i class="czs-sep" aria-hidden="true"></i><button type="button" data-cz="full" title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`;
@@ -6132,8 +6157,12 @@ async function bellOpen() {
   const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp";
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
-    <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><a class="ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo">⚙️</a><button type="button" class="ntp-x" data-x aria-label="Đóng">✕</button></div>
-    <div class="ntp-act"><button type="button" class="ntp-ab" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}">✓ ${bi("Đọc hết", "Mark all read")}</button><a class="ntp-ab" href="#/notifications">${bi("Xem tất cả →", "See all →")}</a><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
+    <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><span class="ntp-ic gbar">
+      <button type="button" class="gib" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}" aria-label="${bi("Đọc hết", "Mark all read")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 12.5 4.5 4.5L15 8.5"/><path d="m10 16.5.5.5L22 6.5"/></svg></button>
+      <a class="gib" href="#/notifications" title="${bi("Xem tất cả thông báo", "See all notifications")}" aria-label="${bi("Xem tất cả", "See all")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></a>
+      <a class="gib ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      <button type="button" class="gib ntp-x" data-x aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
+    <div class="ntp-act"><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
     <div class="nt-cs"></div><div class="ntp-l">${skRows(4, 1)}</div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
   if (matchMedia("(max-width:979px)").matches && jellyOK()) { const sh = box.querySelector(".ntp-in"); sh.classList.add("jl"); const H = sh.offsetHeight || innerHeight * 0.8;      // tấm trượt lên kiểu lò xo, nảy nhẹ quá đích rồi về
