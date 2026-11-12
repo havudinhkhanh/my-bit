@@ -5466,3 +5466,5 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 .exm-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:8px 11px;border-radius:10px;background:var(--fill-card,var(--sunk))}
 .exm-t{display:flex;flex-direction:column;min-width:0;font-size:.8125rem}.exm-t small{color:var(--ink-3);font-size:.6875rem}
 .exm-r>b{font-variant-numeric:tabular-nums;white-space:nowrap}
+/* máy tính: nền mờ toàn màn hình của bảng tìm nhanh / xem trước thông báo cũng bỏ làm mờ (nặng, giật khi mở) – chỉ phủ tối */
+@media (pointer:fine){.cmdk-bg,.ntpk-bg{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}.cmdk-bg{background:rgba(5,8,12,.5)}.ntpk-bg{background:rgba(0,0,0,.5)}}
