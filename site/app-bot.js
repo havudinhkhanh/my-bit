@@ -209,7 +209,8 @@ async function viewScalp() {
   if (ND) { window.__scTab = "ord"; window.__scEnv = /^(lv|swp|lq):/.test(ND.k) ? "live" : "paper"; window.__scOl = "all"; window.__scOm = "all"; }
   if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   // đổi tab con: dùng lại dữ liệu vừa tải (< 20 giây) → vẽ ngay, không chờ mạng (trang không "giật")
-  const cc = window.__scCache, useC = window.__scUseCache && cc && Date.now() - cc.t < 20000; window.__scUseCache = false;
+  const cc = window.__scCache, useC = window.__scUseCache && cc && Date.now() - cc.t < 180000; window.__scUseCache = false;      // đổi sàn / đổi thẻ: vẽ ngay từ dữ liệu vừa có (≤ 3 phút), vòng tự cập nhật 3 giây sẽ thay bằng số mới
+  if (useC && Date.now() - cc.t > 4000) window.__scLast = 0;
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần

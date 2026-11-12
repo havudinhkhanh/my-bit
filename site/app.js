@@ -330,15 +330,23 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f 
 // Màn hình rộng không tràn → bảng y như cũ.
 const TW_OPT = [/^Phân vị/, /^Funding TB/, /^OI 24h/, /^Kỳ$/, /^Mua & giữ sụt/, /^Lệnh$/, /^Thắng$/, /^2 năm gần/, /^Số ngày$/, /^180 ngày sau/, /^Xấu nhất/, /^Bán rã/, /^Giữ$/, /^Lẽ ra/, /^Trễ tốt nhất/, /^Mạnh nhất 7n/, /^Đang tăng$/, /^KL 24h$/, /^Số lần/, /^Tới MT1/, /^90 ngày$/, /^Giá \/ BTC/, /^Funding năm/, /^Percentile/, /^Avg funding/];
 let TWN = 0;
-function twFit(tw) {
-  const t = tw.querySelector(":scope > table"); if (!t || !t.offsetWidth) return;
-  if (t.classList.contains("rs") && innerWidth <= 760) { tw.classList.remove("fit", "fit2", "over", "end"); t.removeAttribute("data-tfh"); return; }      // bảng dạng thẻ trên điện thoại: không ẩn cột
-  // chỉ gỡ lớp đang có (gỡ lớp không có vẫn bắt trình duyệt tính lại cả bảng)
-  for (const c of ["fit", "fit2", "over", "end"]) if (tw.classList.contains(c)) tw.classList.remove(c); if (t.hasAttribute("data-tfh")) t.removeAttribute("data-tfh");
+function twFit(tw) { twFitAll([tw]); }
+// đo theo LƯỢT cho mọi bảng: gỡ lớp hết → đọc tràn hết → thêm "fit" hết → đọc lại hết… (trước đây đo xen kẽ từng bảng → trình duyệt tính lại bố cục cả trang mỗi bảng, đổi sàn / đổi thẻ rất chậm)
+function twFitAll(tws) {
+  const L = [];
+  for (const tw of tws) {
+    const t = tw.querySelector(":scope > table"); if (!t) continue;
+    for (const c of ["fit", "fit2", "over", "end"]) if (tw.classList.contains(c)) tw.classList.remove(c); if (t.hasAttribute("data-tfh")) t.removeAttribute("data-tfh");
+    L.push({ tw, t });
+  }
+  const mob = innerWidth <= 760, ov = (x) => x.t.scrollWidth - x.tw.clientWidth > 2;
+  let cur = L.filter((x) => x.t.offsetWidth && !(mob && x.t.classList.contains("rs")) && ov(x));
+  cur.forEach((x) => x.tw.classList.add("fit")); cur = cur.filter(ov);
+  cur.forEach((x) => x.tw.classList.add("fit2")); cur = cur.filter(ov);
+  cur.forEach((x) => twCols(x.tw, x.t));
+}
+function twCols(tw, t) {
   const ov = () => t.scrollWidth - tw.clientWidth > 2;
-  if (!ov()) return;
-  tw.classList.add("fit"); if (!ov()) return;
-  tw.classList.add("fit2"); if (!ov()) return;
   const hs = [...t.querySelectorAll(":scope > thead > tr:last-child > th")];
   if (hs.length && !t.classList.contains("keep") && !hs.some((h) => h.colSpan > 1)) {      // bảng có lớp "keep" (Sổ lệnh): không ẩn cột, cuộn ngang
     const idx = hs.map((h, i) => (TW_OPT.some((rx) => rx.test(h.textContent.trim())) ? i + 1 : 0)).filter(Boolean);
@@ -364,13 +372,13 @@ const twAll = () => { if (!twRq) twRq = requestAnimationFrame(() => {
   rsTables($("#app"));      // bảng .rs: điện thoại hiện dạng thẻ (mỗi dòng 1 thẻ, nhãn cột ở trên giá trị) – không phải vuốt ngang
   $$("#app .tw-stack").forEach((g) => g.classList.remove("tw-stack"));
   const tws = $$("#app .tw"); const big = tws.map((tw) => tw.querySelector(":scope > table")).filter((t) => t && t.tBodies[0]?.rows.length > 40);
-  big.forEach((t) => t.classList.add("tw-meas")); tws.forEach(twFit); big.forEach((t) => t.classList.remove("tw-meas"));
+  big.forEach((t) => t.classList.add("tw-meas")); twFitAll(tws); big.forEach((t) => t.classList.remove("tw-meas"));
   const grids = new Set();
   tws.forEach((tw) => { if (!tw.classList.contains("over")) return; let g = tw.closest(".panel")?.parentElement;
     for (let k = 0; g && g.id !== "app" && k < 3; k++, g = g.parentElement) { const cs = getComputedStyle(g); if (cs.display === "grid" && cs.gridTemplateColumns.split(" ").length === 2) { if (!g.hasAttribute("data-nostack")) grids.add(g); return; } } });      // data-nostack: bố cục chủ ý 2 cột (lịch | chi tiết) – không xếp dọc vì 1 bảng con
   if (!grids.size) return;
   grids.forEach((g) => g.classList.add("tw-stack"));
-  big.forEach((t) => t.classList.add("tw-meas")); grids.forEach((g) => g.querySelectorAll(".tw").forEach(twFit)); big.forEach((t) => t.classList.remove("tw-meas"));
+  big.forEach((t) => t.classList.add("tw-meas")); twFitAll([...grids].flatMap((g) => [...g.querySelectorAll(".tw")])); big.forEach((t) => t.classList.remove("tw-meas"));
 }); };
 new MutationObserver((ms) => { if (ms.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1 && (n.matches?.(".tw, table") || n.querySelector?.(".tw"))))) twAll(); }).observe(document.documentElement, { childList: true, subtree: true });
 // dòng mới chèn vào bảng .rs (vd. Radar quét xong) → gắn nhãn cột cho dòng đó
