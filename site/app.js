@@ -5687,8 +5687,8 @@ function ntActsHtml(n) {
   if (!n._ref || n._st === "closed") return "";
   const A = n._st === "open" ? [["show", bi("Xem lệnh", "View")], ["close", bi("Huỷ lệnh chờ…", "Cancel…")]]
     : n._st === "keep" ? [["snz", bi("🔕 Nhắc sau 1 giờ", "🔕 Snooze 1 h")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]]
-    : n._st === "ask" ? [["ext", bi("⏱ Gia hạn / cách ra…", "⏱ Extend / exit plan…")], ["close", bi("Đóng ngay…", "Close now…")], ["show", bi("Để bot đóng · xem lệnh", "Let it close · view")]]
-    : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng lệnh…", "Close…")]];
+    : n._st === "ask" ? [["ext", bi("⏱ Gia hạn…", "⏱ Extend…")], ["close", bi("Đóng ngay…", "Close now…")], ["show", bi("Để bot đóng", "Let it close")]]
+    : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]];
   return `<div class="nt-acts">${A.map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" data-ntdo href="#/bot/scalp?do=${d}&k=${encodeURIComponent(n._ref)}">${t}</a>`).join("")}</div>`;
 }
 function ntfRow(n) {
@@ -5700,12 +5700,15 @@ function ntfRow(n) {
   const T = n.title || "", acc = /^💰 TIỀN THẬT|LỆNH THẬT/.test(T) ? "real" : /^🟡 DEMO|^💵 Demo/.test(T) ? "demo" : /^🧪 SÀN THỬ/.test(T) || (/^scalp/.test(n.kind || "") && /^[🪝⚡]/u.test(T)) ? "paper" : "";
   const unr = !n.read_at || n._un, pl = ntPL(title), hm = (iso) => new Date(iso).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" });
   if (pl) title = String(title).replace(/\s*[+\-−]\s?[\d.,]+\s*USDT(?:\s*\([^)]*\))?/, "");      // số lời/lỗ đã có nhãn màu bên phải → bỏ khỏi tiêu đề cho gọn
+  // lệnh bot: bỏ tiền tố "TIỀN THẬT ·" (đã có nhãn riêng) và biểu tượng lẻ giữa tiêu đề (🟢 📈 ⏳ – đã có nhãn lời/lỗ & trạng thái) → tiêu đề chỉ còn chữ
+  if (acc) title = String(title).replace(/^\s*(?:TIỀN THẬT|LỆNH THẬT|DEMO|Demo|SÀN THỬ)\s*[·:–-]?\s*/u, "").replace(/(?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic})*/gu, "").replace(/\s{2,}/g, " ").replace(/^\s*[·:–-]\s*/, "").trim() || title;
+  const accB = acc ? `<span class="nt-acc a-${acc}">${{ real: bi("Tiền thật", "Live"), demo: "Demo", paper: bi("Sàn thử", "Paper") }[acc]}</span>` : "";
   const plc = pl ? `<span class="nt-pl ${pl.v >= 0 ? "up" : "down"}"><b>${pl.v >= 0 ? "+" : "−"}$${nf(Math.abs(pl.v), 2)}</b>${pl.p != null ? `<small>${pl.p >= 0 ? "+" : "−"}${nf(Math.abs(pl.p), 2)}%</small>` : ""}</span>` : "";
   // dòng thời gian của lệnh: các mốc trước → mốc hiện tại
-  const tl = n._steps?.length ? `<span class="nt-tl">${[...n._steps].reverse().concat([{ n, st: n._st }]).map((s, i, A) => `<span class="nt-st${i === A.length - 1 ? " cur" : ""}"><i>${NT_ST[s.st]?.[0] || "•"}</i>${bi(NT_ST[s.st]?.[1] || "", NT_ST[s.st]?.[2] || "")} ${hm(s.n.created_at)}</span>`).join('<span class="nt-ar" aria-hidden="true">›</span>')}</span>` : "";
-  const stb = n._ref && !n._steps?.length ? `<span class="nt-sb s-${n._st}">${NT_ST[n._st]?.[0] || ""} ${bi(NT_ST[n._st]?.[1] || "", NT_ST[n._st]?.[2] || "")}</span>` : "";
+  const tl = n._steps?.length ? `<span class="nt-tl">${[...n._steps].reverse().concat([{ n, st: n._st }]).map((s, i, A) => `<span class="nt-st${i === A.length - 1 ? " cur" : ""}">${bi(NT_ST[s.st]?.[1] || "", NT_ST[s.st]?.[2] || "")} ${hm(s.n.created_at)}</span>`).join('<span class="nt-ar" aria-hidden="true">→</span>')}</span>` : "";
+  const stb = n._ref && !n._steps?.length ? `<span class="nt-tl"><span class="nt-st cur s-${n._st}">${bi(NT_ST[n._st]?.[1] || "", NT_ST[n._st]?.[2] || "")}</span></span>` : "";
   return `<div class="nt-i ${unr ? "new" : ""} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
-    <span class="nt-b"><span class="nt-h1"><b>${esc(viDec(title))}</b>${plc}</span>${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}${tl}<small class="nt-m">${stb}<span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}<span>${tm} · ${agoShort(n.created_at)}</span></small></span></a>
+    <span class="nt-b"><span class="nt-h1"><b>${esc(viDec(title))}</b></span>${plc}${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m">${accB}${tl || stb}${acc ? "" : `<span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}`}<span class="nt-ago">${tl ? "" : `${tm} · `}${agoShort(n.created_at)}</span></small></span></a>
     ${!unr ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}${ntActsHtml(n)}</div>`;
 }
 // danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm
