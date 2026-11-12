@@ -651,10 +651,15 @@ document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980) return;
   NTH.classList.remove("jelly"); NTH.classList.add("press"); NTH.style.translate = `${a.offsetLeft}px 0`; NTH.style.width = a.offsetWidth + "px"; NTH.style.opacity = "1"; }, { passive: true });
 document.addEventListener("pointerup", () => { if (innerWidth < 980 && NTH?.classList.contains("press")) setTimeout(() => { if (NTH?.classList.contains("press")) { NTH.classList.remove("press"); requestAnimationFrame(navThumb); } }, 140); }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
 document.addEventListener("pointercancel", () => { if (innerWidth < 980) requestAnimationFrame(navThumb); }, { passive: true });
+// nhóm menu của một trang: đếm các tiêu đề nhóm (.nav-g) đứng trước mục đó trong thanh điều hướng (bỏ qua lối tắt / ghim)
+function navGrpOf(r) {
+  if (!r) return null; let g = -1, hit = null;
+  for (const n of $("#tabs")?.children || []) { if (n.classList.contains("nav-scg") || n.classList.contains("nav-pins") || n.classList.contains("nav-cus")) continue; if (n.classList.contains("nav-g")) { g++; continue; } if (n.tagName === "A" && n.dataset.r === r) { hit = g; break; } }
+  return hit; }
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(navThumb);
-  $$("#tabs a").forEach((a) => { if (a.dataset.sc) { a.classList.toggle("on", scOn(a.dataset.sc)); return; } a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r === "botscalp" && /^bot/.test(r || "") && r !== "botscalp"); });
+  $$("#tabs a").forEach((a) => { if (a.dataset.sc) { a.classList.toggle("on", scOn(a.dataset.sc)); return; } a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r !== r && (innerWidth < 980 ? navGrpOf(a.dataset.r) != null && navGrpOf(a.dataset.r) === navGrpOf(r === "botjournal" ? "botdays" : r) : a.dataset.r === "botscalp" && /^bot/.test(r || ""))); });      // trang con của một nhóm (vd Sổ thuế, Danh mục ⊂ Giao dịch) → nút chính của nhóm sáng theo
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
@@ -3781,7 +3786,7 @@ function subPanes(host, main) {
   host.innerHTML = "";
   const panes = [];
   const mk = (h, title, fmt) => { const d = document.createElement("div"); d.className = "pane"; d.style.height = h + "px"; d.innerHTML = `<span class="pane-t">${title}</span>`; host.appendChild(d);
-    const c = mkChart(d, { localization: { locale: LOC, priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
+    const c = mkChart(d, { localization: { locale: LOC, priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.3, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
   const line = (c, col, w = 1.3) => c.addLineSeries({ color: col, lineWidth: w, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
   const r = mk(92, "RSI 14 · 70 quá mua · 30 quá bán", (v) => nf(v, 0)), rs = line(r, css("--brand"));
   [70, 50, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
