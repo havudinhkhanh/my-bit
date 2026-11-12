@@ -5908,3 +5908,10 @@ html[data-nl]{background-color:var(--nl-bg,var(--bg))!important}
    (trước: nút xám nhỏ lòi ra ở góc dưới-trái bảng phụ trên điện thoại) */
 @media (max-width:1179px){.edge-grip,.eg-btn{display:none!important}}
 body.pn-sheet .pnav .edge-grip,body.pn-sheet .pnav .eg-btn{display:none!important}
+/* 🌙 lớp ấm chính chừa thanh MyBit (để Safari iPhone tô vùng giờ/pin bằng màu đặc của thanh). Các lớp TOÀN MÀN HÌNH mở đè lên thanh
+   (bảng phụ, bảng Thêm, tìm kiếm, thông báo, menu, hộp thoại, biểu đồ toàn màn hình…) tự phủ thêm đúng dải trên cùng đó → cả màn ấm đều, không còn dải trắng */
+html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden]))::before{
+  content:"";position:fixed;left:0;right:0;top:0;height:var(--top-h,calc(56px + env(safe-area-inset-top,0px)));z-index:2147483647;pointer-events:none;
+  background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26)}
+/* khi một lớp toàn màn hình đang mở (đã tự phủ ấm dải trên cùng) → thanh MyBit về màu gốc, tránh bị ấm 2 lần (nâu sậm hơn phần dưới) */
+html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])) .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
