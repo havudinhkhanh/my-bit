@@ -5475,3 +5475,8 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 /* khoá cuộn: chỉ body (tràn của body chuyển lên khung nhìn) – khoá cả html làm body thành khung cuộn → thanh trên & thanh thẻ dính (sticky) bật khỏi chỗ, trang nhảy */
 html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock body{overflow:hidden!important}
 @media (prefers-reduced-motion:reduce){.lb-dr-p,.lb-dr-bg{transition:none!important}}
+/* thẻ lệnh đang mở: dòng đếm giờ + "tự đóng · theo 🧪 …" không được lòi khỏi thẻ – thiếu chỗ thì phần chú thích xuống dòng */
+.sc-oc .r4,.sc-pcard .r4{flex-wrap:wrap!important;white-space:normal!important;row-gap:2px}
+.sc-oc .r4>.sc-cd,.sc-pcard .r4>.sc-cd{flex:1 1 40px;min-width:40px}
+.sc-oc .r4>small:not(.faint),.sc-pcard .r4>small:not(.faint){flex:none;white-space:nowrap}
+.sc-oc .r4>small.faint,.sc-pcard .r4>small.faint{flex:0 1 auto;min-width:0;margin-left:auto;text-align:right;overflow-wrap:anywhere}
