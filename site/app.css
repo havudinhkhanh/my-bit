@@ -5461,3 +5461,8 @@ main#app:has(>.skw){padding-top:0!important}      /* khung xương bắt đầu 
 /* lọc biểu đồ theo phương pháp */
 .dst-seg{margin:0 0 8px;max-width:100%;overflow-x:auto;scrollbar-width:none}.dst-seg::-webkit-scrollbar{display:none}
 .dst-seg button{white-space:nowrap}
+/* 🔬 theo dõi luật thoát vòng 19 */
+.exm{display:flex;flex-direction:column;gap:4px}
+.exm-r{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:8px 11px;border-radius:10px;background:var(--fill-card,var(--sunk))}
+.exm-t{display:flex;flex-direction:column;min-width:0;font-size:.8125rem}.exm-t small{color:var(--ink-3);font-size:.6875rem}
+.exm-r>b{font-variant-numeric:tabular-nums;white-space:nowrap}

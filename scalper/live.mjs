@@ -203,6 +203,8 @@ export class LiveExec {
     if (this.S.day.pnl <= -B * c.lv_daily / 100) return skip(`đã lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay (giới hạn ${c.lv_daily}% của ${+B.toFixed(2)} USDT)`);
     const A = this.active();
     if (A.length >= c.hk_max) return skip(`đã có ${A.length} lần bắt đang mở (tối đa ${c.hk_max})`);
+    // 🧩 vòng 19: cú sập "cả nhóm" (nhiều coin cùng sập 1 lúc) → tối đa hk_gmax lần đang mở – đêm 10–11/10/2025 cả 9 chỗ vào trong 4 phút rồi cùng lỗ
+    if (h.grp && c.hk_gmax > 0) { const g = A.filter((e) => e.grp).length; if (g >= c.hk_gmax) return skip(`cả thị trường đang sập cùng lúc – đã có ${g} lần bắt "cả nhóm" đang mở (tối đa ${c.hk_gmax})`); }
     const sym = this.core.M?.[h.id]?.sym; if (!sym) return skip("không rõ mã hợp đồng");
     if (A.some((e) => e.sym === sym)) return skip("đang có lần bắt khác trên coin này");
     const F = await this.filters(sym); if (!F) return skip(`${sym} không giao dịch được trên ${env === "live" ? "Binance" : "Binance Demo"}`);
@@ -244,7 +246,7 @@ export class LiveExec {
       await this.req("POST", "/fapi/v1/leverage", { symbol: sym, leverage: c.lv_lev }); this.lev[sym] = c.lv_lev;
     }
     const id = `${this.S.seq++}`, side = h.side;
-    const ev = { id, k: h.id, sym, side, t0: now, exp: h.exp, hold: h.hold, stopPct: h.stop, R: h.R, c0: h.c0, env, done: false, pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0,
+    const ev = { id, k: h.id, sym, side, t0: now, exp: h.exp, hold: h.hold, stopPct: h.stop, R: h.R, c0: h.c0, grp: h.grp ? 1 : 0, brd: h.brd ?? null, env, done: false, pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0,
       lv: lv.map((l, i) => { const m0 = l.mk ? this.mark(h.id) || l.px : l.px, px = side > 0 ? fl(m0, F.tick) : ce(m0, F.tick), q = Math.max(fl((l.mk ? perMk : per) / px, F.step), ce(F.minN * 1.02 / px, F.step)); return { d: l.d, mk: l.mk ? 1 : 0, px: +px.toFixed(F.td), q: +q.toFixed(F.sd), pxs: px.toFixed(F.td), qs: q.toFixed(F.sd), cid: `mb${id}x${i}${env[0]}`, st: "wait", fq: 0, ap: 0 }; }).filter((l) => l.q >= F.minQ && l.q * l.px >= F.minN) };
     if (!ev.lv.length) return skip("khối lượng sau làm tròn nhỏ hơn mức tối thiểu của sàn");
     this.S.ev[id] = ev; this.save();
@@ -323,7 +325,9 @@ export class LiveExec {
     if (ev.pos.q > 0) {
       await this.ensureStop(ev);
       const m = this.mark(ev.k), sp = ev.stop?.px;
-      if (m && ev.pos.ap > 0) { const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.dpk)) ev.dpk = pr; if (!(pr >= ev.dmn)) ev.dmn = pr; }      // 🔬 nhật ký thoát (vòng 19): đỉnh lời / đáy lỗ theo giá giữa
+      if (m && ev.pos.ap > 0) { const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.dpk)) ev.dpk = pr; if (!(pr >= ev.dmn)) ev.dmn = pr;
+        // 🔬 luật CŨ chạy song song (chỉ ghi, không giao dịch): đuổi lời theo giá giữa từng nhịp → lẽ ra đóng ở bao nhiêu bps, sau bao nhiêu giây
+        if (ev.sxp == null && c.hk_tra > 0) { if (!(pr <= ev.spk)) ev.spk = pr; if (ev.spk >= c.hk_tra && pr <= ev.spk - c.hk_trg) { ev.sxp = Math.round(pr); ev.sxs = Math.round((Date.now() - ev.pos.t1) / 1000); } } }      // 🔬 nhật ký thoát (vòng 19): đỉnh lời / đáy lỗ theo giá giữa
       const hitSoft = m && sp && (ev.side > 0 ? m <= sp * 0.995 : m >= sp * 1.005);      // sàn lẽ ra đã cắt – kiểm tra & đóng dự phòng
       const xw = ev.xm && m && ev.pos.ap > 0 ? extExit(ev, ev.side * (m / ev.pos.ap - 1) * 1e4, now) : null;      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
       if (m && ev.pos.ap > 0) this.askNear(ev, "lv", ev.id, ev.sym, ev.pos.t1 + ev.hold * 60e3, ev.hold * 60e3, ev.side * ev.pos.q * (m - ev.pos.ap), ev.side * (m / ev.pos.ap - 1) * 100);
@@ -331,7 +335,7 @@ export class LiveExec {
       else if (!ev.keep && now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");      // ev.keep: anh chọn giữ → không tự đóng khi hết giờ
       else if (hitSoft) await this.close(ev, "SL");
       // cắt lỗ đuổi chỉ cho lệnh CHỜ: với "mua ngay" nó cắt mất cú hồi lớn (vòng 9, 1.863 lệnh: giữ 60 phút +125 bps/lệnh, đuổi 1,5%/1% chỉ +60) – tiền thật giữ đủ giờ
-      else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !(ev.env === "live" && ev.lv.some((l) => l.mk && l.fq > 0)) && this.trail(ev, m, c)) await this.close(ev, "TRAIL");
+      else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !ev.trDone && this.trail(ev, m, c)) await this.trailClose(ev);
       else if (c.lv_u40 && c.hk_u40 > 0 && m && ev.pos.ap > 0 && this.peak(ev, m, c, now)) await this.close(ev, "PEAK");      // 💰 tuỳ chọn (mặc định tắt): còn lỗ từ phút hk_u40 → ra ở đỉnh nhịp nảy (vòng 15)
       else if (!ev.pAt || now - ev.pAt > 20000) {      // vị thế còn không? (cắt lỗ trên sàn đã chạy / anh tự đóng)
         ev.pAt = now; const p = await this.pos(ev.sym);
@@ -371,7 +375,29 @@ export class LiveExec {
     const d1 = sgVA(A.slice(-w)), d0 = sgVA(A.slice(-w - 1, -1));
     return d1.v <= 0 && d1.a < 0 && d0.v > 0;
   }
-  trail(ev, m, c) { const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.pk)) ev.pk = pr; return ev.pk >= c.hk_tra && pr <= ev.pk - c.hk_trg; }
+  // vòng 19 (research/r19_result.md, 4.959 chân theo từng giao dịch thật): xét đuổi lời theo giá từng nhịp bị nhịp giật trong phút đẩy ra sớm (trung vị 6 giây sau khớp ở ngày sập)
+  // → hk_trm = 1: chỉ xét ở GIÁ GIỮA CUỐI MỖI PHÚT (lúc nến phút đóng). +48 bps/chân, danh mục +19% → +49% (trượt 10 bps). hk_trm = 0: như cũ, mỗi nhịp.
+  trail(ev, m, c) {
+    let px = m;
+    if (c.hk_trm) { const mi = Math.floor(Date.now() / 60e3); if (ev.tmi == null || mi === ev.tmi) { ev.tmi = mi; ev.tlm = m; return false; } px = ev.tlm; ev.tmi = mi; ev.tlm = m; }      // phút trước vừa đóng: giá giữa cuối phút đó
+    const pr = ev.side * (px / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.pk)) ev.pk = pr; return ev.pk >= c.hk_tra && pr <= ev.pk - c.hk_trg;
+  }
+  // cắt lỗ đuổi chạy: chỉ đóng phần của LỆNH CHỜ; chân "mua ngay" (nếu đã khớp) giữ tới hết giờ – vòng 19 chỉ kiểm chứng chân mua ngay giữ đủ giờ
+  async trailClose(ev) {
+    const qm = ev.lv.filter((l) => l.mk && l.fq > 0).reduce((a, l) => a + l.fq, 0);
+    if (!(qm > 0)) return this.close(ev, "TRAIL");
+    for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = l.fq > 0 ? "filled" : "cxl"; }
+    const F = await this.filters(ev.sym), p = await this.pos(ev.sym), have = Math.abs(p.amt), q = fl(Math.min(have, ev.pos.q - qm), F.step);
+    ev.trDone = 1;
+    if (!(q > 0) || q >= have) return this.close(ev, "TRAIL");
+    const m = this.mark(ev.k) || ev.pos.ap;
+    const o = await this.req("POST", "/fapi/v1/order", { symbol: ev.sym, side: ev.side > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), reduceOnly: "true", newOrderRespType: "RESULT" });
+    const px = +o.avgPrice > 0 ? +o.avgPrice : m, c = this.cfg();
+    ev.prp = (ev.prp || 0) + ev.side * q * (px - ev.pos.ap); ev.pqty = (ev.pqty || 0) + q; ev.ppx = px; ev.fees += q * px * c.fee_t / 100; ev.pos.q = Math.max(0, ev.pos.q - q);
+    ev.dxm = m; ev.dxp = ev.side * (m / ev.pos.ap - 1) * 1e4; ev.dxt = Date.now();
+    this.say(`🪝 ${ev.sym}: cắt lỗ đuổi – đã đóng phần lệnh chờ ${+q.toFixed(8)} @ ${+px.toPrecision(8)} (${ev.side * (px / ev.pos.ap - 1) * 1e4 >= 0 ? "+" : ""}${(ev.side * (px / ev.pos.ap - 1) * 1e4).toFixed(0)} bps); phần mua ngay ${+ev.pos.q.toFixed(8)} giữ tới hết giờ`, "info");
+    this.save();
+  }
   async ensureStop(ev) {
     if (!ev.needStop || !ev.stopPct) return;
     const F = await this.filters(ev.sym), raw = ev.pos.ap * (1 - ev.side * ev.stopPct / 100), pxs = (ev.side > 0 ? ce(raw, F.tick) : fl(raw, F.tick)).toFixed(F.td), px = +pxs;
@@ -880,7 +906,8 @@ export class LiveExec {
   async finish(ev, why, px, extra = "") {
     const c = this.cfg(), P = ev.pos;
     if (ev.stop?.id) await this.cancelStop(ev);
-    let fee = ev.fees + P.q * px * c.fee_t / 100, gp = ev.side * P.q * (px - P.ap), fund = 0, src = "ước tính";
+    let fee = ev.fees + P.q * px * c.fee_t / 100, gp = ev.side * P.q * (px - P.ap) + (ev.prp || 0), fund = 0, src = "ước tính";
+    if (ev.pqty > 0) { const Q = P.q + ev.pqty; px = (px * P.q + ev.ppx * ev.pqty) / Math.max(1e-12, Q); P.q = Q; ev.pqty = 0; ev.prp = 0; }      // đã đóng 1 phần trước (cắt lỗ đuổi phần lệnh chờ) → ghi sổ theo cả vị thế, giá ra bình quân
     const I = P.q > 0 ? await this.income(ev) : null;
     if (I) { fund = I.fund; if (I.rp) gp = I.rp; if (I.com && !I.other) fee = -I.com; src = "theo sổ thu chi Binance"; }
     const pnl = gp - fee + fund;
@@ -896,8 +923,10 @@ export class LiveExec {
       // 🔬 nhật ký thoát (vòng 19): pk/mn = đỉnh lời / đáy lỗ theo giá giữa (bps) · tr = lời lúc quyết định đóng · m = giá giữa lúc đó · sl = giá khớp đóng so với giá giữa (bps, âm = xấu hơn)
       //   hs = giây giữ (từ lúc bot thấy khớp) · lag = giây từ lúc sàn khớp tới lúc bot thấy · dl = giây từ quyết định tới khi đóng xong
       dx: P.ap > 0 ? { pk: isFinite(ev.dpk) ? Math.round(ev.dpk) : null, mn: isFinite(ev.dmn) ? Math.round(ev.dmn) : null, tr: ev.dxp != null ? Math.round(ev.dxp) : null, m: ev.dxm || null,
-        sl: ev.dxm ? +(ev.side * (px / ev.dxm - 1) * 1e4).toFixed(1) : null, hs: P.t1 ? Math.round((ev.t2 - P.t1) / 1000) : null, lag: ev.ft && P.t1 ? +((P.t1 - ev.ft) / 1000).toFixed(1) : null, dl: ev.dxt ? +((ev.t2 - ev.dxt) / 1000).toFixed(1) : null } : undefined }];
+        sl: ev.dxm ? +(ev.side * (px / ev.dxm - 1) * 1e4).toFixed(1) : null, hs: P.t1 ? Math.round((ev.t2 - P.t1) / 1000) : null, lag: ev.ft && P.t1 ? +((P.t1 - ev.ft) / 1000).toFixed(1) : null, dl: ev.dxt ? +((ev.t2 - ev.dxt) / 1000).toFixed(1) : null,
+        rl: c.hk_trm ? "1m" : "tick", ox: ev.sxp ?? null, os: ev.sxs ?? null, g: ev.grp ? 1 : 0 } : undefined }];
     this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
+    { const lag = this.S.hist[this.S.hist.length - 1].dx?.lag; if (lag > 6) { this.say(`⚠️ ${ev.sym}: bot thấy lệnh khớp chậm ${lag} giây (ngưỡng 6 giây) – cắt lỗ đuổi & giờ giữ tính trễ theo`, "warn"); this.note(`lag:${ev.id}`, 1, `${LTAG(ev.env)} · ⚠️ Bot thấy khớp chậm ${lag}s`, `${coin(ev.sym)}: sàn khớp lúc ${iso(ev.ft).slice(11, 19)} UTC, bot thấy sau ${lag} giây. Thường do mạng máy chủ chậm hoặc Binance trả chậm – xem nhật ký nếu lặp lại.`, `lv:${ev.id}`); } }
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", PEAK: "Ra ở đỉnh nhịp nảy", BE: "Về hoà vốn", EXT: "Hết giờ gia hạn", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
