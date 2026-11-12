@@ -290,14 +290,18 @@ function gPlaceAll(list) {
     const on = gOn(g); if (!on) { R.push([g, null, null]); continue; }
     const its = [...g.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent), one = its.every((b) => Math.abs(b.offsetTop - its[0].offsetTop) < 4);
     const cs = getComputedStyle(g), pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0, inner = g.clientHeight - pt - pb;
-    R.push([g, on, one && inner > 8 ? { x: on.offsetLeft, y: pt, w: on.offsetWidth, h: inner } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);
+    R.push([g, on, one && inner > 8 ? { x: Math.max(on.offsetLeft, 3), y: 0, w: Math.min(on.offsetWidth - Math.max(0, 3 - on.offsetLeft), g.scrollWidth - 3 - Math.max(on.offsetLeft, 3)), h: 0, one: 1, pt, pb } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);
   }
   for (const [g, on, p] of R) {
     let th = g.querySelector(":scope > .gthumb");
     if (!p) { if (th) th.style.opacity = "0"; continue; }
     if (!th) { th = document.createElement("i"); th.className = "gthumb"; th.setAttribute("aria-hidden", "true"); g.prepend(th); g.classList.add("gseg"); }
-    const k = gKey(g), prev = GPOS.get(k), put = (q) => { th.style.width = q.w + "px"; th.style.height = q.h + "px"; th.style.transform = `translate(${q.x}px,${q.y}px)`; if (q.r && q.r !== "0px") th.style.borderRadius = q.r; };
-    if (!th._set) { th._set = 1; th.style.transition = "none"; put(prev && Math.abs(prev.y - p.y) < 2 ? prev : p); th.style.opacity = "1"; void th.offsetWidth; th.style.transition = ""; }
+    const k = gKey(g), prev = GPOS.get(k), put = (q) => {
+      // thanh 1 hàng: viên kính neo trên + dưới theo lề trong của thanh (luôn nằm gọn trong lòng thanh, kể cả khi thanh đổi cao sau đó), chỉ trượt ngang
+      if (q.one) { g.dataset.one = 1; g.style.setProperty("--gpt", q.pt + "px"); g.style.setProperty("--gpb", q.pb + "px"); th.style.height = ""; th.style.transform = `translateX(${q.x}px)`; }
+      else { delete g.dataset.one; th.style.height = q.h + "px"; th.style.transform = `translate(${q.x}px,${q.y}px)`; }
+      th.style.width = q.w + "px"; };
+    if (!th._set) { th._set = 1; th.style.transition = "none"; put(prev && Math.abs(prev.y - p.y) < 2 && !!prev.one === !!p.one ? prev : p); th.style.opacity = "1"; void th.offsetWidth; th.style.transition = ""; }
     put(p); GPOS.set(k, p);
   }
 }

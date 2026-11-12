@@ -5721,3 +5721,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .kpis{gap:6px!important;background:transparent!important;border:0!important;overflow:visible!important}
 .kpis.dd-kp{background:transparent!important;box-shadow:none!important}
 .kpis.dd-kp>div{border-radius:var(--r-in)!important}
+.gseg[data-one]>.gthumb{top:var(--gpt,3px)!important;bottom:var(--gpb,3px)!important;height:auto!important}
+/* lòng thanh không có lề trong → viên kính vẫn cách mép trên / dưới 3px (kiểu iOS), không chạm / lòi khỏi mép thanh */
+.gseg[data-one]>.gthumb{top:max(var(--gpt,3px),3px)!important;bottom:max(var(--gpb,3px),3px)!important}
+.gseg[data-one]:not(.sc-tabs)>.gthumb{border-radius:5px!important}
