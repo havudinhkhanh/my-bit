@@ -5683,27 +5683,52 @@ function thApply(p, rerender = true) {
   if (ch && rerender) { document.documentElement.classList.add("th-x"); setTimeout(() => { route(); setTimeout(() => document.documentElement.classList.remove("th-x"), 260); }, 20); }
 }
 TH_MQ.addEventListener?.("change", () => { if (thPref() === "system") thApply(); });
+// ---- 🌙 ÁNH SÁNG ẤM (Night Light): phủ một lớp cam lên cả trang (nhân màu – bớt ánh xanh), dùng được với Sáng / Tối / Hệ thống
+//      độ vàng chỉnh 0–100 · tuỳ chọn tự bật 19:00 → 6:00 (theo giờ máy) · lưu trên máy, áp dụng ngay cả trước khi trang tải xong (index.html)
+const nlGet = () => ({ on: false, w: 45, auto: false, ...(lsGet("nl", {}) || {}) });
+const nlActive = (n = nlGet()) => { const h = new Date().getHours(); return !!n.on && (!n.auto || h >= 19 || h < 6); };
+function nlApply(patch) {
+  const n = { ...nlGet(), ...(patch || {}) }; if (patch) lsSet("nl", n);
+  const d = document.documentElement, on = nlActive(n);
+  if (on) { d.dataset.nl = "1"; d.style.setProperty("--nl", String(0.06 + n.w / 100 * 0.44)); } else { delete d.dataset.nl; }
+  $$("[data-nlon]").forEach((x) => { x.setAttribute("aria-checked", String(!!n.on)); x.classList.toggle("on", !!n.on); });
+  $$("[data-nlw]").forEach((x) => { if (+x.value !== n.w) x.value = n.w; x.style.setProperty("--v", n.w + "%"); x.disabled = !n.on; });
+  $$("[data-nlauto]").forEach((x) => { x.checked = !!n.auto; x.disabled = !n.on; });
+  $$(".nl-box").forEach((x) => x.classList.toggle("off", !n.on));
+  $("#theme")?.classList.toggle("nl-on", on);
+}
+const nlHtml = () => { const n = nlGet(); return `<div class="nl-box${n.on ? "" : " off"}">
+  <button type="button" class="nl-row" data-nlon role="switch" aria-checked="${!!n.on}"><span class="nl-ic">${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v1M5.6 5.6l.7.7M3 12h1M18.4 5.6l-.7.7M21 12h-1"/><path d="M7 15a5 5 0 0 1 10 0"/><path d="M3 19h18"/></svg>'}</span><span class="nl-t">Ánh sáng ấm<small>Night Light · bớt ánh xanh, dịu mắt buổi tối</small></span><i class="nl-sw" aria-hidden="true"></i></button>
+  <label class="nl-sl"><span>Độ vàng</span><input type="range" min="0" max="100" step="1" value="${n.w}" data-nlw aria-label="Độ vàng" style="--v:${n.w}%" ${n.on ? "" : "disabled"}><b data-nlwv>${n.w}</b></label>
+  <label class="nl-au"><input type="checkbox" data-nlauto ${n.auto ? "checked" : ""} ${n.on ? "" : "disabled"}> Chỉ tự bật từ 19:00 đến 6:00</label></div>`; };
+function nlBind(root = document) {
+  $$("[data-nlon]", root).forEach((b) => (b.onclick = (e) => { e.stopPropagation(); nlApply({ on: !nlGet().on }); }));
+  $$("[data-nlw]", root).forEach((i) => { i.oninput = () => { const w = +i.value; i.style.setProperty("--v", w + "%"); const v = i.parentElement.querySelector("[data-nlwv]"); if (v) v.textContent = w; nlApply({ w }); }; i.onclick = (e) => e.stopPropagation(); });
+  $$("[data-nlauto]", root).forEach((c) => (c.onchange = () => nlApply({ auto: c.checked })));
+}
+setInterval(() => { if (nlGet().on && nlGet().auto) nlApply(); }, 60e3);
 function thClose() { const m = $("#thMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $("#theme")?.setAttribute("aria-expanded", "false"); }
 function thMenu(anchor = $("#theme")) {
   if ($("#thMenu")) { thClose(); return; }
-  const r = anchor.getBoundingClientRect(), p = thPref(), W = 250, vw = document.documentElement.clientWidth;
+  const r = anchor.getBoundingClientRect(), p = thPref(), W = 290, vw = document.documentElement.clientWidth;
   const left = Math.max(8, Math.min(vw - W - 8, r.right - W)), top = r.bottom + 8, sys = TH_MQ.matches ? "Tối" : "Sáng";
   const m = document.createElement("div"); m.id = "thMenu"; m.className = "ios-menu";
   m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="Giao diện" style="left:${left}px;top:${top}px;width:${W}px;transform-origin:${r.left + r.width / 2 - left}px -8px">
     <div class="ios-menu-h">Giao diện</div>
-    ${TH_OPT.map(([k, t]) => `<button type="button" role="menuitemradio" aria-checked="${k === p}" data-thv="${k}"><span class="ios-ck">${k === p ? "✓" : ""}</span><span class="ios-t">${t}${k === "system" ? `<small>Đang: ${sys}</small>` : ""}</span>${thSvg(k, 19)}</button>`).join("")}</div>`;
+    ${TH_OPT.map(([k, t]) => `<button type="button" role="menuitemradio" aria-checked="${k === p}" data-thv="${k}"><span class="ios-ck">${k === p ? "✓" : ""}</span><span class="ios-t">${t}${k === "system" ? `<small>Đang: ${sys}</small>` : ""}</span>${thSvg(k, 19)}</button>`).join("")}<div class="ios-menu-sep"></div>${nlHtml()}</div>`;
   document.body.appendChild(m); anchor.setAttribute("aria-expanded", "true");
   m.querySelector("[data-x]").onclick = thClose;
   $$("[data-thv]", m).forEach((b) => (b.onclick = () => { thApply(b.dataset.thv); thClose(); }));
+  nlBind(m);
   const k = (e) => { if (e.key === "Escape") { thClose(); removeEventListener("keydown", k); } }; addEventListener("keydown", k);
   addEventListener("hashchange", thClose, { once: true }); addEventListener("resize", thClose, { once: true });
   m.querySelector(`[data-thv="${p}"]`)?.focus({ preventScroll: true });
 }
 // nút chọn nhanh 3 lựa chọn kiểu iOS (UISegmentedControl) – dùng ở trang Tài khoản, đổi là áp dụng ngay
 const thSegHtml = () => `<div class="th-seg" role="radiogroup" aria-label="Giao diện">${TH_OPT.map(([k, t]) => `<button type="button" role="radio" aria-checked="${k === thPref()}" data-thv="${k}">${thSvg(k, 15)}<span>${k === "system" ? "Hệ thống" : t}</span></button>`).join("")}</div>`;
-function thSegBind(root = document) { $$(".th-seg [data-thv]", root).forEach((b) => (b.onclick = () => thApply(b.dataset.thv))); }
+function thSegBind(root = document) { $$(".th-seg [data-thv]", root).forEach((b) => (b.onclick = () => thApply(b.dataset.thv))); nlBind(root); }
 function initTheme() {
-  thApply(null, false);
+  thApply(null, false); nlApply();
   $("#theme").onclick = (e) => { e.stopPropagation(); thMenu(e.currentTarget); };
 }
 function initSearch() {
@@ -6416,6 +6441,7 @@ function acPage(o) {
     ${acRow("Email đăng nhập", ME.has_pw ? "Đổi email cần mật khẩu hiện tại · email cũ sẽ nhận thư báo" : "Đặt mật khẩu ở mục Bảo mật trước rồi mới đổi được email", `<span class="acp-v" id="acEmV">${esc(ME.email)}</span>${ME.has_pw ? `<button class="btn" id="acEmEdit">Đổi email</button>` : ""}`)}
     <div class="acp-row acp-emf" id="acEmF" hidden><div class="acp-l"><b>Email mới</b><small>Sau khi đổi, các thiết bị khác phải đăng nhập lại bằng email mới</small></div><div class="acp-c acp-emc"><input id="acEm" type="email" autocomplete="email" placeholder="email@vidu.com"><input id="acEmPw" type="password" autocomplete="current-password" placeholder="Mật khẩu hiện tại"><button class="btn primary" id="acEmSave">Lưu email</button><button class="btn" id="acEmX">Huỷ</button></div></div>
     ${acRow("Giao diện", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
+    ${acRow("Ánh sáng ấm", "Phủ ánh vàng lên cả trang – dịu mắt khi xem lúc tối, dùng chung với Sáng / Tối", nlHtml())}
     ${uiPrefHtml()}
   </section>
   <section class="acp-card"><h2>Bảo mật</h2>

@@ -5872,3 +5872,30 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>.nav-more.scrub .nav-s{color:var(--ink)!important;font-weight:650}
   .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>a.scrub svg{transition:transform .25s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),color .15s}
 }
+/* ================================================================ 🌙 ÁNH SÁNG ẤM – lớp cam nhân màu phủ cả trang (không chặn chạm), độ đậm = --nl */
+html[data-nl]::after{content:"";position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:rgb(255,138,36);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
+#theme.nl-on{position:relative}#theme.nl-on::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:2px;background:#F2A33A;box-shadow:0 0 6px #F2A33A}
+.ios-menu-sep{height:6px;background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.nl-box{display:grid;gap:2px;padding:4px 0 8px}
+.nl-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:8px;width:100%;padding:10px 14px 8px 12px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.nl-ic{color:#E39A2E;display:inline-flex}
+.nl-t{display:grid;font-weight:600;font-size:.875rem;line-height:1.25}.nl-t small{font-weight:400;font-size:.6875rem;color:var(--ink-3)}
+.nl-sw{width:40px;height:24px;border-radius:7px;background:color-mix(in srgb,var(--ink) 18%,transparent);position:relative;transition:background .2s}
+.nl-sw::after{content:"";position:absolute;left:2px;top:2px;width:20px;height:20px;border-radius:5px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .3s var(--g-spring,cubic-bezier(.3,1.28,.45,1))}
+.nl-row[aria-checked="true"] .nl-sw{background:#E39A2E}.nl-row[aria-checked="true"] .nl-sw::after{transform:translateX(16px)}
+.nl-sl{display:grid;grid-template-columns:auto minmax(0,1fr) 28px;align-items:center;gap:10px;padding:2px 14px 2px 42px;font-size:.75rem;color:var(--ink-2)}
+.nl-sl b{font-variant-numeric:tabular-nums;text-align:right;font-weight:600;color:var(--ink)}
+.nl-sl input[type=range]{-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;margin:8px 0;background:linear-gradient(90deg,#F6E7C9,#F2A33A 60%,#E0761C);outline:none}
+.nl-sl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:18px;border-radius:5px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);cursor:pointer}
+.nl-sl input[type=range]::-moz-range-thumb{width:22px;height:18px;border:0;border-radius:5px;background:#fff;box-shadow:0 0 0 .5px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25)}
+.nl-au{display:flex;align-items:center;gap:7px;padding:2px 14px 0 42px;font-size:.75rem;color:var(--ink-2);cursor:pointer}
+.nl-box.off .nl-sl,.nl-box.off .nl-au{opacity:.45;pointer-events:none}
+.acp-c .nl-box{padding:0;min-width:min(320px,100%)}.acp-c .nl-row{padding:6px 0}.acp-c .nl-sl,.acp-c .nl-au{padding-left:30px;padding-right:0}
+
+/* ================================================================ BỚT BO TRÒN (v4): thanh dưới & giọt kính vẫn là kính nhưng góc vuông vức hơn, không còn hình tròn / viên thuốc */
+@media (max-width:979px){
+  .tabs:not(#_t){border-radius:16px!important}
+  .tabs:not(#_t)>a,.tabs:not(#_t)>.nav-more{border-radius:10px!important}
+  .tabs.gnav>.nthumb.mthumb{border-radius:10px!important;top:6px;bottom:6px}
+  .pnfab{border-radius:12px!important}
+}
