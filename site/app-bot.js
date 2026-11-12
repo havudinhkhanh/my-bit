@@ -807,7 +807,11 @@ async function viewScalp() {
   const clT = (R, env, pctF, pctTip, none) => {      // R = hàng chuẩn hoá, mới nhất trước
     if (!R.length) return empty(none);
     const days = []; R.forEach((h, i) => { const d = vnDayOf(String(h.t2).slice(0, 19)), D = days[days.length - 1]; if (D && D.d === d) D.r.push([h, i]); else days.push({ d, r: [[h, i]] }); });
-    const why = (h) => h.whyL || lvWhy(h.why), go = (h) => `#/t/${env}/${enc(clSym(h))}/${Date.parse(String(h.t2).slice(0, 19) + "Z")}`;
+    const dxT = (h) => { const x = h.dx; if (!x) return ""; const a = [];      // 🔬 nhật ký thoát của bot thật (vòng 19)
+      if (isNum(x.hs) && x.hs < 120) a.push(`${bi("giữ", "held")} ${nf(x.hs, 0)}s`);
+      if (isNum(x.pk)) a.push(`${bi("đỉnh", "peak")} ${bps(x.pk, 0)}`); if (isNum(x.sl) && Math.abs(x.sl) >= 1) a.push(`${bi("trượt", "slip")} <span class="${cls(x.sl)}">${bps(x.sl, 0)}</span> bps`);
+      return a.length ? ` <span class="faint" title="${bi("Theo giá giữa mua–bán: đỉnh lời / đáy lỗ, giá khớp đóng so với giá giữa lúc bot quyết định đóng", "By mid price: peak gain / worst loss, exit fill vs mid at decision")}${isNum(x.mn) ? ` · ${bi("đáy", "low")} ${bps(x.mn, 0)} bps` : ""}${isNum(x.lag) ? ` · ${bi("bot thấy khớp sau", "fill seen after")} ${nf(x.lag, 1)}s` : ""}">· ${a.join(" · ")}</span>` : ""; };
+    const why = (h) => (h.whyL || lvWhy(h.why)) + dxT(h), go = (h) => `#/t/${env}/${enc(clSym(h))}/${Date.parse(String(h.t2).slice(0, 19) + "Z")}`;
     const cb = (h) => (h.ch ? `<button type="button" class="lvt-c" data-${h.ch[0]}="${h.ch[1]}" aria-label="${bi("Xem biểu đồ", "Show chart")}">📈</button>` : ""), cbox = (h) => (h.ch ? `<div class="sc-hc" id="${h.ch[0].replace(/^data-/, "")}${h.ch[1]}" hidden></div>` : "");
     return lvWide
       ? `<div class="tw lvt-tw"><table class="lvt-t keep"><thead><tr><th class="l">${bi("Đóng lúc", "Closed")}</th><th class="l">Coin</th><th>${bi("Vào → ra", "Entry → exit")}</th><th>${bi("Giá trị", "Size")}</th><th>${bi("Giữ", "Held")}</th><th class="l">${bi("Lý do đóng", "Exit")}</th><th>bps</th><th>${bi("Lời/lỗ", "P/L")}</th><th></th></tr></thead><tbody>${days.map(({ d, r }) => `<tr class="lvt-dh"><td colspan="9"><div><b>${lvDLab(d)}</b>${lvDSum(r)}</div></td></tr>${r.map(([h]) => { const q = pctF(h), mv = h.e > 0 && isNum(h.x) ? h.side * (h.x / h.e - 1) * 100 : null;

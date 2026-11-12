@@ -72,7 +72,7 @@ const r8 = (v) => (Number.isFinite(+v) ? +(+v).toPrecision(8) : null), r4 = (v) 
 const ledKey = (r) => `${r[0]}|${r[2]}|${String(r[8]).slice(0, 19)}`;
 const ledAdd = (t) => {
   if (!t || !t.t2 || !(+t.q > 0) || !(+t.e > 0)) return;
-  const r = [t.env || "paper", t.strat || "hook", t.k, t.side > 0 ? 1 : -1, r8(t.q), r8(t.e), r8(t.x), String(t.t1 || "").slice(0, 19), String(t.t2).slice(0, 19), r4(t.fee), r4(t.fund), r4(t.pnl), t.why || "", t.lv || null, t.R || null, t.tot > 0 ? +(+t.tot).toFixed(2) : null, t.note ? String(t.note).slice(0, 80) : null];
+  const r = [t.env || "paper", t.strat || "hook", t.k, t.side > 0 ? 1 : -1, r8(t.q), r8(t.e), r8(t.x), String(t.t1 || "").slice(0, 19), String(t.t2).slice(0, 19), r4(t.fee), r4(t.fund), r4(t.pnl), t.why || "", t.lv || null, t.R || null, t.tot > 0 ? +(+t.tot).toFixed(2) : null, t.note ? String(t.note).slice(0, 80) : null, t.dx ? [t.dx.pk, t.dx.mn, t.dx.tr, t.dx.sl, t.dx.hs, t.dx.lag, t.dx.dl] : null];      // [17] 🔬 nhật ký thoát: đỉnh, đáy, lời lúc quyết định, trượt, giây giữ, trễ thấy khớp, trễ đóng
   const k = ledKey(r); if (LED.rows.some((x) => ledKey(x) === k)) return;
   LED.rows.push(r); LED.rows.sort((a, b) => (a[8] < b[8] ? -1 : a[8] > b[8] ? 1 : 0)); ledDirty = true;
 };

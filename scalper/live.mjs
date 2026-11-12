@@ -314,7 +314,7 @@ export class LiveExec {
         if (l.st !== "open") continue;
         const o = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid });
         const fq = +o.executedQty, ap = +o.avgPrice;
-        if (fq > l.fq) { this.addFill(ev, fq - l.fq, (ap * fq - l.ap * l.fq) / Math.max(1e-12, fq - l.fq), l.mk); l.fq = fq; l.ap = ap; }
+        if (fq > l.fq) { if (!ev.ft && +o.updateTime > 0) ev.ft = +o.updateTime; this.addFill(ev, fq - l.fq, (ap * fq - l.ap * l.fq) / Math.max(1e-12, fq - l.fq), l.mk); l.fq = fq; l.ap = ap; }
         if (o.status === "FILLED") l.st = "filled"; else if (["CANCELED", "EXPIRED", "REJECTED"].includes(o.status)) l.st = l.fq > 0 ? "filled" : "cxl";
       }
     }
@@ -323,6 +323,7 @@ export class LiveExec {
     if (ev.pos.q > 0) {
       await this.ensureStop(ev);
       const m = this.mark(ev.k), sp = ev.stop?.px;
+      if (m && ev.pos.ap > 0) { const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; if (!(pr <= ev.dpk)) ev.dpk = pr; if (!(pr >= ev.dmn)) ev.dmn = pr; }      // 🔬 nhật ký thoát (vòng 19): đỉnh lời / đáy lỗ theo giá giữa
       const hitSoft = m && sp && (ev.side > 0 ? m <= sp * 0.995 : m >= sp * 1.005);      // sàn lẽ ra đã cắt – kiểm tra & đóng dự phòng
       const xw = ev.xm && m && ev.pos.ap > 0 ? extExit(ev, ev.side * (m / ev.pos.ap - 1) * 1e4, now) : null;      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
       if (m && ev.pos.ap > 0) this.askNear(ev, "lv", ev.id, ev.sym, ev.pos.t1 + ev.hold * 60e3, ev.hold * 60e3, ev.side * ev.pos.q * (m - ev.pos.ap), ev.side * (m / ev.pos.ap - 1) * 100);
@@ -395,6 +396,7 @@ export class LiveExec {
     const p = (L || []).find((x) => x.symbol === sym); return p ? { amt: +p.positionAmt, ep: +p.entryPrice } : { amt: 0, ep: 0 };
   }
   async close(ev, why) {
+    { const m = this.mark(ev.k); ev.dxm = m || null; ev.dxt = Date.now(); ev.dxp = m && ev.pos.ap > 0 ? ev.side * (m / ev.pos.ap - 1) * 1e4 : null; }      // 🔬 giá giữa lúc quyết định đóng
     for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = l.fq > 0 ? "filled" : "cxl"; }
     const p = await this.pos(ev.sym), q = Math.abs(p.amt), F = await this.filters(ev.sym);
     let px = this.mark(ev.k) || ev.pos.ap;
@@ -820,7 +822,7 @@ export class LiveExec {
       try { const I = await this.income({ sym: x.sym, t0 }); if (I) { x.fundA = +I.fund.toFixed(4); if (I.com && !I.other) x.feeA = +(-I.com).toFixed(4); } } catch (e) { /* lần sau thử lại */ }
     }
   }
-  led(h) { try { this.core?.io?.onTrade?.({ env: h.env, strat: h.strat || "hook", k: h.k || coin(h.sym) + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note }); } catch (e) { /* sổ lệnh lỗi không ảnh hưởng giao dịch */ } }
+  led(h) { try { this.core?.io?.onTrade?.({ env: h.env, strat: h.strat || "hook", k: h.k || coin(h.sym) + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note, dx: h.dx }); } catch (e) { /* sổ lệnh lỗi không ảnh hưởng giao dịch */ } }
   async swClose(p, why) {
     const c = this.cfg(), pr = await this.pos(p.sym), q = Math.abs(pr.amt);
     let px = null;
@@ -890,7 +892,11 @@ export class LiveExec {
     const tot0 = +this.S.wal?.[ev.env]?.total || 0;      // tổng tài sản Binance (mọi ví) lúc đóng – để tính lời/lỗ lệnh này bằng bao nhiêu % tổng tài sản
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined,
       // ✋ can thiệp tay (biểu đồ "Bot tự động vs có can thiệp"): close = anh đóng · ext = gia hạn · keep = giữ / chờ hoà vốn / đỉnh nảy · enter = vào ngay; h0 = giờ giữ GỐC (phút)
-      iv: [why === "MANUAL" && "close", ev.x0 != null && "ext", ev.xm && "keep", ev.ivE && "enter"].filter(Boolean).join(",") || undefined, h0: ev.x0 != null && P.t1 ? +((ev.x0 - P.t1) / 60e3).toFixed(1) : ev.hold }];
+      iv: [why === "MANUAL" && "close", ev.x0 != null && "ext", ev.xm && "keep", ev.ivE && "enter"].filter(Boolean).join(",") || undefined, h0: ev.x0 != null && P.t1 ? +((ev.x0 - P.t1) / 60e3).toFixed(1) : ev.hold,
+      // 🔬 nhật ký thoát (vòng 19): pk/mn = đỉnh lời / đáy lỗ theo giá giữa (bps) · tr = lời lúc quyết định đóng · m = giá giữa lúc đó · sl = giá khớp đóng so với giá giữa (bps, âm = xấu hơn)
+      //   hs = giây giữ (từ lúc bot thấy khớp) · lag = giây từ lúc sàn khớp tới lúc bot thấy · dl = giây từ quyết định tới khi đóng xong
+      dx: P.ap > 0 ? { pk: isFinite(ev.dpk) ? Math.round(ev.dpk) : null, mn: isFinite(ev.dmn) ? Math.round(ev.dmn) : null, tr: ev.dxp != null ? Math.round(ev.dxp) : null, m: ev.dxm || null,
+        sl: ev.dxm ? +(ev.side * (px / ev.dxm - 1) * 1e4).toFixed(1) : null, hs: P.t1 ? Math.round((ev.t2 - P.t1) / 1000) : null, lag: ev.ft && P.t1 ? +((P.t1 - ev.ft) / 1000).toFixed(1) : null, dl: ev.dxt ? +((ev.t2 - ev.dxt) / 1000).toFixed(1) : null } : undefined }];
     this.led(this.S.hist[this.S.hist.length - 1]);      // 📒 sổ giao dịch đầy đủ (máy chủ giữ mãi, trang "Sổ lệnh" đọc)
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", MANUAL: "anh đóng tay" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${bps.toFixed(0)} bps giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
