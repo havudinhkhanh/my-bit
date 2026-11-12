@@ -6987,18 +6987,20 @@ function ksHud(on) {
   addEventListener("keydown", (e) => {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || blocked() || (e.isComposing && document.activeElement?.isContentEditable)) { if (pend) done(); return; }
     // Unikey xoá ký tự trước khi gõ dấu (Backspace rồi ký tự mới): ký tự mới tới ngay thì dùng nó; trình duyệt không báo ký tự mới thì coi là lặp lại phím chữ vừa bấm
-    if (e.key === "Backspace" && !pend) { const t0 = Date.now(); bsT = t0; if (lastK && t0 - lastT < 2500) setTimeout(() => { if (bsT === t0) { bsT = 0; run(lastK, { shiftKey: false, preventDefault() {} }); } }, 120); return; }
+    (window.__ksDbg ||= []).push([e.key, e.code, e.keyCode, Date.now() % 100000]); if (window.__ksDbg.length > 20) window.__ksDbg.shift();      // chẩn đoán bộ gõ: 20 phím gần nhất
+    if (e.key === "Backspace" && !pend) { const t0 = Date.now(); bsT = t0; if (lastK && t0 - lastT < 2500 && t0 - lastT > 250) setTimeout(() => { if (bsT === t0) { bsT = 0; run(lastK, { shiftKey: false, preventDefault() {} }); } }, 160); return; }
     bsT = 0;
     const c = combo(e);
-    if (UNK(c)) { const t0 = Date.now(); (window.__ksDbg ||= []).push([e.key, e.code, e.keyCode]); if (window.__ksDbg.length > 12) window.__ksDbg.shift();
-      waitP = t0; setTimeout(() => { if (waitP === t0) { waitP = 0; if (lastK && t0 - lastT < 2500) run(lastK, { shiftKey: false, preventDefault() {} }); } }, 80); return; }
+    if (UNK(c)) { const t0 = Date.now();
+      waitP = t0; setTimeout(() => { if (waitP === t0) { waitP = 0; if (lastK && t0 - lastT < 2500 && t0 - lastT > 250) run(lastK, { shiftKey: false, preventDefault() {} }); } }, 160); return; }      // ký tự đệm tới ngay sau 1 phím thật (< 250 ms) → không phải lần bấm mới
     run(c, e);
   });
   addEventListener("keypress", (e) => {
-    bsT = 0; if (!waitP || blocked()) return; waitP = 0;
-    const k = VI[String(e.key).toLowerCase()] || String(e.key).toLowerCase(); if (k.length === 1 && /[a-z0-9]/.test(k)) run(k, e);
+    if (!waitP || blocked()) return;
+    const k = VI[String(e.key).toLowerCase()] || String(e.key).toLowerCase(); if (k.length === 1 && /[a-z0-9]/.test(k)) run(k, e);      // ký tự đệm (Unikey "sửa lỗi gợi ý") thì bỏ qua, để phương án dự phòng chạy
   });
   function run(c, e) {
+    waitP = 0; bsT = 0;      // phím thật đã tới (vd. "ê" ngay sau ký tự đệm của Unikey) → huỷ phương án dự phòng, tránh đổi 2 lần
     if (c === "Shift" || c === "Control" || c === "Alt" || c === "Meta" || c === "CapsLock") return;
     const modal = document.getElementById("iosSheet") || document.body.classList.contains("cmdk-on") || document.getElementById("thMenu") || document.querySelector(".cz-full");
     if (pend) {
