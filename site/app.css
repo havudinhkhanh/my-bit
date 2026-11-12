@@ -5514,3 +5514,16 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .cv-chart.cv-fs>.panel>p.faint{display:none}
 .cv-below{margin-top:0}
 @media (max-width:1100px){.cv-chart .cops{flex:1 1 0;min-width:0;overflow-x:auto;scrollbar-width:none}.cv-chart .cops::-webkit-scrollbar{display:none}}
+/* 📐 nút cỡ biểu đồ dùng chung: S · M · L · ⛶ – v3 (không viền, nền đặc), nằm dưới biểu đồ, không đè trục giá / nến */
+.cbt{gap:2px!important;padding:2px;border-radius:9px;background:var(--fill)}
+.cbt button{width:auto!important;min-width:24px;height:22px!important;padding:0 6px!important;border:0!important;border-radius:7px!important;background:transparent!important;color:var(--ink-2)!important;font:600 .6875rem/1 var(--num,inherit)!important;display:inline-grid;place-items:center;cursor:pointer}
+.cbt button svg{width:13px;height:13px}
+.cbt button:hover{color:var(--ink)!important;background:var(--fill-h)!important}
+.cbt button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.cbt.cbt-o{position:static!important;display:flex;width:max-content;margin:4px 0 0 auto;opacity:.6;transition:opacity .15s}
+.cbt.cbt-o:hover,.cbt.cbt-o:focus-within,*:hover+.cbt.cbt-o{opacity:1}
+.lwbox>.cbt{top:6px!important;right:auto!important;left:50%;transform:translateX(-50%)}      /* khung cha xếp hàng ngang: giữ trong biểu đồ, ở giữa phía trên, chỉ hiện khi rê chuột */
+.lwbox{transition:height .18s ease}
+@media (hover:none){.cbt.cbt-o{opacity:.85}}
+.cv-chart .cbt{display:none!important}
+.cz-span{grid-column:1/-1!important}

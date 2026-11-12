@@ -192,7 +192,13 @@ function themeOpts() {
 }
 function mkChart(el, extra = {}) {
   const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, ...extra }); charts.push(c);
-  if (el.clientHeight >= 200 && !el.querySelector(":scope > .cbt")) { el.classList.add("lwbox"); el.insertAdjacentHTML("beforeend", `<div class="cbt"><button type="button" data-cz="wide" title="Mở rộng – xem to ngay trong trang">▭</button><button type="button" data-cz="full" title="Toàn màn hình (Esc để thoát)">⛶</button></div>`); }
+  if (el.clientHeight >= 200 && !(el._cbt?.isConnected) && !el.querySelector(":scope > .cbt")) {
+    el.classList.add("lwbox");
+    const t = document.createElement("div"); t.className = "cbt"; t.innerHTML = CZ_BTN; t._box = el; el._cbt = t;
+    const pd = el.parentElement ? getComputedStyle(el.parentElement).display : "block";
+    if (/flex|grid/.test(pd)) el.appendChild(t); else { t.classList.add("cbt-o"); el.insertAdjacentElement("afterend", t); }      // khung cha xếp hàng ngang → giữ trong biểu đồ (góc dưới trái)
+    const sz = czSaved(el); if (sz !== "m") czSet(el, sz, false); else { el.dataset.sz = "m"; t.querySelector('[data-cz="m"]').classList.add("on"); }
+  }
   return c;
 }
 function candleChart(el, o, opts = {}) {
@@ -224,13 +230,14 @@ const CB = new Map(); let CBN = 0;
 function svgMount(draw, o = {}) {
   const id = ++CBN; CB.set(id, { draw, h: o.h || 200, ar: o.ar || 0, cx: {} });
   if (CB.size > 500) for (const [k, r] of CB) { if ((r.el && !r.el.isConnected) || (!r.el && k < CBN - 300)) CB.delete(k); }
-  return `<div class="cbox" data-cb="${id}"><div class="cbt"><button type="button" data-cz="wide" title="Mở rộng – xem to ngay trong trang">▭</button><button type="button" data-cz="full" title="Toàn màn hình (Esc để thoát)">⛶</button></div><div class="cbc"></div>${o.legend || ""}</div>`;
+  return `<div class="cbox" data-cb="${id}"><div class="cbt">${CZ_BTN}</div><div class="cbc"></div>${o.legend || ""}</div>`;
 }
 function cbMount(root) {
   const todo = [];
   (root || document).querySelectorAll?.(".cbox:not([data-m])").forEach((el) => {
     const r = CB.get(+el.dataset.cb); if (!r) return;
     el.dataset.m = 1; r.el = el;
+    { const sz = czSaved(el); el.dataset.sz = sz; if (sz === "s") el.classList.add("cz-s"); else if (sz === "l") { el.classList.add("cz-l", "cz-wide"); el._span = czSpanEl(el); el._span?.classList.add("cz-span"); } el.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === sz)); }
     const c = el.querySelector(".cbc");
     // đo (đọc bố cục) và vẽ (ghi DOM) tách riêng: khi nhiều biểu đồ cùng hiện, đo hết rồi mới vẽ → trình duyệt chỉ tính bố cục 1 lần thay vì 1 lần/biểu đồ
     const measure = () => {
@@ -240,6 +247,7 @@ function cbMount(root) {
       const W = Math.max(220, Math.floor(c.clientWidth || el.clientWidth || 600));
       let H = r.ar ? Math.max(180, Math.min(r.h, Math.round(W * r.ar))) : r.h;
       if (wide) H = Math.round(Math.max(H * 1.8, Math.min(innerHeight * 0.62, W * 0.45)));
+      else if (el.classList.contains("cz-s")) H = Math.max(130, Math.round(H * 0.68));
       if (full) H = Math.max(240, Math.floor(c.clientHeight));
       return { W, H, full, wide };
     };
@@ -268,19 +276,36 @@ function cbMount(root) {
   const ms = todo.map(([m]) => m());
   todo.forEach(([, p], i) => p(ms[i]));
 }
-function czToggle(box, mode) {
-  const on = !box.classList.contains("cz-" + mode);
-  box.classList.remove("cz-wide", "cz-full");
-  box.closest(".panel")?.classList.remove("cz-span");
-  document.body.classList.remove("cz-lock");
-  if (on && !box.dataset.title) box.dataset.title = (box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || "").replace(/\s+/g, " ").trim();
-  if (on) { box.classList.add("cz-" + mode); if (mode === "wide") box.closest(".panel")?.classList.add("cz-span"); else document.body.classList.add("cz-lock"); }
-  box.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", box.classList.contains("cz-" + b.dataset.cz)));
+// 📐 CỠ BIỂU ĐỒ DÙNG CHUNG (mọi biểu đồ nến & biểu đồ SVG): S nhỏ · M vừa (mặc định) · L lớn (chiếm cả hàng) · ⛶ toàn màn hình
+//    nhớ theo từng biểu đồ (trang + tên khung) trong máy; nút nằm DƯỚI biểu đồ, không đè lên trục giá / nến
+const CZ_BTN = `<button type="button" data-cz="s" title="Cỡ nhỏ">S</button><button type="button" data-cz="m" title="Cỡ vừa">M</button><button type="button" data-cz="l" title="Cỡ lớn – chiếm cả hàng">L</button><button type="button" data-cz="full" title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`;
+const czKey = (box) => `${location.hash.replace(/^#\/?/, "").split("/")[0] || "market"}|${(box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || box.dataset.title || "").replace(/\s+/g, " ").trim().split(" · ")[0].slice(0, 60)}`;
+// cỡ L: khối chứa biểu đồ chiếm cả hàng của lưới gần nhất (khung có thể nằm trong 1 cột bọc ngoài)
+function czSpanEl(box) { let e = box.closest(".panel") || box; for (let i = 0; i < 4 && e?.parentElement; i++) { if (/grid/.test(getComputedStyle(e.parentElement).display)) return e; e = e.parentElement; } return box.closest(".panel"); }
+const czSaved = (box) => { const v = (lsGet("czSize", {}) || {})[czKey(box)]; return ["s", "m", "l"].includes(v) ? v : "m"; };
+function czSet(box, mode, save = true) {
+  if (!box) return false;
+  if (mode === "wide") mode = "l";
+  const full = mode === "full" ? !box.classList.contains("cz-full") : false, sz = mode === "full" ? box.dataset.sz || czSaved(box) : mode;
+  box.classList.remove("cz-s", "cz-l", "cz-wide", "cz-full"); (box._span || czSpanEl(box))?.classList.remove("cz-span"); document.body.classList.remove("cz-lock");
+  if (!box.dataset.title) box.dataset.title = (box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || "").replace(/\s+/g, " ").trim();
+  box.dataset.sz = sz;
+  if (full) { box.classList.add("cz-full"); document.body.classList.add("cz-lock"); }
+  else if (sz === "s") box.classList.add("cz-s");
+  else if (sz === "l") { box.classList.add("cz-l", "cz-wide"); box._span = czSpanEl(box); box._span?.classList.add("cz-span"); }
+  if (save && mode !== "full") { const M = { ...(lsGet("czSize", {}) || {}) }; if (sz === "m") delete M[czKey(box)]; else M[czKey(box)] = sz; lsSet("czSize", M); }
+  if (box.classList.contains("lwbox")) {      // biểu đồ nến: đổi chiều cao thật (thư viện tự vẽ lại theo khung)
+    if (!box.dataset.h0) box.dataset.h0 = parseFloat(box.style.height) || box.clientHeight || 300;
+    const h0 = +box.dataset.h0; box.style.height = (sz === "s" ? Math.max(160, Math.round(h0 * 0.68)) : sz === "l" ? Math.round(Math.max(h0 * 1.5, Math.min(innerHeight * 0.72, 760))) : h0) + "px";
+  }
+  (box._cbt || box).querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === "full" ? full : !full && b.dataset.cz === sz));
   const r = CB.get(+box.dataset.cb); if (r?.redraw) setTimeout(r.redraw, 30);
-  if (on && mode === "wide") setTimeout(() => box.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
+  if (!full && sz === "l" && save) setTimeout(() => box.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
   window.dispatchEvent(new Event("resize"));
+  return true;
 }
-document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cz]"); if (!b) return; e.preventDefault(); czToggle(b.closest(".cbox, .lwbox"), b.dataset.cz); });
+const czToggle = (box, mode) => czSet(box, mode);
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cz]"); if (!b) return; e.preventDefault(); czSet(b.closest(".cbt")?._box || b.closest(".cbox, .lwbox"), b.dataset.cz); });
 // 📈 cỡ biểu đồ trang coin: S nhỏ · M vừa (mặc định) · L cao theo màn hình · ⛶ toàn màn hình – nhớ lựa chọn
 const cvSz = () => { const v = lsGet("cvSize", "m"); return ["s", "m", "l"].includes(v) ? v : "m"; };
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cvsz]"); if (!b) return; e.preventDefault(); lsSet("cvSize", b.dataset.cvsz);
@@ -298,7 +323,7 @@ function cvFs(on) {
 document.addEventListener("click", (e) => { if (e.target.closest?.("[data-cvfs]")) { e.preventDefault(); cvFs(); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".cv-chart.cv-fs")) cvFs(false); });
 addEventListener("hashchange", () => { if (document.querySelector(".cv-fs") || document.body.classList.contains("cz-lock")) { document.querySelector(".cv-fs")?.classList.remove("cv-fs"); document.body.classList.remove("cz-lock"); } });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czToggle(f, "full"); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czSet(f, "full"); } });
 // ---------------------------------------------------------------- BẢNG TỰ GỌN: bảng rộng hơn khung (máy tính có mở bảng phụ, máy tính bảng…)
 // Bước 1: tiêu đề được xuống dòng + bớt khoảng cách · Bước 2: chữ nhỏ hơn chút · Bước 3: ẩn cột phụ (theo tên cột) · còn tràn thì mờ mép phải để biết còn cột.
 // Màn hình rộng không tràn → bảng y như cũ.
@@ -6822,7 +6847,7 @@ function ksCycle(L, d) {
 let KS_HOV = null;
 document.addEventListener("pointerover", (e) => { const b = e.target.closest?.(".cbox, .lwbox"); if (b) KS_HOV = b; }, { passive: true });
 function ksChart() {
-  const ok = (b) => b?.isConnected && b.querySelector("[data-cz]");
+  const ok = (b) => b?.isConnected && (b._cbt?.isConnected || b.querySelector("[data-cz]"));
   if (ok(KS_HOV)) return KS_HOV;
   return [...document.querySelectorAll("#app .cbox, #app .lwbox")].find((b) => { const r = b.getBoundingClientRect(); return ok(b) && r.bottom > 80 && r.top < innerHeight - 80; });
 }
