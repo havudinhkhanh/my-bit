@@ -5480,3 +5480,31 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .sc-oc .r4>.sc-cd,.sc-pcard .r4>.sc-cd{flex:1 1 40px;min-width:40px}
 .sc-oc .r4>small:not(.faint),.sc-pcard .r4>small:not(.faint){flex:none;white-space:nowrap}
 .sc-oc .r4>small.faint,.sc-pcard .r4>small.faint{flex:0 1 auto;min-width:0;margin-left:auto;text-align:right;overflow-wrap:anywhere}
+/* 📈 BIỂU ĐỒ TRANG COIN – chiếm cả hàng, cao theo màn hình, thanh công cụ 1 hàng, toàn màn hình cả khối (v3: không viền, nền đặc) */
+.cv-chart{margin-bottom:var(--gap,12px)}
+.cv-chart>.panel{padding-bottom:10px}
+.cv-chart .cbar{flex-wrap:nowrap;gap:8px;margin:0 0 8px;min-width:0}
+.cv-chart .tfseg{flex:0 1 auto;min-width:0;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;border:0!important;background:var(--fill)!important;border-radius:10px;padding:3px}
+.cv-chart .tfseg::-webkit-scrollbar{display:none}
+.cv-chart .tfseg button{flex:none;height:28px;padding:0 9px!important;border-radius:8px!important;font-size:.78rem!important;white-space:nowrap;background:transparent!important}
+.cv-chart .tfseg button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
+.cv-chart .cops{flex:none;gap:4px!important;flex-wrap:nowrap}
+.cv-chart .cops .chk{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px!important;border-radius:9px;background:var(--fill);font-size:.75rem;white-space:nowrap;cursor:pointer}
+.cv-chart .cops .chk:has(input:checked){background:color-mix(in srgb,var(--sel) 14%,var(--fill))}
+.cv-chart .cops .chk input{margin:0;accent-color:var(--sel)}
+.cv-chart #csrc{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;font-size:.6875rem}
+.cv-chart .cbar-act{flex:none;display:flex;gap:4px}
+.cv-fsb{display:grid;place-items:center;width:32px;height:30px;border:0;border-radius:9px;background:var(--fill);color:var(--ink-2);cursor:pointer}
+.cv-fsb svg{width:16px;height:16px}.cv-fsb:hover{background:var(--fill-h);color:var(--ink)}.cv-fsb.on{background:var(--sel);color:var(--sel-ink)}
+.cv-chart .chart-xl{height:clamp(380px,calc(100dvh - 330px),820px)!important;border-radius:10px}
+.cv-chart .lwbox>.cbt{display:none!important}      /* nút phóng to cũ (đè lên trục giá) → đã có nút trong thanh công cụ */
+.cv-chart .panes .lwbox,.cv-chart .panes>div{border-radius:8px}
+@media (max-width:1100px){.cv-chart .cbar{flex-wrap:wrap}.cv-chart .tfseg{flex:1 1 100%}.cv-chart #csrc{order:9;flex-basis:100%;text-align:left}}
+@media (max-width:640px){.cv-chart .chart-xl{height:max(340px,58dvh)!important}.cv-chart .cops{overflow-x:auto;scrollbar-width:none;flex:1 1 auto}}
+/* toàn màn hình cả khối */
+.cv-chart.cv-fs{position:fixed;inset:0;z-index:95;margin:0;background:var(--bg);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));overflow:auto;overscroll-behavior:contain}
+.cv-chart.cv-fs>.panel{min-height:100%;display:flex;flex-direction:column;margin:0}
+.cv-chart.cv-fs .chart-xl{flex:1 1 auto;height:auto!important;min-height:min(70vh,calc(100dvh - 260px))}
+.cv-chart.cv-fs>.panel>p.faint{display:none}
+.cv-below{margin-top:0}
+@media (max-width:1100px){.cv-chart .cops{flex:1 1 0;min-width:0;overflow-x:auto;scrollbar-width:none}.cv-chart .cops::-webkit-scrollbar{display:none}}

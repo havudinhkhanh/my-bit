@@ -212,6 +212,10 @@ function candleChart(el, o, opts = {}) {
   });
   (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: T(l.title || "") }); });
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
+  if (el.clientHeight >= 300) {      // chừa ~110px trống bên phải: nhãn giá & đường kế hoạch ("cắt lỗ", "hỗ trợ (3)"…) không đè lên các nến mới nhất
+    const ts = c.timeScale(), lr = ts.getVisibleLogicalRange(), w = Math.max(200, el.clientWidth - 80), bs = lr && lr.to > lr.from ? w / (lr.to - lr.from) : 6;
+    ts.applyOptions({ rightOffset: Math.max(4, Math.min(80, Math.ceil(110 / Math.max(1, bs)))) }); if (opts.from) ts.scrollToRealTime();
+  }
   if (opts.dkey) drawHook(el, c, cs, o, opts.dkey);
   return { c, cs };
 }
@@ -277,6 +281,18 @@ function czToggle(box, mode) {
   window.dispatchEvent(new Event("resize"));
 }
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cz]"); if (!b) return; e.preventDefault(); czToggle(b.closest(".cbox, .lwbox"), b.dataset.cz); });
+// 📈 biểu đồ trang coin: toàn màn hình CẢ khối (thanh khung giờ + nến + RSI/MACD/CVD), như ứng dụng giao dịch
+function cvFs(on) {
+  const w = document.querySelector(".cv-chart"); if (!w) return false;
+  on = on ?? !w.classList.contains("cv-fs");
+  w.classList.toggle("cv-fs", on); document.body.classList.toggle("cz-lock", on);
+  w.querySelector("[data-cvfs]")?.classList.toggle("on", on);
+  requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
+  return true;
+}
+document.addEventListener("click", (e) => { if (e.target.closest?.("[data-cvfs]")) { e.preventDefault(); cvFs(); } });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".cv-chart.cv-fs")) cvFs(false); });
+addEventListener("hashchange", () => { if (document.querySelector(".cv-fs") || document.body.classList.contains("cz-lock")) { document.querySelector(".cv-fs")?.classList.remove("cv-fs"); document.body.classList.remove("cz-lock"); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czToggle(f, "full"); } });
 // ---------------------------------------------------------------- BẢNG TỰ GỌN: bảng rộng hơn khung (máy tính có mở bảng phụ, máy tính bảng…)
 // Bước 1: tiêu đề được xuống dòng + bớt khoảng cách · Bước 2: chữ nhỏ hơn chút · Bước 3: ẩn cột phụ (theo tên cột) · còn tràn thì mờ mép phải để biết còn cột.
@@ -2202,13 +2218,13 @@ function bindChart(D) {
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
   [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small></div><div class="chart" id="pchart" style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart" style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
-  return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="g g3w">
-    ${panel("Biểu đồ", `${chartBox(D)}<p class="faint" style="font-size:.75rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}
-    <div class="col">
+  return `${D.about || D.gwhat ? `<div class="about"><b>${esc(r.k)} làm gì?</b> ${esc(D.about || "")} ${r.g ? `<span class="faint">Nhóm <a href="#/sector/${enc(r.g)}">${esc(r.g)}</a>: ${esc(D.gwhat || "")}</span>` : ""}</div>` : ""}<div class="cv-chart">
+    ${panel("Biểu đồ", `${chartBox(D, 440, true)}<p class="faint" style="font-size:.75rem">EMA20 (xanh) · EMA50 (vàng) · MA200 (xám, khung ngày/tuần). Khung ≤ 4h: đường kẻ = kế hoạch lướt (vào / cắt lỗ / chốt). Đường chấm = vùng hỗ trợ/kháng cự (số trong ngoặc = số mức trùng nhau). Khung 10 phút, 15 ngày, quý, năm được gộp từ nến nhỏ hơn.</p>`)}</div>
+    <div class="g g2w cv-below"><div class="col">
       ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
       ${planSummary(D)}</div>
     <div class="col">
@@ -6864,7 +6880,7 @@ const KS = [
     { k: ["o"], t: ["Thẻ con kế tiếp (Tất cả → Đang mở → Đã đóng…, các nút chọn ngay dưới thẻ chính)", "Next sub-tab (All → Open → Closed…)"], run: () => ksCycle(ksSubs(), 1), sel: KS_SUBSEL },
     { k: ["Shift+O"], t: ["Thẻ con trước", "Previous sub-tab"], run: () => ksCycle(ksSubs(), -1) },
     { k: ["e"], t: ["Đổi sàn / tài khoản đang xem: Binance thật ⇄ Sàn thử (Bot), Giả lập ⇄ Binance (Sàn thử tay), Thử / Demo / Thật (Kết quả)", "Switch venue / account being viewed"], run: () => ksCycle(ksEnv(), 1), sel: KS_ENVSEL },
-    { sel: '[data-cz="full"]', k: ["f"], t: ["Biểu đồ dưới con trỏ: phóng to toàn màn hình / thu lại", "Chart under the pointer: full screen / back"], run: () => { const b = ksChart(); if (!b) return false; czToggle(b, "full"); return true; } },
+    { sel: '[data-cz="full"]', k: ["f"], t: ["Biểu đồ dưới con trỏ: phóng to toàn màn hình / thu lại", "Chart under the pointer: full screen / back"], run: () => { const b = ksChart(); if (!b) return false; if (b.closest(".cv-chart")) return cvFs(); czToggle(b, "full"); return true; } },
   ] },
   { id: "bot", t: ["Bot Phản Xạ", "Reflex Bot"], d: ["Trang #/bot/scalp", "On #/bot/scalp"], it: [
     { k: ["1 … 5"], t: ["Tổng quan · Lệnh · Phương pháp · Hoạt động · Thiết lập", "Overview · Trades · Methods · Activity · Settings"] },
