@@ -591,8 +591,23 @@ let CUR_TAB = "";
   let t = 0; const el = document.getElementById("app");
   if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB); }, 60); }).observe(el, { childList: true });
 })();
+// 🫧 v4: thanh bên (máy tính) – 1 viên kính trượt lò xo tới trang đang mở (giống thanh chọn)
+let NTH = null;
+function navThumb() {
+  const nav = document.getElementById("tabs"); if (!nav || innerWidth < 980) { NTH?.remove(); NTH = null; return; }
+  const on = nav.querySelector("a.on:not([data-sc])") || nav.querySelector("a.on");
+  if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.className = "nthumb"; NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
+  if (!on || !on.offsetParent) { NTH.style.opacity = "0"; return; }
+  const nb = nav.getBoundingClientRect(), b = on.getBoundingClientRect();
+  NTH.style.transform = `translate(${Math.round(b.left - nb.left + nav.scrollLeft)}px,${Math.round(b.top - nb.top + nav.scrollTop)}px)`;
+  NTH.style.width = b.width + "px"; NTH.style.height = b.height + "px"; NTH.style.opacity = "1";
+  if (NTH._first) { NTH._first = 0; void NTH.offsetWidth; NTH.style.transition = ""; }
+}
+addEventListener("resize", () => { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 100); });
+document.addEventListener("transitionend", (e) => { if (e.target.id === "tabs" || e.target.closest?.("#tabs")) { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 20); } }, true);      // thanh bên thu gọn / mở rộng
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
+  requestAnimationFrame(navThumb);
   $$("#tabs a").forEach((a) => { if (a.dataset.sc) { a.classList.toggle("on", scOn(a.dataset.sc)); return; } a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r === "botscalp" && /^bot/.test(r || "") && r !== "botscalp"); });
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));

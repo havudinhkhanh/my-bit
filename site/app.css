@@ -5645,7 +5645,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   --g-btn:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.03));
   --g-btn-sh:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 .5px rgba(255,255,255,.07),0 1px 2px rgba(0,0,0,.3)}
 /* thanh chọn */
-.gseg{position:relative!important;isolation:isolate}
+:where(.gseg){position:relative;isolation:isolate}      /* :where → không đè position:sticky của thanh thẻ (đè làm thanh thẻ lệch xuống, che tiêu đề) */
 .gseg>.gthumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;opacity:0;border-radius:var(--r-ctl);background:var(--g-thumb);box-shadow:var(--g-thumb-sh);
   transition:transform .52s var(--g-spring),width .42s var(--g-spring),height .3s ease,opacity .2s ease;will-change:transform}
 .gseg>button,.gseg>a{position:relative;z-index:1;background:transparent!important;box-shadow:none!important;transition:color .25s ease,transform .18s ease}
@@ -5678,3 +5678,28 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .gseg:not(#_g):not(#_h)>button,.gseg:not(#_g):not(#_h)>a{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
 .gseg:not(#_g):not(#_h)>button.on,.gseg:not(#_g):not(#_h)>a.on,.gseg:not(#_g):not(#_h)>[aria-selected=true],.gseg:not(#_g):not(#_h)>[aria-current=page]{color:var(--ink)!important}
 .gseg:not(#_g):not(#_h)>:not(.on):not([aria-selected=true]):not([aria-current=page]):hover{color:var(--ink)!important;background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+/* 🫧 v4: thanh bên – viên kính trượt tới mục đang mở (thay khối đen đặc v3), rê chuột = kính mờ nhẹ */
+@media (min-width:980px){
+  :where(.tabs.gnav){position:relative;isolation:isolate}
+  .tabs.gnav>.nthumb{position:absolute;left:0;top:0;z-index:0;pointer-events:none;opacity:0;border-radius:var(--r-ctl,8px);background:var(--g-thumb);box-shadow:var(--g-thumb-sh);
+    transition:transform .55s var(--g-spring),width .4s var(--g-spring),height .3s ease,opacity .2s ease;will-change:transform}
+  .tabs.gnav a{position:relative;z-index:1}
+  .tabs.gnav a.on{background:transparent!important;color:var(--ink)!important;box-shadow:none!important}
+  .tabs.gnav a.on .nav-t{color:var(--ink)!important}
+  .tabs.gnav a.on svg{color:var(--brass,#d9a441)!important}
+  .tabs.gnav a[data-sc].on{background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+  .tabs.gnav a:not(.on):hover{background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+  .tabs.gnav a:active{transform:scale(.97)}
+}
+/* 🫧 v4: thẻ lệnh & khung – vật liệu kính: ánh sáng chéo mép trên, viền sáng mảnh theo màu thẻ, bóng mềm; rê chuột nổi nhẹ */
+:root{--g-card-hl:linear-gradient(155deg,rgba(255,255,255,.62),rgba(255,255,255,0) 46%)}
+:root:not([data-theme=light]){--g-card-hl:linear-gradient(155deg,rgba(255,255,255,.075),rgba(255,255,255,0) 46%)}
+.sc-oc{--tint:var(--ink);position:relative;background:var(--g-card-hl),color-mix(in srgb,var(--tint) 6%,var(--surface))!important;
+  box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent),inset 0 0 0 .5px color-mix(in srgb,var(--tint) 24%,transparent),0 10px 26px -18px color-mix(in srgb,var(--tint) 55%,rgba(0,0,0,.5))!important;
+  transition:transform .3s var(--g-spring),box-shadow .3s ease}
+:root:not([data-theme=light]) .sc-oc{box-shadow:inset 0 1px 0 rgba(255,255,255,.09),inset 0 0 0 .5px color-mix(in srgb,var(--tint) 30%,transparent),0 12px 28px -16px rgba(0,0,0,.75)!important}
+.sc-oc.L{--tint:var(--up)}.sc-oc.S{--tint:var(--down)}.sc-oc.pend{--tint:var(--brass,#d9a441)}
+.sc-oc.L,.sc-oc.S,.sc-oc.pend{background:var(--g-card-hl),color-mix(in srgb,var(--tint) 10%,var(--surface))!important}
+@media (hover:hover){.sc-oc:hover{transform:translateY(-1px)}}
+.panel{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 55%,transparent),0 1px 2px rgba(0,0,0,.04),0 10px 30px -24px rgba(0,0,0,.35)}
+:root:not([data-theme=light]) .panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 30px -22px rgba(0,0,0,.8)}
