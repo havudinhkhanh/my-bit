@@ -5902,3 +5902,7 @@ html[data-nl]::after{content:"";position:fixed;inset:calc(-50vh - env(safe-area-
 
 /* 🌙 nền gốc (vùng iPhone vẽ phía sau thanh trạng thái khi kéo nảy) cũng ngả ấm */
 html[data-nl]{background-color:color-mix(in srgb,var(--bg) 100%,transparent);background-image:linear-gradient(rgba(255,138,36,calc(var(--nl,.26) * .55)),rgba(255,138,36,calc(var(--nl,.26) * .55)))}
+/* tay nắm kéo đổi bề rộng (thanh bên / bảng phụ) chỉ có trên màn hình rộng ≥1180px – dưới đó và khi bảng phụ mở dạng tấm trượt thì ẩn hẳn
+   (trước: nút xám nhỏ lòi ra ở góc dưới-trái bảng phụ trên điện thoại) */
+@media (max-width:1179px){.edge-grip,.eg-btn{display:none!important}}
+body.pn-sheet .pnav .edge-grip,body.pn-sheet .pnav .eg-btn{display:none!important}
