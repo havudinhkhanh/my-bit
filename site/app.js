@@ -624,8 +624,18 @@ let CUR_TAB = "";
 // 🫧 v4: thanh bên (máy tính) – 1 viên kính trượt lò xo tới trang đang mở (giống thanh chọn)
 let NTH = null;
 function navThumb() {
-  const nav = document.getElementById("tabs"); if (!nav || innerWidth < 980) { NTH?.remove(); NTH = null; return; }
-  const on = nav.querySelector("a.on:not([data-sc])") || nav.querySelector("a.on");
+  const nav = document.getElementById("tabs"); if (!nav) return;
+  if (innerWidth < 980) {      // 📱 thanh dưới: viên kính trượt tới mục đang mở (mục chính, nút tuỳ chọn, hoặc "Thêm")
+    const vis = (x) => x && x.offsetParent && getComputedStyle(x).display !== "none";
+    const on = [...nav.querySelectorAll(":scope > a.on, :scope > .nav-more.on")].find(vis) || [...nav.querySelectorAll(":scope > a.par")].find(vis);
+    if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
+    NTH.className = "nthumb mthumb";
+    if (!on) { NTH.style.opacity = "0"; return; }
+    const x = on.offsetLeft, w = on.offsetWidth; NTH.style.setProperty("--mt-x", `translateX(${x}px)`); NTH.style.transform = `translateX(${x}px)`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.opacity = "1";
+    if (NTH._first) { NTH._first = 0; void NTH.offsetWidth; NTH.style.transition = ""; }
+    return; }
+  if (NTH?.classList.contains("mthumb")) { NTH.remove(); NTH = null; }
+  const on = nav.querySelector("a.on:not([data-sc]):not(.nav-pin):not(.nav-cus):not(.nav-auto)") || nav.querySelector("a.on:not([data-sc])") || nav.querySelector("a.on");      // viên kính nằm ở mục CHÍNH trong nhóm; mục lối tắt trùng tên chỉ sáng nhẹ
   if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.className = "nthumb"; NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
   if (!on || !on.offsetParent) { NTH.style.opacity = "0"; return; }
   const nb = nav.getBoundingClientRect(), b = on.getBoundingClientRect();
@@ -635,6 +645,9 @@ function navThumb() {
 }
 addEventListener("resize", () => { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 100); });
 document.addEventListener("transitionend", (e) => { if (e.target.id === "tabs" || e.target.closest?.("#tabs")) { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 20); } }, true);      // thanh bên thu gọn / mở rộng
+document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980) return; const a = e.target.closest?.("#tabs > a, #tabs > .nav-more"); if (!a || !NTH?.classList.contains("mthumb")) return;
+  NTH.style.transform = `translateX(${a.offsetLeft}px) scale(1.06,1.03)`; NTH.style.width = a.offsetWidth + "px"; NTH.style.opacity = "1"; }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
+document.addEventListener("pointercancel", () => { if (innerWidth < 980) requestAnimationFrame(navThumb); }, { passive: true });
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(navThumb);
