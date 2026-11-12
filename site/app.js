@@ -1040,7 +1040,9 @@ const SHEETS = [
   }, { passive: true });
 })();
 // đổi giao diện sáng/tối → màu thanh trạng thái điện thoại đi theo
-const themeMeta = () => { const m = document.getElementById("thc"); if (!m) return; const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(); m.content = bg || (document.documentElement.dataset.theme === "light" ? "#ECEEF1" : "#0B1119"); };      // màu thanh trạng thái = nền trang → liền với thanh MyBit
+const themeMeta = () => { const m = document.getElementById("thc"); if (!m) return; const d = document.documentElement, bg = getComputedStyle(d).getPropertyValue("--bg").trim() || (d.dataset.theme === "light" ? "#ECEEF1" : "#0B1119");
+  let c = bg; if (d.dataset.nl && /^#[0-9a-f]{6}$/i.test(bg)) { const o = +d.style.getPropertyValue("--nl") || 0.26, W = [255, 138, 36]; c = "#" + [1, 3, 5].map((i, j) => Math.round(parseInt(bg.slice(i, i + 2), 16) * (1 - o + o * W[j] / 255)).toString(16).padStart(2, "0")).join(""); }      // 🌙 ánh sáng ấm: thanh trạng thái iPhone cũng ngả vàng như trang
+  m.content = c; };      // màu thanh trạng thái = nền trang → liền với thanh MyBit
 // chuyển trang: nội dung mới hiện dần (không giật)
 // (dùng Web Animations – không ép trình duyệt tính lại bố cục cả trang như cách đọc offsetWidth cũ)
 // tải sẵn dữ liệu các trang Bot khác khi rảnh → bấm sang là vẽ ngay; chạm vào liên kết trang Bot cũng bắt đầu tải luôn
@@ -5696,6 +5698,7 @@ function nlApply(patch) {
   $$("[data-nlauto]").forEach((x) => { x.checked = !!n.auto; x.disabled = !n.on; });
   $$(".nl-box").forEach((x) => x.classList.toggle("off", !n.on));
   $("#theme")?.classList.toggle("nl-on", on);
+  try { themeMeta(); } catch (e) { /* bỏ qua */ }
 }
 const nlHtml = () => { const n = nlGet(); return `<div class="nl-box${n.on ? "" : " off"}">
   <button type="button" class="nl-row" data-nlon role="switch" aria-checked="${!!n.on}"><span class="nl-ic">${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v1M5.6 5.6l.7.7M3 12h1M18.4 5.6l-.7.7M21 12h-1"/><path d="M7 15a5 5 0 0 1 10 0"/><path d="M3 19h18"/></svg>'}</span><span class="nl-t">Ánh sáng ấm<small>Night Light · bớt ánh xanh, dịu mắt buổi tối</small></span><i class="nl-sw" aria-hidden="true"></i></button>

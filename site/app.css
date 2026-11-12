@@ -5873,7 +5873,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>a.scrub svg{transition:transform .25s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),color .15s}
 }
 /* ================================================================ 🌙 ÁNH SÁNG ẤM – lớp cam nhân màu phủ cả trang (không chặn chạm), độ đậm = --nl */
-html[data-nl]::after{content:"";position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:rgb(255,138,36);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
+html[data-nl]::after{content:"";position:fixed;inset:calc(-50vh - env(safe-area-inset-top,0px)) 0 calc(-50vh - env(safe-area-inset-bottom,0px));z-index:2147483647;pointer-events:none;background:rgb(255,138,36);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
 #theme.nl-on{position:relative}#theme.nl-on::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:2px;background:#F2A33A;box-shadow:0 0 6px #F2A33A}
 .ios-menu-sep{height:6px;background:color-mix(in srgb,var(--ink) 7%,transparent)}
 .nl-box{display:grid;gap:2px;padding:4px 0 8px}
@@ -5899,3 +5899,6 @@ html[data-nl]::after{content:"";position:fixed;inset:0;z-index:2147483647;pointe
   .tabs.gnav>.nthumb.mthumb{border-radius:10px!important;top:6px;bottom:6px}
   .pnfab{border-radius:12px!important}
 }
+
+/* 🌙 nền gốc (vùng iPhone vẽ phía sau thanh trạng thái khi kéo nảy) cũng ngả ấm */
+html[data-nl]{background-color:color-mix(in srgb,var(--bg) 100%,transparent);background-image:linear-gradient(rgba(255,138,36,calc(var(--nl,.26) * .55)),rgba(255,138,36,calc(var(--nl,.26) * .55)))}
