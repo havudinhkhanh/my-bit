@@ -528,7 +528,7 @@ function navStep(d) {
 document.addEventListener("click", (e) => {
   const b = e.target.closest?.(".crumb [data-crn], .crumb [data-crg], .crumb [data-crs]"); if (!b) return;
   e.preventDefault(); const X = navCtx(CUR_TAB); if (!X) return;
-  if (b.dataset.crn) { navStep(+b.dataset.crn); return; }
+  if (b.dataset.crn) { if (+b.dataset.crn < 0) { if (window.navigation?.canGoBack === false || history.length <= 1) location.hash = "#/"; else history.back(); } else history.forward(); return; }
   if (b.dataset.crg !== undefined) { navMenu(b, bi("Mọi trang", "All pages"), X.items.map((x) => ({ ...x, gh: navGName(x) })), X.cur.a); return; }
   navMenu(b, navGName(X.cur), X.items.filter((x) => x.gi === X.cur.gi), X.cur.a);
 });
@@ -540,8 +540,10 @@ function navDecor(r) {
   const ph = app_.querySelector(".ph");
   const chev = (d) => `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d < 0 ? "m14 6-6 6 6 6" : "m10 6 6 6-6 6"}"/></svg>`;
   const dn = '<svg class="cr-dn" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-  const nb = (x, d) => `<button type="button" class="cr-nv" data-crn="${d}"${x ? "" : " disabled"} title="${x ? esc(`${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}: ${navName(x)} (${d < 0 ? "Shift+," : "Shift+."})`) : ""}" aria-label="${d < 0 ? bi("Trang trước", "Previous page") : bi("Trang sau", "Next page")}">${chev(d)}</button>`;
-  const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(X.prev, -1)}${nb(X.next, 1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
+  // ← → như trình duyệt: quay lại / tiến tới trang vừa xem (không phải trang trước/sau theo thứ tự menu)
+  const NV = window.navigation, can = (d) => (NV && "canGoBack" in NV ? (d < 0 ? NV.canGoBack : NV.canGoForward) : d < 0 ? history.length > 1 : true);
+  const nb = (d) => `<button type="button" class="cr-nv" data-crn="${d}"${can(d) ? "" : " disabled"} title="${d < 0 ? bi("Quay lại trang vừa xem (Alt+←)", "Back (Alt+←)") : bi("Tiến tới (Alt+→)", "Forward (Alt+→)")}" aria-label="${d < 0 ? bi("Quay lại", "Back") : bi("Tiến tới", "Forward")}">${chev(d)}</button>`;
+  const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(-1)}${nb(1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
   if (ph && ph.parentElement === app_) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);      // luôn là con trực tiếp của #app → dính được suốt trang (tiêu đề nằm trong khung con thì đặt lên đầu trang)
   requestAnimationFrame(() => stickH());
   try { lvsDraw(); } catch (e) { /* bỏ qua */ }
@@ -2236,6 +2238,87 @@ async function priceChart(D, el, tf) {
   const ch = drawO(D, el, o, tf, "dữ liệu máy chủ (cập nhật 15 phút – 4 giờ)");
   chartTools(D, el, ch, tf).upd(o, true);
 }
+// 📈 BIỂU ĐỒ NHANH CHO THẺ LỆNH ĐANG MỞ / ĐANG CHỜ (mọi thẻ .sc-oc): bấm nút 📈 trên thẻ → cửa sổ biểu đồ lớn, đủ khung 1s … Năm,
+//    vẽ giá vào (TB), cắt lỗ, chốt lời, các mức lệnh chờ; nến cập nhật trực tiếp. Hợp đồng futures: giá theo đúng mã hợp đồng (1000PEPE…) nên khớp giá vào.
+const OCC = { ws: null, info: null, tf: null };
+function ocInfo(card) {
+  const g = (sel, a) => card.querySelector(sel)?.dataset?.[a];
+  const k = g("[data-lpx]", "lpx") || g("[data-lpnl]", "lpnl") || g("[data-lgap]", "lgap") || ((card.querySelector(".r1 b b")?.textContent || "").trim() + ":F");
+  const n = (v) => (isNum(v) && +v > 0 && +v < 1e17 ? +v : null);
+  const sd = +(g("[data-lpnl]", "sd") || g("[data-lsd]", "sd") || (card.classList.contains("S") ? -1 : 1));
+  return { k, base: String(k).split(":")[0], fut: !/:S$/.test(k), side: sd > 0 ? 1 : -1, e: n(g("[data-lpnl]", "e")), sl: n(g("[data-lpnl]", "sl")) || n(g("[data-lsd]", "sl")), tp: n(g("[data-lpnl]", "tp")),
+    lv: [...card.querySelectorAll("[data-lgap][data-px]")].map((x) => n(x.dataset.px)).filter(Boolean) };
+}
+function ocDeco(root = document) {
+  root.querySelectorAll?.(".sc-oc:not([data-occ])").forEach((c) => {
+    c.dataset.occ = 1; const sp = c.querySelector(".r1 > span"); if (!sp) return;
+    sp.insertAdjacentHTML("beforeend", `<button type="button" class="oc-ch" data-occh title="${bi("Mở biểu đồ: xu hướng, khung 1 giây … năm, giá vào / cắt lỗ / chốt lời", "Open chart: trend, 1s … 1y, entry / stop / target")}" aria-label="${bi("Biểu đồ", "Chart")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></button>`);
+  });
+}
+new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
+function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; const m = document.getElementById("ocChart"); if (m) { m.classList.remove("on"); setTimeout(() => m.remove(), 220); } document.body.classList.remove("cz-lock"); }
+function ocOpen(I) {
+  ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
+  const sec = /s$/.test(OCC.tf); if (sec && !BYK?.[I.base]?.sp) OCC.tf = "1m";
+  const m = document.createElement("div"); m.id = "ocChart"; m.className = "occ";
+  const lab = (t, v, c) => (v ? `<span class="occ-l ${c}"><i></i>${t} <b>${px(v)}</b></span>` : "");
+  m.innerHTML = `<div class="occ-bg" data-occx></div><div class="occ-p" role="dialog" aria-modal="true" aria-label="${bi("Biểu đồ", "Chart")} ${esc(I.base)}">
+    <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
+      <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}">${bi("Phân tích", "Analysis")} →</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
+    <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span></div>
+    <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}<small class="faint" id="occSrc"></small></div>
+    <div class="occ-c" id="occC"></div></div>`;
+  document.body.appendChild(m); document.body.classList.add("cz-lock");
+  requestAnimationFrame(() => m.classList.add("on"));
+  m.querySelectorAll("[data-occx]").forEach((x) => (x.onclick = ocClose));
+  m.querySelector(".occ-go").onclick = () => ocClose();
+  m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
+  m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
+  ocDraw();
+}
+async function ocDraw() {
+  const I = OCC.info, el = document.getElementById("occC"); if (!I || !el) return;
+  try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null;
+  const tf = OCC.tf, [base, ag] = TFB[tf] || ["1m"], R0 = BYK?.[I.base] || {};
+  // futures: đúng mã hợp đồng (giá khớp giá vào); khung theo giây chỉ có ở spot
+  const r = base === "1s" ? { k: I.base, sp: R0.sp || (I.fut ? null : I.base + "USDT"), sm: R0.sm || 1 } : I.fut ? { k: I.base, bf: I.base + "USDT", bfm: 1 } : { k: I.base, sp: R0.sp || I.base + "USDT", sm: R0.sm || 1 };
+  el.innerHTML = skChart(Math.max(300, el.clientHeight || 420));
+  const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
+  if (OCC.info !== I || OCC.tf !== tf || !el.isConnected) return;
+  if (!L) { el.innerHTML = `<p class="muted" style="padding:24px">${base === "1s" ? bi("Nến theo giây chỉ có cho coin niêm yết spot trên Binance.", "Second candles exist only for Binance spot coins.") : bi(`Không lấy được nến ${tf} – thử khung khác.`, `Couldn't load ${tf} candles – try another timeframe.`)}</p>`; return; }
+  const raw = L.o, o = aggO(raw, ag), n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
+  const lines = [];
+  if (I.e) lines.push({ price: I.e, color: css("--brand"), title: bi("vào", "entry"), style: 0 });
+  if (I.sl) lines.push({ price: I.sl, color: css("--down"), title: bi("cắt lỗ", "stop") });
+  if (I.tp) lines.push({ price: I.tp, color: css("--up"), title: bi("chốt", "target") });
+  const lvP = I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4);      // mức đã khớp trùng giá vào → không vẽ 2 lần
+  lvP.forEach((v) => lines.push({ price: v, color: css("--ink-3"), title: bi("chờ", "limit"), style: 1 }));
+  el.innerHTML = "";
+  const ch = candleChart(el, o, { ma: [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)] });
+  {      // khung giá luôn thấy giá vào & lệnh chờ; cắt lỗ / chốt lời chỉ kéo vào khi trong khoảng ±15% giá hiện tại (cắt lỗ thảm hoạ −35% sẽ làm nến dẹt)
+    const cur = o.c[n - 1], keep = [I.e, ...lvP, ...[I.sl, I.tp].filter((v) => v && Math.abs(v / cur - 1) < 0.15)].filter(Boolean);
+    if (keep.length) ch.cs.applyOptions({ autoscaleInfoProvider: (orig) => { const r0 = orig(); if (!r0?.priceRange) return r0; return { ...r0, priceRange: { minValue: Math.min(r0.priceRange.minValue, ...keep), maxValue: Math.max(r0.priceRange.maxValue, ...keep) } }; } });
+  }
+  const sEl = document.getElementById("occSrc"); if (sEl) sEl.textContent = `${L.src} ${L.sym} · ${bi("trực tiếp", "live")}`;
+  const pEl = document.getElementById("occPx"), setPx = (v) => { if (pEl) { const d = I.e ? I.side * (v / I.e - 1) * 100 : null; pEl.innerHTML = `${px(v)}${isNum(d) ? ` <small class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</small>` : ""}`; } };
+  setPx(o.c[n - 1]);
+  if (L.kind === "okx") return;
+  try {
+    const ws = BWS((L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`); OCC.ws = ws;
+    ws.onmessage = (ev) => {
+      const k = JSON.parse(ev.data).k; if (!k || OCC.ws !== ws) return;
+      const t = Math.floor(k.t / 1000), mm = L.m, i = raw.t.length - 1, bar = [+k.o / mm, +k.h / mm, +k.l / mm, +k.c / mm, +k.q];
+      if (raw.t[i] === t) { raw.o[i] = bar[0]; raw.h[i] = bar[1]; raw.l[i] = bar[2]; raw.c[i] = bar[3]; raw.v[i] = bar[4]; }
+      else if (t > raw.t[i]) { raw.t.push(t); raw.o.push(bar[0]); raw.h.push(bar[1]); raw.l.push(bar[2]); raw.c.push(bar[3]); raw.v.push(bar[4]); }
+      const a = ag ? aggO({ t: raw.t.slice(-40), o: raw.o.slice(-40), h: raw.h.slice(-40), l: raw.l.slice(-40), c: raw.c.slice(-40), v: raw.v.slice(-40) }, ag) : null, j = a ? a.t.length - 1 : raw.t.length - 1, s2 = a || raw;
+      try { ch.cs.update({ time: s2.t[j], open: s2.o[j], high: s2.h[j], low: s2.l[j], close: s2.c[j] }); } catch (e2) { /* nến cũ */ }
+      setPx(bar[3]);
+    };
+  } catch (e) { /* trình duyệt chặn websocket */ }
+}
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("ocChart")) { e.stopPropagation(); ocClose(); } }, true);
+addEventListener("hashchange", () => { if (document.getElementById("ocChart")) ocClose(); });
 function livePx(k, p) {
   const el = $("#lp"); if (!el || el.dataset.k !== k) return;
   const prev = Number(el.dataset.p || p); el.dataset.p = p;
