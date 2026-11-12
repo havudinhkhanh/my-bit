@@ -5703,3 +5703,21 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 @media (hover:hover){.sc-oc:hover{transform:translateY(-1px)}}
 .panel{box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 55%,transparent),0 1px 2px rgba(0,0,0,.04),0 10px 30px -24px rgba(0,0,0,.35)}
 :root:not([data-theme=light]) .panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 12px 30px -22px rgba(0,0,0,.8)}
+/* v4 – vuông vức hơn: nút chọn / rê chuột / đang chọn bo 6px, lòng thanh 8px, mục thanh bên 6px */
+:root{--r-ctl:6px}
+.gseg:not(.sc-tabs):not(.czseg){border-radius:8px!important}
+.gseg:not(.czseg)>button,.gseg:not(.czseg)>a,.gseg:not(.czseg)>.gthumb{border-radius:6px!important}
+.sc-tabs.gseg{border-radius:10px!important}
+.tabs a,.tabs.gnav>.nthumb{border-radius:6px!important}
+.btn,.gib:not(.gbar .gib),.iconbtn,.cv-fsb,.oc-ch,.occ-tg button,.cbar .chk,.cv-chart .cops .chk{border-radius:6px!important}
+.tfseg.gseg,.occ-tf{border-radius:8px!important}
+/* khung hiện ra mượt khi đổi trang / đổi thẻ */
+.pin{animation:pinIn .28s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--pin-d,0ms)}
+@keyframes pinIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* 🫧 kính cho các ô số / thẻ nhỏ trong khung (KPI, thống kê, thẻ tổng quan…) */
+:root{--g-tile:linear-gradient(160deg,rgba(255,255,255,.7),rgba(255,255,255,.18) 55%,rgba(255,255,255,.05));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent),0 6px 18px -14px rgba(0,0,0,.35)}
+:root:not([data-theme=light]){--g-tile:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.025) 55%,rgba(255,255,255,0));--g-tile-sh:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.06),0 8px 20px -14px rgba(0,0,0,.7)}
+.kpis>*,.st,.stgs .st,.sc-kp .st,.bh-card,.ocard,.opp,.exm-r,.occ-k,.dtl-r,.kpis.dd-kp,.ks-tip,.cx-hero{background:var(--g-tile),var(--fill-card,var(--sunk))!important;box-shadow:var(--g-tile-sh)!important;border:0!important}
+.kpis{gap:6px!important;background:transparent!important;border:0!important;overflow:visible!important}
+.kpis.dd-kp{background:transparent!important;box-shadow:none!important}
+.kpis.dd-kp>div{border-radius:var(--r-in)!important}

@@ -286,7 +286,12 @@ function gPlaceAll(list) {
   const R = [];
   const G = [...list].filter((g) => g.isConnected && !g.classList.contains("czseg") && !g.closest(".cbt"));
   G.forEach((g) => { if (!g.classList.contains("gseg")) g.classList.add("gseg"); });      // ghi 1 lượt (khung thành gốc toạ độ) …
-  for (const g of G) { const on = gOn(g); R.push([g, on, on ? { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight, r: getComputedStyle(on).borderRadius } : null]); }      // … rồi đọc hết, rồi mới ghi tiếp
+  for (const g of G) {      // … rồi đọc hết, rồi mới ghi tiếp. Thanh 1 hàng: viên kính cao đúng lòng thanh (không lòi ra khi nút cao hơn thanh)
+    const on = gOn(g); if (!on) { R.push([g, null, null]); continue; }
+    const its = [...g.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent), one = its.every((b) => Math.abs(b.offsetTop - its[0].offsetTop) < 4);
+    const cs = getComputedStyle(g), pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0, inner = g.clientHeight - pt - pb;
+    R.push([g, on, one && inner > 8 ? { x: on.offsetLeft, y: pt, w: on.offsetWidth, h: inner } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);
+  }
   for (const [g, on, p] of R) {
     let th = g.querySelector(":scope > .gthumb");
     if (!p) { if (th) th.style.opacity = "0"; continue; }
@@ -296,6 +301,14 @@ function gPlaceAll(list) {
     put(p); GPOS.set(k, p);
   }
 }
+let PIN_T = 0;
+document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); if (b?.parentElement?.matches?.(GSEL) || b?.closest?.("#tabs, .crumb, .subtabs")) PIN_T = Date.now() + 900; }, true);
+addEventListener("hashchange", () => { PIN_T = Date.now() + 900; });
+new MutationObserver((M) => {
+  if (Date.now() > PIN_T || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let i = 0; for (const m of M) for (const n of m.addedNodes) { if (n.nodeType !== 1) continue; const L = n.matches?.(".panel, .lane, .sc-oc, .bh-card") ? [n] : [...(n.querySelectorAll?.(":scope .panel, :scope .lane") || [])].filter((x) => !x.parentElement.closest(".panel")).slice(0, 8);
+    for (const x of L) { if (x.closest(".pin-skip")) continue; x.style.setProperty("--pin-d", `${Math.min(i++, 6) * 28}ms`); x.classList.remove("pin"); void x.offsetWidth; x.classList.add("pin"); } }
+}).observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
 let gRq = 0; const gAll = () => { if (!gRq) gRq = requestAnimationFrame(() => { gRq = 0; gPlaceAll(document.querySelectorAll(GSEL)); }); };
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.matches?.(GSEL) || n.querySelector?.(GSEL))) { gAll(); return; } }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); const g = b?.parentElement; if (g?.matches?.(GSEL)) { requestAnimationFrame(() => gPlaceAll([g])); setTimeout(gAll, 60); } }, true);
