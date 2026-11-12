@@ -631,7 +631,9 @@ function navThumb() {
     if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
     NTH.className = "nthumb mthumb";
     if (!on) { NTH.style.opacity = "0"; return; }
-    const x = on.offsetLeft, w = on.offsetWidth; NTH.style.setProperty("--mt-x", `translateX(${x}px)`); NTH.style.transform = `translateX(${x}px)`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.opacity = "1";
+    const x = on.offsetLeft, w = on.offsetWidth, moved = NTH._x != null && Math.abs(NTH._x - x) > 2; NTH._x = x;
+    NTH.style.translate = `${x}px 0`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.opacity = "1"; NTH.classList.remove("press");
+    if (moved && !NTH._first && !matchMedia("(prefers-reduced-motion: reduce)").matches) { NTH.classList.remove("jelly"); void NTH.offsetWidth; NTH.classList.add("jelly"); clearTimeout(NTH._jt); NTH._jt = setTimeout(() => NTH?.classList.remove("jelly"), 700); }
     if (NTH._first) { NTH._first = 0; void NTH.offsetWidth; NTH.style.transition = ""; }
     return; }
   if (NTH?.classList.contains("mthumb")) { NTH.remove(); NTH = null; }
@@ -646,7 +648,8 @@ function navThumb() {
 addEventListener("resize", () => { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 100); });
 document.addEventListener("transitionend", (e) => { if (e.target.id === "tabs" || e.target.closest?.("#tabs")) { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 20); } }, true);      // thanh bên thu gọn / mở rộng
 document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980) return; const a = e.target.closest?.("#tabs > a, #tabs > .nav-more"); if (!a || !NTH?.classList.contains("mthumb")) return;
-  NTH.style.transform = `translateX(${a.offsetLeft}px) scale(1.06,1.03)`; NTH.style.width = a.offsetWidth + "px"; NTH.style.opacity = "1"; }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
+  NTH.classList.remove("jelly"); NTH.classList.add("press"); NTH.style.translate = `${a.offsetLeft}px 0`; NTH.style.width = a.offsetWidth + "px"; NTH.style.opacity = "1"; }, { passive: true });
+document.addEventListener("pointerup", () => { if (innerWidth < 980 && NTH?.classList.contains("press")) setTimeout(() => { if (NTH?.classList.contains("press")) { NTH.classList.remove("press"); requestAnimationFrame(navThumb); } }, 140); }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
 document.addEventListener("pointercancel", () => { if (innerWidth < 980) requestAnimationFrame(navThumb); }, { passive: true });
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }

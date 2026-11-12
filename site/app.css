@@ -5802,10 +5802,10 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   :root{--tb-h:60px;--tb-gap:10px}
   .tabs:not(#_t){left:12px!important;right:12px!important;bottom:calc(env(safe-area-inset-bottom,0px) + 8px)!important;height:var(--tb-h)!important;min-height:0!important;
     padding:4px!important;border-radius:28px!important;border:0!important;overflow:hidden!important;align-items:stretch!important;
-    background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.12)),color-mix(in srgb,var(--surface) 74%,transparent)!important;
+    background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.12)),color-mix(in srgb,var(--surface) 84%,transparent)!important;
     -webkit-backdrop-filter:blur(22px) saturate(1.9) brightness(1.04)!important;backdrop-filter:blur(22px) saturate(1.9) brightness(1.04)!important;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.25),0 0 0 .5px color-mix(in srgb,var(--ink) 12%,transparent),0 14px 34px -12px rgba(15,23,42,.38),0 2px 6px rgba(15,23,42,.08)!important}
-  :root:not([data-theme=light]) .tabs:not(#_t){background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02)),color-mix(in srgb,var(--surface) 82%,transparent)!important;
+  :root:not([data-theme=light]) .tabs:not(#_t){background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02)),color-mix(in srgb,var(--surface) 88%,transparent)!important;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 0 0 .5px rgba(255,255,255,.12),0 16px 36px -10px rgba(0,0,0,.75)!important}
   .tabs:not(#_t)>a,.tabs:not(#_t)>.nav-more{position:relative;z-index:1;border-radius:24px!important;background:transparent!important;box-shadow:none!important;justify-content:center;padding:4px 0 3px!important;gap:2px;-webkit-tap-highlight-color:transparent}
   /* bỏ viên đặc tối cũ trên biểu tượng */
@@ -5814,15 +5814,38 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   .tabs:not(#_t) a.nav-m.on,.tabs:not(#_t) .nav-more.on{color:var(--ink)!important}
   .tabs:not(#_t) a.nav-m.on .nav-s,.tabs:not(#_t) .nav-more.on .nav-s{color:var(--brass,var(--brand))!important;font-weight:700}
   .tabs:not(#_t) a.nav-m:active svg,.tabs:not(#_t) .nav-more:active svg{transform:scale(.86)}
-  /* viên kính trượt */
-  .tabs.gnav>.nthumb.mthumb{position:absolute;left:0;top:5px;bottom:5px;height:auto!important;z-index:0;pointer-events:none;border-radius:24px!important;
-    background:linear-gradient(180deg,color-mix(in srgb,var(--ink) 5%,transparent),color-mix(in srgb,var(--ink) 9%,transparent))!important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent)!important;
-    transition:transform .5s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),width .5s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),opacity .2s!important}
-  :root:not([data-theme=light]) .tabs.gnav>.nthumb.mthumb{background:linear-gradient(180deg,rgba(255,255,255,.2),rgba(255,255,255,.08))!important;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 .5px rgba(255,255,255,.12),0 6px 16px -8px rgba(0,0,0,.6)!important}
-  .tabs.gnav>.nthumb.mthumb.press{transform:var(--mt-x) scale(1.08,1.04)!important}
+  /* viên kính trượt – giọt nước: nhấn = phồng to & trong như thấu kính, thả = lò xo nảy rồi lắng thành viên kính mờ tinh tế */
+  .tabs.gnav>.nthumb.mthumb{position:absolute;left:0;top:5px;bottom:5px;height:auto!important;z-index:0;pointer-events:none;border-radius:24px!important;transform:none!important;
+    background:radial-gradient(140% 110% at 50% -25%,rgba(255,255,255,.95),rgba(255,255,255,.4) 58%,rgba(255,255,255,.18)),color-mix(in srgb,var(--ink) 6%,transparent)!important;
+    box-shadow:inset 0 1px 1px #fff,inset 0 -1.5px 2px rgba(15,23,42,.07),inset 0 0 0 .5px rgba(255,255,255,.85),0 0 0 .5px rgba(15,23,42,.08),0 3px 10px -4px rgba(15,23,42,.22)!important;
+    transition:translate .55s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),width .55s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),scale .4s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),background .25s,box-shadow .25s,opacity .2s!important}
+  .tabs.gnav>.nthumb.mthumb.press{scale:1.16 1.1;
+    background:radial-gradient(120% 100% at 50% -10%,rgba(255,255,255,.75),rgba(255,255,255,.12) 55%,rgba(255,255,255,.05)),transparent!important;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.95),inset 0 2px 6px rgba(255,255,255,.7),inset 0 -3px 6px rgba(15,23,42,.06),0 0 0 .5px rgba(15,23,42,.1),0 10px 24px -8px rgba(15,23,42,.32)!important}
+  .tabs.gnav>.nthumb.mthumb.jelly{animation:mtJelly .62s cubic-bezier(.3,.7,.3,1)}
+  @keyframes mtJelly{0%{scale:1.14 1.08}38%{scale:.94 1.04}68%{scale:1.03 .98}100%{scale:1 1}}
+  :root:not([data-theme=light]) .tabs.gnav>.nthumb.mthumb{background:radial-gradient(140% 110% at 50% -25%,rgba(255,255,255,.24),rgba(255,255,255,.08) 58%,rgba(255,255,255,.04)),rgba(255,255,255,.04)!important;
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.22),inset 0 -1.5px 2px rgba(0,0,0,.25),inset 0 0 0 .5px rgba(255,255,255,.14),0 4px 12px -4px rgba(0,0,0,.6)!important}
+  :root:not([data-theme=light]) .tabs.gnav>.nthumb.mthumb.press{background:radial-gradient(120% 100% at 50% -10%,rgba(255,255,255,.3),rgba(255,255,255,.05) 55%,transparent)!important;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),inset 0 2px 6px rgba(255,255,255,.18),0 10px 24px -8px rgba(0,0,0,.7)!important}
+  /* hai mục ở đầu/cuối không dí sát đường cong của viên thanh: chừa lề ngang, chữ không cắt, căn giữa đúng ô */
+  .tabs:not(#_t){padding:4px 10px!important}
+  .tabs:not(#_t)>a .nav-s,.tabs:not(#_t)>.nav-more .nav-s{white-space:nowrap;overflow:visible!important;text-overflow:clip!important;max-width:none!important;letter-spacing:-.01em;text-align:center}
   /* nội dung + nút nổi chừa chỗ cho thanh nổi */
   body{padding-bottom:calc(var(--tb-h) + 22px + env(safe-area-inset-bottom,0px))!important}
   body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(var(--tb-h) + 20px + env(safe-area-inset-bottom,0px))!important}
+}
+/* thanh tab Bot Phản Xạ = khung ngoài .sc-tbar (dính, nền trắng) chứa [tab cuộn ngang] + [Binance thật | Sàn thử] ĐỨNG RIÊNG, không nằm trong vùng cuộn
+   → iPhone không còn lộ chữ tab cuộn qua dưới nút, chạm luôn trúng nút */
+.sc-tbar{position:sticky;top:calc(var(--stick,51px) + 6px);z-index:20;margin:14px 0 16px;padding:2px;display:flex;align-items:center;gap:4px;background:var(--surface);border-radius:12px;
+  box-shadow:0 8px 24px -6px rgba(15,23,42,.16),0 0 0 .5px color-mix(in srgb,var(--ink) 7%,transparent),inset 0 1px 0 rgba(255,255,255,.04)}
+@media (max-width:760px){.sc-tbar{top:var(--stick,47px);margin:10px -4px 16px}}
+@media (max-width:720px){.sc-tbar{top:calc(var(--stick,47px) + 4px)}}
+.sc-tbar>.sc-tabs:not(#_t){position:relative!important;top:auto!important;z-index:auto!important;flex:1 1 auto;min-width:0;margin:0!important;padding:3px!important;background:transparent!important;box-shadow:none!important;border:0!important;border-radius:10px!important}
+.sc-tbar>.sc-env.sc-env-t.gseg:not(#_g){position:relative!important;right:auto!important;flex:none;margin:0 3px 0 0!important;box-shadow:none!important}
+.sc-tbar>.sc-env.sc-env-t::before{display:none!important}
+/* 📱 thanh dưới: cột theo độ dài chữ (không chia đều cứng) → khoảng cách giữa các mục đều nhau, "Thị trường" không dí mép, "Danh mục | Kết quả" không dính nhau */
+@media (max-width:979px){
+  .tabs:not(#_t){grid-template-columns:repeat(var(--tb-n,7),auto)!important;justify-content:space-between!important;padding:4px 8px!important}
+  .tabs:not(#_t)>a,.tabs:not(#_t)>.nav-more{min-width:46px;padding:4px 6px 3px!important}
 }

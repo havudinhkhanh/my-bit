@@ -36,7 +36,7 @@ const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng
   if (window.__scSwipe) return; window.__scSwipe = 1;
   const MOBq = matchMedia("(max-width:979px)");
   const noGo = (t) => { for (let el = t; el && el.id !== "app"; el = el.parentElement) {
-    if (el.matches?.("input, textarea, select, canvas, svg, .tw, .sc-tabs, .bseg, .sc-sub2, .sc-evf, .lb-seg, [data-noswipe], .chartbox, .lw-chart")) return true;
+    if (el.matches?.("input, textarea, select, canvas, svg, .tw, .sc-tabs, .sc-tbar, .bseg, .sc-sub2, .sc-evf, .lb-seg, [data-noswipe], .chartbox, .lw-chart")) return true;
     const cs = getComputedStyle(el); if (/(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2) return true; } return false; };
   let st = null;
   addEventListener("touchstart", (e) => {
@@ -1089,7 +1089,7 @@ async function viewScalp() {
     return;
   }
   app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
-    ${hero}${envSeg ? tabBar.replace("</nav>", envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') + "</nav>") : tabBar}<div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
+    ${hero}<div class="sc-tbar">${tabBar}${envSeg ? envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') : ""}</div><div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
   try { if (typeof CUR_TAB !== "undefined" && CUR_TAB && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB); } catch (e) { /* bỏ qua */ }      // đường dẫn trang vẽ NGAY cùng nội dung – không chèn trễ làm cả trang nhảy xuống
   $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
   $$("[data-scenv]").forEach((b) => (b.onclick = async () => {      // đổi sàn: giữ nguyên chỗ đang xem (không giật trang)
