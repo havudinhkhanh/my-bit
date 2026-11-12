@@ -6787,10 +6787,15 @@ function ksSubs() {
   const bar = [...document.querySelectorAll("#app [role=tablist], #app .bseg")].find((b) => b.offsetParent && b !== main && !b.closest(".sc-env, #pvEnv, .dseg") && !b.matches(".sc-env, .dseg") && b.querySelectorAll(":scope > button, :scope > a").length > 1);
   return bar ? [...bar.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent && !b.disabled) : [];
 }
+// nhớ nút vừa chọn bằng phím trong 2,5 giây: bấm liên tiếp khi trang chưa vẽ lại xong vẫn đi tiếp từ nút vừa chọn (không bấm lại đúng nút cũ)
+let KS_CY = null;
 function ksCycle(L, d) {
   if (!L.length) return false;
-  const c = L.findIndex((b) => b.classList.contains("on") || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-pressed") === "true");
-  const b = L[(Math.max(0, c) + d + L.length) % L.length]; b.click(); b.focus?.({ preventScroll: true }); return true;
+  const id = (b) => b.dataset.scenv || b.dataset.scol || b.getAttribute("href") || b.textContent.trim(), ids = L.map(id), now = Date.now();
+  let c = L.findIndex((b) => b.classList.contains("on") || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-pressed") === "true");
+  if (KS_CY && now - KS_CY.t < 2500 && KS_CY.sig === ids.join("|")) c = ids.indexOf(KS_CY.cur);
+  const b = L[(Math.max(0, c) + d + L.length) % L.length]; KS_CY = { sig: ids.join("|"), cur: id(b), t: now };
+  b.click(); b.focus?.({ preventScroll: true }); return true;
 }
 // biểu đồ dưới con trỏ chuột (không có thì biểu đồ đầu tiên đang thấy trên màn hình)
 let KS_HOV = null;

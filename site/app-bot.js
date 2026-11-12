@@ -1094,6 +1094,7 @@ async function viewScalp() {
   $$("[data-scenv]").forEach((b) => (b.onclick = async () => {      // đổi sàn: giữ nguyên chỗ đang xem (không giật trang)
     if (window.__scEnv === b.dataset.scenv) return;
     window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true;
+    $$("[data-scenv]").forEach((x) => { const on = x.dataset.scenv === b.dataset.scenv; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });      // đổi nút ngay (bấm / phím e liên tiếp không đọc nhầm trạng thái cũ khi trang chưa vẽ xong)
     const root = $("#app"), y0 = b.getBoundingClientRect().top; root.style.minHeight = root.offsetHeight + "px";
     await viewScalp();
     const b2 = $(`[data-scenv="${b.dataset.scenv}"]`); if (b2) scrollTo(0, Math.max(0, scrollY + b2.getBoundingClientRect().top - y0));
