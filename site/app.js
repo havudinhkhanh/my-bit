@@ -197,7 +197,7 @@ function mkChart(el, extra = {}) {
     const t = document.createElement("div"); t.className = "cbt"; t.innerHTML = CZ_BTN; t._box = el; el._cbt = t;
     const pd = el.parentElement ? getComputedStyle(el.parentElement).display : "block";
     if (/flex|grid/.test(pd)) el.appendChild(t); else { t.classList.add("cbt-o"); el.insertAdjacentElement("afterend", t); }      // khung cha xếp hàng ngang → giữ trong biểu đồ (góc dưới trái)
-    const sz = czSaved(el); if (sz !== "m") czSet(el, sz, false); else { el.dataset.sz = "m"; t.querySelector('[data-cz="m"]').classList.add("on"); }
+    const sz = czSaved(el); if (sz !== "m") czSet(el, sz, false); else { el.dataset.sz = "m"; t.querySelector('[data-cz="m"]').classList.add("on"); t.style.setProperty("--i", 1); }
   }
   return c;
 }
@@ -237,7 +237,7 @@ function cbMount(root) {
   (root || document).querySelectorAll?.(".cbox:not([data-m])").forEach((el) => {
     const r = CB.get(+el.dataset.cb); if (!r) return;
     el.dataset.m = 1; r.el = el;
-    { const sz = czSaved(el); el.dataset.sz = sz; if (sz === "s") el.classList.add("cz-s"); else if (sz === "l") { el.classList.add("cz-l", "cz-wide"); el._span = czSpanEl(el); el._span?.classList.add("cz-span"); } el.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === sz)); }
+    { const sz = czSaved(el); el.dataset.sz = sz; if (sz === "s") el.classList.add("cz-s"); else if (sz === "l") { el.classList.add("cz-l", "cz-wide"); el._span = czSpanEl(el); el._span?.classList.add("cz-span"); } el.querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === sz)); el.querySelector(":scope > .cbt")?.style.setProperty("--i", { s: 0, m: 1, l: 2 }[sz]); }
     const c = el.querySelector(".cbc");
     // đo (đọc bố cục) và vẽ (ghi DOM) tách riêng: khi nhiều biểu đồ cùng hiện, đo hết rồi mới vẽ → trình duyệt chỉ tính bố cục 1 lần thay vì 1 lần/biểu đồ
     const measure = () => {
@@ -278,7 +278,7 @@ function cbMount(root) {
 }
 // 📐 CỠ BIỂU ĐỒ DÙNG CHUNG (mọi biểu đồ nến & biểu đồ SVG): S nhỏ · M vừa (mặc định) · L lớn (chiếm cả hàng) · ⛶ toàn màn hình
 //    nhớ theo từng biểu đồ (trang + tên khung) trong máy; nút nằm DƯỚI biểu đồ, không đè lên trục giá / nến
-const CZ_BTN = `<button type="button" data-cz="s" title="Cỡ nhỏ">S</button><button type="button" data-cz="m" title="Cỡ vừa">M</button><button type="button" data-cz="l" title="Cỡ lớn – chiếm cả hàng">L</button><button type="button" data-cz="full" title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`;
+const CZ_BTN = `<i class="czs-th" aria-hidden="true"></i><button type="button" data-cz="s" title="Nhỏ – khung hẹp & thấp lại, khung bên cạnh rộng ra">S</button><button type="button" data-cz="m" title="Vừa">M</button><button type="button" data-cz="l" title="Lớn – chiếm cả hàng">L</button><i class="czs-sep" aria-hidden="true"></i><button type="button" data-cz="full" title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>`;
 const czKey = (box) => `${location.hash.replace(/^#\/?/, "").split("/")[0] || "market"}|${(box.closest(".panel")?.querySelector(".ph h2, h2, h3")?.textContent || box.dataset.title || "").replace(/\s+/g, " ").trim().split(" · ")[0].slice(0, 60)}`;
 // cỡ L: khối chứa biểu đồ chiếm cả hàng của lưới gần nhất (khung có thể nằm trong 1 cột bọc ngoài)
 function czSpanEl(box) { let e = box.closest(".panel") || box; for (let i = 0; i < 4 && e?.parentElement; i++) { if (/grid/.test(getComputedStyle(e.parentElement).display)) return e; e = e.parentElement; } return box.closest(".panel"); }
@@ -299,6 +299,7 @@ function czSet(box, mode, save = true) {
     const h0 = +box.dataset.h0; box.style.height = (sz === "s" ? Math.max(160, Math.round(h0 * 0.68)) : sz === "l" ? Math.round(Math.max(h0 * 1.5, Math.min(innerHeight * 0.72, 760))) : h0) + "px";
   }
   (box._cbt || box).querySelectorAll("[data-cz]").forEach((b) => b.classList.toggle("on", b.dataset.cz === "full" ? full : !full && b.dataset.cz === sz));
+  (box._cbt || box.querySelector(":scope > .cbt"))?.style.setProperty("--i", { s: 0, m: 1, l: 2 }[sz]);      // con trượt kiểu iOS chạy tới nút đang chọn
   const r = CB.get(+box.dataset.cb); if (r?.redraw) setTimeout(r.redraw, 30);
   if (!full && sz === "l" && save) setTimeout(() => box.scrollIntoView({ block: "nearest", behavior: "smooth" }), 60);
   window.dispatchEvent(new Event("resize"));
@@ -309,7 +310,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-
 // 📈 cỡ biểu đồ trang coin: S nhỏ · M vừa (mặc định) · L cao theo màn hình · ⛶ toàn màn hình – nhớ lựa chọn
 const cvSz = () => { const v = lsGet("cvSize", "m"); return ["s", "m", "l"].includes(v) ? v : "m"; };
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cvsz]"); if (!b) return; e.preventDefault(); lsSet("cvSize", b.dataset.cvsz);
-  const c = document.getElementById("pchart"); if (c) c.dataset.sz = b.dataset.cvsz; const g = document.querySelector(".cv-grid"); if (g) g.dataset.sz = b.dataset.cvsz; document.querySelectorAll("[data-cvsz]").forEach((x) => x.classList.toggle("on", x === b));
+  const c = document.getElementById("pchart"); if (c) c.dataset.sz = b.dataset.cvsz; const g = document.querySelector(".cv-grid"); if (g) g.dataset.sz = b.dataset.cvsz; document.querySelectorAll("[data-cvsz]").forEach((x) => x.classList.toggle("on", x === b)); b.parentElement?.style.setProperty("--i", { s: 0, m: 1, l: 2 }[b.dataset.cvsz]);
   if (document.querySelector(".cv-chart.cv-fs")) cvFs(false); requestAnimationFrame(() => window.dispatchEvent(new Event("resize"))); });
 // 📈 biểu đồ trang coin: toàn màn hình CẢ khối (thanh khung giờ + nến + RSI/MACD/CVD), như ứng dụng giao dịch
 function cvFs(on) {
@@ -2248,7 +2249,7 @@ function bindChart(D) {
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
   [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><span class="cv-sz" role="group" aria-label="Cỡ biểu đồ">${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><span class="cv-sz czseg" role="group" aria-label="Cỡ biểu đồ" style="--i:${{ s: 0, m: 1, l: 2 }[cvSz()]}"><i class="czs-th" aria-hidden="true"></i>${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
