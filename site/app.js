@@ -625,6 +625,7 @@ let CUR_TAB = "";
 let NTH = null;
 function navThumb() {
   const nav = document.getElementById("tabs"); if (!nav) return;
+  if (innerWidth < 980 && NTH?.classList.contains("drag")) return;      // đang lướt ngón tay trên thanh → giọt kính đi theo ngón, không kéo về
   if (innerWidth < 980) {      // 📱 thanh dưới: viên kính trượt tới mục đang mở (mục chính, nút tuỳ chọn, hoặc "Thêm")
     const vis = (x) => x && x.offsetParent && getComputedStyle(x).display !== "none";
     const on = [...nav.querySelectorAll(":scope > a.on, :scope > .nav-more.on")].find(vis) || [...nav.querySelectorAll(":scope > a.par")].find(vis);
@@ -646,16 +647,36 @@ function navThumb() {
   if (NTH._first) { NTH._first = 0; void NTH.offsetWidth; NTH.style.transition = ""; }
 }
 addEventListener("resize", () => { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 100); });
-document.addEventListener("transitionend", (e) => { if (e.target.id === "tabs" || e.target.closest?.("#tabs")) { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 20); } }, true);      // thanh bên thu gọn / mở rộng
+document.addEventListener("transitionend", (e) => { if ((e.target.id === "tabs" || e.target.closest?.("#tabs")) && !e.target.closest?.("#tabs > a, #tabs > .nav-more, .nthumb") && !NTH?.classList.contains("drag")) { clearTimeout(navThumb._t); navThumb._t = setTimeout(navThumb, 20); } }, true);      // thanh bên thu gọn / mở rộng
 document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980) return; const a = e.target.closest?.("#tabs > a, #tabs > .nav-more"); if (!a || !NTH?.classList.contains("mthumb")) return;
   NTH.classList.remove("jelly"); NTH.classList.add("press"); NTH.style.translate = `${a.offsetLeft}px 0`; NTH.style.width = a.offsetWidth + "px"; NTH.style.opacity = "1"; }, { passive: true });
-document.addEventListener("pointerup", () => { if (innerWidth < 980 && NTH?.classList.contains("press")) setTimeout(() => { if (NTH?.classList.contains("press")) { NTH.classList.remove("press"); requestAnimationFrame(navThumb); } }, 140); }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
+document.addEventListener("pointerup", () => { if (innerWidth < 980 && NTH?.classList.contains("press") && !NTH.classList.contains("drag")) setTimeout(() => { if (NTH?.classList.contains("press") && !NTH.classList.contains("drag")) { NTH.classList.remove("press"); requestAnimationFrame(navThumb); } }, 140); }, { passive: true });      // chạm là viên kính trượt + phồng nhẹ ngay, không chờ trang vẽ xong
 document.addEventListener("pointercancel", () => { if (innerWidth < 980) requestAnimationFrame(navThumb); }, { passive: true });
 // nhóm menu của một trang: đếm các tiêu đề nhóm (.nav-g) đứng trước mục đó trong thanh điều hướng (bỏ qua lối tắt / ghim)
 function navGrpOf(r) {
   if (!r) return null; let g = -1, hit = null;
   for (const n of $("#tabs")?.children || []) { if (n.classList.contains("nav-scg") || n.classList.contains("nav-pins") || n.classList.contains("nav-cus")) continue; if (n.classList.contains("nav-g")) { g++; continue; } if (n.tagName === "A" && n.dataset.r === r) { hit = g; break; } }
   return hit; }
+// 📱 thanh dưới kiểu iOS 26: GIỮ & LƯỚT ngón tay dọc thanh → giọt kính chạy theo ngón (phồng như thấu kính, phóng to biểu tượng bên dưới), thả tay ở mục nào thì mở mục đó
+(function navScrub() {
+  let S = null, sup = 0;
+  const vis = (x) => x.offsetParent && getComputedStyle(x).display !== "none";
+  const under = (L, x) => L.find((a) => { const r = a.getBoundingClientRect(); return x >= r.left && x <= r.right; }) || L.reduce((b, a) => { const r = a.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - x); return !b || d < b.d ? { a, d } : b; }, null)?.a;
+  const end = () => { if (!S) return; S.L.forEach((a) => a.classList.remove("scrub")); NTH?.classList.remove("drag", "press"); S = null; };
+  document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980 || e.button > 0) return; const nav = e.target.closest?.("#tabs"); if (!nav || !e.target.closest("#tabs > a, #tabs > .nav-more")) return;
+    S = { id: e.pointerId, x0: e.clientX, nav, drag: false, L: [...nav.querySelectorAll(":scope > a, :scope > .nav-more")].filter(vis), cur: null }; }, { passive: true });
+  document.addEventListener("pointermove", (e) => { if (!S || e.pointerId !== S.id || !NTH?.classList.contains("mthumb")) return;
+    if (!S.drag) { if (Math.abs(e.clientX - S.x0) < 8) return; S.drag = true; try { S.nav.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } NTH.classList.remove("jelly"); NTH.classList.add("press", "drag"); }
+    const it = under(S.L, e.clientX); if (!it) return;
+    if (it !== S.cur) { S.cur?.classList.remove("scrub"); it.classList.add("scrub"); S.cur = it; navigator.vibrate?.(4); NTH.style.width = it.offsetWidth + "px"; }
+    const nr = S.nav.getBoundingClientRect(), w = it.offsetWidth, x = Math.max(4, Math.min(S.nav.clientWidth - w - 4, e.clientX - nr.left - w / 2));
+    NTH.style.translate = `${x}px 0`; }, { passive: true });
+  document.addEventListener("pointerup", (e) => { if (!S || e.pointerId !== S.id) return; if (!S.drag) { S = null; return; }
+    const it = under(S.L, e.clientX); end(); sup = Date.now() + 450;
+    if (it) { if (it.classList.contains("on")) requestAnimationFrame(navThumb); else it.click(); } else requestAnimationFrame(navThumb); });
+  document.addEventListener("pointercancel", () => { if (S?.drag) { end(); requestAnimationFrame(navThumb); } else S = null; });
+  addEventListener("click", (e) => { if (e.isTrusted && Date.now() < sup && e.target.closest?.("#tabs")) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);      // cú click “thật” sau khi lướt (rơi vào thanh) → bỏ, đã mở bằng lướt
+})();
 function setTab(r) {
   CUR_TAB = r; try { cusDraw(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(navThumb);

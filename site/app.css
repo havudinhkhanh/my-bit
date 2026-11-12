@@ -5864,3 +5864,11 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 }
 /* logo TradingView: giữ 1 lần ở biểu đồ chính (ghi nguồn), không lặp lại ở từng khung phụ RSI/MACD/CVD đè lên đường */
 .pane a[href*="tradingview"],.pane #tv-attr-logo{display:none!important}
+/* 📱 lướt trên thanh dưới: giọt kính bám ngón tay (nhanh, không trễ), phồng to & trong hơn; biểu tượng nằm dưới giọt được "phóng to" như qua thấu kính */
+@media (max-width:979px){
+  .tabs:not(#_t){touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  .tabs.gnav>.nthumb.mthumb.drag{scale:1.22 1.14;transition:translate .11s cubic-bezier(.2,.8,.2,1),width .3s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),scale .35s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),background .2s,box-shadow .2s!important}
+  .tabs:not(#_t)>a.scrub svg,.tabs:not(#_t)>.nav-more.scrub svg{transform:scale(1.22)!important;color:var(--brass,var(--brand))!important}
+  .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>.nav-more.scrub .nav-s{color:var(--ink)!important;font-weight:650}
+  .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>a.scrub svg{transition:transform .25s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),color .15s}
+}
