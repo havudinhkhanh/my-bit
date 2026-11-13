@@ -341,7 +341,12 @@ export class LiveExec {
       else if (c.lv_u40 && c.hk_u40 > 0 && m && ev.pos.ap > 0 && this.peak(ev, m, c, now)) await this.close(ev, "PEAK");      // 💰 tuỳ chọn (mặc định tắt): còn lỗ từ phút hk_u40 → ra ở đỉnh nhịp nảy (vòng 15)
       else if (!ev.pAt || now - ev.pAt > 20000) {      // vị thế còn không? (cắt lỗ trên sàn đã chạy / anh tự đóng)
         ev.pAt = now; const p = await this.pos(ev.sym);
-        if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) await this.finish(ev, "SL", sp || ev.pos.ap, "vị thế đã được đóng trên sàn (cắt lỗ chạy hoặc anh tự đóng)");
+        if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) {
+          // vị thế mất trên sàn: cắt lỗ thảm hoạ của bot đã chạy, HAY anh tự đóng trên app Binance? (trước đây luôn ghi "SL" + giá = giá cắt lỗ → so sánh "bot vs can thiệp" không thấy lần can thiệp này)
+          const xo = await this.extExit(ev, sp);
+          if (xo.manual) { ev.xb = 1; await this.finish(ev, "MANUAL", xo.px || sp || ev.pos.ap, "anh đã đóng trực tiếp trên Binance"); }
+          else await this.finish(ev, "SL", xo.px || sp || ev.pos.ap, "vị thế đã được đóng trên sàn (cắt lỗ chạy)");
+        }
       }
     } else if (ev.lv.every((l) => l.st === "cxl" || (l.st === "filled" && l.fq === 0))) { ev.done = true; this.say(`${ev.sym}: hết ${Math.round((ev.exp - ev.t0) / 60e3)} phút giá không tới lệnh chờ – đã huỷ, không mất phí`); this.missWhy(ev).catch(() => {}); }
     this.save();
@@ -982,6 +987,20 @@ export class LiveExec {
       if (F.L.length > 1000) F.L.splice(0, F.L.length - 1000);
     } catch (e) { /* lần sau thử lại */ }
   }
+  // vị thế bị đóng ngoài bot: giá ra thật (bình quân các lệnh khớp chiều đóng) + có phải lệnh cắt lỗ của bot khớp không
+  async extExit(ev, sp) {
+    const o = { px: null, manual: false };
+    try {
+      const T = await this.req("GET", "/fapi/v1/userTrades", { symbol: ev.sym, startTime: String((ev.pos.t1 || ev.t0 || Date.now()) - 2000), limit: "1000" });
+      const xs = (T || []).filter((t) => (ev.side > 0 ? t.side === "SELL" : t.side === "BUY")), q = xs.reduce((a, t) => a + +t.qty, 0);
+      if (q > 0) o.px = xs.reduce((a, t) => a + +t.qty * +t.price, 0) / q;
+    } catch (e) { /* bỏ qua */ }
+    let fired = null;
+    if (ev.stop?.id && ev.stop.kind === "order") { try { const r = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, orderId: String(ev.stop.id) }); fired = r?.status === "FILLED"; } catch (e) { /* bỏ qua */ } }
+    if (fired == null && o.px && sp) fired = Math.abs(o.px / sp - 1) < 0.006;      // không đọc được lệnh cắt lỗ → giá ra sát giá cắt lỗ thì coi là cắt lỗ chạy
+    o.manual = fired === false;
+    return o;
+  }
   async income(ev) {
     try {
       await new Promise((r) => setTimeout(r, 1500));      // sàn ghi sổ chậm vài trăm ms sau lệnh đóng
@@ -1013,6 +1032,7 @@ export class LiveExec {
     this.S.hist = [...this.S.hist.slice(-199), { id: ev.id, sym: ev.sym, side: ev.side, q: P.q, e: P.ap, x: px, pnl: ev.pnl, fee: +fee.toFixed(4), fund: ev.fund || undefined, k: ev.k, R: ev.R, c0: ev.c0 || undefined, ts: iso(ev.t0), lvp: ev.lv.map((l) => l.px), nl: ev.lv.filter((l) => l.fq > 0).length, net: P.ap && P.q ? +(ev.pnl / (P.q * P.ap) * 1e4).toFixed(1) : null, why, t1: iso(P.t1 || ev.t0), t2: iso(ev.t2), env: ev.env, tot: tot0 > 0 ? tot0 : undefined,
       // ✋ can thiệp tay (biểu đồ "Bot tự động vs có can thiệp"): close = anh đóng · ext = gia hạn · keep = giữ / chờ hoà vốn / đỉnh nảy · enter = vào ngay; h0 = giờ giữ GỐC (phút)
       iv: [why === "MANUAL" && "close", ev.x0 != null && "ext", ev.xm && "keep", ev.ivE && "enter"].filter(Boolean).join(",") || undefined, h0: ev.x0 != null && P.t1 ? +((ev.x0 - P.t1) / 60e3).toFixed(1) : ev.hold,
+      xb: ev.xb || undefined, qm: +(ev.lv.filter((l) => l.mk && l.fq > 0).reduce((a, l) => a + l.fq, 0) || 0) || undefined,      // xb = anh đóng thẳng trên Binance · qm = phần "mua ngay" (bot giữ tới hết giờ, không cắt lỗ đuổi)
       // 🔬 nhật ký thoát (vòng 19): pk/mn = đỉnh lời / đáy lỗ theo giá giữa (bps) · tr = lời lúc quyết định đóng · m = giá giữa lúc đó · sl = giá khớp đóng so với giá giữa (bps, âm = xấu hơn)
       //   hs = giây giữ (từ lúc bot thấy khớp) · lag = giây từ lúc sàn khớp tới lúc bot thấy · dl = giây từ quyết định tới khi đóng xong
       dx: P.ap > 0 ? { pk: isFinite(ev.dpk) ? Math.round(ev.dpk) : null, mn: isFinite(ev.dmn) ? Math.round(ev.dmn) : null, tr: ev.dxp != null ? Math.round(ev.dxp) : null, m: ev.dxm || null,
