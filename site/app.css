@@ -6164,3 +6164,8 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 @media (max-width:760px){.menu.memenu:not(#_m){border-radius:var(--mn-r) var(--mn-r) 0 0!important}}
 :is(.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i):not(#_m){box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;transform:none!important}
 :is(.sc-menu>.btn,.sc-menu>button,.memenu>button):not(#_m)::before,:is(.sc-menu>.btn,.sc-menu>button,.memenu>button):not(#_m)::after{display:none!important}
+
+/* ô biểu tượng đầu dòng trong menu (licAlign): rộng cố định, emoji màu, căn giữa theo dòng chữ */
+.lic{display:inline-flex;justify-content:center;align-items:center;width:1.25em;height:1.3em;margin-right:.5em;flex:none;font-style:normal;font-weight:400;line-height:1;vertical-align:top;
+  font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",var(--font,system-ui),sans-serif}
+.sc-menu>.btn,.memenu>button,.memenu>a{display:flex!important;align-items:center}

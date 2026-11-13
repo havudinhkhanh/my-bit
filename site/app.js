@@ -451,6 +451,26 @@ new MutationObserver((ms) => { if (!rsRq && ms.some((m) => m.target.closest?.("t
 { let tr = 0; addEventListener("resize", () => { clearTimeout(tr); tr = setTimeout(twAll, 150); }); }
 // biểu đồ mới chèn vào trang → gắn ngay trong khung hình kế tiếp (gộp nhiều lần chèn liền nhau thành 1 lần quét)
 let cbRq = 0;
+// 🔤 THẲNG CỘT biểu tượng – chữ trong mọi menu: biểu tượng đầu dòng (emoji / ký hiệu) được bọc vào ô rộng cố định;
+// mục không có biểu tượng trong menu có biểu tượng → thêm ô trống, để chữ của mọi mục bắt đầu cùng 1 cột.
+const LIC_RE = /^(\s*)((?:\p{Extended_Pictographic}|[←-⇿⌀-⏿①-⓿■-➿⤀-⥿⬀-⯿])(?:️|⃣|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*)\s+/u;
+const LIC_ITEM = ".ios-menu-in>button>.ios-t,.ios-menu-in>a>.ios-t,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop-i>.pop-l";
+function licWrap(el) {
+  if (el.firstElementChild?.classList.contains("lic")) return true;
+  let n = el.firstChild; while (n && n.nodeType === 3 && !n.nodeValue.trim()) n = n.nextSibling;
+  if (!n || n.nodeType !== 3) return false;
+  const m = n.nodeValue.match(LIC_RE); if (!m) return false;
+  const i = document.createElement("i"); i.className = "lic"; i.setAttribute("aria-hidden", "true"); i.textContent = m[2];
+  n.nodeValue = n.nodeValue.slice(m[0].length); el.insertBefore(i, n); return true;
+}
+function licAlign(root = document) {
+  const its = root.querySelectorAll?.(LIC_ITEM); if (!its || !its.length) return;
+  const groups = new Map();
+  its.forEach((el) => { const box = el.closest(".ios-menu-in,.sc-menu,.memenu,.pop"); if (!box || box.querySelector(".ios-ic")) return; const has = licWrap(el); (groups.get(box) || groups.set(box, []).get(box)).push([el, has]); });
+  groups.forEach((L) => { if (!L.some(([, h]) => h)) return; L.forEach(([el, h]) => { if (!h && !el.firstElementChild?.classList.contains("lic")) { const i = document.createElement("i"); i.className = "lic lic-0"; i.setAttribute("aria-hidden", "true"); el.prepend(i); } }); });
+}
+let licRq = 0;
+new MutationObserver(() => { if (!licRq) licRq = requestAnimationFrame(() => { licRq = 0; licAlign(); }); }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
 new MutationObserver((ms) => { if (!cbRq && ms.some((m) => m.addedNodes.length && [...m.addedNodes].some((n) => n.nodeType === 1))) cbRq = requestAnimationFrame(() => { cbRq = 0; cbMount(); }); }).observe(document.documentElement, { childList: true, subtree: true });
 function niceTicks(mn, mx, n) {
   const span = mx - mn || 1, raw = span / Math.max(1, n), p = 10 ** Math.floor(Math.log10(raw)), f = raw / p, st = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
