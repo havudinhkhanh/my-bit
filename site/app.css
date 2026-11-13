@@ -6061,3 +6061,14 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .ph .clg-all:hover{color:var(--ink)}
 .clg-ai{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .ph>.meta:has(>.clg-all){margin-left:auto!important}
+
+/* 🤖 vs ✋: 4 ô dạng phép cộng (Bot tự chạy + Can thiệp + Lệnh tay riêng = Thực tế) · biểu đồ | bảng 2 cột khi đủ rộng */
+.iv-ks.iv-ks4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.iv-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:18px;align-items:start}
+.iv-g .iv-t{margin-top:2px}.iv-gt .sc-cap{margin-top:8px}
+.iv-t td,.iv-lt td{vertical-align:top}
+.iv-sub{display:block;font-size:.6875rem;line-height:1.35;margin-top:1px;font-weight:400}
+.iv-t tfoot td{border-top:1px solid var(--line-2);padding-top:7px}
+.iv-lt{max-height:420px}
+@media (max-width:1100px){.iv-ks.iv-ks4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.iv-ks.iv-ks4>:last-child{grid-column:auto}}
