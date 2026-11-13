@@ -241,6 +241,7 @@ export class LiveExec {
     { const why = this.riskOk(tot(lv), c.lv_lev, +h.stop > 0 ? (+h.stop + 0.5) / 100 : 1); if (why) return skip(`🛡️ giới hạn an toàn chung: ${why}`); }
     // không đụng coin anh đang có vị thế
     const pr = await this.pos(sym); if (pr && Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${sym} (${pr.amt}) – bot không đụng vào`);
+    if (this.mPendSyms().has(sym)) return skip(`anh đang có 📍 lệnh chờ giá ${sym} – bot không đụng vào`);
     if (!this.lev[sym]) {
       await this.req("POST", "/fapi/v1/marginType", { symbol: sym, marginType: "ISOLATED" }).catch((e) => { if (e.code !== -4046) throw e; });
       await this.req("POST", "/fapi/v1/leverage", { symbol: sym, leverage: c.lv_lev }); this.lev[sym] = c.lv_lev;
@@ -301,6 +302,7 @@ export class LiveExec {
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
       await this.accrue();
       await this.mManage().catch((e) => this.err("hẹn đóng lệnh tay", e));
+      await this.mPend().catch((e) => { if (!this.mpErrAt || Date.now() - this.mpErrAt > 600e3) { this.mpErrAt = Date.now(); this.err("📍 lệnh chờ giá", e); } });
       await this.mHist().catch((e) => { if (!this.mhErrAt || Date.now() - this.mhErrAt > 900e3) { this.mhErrAt = Date.now(); this.err("đọc lệnh tay đã đóng", e); } });
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
@@ -492,6 +494,8 @@ export class LiveExec {
     else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
     else if (k.startsWith("mw:")) { this.mAt = 0; await this.mSync(true); }
     else if (k.startsWith("mcp:")) { const [, sym, sd, usd, lev, sl, tp, ex, ...rest] = k.split(":"); await this.mCopy(sym, +sd > 0 ? 1 : -1, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +ex || 0, rest.join(":")); }
+    else if (k.startsWith("mlo:")) { const [, sym, sd, pxs, usd, lev, sl, tp, vd, eh] = k.split(":"); await this.mLimit(sym, +sd > 0 ? 1 : -1, +pxs || 0, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +vd || 0, +eh || 0); }
+    else if (k.startsWith("mlc:")) { await this.mPendCancel(k.slice(4), "anh huỷ trên trang"); }
     else if (k.startsWith("mlk:")) { const [, sym, sd, ex, ...rest] = k.split(":"); this.mLink(sym, +sd || 0, +ex || 0, rest.join(":")); this.save(); await this.mSync(true); }
   }
   // ---------------------------------------------------------------- ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot KHÔNG mở) – bot không tự đụng tới.
@@ -512,7 +516,9 @@ export class LiveExec {
       const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
-    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {} };
+    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo"],
+      pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, t0: m.t0, vd: m.vd, eh: m.eh })),
+      pdone: Object.values(this.S.mo || {}).filter((m) => m.done && m.env === env && Date.now() - (m.t2 || 0) < 86400e3).slice(-10).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, st: m.st, t2: m.t2 })) };
   }
   // ⏱ hẹn đóng lệnh tay: theo giờ (exp) và/hoặc theo 1 lệnh sàn thử (pk) – sàn thử đóng lệnh đó (chốt / cắt / hết giờ / anh đóng) → máy chủ đóng lệnh thật luôn
   paperOpen(pk) {
@@ -656,11 +662,95 @@ export class LiveExec {
   }
   async mCancel(sym, pick) {
     const O = await this.req("GET", "/fapi/v1/openOrders", { symbol: sym }).catch(() => []);
-    for (const o of O || []) if (/STOP|TAKE_PROFIT/.test(o.type) && pick(o.type)) await this.req("DELETE", "/fapi/v1/order", { symbol: sym, orderId: o.orderId }).catch(() => {});
+    const keep = new Set(Object.values(this.S.mo || {}).filter((m) => !m.done).map((m) => String(m.oid)));      // 📍 lệnh chờ VÀO lệnh (stop) không phải cắt lỗ / chốt lời → không huỷ nhầm
+    for (const o of O || []) if (/STOP|TAKE_PROFIT/.test(o.type) && pick(o.type) && !keep.has(String(o.orderId))) await this.req("DELETE", "/fapi/v1/order", { symbol: sym, orderId: o.orderId }).catch(() => {});
     const A = await this.req("GET", "/fapi/v1/openAlgoOrders", { symbol: sym }).catch(() => []);
-    for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) if (o.symbol === sym && pick(o.orderType || o.type || "")) await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: o.algoId }).catch(() => {});
+    for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) if (o.symbol === sym && pick(o.orderType || o.type || "") && !keep.has(String(o.algoId))) await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: o.algoId }).catch(() => {});
   }
   // đặt / sửa (px > 0) hoặc huỷ (px = 0) cắt lỗ / chốt lời cho cả vị thế lệnh tay – lệnh điều kiện đóng toàn bộ vị thế, kích hoạt theo giá mark
+  // ---------------------------------------------------------------- 📍 LỆNH CHỜ GIÁ (anh chuột phải / giữ lâu trên biểu đồ → "Long/Short khi giá về X")
+  // Đặt sẵn trên Binance: giá ở phía CÓ LỢI (Long dưới giá hiện tại / Short trên giá) → LIMIT GTC, khớp đúng giá đó hoặc tốt hơn;
+  // phía ngược lại (Long khi vượt lên / Short khi thủng xuống) → STOP_MARKET theo giá khớp gần nhất. Ký quỹ cô lập, đòn bẩy anh chọn.
+  // Khớp → đặt cắt lỗ / chốt lời trên sàn cho CẢ vị thế (như lệnh tay) + hẹn đóng nếu có. Hết hiệu lực chưa khớp → huỷ. Bot không mở lệnh trên mã đang có lệnh chờ của anh.
+  mPendSyms() { return new Set(Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === this.env()).map((m) => m.sym)); }
+  async mLimit(sym, sd, px, usd, lev, sl, tp, vd, eh) {
+    const env = this.env(), tag = `📍 ${coin(sym)} ${sd > 0 ? "Long" : "Short"} khi giá về ${px}`;
+    if (env !== "live" && env !== "demo") return;
+    if (!this.enabled()) { this.say(`${tag}: tài khoản Binance của bot đang tắt${env === "live" ? " hoặc chưa gõ xác nhận tiền thật" : ""} – không đặt`, "info"); return; }
+    if (this.botSyms().has(sym)) { this.say(`${tag}: bot đang có lệnh trên mã này – không đặt (Binance gộp chung vị thế)`, "info"); return; }
+    const F = await this.filters(sym); if (!F) { this.say(`${tag}: mã không giao dịch futures được`, "info"); return; }
+    if (!(px > 0) || !(usd > 0)) { this.say(`${tag}: thiếu giá / số tiền`, "info"); return; }
+    if (sl > 0 && (sd > 0 ? sl >= px : sl <= px)) { this.say(`${tag}: cắt lỗ ${sl} nằm sai phía giá vào – không đặt`, "info"); return; }
+    if (tp > 0 && (sd > 0 ? tp <= px : tp >= px)) { this.say(`${tag}: chốt lời ${tp} nằm sai phía giá vào – không đặt`, "info"); return; }
+    const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
+    const dual0 = await this.req("GET", "/fapi/v1/positionSide/dual").catch(() => ({})), hedge = !!dual0?.dualSidePosition;
+    const P = (L || []).find((x) => x.symbol === sym && +x.positionAmt !== 0 && (!hedge || x.positionSide === (sd > 0 ? "LONG" : "SHORT")));
+    if (P && !hedge && Math.sign(+P.positionAmt) !== sd) { this.say(`${tag}: anh đang có vị thế ${coin(sym)} NGƯỢC chiều (${P.positionAmt}) – lệnh này sẽ đóng bớt vị thế đó chứ không mở mới, không đặt`, "info"); return; }
+    const mk = +((L || []).find((x) => x.symbol === sym)?.markPrice) || this.mark(coin(sym) + ":F");
+    if (!(mk > 0)) { this.say(`${tag}: chưa có giá hiện tại`, "info"); return; }
+    const lim = sd > 0 ? px <= mk * 1.0005 : px >= mk * 0.9995;
+    const pxr = lim ? (sd > 0 ? fl(px, F.tick) : ce(px, F.tick)) : (sd > 0 ? ce(px, F.tick) : fl(px, F.tick)), pxs = pxr.toFixed(F.td);
+    const q = fl(usd / pxr, F.step); if (!(q >= F.minQ) || q * pxr < F.minN) { this.say(`${tag}: ${usd} USDT nhỏ hơn mức tối thiểu của sàn (${F.minN} USDT)`, "info"); return; }
+    if (P) lev = +P.leverage || lev;
+    else {
+      await this.req("POST", "/fapi/v1/marginType", { symbol: sym, marginType: "ISOLATED" }).catch((e) => { if (e.code !== -4046) throw e; });
+      await this.req("POST", "/fapi/v1/leverage", { symbol: sym, leverage: lev }); delete this.lev[sym];
+    }
+    const id = `mo${this.S.seq++}`, cid = `mp${id}${Date.now() % 1e5}`, side = sd > 0 ? "BUY" : "SELL";
+    const base = { symbol: sym, side, quantity: q.toFixed(F.sd) }; if (hedge) base.positionSide = sd > 0 ? "LONG" : "SHORT";
+    let oid = null, algo = 0;
+    if (lim) { const o = await this.req("POST", "/fapi/v1/order", { ...base, type: "LIMIT", timeInForce: "GTC", price: pxs, newClientOrderId: cid }); oid = o.orderId; }
+    else {
+      try { const o = await this.req("POST", "/fapi/v1/order", { ...base, type: "STOP_MARKET", stopPrice: pxs, workingType: "CONTRACT_PRICE", newClientOrderId: cid }); oid = o.orderId; }
+      catch (e) { const o = await this.req("POST", "/fapi/v1/algoOrder", { ...base, algoType: "CONDITIONAL", type: "STOP_MARKET", triggerPrice: pxs, workingType: "CONTRACT_PRICE" }); oid = o.algoId; algo = 1; }
+    }
+    const now = Date.now(), a0 = P ? +P.positionAmt : 0;
+    (this.S.mo ||= {})[id] = { id, env, sym, sd, px: +pxs, q, usd, lev, sl, tp, kind: lim ? "lim" : "stop", oid, algo, hedge, a0, t0: now, vd: vd > now ? vd : now + 7 * 864e5, eh: eh > 0 ? eh : 0, done: false };
+    this.save();
+    const how = lim ? `lệnh giới hạn – khớp khi giá ${sd > 0 ? "xuống" : "lên"} tới ${pxs}` : `lệnh dừng – vào khi giá ${sd > 0 ? "vượt lên" : "thủng xuống"} ${pxs}`;
+    this.say(`${tag}: đã đặt ${q.toFixed(F.sd)} ${coin(sym)} (~${(q * pxr).toFixed(2)} USDT, x${lev} cô lập, ${LTAG(env)}) · ${how}${sl ? ` · cắt lỗ ${sl}` : ""}${tp ? ` · chốt ${tp}` : ""}`, "info");
+    this.note(`mo:${id}`, 1, `${LTAG(env)} · 📍 Lệnh chờ ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`, `${how} · ${q.toFixed(F.sd)} ${coin(sym)} ~${(q * pxr).toFixed(2)} USDT`, `mo:${id}`);
+    this.mAt = 0; await this.mSync(true);
+  }
+  async mPendCancel(id, why) {
+    const m = this.S.mo?.[id]; if (!m || m.done) return;
+    if (m.algo) await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: m.oid }).catch(() => {});
+    else await this.req("DELETE", "/fapi/v1/order", { symbol: m.sym, orderId: m.oid }).catch(() => {});
+    await this.mPendCheck(m, true);      // lỡ khớp 1 phần trước khi huỷ → vẫn đặt cắt lỗ / chốt lời cho phần đã vào
+    if (!m.done) { m.done = true; m.st = "cxl"; m.t2 = Date.now(); this.say(`📍 Huỷ lệnh chờ ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"} @ ${m.px} – ${why}`, "info"); }
+    this.save(); this.mAt = 0; await this.mSync(true);
+  }
+  // kiểm tra 1 lệnh chờ: đã khớp (toàn bộ / 1 phần) → đặt cắt lỗ, chốt lời, hẹn đóng; sàn đã huỷ / hết hạn → bỏ
+  async mPendCheck(m, cancelled) {
+    let st = "", fq = 0;
+    if (m.algo) { const a = await this.req("GET", "/fapi/v1/algoOrder", { algoId: m.oid }).catch(() => null); st = String(a?.algoStatus || a?.status || "").toUpperCase(); fq = +a?.executedQty || 0; }
+    else { const o = await this.req("GET", "/fapi/v1/order", { symbol: m.sym, orderId: m.oid }).catch(() => null); st = String(o?.status || "").toUpperCase(); fq = +o?.executedQty || 0; }
+    let filled = st === "FILLED" || (m.algo && /TRIGGER|FINISH/.test(st)) || fq > 0;
+    if (filled || cancelled || /CANCEL|EXPIRE|REJECT/.test(st)) {      // xác nhận bằng vị thế thật (lệnh dừng kích hoạt nhưng chưa khớp, hay khớp 1 phần)
+      const pr = await this.pos(m.sym); const d = m.sd * ((+pr?.amt || 0) - (m.a0 || 0)); if (d > 0) filled = true; else if (!(fq > 0)) filled = false;
+    }
+    if (filled) {
+      if (!cancelled && st && st !== "FILLED" && !/TRIGGER|FINISH/.test(st)) return;      // khớp 1 phần, lệnh còn chờ → đợi khớp hết
+      m.done = true; m.st = "fill"; m.t2 = Date.now(); this.save();
+      this.say(`📍 ✅ Lệnh chờ ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"} @ ${m.px} đã KHỚP${fq ? ` ${fq}` : ""} (${LTAG(m.env)}) – giờ là ✋ lệnh tay`, "win");
+      this.note(`mof:${m.id}`, 2, `${LTAG(m.env)} · 📍 Đã khớp ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"}`, `giá ${m.px}${m.sl ? ` · cắt lỗ ${m.sl}` : ""}${m.tp ? ` · chốt ${m.tp}` : ""}`, `mo:${m.id}`);
+      this.mAt = 0; await this.mSync(true);
+      if (m.sl > 0) await this.mCond(m.sym, "sl", m.sl).catch((e) => this.err(`📍 ${m.sym}: đặt cắt lỗ`, e));
+      if (m.tp > 0) await this.mCond(m.sym, "tp", m.tp).catch((e) => this.err(`📍 ${m.sym}: đặt chốt lời`, e));
+      if (m.eh > 0 && !this.S.mlk?.[m.sym]) { this.mLink(m.sym, m.sd, Date.now() + m.eh * 3600e3, ""); this.save(); }
+      return;
+    }
+    if (!cancelled && /CANCEL|EXPIRE|REJECT/.test(st)) { m.done = true; m.st = "cxl"; m.t2 = Date.now(); this.save(); this.say(`📍 Lệnh chờ ${coin(m.sym)} @ ${m.px} không còn trên sàn (${st.toLowerCase()})`, "info"); }
+  }
+  async mPend() {
+    const O = Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === this.env()); if (!O.length) return;
+    if (Date.now() - (this.mpAt || 0) < 8e3) return; this.mpAt = Date.now();
+    for (const m of O) {
+      if (Date.now() > m.vd) { await this.mPendCancel(m.id, "hết hiệu lực"); continue; }
+      await this.mPendCheck(m, false);
+    }
+    for (const [k, m] of Object.entries(this.S.mo || {})) if (m.done && Date.now() - (m.t2 || 0) > 3 * 864e5) delete this.S.mo[k];      // dọn lệnh chờ cũ
+  }
   async mCond(sym, kind, px) {
     if (this.botSyms().has(sym)) { this.say(`✋ ${coin(sym)}: bot đang có lệnh trên mã này – không đặt ${kind === "sl" ? "cắt lỗ" : "chốt lời"} riêng`, "info"); return; }
     const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
@@ -715,6 +805,7 @@ export class LiveExec {
     if (O.some((p) => p.sym === s.sym) || this.active().some((e) => e.sym === s.sym)) return skip("đang có lệnh của bot trên coin này");
     const F = await this.filters(s.sym); if (!F) return skip(`${s.sym} không giao dịch được trên ${env === "live" ? "Binance" : "Binance Demo"}`);
     const pr = await this.pos(s.sym); if (Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${s.sym} – bot không đụng vào`);
+    if (this.mPendSyms().has(s.sym)) return skip(`anh đang có 📍 lệnh chờ giá ${s.sym} – bot không đụng vào`);
     const B = this.base(), minN = F.minN * 1.1; let N = Math.max(B * Math.max(1, Math.min(25, +c.sw_lv_sz || 5)) / 100, minN);
     if (N > B * 0.25) return skip(`lệnh nhỏ nhất của sàn ${minN.toFixed(2)} USDT lớn hơn 25% vốn ${B.toFixed(2)} USDT`);
     const usedSw = O.reduce((a, p) => a + p.N, 0); if (usedSw + N > B * 0.6) return skip(`tổng Short bơm đang mở ${usedSw.toFixed(2)} USDT – thêm lệnh này vượt 60% vốn`);
@@ -761,7 +852,7 @@ export class LiveExec {
     const busy = new Set([...this.active().map((e) => e.sym), ...this.swOpen().map((p) => p.sym), ...O.flatMap((p) => p.legs.map((L) => L.sym))]);
     if (x.legs.some((L) => busy.has(L.sym))) return skip("đang có lệnh khác của bot trên coin này");
     const FS = []; for (const L of x.legs) { const F = await this.filters(L.sym); if (!F) return skip(`${L.sym} không giao dịch được trên ${env === "live" ? "Binance" : "Binance Demo"}`); FS.push(F); }
-    for (const L of x.legs) { const pr = await this.pos(L.sym); if (Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${L.sym} – bot không đụng vào`); }
+    for (const L of x.legs) { const pr = await this.pos(L.sym); if (Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${L.sym} – bot không đụng vào`); if (this.mPendSyms().has(L.sym)) return skip(`anh đang có 📍 lệnh chờ giá ${L.sym} – bot không đụng vào`); }
     const B = this.base(), lev = Math.max(1, Math.min(5, +c.lv_lev || 2));
     let N = B * Math.max(1, Math.min(25, +c.lq_sz || 5)) / 100;
     x.legs.forEach((L, i) => { N = Math.max(N, FS[i].minN * 1.1 / L.w); });      // mỗi chân ≥ lệnh nhỏ nhất của sàn

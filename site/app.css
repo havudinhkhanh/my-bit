@@ -5915,3 +5915,16 @@ html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden
   background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26)}
 /* khi một lớp toàn màn hình đang mở (đã tự phủ ấm dải trên cùng) → thanh MyBit về màu gốc, tránh bị ấm 2 lần (nâu sậm hơn phần dưới) */
 html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])) .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
+/* 📍 menu chuột phải trên biểu đồ + bảng lệnh chờ giá */
+.px-menu .ios-menu-in>button .ios-t small{display:block;font-size:.6875rem;font-weight:400;color:var(--ink-3);margin-top:1px}
+.px-menu .ios-menu-in>button .ios-t.up{color:var(--up)}.px-menu .ios-menu-in>button .ios-t.down{color:var(--down)}
+.px-menu .ios-menu-h b{color:var(--ink)}
+.pxo-h{margin:2px 0 10px;text-align:center}
+.pxo-ch{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 4px}
+.pxo-ch button{border:0;border-radius:var(--r-ctl,6px);padding:6px 10px;font:600 .78125rem/1 inherit;font-family:inherit;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink-2);cursor:pointer}
+.pxo-ch button.on{background:var(--surface);color:var(--ink);box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent),0 1px 3px rgba(0,0,0,.12)}
+.sc-oc.mpend{--tint:var(--brass,#C99350)}
+.sc-oc.mpend .r4{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78125rem;overflow-x:auto}
+.ios-menu.px-menu{z-index:1450}#iosSheet{z-index:1460}
+.px-menu .ios-menu-h{text-transform:none!important;letter-spacing:0!important;font-size:.8125rem!important;line-height:1.35;display:block}.px-menu .ios-menu-h b{font-weight:700}.px-menu .ios-menu-h span{font-weight:600}
