@@ -5940,3 +5940,26 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .nb-h time{top:12px!important;right:12px!important;white-space:nowrap;line-height:1.3}
 .nb.out .nb-c,.nb.out .nb-stk{transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .22s ease!important}
 .nb-c{border-radius:16px!important}.nb-stk{border-radius:0 0 12px 12px!important}.nb-ic{border-radius:9px!important}.nb-ex{border-radius:8px!important}
+/* 🫧 banner thông báo – kính iOS (chỉ bật khi thẻ đứng yên: lớp .gl) · góc vuông vức hơn */
+.nb.gl .nb-c{-webkit-backdrop-filter:blur(22px) saturate(1.9)!important;backdrop-filter:blur(22px) saturate(1.9)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 60%),color-mix(in srgb,var(--surface) 70%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 0 0 .5px rgba(255,255,255,.55),0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),0 16px 36px -14px rgba(0,0,0,.42)!important;transition:background .25s ease}
+:root:not([data-theme=light]) .nb.gl .nb-c{background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.02) 60%),color-mix(in srgb,var(--surface) 74%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 .5px rgba(255,255,255,.08),0 16px 36px -12px rgba(0,0,0,.8)!important}
+.nb.gl.nb-real .nb-c{background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,.06) 60%),color-mix(in srgb,#E8B931 12%,color-mix(in srgb,var(--surface) 72%,transparent))!important}
+.nb.gl.sev3 .nb-c{background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,.05) 60%),color-mix(in srgb,var(--down) 12%,color-mix(in srgb,var(--surface) 72%,transparent))!important}
+.nb-c{border-radius:12px!important}.nb-stk{border-radius:0 0 10px 10px!important}.nb-ic{border-radius:8px!important}.nb-ex{border-radius:7px!important}
+.nb-acts .nt-ab{border-radius:7px!important}.nb-mi{border-radius:8px!important}
+/* v4 · BỚT BO GÓC cho mọi lớp nổi (thông báo nhỏ, bảng thông báo, tìm kiếm, hộp thoại, bảng trượt, biểu đồ bật ra, ngăn kéo phương pháp…) – đồng bộ góc 12px */
+#toasts .toast,.toast,.ntp-in,.ntpk-card,.cmdk-in,.lvw-card,.mbd .mbd-w,.msheet-in,.occ-p,.lb-dr-p,.ks-hud,.acp-card,.acp-hero,.lb-col{border-radius:12px!important}
+@media (max-width:979px){.msheet-in{border-radius:12px 12px 0 0!important}}
+/* 📂 bảng Lệnh đã đóng: thu gọn / mở từng ngày */
+.clg-c{display:none!important}
+.clg-h{cursor:pointer;user-select:none;-webkit-user-select:none}
+.clg-h .clg-ch{display:inline-block;width:14px;margin-right:4px;color:var(--ink-3);font-style:normal;transition:transform .2s ease}
+.clg-h .clg-ch::before{content:"▾"}
+.clg-h.clg-x .clg-ch{transform:rotate(-90deg)}
+.clg-h:hover b{color:var(--brass,var(--brand))}
+.clg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
+.clg-all{border:0;border-radius:var(--r-ctl,6px);padding:6px 10px;font:600 .78125rem/1 inherit;font-family:inherit;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink);cursor:pointer}
+.clg-all:hover{background:color-mix(in srgb,var(--ink) 11%,transparent)}

@@ -6502,7 +6502,9 @@ function ntBanner(list) {
   document.body.appendChild(box);
   const card = box.querySelector(".nb-c"), mob = matchMedia("(max-width:979px)").matches;
   let gone = false, tm = 0, open = false;
-  const out = (up = true) => { if (gone) return; gone = true; clearTimeout(tm); box.classList.add(up ? "out" : "out2"); setTimeout(() => box.remove(), 340); };
+  const out = (up = true) => { if (gone) return; gone = true; clearTimeout(tm); box.classList.remove("gl"); box.classList.add(up ? "out" : "out2"); setTimeout(() => box.remove(), 340); };
+  // 🫧 kính mờ kiểu iOS CHỈ khi thẻ đứng yên (sau khi bay vào xong) – bay vào / bay ra / đang kéo thì tắt mờ → mượt
+  setTimeout(() => { if (!gone) box.classList.add("gl"); }, 640);
   box.__out = out;
   const arm = (ms = 7000) => { clearTimeout(tm); if (!open) tm = setTimeout(out, ms); };
   const read = () => { api("notifications/read", "POST", { ids: [n.id, ...more.map((x) => x.id)] }).then(bellCount).catch(() => {}); };
@@ -6514,10 +6516,10 @@ function ntBanner(list) {
   box.addEventListener("mouseenter", () => clearTimeout(tm)); box.addEventListener("mouseleave", () => arm(3500));
   // vuốt: xuống = mở rộng (thẻ giãn theo ngón tay), lên = ẩn
   let y0 = null, dy = 0, moved = false;
-  card.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; dy = 0; moved = false; clearTimeout(tm); card.style.transition = "none"; }, { passive: true });
+  card.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; dy = 0; moved = false; clearTimeout(tm); card.style.transition = "none"; box.classList.remove("gl"); }, { passive: true });
   card.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 6) moved = true; if (!moved) return; if (e.cancelable) e.preventDefault();
     card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, dy / 70).toFixed(3)); }, { passive: false });
-  card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.style.removeProperty("--pull");
+  card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.style.removeProperty("--pull"); setTimeout(() => { if (!gone) box.classList.add("gl"); }, 360);
     if (!moved) { arm(); return; }
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; card.addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => card.removeEventListener("click", eat, { capture: true }), 350);
     if (dy < -28) out(); else if (dy > 36 && !open) setOpen(true); else if (dy < -10 && open) setOpen(false); else arm(); }, { passive: true });
