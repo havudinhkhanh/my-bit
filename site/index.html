@@ -15,6 +15,7 @@
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
+<script>/* iPhone / iPad: Safari lấy màu thanh trạng thái từ thanh trên cùng → lớp ánh sáng ấm chừa dải đó (chỉ trên iOS) */if(/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1))document.documentElement.classList.add("nl-ios");</script>
 <script>/* mở từ màn hình chính (PWA) → đánh dấu để khoá kéo dãn cả trang */if(matchMedia("(display-mode: standalone)").matches||navigator.standalone===true)document.documentElement.classList.add("pwa");</script>
 <script>(function(){var d=document.documentElement,p="dark";try{p=JSON.parse(localStorage.getItem("mybit_theme"))||"dark"}catch(e){}var t=p==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):p==="light"?"light":"dark";d.dataset.theme=t;d.dataset.thp=p;try{var n=JSON.parse(localStorage.getItem("mybit_nl"))||{},h=new Date().getHours();if(n.on&&(!n.auto||h>=19||h<6)){d.dataset.nl="1";d.style.setProperty("--nl",String(0.05+(n.w==null?45:n.w)/100*0.55))}}catch(e){}if(t==="light"){var m=document.getElementById("thc")||document.querySelector('meta[name="theme-color"]');if(m)m.content="#ECEEF1"}})()</script>
 <!-- màn hình mở app trên iPhone (hiện ngay khi chạm biểu tượng, trước cả khi tải trang) -->

@@ -5873,10 +5873,11 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   .tabs:not(#_t)>a.scrub .nav-s,.tabs:not(#_t)>a.scrub svg{transition:transform .25s var(--g-spring,cubic-bezier(.3,1.28,.45,1)),color .15s}
 }
 /* ================================================================ 🌙 ÁNH SÁNG ẤM – lớp cam nhân màu phủ cả trang (không chặn chạm), độ đậm = --nl */
-html[data-nl]::after{content:"";position:fixed;left:0;right:0;top:var(--top-h,calc(56px + env(safe-area-inset-top,0px)));bottom:calc(-50vh - env(safe-area-inset-bottom,0px));z-index:2147483647;pointer-events:none;background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
+html[data-nl]::after{content:"";position:fixed;left:0;right:0;top:0;bottom:calc(-50vh - env(safe-area-inset-bottom,0px));z-index:2147483647;pointer-events:none;background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26);transition:opacity .25s ease}
 /* thanh trên cùng (MyBit) KHÔNG nằm dưới lớp phủ → Safari iPhone lấy đúng màu NỀN ĐẶC của thanh để tô vùng giờ/pin (trước: lớp phủ nằm trên cùng → Safari cho chữ trang chạy lộ lên);
    thanh tự mang màu ấm đã tính sẵn (--nl-top), vùng kéo nảy dưới đáy dùng --nl-bg */
-html[data-nl] .top:not(#_t){background:var(--nl-top,var(--surface))!important}
+html.nl-ios[data-nl]::after{top:var(--top-h,calc(56px + env(safe-area-inset-top,0px)))}
+html.nl-ios[data-nl] .top:not(#_t){background:var(--nl-top,var(--surface))!important}
 html[data-nl]{background-color:var(--nl-bg,var(--bg))!important}
 #theme.nl-on{position:relative}#theme.nl-on::after{content:"";position:absolute;right:5px;top:5px;width:6px;height:6px;border-radius:2px;background:#E2B072;box-shadow:0 0 5px #E2B072}
 .ios-menu-sep{height:6px;background:color-mix(in srgb,var(--ink) 7%,transparent)}
@@ -5910,11 +5911,11 @@ html[data-nl]{background-color:var(--nl-bg,var(--bg))!important}
 body.pn-sheet .pnav .edge-grip,body.pn-sheet .pnav .eg-btn{display:none!important}
 /* 🌙 lớp ấm chính chừa thanh MyBit (để Safari iPhone tô vùng giờ/pin bằng màu đặc của thanh). Các lớp TOÀN MÀN HÌNH mở đè lên thanh
    (bảng phụ, bảng Thêm, tìm kiếm, thông báo, menu, hộp thoại, biểu đồ toàn màn hình…) tự phủ thêm đúng dải trên cùng đó → cả màn ấm đều, không còn dải trắng */
-html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden]))::before{
+html.nl-ios[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden]))::before{
   content:"";position:fixed;left:0;right:0;top:0;height:var(--top-h,calc(56px + env(safe-area-inset-top,0px)));z-index:2147483647;pointer-events:none;
   background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26)}
 /* khi một lớp toàn màn hình đang mở (đã tự phủ ấm dải trên cùng) → thanh MyBit về màu gốc, tránh bị ấm 2 lần (nâu sậm hơn phần dưới) */
-html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])) .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
+html.nl-ios[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])) .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
 /* 📍 menu chuột phải trên biểu đồ + bảng lệnh chờ giá */
 .px-menu .ios-menu-in>button .ios-t small{display:block;font-size:.6875rem;font-weight:400;color:var(--ink-3);margin-top:1px}
 .px-menu .ios-menu-in>button .ios-t.up{color:var(--up)}.px-menu .ios-menu-in>button .ios-t.down{color:var(--down)}
@@ -6311,9 +6312,4 @@ select:not([multiple]):not([size]):not(.dpane select):not(#_s){-webkit-appearanc
 select:not([multiple]):not([size]):not(#_s)::-ms-expand{display:none}
 :is(.ph,.ex-sty,.admt) select:not([multiple]):not(#_s){padding-right:24px!important;background-position:right 7px center!important;background-size:11px 11px!important}
 
-/* 🌙 ánh sáng ấm trên MÁY TÍNH (≥980px): lớp ấm phủ từ mép trên cùng (gồm cả thanh trên & phần đầu thanh bên) – chừa dải trên chỉ cần cho iPhone
-   (Safari lấy màu thanh trạng thái). Trước đây đầu thanh bên nằm trong dải chừa → trắng; thanh trên thì tự tô sẵn nên giờ trả về màu gốc để khỏi tô 2 lần. */
-@media (min-width:980px){
-  html[data-nl]::after{top:0!important}
-  html[data-nl] .top:not(#_t):not(#_u){background:var(--nl-top0,var(--surface))!important}
-}
+/* 🌙 ánh sáng ấm: lớp ấm phủ TỪ MÉP TRÊN trên mọi máy; riêng iPhone/iPad (html.nl-ios) chừa dải thanh trên để Safari lấy đúng màu thanh trạng thái */
