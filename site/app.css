@@ -6182,3 +6182,21 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
   .occ.out .occ-p{transform:translateY(100%);transition:transform .26s cubic-bezier(.4,0,1,1)!important}}
 @media (prefers-reduced-motion:reduce){.occ-p,.occ-bg{transition:opacity .12s!important;transform:none!important}}
 body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity:0}}
+/* thanh công cụ biểu đồ: nhóm bật/tắt (EMA · Khối lượng · RSI) = cùng 1 kiểu "rãnh" với dãy khung giờ bên cạnh → cao bằng nhau (34px: rãnh 3px + nút 28px) */
+:is(.occ-tg,.cv-chart .cops):not(#_t){display:inline-flex;align-items:center;gap:2px!important;padding:3px;border-radius:8px;background:var(--fill);flex:none;align-self:stretch}
+:is(.occ-tg button,.cv-chart .cops .chk):not(#_t){height:28px!important;padding:0 10px!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;
+  color:var(--ink-3);font-size:.78rem!important;font-weight:550;white-space:nowrap;transition:background-color .15s,color .15s,box-shadow .15s}
+:is(.occ-tg button:hover,.cv-chart .cops .chk:hover):not(#_t){color:var(--ink)}
+:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t){background:var(--surface)!important;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12),0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent)!important}
+:root:not([data-theme=light]) :is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t){background:color-mix(in srgb,var(--ink) 14%,var(--surface))!important}
+:is(.occ-bar,.cv-chart .cbar){align-items:stretch!important}
+:is(.occ-tf,.cv-chart .tfseg){align-self:stretch}
+/* nút cỡ biểu đồ S·M·L·⛶ – bớt bo (v4): rãnh 8px, nút & con trượt 6px */
+.cbt:not(#_c),.czseg:not(#_c){border-radius:8px!important}
+.cbt button:not(#_c),.czseg button:not(#_c),.czs-th{border-radius:6px!important}
+/* trang coin: dãy khung giờ & nhóm bật/tắt cao bằng nhau, nhóm bật/tắt chỉ rộng vừa nội dung */
+.cv-chart .tfseg button:not(#_t){height:28px!important}
+.cv-chart .cops:not(#_t){flex:0 0 auto!important;width:auto}
+.cv-chart .cops .chk input{margin:0}
+:is(.cv-chart .tfseg,.occ-tf)>button:not(#_t){height:28px!important;min-height:28px!important}
+:is(.occ-tg button,.cv-chart .cops .chk):not(#_t){min-height:28px!important}
