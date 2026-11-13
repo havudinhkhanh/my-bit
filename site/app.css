@@ -5960,7 +5960,6 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .clg-h .clg-ch::before{content:"▾"}
 .clg-h.clg-x .clg-ch{transform:rotate(-90deg)}
 .clg-h:hover .clg-lb b,.lvt-dhm.clg-h:hover>b:first-child{color:var(--brass,var(--brand))}
-.clg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
 .clg-all{border:0;border-radius:var(--r-ctl,6px);padding:6px 10px;font:600 .78125rem/1 inherit;font-family:inherit;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink);cursor:pointer}
 .clg-all:hover{background:color-mix(in srgb,var(--ink) 11%,transparent)}
 /* ================================================================ 🔔 ĐỌC / CHƯA ĐỌC – kiểu iOS 27 Mail / Android 17:
@@ -6054,3 +6053,11 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 /* dòng tổng ngày dính trên đầu khi cuộn: ngày SAU luôn đè lên ngày TRƯỚC (z tăng dần theo thứ tự) → chữ ngày cũ không lòi ra */
 .lvt-t tr.lvt-dh2 td{z-index:var(--z,2)!important}
 .lvt-t tr.lvt-dh2 td.clg-d{z-index:calc(var(--z,2) + 1)!important}
+
+/* nút thu / mở tất cả các ngày nằm cùng hàng tiêu đề bảng (không tốn 1 dòng riêng) */
+.ph:has(>.meta>.clg-all){align-items:center}
+.ph>.meta:has(>.clg-all){display:inline-flex;align-items:center;gap:10px}
+.ph .clg-all{display:inline-flex;align-items:center;gap:6px;padding:5px 9px 5px 8px;font:600 .75rem/1 inherit;font-family:inherit;color:var(--ink-2);white-space:nowrap}
+.ph .clg-all:hover{color:var(--ink)}
+.clg-ai{width:13px;height:13px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ph>.meta:has(>.clg-all){margin-left:auto!important}
