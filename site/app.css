@@ -6114,3 +6114,21 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .sc-omdd{border-radius:var(--r-ctl,7px)!important;min-height:34px}
 .sc-omdd.on{background:color-mix(in srgb,var(--brand) 14%,var(--fill))!important;color:var(--ink)!important;box-shadow:inset 0 0 0 .5px color-mix(in srgb,var(--brand) 32%,transparent)}
 @media (prefers-reduced-motion:reduce){.ios-hl{transition:opacity .1s}}
+
+/* bảng từng lệnh có can thiệp: 1 hàng / lệnh, gọn */
+.iv-lt-t th,.iv-lt-t td{white-space:nowrap;padding-top:6px!important;padding-bottom:6px!important;vertical-align:middle!important}
+.iv-lt-t td{font-variant-numeric:tabular-nums}
+.iv-lt-t td:nth-child(4){color:var(--ink-3)}
+.iv-lt{max-height:360px}
+@media (max-width:760px){
+  table.rs.iv-lt-t tr{grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;padding:8px 10px;margin-bottom:5px}
+  table.rs.iv-lt-t td::before{display:none!important}
+  table.rs.iv-lt-t td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.8125rem}
+  table.rs.iv-lt-t td:nth-child(1){grid-column:1;grid-row:1}
+  table.rs.iv-lt-t td:nth-child(6){grid-column:2;grid-row:1;text-align:right!important}
+  table.rs.iv-lt-t td:nth-child(2){grid-column:1;grid-row:2}
+  table.rs.iv-lt-t td:nth-child(3){grid-column:2;grid-row:2;text-align:right!important}
+  table.rs.iv-lt-t td:nth-child(4){grid-column:1;grid-row:3}
+  table.rs.iv-lt-t td:nth-child(4)::before{content:"🤖 "!important;display:inline!important;font-size:.75rem}
+  table.rs.iv-lt-t td:nth-child(5){grid-column:2;grid-row:3;text-align:right!important}
+}
