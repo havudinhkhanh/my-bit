@@ -5959,7 +5959,7 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .clg-h .clg-ch{display:inline-block;width:14px;margin-right:4px;color:var(--ink-3);font-style:normal;transition:transform .2s ease}
 .clg-h .clg-ch::before{content:"▾"}
 .clg-h.clg-x .clg-ch{transform:rotate(-90deg)}
-.clg-h:hover b{color:var(--brass,var(--brand))}
+.clg-h:hover .clg-lb b,.lvt-dhm.clg-h:hover>b:first-child{color:var(--brass,var(--brand))}
 .clg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
 .clg-all{border:0;border-radius:var(--r-ctl,6px);padding:6px 10px;font:600 .78125rem/1 inherit;font-family:inherit;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink);cursor:pointer}
 .clg-all:hover{background:color-mix(in srgb,var(--ink) 11%,transparent)}
@@ -6029,3 +6029,25 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .clg-h .clg-ch{margin:0 0 0 6px!important;width:16px!important;text-align:center;align-self:center;flex:none}
 .lvt-t tr.clg-h td>div>b:nth-last-child(2),.lvt-dhm.clg-h>b:nth-last-child(2){margin-left:auto;font-size:var(--fs-base)}
 .clg-h .clg-ch::before{content:"▾";font-size:.8125rem}
+/* 📊 bảng Lệnh đã đóng v4 – dòng TỔNG NGÀY thẳng cột, tách bạch rõ (khoảng trống phía trên, nền nhạt, chữ đậm), nhiều thông tin hơn */
+.lvt-t tr.lvt-dh2 td{position:sticky;top:29px;z-index:2;padding:9px 10px!important;background:color-mix(in srgb,var(--ink) 4.5%,var(--surface))!important;
+  border-top:1px solid color-mix(in srgb,var(--ink) 10%,transparent)!important;border-bottom:1px solid color-mix(in srgb,var(--ink) 10%,transparent)!important;vertical-align:middle;text-align:right!important}
+.lvt-t tr.lvt-dh2 td.l{text-align:left!important}
+.lvt-t tbody tr.lvt-dh2:not(:first-child) td{box-shadow:inset 0 10px 0 var(--surface)!important;padding-top:19px!important}      /* khe hở 10px giữa các ngày */
+.lvt-t tr.lvt-dh2 td.clg-d{position:sticky}
+.clg-sp{visibility:hidden;display:inline-block;height:34px;width:0}
+.clg-lb{position:absolute;left:10px;top:calc(50% + var(--gp,0px));transform:translateY(-50%);display:flex;flex-direction:column;gap:1px;white-space:nowrap;pointer-events:none}
+.lvt-t tbody tr.lvt-dh2:not(:first-child) .clg-lb{--gp:5px}
+.clg-lb b{font-size:.9375rem;font-weight:700;color:var(--ink)}
+.clg-lb small{font-size:.71875rem;color:var(--ink-2)}
+.lvt-dh2 .lvt-pl b{font-size:1.0625rem;font-weight:800}
+.lvt-dh2 small{font-size:.75rem}
+.clg-wr{display:inline-block;width:46px;height:5px;border-radius:3px;background:color-mix(in srgb,var(--down) 55%,transparent);overflow:hidden;vertical-align:middle;margin-right:6px}
+.clg-wr i{display:block;height:100%;width:var(--w);background:var(--up);border-radius:3px 0 0 3px}
+.lvt-dh2 .clg-ch{display:inline-block}
+.lvt-t tbody tr.lvt-dh2:hover td{background:color-mix(in srgb,var(--ink) 7%,var(--surface))!important}
+/* hàng lệnh: dòng ngăn mảnh hơn, hover rõ */
+.lvt-t tbody tr:not(.lvt-dh):not(.lvt-cr) td{border-bottom-color:color-mix(in srgb,var(--ink) 6%,transparent)!important}
+.lvt-t tr.lvt-dh2 td.clg-d{overflow:visible!important;z-index:3!important;max-width:none!important;text-overflow:clip!important}.clg-lb{text-align:left;align-items:flex-start}
+.lvt-t tr.lvt-dh2 td>div.clg-lb{display:flex!important;flex-direction:column!important;gap:2px!important;align-items:flex-start!important;text-align:left!important}
+.clg-lb>b,.clg-lb>small{margin-left:0!important}
