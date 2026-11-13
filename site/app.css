@@ -5929,3 +5929,14 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .ios-menu.px-menu{z-index:1450}#iosSheet{z-index:1460}
 .px-menu .ios-menu-h{text-transform:none!important;letter-spacing:0!important;font-size:.8125rem!important;line-height:1.35;display:block}.px-menu .ios-menu-h b{font-weight:700}.px-menu .ios-menu-h span{font-weight:600}
 .pxo-mode{display:flex;gap:2px;padding:3px;border-radius:8px;margin:0 0 10px}.pxo-mode button{flex:1;font-size:.8125rem!important;padding:8px 6px!important}.pxo-old{font-size:.8125rem;line-height:1.45;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--ink) 5%,transparent);margin:0 0 6px}.pxo-old>small{display:block;color:var(--ink-3);font-size:.6875rem;text-transform:uppercase;letter-spacing:.04em}
+/* 🔔 banner thông báo: KHÔNG làm mờ nền (backdrop-filter) trên thẻ đang bay vào / ra → hết giật; nền gần đặc + bóng nhẹ thay cho kính mờ.
+   Chừa chỗ cho giờ "bây giờ" ở góc phải → chip lời/lỗ không đè chữ */
+.nb-c,.nb-stk{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;will-change:transform,opacity;transform:translateZ(0)}
+.nb-c{background:color-mix(in srgb,var(--surface) 98%,var(--ink) 2%)!important;box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),0 14px 34px -14px rgba(0,0,0,.45),0 2px 6px rgba(0,0,0,.08)!important}
+.nb.nb-real .nb-c{background:color-mix(in srgb,#E8B931 9%,var(--surface))!important}
+.nb.sev3 .nb-c{background:color-mix(in srgb,var(--down) 10%,var(--surface))!important}
+.nb-stk{background:color-mix(in srgb,var(--surface) 92%,var(--ink) 5%)!important}
+.nb-t1{padding-right:30px}
+.nb-h time{top:12px!important;right:12px!important;white-space:nowrap;line-height:1.3}
+.nb.out .nb-c,.nb.out .nb-stk{transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .22s ease!important}
+.nb-c{border-radius:16px!important}.nb-stk{border-radius:0 0 12px 12px!important}.nb-ic{border-radius:9px!important}.nb-ex{border-radius:8px!important}
