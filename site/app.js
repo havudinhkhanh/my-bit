@@ -6161,7 +6161,7 @@ function ntfRow(n) {
   // dòng thời gian của lệnh: các mốc trước → mốc hiện tại
   const tl = n._steps?.length ? `<span class="nt-tl">${[...n._steps].reverse().concat([{ n, st: n._st }]).map((s, i, A) => `<span class="nt-st${i === A.length - 1 ? " cur" : ""}">${bi(NT_ST[s.st]?.[1] || "", NT_ST[s.st]?.[2] || "")} ${hm(s.n.created_at)}</span>`).join('<span class="nt-ar" aria-hidden="true">→</span>')}</span>` : "";
   const stb = n._ref && !n._steps?.length ? `<span class="nt-tl"><span class="nt-st cur s-${n._st}">${bi(NT_ST[n._st]?.[1] || "", NT_ST[n._st]?.[2] || "")}</span></span>` : "";
-  return `<div class="nt-i ${unr ? "new" : ""} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"><span class="nt-ic" aria-hidden="true">${ic}</span>
+  return `<div class="nt-i ${unr ? "new" : "rd"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"${unr ? ` aria-label="${bi("Chưa đọc", "Unread")}: ${esc(viDec(title))}"` : ""}><span class="nt-dot" aria-hidden="true"></span><span class="nt-ic" aria-hidden="true">${ic}</span>
     <span class="nt-b"><span class="nt-h1"><b>${esc(viDec(title))}</b></span>${plc}${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m">${accB}${tl || stb}${acc ? "" : `<span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}`}<span class="nt-ago">${tl ? "" : `${tm} · `}${agoShort(n.created_at)}</span></small></span></a>
     ${!unr ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}${ntActsHtml(n)}</div>`;
 }
@@ -6169,8 +6169,11 @@ function ntfRow(n) {
 function ntfList(items, f) {
   const L = ntThread(items.filter((n) => f === "all" || (f === "new" ? !n.read_at : ntfGrp(n.kind)[0] === f)));
   if (!L.length) return `<p class="nt-empty">${items.length ? "Không có thông báo nào trong mục này." : NEMPTY}</p>`;
-  const by = []; for (const n of L) { const d = ntfDay(n.created_at); if (!by.length || by[by.length - 1][0] !== d) by.push([d, []]); by[by.length - 1][1].push(n); }
-  return by.map(([d, X]) => `<h4 class="nt-d">${esc(d)}</h4>${X.map(ntfRow).join("")}`).join("");
+  // kiểu iOS / Android mới: CHƯA ĐỌC gom lên đầu (mục "Mới"), ĐÃ ĐỌC xếp dưới theo ngày, nhạt hơn → nhìn là biết
+  const U = L.filter((n) => !n.read_at || n._un), Rd = L.filter((n) => !(!n.read_at || n._un));
+  const by = []; for (const n of Rd) { const d = ntfDay(n.created_at); if (!by.length || by[by.length - 1][0] !== d) by.push([d, []]); by[by.length - 1][1].push(n); }
+  return (U.length ? `<h4 class="nt-d nt-dn"><span>${bi("Mới", "New")}</span><em>${U.length}</em><button type="button" class="nt-rall" data-rall>${bi("Đánh dấu đã đọc hết", "Mark all read")}</button></h4>${U.map(ntfRow).join("")}` : "")
+    + by.map(([d, X], i) => `<h4 class="nt-d${U.length && i === 0 ? " nt-do" : ""}">${U.length && i === 0 ? `${bi("Đã xem", "Earlier")} · ` : ""}${esc(d)}</h4>${X.map(ntfRow).join("")}`).join("");
 }
 function ntfChips(items, f) {
   const cnt = {}; for (const n of items) { const g = ntfGrp(n.kind)[0]; cnt[g] = (cnt[g] || 0) + 1; }
@@ -6178,7 +6181,9 @@ function ntfChips(items, f) {
   const C = [["all", "Tất cả", items.length], ["new", "Chưa đọc", un], ...NGRP.filter((g) => cnt[g[0]]).map((g) => [g[0], g[1], cnt[g[0]]]), ...(cnt.other ? [["other", "Khác", cnt.other]] : [])];
   return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
 }
-function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => ntBindRow(it, items, redraw)); }
+function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => ntBindRow(it, items, redraw));
+  $$("[data-rall]", root).forEach((b) => (b.onclick = async (e) => { e.preventDefault(); e.stopPropagation(); const ids = items.filter((n) => !n.read_at || n._un).map((n) => n.id); if (!ids.length) return;
+    b.disabled = true; await api("notifications/read", "POST", { ids }).catch(() => {}); items.forEach((n) => { if (ids.includes(n.id)) { n.read_at ||= "x"; delete n._un; } }); redraw?.(); bellCount(); })); }
 function ntBindRow(it, items, redraw) {
   if (it._b) return; it._b = { items, redraw };
   const n = () => items?.find((x) => x.id === Number(it.dataset.nid));

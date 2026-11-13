@@ -5963,3 +5963,36 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .clg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px}
 .clg-all{border:0;border-radius:var(--r-ctl,6px);padding:6px 10px;font:600 .78125rem/1 inherit;font-family:inherit;background:color-mix(in srgb,var(--ink) 7%,transparent);color:var(--ink);cursor:pointer}
 .clg-all:hover{background:color-mix(in srgb,var(--ink) 11%,transparent)}
+/* ================================================================ 🔔 ĐỌC / CHƯA ĐỌC – kiểu iOS 27 Mail / Android 17:
+   CHƯA ĐỌC = chấm xanh đặc ở cột riêng bên trái + tiêu đề đậm màu chữ chính + thẻ nổi (nền thẻ, bóng nhẹ) · nằm ở mục "Mới" trên cùng
+   ĐÃ ĐỌC  = không chấm + chữ thường, xám hơn + biểu tượng mờ + nền phẳng (chìm xuống) · xếp dưới "Đã xem" theo ngày
+   (bỏ nền vàng của lệnh tiền thật khỏi cả thẻ – chỉ giữ nhãn "Tiền thật" + vạch vàng mảnh, để màu nền chỉ còn nghĩa ĐỌC/CHƯA ĐỌC) */
+:root{--nt-un:#0A84FF}:root[data-theme=light]{--nt-un:#007AFF}
+.nt-i.new .nt-b b::before{display:none!important}
+.nt-dot{flex:none;width:8px;height:8px;margin:14px -2px 0 -2px;border-radius:50%;background:transparent;transition:background .2s,transform .25s var(--g-spring,ease)}
+.nt-i.new .nt-dot{background:var(--nt-un);box-shadow:0 0 0 3px color-mix(in srgb,var(--nt-un) 18%,transparent)}
+.ntp-l .nt-i,.nt-page .nt-i{position:relative}
+.ntp-l .nt-i.new,.nt-page .nt-i.new,.ntp-l .nt-i.new.nt-real,.nt-page .nt-i.new.nt-real,.ntp-l .nt-i.new.nt-demo,.nt-page .nt-i.new.nt-demo{
+  background:var(--surface)!important;box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),0 4px 14px -8px rgba(15,23,42,.3)!important}
+.ntp-l .nt-i.rd,.nt-page .nt-i.rd,.ntp-l .nt-i.rd.nt-real,.nt-page .nt-i.rd.nt-real,.ntp-l .nt-i.rd.nt-demo,.nt-page .nt-i.rd.nt-demo{background:transparent!important;box-shadow:none!important}
+.ntp-l .nt-i.rd:hover,.nt-page .nt-i.rd:hover{background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+.ntp-l .nt-i.new:hover,.nt-page .nt-i.new:hover{background:color-mix(in srgb,var(--nt-un) 4%,var(--surface))!important}
+.nt-i.new .nt-b b{font-weight:700!important;color:var(--ink)!important}
+.nt-i.new .nt-t{color:var(--ink-2)}
+.nt-i.rd .nt-b b{font-weight:500!important;color:var(--ink-2)!important}
+.nt-i.rd .nt-t{color:var(--ink-3)!important}
+.nt-i.rd .nt-ic{opacity:.55;filter:saturate(.5)}
+.nt-i.rd .nt-pl{opacity:.75}
+.nt-i.nt-real::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:#E8B931;opacity:1}
+.nt-i.rd.nt-real::after{opacity:.4}
+/* tiêu đề mục */
+.nt-d.nt-dn{display:flex;align-items:center;gap:8px;color:var(--ink)!important}
+.nt-d.nt-dn em{font-style:normal;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--nt-un);color:#fff;font-size:.6875rem;font-weight:700;display:inline-grid;place-items:center}
+.nt-rall{margin-left:auto;border:0;background:transparent;color:var(--nt-un);font:600 .75rem/1 inherit;font-family:inherit;cursor:pointer;padding:4px 2px;text-transform:none;letter-spacing:0}
+.nt-rall:hover{text-decoration:underline}
+.nt-d.nt-do{margin-top:14px;color:var(--ink-3)!important}
+.nt-d.nt-ds{font-size:.6875rem;opacity:.8}
+/* nút đánh dấu: chưa đọc → "✓" ; đã đọc → chấm rỗng (đánh dấu chưa đọc) */
+.nt-i.new .nt-rd{border-color:color-mix(in srgb,var(--nt-un) 35%,var(--bd));color:var(--nt-un)}
+/* trang Thông báo trên điện thoại: 3 nút đầu trang không tràn ra ngoài màn hình */
+@media (max-width:700px){.nt-bar{display:grid!important;grid-template-columns:1fr 1fr;gap:8px!important}.nt-bar .btn{min-width:0;white-space:normal;justify-content:center;text-align:center;font-size:.8125rem;padding:9px 8px;line-height:1.25}.nt-bar .btn:last-child{grid-column:1/-1}}
