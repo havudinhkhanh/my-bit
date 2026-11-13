@@ -5928,3 +5928,4 @@ html[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden
 pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78125rem;overflow-x:auto}
 .ios-menu.px-menu{z-index:1450}#iosSheet{z-index:1460}
 .px-menu .ios-menu-h{text-transform:none!important;letter-spacing:0!important;font-size:.8125rem!important;line-height:1.35;display:block}.px-menu .ios-menu-h b{font-weight:700}.px-menu .ios-menu-h span{font-weight:600}
+.pxo-mode{display:flex;gap:2px;padding:3px;border-radius:8px;margin:0 0 10px}.pxo-mode button{flex:1;font-size:.8125rem!important;padding:8px 6px!important}.pxo-old{font-size:.8125rem;line-height:1.45;padding:8px 10px;border-radius:8px;background:color-mix(in srgb,var(--ink) 5%,transparent);margin:0 0 6px}.pxo-old>small{display:block;color:var(--ink-3);font-size:.6875rem;text-transform:uppercase;letter-spacing:.04em}

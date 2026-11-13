@@ -494,7 +494,7 @@ export class LiveExec {
     else if (k.startsWith("mst:") || k.startsWith("mtp:")) { const [kd, sym, pxs] = k.split(":"); await this.mCond(sym, kd === "mst" ? "sl" : "tp", +pxs || 0); }
     else if (k.startsWith("mw:")) { this.mAt = 0; await this.mSync(true); }
     else if (k.startsWith("mcp:")) { const [, sym, sd, usd, lev, sl, tp, ex, ...rest] = k.split(":"); await this.mCopy(sym, +sd > 0 ? 1 : -1, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +ex || 0, rest.join(":")); }
-    else if (k.startsWith("mlo:")) { const [, sym, sd, pxs, usd, lev, sl, tp, vd, eh] = k.split(":"); await this.mLimit(sym, +sd > 0 ? 1 : -1, +pxs || 0, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +vd || 0, +eh || 0); }
+    else if (k.startsWith("mlo:")) { const [, sym, sd, pxs, usd, lev, sl, tp, vd, eh, av] = k.split(":"); await this.mLimit(sym, +sd > 0 ? 1 : -1, +pxs || 0, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +vd || 0, +eh || 0, av === "1"); }
     else if (k.startsWith("mlc:")) { await this.mPendCancel(k.slice(4), "anh huỷ trên trang"); }
     else if (k.startsWith("mlk:")) { const [, sym, sd, ex, ...rest] = k.split(":"); this.mLink(sym, +sd || 0, +ex || 0, rest.join(":")); this.save(); await this.mSync(true); }
   }
@@ -517,7 +517,7 @@ export class LiveExec {
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
     this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo"],
-      pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, t0: m.t0, vd: m.vd, eh: m.eh })),
+      pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, avg: !!m.avg, t0: m.t0, vd: m.vd, eh: m.eh })),
       pdone: Object.values(this.S.mo || {}).filter((m) => m.done && m.env === env && Date.now() - (m.t2 || 0) < 86400e3).slice(-10).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, st: m.st, t2: m.t2 })) };
   }
   // ⏱ hẹn đóng lệnh tay: theo giờ (exp) và/hoặc theo 1 lệnh sàn thử (pk) – sàn thử đóng lệnh đó (chốt / cắt / hết giờ / anh đóng) → máy chủ đóng lệnh thật luôn
@@ -673,8 +673,8 @@ export class LiveExec {
   // phía ngược lại (Long khi vượt lên / Short khi thủng xuống) → STOP_MARKET theo giá khớp gần nhất. Ký quỹ cô lập, đòn bẩy anh chọn.
   // Khớp → đặt cắt lỗ / chốt lời trên sàn cho CẢ vị thế (như lệnh tay) + hẹn đóng nếu có. Hết hiệu lực chưa khớp → huỷ. Bot không mở lệnh trên mã đang có lệnh chờ của anh.
   mPendSyms() { return new Set(Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === this.env()).map((m) => m.sym)); }
-  async mLimit(sym, sd, px, usd, lev, sl, tp, vd, eh) {
-    const env = this.env(), tag = `📍 ${coin(sym)} ${sd > 0 ? "Long" : "Short"} khi giá về ${px}`;
+  async mLimit(sym, sd, px, usd, lev, sl, tp, vd, eh, avg = false) {
+    const env = this.env(), tag = `📍${avg ? " ➕ Bình quân" : ""} ${coin(sym)} ${sd > 0 ? "Long" : "Short"} khi giá về ${px}`;
     if (env !== "live" && env !== "demo") return;
     if (!this.enabled()) { this.say(`${tag}: tài khoản Binance của bot đang tắt${env === "live" ? " hoặc chưa gõ xác nhận tiền thật" : ""} – không đặt`, "info"); return; }
     if (this.botSyms().has(sym)) { this.say(`${tag}: bot đang có lệnh trên mã này – không đặt (Binance gộp chung vị thế)`, "info"); return; }
@@ -685,6 +685,7 @@ export class LiveExec {
     const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
     const dual0 = await this.req("GET", "/fapi/v1/positionSide/dual").catch(() => ({})), hedge = !!dual0?.dualSidePosition;
     const P = (L || []).find((x) => x.symbol === sym && +x.positionAmt !== 0 && (!hedge || x.positionSide === (sd > 0 ? "LONG" : "SHORT")));
+    if (avg && !P) { this.say(`${tag}: lệnh tay ${coin(sym)} cần bình quân không còn mở – không đặt`, "info"); return; }
     if (P && !hedge && Math.sign(+P.positionAmt) !== sd) { this.say(`${tag}: anh đang có vị thế ${coin(sym)} NGƯỢC chiều (${P.positionAmt}) – lệnh này sẽ đóng bớt vị thế đó chứ không mở mới, không đặt`, "info"); return; }
     const mk = +((L || []).find((x) => x.symbol === sym)?.markPrice) || this.mark(coin(sym) + ":F");
     if (!(mk > 0)) { this.say(`${tag}: chưa có giá hiện tại`, "info"); return; }
@@ -705,10 +706,10 @@ export class LiveExec {
       catch (e) { const o = await this.req("POST", "/fapi/v1/algoOrder", { ...base, algoType: "CONDITIONAL", type: "STOP_MARKET", triggerPrice: pxs, workingType: "CONTRACT_PRICE" }); oid = o.algoId; algo = 1; }
     }
     const now = Date.now(), a0 = P ? +P.positionAmt : 0;
-    (this.S.mo ||= {})[id] = { id, env, sym, sd, px: +pxs, q, usd, lev, sl, tp, kind: lim ? "lim" : "stop", oid, algo, hedge, a0, t0: now, vd: vd > now ? vd : now + 7 * 864e5, eh: eh > 0 ? eh : 0, done: false };
+    (this.S.mo ||= {})[id] = { id, env, sym, sd, px: +pxs, q, usd, lev, sl, tp, kind: lim ? "lim" : "stop", oid, algo, hedge, a0, avg: !!avg, t0: now, vd: vd > now ? vd : now + 7 * 864e5, eh: eh > 0 ? eh : 0, done: false };
     this.save();
     const how = lim ? `lệnh giới hạn – khớp khi giá ${sd > 0 ? "xuống" : "lên"} tới ${pxs}` : `lệnh dừng – vào khi giá ${sd > 0 ? "vượt lên" : "thủng xuống"} ${pxs}`;
-    this.say(`${tag}: đã đặt ${q.toFixed(F.sd)} ${coin(sym)} (~${(q * pxr).toFixed(2)} USDT, x${lev} cô lập, ${LTAG(env)}) · ${how}${sl ? ` · cắt lỗ ${sl}` : ""}${tp ? ` · chốt ${tp}` : ""}`, "info");
+    this.say(`${tag}: đã đặt ${q.toFixed(F.sd)} ${coin(sym)} (~${(q * pxr).toFixed(2)} USDT, x${lev}, ${LTAG(env)}) · ${how}${avg ? ` · gộp vào vị thế ${a0} đang có, ${sl || tp ? "đặt lại" : "giữ"} cắt lỗ / chốt lời & hẹn đóng của lệnh cũ` : ""}${sl ? ` · cắt lỗ ${sl}` : ""}${tp ? ` · chốt ${tp}` : ""}`, "info");
     this.note(`mo:${id}`, 1, `${LTAG(env)} · 📍 Lệnh chờ ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`, `${how} · ${q.toFixed(F.sd)} ${coin(sym)} ~${(q * pxr).toFixed(2)} USDT`, `mo:${id}`);
     this.mAt = 0; await this.mSync(true);
   }
@@ -747,6 +748,7 @@ export class LiveExec {
     if (Date.now() - (this.mpAt || 0) < 8e3) return; this.mpAt = Date.now();
     for (const m of O) {
       if (Date.now() > m.vd) { await this.mPendCancel(m.id, "hết hiệu lực"); continue; }
+      if (m.avg) { const pr = await this.pos(m.sym); if (!(m.sd * (+pr?.amt || 0) > 0)) { await this.mPendCancel(m.id, "lệnh gốc cần bình quân đã đóng trước khi khớp – không mở lệnh lẻ"); continue; } }
       await this.mPendCheck(m, false);
     }
     for (const [k, m] of Object.entries(this.S.mo || {})) if (m.done && Date.now() - (m.t2 || 0) > 3 * 864e5) delete this.S.mo[k];      // dọn lệnh chờ cũ
