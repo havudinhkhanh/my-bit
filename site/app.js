@@ -946,7 +946,7 @@ function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "
 }
 // 🫧 giọt kính trong menu thả xuống: trượt mượt tới mục đang rê chuột / chạm (kiểu iOS 27), rời menu thì mờ đi
 document.addEventListener("pointerover", (e) => {
-  const it = e.target.closest?.(".ios-menu-in>a,.ios-menu-in>button"); if (!it) return;
+  const it = e.target.closest?.(".ios-menu-in>a,.ios-menu-in>button,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i"); if (!it || e.pointerType === "touch") return;
   const m = it.parentElement; let hl = m.querySelector(":scope>.ios-hl");
   if (!hl) { hl = document.createElement("i"); hl.className = "ios-hl jump"; hl.setAttribute("aria-hidden", "true"); m.prepend(hl);
     m.addEventListener("pointerleave", () => hl.classList.remove("on")); }

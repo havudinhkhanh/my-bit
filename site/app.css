@@ -6141,3 +6141,26 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 /* menu chuột phải trên biểu đồ (và mọi menu không phải điều hướng): dòng phụ được xuống dòng, không cắt "…" */
 .ios-menu:not(.nav-mn) .ios-t small{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35}
 .px-menu .px-avg{display:flex;width:fit-content;align-items:center;gap:4px;margin-top:4px;padding:2px 7px;border-radius:5px;font-style:normal;font-size:.6875rem;font-weight:600;color:var(--ink-2);background:color-mix(in srgb,var(--brand) 12%,transparent)}
+/* 🧩 v4 · MỌI MENU NỔI DÙNG CHUNG 1 BỘ THÔNG SỐ (menu thả xuống, nút "…", menu tài khoản, gợi ý ô tìm, menu chuột phải biểu đồ, menu thông báo)
+   khung kính 10px · đệm 5px · mục cao 36px (44px trên màn chạm) · chữ 13,5px đậm 550 · mục góc 7px · không gạch ngăn · rê chuột = giọt kính trượt */
+:root{--mn-r:10px;--mn-ir:7px;--mn-fs:.84375rem;--mn-fw:550;--mn-h:36px;
+  --mn-bg:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.1) 55%),color-mix(in srgb,var(--surface) 64%,transparent);
+  --mn-sh:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px rgba(255,255,255,.6),0 0 0 .5px color-mix(in srgb,var(--ink) 12%,transparent),0 22px 46px -18px rgba(0,0,0,.42),0 6px 14px -8px rgba(0,0,0,.16)}
+:root:not([data-theme=light]){--mn-bg:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.025) 55%),color-mix(in srgb,var(--surface) 80%,transparent);
+  --mn-sh:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 .5px rgba(255,255,255,.08),0 0 0 .5px rgba(0,0,0,.6),0 24px 50px -16px rgba(0,0,0,.85)}
+:is(.ios-menu.ios-menu .ios-menu-in,.sc-more .sc-menu,.hz .sc-menu,.hz2 .sc-menu,.menu.memenu,.pop):not(#_m){border:0!important;border-radius:var(--mn-r)!important;padding:5px!important;gap:1px!important;
+  background:var(--mn-bg)!important;box-shadow:var(--mn-sh)!important;-webkit-backdrop-filter:blur(26px) saturate(1.9)!important;backdrop-filter:blur(26px) saturate(1.9)!important;color:var(--ink)!important}
+:is(.ios-menu.ios-menu .ios-menu-in>a,.ios-menu.ios-menu .ios-menu-in>button,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i):not(#_m){position:relative;z-index:1;
+  min-height:var(--mn-h)!important;padding:7px 10px!important;border:0!important;border-radius:var(--mn-ir)!important;box-shadow:none;
+  font-family:inherit!important;font-size:var(--mn-fs)!important;font-weight:var(--mn-fw)!important;line-height:1.3!important;letter-spacing:0!important;color:var(--ink);text-align:left;justify-content:flex-start}
+:is(.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i):not(#_m){background:transparent!important}
+:is(.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i):not(#_m)+:is(.btn,button,a,.pop-i){border-top:0!important}
+:is(.sc-menu,.memenu,.pop):not(:has(>.ios-hl))>:is(.btn,button,a,.pop-i):hover{background:color-mix(in srgb,var(--ink) 7%,transparent)!important}
+.pop>.pop-i.on:not(#_m){background:color-mix(in srgb,var(--ink) 7%,transparent)!important}
+.ios-menu.ios-menu .ios-t{font-weight:var(--mn-fw)!important}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"] .ios-t,.pop>.pop-i.cur{font-weight:700!important}
+#scReset:not(#_m){color:var(--down)!important}
+@media (max-width:979px){:is(.ios-menu.ios-menu .ios-menu-in>a,.ios-menu.ios-menu .ios-menu-in>button,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button):not(#_m){min-height:44px!important}}
+@media (max-width:760px){.menu.memenu:not(#_m){border-radius:var(--mn-r) var(--mn-r) 0 0!important}}
+:is(.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i):not(#_m){box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;transform:none!important}
+:is(.sc-menu>.btn,.sc-menu>button,.memenu>button):not(#_m)::before,:is(.sc-menu>.btn,.sc-menu>button,.memenu>button):not(#_m)::after{display:none!important}
