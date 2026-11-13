@@ -488,12 +488,14 @@ function niceTicks(mn, mx, n) {
   const span = mx - mn || 1, raw = span / Math.max(1, n), p = 10 ** Math.floor(Math.log10(raw)), f = raw / p, st = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
   const out = []; for (let v = Math.ceil(mn / st) * st; v <= mx + st * 1e-6; v += st) out.push(+v.toFixed(10)); return out;
 }
+// mẫu màu trong chú thích: đường nét đứt → mẫu cũng nét đứt (trước đây luôn vẽ vạch liền)
+const legSw = (x) => { const c = x.color || css("--brand"); return x.dash ? `background:repeating-linear-gradient(90deg,${c} 0 4px,transparent 4px 7px);width:16px` : `background:${c}`; };
 function lineSvg(series, opt = {}) {
   const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum);
   if (!all.length) return `<p class="muted">Chưa có số liệu.</p>`;
   // opt.legVal = { label, fmt }: chú thích hiện LUÔN số của từng đường – mặc định số cuối (tổng), rê chuột / chạm vào biểu đồ → số tại ngày đó (không cần ô nổi nhỏ)
   const lv = opt.legVal, lf = lv ? lv.fmt || ((v) => nf(v, opt.dec ?? 1)) : null, lastY = (se) => { for (let k = se.pts.length - 1; k >= 0; k--) if (isNum(se.pts[k].y)) return se.pts[k].y; return null; };
-  const legend = series.map((x, i) => (x.name ? (lv ? `<span data-li="${i}"><small><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</small><b class="lgv ${cls(lastY(x))}">${esc(lf(lastY(x)))}</b></span>` : `<span><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</span>`) : "")).join("");
+  const legend = series.map((x, i) => (x.name ? (lv ? `<span data-li="${i}"><small><i style="${legSw(x)}"></i>${esc(x.name)}</small><b class="lgv ${cls(lastY(x))}">${esc(lf(lastY(x)))}</b></span>` : `<span><i style="${legSw(x)}"></i>${esc(x.name)}</span>`) : "")).join("");
   return svgMount((W, H, cx) => { if (lv) cx.leg = { fmt: lf, label: lv.label || "", tip: !!lv.tip, last: series.map(lastY) }; return lineDraw(series, opt, W, H, cx); }, { h: opt.h || 180, legend: legend ? `<div class="leg${lv ? " leg-v" : ""}"${lv ? ` style="--n:${series.filter((x) => x.name).length}"` : ""}>${lv ? `<em class="lgx">${esc(lv.label || "")}</em>` : ""}${legend}</div>` : "" });
 }
 function lineDraw(series, opt, W, H, cx) {
