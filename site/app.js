@@ -5883,7 +5883,7 @@ const nlGet = () => ({ on: false, w: 45, auto: false, ...(lsGet("nl", {}) || {})
 const nlActive = (n = nlGet()) => { const h = new Date().getHours(); return !!n.on && (!n.auto || h >= 19 || h < 6); };
 function nlApply(patch) {
   const n = { ...nlGet(), ...(patch || {}) }; if (patch) lsSet("nl", n);
-  const d = document.documentElement, on = nlActive(n);
+  const d = document.documentElement, on = nlActive(n); nlTopH();
   if (on) { const o = nlOp(n.w), cs = getComputedStyle(d), hx = (v) => { const c = cs.getPropertyValue(v).trim(); return /^#[0-9a-f]{6}$/i.test(c) ? c : null; };
     d.dataset.nl = "1"; d.style.setProperty("--nl", String(o)); nlTopH();
     const bg = hx("--bg"); if (bg) d.style.setProperty("--nl-bg", nlMul(bg, o));

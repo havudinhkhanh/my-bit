@@ -6206,3 +6206,10 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .occ-bar{min-width:0;max-width:100%}
 @media (max-width:640px){.occ-tg:not(#_t):not(#_u){display:none!important}}
 @media (max-width:760px){.cv-chart .cops:not(#_t){flex:1 1 100%!important;flex-wrap:wrap!important;max-width:100%}}
+
+/* điện thoại: thông báo nhỏ (toast) & banner thông báo nằm NGAY DƯỚI thanh trên cùng (không đè thanh, không lấn vào dải trên cùng –
+   dải đó không có lớp ánh sáng ấm (để thanh trạng thái iOS lấy đúng màu) nên phần thẻ nằm trong dải từng hiện trắng) */
+@media (max-width:979px){
+  #toasts:not(#_t){top:calc(var(--top-h,calc(56px + env(safe-area-inset-top,0px))) + 8px)!important}
+  .nb:not(#_t){top:calc(var(--top-h,calc(56px + env(safe-area-inset-top,0px))) + 8px)!important}
+}
