@@ -147,7 +147,7 @@ async function ivSim(r, C, env, from = 0) {
 function ivPanel() { return `<div id="ivBox">${panel(bi("🤖 Bot tự động so với ✋ có can thiệp tay", "🤖 Bot on its own vs ✋ with your interventions"), skChart(200), bi("đang tính…", "computing…"))}</div>`; }
 // So sánh ĐÚNG TỪNG LỆNH: lệnh bot anh đã đóng tay / gia hạn → "thực tế" (anh làm) đặt cạnh "nếu để bot" (cùng lệnh đó, chạy tiếp theo luật bot tới khi bot tự thoát).
 // Lệnh tay riêng KHÔNG phải can thiệp vào bot → tách riêng 1 phần. Tổng: Thực tế = Bot tự chạy + Can thiệp vào lệnh bot + Lệnh tay riêng.
-async function ivFill(LH, C, env) {
+async function ivFill(LH, C, env, PT = []) {
   const box = $("#ivBox"); if (!box) return;
   const stopB = (+C.hk_stop || 0) * 100, rows = LH.filter((h) => h.t2);
   // lệnh bot anh đóng THẲNG trên app Binance: bản máy chủ mới ghi xb; bản cũ ghi nhầm "SL" → nhận ra vì lỗ còn xa mức cắt lỗ thảm hoạ (cắt lỗ thật thì lỗ ≈ hk_stop%)
@@ -158,7 +158,16 @@ async function ivFill(LH, C, env) {
   const fromOf = (h) => { const m = (Date.parse(h.t2 + "Z") - Date.parse(String(h.t1 || h.ts) + "Z")) / 6e4; return IV(h).includes("close") ? Math.max(0, Math.floor(m)) : Math.max(0, Math.floor(+h.h0 || +C.hk_h || 60)); };
   const sims = await Promise.all(need.map((h) => ivSim(h, C, env, fromOf(h))));
   if (!$("#ivBox")) return;
-  const S = new Map(need.map((h, i) => [h, sims[i]])), ms = (t) => Date.parse(String(t) + "Z");
+  const ms = (t) => Date.parse(String(t) + "Z");
+  // 🧪 SÀN THỬ chạy CÙNG tín hiệu mà không ai can thiệp → kết quả thật của "nếu để bot" (đủ mọi luật: cắt lỗ đuổi, hết giờ, đảo chiều…), ưu tiên hơn mô phỏng nến.
+  //    Ghép: cùng coin + cùng chiều + vào lệnh cách nhau ≤ 5 phút; quy ra tiền theo bps ròng (sau phí) × giá trị lệnh thật.
+  const pBase = (k) => String(k || "").split(":")[0].replace(/USDT$/, ""), used = new Set();
+  const paperOf = (h) => { const b = pBase(h.sym), t = ms(h.ts || h.t1); if (!(t > 0)) return null; let best = null, bd = 5 * 60e3;
+    for (const p of PT || []) { if (used.has(p) || pBase(p.k) !== b || (p.side > 0 ? 1 : -1) !== (h.side > 0 ? 1 : -1) || !isNum(p.net) || !p.t1) continue; const d = Math.abs(ms(p.t0 || p.ts) - t); if (d <= bd) { bd = d; best = p; } }
+    if (best) used.add(best); return best; };
+  sims.forEach((sm, i) => { const h = need[i], p = paperOf(h); if (!p) return; const N = +h.N || +h.q * +h.e, hm = (ms(p.t1) - ms(p.t0 || p.ts)) / 6e4;
+    if (N > 0) sims[i] = { pnl: p.net / 1e4 * N, bps: p.net, why: p.why, at: Math.max(1, Math.round(hm)), h0: sm?.h0 ?? Math.round(+h.h0 || +C.hk_h || 60), src: "paper" }; });
+  const S = new Map(need.map((h, i) => [h, sims[i]]));
   const G = { close: { n: 0, a: 0, s: 0, w: 0 }, ext: { n: 0, a: 0, s: 0, w: 0 }, man: { n: 0, a: 0 }, enter: { n: 0, a: 0 }, na: { n: 0, a: 0 } };
   let cA = 0, cB = 0, cS = 0, nBot = 0; const pS = [], pB = [], pA = [], L = [];
   for (const h of rows) {
@@ -198,15 +207,15 @@ async function ivFill(LH, C, env) {
   const KN = { close: bi("✋ Đóng tay", "✋ Closed"), ext: bi("⏱ Gia hạn", "⏱ Extended"), enter: bi("⚡ Vào ngay", "⚡ Entered now"), na: bi("✋ Can thiệp", "✋ Intervened") };
   const WHY = { TIME: bi("hết giờ giữ", "time stop"), TRAIL: bi("cắt lỗ đuổi", "trailing stop"), SL: bi("cắt lỗ", "stop loss") };
   const mins = (s) => jHold(s);
-  const WHYS = { TIME: bi("hết giờ", "time"), TRAIL: bi("cắt lỗ đuổi", "trailing"), SL: bi("cắt lỗ", "stop"), MIX: bi("đuổi phần chờ + giữ phần mua ngay", "trail limit part + hold market part") }, mn = (sec) => Math.max(1, Math.round(sec / 60));
+  const WHYS = { TIME: bi("hết giờ", "time"), "TIME+": bi("hết giờ (giữ thêm)", "time (ext.)"), TRAIL: bi("cắt lỗ đuổi", "trailing"), SL: bi("cắt lỗ", "stop"), MIX: bi("đuổi phần chờ + giữ phần mua ngay", "trail limit part + hold market part"), REV: bi("đảo chiều", "reversal"), BTC: bi("BTC sốc", "BTC shock"), STALE: bi("mất dữ liệu", "stale"), LIQ: bi("thanh lý", "liquidated") }, mn = (sec) => Math.max(1, Math.round(sec / 60));
   const tm = (t) => new Date(ms(t)).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
   // 1 hàng / lệnh: Lệnh · Anh làm (lúc nào) · Thực tế · Bot sẽ thoát (lý do · phút) · Nếu để bot · Chênh
   const lst = L.slice(-40).reverse().map(({ h, kind, act, auto, sim, held }) => {
     const h0 = sim?.h0 ?? Math.round(+h.h0 || +C.hk_h || 60);
     const did = kind === "close" ? `${ivIc("✋")}${exB(h) && h.why !== "MANUAL" ? bi("Đóng trên Binance", "Closed on Binance") : bi("Đóng", "Closed")} <span class="faint">· ${bi("phút", "min")} ${mn(held)}</span>` : kind === "ext" ? `${ivIc("⏱️")}${bi("Giữ", "Held")} ${mins(held)} <span class="faint">· ${bi("gốc", "plan")} ${h0}′</span>` : kind === "enter" ? `${ivIc("⚡")}${bi("Vào ngay", "Entered now")}` : `${ivIc("✋")}<span class="faint">${bi("thiếu nến", "no candles")}</span>`;
     const d = sim ? act - auto : null;
-    return `<tr><td class="l"><small class="faint">${tm(h.t2)}</small> <b>${esc(String(h.sym || "").replace(/USDT$/, ""))}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "L" : "S"}</span></td><td class="l">${did}</td><td class="${cls(act)}">${iv$(act)}</td><td class="l"><small class="faint">${ivIc("🤖", "iv-bot")}${sim ? `${WHYS[sim.why]} · ${bi("phút", "min")} ${sim.at}` : kind === "enter" ? bi("bot không vào", "bot wouldn't enter") : "—"}</small></td><td class="${sim ? cls(auto) : ""}">${sim ? iv$(auto) : na}</td><td class="${cls(d)}">${d == null ? na : `<b>${iv$(d)}</b>`}</td></tr>`; }).join("");
-  const cap = `<p class="faint sc-cap">${bi(`So từng lệnh: lệnh bot anh đóng tay / gia hạn được chạy tiếp (hoặc cắt về) theo đúng luật bot – giữ ${nf(C.hk_h || 60, 0)} phút từ lúc khớp, cắt lỗ đuổi khi lời ≥ ${nf((C.hk_tra || 0) / 100, 1)}%${+C.hk_trm ? " (chỉ xét giá đóng mỗi nến 1 phút, như bot thật)" : ""} và chỉ cho phần lệnh chờ – phần "mua ngay" giữ tới hết giờ, cắt lỗ thảm hoạ ${nf(C.hk_stop || 0, 0)}% – trên nến 1 phút Binance, cùng phí, rồi đặt cạnh kết quả anh thật sự nhận. Lệnh anh đóng thẳng trên app Binance cũng được tính là can thiệp. Lệnh tay riêng không phải can thiệp vào bot nên tách riêng.`, `Trade by trade: each bot trade you closed / extended is re-run with the bot's own rules on Binance 1-minute candles (same fees) and set beside what you actually got. Your own trades aren't interventions, so they're shown separately.`)}</p>`;
+    return `<tr><td class="l"><small class="faint">${tm(h.t2)}</small> <b>${esc(String(h.sym || "").replace(/USDT$/, ""))}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "L" : "S"}</span></td><td class="l">${did}</td><td class="${cls(act)}">${iv$(act)}</td><td class="l"><small class="faint">${ivIc(sim?.src === "paper" ? "🧪" : "🤖", "iv-bot")}${sim ? `${sim.src === "paper" ? `<span class="iv-src" title="${bi("Kết quả thật của cùng tín hiệu trên sàn thử (không ai can thiệp)", "Actual result of the same signal on paper (untouched)")}">${bi("sàn thử", "paper")}</span> · ` : ""}${WHYS[sim.why] || esc(sim.why || "")} · ${bi("phút", "min")} ${sim.at}` : kind === "enter" ? bi("bot không vào", "bot wouldn't enter") : "—"}</small></td><td class="${sim ? cls(auto) : ""}">${sim ? iv$(auto) : na}</td><td class="${cls(d)}">${d == null ? na : `<b>${iv$(d)}</b>`}</td></tr>`; }).join("");
+  const cap = `<p class="faint sc-cap">${bi(`So từng lệnh: lệnh bot anh đóng tay / gia hạn được chạy tiếp (hoặc cắt về) theo đúng luật bot – giữ ${nf(C.hk_h || 60, 0)} phút từ lúc khớp, cắt lỗ đuổi khi lời ≥ ${nf((C.hk_tra || 0) / 100, 1)}%${+C.hk_trm ? " (chỉ xét giá đóng mỗi nến 1 phút, như bot thật)" : ""} và chỉ cho phần lệnh chờ – phần "mua ngay" giữ tới hết giờ, cắt lỗ thảm hoạ ${nf(C.hk_stop || 0, 0)}% – trên nến 1 phút Binance, cùng phí, rồi đặt cạnh kết quả anh thật sự nhận. Lệnh nào sàn thử cũng vào (cùng coin, cùng chiều, cách ≤ 5 phút) thì "nếu để bot" lấy luôn kết quả thật trên sàn thử 🧪 (quy theo bps ròng × giá trị lệnh thật). Lệnh anh đóng thẳng trên app Binance cũng được tính là can thiệp. Lệnh tay riêng không phải can thiệp vào bot nên tách riêng.`, `Trade by trade: each bot trade you closed / extended is re-run with the bot's own rules on Binance 1-minute candles (same fees) and set beside what you actually got. Your own trades aren't interventions, so they're shown separately.`)}</p>`;
   box.innerHTML = panel(bi("🤖 Bot tự động so với ✋ có can thiệp tay", "🤖 Bot on its own vs ✋ with your interventions"), `${kp}<div class="iv-g"><div class="iv-gc">${chart}</div><div class="iv-gt">${tbl}${cap}</div></div>
     ${lst ? `<details class="iv-d" open><summary>${bi("Từng lệnh bot có can thiệp: anh làm vs nếu để bot", "Each intervened bot trade: you vs the bot")} <span class="faint">· ${L.length}</span></summary><div class="tw iv-lt"><table class="rs iv-lt-t"><thead><tr><th class="l">${bi("Lệnh", "Trade")}</th><th class="l">${bi("Anh đã làm", "What you did")}</th><th>${bi("Thực tế", "Actual")}</th><th class="l">${bi("Bot sẽ thoát", "Bot would exit")}</th><th>${bi("Nếu để bot", "If left to bot")}</th><th>${bi("Chênh", "Diff")}</th></tr></thead><tbody>${lst}</tbody></table></div></details>` : ""}`, bi("lệnh đã đóng", "closed trades"));
 }
@@ -1194,7 +1203,7 @@ async function viewScalp() {
     const b2 = $(`[data-scenv="${b.dataset.scenv}"]`); if (b2) scrollTo(0, Math.max(0, scrollY + b2.getBoundingClientRect().top - y0));
     setTimeout(() => { root.style.minHeight = ""; }, 400);
     try { cusDraw(); } catch (e) { /* bỏ qua */ } }));
-  if ($("#ivBox")) ivFill(LH, C, LVE).catch(() => {});      // 🤖 vs ✋ tính sau khi vẽ (cần nến 1 phút cho lệnh có can thiệp)
+  if ($("#ivBox")) ivFill(LH, C, LVE, HT).catch(() => {});      // 🤖 vs ✋ tính sau khi vẽ (cần nến 1 phút cho lệnh có can thiệp)
   $$(".sc-sub2 > *").forEach((b) => { const sm = b.querySelector("small"); if (sm && !b.title) b.title = sm.textContent.trim(); });
   { const ap = () => {      // tab Lệnh (cả Sàn thử & Binance): lọc trạng thái + phương pháp
       const ol = window.__scOl || "all", om = window.__scOm || "all";

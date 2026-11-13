@@ -6213,3 +6213,6 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
   #toasts:not(#_t){top:calc(var(--top-h,calc(56px + env(safe-area-inset-top,0px))) + 8px)!important}
   .nb:not(#_t){top:calc(var(--top-h,calc(56px + env(safe-area-inset-top,0px))) + 8px)!important}
 }
+/* thanh đếm ngược của thông báo nhỏ: 1 đường thẳng chạy dọc mép dưới (chừa 2 góc bo – không còn uốn theo góc như chạy vòng) · rê chuột / chạm giữ = dừng */
+#toasts .toast .tp:not(#_t){left:14px;right:14px;width:auto;bottom:0;height:2.5px;border-radius:2px;opacity:.7}
+.iv-src{display:inline-block;padding:0 5px;border-radius:4px;font-weight:650;color:var(--ink-2);background:color-mix(in srgb,var(--brand) 12%,transparent)}

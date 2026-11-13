@@ -110,8 +110,9 @@ function toast(msg, o = {}) {
   const out = () => { if (gone) return; gone = true; clearTimeout(tm); t.classList.add("out"); setTimeout(() => t.remove(), 320); };
   const run = () => { t0 = Date.now(); clearTimeout(tm); tm = setTimeout(out, left); t.classList.remove("hold"); };
   t.__out = out;
-  t.addEventListener("mouseenter", () => { left = Math.max(800, left - (Date.now() - t0)); clearTimeout(tm); t.classList.add("hold"); });
-  t.addEventListener("mouseleave", run);
+  const hold = () => { if (t.classList.contains("hold")) return; left = Math.max(800, left - (Date.now() - t0)); clearTimeout(tm); t.classList.add("hold"); };
+  t.addEventListener("pointerenter", hold); t.addEventListener("pointerleave", (e) => { if (e.pointerType !== "touch") run(); });      // rê chuột lên = dừng đếm, rời ra = chạy tiếp
+  t.addEventListener("touchstart", hold, { passive: true }); t.addEventListener("touchend", () => { if (!gone) run(); }, { passive: true });      // điện thoại: ngón tay đang chạm = dừng
   t.querySelector(".tx").addEventListener("click", (e) => { e.stopPropagation(); out(); });
   t.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; t.style.transition = "none"; }, { passive: true });
   t.addEventListener("touchmove", (e) => { if (y0 != null) t.style.transform = `translateY(${Math.min(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
