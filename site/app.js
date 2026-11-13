@@ -944,6 +944,16 @@ function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "
     w.tabIndex = -1; w.focus({ preventScroll: true });      // giữ phím Esc / Tab trong hộp, không tô vòng focus lên nút khi mở bằng chuột
   });
 }
+// 🫧 giọt kính trong menu thả xuống: trượt mượt tới mục đang rê chuột / chạm (kiểu iOS 27), rời menu thì mờ đi
+document.addEventListener("pointerover", (e) => {
+  const it = e.target.closest?.(".ios-menu-in>a,.ios-menu-in>button"); if (!it) return;
+  const m = it.parentElement; let hl = m.querySelector(":scope>.ios-hl");
+  if (!hl) { hl = document.createElement("i"); hl.className = "ios-hl jump"; hl.setAttribute("aria-hidden", "true"); m.prepend(hl);
+    m.addEventListener("pointerleave", () => hl.classList.remove("on")); }
+  const first = !hl.classList.contains("on"); hl.classList.toggle("jump", first);
+  hl.style.transform = `translateY(${it.offsetTop}px)`; hl.style.height = it.offsetHeight + "px"; hl.style.left = it.offsetLeft + "px"; hl.style.right = "auto"; hl.style.width = it.offsetWidth + "px";
+  if (first) { void hl.offsetWidth; } hl.classList.add("on"); requestAnimationFrame(() => hl.classList.remove("jump"));
+}, { passive: true });
 function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $$("[aria-expanded=true][data-iosm]").forEach((b) => b.setAttribute("aria-expanded", "false")); }
 function botMenu(anchor, up) {
   if ($("#iosMenu")) { iosMenuClose(); return; }

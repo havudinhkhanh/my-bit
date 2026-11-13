@@ -6084,3 +6084,33 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .cbox:not(.cz-full):has(>.leg-v){grid-template-areas:"c c" "l l"}
 .cbox:not(.cz-full):has(>.leg-v)>.cbt{grid-area:l;justify-self:end;align-self:start;position:relative;z-index:1;margin-top:8px}
 .leg-v .lgx{padding-right:150px}
+/* 🫧 v4 · MENU THẢ XUỐNG (mọi .ios-menu: Mọi phương pháp, đường dẫn trang, menu chuột phải trên biểu đồ, thông báo…) – kính lỏng kiểu iOS 27 / Material fluid:
+   khung kính mờ góc 10px, mục góc 7px, "giọt kính" trượt theo chuột, mục đang chọn = nền nhạt màu thương hiệu + dấu ✓ (thay khối đen đặc) */
+.ios-menu.ios-menu .ios-menu-in{border-radius:10px!important;padding:5px!important;
+  -webkit-backdrop-filter:blur(26px) saturate(1.9)!important;backdrop-filter:blur(26px) saturate(1.9)!important;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.1) 55%),color-mix(in srgb,var(--surface) 64%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px rgba(255,255,255,.6),0 0 0 .5px color-mix(in srgb,var(--ink) 12%,transparent),0 22px 46px -18px rgba(0,0,0,.42),0 6px 14px -8px rgba(0,0,0,.16)!important}
+:root:not([data-theme=light]) .ios-menu.ios-menu .ios-menu-in{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.025) 55%),color-mix(in srgb,var(--surface) 80%,transparent)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 0 0 .5px rgba(255,255,255,.08),0 0 0 .5px rgba(0,0,0,.6),0 24px 50px -16px rgba(0,0,0,.85)!important}
+.ios-menu.ios-menu .ios-menu-in>a,.ios-menu.ios-menu .ios-menu-in>button{position:relative;z-index:1;border-radius:7px!important;min-height:36px!important;background:transparent!important;color:var(--ink)!important}
+.ios-menu.ios-menu .ios-menu-in>a:hover,.ios-menu.ios-menu .ios-menu-in>button:hover,.ios-menu.ios-menu .ios-menu-in>a:focus-visible,.ios-menu.ios-menu .ios-menu-in>button:focus-visible{background:transparent!important}
+.ios-menu-in:not(:has(>.ios-hl)) >a:hover,.ios-menu-in:not(:has(>.ios-hl))>button:hover{background:color-mix(in srgb,var(--ink) 7%,transparent)!important}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"]{background:color-mix(in srgb,var(--brand) 14%,transparent)!important;color:var(--ink)!important;box-shadow:inset 0 0 0 .5px color-mix(in srgb,var(--brand) 30%,transparent)}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"] .ios-t{font-weight:700}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"] small,.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"] .ios-ic{color:var(--ink-3)!important;opacity:1}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"]::after{content:"";grid-row:1;justify-self:end;width:14px;height:14px;background:var(--brand);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/contain no-repeat}
+.ios-menu.ios-menu .ios-menu-in>[aria-checked="true"] .ks-hint kbd{background:color-mix(in srgb,var(--ink) 8%,transparent)!important;color:var(--ink-2)!important}
+/* giọt kính trượt theo mục đang rê chuột */
+.ios-hl{position:absolute;left:5px;right:5px;top:0;height:36px;z-index:0;pointer-events:none;border-radius:7px;opacity:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.15)),color-mix(in srgb,var(--ink) 9%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.85),inset 0 0 0 .5px rgba(255,255,255,.55),0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent),0 2px 6px -1px rgba(0,0,0,.12);
+  transition:transform .26s cubic-bezier(.3,1.35,.5,1),height .2s ease,opacity .16s ease}
+:root:not([data-theme=light]) .ios-hl{background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.04)),rgba(255,255,255,.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 .5px rgba(255,255,255,.08)}
+.ios-hl.on{opacity:1}.ios-hl.jump{transition:opacity .16s ease}
+.ios-menu .ios-r .sc-bdg{border-radius:5px!important}
+/* nút mở menu "Mọi phương pháp" – bớt bo, cùng kiểu nút điều khiển v4 */
+.sc-omdd{border-radius:var(--r-ctl,7px)!important;min-height:34px}
+.sc-omdd.on{background:color-mix(in srgb,var(--brand) 14%,var(--fill))!important;color:var(--ink)!important;box-shadow:inset 0 0 0 .5px color-mix(in srgb,var(--brand) 32%,transparent)}
+@media (prefers-reduced-motion:reduce){.ios-hl{transition:opacity .1s}}
