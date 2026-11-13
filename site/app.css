@@ -6051,3 +6051,6 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .lvt-t tr.lvt-dh2 td.clg-d{overflow:visible!important;z-index:3!important;max-width:none!important;text-overflow:clip!important}.clg-lb{text-align:left;align-items:flex-start}
 .lvt-t tr.lvt-dh2 td>div.clg-lb{display:flex!important;flex-direction:column!important;gap:2px!important;align-items:flex-start!important;text-align:left!important}
 .clg-lb>b,.clg-lb>small{margin-left:0!important}
+/* dòng tổng ngày dính trên đầu khi cuộn: ngày SAU luôn đè lên ngày TRƯỚC (z tăng dần theo thứ tự) → chữ ngày cũ không lòi ra */
+.lvt-t tr.lvt-dh2 td{z-index:var(--z,2)!important}
+.lvt-t tr.lvt-dh2 td.clg-d{z-index:calc(var(--z,2) + 1)!important}
