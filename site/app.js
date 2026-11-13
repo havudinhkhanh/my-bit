@@ -451,6 +451,17 @@ new MutationObserver((ms) => { if (!rsRq && ms.some((m) => m.target.closest?.("t
 { let tr = 0; addEventListener("resize", () => { clearTimeout(tr); tr = setTimeout(twAll, 150); }); }
 // biểu đồ mới chèn vào trang → gắn ngay trong khung hình kế tiếp (gộp nhiều lần chèn liền nhau thành 1 lần quét)
 let cbRq = 0;
+// 🫥 ĐÓNG MENU KHI BẤM RA NGOÀI (mọi menu không có lớp nền chắn: nút "…" dạng <details>, menu tài khoản) – dùng pointerdown để iPhone cũng bắt được
+// (Safari iOS không phát "click" khi chạm vào vùng trống). Esc / đổi trang cũng đóng; bấm 1 mục trong menu "…" xong thì menu tự đóng.
+const LD_DET = "details.sc-more[open]";
+function ldClose(t) {
+  document.querySelectorAll(LD_DET).forEach((d) => { if (!t || !d.contains(t)) d.open = false; });
+  const me = document.getElementById("meMenu"); if (me && (!t || (!me.contains(t) && !t.closest?.("#meBtn")))) me.remove();
+}
+document.addEventListener("pointerdown", (e) => ldClose(e.target), true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") ldClose(null); });
+addEventListener("hashchange", () => ldClose(null));
+document.addEventListener("click", (e) => { const b = e.target.closest?.(".sc-more .sc-menu > .btn, .sc-more .sc-menu > button"); if (b) setTimeout(() => { const d = b.closest("details"); if (d) d.open = false; }, 0); });
 // 🔤 THẲNG CỘT biểu tượng – chữ trong mọi menu: biểu tượng đầu dòng (emoji / ký hiệu) được bọc vào ô rộng cố định;
 // mục không có biểu tượng trong menu có biểu tượng → thêm ô trống, để chữ của mọi mục bắt đầu cùng 1 cột.
 const LIC_RE = /^(\s*)((?:\p{Extended_Pictographic}|[←-⇿⌀-⏿①-⓿■-➿⤀-⥿⬀-⯿])(?:️|⃣|[\u{1F3FB}-\u{1F3FF}]|‍\p{Extended_Pictographic}️?)*)\s+/u;
