@@ -2439,7 +2439,9 @@ function ocDeco(root = document) {
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
-function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; const m = document.getElementById("ocChart"); if (m) { m.classList.remove("on"); setTimeout(() => m.remove(), 220); } document.body.classList.remove("cz-lock"); }
+// biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
+function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; const m = document.getElementById("ocChart");
+  if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
 function ocOpen(I) {
   ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
   const sec = /s$/.test(OCC.tf); if (sec && !BYK?.[I.base]?.sp) OCC.tf = "1m";
@@ -2454,8 +2456,12 @@ function ocOpen(I) {
       <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"]].map(([k, t]) => `<button type="button" data-octg="${k}" class="${ocOpt(k) ? "on" : ""}">${t}</button>`).join("")}</span></div>
     <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}<small class="faint" id="occSrc"></small></div>
     <div class="occ-c" id="occC"></div><div class="occ-ohlc" id="occO"></div><div class="occ-rsi" id="occR"></div></div>`;
-  document.body.appendChild(m); document.body.classList.add("cz-lock");
-  requestAnimationFrame(() => m.classList.add("on"));
+  document.body.appendChild(m);
+  // chặn cuộn trang phía sau bằng sự kiện (KHÔNG đổi overflow của trang: đổi overflow = trình duyệt tính lại bố cục cả trang ~70ms → khựng ngay khung đầu của hiệu ứng mở)
+  const noScroll = (e) => { if (!e.target.closest?.(".occ-c,.occ-rsi,.occ-tf,.occ-st,.occ-lg")) e.preventDefault(); };
+  m.addEventListener("wheel", noScroll, { passive: false }); m.addEventListener("touchmove", noScroll, { passive: false });
+  { const P = m.querySelector(".occ-p"); OCC.ready = new Promise((res) => { let d = 0; const f = () => { if (!d) { d = 1; res(); } }; P.addEventListener("transitionend", (e) => { if (e.propertyName === "transform") f(); }); setTimeout(f, 460); }); }
+  void m.offsetWidth; requestAnimationFrame(() => m.classList.add("on"));
   m.querySelectorAll("[data-occx]").forEach((x) => (x.onclick = ocClose));
   m.querySelector(".occ-go").onclick = () => ocClose();
   m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg, v = !ocOpt(k); lsSet("oc_" + k, v); b.classList.toggle("on", v); ocDraw(); }));
@@ -2597,6 +2603,7 @@ async function ocDraw() {
   const r = base === "1s" ? { k: I.base, sp: R0.sp || (I.fut ? null : I.base + "USDT"), sm: R0.sm || 1 } : I.fut ? { k: I.base, bf: I.base + "USDT", bfm: 1 } : { k: I.base, sp: R0.sp || I.base + "USDT", sm: R0.sm || 1 };
   el.innerHTML = skChart(Math.max(300, el.clientHeight || 420));
   const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
+  if (OCC.ready) await OCC.ready;      // chờ khung trượt xong rồi mới dựng biểu đồ (tạo biểu đồ nặng → làm khựng hiệu ứng mở)
   if (OCC.info !== I || OCC.tf !== tf || !el.isConnected) return;
   if (!L) { el.innerHTML = `<p class="muted" style="padding:24px">${base === "1s" ? bi("Nến theo giây chỉ có cho coin niêm yết spot trên Binance.", "Second candles exist only for Binance spot coins.") : bi(`Không lấy được nến ${tf} – thử khung khác.`, `Couldn't load ${tf} candles – try another timeframe.`)}</p>`; return; }
   const raw = L.o, o = aggO(raw, ag), n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;

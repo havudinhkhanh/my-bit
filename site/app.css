@@ -6169,3 +6169,16 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .lic{display:inline-flex;justify-content:center;align-items:center;width:1.25em;height:1.3em;margin-right:.5em;flex:none;font-style:normal;font-weight:400;line-height:1;vertical-align:top;
   font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",var(--font,system-ui),sans-serif}
 .sc-menu>.btn,.memenu>button,.memenu>a{display:flex!important;align-items:center}
+
+/* 📈 biểu đồ bật ra – mở / đóng mượt: chỉ đổi opacity + transform (lớp riêng của GPU), không còn lớp tối tức thời của cz-lock, không đổi bề rộng trang */
+.occ-c,.occ-rsi{overscroll-behavior:contain}
+.occ-bg{background:rgba(8,11,16,.55)!important;transition:opacity .28s ease!important;will-change:opacity}
+.occ-p{will-change:transform,opacity;transition:opacity .2s ease,transform .4s cubic-bezier(.32,.72,0,1)!important;transform:translateY(18px) scale(.975)}
+.occ.on .occ-p{transform:none}
+.occ.out .occ-bg{transition:opacity .22s ease-in!important}
+.occ.out .occ-p{transition:opacity .18s ease-in .04s,transform .24s cubic-bezier(.4,0,1,1)!important;transform:translateY(12px) scale(.985)}
+.occ.out{pointer-events:none}
+@media (max-width:640px){.occ-p{transform:translateY(100%)}.occ.on .occ-p{transform:none;opacity:1}.occ-p{opacity:1;transition:transform .42s cubic-bezier(.32,.72,0,1)!important}
+  .occ.out .occ-p{transform:translateY(100%);transition:transform .26s cubic-bezier(.4,0,1,1)!important}}
+@media (prefers-reduced-motion:reduce){.occ-p,.occ-bg{transition:opacity .12s!important;transform:none!important}}
+body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity:0}}
