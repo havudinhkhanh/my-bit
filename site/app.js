@@ -6854,6 +6854,7 @@ function initAccountUI() {
   meb.className = "iconbtn mebtn"; meb.id = "meBtn"; meb.title = ME.email; meb.setAttribute("aria-label", "Tài khoản");
   meb.textContent = ((ME.name || ME.email || "?").trim()[0] || "?").toUpperCase(); setTimeout(uiApply, 0);
   th.parentNode.insertBefore(bell, th); th.parentNode.insertBefore(meb, th);
+  document.body.classList.add("has-acct");      // đã đăng nhập: Giao diện / Ánh sáng ấm / Ngôn ngữ nằm trong menu tài khoản → thanh trên chỉ còn việc chung (tìm, chuông, tài khoản)
   bell.onclick = (e) => { e.stopPropagation(); bellOpen(); };
   // menu tài khoản: mở từ ảnh đại diện trên đầu trang (điện thoại) hoặc từ hàng tài khoản cuối thanh bên (máy tính – mở NGƯỢC LÊN như các web app hiện đại)
   const meMenu = (anc) => {
@@ -6872,7 +6873,9 @@ function initAccountUI() {
     m.innerHTML = `<a class="mm-id" href="#/account" title="Mở trang tài khoản"><span class="nav-av" id="mmAv" aria-hidden="true"></span><span class="mm-who"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small></span><span class="mm-plan ${pro ? "pro" : ""}">${pro ? "★ " : ""}${esc(ME.plan_name || ME.eff_plan || "")}</span></a>
       <hr class="mm-sep">
       <a href="#/account">${ic(I.set)}<span>Cài đặt tài khoản</span></a>
-      <div class="mm-th"><span class="mm-lb">Giao diện</span>${thSegHtml()}</div>
+      <div class="mm-th">${ic('<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.6-1.3.3-2.7 1.8-2.7H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>')}<span class="mm-lb">Giao diện</span>${thSegHtml()}</div>
+      <div class="mm-nl">${nlHtml()}</div>
+      <div class="mm-th mm-lgr">${ic('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>')}<span class="mm-lb">Ngôn ngữ</span><div class="th-seg mm-lg" role="radiogroup" aria-label="Ngôn ngữ">${LANGS.map((l) => `<button type="button" role="radio" aria-checked="${l[0] === I18N.lang}" data-lgv="${l[0]}" title="${esc(l[1])}">${l[3]}</button>`).join("")}</div></div>
       <hr class="mm-sep">
       <a href="#/methods">${ic(I.help)}<span>Hướng dẫn & FAQ</span></a>
       <a href="#/keys" class="mm-kb">${ic(I.key)}<span>Phím tắt</span><kbd>?</kbd></a>
@@ -6884,6 +6887,7 @@ function initAccountUI() {
     m.querySelector(".mm-th")?.querySelectorAll(".th-seg span").forEach((x) => x.remove());      // gọn: chỉ biểu tượng ☀ / 🌙 / 🖥 (có nhãn khi rê chuột)
     m.querySelectorAll(".mm-th [data-thv]").forEach((b) => { b.title = { light: "Sáng", dark: "Tối", system: "Theo hệ thống" }[b.dataset.thv] || ""; b.setAttribute("aria-label", b.title); });
     $("#meOut").onclick = logout;
+    m.querySelectorAll("[data-lgv]").forEach((b) => (b.onclick = () => { m.remove(); langSet(b.dataset.lgv); }));
     m.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => m.remove()));
     setTimeout(() => document.addEventListener("click", function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener("click", off); } }), 0);
   };

@@ -6288,3 +6288,19 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .memenu .mm-out:not(#_m){color:var(--ink-2)}
 .memenu .mm-out:hover{color:var(--down)!important}.memenu .mm-out:hover .mm-ic{color:var(--down)}
 @media (max-width:760px){.mm-th{min-height:46px}}
+
+/* thanh trên cùng khi đã đăng nhập: bỏ nút Giao diện & Ngôn ngữ (đã chuyển vào menu tài khoản, 1 chỗ duy nhất) – chỉ còn Tìm · Chuông · Tài khoản
+   (máy tính ≥1180px: ảnh tài khoản nằm cuối thanh bên). Chưa đăng nhập vẫn giữ 2 nút này. Phím tắt T (giao diện) & Shift+L (ngôn ngữ) vẫn chạy. */
+body.has-acct #theme,body.has-acct #lang{display:none!important}
+.mm-nl{padding:0 4px;position:relative;z-index:1}
+.mm-nl .nl-box{margin:0;padding:0;background:none;border:0;box-shadow:none}
+.mm-nl .nl-row{min-height:38px;padding:4px 6px!important;border-radius:var(--mn-ir,7px)}
+.mm-nl .nl-row small{display:none}
+.mm-nl .nl-ic{width:16px;height:16px;color:var(--ink-3)}.mm-nl .nl-ic svg{width:16px;height:16px}
+.mm-nl .nl-t{font-size:var(--mn-fs,.84375rem);font-weight:var(--mn-fw,550)}
+.mm-nl .nl-box.off :is(.nl-sl,.nl-au){display:none}
+.mm-nl .nl-sl,.mm-nl .nl-au{padding-left:32px;padding-right:6px;font-size:.75rem}
+.mm-lg>button{min-width:38px;font-weight:650;font-size:.75rem}
+.mm-th{justify-content:flex-start}.mm-th .mm-ic{flex:none;color:var(--ink-3)}.mm-th .mm-lb{flex:1;min-width:0}
+.mm-nl .nl-row:not(#_m){gap:10px!important;padding-left:6px!important}
+.mm-nl .nl-row:not(#_m){grid-template-columns:16px minmax(0,1fr) auto}
