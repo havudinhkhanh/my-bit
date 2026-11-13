@@ -6267,3 +6267,24 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .uip-c.on:not(#_u){background:var(--sw,var(--brand-2))!important}
 .uip-c:not([style*="--sw"]):not(#_u){background:var(--brand-2)!important}
 .av-menu .uip-c.on:not(#_u){box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)!important;outline:0}
+/* 👤 menu tài khoản v4: thẻ hồ sơ · cài đặt · giao diện tại chỗ · trợ giúp · quản trị · đăng xuất */
+.menu.memenu:not(#_m){min-width:260px;max-width:300px}
+.memenu .mm-id:not(#_m){display:grid!important;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:52px!important;padding:8px 10px!important}
+.memenu .mm-id .nav-av{width:36px;height:36px;font-size:.9375rem}
+.mm-who{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.mm-who b{font-size:.875rem;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-who small{font-size:.71875rem;font-weight:450;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm-plan{align-self:start;margin-top:2px;padding:2px 7px;border-radius:5px;font-size:.6875rem;font-weight:700;color:var(--ink-2);background:color-mix(in srgb,var(--ink) 8%,transparent);white-space:nowrap}
+.mm-plan.pro{color:var(--up);background:color-mix(in srgb,var(--up) 14%,transparent)}
+.memenu>a:not(.mm-id):not(#_m),.memenu>button:not(#_m){display:flex!important;align-items:center;gap:10px}
+.memenu .mm-ic{flex:none;color:var(--ink-3)}
+.memenu>a:hover .mm-ic,.memenu>button:hover .mm-ic{color:var(--ink)}
+.memenu .mm-kb kbd{margin-left:auto;min-width:20px;padding:1px 6px;border-radius:5px;font:600 .6875rem/1.4 var(--num,inherit);color:var(--ink-3);background:color-mix(in srgb,var(--ink) 7%,transparent);text-align:center}
+.mm-sep{border:0;height:1px;margin:4px 8px;background:color-mix(in srgb,var(--ink) 9%,transparent)}
+.mm-th{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:3px 6px 3px 10px;position:relative;z-index:1}
+.mm-lb{font-size:var(--mn-fs,.84375rem);font-weight:var(--mn-fw,550);color:var(--ink)}
+.mm-th .th-seg{min-width:0;padding:2px;border-radius:7px}
+.mm-th .th-seg>button{min-height:26px;padding:3px 9px;border-radius:5px}
+.memenu .mm-out:not(#_m){color:var(--ink-2)}
+.memenu .mm-out:hover{color:var(--down)!important}.memenu .mm-out:hover .mm-ic{color:var(--down)}
+@media (max-width:760px){.mm-th{min-height:46px}}

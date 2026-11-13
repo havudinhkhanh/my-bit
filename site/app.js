@@ -6862,9 +6862,27 @@ function initAccountUI() {
     const R = anc.getBoundingClientRect();
     if (anc.id === "navMe") Object.assign(m.style, { top: "auto", bottom: Math.round(innerHeight - R.top + 6) + "px", left: Math.round(R.left) + "px", right: "auto", width: Math.max(240, Math.round(R.width)) + "px" });
     else m.style.top = Math.round(R.bottom + 6) + "px";
-    m.innerHTML = `<div class="mh"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small><span class="pill ${ME.eff_plan === "pro" ? "buy" : ""}">Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? " · đến " + esc(ME.plan_until) : ""}</span></div>
-      <a href="#/notifications">🔔 Thông báo</a><a href="#/account">⚙️ Tài khoản & cài đặt</a><a href="#/methods">❓ Hướng dẫn & FAQ</a>${ME.role === "admin" ? '<a href="#/admin">🛠️ Quản trị</a>' : ""}<button id="meOut">↩ Đăng xuất</button>`;
+    // cấu trúc theo chuẩn app hiện đại (Linear / Notion / GitHub / ChatGPT): thẻ hồ sơ (bấm = trang tài khoản) → cài đặt → giao diện ngay tại chỗ → trợ giúp → quản trị (chỉ admin) → đăng xuất tách riêng ở cuối.
+    // Bỏ "Thông báo" khỏi menu: đã có chuông riêng trên đầu trang. Biểu tượng nét mảnh cùng bộ với thanh bên (không dùng emoji).
+    const ic = (d) => `<svg class="mm-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const I = { set: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+      help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17.2h.01"/>', key: '<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M7.5 14h9"/>',
+      adm: '<path d="M12 3 4 6v6c0 4.4 3.4 8.3 8 9 4.6-.7 8-4.6 8-9V6z"/><path d="m9 12 2 2 4-4"/>', out: '<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l5-5-5-5"/><path d="M15 12H4"/>' };
+    const pro = ME.eff_plan === "pro";
+    m.innerHTML = `<a class="mm-id" href="#/account" title="Mở trang tài khoản"><span class="nav-av" id="mmAv" aria-hidden="true"></span><span class="mm-who"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small></span><span class="mm-plan ${pro ? "pro" : ""}">${pro ? "★ " : ""}${esc(ME.plan_name || ME.eff_plan || "")}</span></a>
+      <hr class="mm-sep">
+      <a href="#/account">${ic(I.set)}<span>Cài đặt tài khoản</span></a>
+      <div class="mm-th"><span class="mm-lb">Giao diện</span>${thSegHtml()}</div>
+      <hr class="mm-sep">
+      <a href="#/methods">${ic(I.help)}<span>Hướng dẫn & FAQ</span></a>
+      <a href="#/keys" class="mm-kb">${ic(I.key)}<span>Phím tắt</span><kbd>?</kbd></a>
+      ${ME.role === "admin" ? `<hr class="mm-sep"><a href="#/admin">${ic(I.adm)}<span>Quản trị</span></a>` : ""}
+      <hr class="mm-sep">
+      <button type="button" id="meOut" class="mm-out">${ic(I.out)}<span>Đăng xuất</span></button>`;
     document.body.appendChild(m);
+    uiAvStyle(document.getElementById("mmAv")); thSegBind(m); nlBind?.(m);
+    m.querySelector(".mm-th")?.querySelectorAll(".th-seg span").forEach((x) => x.remove());      // gọn: chỉ biểu tượng ☀ / 🌙 / 🖥 (có nhãn khi rê chuột)
+    m.querySelectorAll(".mm-th [data-thv]").forEach((b) => { b.title = { light: "Sáng", dark: "Tối", system: "Theo hệ thống" }[b.dataset.thv] || ""; b.setAttribute("aria-label", b.title); });
     $("#meOut").onclick = logout;
     m.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => m.remove()));
     setTimeout(() => document.addEventListener("click", function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener("click", off); } }), 0);
