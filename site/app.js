@@ -6574,7 +6574,15 @@ function ntBanner(list) {
   box.__out = out;
   const arm = (ms = 7000) => { clearTimeout(tm); if (!open) tm = setTimeout(out, ms); };
   const read = () => { api("notifications/read", "POST", { ids: [n.id, ...more.map((x) => x.id)] }).then(bellCount).catch(() => {}); };
-  const setOpen = (v) => { open = v; box.classList.toggle("open", v); if (v) { clearTimeout(tm); navigator.vibrate?.(5); } else arm(4000); };
+  // mở / thu gọn MƯỢT: đo chiều cao thẻ trước & sau (FLIP) rồi chạy 1 hiệu ứng chiều cao trên GPU-friendly timeline; tắt kính mờ trong lúc chạy (kính mờ + đổi kích thước = giật)
+  const setOpen = (v) => { if (open === v) return; open = v;
+    const h0 = card.getBoundingClientRect().height; box.classList.remove("gl"); card.getAnimations().forEach((a) => { if (a.id === "nbH") a.cancel(); });
+    box.classList.toggle("open", v); const h1 = card.getBoundingClientRect().height;
+    if (Math.abs(h1 - h0) > 1 && !matchMedia("(prefers-reduced-motion:reduce)").matches) {
+      const a = card.animate([{ height: h0 + "px" }, { height: h1 + "px" }], { duration: v ? 440 : 320, easing: v ? "cubic-bezier(.32,.72,0,1)" : "cubic-bezier(.4,0,.2,1)" }); a.id = "nbH";
+      a.onfinish = () => { if (!gone) box.classList.add("gl"); };
+    } else if (!gone) box.classList.add("gl");
+    if (v) { clearTimeout(tm); navigator.vibrate?.(5); } else arm(4000); };
   if (jellyOK()) card.animate(springKF(-90, 0, (v) => ({ transform: `translateY(${v}px)`, opacity: Math.min(1, 1 + v / 90) })), { duration: 620, easing: "linear" });
   box.querySelector(".nb-ex").onclick = (e) => { e.preventDefault(); setOpen(!open); };
   box.querySelector("[data-nbrd]").onclick = () => { read(); out(); };
@@ -6584,7 +6592,7 @@ function ntBanner(list) {
   let y0 = null, dy = 0, moved = false;
   card.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; dy = 0; moved = false; clearTimeout(tm); card.style.transition = "none"; box.classList.remove("gl"); }, { passive: true });
   card.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 6) moved = true; if (!moved) return; if (e.cancelable) e.preventDefault();
-    card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, dy / 70).toFixed(3)); }, { passive: false });
+    card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, Math.max(0, dy) / 50).toFixed(3)); }, { passive: false });
   card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.style.removeProperty("--pull"); setTimeout(() => { if (!gone) box.classList.add("gl"); }, 360);
     if (!moved) { arm(); return; }
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; card.addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => card.removeEventListener("click", eat, { capture: true }), 350);

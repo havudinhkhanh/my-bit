@@ -6216,3 +6216,22 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 /* thanh đếm ngược của thông báo nhỏ: 1 đường thẳng chạy dọc mép dưới (chừa 2 góc bo – không còn uốn theo góc như chạy vòng) · rê chuột / chạm giữ = dừng */
 #toasts .toast .tp:not(#_t){left:14px;right:14px;width:auto;bottom:0;height:2.5px;border-radius:2px;opacity:.7}
 .iv-src{display:inline-block;padding:0 5px;border-radius:4px;font-weight:650;color:var(--ink-2);background:color-mix(in srgb,var(--brand) 12%,transparent)}
+
+/* 🔔 banner thông báo lệnh – vuốt / bấm mở rộng MƯỢT:
+   • phần mở rộng không còn chạy max-height (đổi bố cục từng khung) – chiều cao cả thẻ được JS đo & chạy 1 hiệu ứng duy nhất (FLIP)
+   • kính mờ chỉ bật khi thẻ đứng yên (.gl) – lúc bay vào / kéo / mở rộng tắt hẳn (trước đây thẻ & lớp chồng phía sau luôn mờ nền → rất nặng)
+   • nội dung mở rộng hiện dần + trượt nhẹ, hàng chồng phía sau lùi vào, vạch kéo co giãn theo ngón tay */
+.nb:not(.gl) .nb-c:not(#_n){-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.nb-stk:not(#_n){-webkit-backdrop-filter:none!important;backdrop-filter:none!important;transition:opacity .25s ease,transform .3s cubic-bezier(.32,.72,0,1)}
+.nb.open .nb-stk{transform:translateY(-8px) scaleX(.94)}
+.nb-x:not(#_n){max-height:none!important;transition:none!important;display:grid;grid-template-rows:0fr;overflow:hidden}
+.nb.open .nb-x:not(#_n){grid-template-rows:1fr}
+.nb-xi{min-height:0;overflow:hidden;opacity:0;transform:translateY(-8px);transition:opacity .2s ease,transform .3s cubic-bezier(.32,.72,0,1)}
+.nb.open .nb-xi{opacity:1;transform:none;transition:opacity .3s ease .08s,transform .44s cubic-bezier(.32,.72,0,1) .04s}
+.nb-xi>*{transition:transform .44s cubic-bezier(.32,.72,0,1)}
+.nb:not(.open) .nb-xi .nb-mi{transform:translateY(-6px)}
+.nb-c{will-change:transform}
+.nb-g{transition:opacity .2s,width .15s ease,background-color .15s!important;width:calc(34px + var(--pull,0) * 18px)!important;margin-left:calc(-17px - var(--pull,0) * 9px)!important}
+.nb:has(.nb-c[style*="translateY"]) .nb-g{background:color-mix(in srgb,var(--ink) 38%,transparent)}
+.nb-ex:not(#_n){transition:transform .38s cubic-bezier(.32,.72,0,1),background-color .15s}
+@media (prefers-reduced-motion:reduce){.nb-xi,.nb.open .nb-xi,.nb-stk{transition:none!important}}
