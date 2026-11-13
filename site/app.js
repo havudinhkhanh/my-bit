@@ -457,7 +457,7 @@ let cbRq = 0;
 const LD_DET = "details.sc-more[open]";
 function ldClose(t) {
   document.querySelectorAll(LD_DET).forEach((d) => { if (!t || !d.contains(t)) d.open = false; });
-  const me = document.getElementById("meMenu"); if (me && (!t || (!me.contains(t) && !t.closest?.("#meBtn")))) me.remove();
+  const me = document.getElementById("meMenu"); if (me && (!t || (!me.contains(t) && !t.closest?.("#meBtn,#navMe")))) me.remove();
 }
 document.addEventListener("pointerdown", (e) => ldClose(e.target), true);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") ldClose(null); });
@@ -6655,7 +6655,7 @@ function acPage(o) {
   const push = !can("notify_push") ? `<span class="acp-lock">🔒 Gói Pro</span>` : !ps.ok ? `<span class="acp-warn">${esc(ps.why)}</span>`
     : `<span class="acp-st ${ps.on ? "on" : ""}">${ps.on ? "● Đang bật" : ps.perm === "denied" ? "Bị chặn trong trình duyệt" : "Chưa bật"}</span>${ps.on ? '<button class="btn" id="puTest">Gửi thử</button><button class="btn" id="puOff">Tắt</button>' : '<button class="btn primary" id="puOn">Bật</button>'}`;
   return `<div class="acp">
-  <header class="acp-hero"><div class="acp-av" id="acAv" aria-hidden="true">${ini}</div><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
+  <header class="acp-hero"><span class="acp-avw"><button type="button" class="acp-av" id="acAv" aria-haspopup="dialog" aria-label="Đổi ảnh đại diện" title="Đổi ảnh đại diện">${ini}</button><i class="acp-cam" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></i></span><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
     <div class="acp-tags"><span class="acp-tag ${pro ? "pro" : ""}">${pro ? "★ " : ""}Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? ` · đến ${esc(ME.plan_until)}` : ""}</span><span class="acp-tag">${ME.role === "admin" ? "Quản trị viên" : "Thành viên"}</span><span class="acp-tag">Đăng nhập: ${esc(login)}</span></div></div></header>
   <div class="acp-grid">
   <section class="acp-card"><h2>Hồ sơ</h2>
@@ -6797,34 +6797,52 @@ let UIP = lsGet("ui_cache", {}) || {};
 const UI_EMO = ["", "😎", "🦊", "🐯", "🦁", "🐼", "🚀", "💎", "⚡", "🌙"], UI_COL = ["", "#0f766e", "#1d4ed8", "#7c3aed", "#be123c", "#b45309", "#334155"];
 const UI_FS = [["s", "Nhỏ", 15], ["m", "Vừa", 16], ["l", "Lớn", 17], ["xl", "Rất lớn", 18]];
 function uiAvHtml() { const ini = esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase()); return UIP.av ? "" : UIP.emo ? UIP.emo : ini; }
-function uiAvStyle(el) { if (!el) return; el.textContent = uiAvHtml(); el.classList.toggle("has-img", !!UIP.av); el.style.backgroundImage = UIP.av ? `url("${UIP.av}")` : ""; el.style.backgroundColor = !UIP.av && UIP.col ? UIP.col : ""; el.style.color = !UIP.av && UIP.col ? "#fff" : ""; el.classList.toggle("has-emo", !UIP.av && !!UIP.emo); }
+function uiAvStyle(el) { if (!el) return; el.textContent = uiAvHtml(); el.classList.toggle("has-img", !!UIP.av); el.style.backgroundImage = UIP.av ? `url("${UIP.av}")` : UIP.col ? "none" : ""; el.style.backgroundColor = !UIP.av && UIP.col ? UIP.col : ""; el.style.color = !UIP.av && UIP.col ? "#fff" : ""; el.classList.toggle("has-emo", !UIP.av && !!UIP.emo); }
 function uiApply() {
   const f = UI_FS.find(([k]) => k === (UIP.fs || "m"))?.[2] || 16; document.documentElement.style.fontSize = f === 16 ? "" : f + "px";
-  uiAvStyle($("#meBtn")); uiAvStyle($("#acAv"));
+  uiAvStyle($("#meBtn")); uiAvStyle($("#acAv")); uiAvStyle($("#navMeAv"));
 }
 uiApply();
 async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }
 async function uiSave() { lsSet("ui_cache", UIP); uiApply(); try { await Store.put("ui", UIP); } catch (e) { /* bỏ qua */ } }
-function uiPrefHtml() {
-  return `${acRow("Ảnh đại diện", "ảnh của anh, một biểu tượng, hoặc chữ cái đầu trên nền màu", `<div class="uip"><div class="uip-av" id="uiAvP"></div><label class="btn sm">Tải ảnh lên<input type="file" id="uiFile" accept="image/*" hidden></label>${UIP.av ? '<button class="btn sm" id="uiDel">Bỏ ảnh</button>' : ""}</div>
-      <div class="uip-row">${UI_EMO.map((e) => `<button type="button" class="uip-e${(UIP.emo || "") === e && !UIP.av ? " on" : ""}" data-uiemo="${e}" aria-label="${e || "Chữ cái đầu"}">${e || esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase())}</button>`).join("")}</div>
-      <div class="uip-row">${UI_COL.map((c) => `<button type="button" class="uip-c${(UIP.col || "") === c ? " on" : ""}" data-uicol="${c}" style="${c ? `background:${c}` : ""}" aria-label="${c || "Màu mặc định"}"></button>`).join("")}</div>`)}
-    ${acRow("Cỡ chữ", "áp dụng cho toàn bộ app, mọi trang cùng một cỡ", `<div class="bseg" id="uiFs">${UI_FS.map(([k, t]) => `<button type="button" data-uifs="${k}" class="${(UIP.fs || "m") === k ? "on" : ""}">${t}</button>`).join("")}</div>`)}`;
+function uiPrefHtml() {      // ảnh đại diện: bấm thẳng vào ảnh trên đầu trang Tài khoản (avPick) – không còn khu vực riêng
+  return `${acRow("Cỡ chữ", "áp dụng cho toàn bộ app, mọi trang cùng một cỡ", `<div class="bseg" id="uiFs">${UI_FS.map(([k, t]) => `<button type="button" data-uifs="${k}" class="${(UIP.fs || "m") === k ? "on" : ""}">${t}</button>`).join("")}</div>`)}`;
+}
+// 👤 chọn ảnh đại diện: bấm vào ảnh → bảng nhỏ ngay dưới ảnh: chọn ảnh từ máy / chụp (điện thoại) · biểu tượng · màu nền · bỏ ảnh
+function avCrop(file) {
+  return new Promise((res, rej) => { const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const S = 160, c = document.createElement("canvas"); c.width = c.height = S; const k = Math.min(img.width, img.height), x = (img.width - k) / 2, y = (img.height - k) / 2;      // cắt vuông ở giữa, thu về 160 px (~10 KB)
+      c.getContext("2d").drawImage(img, x, y, k, k, 0, 0, S, S); URL.revokeObjectURL(url); res(c.toDataURL("image/jpeg", 0.85)); };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("img")); }; img.src = url; });
+}
+function avPick(anc) {
+  if (document.getElementById("avMenu")) { iosMenuClose(); return; }
+  const ini = esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase()), R = anc.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16), left = Math.max(8, Math.min(vw - W - 8, R.left));
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu av-menu"; m.dataset.av = "1";
+  const draw = () => `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="avMenu" role="dialog" aria-label="Ảnh đại diện" style="left:${left}px;top:${Math.round(R.bottom + 8)}px;width:${W}px;transform-origin:${Math.max(20, R.left + R.width / 2 - left)}px -8px">
+    <div class="ios-menu-h">Ảnh đại diện</div>
+    <button type="button" data-avf><span class="ios-t">📷 Chọn ảnh từ máy…</span></button>${UIP.av ? `<button type="button" data-avdel><span class="ios-t">🗑️ Bỏ ảnh</span></button>` : ""}
+    <div class="av-sec">Biểu tượng</div><div class="uip-row av-row">${UI_EMO.map((e) => `<button type="button" class="uip-e${(UIP.emo || "") === e && !UIP.av ? " on" : ""}" data-uiemo="${e}" aria-label="${e || "Chữ cái đầu"}">${e || ini}</button>`).join("")}</div>
+    <div class="av-sec">Màu nền</div><div class="uip-row av-row">${UI_COL.map((c) => `<button type="button" class="uip-c${(UIP.col || "") === c ? " on" : ""}" data-uicol="${c}" style="${c ? `--sw:${c};background:${c}` : ""}" aria-label="${c || "Màu mặc định"}"></button>`).join("")}</div>
+    <input type="file" accept="image/*" hidden data-avin></div>`;
+  const bind = () => {
+    m.querySelector("[data-x]").onclick = iosMenuClose;
+    const fin = m.querySelector("[data-avin]");
+    m.querySelector("[data-avf]").onclick = () => fin.click();
+    fin.onchange = async () => { const f = fin.files?.[0]; if (!f) return; try { UIP.av = await avCrop(f); delete UIP.emo; await uiSave(); iosMenuClose(); toast("Đã đổi ảnh đại diện"); } catch (e) { toast("Không đọc được ảnh này"); } };
+    const del = m.querySelector("[data-avdel]"); if (del) del.onclick = async () => { delete UIP.av; await uiSave(); re(); };
+    m.querySelectorAll("[data-uiemo]").forEach((b) => (b.onclick = async () => { UIP.emo = b.dataset.uiemo; delete UIP.av; await uiSave(); re(); }));
+    m.querySelectorAll("[data-uicol]").forEach((b) => (b.onclick = async () => { UIP.col = b.dataset.uicol; await uiSave(); re(); }));
+  };
+  const re = () => { m.innerHTML = draw(); m.querySelector(".ios-menu-in").style.animation = "none"; bind(); };      // vẽ lại tại chỗ (không chạy lại hiệu ứng mở)
+  m.innerHTML = draw(); document.body.appendChild(m); anc.setAttribute("aria-expanded", "true"); anc.dataset.iosm = "1"; bind();
+  const k = (e) => { if (!document.getElementById("avMenu")) { removeEventListener("keydown", k, true); return; } if (e.key === "Escape") { iosMenuClose(); anc.focus?.({ preventScroll: true }); } }; addEventListener("keydown", k, true);
+  addEventListener("hashchange", iosMenuClose, { once: true });
 }
 function uiPrefBind() {
-  uiAvStyle($("#uiAvP"));
-  const re = () => { const sec = $("#uiFs")?.closest("section"); if (!sec) return; const tmp = document.createElement("div"); tmp.innerHTML = uiPrefHtml(); [...sec.querySelectorAll(".acp-row")].filter((r) => r.contains($("#uiAvP")) || r.contains($("#uiFs"))).forEach((r) => r.remove()); sec.append(...tmp.children); uiPrefBind(); };
-  $$("[data-uiemo]").forEach((b) => (b.onclick = async () => { UIP.emo = b.dataset.uiemo; delete UIP.av; await uiSave(); re(); }));
-  $$("[data-uicol]").forEach((b) => (b.onclick = async () => { UIP.col = b.dataset.uicol; await uiSave(); re(); }));
+  const re = () => { const sec = $("#uiFs")?.closest("section"); if (!sec) return; const row = $("#uiFs").closest(".acp-row"), tmp = document.createElement("div"); tmp.innerHTML = uiPrefHtml(); row.replaceWith(...tmp.children); uiPrefBind(); };
   $$("[data-uifs]").forEach((b) => (b.onclick = async () => { UIP.fs = b.dataset.uifs; await uiSave(); re(); toast("Đã đổi cỡ chữ cho toàn app"); }));
-  if ($("#uiDel")) $("#uiDel").onclick = async () => { delete UIP.av; await uiSave(); re(); };
-  const f = $("#uiFile"); if (f) f.onchange = () => {
-    const file = f.files?.[0]; if (!file) return;
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = async () => { const S = 160, c = document.createElement("canvas"); c.width = c.height = S; const k = Math.min(img.width, img.height), x = (img.width - k) / 2, y = (img.height - k) / 2;      // cắt vuông ở giữa, thu về 160 px (~10 KB)
-      c.getContext("2d").drawImage(img, x, y, k, k, 0, 0, S, S); URL.revokeObjectURL(url); UIP.av = c.toDataURL("image/jpeg", 0.85); delete UIP.emo; await uiSave(); re(); toast("Đã đổi ảnh đại diện"); };
-    img.onerror = () => toast("Không đọc được ảnh này"); img.src = url;
-  };
+  const av = $("#acAv"); if (av) av.onclick = (e) => { e.stopPropagation(); avPick(av); };
 }
 function initAccountUI() {
   if (!multiUser()) return;
@@ -6837,11 +6855,13 @@ function initAccountUI() {
   meb.textContent = ((ME.name || ME.email || "?").trim()[0] || "?").toUpperCase(); setTimeout(uiApply, 0);
   th.parentNode.insertBefore(bell, th); th.parentNode.insertBefore(meb, th);
   bell.onclick = (e) => { e.stopPropagation(); bellOpen(); };
-  meb.onclick = (e) => {
-    e.stopPropagation();
+  // menu tài khoản: mở từ ảnh đại diện trên đầu trang (điện thoại) hoặc từ hàng tài khoản cuối thanh bên (máy tính – mở NGƯỢC LÊN như các web app hiện đại)
+  const meMenu = (anc) => {
     let m = $("#meMenu"); if (m) { m.remove(); return; }
     m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu";
-    m.style.top = Math.round(meb.getBoundingClientRect().bottom + 6) + "px";
+    const R = anc.getBoundingClientRect();
+    if (anc.id === "navMe") Object.assign(m.style, { top: "auto", bottom: Math.round(innerHeight - R.top + 6) + "px", left: Math.round(R.left) + "px", right: "auto", width: Math.max(240, Math.round(R.width)) + "px" });
+    else m.style.top = Math.round(R.bottom + 6) + "px";
     m.innerHTML = `<div class="mh"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small><span class="pill ${ME.eff_plan === "pro" ? "buy" : ""}">Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? " · đến " + esc(ME.plan_until) : ""}</span></div>
       <a href="#/notifications">🔔 Thông báo</a><a href="#/account">⚙️ Tài khoản & cài đặt</a><a href="#/methods">❓ Hướng dẫn & FAQ</a>${ME.role === "admin" ? '<a href="#/admin">🛠️ Quản trị</a>' : ""}<button id="meOut">↩ Đăng xuất</button>`;
     document.body.appendChild(m);
@@ -6849,6 +6869,16 @@ function initAccountUI() {
     m.querySelectorAll("a").forEach((a) => a.addEventListener("click", () => m.remove()));
     setTimeout(() => document.addEventListener("click", function off(ev) { if (!m.contains(ev.target)) { m.remove(); document.removeEventListener("click", off); } }), 0);
   };
+  meb.onclick = (e) => { e.stopPropagation(); meMenu(meb); };
+  // 👤 hàng tài khoản cố định cuối thanh bên (máy tính): ảnh đại diện · tên · gói · ⚙ – bấm mở menu tài khoản
+  const tabs = document.getElementById("tabs"), pin = document.getElementById("railPin");
+  if (tabs && pin && !document.getElementById("navMe")) {
+    const nm = document.createElement("button"); nm.type = "button"; nm.id = "navMe"; nm.className = "nav-me"; nm.setAttribute("aria-haspopup", "menu"); nm.title = `${ME.name || ME.email} · Tài khoản & cài đặt`;
+    nm.innerHTML = `<span class="nav-av" id="navMeAv" aria-hidden="true"></span><span class="nav-t"><b>${esc(ME.name || ME.email)}</b><small>Gói ${esc(ME.plan_name || ME.eff_plan || "")}</small></span><svg class="nav-me-g" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
+    tabs.insertBefore(nm, pin); document.body.classList.add("has-navme");
+    nm.onclick = (e) => { e.stopPropagation(); meMenu(nm); };
+    uiAvStyle(document.getElementById("navMeAv"));
+  }
   // khoá tab theo gói
   const tabF = { backtest: "backtest" };
   $$("#tabs a").forEach((a) => { const f = tabF[a.dataset.r]; if (f && !can(f)) a.classList.add("locked"); });

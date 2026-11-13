@@ -6235,3 +6235,35 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .nb:has(.nb-c[style*="translateY"]) .nb-g{background:color-mix(in srgb,var(--ink) 38%,transparent)}
 .nb-ex:not(#_n){transition:transform .38s cubic-bezier(.32,.72,0,1),background-color .15s}
 @media (prefers-reduced-motion:reduce){.nb-xi,.nb.open .nb-xi,.nb-stk{transition:none!important}}
+/* 👤 hàng TÀI KHOẢN cuối thanh bên (máy tính ≥1180px, như Linear / Notion / ChatGPT): ảnh · tên · gói · ⚙ → mở menu tài khoản ngược lên.
+   Có hàng này thì ảnh đại diện trên đầu trang ẩn đi (không trùng 2 chỗ); điện thoại / màn hẹp giữ ảnh trên đầu trang. */
+.nav-me{display:none}
+@media (min-width:1180px){
+  .tabs .nav-me{display:flex;align-items:center;gap:10px;margin-top:auto;flex:none;width:100%;padding:7px 8px 7px 8px;border:0;border-radius:10px;background:none;color:var(--ink);cursor:pointer;text-align:left;font:inherit;isolation:isolate;transition:background-color .15s}
+  .tabs .nav-me:hover,.tabs .nav-me[aria-expanded="true"]{background:var(--sunk)}
+  body.has-navme .tabs .rail-pin{margin-top:2px}
+  .tabs .nav-me .nav-t{display:flex;flex-direction:column;min-width:0;flex:1;line-height:1.2}
+  .tabs .nav-me .nav-t b{font-size:.8125rem;font-weight:650;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tabs .nav-me .nav-t small{font-size:.6875rem;color:var(--ink-3);white-space:nowrap}
+  .tabs .nav-me .nav-me-g{flex:none;color:var(--ink-3);transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .18s}
+  .tabs .nav-me:hover .nav-me-g{transform:rotate(45deg);color:var(--ink)}
+  body.rail-auto .tabs:not(.open) .nav-me-g{opacity:0}
+  body.has-navme #meBtn{display:none!important}
+}
+.nav-av{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:.8125rem;background:var(--brand-2);color:var(--brand);background-size:cover;background-position:center;overflow:hidden}
+.nav-av.has-img{color:transparent!important}.nav-av.has-emo{font-size:1rem}
+/* trang Tài khoản: bấm thẳng vào ảnh đại diện để đổi (có huy hiệu máy ảnh, vòng sáng khi rê chuột) */
+.acp-avw{position:relative;flex:none;display:inline-block}
+.acp-av{border:0;padding:0;cursor:pointer;font-family:inherit;transition:box-shadow .2s ease,transform .2s cubic-bezier(.32,.72,0,1)}
+.acp-av:hover,.acp-av[aria-expanded="true"]{box-shadow:0 0 0 3px var(--surface),0 0 0 5px color-mix(in srgb,var(--brand) 55%,transparent)}
+.acp-av:active{transform:scale(.96)}
+.acp-av:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
+.acp-cam{position:absolute;right:-2px;bottom:-2px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;pointer-events:none;background:var(--surface);color:var(--ink);box-shadow:0 0 0 2px var(--surface),0 2px 6px rgba(0,0,0,.25);font-style:normal}
+/* bảng chọn ảnh đại diện */
+.av-menu .av-sec{padding:8px 10px 0;font-size:.6875rem;font-weight:650;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.av-menu .av-row{padding:4px 8px 6px;margin:0;gap:6px}
+.av-menu .uip-e{width:34px;height:34px;border-radius:9px;border:0;background:color-mix(in srgb,var(--ink) 6%,transparent)}
+.av-menu .uip-c{width:26px;height:26px;border:0;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--ink) 14%,transparent)}
+.uip-c.on:not(#_u){background:var(--sw,var(--brand-2))!important}
+.uip-c:not([style*="--sw"]):not(#_u){background:var(--brand-2)!important}
+.av-menu .uip-c.on:not(#_u){box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--ink)!important;outline:0}
