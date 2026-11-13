@@ -6304,3 +6304,9 @@ body.has-acct #theme,body.has-acct #lang{display:none!important}
 .mm-th{justify-content:flex-start}.mm-th .mm-ic{flex:none;color:var(--ink-3)}.mm-th .mm-lb{flex:1;min-width:0}
 .mm-nl .nl-row:not(#_m){gap:10px!important;padding-left:6px!important}
 .mm-nl .nl-row:not(#_m){grid-template-columns:16px minmax(0,1fr) auto}
+/* ▾ mọi ô chọn (select): mũi tên tự vẽ, cách mép phải 12px, chữ không chạy vào mũi tên – thay mũi tên mặc định của trình duyệt (dính sát viền, mỗi trình duyệt một kiểu) */
+select:not([multiple]):not([size]):not(.dpane select):not(#_s){-webkit-appearance:none;-moz-appearance:none;appearance:none;padding-right:34px!important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23838D96' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+  background-repeat:no-repeat!important;background-position:right 12px center!important;background-size:14px 14px!important;text-overflow:ellipsis}
+select:not([multiple]):not([size]):not(#_s)::-ms-expand{display:none}
+:is(.ph,.ex-sty,.admt) select:not([multiple]):not(#_s){padding-right:24px!important;background-position:right 7px center!important;background-size:11px 11px!important}
