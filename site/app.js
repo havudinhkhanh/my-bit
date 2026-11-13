@@ -227,6 +227,11 @@ function candleChart(el, o, opts = {}) {
 }
 // ---------------------------------------------------------------- khung biểu đồ: vẽ đúng kích thước thật (chữ không phóng to), nhỏ mặc định, có "Mở rộng" & "Toàn màn hình"
 const CB = new Map(); let CBN = 0;
+function legSet(el, L, h) {      // cập nhật số trong chú thích (h = điểm đang rê; null = về số tổng)
+  if (!L) return; const g = el.querySelector(":scope > .leg"); if (!g) return;
+  const x = g.querySelector(".lgx"); if (x) x.textContent = h ? h.lab : L.label; g.classList.toggle("on", !!h);
+  g.querySelectorAll("[data-li]").forEach((s) => { const v = (h ? h.vals : L.last)[+s.dataset.li], b = s.querySelector(".lgv"); if (b) { b.textContent = isNum(v) ? L.fmt(v) : "—"; b.className = `lgv ${cls(v)}`; } });
+}
 function svgMount(draw, o = {}) {
   const id = ++CBN; CB.set(id, { draw, h: o.h || 200, ar: o.ar || 0, cx: {} });
   if (CB.size > 500) for (const [k, r] of CB) { if ((r.el && !r.el.isConnected) || (!r.el && k < CBN - 300)) CB.delete(k); }
@@ -265,13 +270,17 @@ function cbMount(root) {
     c.onmousemove = (e) => {
       if (!r.cx.hover) return;
       const b = c.getBoundingClientRect(), h = r.cx.hover(e.clientX - b.left, e.clientY - b.top), v = c.querySelector(".cbv"), t = c.querySelector(".cbtip");
-      if (!h) { v.hidden = t.hidden = true; return; }
+      if (!h) { v.hidden = t.hidden = true; legSet(el, r.cx.leg, null); return; }
+      if (r.cx.leg) { legSet(el, r.cx.leg, h); v.hidden = false; v.style.left = h.x + "px"; t.hidden = true; if (!r.cx.leg.tip) return; }
       v.hidden = t.hidden = false; v.style.left = h.x + "px"; t.innerHTML = h.html;
       const tw = t.offsetWidth, th = t.offsetHeight;
       t.style.left = (h.x + 14 + tw > b.width ? Math.max(0, h.x - tw - 14) : h.x + 14) + "px";
       t.style.top = Math.max(4, Math.min(b.height - th - 4, e.clientY - b.top - th / 2)) + "px";
     };
-    c.onmouseleave = () => c.querySelectorAll(".cbv,.cbtip").forEach((x) => (x.hidden = true));
+    c.onmouseleave = () => { c.querySelectorAll(".cbv,.cbtip").forEach((x) => (x.hidden = true)); legSet(el, r.cx.leg, null); };
+    // chú thích có số (legVal): kéo ngón tay trên biểu đồ → số chạy theo ngày; nhấc tay → về số tổng
+    c.addEventListener("touchmove", (e) => { if (!r.cx.leg || !e.touches[0]) return; const T = e.touches[0]; c.onmousemove({ clientX: T.clientX, clientY: T.clientY }); }, { passive: true });
+    c.addEventListener("touchend", () => { if (r.cx.leg) setTimeout(() => c.onmouseleave(), 900); }, { passive: true });
   });
   const ms = todo.map(([m]) => m());
   todo.forEach(([, p], i) => p(ms[i]));
@@ -450,8 +459,10 @@ function niceTicks(mn, mx, n) {
 function lineSvg(series, opt = {}) {
   const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum);
   if (!all.length) return `<p class="muted">Chưa có số liệu.</p>`;
-  const legend = series.filter((x) => x.name).map((x) => `<span><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</span>`).join("");
-  return svgMount((W, H, cx) => lineDraw(series, opt, W, H, cx), { h: opt.h || 180, legend: legend ? `<div class="leg">${legend}</div>` : "" });
+  // opt.legVal = { label, fmt }: chú thích hiện LUÔN số của từng đường – mặc định số cuối (tổng), rê chuột / chạm vào biểu đồ → số tại ngày đó (không cần ô nổi nhỏ)
+  const lv = opt.legVal, lf = lv ? lv.fmt || ((v) => nf(v, opt.dec ?? 1)) : null, lastY = (se) => { for (let k = se.pts.length - 1; k >= 0; k--) if (isNum(se.pts[k].y)) return se.pts[k].y; return null; };
+  const legend = series.map((x, i) => (x.name ? (lv ? `<span data-li="${i}"><small><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</small><b class="lgv ${cls(lastY(x))}">${esc(lf(lastY(x)))}</b></span>` : `<span><i style="background:${x.color || css("--brand")}"></i>${esc(x.name)}</span>`) : "")).join("");
+  return svgMount((W, H, cx) => { if (lv) cx.leg = { fmt: lf, label: lv.label || "", tip: !!lv.tip, last: series.map(lastY) }; return lineDraw(series, opt, W, H, cx); }, { h: opt.h || 180, legend: legend ? `<div class="leg${lv ? " leg-v" : ""}"${lv ? ` style="--n:${series.filter((x) => x.name).length}"` : ""}>${lv ? `<em class="lgx">${esc(lv.label || "")}</em>` : ""}${legend}</div>` : "" });
 }
 function lineDraw(series, opt, W, H, cx) {
   const pr = 10, pt = 10, pb = 20;
@@ -496,7 +507,7 @@ function lineDraw(series, opt, W, H, cx) {
     if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;
     const i = Math.max(0, Math.min(n - 1, band ? Math.floor((mx2 - pl) / cw * n) : Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
     const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b>${se.pts[i]?.tip ? ` <small class="${se.pts[i].tc || ""}">${esc(se.pts[i].tip)}</small>` : ""}</span>` : ""; }).join("");
-    return rows ? { x: X(i), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
+    return rows ? { x: X(i), i, lab: ref[i]?.x ?? "", vals: series.map((se) => se.pts[i]?.y), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
   };
   return s;
 }

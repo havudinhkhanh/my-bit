@@ -161,9 +161,9 @@ async function ivFill(LH, C, env) {
   const card = (t, v, sub) => `<div class="iv-k"><small>${t}</small><b class="${cls(v)}">${iv$(v)}</b>${sub ? `<em>${sub}</em>` : ""}</div>`;
   const kp = `<div class="iv-ks iv-ks4">${card(bi("🤖 Bot tự chạy", "🤖 Bot alone"), cS, `${nBot} ${bi("lệnh bot · nếu anh không đụng vào", "bot trades · if untouched")}`)}${card(bi("+ ✋ Can thiệp vào lệnh bot", "+ ✋ Your interventions"), dIv, nIv ? `${nIv} ${bi("lần", "times")} · ${bi("đúng", "right")} ${wIv}/${nIv}` : bi("chưa can thiệp lệnh nào", "none yet"))}${card(bi("+ ✋ Lệnh tay riêng", "+ ✋ Your own trades"), own, G.man.n ? `${G.man.n} ${bi("lệnh · bot không có", "trades · not the bot's")}` : bi("chưa có", "none"))}${card(bi("= Thực tế", "= Actual"), cA, `${rows.length} ${bi("lệnh đã đóng", "closed trades")}`)}</div>`;
   const ser = [{ name: bi("🤖 Bot tự chạy", "🤖 Bot alone"), color: css("--ink-3"), width: 2, dash: "5 4", pts: pS }];
-  if (G.man.n && nBot) ser.push({ name: bi("🤖 Lệnh bot thực tế (có can thiệp)", "🤖 Bot trades as actually run"), color: css("--brass") || "#B8862F", width: 2, pts: pB });
-  ser.push({ name: bi(G.man.n ? "✋ Thực tế (gồm lệnh tay riêng)" : "✋ Thực tế (có can thiệp tay)", G.man.n ? "✋ Actual (incl. your own trades)" : "✋ Actual (with interventions)"), color: css("--brand"), width: 2.4, pts: pA });
-  const chart = rows.length > 1 ? lineSvg(ser, { h: 230, dec: 2 }) : ivEmpty(bi("Cần ít nhất 2 lệnh đã đóng.", "Needs at least 2 closed trades."));
+  if (G.man.n && nBot) ser.push({ name: bi("🤖 Lệnh bot thực tế", "🤖 Bot trades, actual"), color: css("--brass") || "#B8862F", width: 2, pts: pB });
+  ser.push({ name: bi(G.man.n ? "✋ Thực tế (gồm lệnh tay)" : "✋ Thực tế (có can thiệp)", G.man.n ? "✋ Actual (incl. own trades)" : "✋ Actual (with interventions)"), color: css("--brand"), width: 2.4, pts: pA });
+  const chart = rows.length > 1 ? lineSvg(ser, { h: 230, dec: 2, legVal: { label: bi("Tổng tới nay", "Total to date"), fmt: iv$ } }) : ivEmpty(bi("Cần ít nhất 2 lệnh đã đóng.", "Needs at least 2 closed trades."));
   const na = `<span class="faint">—</span>`, td = (v) => `<td class="${cls(v)}">${iv$(v)}</td>`;
   const tr = (t, sub, n, a, s, d) => `<tr><td class="l">${t}${sub ? `<small class="faint iv-sub">${sub}</small>` : ""}</td><td>${n}</td>${td(a)}${s}${d}</tr>`;
   const brk = [
