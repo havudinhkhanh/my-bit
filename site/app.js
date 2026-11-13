@@ -2455,7 +2455,7 @@ function pxMenu(cx, cy, p0, C, ch) {
       : (sd > 0 ? bi("khi giá vượt lên – lệnh dừng", "on break above – stop") : bi("khi giá thủng xuống – lệnh dừng", "on break below – stop")); };
   const it = (a, ic, t, sub, c = "") => `<button type="button" role="menuitem" data-pxa="${a}"><span class="ios-ck">${ic}</span><span class="ios-t ${c}">${t}<small>${sub}</small></span></button>`;
   const manOK = C.man && C.side && cur;
-  const avgT = (sd) => (C.man && C.side === sd ? bi(" · ➕ bình quân lệnh đang có", " · ➕ average the open trade") : "");
+  const avgT = (sd) => (C.man && C.side === sd ? `<em class="px-avg">${bi("➕ Bình quân vào lệnh tay đang có", "➕ Averages into your open trade")}</em>` : "");      // dòng riêng – không bị cắt "…"
   const items = [it("s", "🔻", bi(`Short khi giá về ${px(p)}`, `Short at ${px(p)}`), L(-1) + avgT(-1), "down"), it("l", "🔺", bi(`Long khi giá về ${px(p)}`, `Long at ${px(p)}`), L(1) + avgT(1), "up"),
     manOK && (C.side > 0 ? p < cur : p > cur) ? it("sl", "🛑", bi("Đặt cắt lỗ lệnh tay ở đây", "Set the manual stop here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
     manOK && (C.side > 0 ? p > cur : p < cur) ? it("tp", "🎯", bi("Đặt chốt lời lệnh tay ở đây", "Set the manual target here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
@@ -2465,6 +2465,7 @@ function pxMenu(cx, cy, p0, C, ch) {
   m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" style="left:${left}px;top:${Math.max(8, Math.min(vh - 300, cy + 4))}px;width:${W}px;transform-origin:${cx - left}px 0">
     <div class="ios-menu-h">📍 ${esc(k || "")} · <b>${px(p)}</b>${isNum(d) ? ` <span class="${d >= 0 ? "up" : "down"}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</span> ${bi("so với giá hiện tại", "vs now")}` : ""}</div>${items}</div>`;
   document.body.appendChild(m);
+  { const mi = m.querySelector(".ios-menu-in"), b = mi.getBoundingClientRect(); if (b.bottom > vh - 8) mi.style.top = Math.max(8, vh - 8 - b.height) + "px"; }      // menu cao hơn dự tính (chữ xuống dòng) → kéo lên cho khỏi tràn đáy màn hình
   const close = () => { try { if (pl) ch.cs.removePriceLine(pl); } catch (e) { /* bỏ qua */ } m.remove(); removeEventListener("keydown", esc_); };
   const esc_ = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }; addEventListener("keydown", esc_, true);
   m.querySelector("[data-x]").onclick = close; m.querySelector("[data-x]").oncontextmenu = (e) => { e.preventDefault(); close(); };

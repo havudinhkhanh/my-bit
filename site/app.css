@@ -6137,3 +6137,7 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 .iv-lb{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center}.iv-lb>.iv-ic{grid-row:1/3;align-self:start;margin-top:.12em}.iv-lb>.iv-sub{grid-column:2}
 .iv-lt-t .iv-bot{display:none}
 @media (max-width:760px){.iv-lt-t .iv-bot{display:inline-flex}}
+
+/* menu chuột phải trên biểu đồ (và mọi menu không phải điều hướng): dòng phụ được xuống dòng, không cắt "…" */
+.ios-menu:not(.nav-mn) .ios-t small{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.35}
+.px-menu .px-avg{display:flex;width:fit-content;align-items:center;gap:4px;margin-top:4px;padding:2px 7px;border-radius:5px;font-style:normal;font-size:.6875rem;font-weight:600;color:var(--ink-2);background:color-mix(in srgb,var(--brand) 12%,transparent)}
