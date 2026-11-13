@@ -6200,3 +6200,9 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .cv-chart .cops .chk input{margin:0}
 :is(.cv-chart .tfseg,.occ-tf)>button:not(#_t){height:28px!important;min-height:28px!important}
 :is(.occ-tg button,.cv-chart .cops .chk):not(#_t){min-height:28px!important}
+/* điện thoại: khung biểu đồ bật ra không bao giờ rộng quá màn hình (cột lưới tối thiểu 0) · nhóm EMA/KL/RSI vẫn ẩn như trước (luật v4 ở trên lỡ bật lại) */
+.occ{grid-template-columns:minmax(0,1fr)}
+.occ-p{min-width:0;max-width:100%}
+.occ-bar{min-width:0;max-width:100%}
+@media (max-width:640px){.occ-tg:not(#_t):not(#_u){display:none!important}}
+@media (max-width:760px){.cv-chart .cops:not(#_t){flex:1 1 100%!important;flex-wrap:wrap!important;max-width:100%}}
