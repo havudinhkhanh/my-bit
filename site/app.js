@@ -6462,9 +6462,12 @@ async function viewNotifications() {
 }
 let __bellN = 0;
 let __bellTop = null;
-async function bellCount() {
+let __bellBusy = null, __bellSeen = new Set();
+async function bellCount(o = {}) {      // o.quiet: thông báo hệ thống đã hiện (đẩy trên iPhone) → chỉ cập nhật chuông, không hiện thêm banner trong app
   if (!multiUser() || document.hidden) return;
-  try {
+  if (__bellBusy) { if (o.quiet) __bellBusy.quiet = true; return __bellBusy.p; }      // nhiều nguồn gọi cùng lúc (đẩy + đổi tab + 60 giây) → 1 lượt, không 2 banner
+  const run = { quiet: !!o.quiet }; __bellBusy = run;
+  run.p = (async () => { try {
     const j = await api("notifications/count"), n0 = __bellN; __bellN = j.unread || 0; const b = $("#bellN"); if (b) { b.textContent = __bellN > 99 ? "99+" : __bellN; b.hidden = !__bellN; }
     // số trên biểu tượng app = số lệnh bot đang chờ khớp + đang mở (bot không chạy → xoá số)
     if (navigator.setAppBadge && "act" in j) { const n = j.act?.n || 0; (n > 0 ? navigator.setAppBadge(Math.min(99, n)) : navigator.clearAppBadge()).catch(() => {}); }
@@ -6472,10 +6475,11 @@ async function bellCount() {
     if (__bellN > n0 || __bellTop == null) {
       const L = (await api("notifications?limit=6").catch(() => ({ items: [] }))).items || [];
       const top = Math.max(0, ...L.map((x) => x.id));
-      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at); if (nw.length) ntBanner(nw); }
+      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at && !__bellSeen.has(x.id)); nw.forEach((x) => __bellSeen.add(x.id)); if (nw.length && !run.quiet) ntBanner(nw); }
       __bellTop = Math.max(__bellTop || 0, top);
     }
-  } catch (e) { /* bỏ qua */ }
+  } catch (e) { /* bỏ qua */ } finally { __bellBusy = null; } })();
+  return run.p;
 }
 
 // 🔔 BANNER THÔNG BÁO TRONG APP (kiểu iOS): trượt xuống từ trên, tự ẩn sau 7 giây.
@@ -6773,7 +6777,7 @@ function initAccountUI() {
   if (!can("pdf")) $("#pdfBtn")?.remove();
   bellCount(); setInterval(() => { if (!document.hidden) bellCount(); }, 60000);      // 60 giây & chỉ khi đang xem trang (chuông còn cập nhật ngay khi có thông báo đẩy / mở lại app)
   navigator.serviceWorker?.addEventListener?.("message", (e) => {
-    if (e.data?.t === "push") bellCount();      // thông báo đẩy tới → chuông cập nhật ngay
+    if (e.data?.t === "push") bellCount({ quiet: !!e.data.shown });      // thông báo đẩy tới → chuông cập nhật ngay
     if (e.data?.t === "go" && e.data.url) { try { const u = new URL(e.data.url, location.href); if (u.origin === location.origin) { if (location.hash === u.hash) route(); else location.hash = u.hash; setTimeout(bellCount, 800); } } catch (x) { /* bỏ qua */ } }      // bấm thông báo khi app đang mở → tới đúng chỗ
   });   // thông báo đẩy tới → chuông cập nhật ngay
   document.addEventListener("visibilitychange", () => { if (!document.hidden) bellCount(); });

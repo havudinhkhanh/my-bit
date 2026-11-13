@@ -86,9 +86,13 @@ self.addEventListener("push", (e) => {
   const nb = self.navigator;
   const badge = typeof d.badge === "number" && nb && nb.setAppBadge ? (d.badge > 0 ? nb.setAppBadge(d.badge) : nb.clearAppBadge()).catch(() => {}) : null;
   const sev = Number(d.sev) || 0, acts = Array.isArray(d.acts) ? d.acts.slice(0, 2) : [];
-  e.waitUntil(Promise.all([
-    badge,
-    self.registration.showNotification(d.title || APP, {
+  // trang MyBit đang mở trước mặt → trang tự hiện banner trong app; KHÔNG hiện thêm thông báo hệ thống (trước: 2 thông báo đè nhau).
+  // Safari / iPhone bắt buộc mỗi lần đẩy phải hiện thông báo hệ thống (không thì tự huỷ đăng ký) → ở đó vẫn hiện, và trang KHÔNG hiện banner nữa.
+  const ua = (self.navigator && self.navigator.userAgent) || "", mustShow = /AppleWebKit/.test(ua) && !/Chrome|Chromium|CriOS|Edg|OPR|Android/.test(ua);
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+    const vis = cs.some((c) => c.visibilityState === "visible" && c.focused !== false), show = mustShow || !vis;
+    cs.forEach((c) => c.postMessage({ t: "push", shown: show }));
+    return Promise.all([badge, show ? self.registration.showNotification(d.title || APP, {
       body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag && sev >= 1, icon: "/apple-touch-icon.png", badge: "/icon-192.png",
       timestamp: Number(d.ts) || Date.now(),
       requireInteraction: sev >= 3,                     // ⛔ ngừng / lỗi nặng: ở lại tới khi anh xem
@@ -96,10 +100,8 @@ self.addEventListener("push", (e) => {
       vibrate: sev >= 3 ? [90, 60, 90, 60, 160] : sev >= 2 ? [70, 50, 70] : [40],
       actions: acts.map((a) => ({ action: a.a, title: a.t })),
       data: { url: d.url || "/", acts, nk: d.nk || [], ref: d.ref || null },
-    }),
-    // trang đang mở → cập nhật chuông ngay
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => cs.forEach((c) => c.postMessage({ t: "push" }))),
-  ]));
+    }) : null]);
+  }));
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
