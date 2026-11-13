@@ -6310,3 +6310,10 @@ select:not([multiple]):not([size]):not(.dpane select):not(#_s){-webkit-appearanc
   background-repeat:no-repeat!important;background-position:right 12px center!important;background-size:14px 14px!important;text-overflow:ellipsis}
 select:not([multiple]):not([size]):not(#_s)::-ms-expand{display:none}
 :is(.ph,.ex-sty,.admt) select:not([multiple]):not(#_s){padding-right:24px!important;background-position:right 7px center!important;background-size:11px 11px!important}
+
+/* 🌙 ánh sáng ấm trên MÁY TÍNH (≥980px): lớp ấm phủ từ mép trên cùng (gồm cả thanh trên & phần đầu thanh bên) – chừa dải trên chỉ cần cho iPhone
+   (Safari lấy màu thanh trạng thái). Trước đây đầu thanh bên nằm trong dải chừa → trắng; thanh trên thì tự tô sẵn nên giờ trả về màu gốc để khỏi tô 2 lần. */
+@media (min-width:980px){
+  html[data-nl]::after{top:0!important}
+  html[data-nl] .top:not(#_t):not(#_u){background:var(--nl-top0,var(--surface))!important}
+}

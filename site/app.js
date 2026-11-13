@@ -5891,7 +5891,9 @@ function nlApply(patch) {
     d.dataset.nl = "1"; d.style.setProperty("--nl", String(o)); nlTopH();
     const bg = hx("--bg"); if (bg) d.style.setProperty("--nl-bg", nlMul(bg, o));
     const T = $(".top"); if (T) { delete d.dataset.nl; const m = getComputedStyle(T).backgroundColor.match(/[\d.]+/g); d.dataset.nl = "1";      // màu GỐC của thanh (đọc khi tạm tắt lớp ấm) → nhân ấm
-      if (m && m.length >= 3) { const h0 = "#" + m.slice(0, 3).map((x) => Math.round(+x).toString(16).padStart(2, "0")).join(""); d.style.setProperty("--nl-top0", h0); d.style.setProperty("--nl-top", nlMul(h0, o)); } }
+      // thanh trong suốt / kính (rgba có alpha < 1, máy tính) → trộn với màu nền trang trước (trước đây đọc thẳng → ra ĐEN: thanh trên cùng & thanh tiêu đề app bị tối thui khi bật ánh sáng ấm)
+      if (m && m.length >= 3) { const a = m.length >= 4 ? +m[3] : 1, B = bg ? [1, 3, 5].map((i) => parseInt(bg.slice(i, i + 2), 16)) : [255, 255, 255];
+        const h0 = "#" + m.slice(0, 3).map((x, i) => Math.round(+x * a + B[i] * (1 - a)).toString(16).padStart(2, "0")).join(""); d.style.setProperty("--nl-top0", h0); d.style.setProperty("--nl-top", nlMul(h0, o)); } }
   } else { delete d.dataset.nl; }
   $$("[data-nlon]").forEach((x) => { x.setAttribute("aria-checked", String(!!n.on)); x.classList.toggle("on", !!n.on); });
   $$("[data-nlw]").forEach((x) => { if (+x.value !== n.w) x.value = n.w; x.style.setProperty("--v", n.w + "%"); x.disabled = !n.on; });
