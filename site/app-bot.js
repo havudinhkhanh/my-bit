@@ -671,13 +671,16 @@ async function viewScalp() {
   const lvk = (e) => e.k || e.sym.replace(/USDT$/, "") + ":F";
   const lvOpen = (LV?.ev || []).map(lvCard).join("");
   // 🧪 Short coin vừa bơm bằng tiền thật – lệnh đang giữ (7 ngày, x1, không cắt lỗ)
-  const swOpenL = (LV?.swp?.open || []).map((p) => { const t0 = Date.parse(p.t0 + "Z"), ex = Date.parse(p.exp + "Z"), pc = p.N ? p.upnl / p.N * 100 : 0;
-    return withMx(`<div class="sc-oc lv S"><div class="r1"><span>🧪 <b>${scK(String(p.sym).replace(/USDT$/, "") + ":F")}</b> <span class="down">Short</span></span><b class="lpx">${px(p.m)}</b></div>
+  // ➕ vào thêm tiền cho lệnh Short bơm đang mở (máy chủ cộng vào chính lệnh đó: khối lượng, giá vào bình quân, giá trị)
+  const swAddBtn = (p) => `<!--swa:${esc(p.id)}-->`;
+  const swOpenL0 = (LV?.swp?.open || []).map((p) => { const t0 = Date.parse(p.t0 + "Z"), ex = Date.parse(p.exp + "Z"), pc = p.N ? p.upnl / p.N * 100 : 0;
+    return swAddBtn(p) + withMx(`<div class="sc-oc lv S"><div class="r1"><span>🧪 <b>${scK(String(p.sym).replace(/USDT$/, "") + ":F")}</b> <span class="down">Short</span></span><b class="lpx">${px(p.m)}</b></div>
       <div class="r1s">${lvAcc()} ${bi("Short coin vừa bơm · x1 · không cắt lỗ", "Short pumped coin · x1 · no stop")}</div>
       <div class="r2"><b class="${cls(p.upnl)}">${nz(p.upnl, 2) > 0 ? "+" : ""}${usd2(p.upnl)}</b> <small class="${cls(pc)}">${nz(pc, 1) > 0 ? "+" : ""}${nf(pc, 1)}%</small> <small class="faint">${bi("tạm tính", "unrealized")}</small></div>
       <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.ap)}</b> · ${bi("giá", "mark")} ${px(p.m)} · ${qty(p.q)} · ${bi("giá trị", "size")} <b>${usd2(p.N)}</b> · ${bi("mất trắng khi giá", "wiped out at")} ≥ ${px(p.ap * 2)}</small></div>
       <div class="r4" data-lt0="${t0}" data-lh="${(ex - t0) / 1000}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("tự đóng sau", "auto-closes in")} 7 ${bi("ngày", "days")} · ${esc(p.why || "")}</small></div></div>`, "swp:" + p.id, `Short ${String(p.sym).replace(/USDT$/, "")} (coin vừa bơm) trên ${LVN}`, LVE === "live", { pk: String(p.sym).replace(/USDT$/, "") + ":F", e: p.ap, q: p.q, sd: -1, f0: p.fees ?? p.N * C.fee_t / 100, fr: C.fee_t, fund: p.fund ?? null, m: p.m, sl: 0.1, long: 1 });
   }).join("");
+  const swOpenL = swOpenL0.replace(/<!--swa:([^>]*?)-->([\s\S]*?)<div class="sc-mxr">/g, (m0, id, mid) => `${mid}<div class="sc-mxr"><button type="button" class="sc-mx sc-me" data-swa="${id}" title="${bi("Vào thêm tiền vào lệnh này – máy chủ cộng vào chính lệnh (giá vào bình quân), giữ giờ đóng", "Add money to this trade – merged into it (average entry), same close time")}">➕ ${bi("Vào thêm", "Add")}</button>`);
   // 🧪 lệnh của các phương pháp thử nghiệm đang mở (sàn thử: Short coin vừa bơm / mới niêm yết, 6 kiểu định lượng; Binance: định lượng) – trước đây chỉ có trong bảng Phương pháp
   const XNM = { ou: "Cặp coin O-U", rsi2: "RSI(2) Connors", fund: "Funding âm → Long", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý", pump: "Short coin vừa bơm", list: "Short coin mới niêm yết" };
   const xLeft = (t) => { const s = (Date.parse(String(t) + "Z") - Date.now()) / 1000; return !isNum(s) ? "" : s <= 0 ? bi("sắp đóng", "closing") : s > 86400 ? `${Math.floor(s / 86400)} ${bi("ngày", "d")} ${Math.floor((s % 86400) / 3600)} ${bi("giờ", "h")}` : `${Math.floor(s / 3600)} ${bi("giờ", "h")} ${Math.floor((s % 3600) / 60)} ${bi("phút", "m")}`; };
@@ -1624,6 +1627,7 @@ async function viewScalp() {
     }, 0);
   }
   $$("[data-madd]").forEach((b) => (b.onclick = () => manAddSheet(b.dataset.madd)));
+  $$("[data-swa]").forEach((b) => (b.onclick = () => swAddSheet(b.dataset.swa)));
   $$("[data-mlc]").forEach((b) => (b.onclick = async () => { const card = b.closest(".sc-oc"), nm = card?.querySelector(".r1 > span")?.textContent.replace(/\s+/g, " ").trim() || "";
     const ok = await iosSheet({ title: bi("Huỷ lệnh chờ giá?", "Cancel the price order?"), body: `<p>${esc(nm)}</p><p class="faint">${bi("Máy chủ huỷ lệnh trên Binance trong vài giây. Nếu lệnh đã khớp 1 phần, phần đã vào vẫn được đặt cắt lỗ / chốt lời như đã chọn.", "The server cancels it on Binance within seconds. If partly filled, that part keeps its stop/target.")}</p>`, ok: bi("Huỷ lệnh chờ", "Cancel order"), danger: true, cancel: bi("Giữ", "Keep") });
     if (!ok) return; await scCmd("close", `mlc:${b.dataset.mlc}`, new Date().toISOString()); b.disabled = true; b.textContent = bi("⏳ Đang huỷ…", "⏳ Cancelling…"); toast(bi("Đã gửi lệnh huỷ", "Cancel sent")); }));

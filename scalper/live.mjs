@@ -482,6 +482,7 @@ export class LiveExec {
       }
       this.say(`✋ Anh bấm đóng ${ev.sym} trên trang – huỷ lệnh chờ & đóng vị thế`, "info"); await this.close(ev, "MANUAL");
     } }
+    else if (k.startsWith("swa:")) { const [, id, usd] = k.split(":"); await this.swAdd(id, +usd || 0); }
     else if (k.startsWith("swp:")) { const p = this.S.swp?.[k.slice(4)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng Short bơm ${p.sym} trên trang`, "info"); await this.swClose(p, "MANUAL"); } }
     else if (k.startsWith("lq:")) { const p = this.S.qp?.[k.slice(3)]; if (p && !p.done) { this.say(`✋ Anh bấm đóng 📐 ${p.name} ${p.legs.map((L) => coin(L.sym)).join("/")} trên trang`, "info"); await this.qClose(p, "MANUAL"); } }
     else if (k.startsWith("kp:") || k.startsWith("kz:")) {      // ⏱ gia hạn / giữ lệnh bot trên Binance (cắt lỗ trên sàn / cắt lỗ đuổi vẫn chạy) · 🔕 hoãn nhắc
@@ -521,7 +522,7 @@ export class LiveExec {
       const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
-    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo"],
+    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo", "swa"],
       pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, avg: !!m.avg, t0: m.t0, vd: m.vd, eh: m.eh })),
       pdone: Object.values(this.S.mo || {}).filter((m) => m.done && m.env === env && Date.now() - (m.t2 || 0) < 86400e3).slice(-10).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, st: m.st, t2: m.t2 })) };
   }
@@ -947,6 +948,28 @@ export class LiveExec {
     }
   }
   led(h) { try { this.core?.io?.onTrade?.({ env: h.env, strat: h.strat || "hook", k: h.k || coin(h.sym) + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note, dx: h.dx }); } catch (e) { /* sổ lệnh lỗi không ảnh hưởng giao dịch */ } }
+  // ➕ VÀO THÊM cho lệnh 🧪 Short coin vừa bơm đang mở (anh bấm trên trang): bán thêm bằng lệnh thị trường (cùng ký quỹ cô lập x1),
+  // cộng vào CHÍNH lệnh đó (khối lượng, giá vào bình quân, giá trị, phí) → đóng / lời lỗ / sổ lệnh tính cho cả phần vào thêm. Không mở lệnh mới, không đổi giờ đóng.
+  async swAdd(id, usd) {
+    const c = this.cfg(), p = this.S.swp?.[id];
+    if (!p || p.done || p.env !== this.env()) { this.say(`➕ Vào thêm Short bơm: không còn lệnh ${id}`, "info"); return; }
+    const base = coin(p.sym), tag = `➕ Vào thêm 🧪 Short bơm ${base}`;
+    if (!this.enabled()) { this.say(`${tag}: tài khoản Binance của bot đang tắt`, "info"); return; }
+    if (this.mPendSyms().has(p.sym)) { this.say(`${tag}: đang có 📍 lệnh chờ giá trên mã này – không vào thêm`, "info"); return; }
+    const F = await this.filters(p.sym); if (!F) { this.say(`${tag}: mã không giao dịch được`, "info"); return; }
+    const pr = await this.pos(p.sym); if (!(Math.abs(pr.amt) > 0)) { this.say(`${tag}: vị thế không còn trên sàn`, "info"); return; }
+    const mk = +(await this.req("GET", "/fapi/v1/premiumIndex", { symbol: p.sym }, false)).markPrice;
+    if (!(mk > 0) || !(usd > 0)) { this.say(`${tag}: thiếu giá / số tiền`, "info"); return; }
+    const q = fl(usd / mk, F.step); if (!(q >= F.minQ) || q * mk < F.minN) { this.say(`${tag}: ${usd} USDT nhỏ hơn mức tối thiểu của sàn (${F.minN} USDT)`, "info"); return; }
+    if (this.st.avail != null && q * mk > this.st.avail * 0.9) { this.say(`${tag}: số dư khả dụng ${this.st.avail} USDT không đủ cho ${(q * mk).toFixed(2)} USDT ký quỹ x1`, "info"); return; }
+    { const why = this.riskOk(q * mk, 1, 1); if (why) { this.say(`${tag}: 🛡️ giới hạn an toàn chung: ${why}`, "info"); return; } }
+    const o = await this.req("POST", "/fapi/v1/order", { symbol: p.sym, side: "SELL", type: "MARKET", quantity: q.toFixed(F.sd), newOrderRespType: "RESULT" });
+    const ap = +o.avgPrice > 0 ? +o.avgPrice : mk, fq = +o.executedQty > 0 ? +o.executedQty : q, q0 = p.q, e0 = p.ap;
+    p.q = +(q0 + fq).toFixed(10); p.ap = (q0 * e0 + fq * ap) / p.q; p.N = +(p.q * p.ap).toFixed(4); p.fees = (p.fees || 0) + fq * ap * c.fee_t / 100; p.adds = [...(p.adds || []), { t: Date.now(), q: fq, px: ap }];
+    this.save();
+    this.say(`${tag}: BÁN thêm ${fq} @ ${+ap.toPrecision(8)} (~${(fq * ap).toFixed(2)} USDT) · khối lượng ${+q0.toFixed(F.sd)} → ${+p.q.toFixed(F.sd)} · giá vào ${+e0.toPrecision(6)} → ${+p.ap.toPrecision(6)} · mất trắng khi giá ≥ ${+(p.ap * 2).toPrecision(6)}`, "win");
+    this.note(`swa:${id}:${p.adds.length}`, 2, `${LTAG(p.env)} · ➕ 🧪 ${base} vào thêm ${(fq * ap).toFixed(2)} USDT`, `Short coin vừa bơm · bán thêm ${fq} @ ${+ap.toPrecision(8)} · giá vào bình quân ${+e0.toPrecision(6)} → ${+p.ap.toPrecision(6)} · giá trị ${p.N.toFixed(2)} USDT · giờ đóng giữ nguyên.`, `lv:${id}`);
+  }
   async swClose(p, why) {
     const c = this.cfg(), pr = await this.pos(p.sym), q = Math.abs(pr.amt);
     let px = null;

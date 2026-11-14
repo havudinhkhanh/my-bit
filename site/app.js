@@ -2572,6 +2572,35 @@ async function manAddSheet(sym) {
   await scCmd("close", `mcp:${sym}:${sd}:${+usd.toFixed(2)}:${lev0}:0:0:0:`, new Date().toISOString());
   toast(bi(`Đã gửi – máy chủ vào thêm ~${usd2(usd)} ${c0} trong vài giây`, `Sent – the server adds ~${usd2(usd)} within seconds`));
 }
+// ➕ VÀO THÊM cho lệnh 🧪 Short coin vừa bơm của bot (tiền thật / Demo): máy chủ bán thêm & cộng vào chính lệnh đó (x1 cô lập, không cắt lỗ, giữ giờ đóng)
+async function swAddSheet(id) {
+  const R = await pxLV(), LV = R?.LV, real = (LV?.env || "live") === "live", P0 = (LV?.swp?.open || []).find((x) => x.id === id);
+  if (!P0) { toast(bi("Lệnh này đã đóng hoặc chưa đọc được – tải lại trang", "This trade is closed or not loaded – reload"), { type: "warn" }); return; }
+  if (!(LV.man?.cap || []).includes("swa")) { iosSheet({ title: bi("➕ Cần cập nhật máy chủ", "➕ Server update needed"), body: `<p>${bi("Máy chủ riêng chưa có tính năng vào thêm cho lệnh của bot. Chạy một lần trên máy chủ:", "The private server can't add to bot trades yet. Run once on the server:")}</p><pre class="cmdl">sudo bash /opt/my-bit/scalper/install.sh</pre>`, ok: bi("Đã hiểu", "OK"), cancel: "" }); return; }
+  const c0 = String(P0.sym).replace(/USDT$/, ""), q0 = +P0.q, e0 = +P0.ap, N0 = +P0.N || q0 * e0, fq = (q) => nf(q, q >= 100 ? 0 : q >= 1 ? 2 : 4);
+  const mk = () => SCL?.px?.[c0 + ":F"] || +P0.m || e0, st = { usd: Math.max(6, Math.round(N0)) }, MUL = [[0.5, "½×"], [1, "1×"], [2, "2×"]];
+  const tbl = () => { const m = mk(), q1 = st.usd / m, e1 = (q0 * e0 + q1 * m) / (q0 + q1);
+    return `<table class="mxe"><tbody>
+      <tr><td>${bi("Bán thêm", "Sell more")}<small>${bi("lệnh thị trường lúc máy chủ nhận", "market order when the server receives it")}</small></td><td>~<b>${px(m)}</b></td></tr>
+      <tr><td>${bi("Ký quỹ thêm", "Extra margin")}<small>${bi("x1 cô lập – bằng đúng số tiền", "x1 isolated – equals the amount")}</small></td><td><b>${usd2(st.usd)}</b></td></tr>
+      <tr><td>${bi("Lệnh sau khi gộp", "Trade after")}</td><td>${fq(q0)} → <b>${fq(q0 + q1)}</b> · ${usd2(N0)} → <b>${usd2(N0 + st.usd)}</b></td></tr>
+      <tr><td>${bi("Giá vào bình quân", "Average entry")}</td><td>${px(e0)} → <b>~${px(e1)}</b></td></tr>
+      <tr><td>${bi("Mất trắng khi giá", "Wiped out at")}<small>${bi("x1, không cắt lỗ", "x1, no stop")}</small></td><td>≥ <b class="down">${px(e1 * 2)}</b></td></tr>
+      <tr><td>${bi("Tự đóng", "Auto-close")}</td><td>${bi("giữ nguyên giờ đóng của lệnh", "same close time")}</td></tr></tbody></table>`; };
+  const body = `<p style="margin:2px 0 8px;text-align:center">🧪 <b>${esc(c0)}</b> <b class="down">Short</b> · ${bi("Short coin vừa bơm", "Short pumped coin")} · ${fq(q0)} @ ${px(e0)}</p>
+    <div class="cp-g"><label>${bi("Vào thêm (USDT)", "Add (USDT)")}<input type="number" id="swaUsd" min="6" step="1" value="${st.usd}" inputmode="decimal"></label>
+      <div class="pxo-ch" style="align-self:end">${MUL.map(([k, t]) => `<button type="button" class="mchip${Math.abs(st.usd - Math.round(N0 * k)) < 0.5 ? " on" : ""}" data-swamul="${k}">${t} <small>${usd2(N0 * k)}</small></button>`).join("")}</div></div>
+    ${tbl()}<div class="mxw">⚠️ ${real ? bi("Lệnh TIỀN THẬT. Lệnh này không cắt lỗ: vào thêm làm phần có thể mất trắng (giá ×2) lớn hơn tương ứng.", "REAL money. No stop on this trade: adding raises what a price doubling can wipe out.") : bi("Lệnh trên Binance Demo.", "Binance Demo order.")}</div>
+    <p class="mxn">${bi("Phần vào thêm thuộc CHÍNH lệnh của bot: bot đóng cả lệnh khi hết giờ, lời / lỗ & sổ lệnh tính cho cả phần này.", "The added part belongs to the bot's trade: the bot closes all of it, P/L and the trade book include it.")}</p>`;
+  setTimeout(() => { const sh = document.getElementById("iosSheet"); if (!sh) return; const i = sh.querySelector("#swaUsd");
+    const re = () => { st.usd = +i.value || 0; sh.querySelectorAll("[data-swamul]").forEach((b) => b.classList.toggle("on", Math.abs(st.usd - Math.round(N0 * +b.dataset.swamul)) < 0.5)); const t = sh.querySelector(".mxe"); if (t) { const d = document.createElement("div"); d.innerHTML = tbl(); t.replaceWith(d.firstElementChild); } };
+    i?.addEventListener("input", re); sh.querySelectorAll("[data-swamul]").forEach((b) => (b.onclick = () => { i.value = Math.max(6, Math.round(N0 * +b.dataset.swamul)); re(); })); }, 0);
+  const ok = await iosSheet({ title: bi(`➕ Vào thêm ${c0} Short`, `➕ Add to ${c0} Short`), body, ok: real ? bi("Vào thêm TIỀN THẬT", "Add REAL money") : bi("Vào thêm (Demo)", "Add (Demo)"), danger: real, cancel: bi("Thôi", "Cancel") });
+  if (!ok) return;
+  const usd = +st.usd || 0; if (!(usd >= 5)) { toast(bi("Số tiền tối thiểu khoảng 5–6 USDT (mức nhỏ nhất của sàn)", "Minimum about 5–6 USDT"), { type: "warn" }); return; }
+  await scCmd("close", `swa:${id}:${+usd.toFixed(2)}`, new Date().toISOString());
+  toast(bi(`Đã gửi – máy chủ bán thêm ~${usd2(usd)} ${c0} trong vài giây`, `Sent – the server adds ~${usd2(usd)} within seconds`));
+}
 async function pxOrderSheet({ base, sd, px: P, cur, fromPos }) {
   const sym = base + "USDT", c0 = base, fq = (q) => nf(q, q >= 100 ? 0 : q >= 1 ? 2 : 4);
   if (BYK && BYK[base] && !BYK[base].bf) { toast(bi(`${c0} không có hợp đồng futures trên Binance`, `${c0} has no Binance futures`), { type: "warn" }); return; }

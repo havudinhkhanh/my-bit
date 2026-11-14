@@ -425,7 +425,7 @@ export class ScalpCore {
           if (P && k.startsWith("kz:")) { P.xs = +spec > 0 ? now + +spec * 60e3 : 0; this.say(now, `🔕 Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${+spec > 0 ? `hoãn nhắc ${+spec >= 60 ? +spec / 60 + " giờ" : spec + " phút"}` : "nhắc lại như thường"}`, "info"); }
           else if (P) this.say(now, `⏱ Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${extSet(P, spec, now, end, set)}`, "info"); }
       }
-      else if (/^(lv|swp|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc):/.test(k)) this.io.onManual?.(k);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
+      else if (/^(lv|swp|swa|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc):/.test(k)) this.io.onManual?.(k);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
     return true;
   }
