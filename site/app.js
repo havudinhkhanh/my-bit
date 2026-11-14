@@ -2381,7 +2381,8 @@ function drawO(D, el, o, tf, src) {
   const n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
   const ch = candleChart(el, o, { ma: ["1d", "1w"].includes(tf) ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")], ["sma", 200, css("--ink-3")]] : [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]], lines, from: o.t[Math.max(0, n - show)], dkey: D.row?.k });
   $("#csrc") && ($("#csrc").textContent = src);
-  try { chartPxMenu(el, ch, () => ({ base: D.row?.k || D.k })); } catch (e) { /* bỏ qua */ }      // 📍 chuột phải / giữ lâu → đặt lệnh chờ tại giá đó
+  try { chartPxMenu(el, ch, () => { const b = D.row?.k || D.k, P = window.__scCache?.d?.[1]?.data?.live?.man?.pos?.find((x) => x.sym === b + "USDT" && x.amt);      // đang có lệnh tay mã này → menu có thêm "Vào thêm ngay", "Đặt cắt lỗ / chốt ở đây"
+    return P ? { base: b, man: P.sym, side: Math.sign(P.amt), e: P.ep, fut: true } : { base: b }; }); } catch (e) { /* bỏ qua */ }      // 📍 chuột phải / giữ lâu → đặt lệnh chờ tại giá đó
   return ch;
 }
 async function priceChart(D, el, tf) {
@@ -2499,6 +2500,7 @@ function pxMenu(cx, cy, p0, C, ch) {
   const items = [it("s", "🔻", bi(`Short khi giá về ${px(p)}`, `Short at ${px(p)}`), L(-1) + avgT(-1), "down"), it("l", "🔺", bi(`Long khi giá về ${px(p)}`, `Long at ${px(p)}`), L(1) + avgT(1), "up"),
     manOK && (C.side > 0 ? p < cur : p > cur) ? it("sl", "🛑", bi("Đặt cắt lỗ lệnh tay ở đây", "Set the manual stop here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
     manOK && (C.side > 0 ? p > cur : p < cur) ? it("tp", "🎯", bi("Đặt chốt lời lệnh tay ở đây", "Set the manual target here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
+    C.man && C.side ? it("add", "➕", bi(`Vào thêm ngay ${C.side > 0 ? "Long" : "Short"} (giá thị trường)`, `Add now (${C.side > 0 ? "Long" : "Short"}, market)`), bi("gộp vào lệnh tay đang có · giữ cắt lỗ / chốt", "merges into your open trade · keeps stop/target"), C.side > 0 ? "up" : "down") : "",
     it("cp", "📋", bi("Chép giá", "Copy price"), px(p))].filter(Boolean).join("");
   const m = document.createElement("div"); m.id = "pxMenu"; m.className = "ios-menu px-menu";
   const W = 286, vw = document.documentElement.clientWidth, vh = innerHeight, left = Math.max(8, Math.min(vw - W - 8, cx + 4));
@@ -2512,6 +2514,7 @@ function pxMenu(cx, cy, p0, C, ch) {
   m.querySelectorAll("[data-pxa]").forEach((b) => (b.onclick = async () => { const a = b.dataset.pxa; close();
     if (a === "cp") { try { await navigator.clipboard.writeText(String(p)); toast(bi(`Đã chép ${p}`, `Copied ${p}`)); } catch (e) { toast(String(p)); } return; }
     if (a === "sl" || a === "tp") return pxManCond(C.man, a, p, C);
+    if (a === "add") return manAddSheet(C.man);
     pxOrderSheet({ base: k, sd: a === "l" ? 1 : -1, px: p, cur });
   }));
 }
@@ -2531,6 +2534,44 @@ async function pxManCond(sym, kind, p, C) {
   toast(bi("Đã gửi – máy chủ đặt trên Binance trong vài giây", "Sent – the server places it within seconds"));
 }
 // bảng xác nhận lệnh chờ giá: số tiền, đòn bẩy, cắt lỗ, chốt lời, hiệu lực, tự đóng sau khi khớp → máy chủ riêng đặt sẵn trên Binance
+// ➕ VÀO THÊM NGAY (giá thị trường) cho lệnh tay đang mở – gộp vào vị thế (Binance tự bình quân giá vào), giữ đòn bẩy / ký quỹ / cắt lỗ / chốt / hẹn đóng đang có.
+//    Dùng lệnh "mcp" sẵn có của máy chủ (nhánh bình quân của Chép lệnh) với cắt lỗ / chốt / hẹn = 0 → không đụng cấu hình cũ. Gọi từ thẻ ✋ lệnh tay và menu chuột phải trên biểu đồ.
+async function manAddSheet(sym) {
+  const c0 = sym.replace(/USDT$/, ""), R = await pxLV(), LV = R?.LV, real = (LV?.env || "live") === "live";
+  if (!LV || !(LV.env === "live" || LV.env === "demo") || !R.C?.lv_on || (LV.env === "live" && !R.C?.lv_live_ok)) { toast(bi("Tài khoản Binance của bot chưa bật (Bot Phản Xạ → Thiết lập)", "The bot's Binance account isn't enabled"), { type: "warn" }); return; }
+  const bot = new Set([...(LV.ev || []).map((e) => e.sym), ...(LV.swp?.open || []).map((p) => p.sym), ...(LV.qp?.open || []).flatMap((p) => p.legs.map((L) => L.sym))]);
+  if (bot.has(sym)) { toast(bi(`Bot đang giữ ${c0} – Binance gộp chung vị thế nên không vào thêm tay ở đây`, `The bot holds ${c0} – can't add manually`), { type: "warn" }); return; }
+  const P0 = (LV.man?.pos || []).find((x) => x.sym === sym && x.amt);
+  if (!P0) { toast(bi(`Không còn vị thế ${c0} để vào thêm`, `No ${c0} position to add to`), { type: "warn" }); return; }
+  const sd = Math.sign(P0.amt), q0 = Math.abs(P0.amt), e0 = +P0.ep, lev0 = Math.max(1, Math.round(P0.lev || 1)), N0 = q0 * e0, ORD = LV.man.ord?.[sym] || [], LK = LV.man.lk?.[sym] || null;
+  const mk = () => SCL?.px?.[c0 + ":F"] || +P0.mk || e0, fq = (q) => nf(q, q >= 100 ? 0 : q >= 1 ? 2 : 4);
+  const oPx = (re) => ORD.filter((o) => re.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || 0, SL0 = oPx(/^STOP/), TP0 = oPx(/^TAKE_PROFIT/);
+  const st = { usd: Math.max(6, Math.round(N0)) };
+  const MUL = [[0.5, "½×"], [1, "1×"], [2, "2×"]];
+  const body = () => { const m = mk(), q1 = st.usd / m, e1 = (q0 * e0 + q1 * m) / (q0 + q1), pnl0 = sd * q0 * (m - e0);
+    return `<p style="margin:2px 0 8px;text-align:center"><b>${esc(c0)}</b> <b class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</b> · ${bi("đang có", "holding")} ${fq(q0)} @ ${px(e0)} · <span class="${cls(pnl0)}">${pnl0 >= 0 ? "+" : "−"}$${nf(Math.abs(pnl0), 2)}</span></p>
+      <div class="cp-g"><label>${bi("Vào thêm (USDT, giá trị lệnh)", "Add (USDT notional)")}<input type="number" id="maUsd" min="6" step="1" value="${st.usd}" inputmode="decimal"></label>
+        <div class="pxo-ch" style="align-self:end">${MUL.map(([k, t]) => `<button type="button" class="mchip${Math.abs(st.usd - Math.round(N0 * k)) < 0.5 ? " on" : ""}" data-mamul="${k}">${t} <small>${usd2(N0 * k)}</small></button>`).join("")}</div></div>
+      <table class="mxe"><tbody>
+        <tr><td>${bi("Vào", "Entry")}<small>${bi("lệnh thị trường lúc máy chủ nhận", "market order when the server receives it")}</small></td><td>~<b>${px(m)}</b></td></tr>
+        <tr><td>${bi("Ký quỹ thêm", "Extra margin")}<small>${bi("đòn bẩy giữ như vị thế", "position leverage kept")} x${lev0}</small></td><td><b>${usd2(st.usd / lev0)}</b></td></tr>
+        <tr><td>${bi("Vị thế sau khi gộp", "Position after")}</td><td>${fq(q0)} → <b>${fq(q0 + q1)}</b> · ${usd2(N0)} → <b>${usd2(N0 + st.usd)}</b></td></tr>
+        <tr><td>${bi("Giá vào bình quân", "Average entry")}</td><td>${px(e0)} → <b>~${px(e1)}</b></td></tr>
+        <tr><td>${bi("Cắt lỗ · chốt lời", "Stop · target")}<small>${bi("áp cho CẢ vị thế", "whole position")}</small></td><td>${SL0 ? `<b class="down">${px(SL0)}</b>` : `<span class="warn">${bi("chưa đặt cắt lỗ", "no stop")}</span>`}${TP0 ? ` · <b class="up">${px(TP0)}</b>` : ""} <small class="faint">${bi("giữ nguyên", "kept")}</small></td></tr>
+        ${LK ? `<tr><td>${bi("Hẹn đóng", "Auto-close")}</td><td>${bi("giữ như cũ cho cả vị thế", "kept for the whole position")}</td></tr>` : ""}
+      </tbody></table>
+      <div class="mxw">⚠️ ${real ? bi("Lệnh TIỀN THẬT trên Binance. Vào thêm làm vị thế lớn hơn: lỗ khi chạm cắt lỗ cũng lớn hơn tương ứng.", "REAL-money order. Adding makes the position larger: a stop hit loses more.") : bi("Lệnh trên Binance Demo.", "Binance Demo order.")}</div>
+      <p class="mxn">${bi("Muốn vào thêm ở mức giá khác: chuột phải (giữ lâu trên điện thoại) vào biểu đồ đúng mức giá → Long / Short khi giá về.", "To add at another price: right-click (long-press on phone) the chart at that price → Long / Short when price returns.")}</p>`; };
+  const bind = () => { const sh = document.getElementById("iosSheet"); if (!sh) return; const re = () => { const inp = sh.querySelector("#maUsd"), v = +inp?.value || 0; st.usd = v; sh.querySelectorAll("[data-mamul]").forEach((b) => b.classList.toggle("on", Math.abs(v - Math.round(N0 * +b.dataset.mamul)) < 0.5)); const t = sh.querySelector(".mxe"); if (t) { const tmp = document.createElement("div"); tmp.innerHTML = body(); t.replaceWith(tmp.querySelector(".mxe")); } };
+    sh.querySelector("#maUsd")?.addEventListener("input", re);
+    sh.querySelectorAll("[data-mamul]").forEach((b) => (b.onclick = () => { const i = sh.querySelector("#maUsd"); i.value = Math.max(6, Math.round(N0 * +b.dataset.mamul)); re(); })); };
+  setTimeout(bind, 0);
+  const ok = await iosSheet({ title: bi(`➕ Vào thêm ${c0} ${sd > 0 ? "Long" : "Short"}`, `➕ Add to ${c0} ${sd > 0 ? "Long" : "Short"}`), body: body(), ok: real ? bi("Vào thêm TIỀN THẬT", "Add REAL money") : bi("Vào thêm (Demo)", "Add (Demo)"), danger: real, cancel: bi("Thôi", "Cancel") });
+  if (!ok) return;
+  const usd = +st.usd || 0; if (!(usd >= 5)) { toast(bi("Số tiền tối thiểu khoảng 5–6 USDT (mức nhỏ nhất của sàn)", "Minimum about 5–6 USDT"), { type: "warn" }); return; }
+  await scCmd("close", `mcp:${sym}:${sd}:${+usd.toFixed(2)}:${lev0}:0:0:0:`, new Date().toISOString());
+  toast(bi(`Đã gửi – máy chủ vào thêm ~${usd2(usd)} ${c0} trong vài giây`, `Sent – the server adds ~${usd2(usd)} within seconds`));
+}
 async function pxOrderSheet({ base, sd, px: P, cur, fromPos }) {
   const sym = base + "USDT", c0 = base, fq = (q) => nf(q, q >= 100 ? 0 : q >= 1 ? 2 : 4);
   if (BYK && BYK[base] && !BYK[base].bf) { toast(bi(`${c0} không có hợp đồng futures trên Binance`, `${c0} has no Binance futures`), { type: "warn" }); return; }
