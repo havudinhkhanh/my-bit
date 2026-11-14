@@ -978,6 +978,28 @@ function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "
     w.tabIndex = -1; w.focus({ preventScroll: true });      // giữ phím Esc / Tab trong hộp, không tô vòng focus lên nút khi mở bằng chuột
   });
 }
+// 🔒 KHOÁ CUỘN TRANG PHÍA SAU khi đang mở bảng trượt / menu / bảng thông báo (điện thoại): vuốt trong bảng chỉ cuộn được phần bảng có thể cuộn,
+//    tới mép (hoặc phần không cuộn được như 1 lựa chọn) thì CHẶN – trước đây iPhone chuyền cú vuốt xuống trang bên dưới (trang chạy theo ngón tay).
+const OVL_PANEL = "#iosSheet .mbd-w, .msheet:not([hidden]) .msheet-in, .ntp .ntp-in, .ntpk .ntpk-card, .ios-menu .ios-menu-in, .menu.memenu";
+const OVL_ROOT = "#iosSheet, .msheet:not([hidden]), .ntp, .ntpk, .ios-menu, #meMenu";
+let OVL_T = null;
+addEventListener("touchstart", (e) => { OVL_T = e.touches.length === 1 && document.querySelector(OVL_ROOT) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true, capture: true });
+addEventListener("touchmove", (e) => {
+  if (!OVL_T || !e.cancelable || e.touches.length !== 1) return;
+  const t = e.touches[0], dx = t.clientX - OVL_T.x, dy = t.clientY - OVL_T.y; if (Math.abs(dx) > Math.abs(dy)) return;      // vuốt ngang (dãy chip, bảng cuộn ngang) – để yên
+  const panel = e.target.closest?.(OVL_PANEL);
+  if (!panel) { if (e.target.closest?.(OVL_ROOT)) e.preventDefault(); return; }      // vuốt trên nền tối của bảng → không cuộn trang
+  for (let el = e.target; el && el !== panel.parentElement; el = el.parentElement) {      // tìm khung cuộn được gần nhất trong bảng
+    if (el.nodeType !== 1) continue; const oy = getComputedStyle(el).overflowY;
+    if ((oy === "auto" || oy === "scroll") && el.scrollHeight > el.clientHeight + 1) {
+      const top = el.scrollTop <= 0, bot = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+      if ((dy > 0 && top) || (dy < 0 && bot)) break;      // tới mép → chặn (không chuyền xuống trang)
+      return;      // còn cuộn được → để khung đó cuộn
+    }
+    if (el === panel) break;
+  }
+  e.preventDefault();
+}, { passive: false, capture: true });
 // 🫧 giọt kính trong menu thả xuống: trượt mượt tới mục đang rê chuột / chạm (kiểu iOS 27), rời menu thì mờ đi
 document.addEventListener("pointerover", (e) => {
   const it = e.target.closest?.(".ios-menu-in>a,.ios-menu-in>button,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i"); if (!it || e.pointerType === "touch") return;
