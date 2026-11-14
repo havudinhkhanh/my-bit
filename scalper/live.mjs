@@ -337,8 +337,10 @@ export class LiveExec {
       else if (!ev.keep && now >= ev.pos.t1 + ev.hold * 60e3) await this.close(ev, "TIME");      // ev.keep: anh chọn giữ → không tự đóng khi hết giờ
       else if (hitSoft) await this.close(ev, "SL");
       // cắt lỗ đuổi chỉ cho lệnh CHỜ: với "mua ngay" nó cắt mất cú hồi lớn (vòng 9, 1.863 lệnh: giữ 60 phút +125 bps/lệnh, đuổi 1,5%/1% chỉ +60) – tiền thật giữ đủ giờ
-      else if (c.hk_tra > 0 && m && ev.pos.ap > 0 && !ev.trDone && this.trail(ev, m, c)) await this.trailClose(ev);
-      else if (c.lv_u40 && c.hk_u40 > 0 && m && ev.pos.ap > 0 && this.peak(ev, m, c, now)) await this.close(ev, "PEAK");      // 💰 tuỳ chọn (mặc định tắt): còn lỗ từ phút hk_u40 → ra ở đỉnh nhịp nảy (vòng 15)
+      // ✋ anh chọn "Giữ, tôi tự đóng" (xm = man) → bot KHÔNG tự đóng nữa: tắt cắt lỗ đuổi & ra ở đỉnh nhịp nảy (chỉ còn cắt lỗ thảm hoạ trên sàn)
+      //    (trước đây 2 luật này vẫn chạy → BLESS 14/11 bị đóng "ra ở đỉnh nhịp nảy" dù anh đã chọn giữ). Đã chọn kiểu ra riêng (đỉnh nhịp / hoà vốn) → bỏ luật đỉnh nhịp phút 40.
+      else if (c.hk_tra > 0 && ev.xm !== "man" && m && ev.pos.ap > 0 && !ev.trDone && this.trail(ev, m, c)) await this.trailClose(ev);
+      else if (c.lv_u40 && c.hk_u40 > 0 && !ev.xm && m && ev.pos.ap > 0 && this.peak(ev, m, c, now)) await this.close(ev, "PEAK");      // 💰 tuỳ chọn (mặc định tắt): còn lỗ từ phút hk_u40 → ra ở đỉnh nhịp nảy (vòng 15)
       else if (!ev.pAt || now - ev.pAt > 20000) {      // vị thế còn không? (cắt lỗ trên sàn đã chạy / anh tự đóng)
         ev.pAt = now; const p = await this.pos(ev.sym);
         if (p && Math.abs(p.amt) === 0 && ev.lv.every((l) => l.st !== "open")) {

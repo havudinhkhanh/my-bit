@@ -871,12 +871,12 @@ export class ScalpCore {
     const exitPx = P.side > 0 ? x.bid : x.ask;
     if (P.side > 0 ? exitPx <= P.sl : exitPx >= P.sl) this.close1(x, exitPx, "SL", now);
     else if (P.xm && P.e > 0 && (this.xw = extExit(P, P.side * (exitPx / P.e - 1) * 1e4, now))) this.close1(x, exitPx, this.xw, now);      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
-    else if (P.strat === "hook" && this.cfg.hk_tra > 0 && P.e > 0) {      // 🪝 cắt lỗ đuổi: đã lời ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời
+    else if (P.strat === "hook" && this.cfg.hk_tra > 0 && P.e > 0 && P.xm !== "man") {      // ✋ "giữ, tôi tự đóng" → không tự đóng (tắt đuổi lời & đỉnh nhịp) · 🪝 cắt lỗ đuổi: đã lời ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời
       const pr = P.side * (exitPx / P.e - 1) * 1e4; let tr = false;
       if (this.cfg.hk_trm) { const mi = Math.floor(now / 60e3); if (P.tmi != null && mi > P.tmi && !P.mk) { const pc = P.tlp; if (!(pc <= P.pk)) P.pk = pc; tr = P.pk >= this.cfg.hk_tra && pc <= P.pk - this.cfg.hk_trg; } if (P.tmi !== mi || P.tmi == null) P.tmi = mi; P.tlp = pr; }      // vòng 19: chỉ xét lúc nến phút đóng (lời ở giá cuối phút trước)
       else { if (!(pr <= P.pk)) P.pk = pr; tr = P.pk >= this.cfg.hk_tra && pr <= P.pk - this.cfg.hk_trg; }
       if (tr) this.close1(x, exitPx, "TRAIL", now);
-      else if (this.hookPeak(P, pr, now)) this.close1(x, exitPx, "PEAK", now);
+      else if (!P.xm && this.hookPeak(P, pr, now)) this.close1(x, exitPx, "PEAK", now);
     }
     else if (P.side > 0 ? exitPx >= P.tp : exitPx <= P.tp) this.close1(x, exitPx, "TP", now);
   }
