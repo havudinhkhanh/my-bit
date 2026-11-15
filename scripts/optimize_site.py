@@ -77,13 +77,16 @@ def stamp_lazy() -> None:
     if not app.exists():
         return
     js = app.read_text(encoding="utf-8")
-    ms, sq = SITE / "mascot.js", SITE / "mascot-seq.json"      # chuỗi khung của mèo: băm ghi vào mascot.js trước, rồi mới băm mascot.js
-    if ms.exists() and sq.exists():
+    ms = SITE / "mascot.js"      # bảng khung của mèo (mascot-seq-<tên>.json): băm ghi vào mascot.js trước, rồi mới băm mascot.js
+    if ms.exists():
         mjs = ms.read_text(encoding="utf-8")
-        if "__JSV_MASCOTSEQ__" in mjs:
-            h = hashlib.sha1(sq.read_bytes()).hexdigest()[:10]
-            ms.write_text(mjs.replace("__JSV_MASCOTSEQ__", h), encoding="utf-8")
-            print(f"gắn phiên bản mascot-seq.json?v={h} vào mascot.js")
+        for nm in sorted(set(re.findall(r"__JSV_SEQ_(\w+?)__", mjs))):
+            f = SITE / f"mascot-seq-{nm}.json"
+            if f.exists():
+                h = hashlib.sha1(f.read_bytes()).hexdigest()[:10]
+                mjs = mjs.replace(f"__JSV_SEQ_{nm}__", h)
+                print(f"gắn phiên bản mascot-seq-{nm}.json?v={h} vào mascot.js")
+        ms.write_text(mjs, encoding="utf-8")
     for name, ph in (("app-bot.js", "__JSV_APPBOT__"), ("chartdraw.js", "__JSV_DRAW__"), ("app-tax.js", "__JSV_APPTAX__"), ("mascot.js", "__JSV_MASCOT__")):
         f = SITE / name
         if f.exists() and ph in js:
