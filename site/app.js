@@ -54,7 +54,7 @@ function lazyJs(name) {
     document.head.appendChild(el);
   }));
 }
-const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__" };
+const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__" };
 // công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
 function drawHook(el, c, s, o, dkey) {
   if (!el || !dkey || el.clientHeight < 200) return;
@@ -6798,6 +6798,7 @@ function acPage(o) {
     ${acRow("Giao diện", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
     ${acRow("Ánh sáng ấm", "Phủ ánh vàng lên cả trang – dịu mắt khi xem lúc tối, dùng chung với Sáng / Tối", nlHtml())}
     ${uiPrefHtml()}
+    ${munPrefHtml()}
   </section>
   <section class="acp-card"><h2>Bảo mật</h2>
     ${ME.has_pw ? acRow("Mật khẩu hiện tại", "", `<input id="pwOld" type="password" autocomplete="current-password" placeholder="••••••••">`) : ""}
@@ -6837,7 +6838,7 @@ async function viewAccount() {
   const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
   app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml() + '<section class="panel" id="pvBx"></section>', pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
-  thSegBind(app()); uiPrefBind(); acBx();
+  thSegBind(app()); uiPrefBind(); munPrefBind(); acBx();
   if ($("#acEmEdit")) { const F = $("#acEmF");
     $("#acEmEdit").onclick = () => { F.hidden = false; $("#acEm").value = ""; $("#acEmPw").value = ""; $("#acEm").focus(); };
     $("#acEmX").onclick = () => { F.hidden = true; };
@@ -6934,6 +6935,26 @@ function uiAvStyle(el) { if (!el) return; el.textContent = uiAvHtml(); el.classL
 function uiApply() {
   const f = UI_FS.find(([k]) => k === (UIP.fs || "m"))?.[2] || 16; document.documentElement.style.fontSize = f === 16 ? "" : f + "px";
   uiAvStyle($("#meBtn")); uiAvStyle($("#acAv")); uiAvStyle($("#navMeAv"));
+  munBoot();
+}
+// 🐈‍⬛ MUN – mèo trợ lý (mascot.js tải sau khi trang đầu đã vẽ xong; tắt / bộ đồ lưu trong UIP.mun → đồng bộ mọi máy)
+function munBoot() {
+  clearTimeout(munBoot.t);
+  munBoot.t = setTimeout(() => { const u = UIP.mun || {}; if (u.on === false) { window.MUN?.stop(); return; } lazyJs("mascot.js").then(() => window.MUN?.apply()).catch(() => {}); }, window.MUN ? 0 : 2500);
+}
+const MUN_SK = [["classic", "Cổ điển", 0], ["shades", "Kính râm", 0], ["fedora", "Mũ phớt", 1]];
+const munPro = () => can("mascot_pro") || ME?.eff_plan === "pro";
+function munPrefHtml() {
+  const u = UIP.mun || {}, md = u.on === false ? "off" : u.talk === "q" ? "q" : "n", pro = munPro(), sk = MUN_SK.find(([k, , p]) => k === (u.skin || "classic") && (!p || pro))?.[0] || "classic";
+  return acRow("🐈‍⬛ Mèo Mun", "Mèo trợ lý đi dạo quanh app, nhắc kỷ luật, ngồi liếm lông khi có thông báo – không bao giờ khuyên mua / bán. Chạm vào Mun để nói chuyện, giữ lâu để mở menu nhanh",
+    `<div class="bseg" id="munMd">${[["n", "Bật"], ["q", "Ít nói"], ["off", "Tắt"]].map(([k, t]) => `<button type="button" data-munmd="${k}" class="${md === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row")
+    + acRow("Bộ đồ của Mun", pro ? "Gói Pro: mở khoá mọi bộ đồ" : "Mũ phớt dành cho gói Pro", `<div class="mun-sk" role="radiogroup" aria-label="Bộ đồ của Mun">${MUN_SK.map(([k, t, p]) => `<button type="button" role="radio" data-munsk="${k}" aria-checked="${sk === k}" class="${sk === k ? "on" : ""}${p && !pro ? " lock" : ""}"><i class="mun-pv" data-munpv="${k}"></i><span>${t}${p ? ` <em>${pro ? "★ Pro" : "🔒 Pro"}</em>` : ""}</span></button>`).join("")}</div>`, "mun-row2");
+}
+function munPrefBind() {
+  const re = () => { const a = $(".mun-row"), b = $(".mun-row2"); if (!a || !b) return; const tmp = document.createElement("div"); tmp.innerHTML = munPrefHtml(); b.remove(); a.replaceWith(...tmp.children); munPrefBind(); };
+  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất Mun" : k === "q" ? "Mun sẽ ít nói – chỉ đáp khi anh chạm" : "Mun đã bật"); }));
+  $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
+  lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (!i.firstChild) i.innerHTML = window.MUN_ART.poseSvg("sit", i.dataset.munpv); })).catch(() => {});
 }
 uiApply();
 async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }

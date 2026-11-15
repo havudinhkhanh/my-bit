@@ -6351,3 +6351,14 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
   table.rs.iv-lt-t td:nth-child(1){grid-column:1/-1;justify-self:start;max-width:58%}
   table.rs.iv-lt-t td:nth-child(6){grid-column:1/-1;justify-self:end}
 }
+
+/* 🐈‍⬛ Tài khoản › Mèo Mun: chọn bộ đồ bằng thẻ có hình xem trước */
+.mun-sk{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.mun-sk>button{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;padding:8px 6px 7px;border-radius:var(--r-ctl,8px);border:1px solid var(--bd);background:var(--surface);color:var(--ink-2);font:inherit;font-size:.75rem;cursor:pointer;transition:border-color .15s,background-color .15s}
+.mun-sk>button.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,var(--surface));color:var(--ink)}
+.mun-sk>button.lock{opacity:.72}
+.mun-sk>button em{font-style:normal;font-size:.625rem;font-weight:650;color:var(--ink-3)}
+.mun-sk .mun-pv{display:block;height:46px;width:56px}
+.mun-sk .mun-p{display:block!important;position:static!important;transform:none!important;height:46px!important;width:auto;margin:0 auto}
+@media (hover:hover){.mun-sk>button:not(.on):hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))}}
+@media (max-width:700px){.mun-sk{justify-content:flex-start}}
