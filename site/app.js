@@ -117,7 +117,7 @@ function toast(msg, o = {}) {
   t.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; t.style.transition = "none"; }, { passive: true });
   t.addEventListener("touchmove", (e) => { if (y0 != null) t.style.transform = `translateY(${Math.min(0, e.touches[0].clientY - y0)}px)`; }, { passive: true });
   t.addEventListener("touchend", (e) => { if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; t.style.transition = ""; t.style.transform = ""; if (dy < -24) { t.__swiped = 1; out(); } });
-  t.addEventListener("click", () => { if (t.__swiped) return; out(); if (o.href) location.hash = o.href.replace(/^[^#]*#/, "#"); });
+  t.addEventListener("click", () => { if (t.__swiped) return; out(); o.onclick?.(); if (o.href) location.hash = o.href.replace(/^[^#]*#/, "#"); });
   run();
 }
 function scoreColor(v) {
@@ -6946,17 +6946,19 @@ const MUN_SK = [["classic", "Cổ điển", 0], ["shades", "Kính râm", 0], ["f
 const munPro = () => can("mascot_pro") || ME?.eff_plan === "pro";
 function munPrefHtml() {
   const u = UIP.mun || {}, md = u.on === false ? "off" : u.talk === "q" ? "q" : "n", pro = munPro(), sk = MUN_SK.find(([k, , p]) => k === (u.skin || "classic") && (!p || pro))?.[0] || "classic";
-  return acRow("🐈‍⬛ Mèo Mun", "Mèo trợ lý đi dạo quanh app, nhắc kỷ luật, ngồi liếm lông khi có thông báo – không bao giờ khuyên mua / bán. Chạm vào Mun để nói chuyện, giữ lâu để mở menu nhanh",
+  return acRow("🐈‍⬛ Mèo Na Na", "Mèo trợ lý quý tộc đi dạo quanh app, châm biếm nhắc kỷ luật, đọc thông báo cho anh – không bao giờ khuyên mua / bán. Chạm để nói chuyện, vuốt để vuốt lông, giữ lâu để mở menu",
     `<div class="bseg" id="munMd">${[["n", "Bật"], ["q", "Ít nói"], ["off", "Tắt"]].map(([k, t]) => `<button type="button" data-munmd="${k}" class="${md === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row")
-    + acRow("Cỡ Mun", "Nhỏ = như bản đầu tiên · Lớn = rõ nhất", `<div class="bseg" id="munSz">${[["s", "Nhỏ"], ["m", "Vừa"], ["l", "Lớn"]].map(([k, t]) => `<button type="button" data-munsz="${k}" class="${(u.size || "l") === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row3")
-    + acRow("Bộ đồ của Mun", pro ? "Gói Pro: mở khoá mọi bộ đồ" : "Mũ phớt dành cho gói Pro", `<div class="mun-sk" role="radiogroup" aria-label="Bộ đồ của Mun">${MUN_SK.map(([k, t, p]) => `<button type="button" role="radio" data-munsk="${k}" aria-checked="${sk === k}" class="${sk === k ? "on" : ""}${p && !pro ? " lock" : ""}"><i class="mun-pv" data-munpv="${k}"></i><span>${t}${p ? ` <em>${pro ? "★ Pro" : "🔒 Pro"}</em>` : ""}</span></button>`).join("")}</div>`, "mun-row2");
+    + acRow("Tiếng kêu", "Na Na thỉnh thoảng kêu “meo” khi máy đang bật loa", `<div class="bseg" id="munSnd">${[["1", "Bật"], ["0", "Tắt"]].map(([k, t]) => `<button type="button" data-munsnd="${k}" class="${(u.snd !== false) === (k === "1") ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row4")
+    + acRow("Cỡ Na Na", "Nhỏ = như bản đầu tiên · Lớn = rõ nhất", `<div class="bseg" id="munSz">${[["s", "Nhỏ"], ["m", "Vừa"], ["l", "Lớn"]].map(([k, t]) => `<button type="button" data-munsz="${k}" class="${(u.size || "l") === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row3")
+    + acRow("Bộ đồ của Na Na", pro ? "Gói Pro: mở khoá mọi bộ đồ" : "Mũ phớt dành cho gói Pro", `<div class="mun-sk" role="radiogroup" aria-label="Bộ đồ của Na Na">${MUN_SK.map(([k, t, p]) => `<button type="button" role="radio" data-munsk="${k}" aria-checked="${sk === k}" class="${sk === k ? "on" : ""}${p && !pro ? " lock" : ""}"><i class="mun-pv" data-munpv="${k}"></i><span>${t}${p ? ` <em>${pro ? "★ Pro" : "🔒 Pro"}</em>` : ""}</span></button>`).join("")}</div>`, "mun-row2");
 }
 function munPrefBind() {
-  const re = () => { const a = $(".mun-row"), b = $(".mun-row2"), c = $(".mun-row3"); if (!a || !b) return; const tmp = document.createElement("div"); tmp.innerHTML = munPrefHtml(); b.remove(); c?.remove(); a.replaceWith(...tmp.children); munPrefBind(); };
+  const re = () => { const a = $(".mun-row"), b = $(".mun-row2"), c = $(".mun-row3"), d = $(".mun-row4"); if (!a || !b) return; const tmp = document.createElement("div"); tmp.innerHTML = munPrefHtml(); b.remove(); c?.remove(); d?.remove(); a.replaceWith(...tmp.children); munPrefBind(); };
+  $$("[data-munsnd]").forEach((b) => (b.onclick = async () => { const on = b.dataset.munsnd === "1"; UIP = { ...UIP, mun: { ...(UIP.mun || {}), snd: on } }; await uiSave(); re(); if (on) window.MUN?.meow(2); }));
   $$("[data-munsz]").forEach((b) => (b.onclick = async () => { UIP = { ...UIP, mun: { ...(UIP.mun || {}), size: b.dataset.munsz } }; await uiSave(); re(); }));
-  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất Mun" : k === "q" ? "Mun sẽ ít nói – chỉ đáp khi anh chạm" : "Mun đã bật"); }));
-  $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
-  lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (!i.firstChild) i.innerHTML = window.MUN_ART.poseSvg("sit", i.dataset.munpv); })).catch(() => {});
+  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất Na Na" : k === "q" ? "Na Na sẽ ít nói – chỉ đáp khi anh chạm" : "Na Na đã bật"); }));
+  $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro – Na Na chỉ đội cho khách VIP", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
+  lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (!i.firstChild) i.innerHTML = window.MUN_ART.preview(i.dataset.munpv, "sit"); })).catch(() => {});
 }
 uiApply();
 async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }
@@ -7788,7 +7790,7 @@ function ksHud(on) {
       const r = await fetch("/", { cache: "no-store", credentials: "same-origin" }); if (!r.ok) return;
       const v = (await r.text()).match(/app\.js\?v=([\w]+)/)?.[1]; if (!v || v === cur()) return;
       if (resume && !document.getElementById("iosSheet") && !document.querySelector(".ios-menu")) { location.reload(); return; }
-      if (!told) { told = true; toast(bi("🔄 Có bản app mới – chạm để tải lại", "🔄 New version – tap to reload"), { type: "info", ms: 15000, href: location.hash || "#/" }); document.querySelector("#toasts .toast:last-child")?.addEventListener("click", () => location.reload()); }
+      if (!told) { told = true; toast(bi("🔄 Có bản app mới – chạm để tải lại", "🔄 New version – tap to reload"), { type: "info", ms: 15000, onclick: () => location.reload() }); }
     } catch (e) { /* mất mạng – bỏ qua */ }
   };
   document.addEventListener("visibilitychange", () => { if (document.hidden) hidAt = Date.now(); else check(hidAt && Date.now() - hidAt > 120e3); });
