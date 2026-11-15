@@ -6313,3 +6313,12 @@ select:not([multiple]):not([size]):not(#_s)::-ms-expand{display:none}
 :is(.ph,.ex-sty,.admt) select:not([multiple]):not(#_s){padding-right:24px!important;background-position:right 7px center!important;background-size:11px 11px!important}
 
 /* 🌙 ánh sáng ấm: lớp ấm phủ TỪ MÉP TRÊN trên mọi máy; riêng iPhone/iPad (html.nl-ios) chừa dải thanh trên để Safari lấy đúng màu thanh trạng thái */
+
+/* 📏 khung sự kiện & bảng Lệnh đã đóng: dù chọn Gọn / Vừa / Lớn vẫn LUÔN thấp hơn 1 màn hình (chừa thanh trên, tiêu đề khung, thanh tab dưới) – cuộn bên trong khung */
+:root{--scr-cap:calc(100vh - var(--top-h,56px) - 210px)}
+@supports (height:100dvh){:root{--scr-cap:calc(100dvh - var(--top-h,56px) - 210px)}}
+@media (max-width:979px){:root{--scr-cap:calc(100dvh - var(--top-h,56px) - 250px)}}
+html[data-fdsz="s"] .sc-feed:not(#_f){max-height:min(240px,var(--scr-cap))!important;overflow:auto!important}
+html[data-fdsz="m"] .sc-feed:not(#_f){max-height:min(440px,var(--scr-cap))!important;overflow:auto!important}
+html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!important;overflow:auto!important;overscroll-behavior:contain}
+.lvt-tw:not(#_f),.sc-hl.lvt:not(#_f){max-height:min(560px,var(--scr-cap))!important}
