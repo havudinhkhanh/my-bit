@@ -16,19 +16,22 @@
     { k: "fedora", vi: "Mũ phớt", en: "Fedora", tier: "pro" },
   ];
   let UID = 0;
-  // xoay / co giãn quanh 1 điểm: dịch gốc toạ độ tới điểm đó → nhóm có hiệu ứng → dịch về (không phụ thuộc cách trình duyệt hiểu transform-origin trong SVG)
-  const piv = (x, y, cls, inner) => `<g transform="translate(${x} ${y})"><g class="${cls}"><g transform="translate(${-x} ${-y})">${inner}</g></g></g>`;
+  // ⚠️ Safari (iPhone) xử lý transform CSS bên trong SVG khác Chrome (gốc xoay / vùng cắt) → chân sau biến mất khi đi.
+  //    Nên: mọi chuyển động "cả con" (thở, liếm, nhún) đặt trên thẻ <svg> (hộp HTML bình thường), còn chân khi đi = 8 khung hình vẽ sẵn
+  //    (skew bằng thuộc tính SVG – không dùng CSS), CSS chỉ bật / tắt từng khung theo nhịp → mọi trình duyệt hiện giống nhau.
+  const NF = 8;
   const poseSvg = (k, skin) => {
-    const a = (ART[skin] || ART.classic)[k] || ART.classic[k], [x0, y0, x1, y1] = a.bb, pd = 3, vx = x0 - pd, vy = y0 - pd, vw = x1 - x0 + 2 * pd, vh = y1 - y0 + 2 * pd, cx = Math.round((x0 + x1) / 2);
+    const a = (ART[skin] || ART.classic)[k] || ART.classic[k], [x0, y0, x1, y1] = a.bb, pd = 3, vx = x0 - pd, vy = y0 - pd, vw = x1 - x0 + 2 * pd, vh = y1 - y0 + 2 * pd;
     const E = a.eye, eyeBg = E ? `<rect class="eb" x="${E[0] - 2}" y="${E[1] - 2}" width="${E[2] + 4}" height="${E[3] + 4}"/>` : "", lid = E && skin !== "shades" ? `<rect class="lid" x="${E[0] - 1}" y="${E[1] - 1}" width="${E[2] + 2}" height="${E[3] + 2}"/>` : "";
-    const fig = `${eyeBg}<path class="f" d="${a.b}"/>${a.g ? `<path class="hb" d="${a.g}"/>` : ""}${lid}`;
+    const hat = a.g ? `<path class="hb" d="${a.g}"/>` : "";
     let body;
-    if (k === "walk") {      // dáng đi: phần trên đứng yên, chân sau / chân trước đưa qua lại ngược nhịp (lắc quanh đường bụng → không lộ đường nối)
-      const id = "mw" + ++UID, yb = a.y0, xs = a.xs;
-      body = `<defs><clipPath id="${id}t"><rect x="${vx}" y="${vy}" width="${vw}" height="${yb - vy + 0.8}"/></clipPath><clipPath id="${id}h"><rect x="${vx}" y="${yb}" width="${xs - vx}" height="${vy + vh - yb}"/></clipPath><clipPath id="${id}f"><rect x="${xs}" y="${yb}" width="${vx + vw - xs}" height="${vy + vh - yb}"/></clipPath></defs>
-        <g class="bob"><g clip-path="url(#${id}t)">${fig}</g><g clip-path="url(#${id}h)">${piv(0, yb, "sk1", fig)}</g><g clip-path="url(#${id}f)">${piv(0, yb, "sk2", fig)}</g></g>`;
-    } else if (k === "groom") body = piv(Math.round(x0 + (x1 - x0) * 0.42), y1, "lk", fig);      // liếm: cả thân nhấp nhẹ theo nhịp
-    else body = piv(cx, y1, "br", fig);      // ngồi / nằm: thở
+    if (k === "walk") {      // dáng đi: phần trên đứng yên; chân sau / chân trước đưa qua lại ngược nhịp, lắc quanh đường bụng (tại đường bụng không xê dịch → không lộ đường nối)
+      const id = "mw" + ++UID, yb = a.y0, xs = a.xs, H = vy + vh - yb;
+      const fr = Array.from({ length: NF }, (_, i) => { const t = 11 * Math.cos((2 * Math.PI * i) / NF), sk = (d) => `translate(0 ${yb}) skewX(${d.toFixed(2)}) translate(0 ${-yb})`;
+        return `<g class="wf${i ? "" : " wf0"}" style="animation-delay:calc(var(--wd,.72s)*${(-i / NF).toFixed(3)})"><g clip-path="url(#${id}h)"><use href="#${id}g" transform="${sk(t)}"/></g><g clip-path="url(#${id}f)"><use href="#${id}g" transform="${sk(-t)}"/></g></g>`; }).join("");
+      body = `<defs><path id="${id}g" style="fill:var(--f)" d="${a.b}"/><clipPath id="${id}t"><rect x="${vx}" y="${vy}" width="${vw}" height="${yb - vy + 5}"/></clipPath><clipPath id="${id}h"><rect x="${vx}" y="${yb}" width="${xs - vx}" height="${H}"/></clipPath><clipPath id="${id}f"><rect x="${xs}" y="${yb}" width="${vx + vw - xs}" height="${H}"/></clipPath></defs>
+        <g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g>${fr}`;
+    } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}`;
     return `<svg ${NS} class="mun-p p-${k}" data-p="${k}" viewBox="${vx} ${vy} ${vw} ${vh}" style="height:calc(${vh}px*var(--s,.2))" aria-hidden="true">${body}</svg>`;
   };
   window.MUN_ART = { poseSvg, POSES, SKINS };
@@ -286,19 +289,19 @@
 .mun-p .f{fill:var(--f)}.mun-p .eb{fill:var(--eye)}.mun-p .hb{fill:#C8A064}
 .mun-p .lid{fill:var(--f);opacity:0}
 .mun.blink .lid{opacity:1}
-/* chuyển động – chỉ transform, chạy trên GPU; mỗi nhóm đã được dời gốc toạ độ về đúng điểm xoay */
-.mun-p .br{animation:munBr 3.4s ease-in-out infinite}
-.p-sleep .br{animation:munBr2 4s ease-in-out infinite}
-.mun-p .lk{animation:munLk .62s ease-in-out infinite}
-.mun-p .sk1,.mun-p .sk2{animation:munSk .76s ease-in-out infinite}
-.mun-p .sk2{animation-delay:-.38s}
-.mun-p .bob{animation:munBob .38s ease-in-out infinite}
-@keyframes munBr{50%{transform:scaleY(1.014)}}
-@keyframes munBr2{50%{transform:scaleY(1.03)}}
-@keyframes munLk{50%{transform:rotate(-1.6deg)}}
-@keyframes munSk{0%,100%{transform:skewX(11deg)}50%{transform:skewX(-11deg)}}
-@keyframes munBob{50%{transform:translateY(-3px)}}
-.mun.run .sk1,.mun.run .sk2{animation-duration:.36s}.mun.run .sk2{animation-delay:-.18s}.mun.run .bob{animation-duration:.18s}
+/* chuyển động – chỉ transform / opacity trên thẻ <svg> (giữ translateX(-50%) để căn giữa), chạy trên GPU */
+.mun[data-pose=sit] .p-sit{animation:munBr 3.4s ease-in-out infinite;transform-origin:50% 100%}
+.mun[data-pose=sleep] .p-sleep{animation:munBr2 4s ease-in-out infinite;transform-origin:50% 100%}
+.mun[data-pose=groom] .p-groom{animation:munLk .62s ease-in-out infinite;transform-origin:42% 100%}
+.mun[data-pose=walk] .p-walk{animation:munBob calc(var(--wd,.72s)/2) ease-in-out infinite}
+.p-walk .wf{opacity:0;animation:munFr var(--wd,.72s) steps(1,end) infinite}
+.mun.run{--wd:.36s}
+@keyframes munBr{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.014)}}
+@keyframes munBr2{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.03)}}
+@keyframes munLk{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) rotate(-1.6deg)}}
+@keyframes munBob{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) translateY(calc(-3px*var(--s,.25)/.25))}}
+@keyframes munFr{0%{opacity:1}12.5%{opacity:0}100%{opacity:0}}
+
 .mun-mouse{position:fixed;left:0;z-index:40;width:calc(115px*var(--s,.25));height:calc(52px*var(--s,.25));pointer-events:none;will-change:transform}
 .mun-mouse>i{display:block;width:100%;height:100%}.mun-mouse.l>i{transform:scaleX(-1)}
 .mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
@@ -318,7 +321,7 @@
 .mun-say::after{content:"";position:absolute;top:100%;left:var(--tx,50%);margin-left:-6px;border:6px solid transparent;border-top-color:var(--mn-bg,var(--surface));filter:drop-shadow(0 1px 0 rgba(0,0,0,.05))}
 .mun-say.out{opacity:0;transform:translateY(4px) scale(.96);transition:opacity .2s,transform .2s}
 @keyframes munIn{from{opacity:0;transform:translateY(6px) scale(.94)}}
-@media (prefers-reduced-motion:reduce){.mun-p *,.mun-z,.mun-say{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.mun-p,.mun-p *,.mun-z,.mun-say{animation:none!important}.p-walk .wf0{opacity:1}}
 @media print{.mun{display:none}}`;
   document.head.appendChild(st);
 
