@@ -581,7 +581,15 @@ async function softRender(fn) {
   const y = scrollY;
   root.style.minHeight = root.offsetHeight + "px";
   SR_H = h0;
-  try { await fn(); } finally { SR_H = null; SR_DUMMY = null; }
+  // đặt lại vị trí cuộn NGAY khi nội dung mới được gắn vào (MutationObserver chạy trước khi trình duyệt vẽ khung hình) –
+  // trước đây chỉ đặt lại sau khi vẽ xong cả trang → kịp vẽ 1 khung ở đầu bảng rồi mới nhảy về chỗ cũ (nháy / giật)
+  const fixNow = () => { if (sc.size) root.querySelectorAll(SCSEL).forEach((el) => { const v = sc.get(scKey(el)); if (v && (el.scrollTop !== v[0] || el.scrollLeft !== v[1])) { el.scrollTop = v[0]; el.scrollLeft = v[1]; } });
+    if (akey) { const L = [...root.querySelectorAll("section.panel, .panel")], A = L.find((pn) => pKey(pn, L) === akey); if (A) { const d = A.getBoundingClientRect().top - aoff; if (Math.abs(d) > 1) scrollTo(0, Math.max(0, scrollY + d)); } } };
+  // khối có chữ ký nội dung (data-sig) mà nội dung không đổi → gắn lại ĐÚNG khối cũ thay cho khối vừa vẽ (giữ cuộn, độ rộng cột, trạng thái; không nháy)
+  const keepSig = new Map([...root.querySelectorAll("[data-sig]")].map((el) => [el.dataset.sig, el]));
+  const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const o = keepSig.get(el.dataset.sig); if (o && o !== el && !o.isConnected) { el.replaceWith(o); keepSig.delete(el.dataset.sig); } }); };
+  const mo = new MutationObserver(() => { reuse(); fixNow(); }); mo.observe(root, { childList: true, subtree: true });
+  try { await fn(); } finally { mo.disconnect(); SR_H = null; SR_DUMMY = null; }
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
   if (CUR_TAB && root.querySelector(".ph") && !root.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB);
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
