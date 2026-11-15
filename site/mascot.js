@@ -23,7 +23,7 @@
   // khớp hông / vai / mặt đất (đơn vị điểm ảnh bản gốc) của từng bộ đồ – để gắn 4 chân khung xương vào thân; cb = đáy vùng giữ lại của hình gốc phía ngực
   const RIG = { classic: [0, 0], shades: [5, -2], fedora: [1, 2] };      // lệch (x, y) so với bộ Cổ điển
   // vùng GIỮ LẠI của hình gốc khi đi (bỏ 4 chân vẽ sẵn): đường cắt chạy dọc mông – bụng – ức (toạ độ bộ Cổ điển)
-  const KEEP = [[-20, -20], [400, -20], [400, 178], [252, 178], [236, 186], [204, 191], [150, 182], [118, 175], [96, 170], [64, 163], [-20, 163]];
+  const KEEP = [[76, -20], [400, -20], [400, 178], [252, 178], [236, 186], [204, 191], [150, 182], [118, 175], [96, 170], [64, 163], [42, 163], [44, 146], [58, 133], [76, 120]];
   // lưỡi hồng khi liếm: 2 khung (thè ngắn / thè dài) bật tắt theo nhịp liếm, đặt ngay dưới cằm, sát chân đang giơ
   const TG = { classic: [259, 101], shades: [259, 104], fedora: [259, 106] };
   const tongue = (skin) => { const [x, y] = TG[skin] || TG.classic;
@@ -35,9 +35,9 @@
     let body;
     if (k === "walk") {      // dáng đi / chạy: thân + đầu + đuôi lấy từ hình gốc (cắt ngang bụng), 4 chân là KHUNG XƯƠNG (đùi – cẳng – bàn) tính lại từng khung hình (xem rig bên dưới)
       const id = "mw" + ++UID, [dx, dy] = RIG[skin] || RIG.classic;
-      const leg = (k2) => `<g class="lg ${k2}"><polygon class="s1"/><polygon class="s2"/><polygon class="s3"/><circle class="j1"/><circle class="j2"/><circle class="j3"/><ellipse class="pw" rx="10" ry="5.5"/></g>`;
+      const leg = (k2) => `<g class="lg ${k2}"><polygon class="s1"/><polygon class="s2"/><polygon class="s3"/><circle class="j1"/><circle class="j2"/><polygon class="pw"/></g>`;
       body = `<defs><clipPath id="${id}t"><polygon points="${KEEP.map(([x, y]) => `${x + dx},${y + dy}`).join(" ")}"/></clipPath></defs>
-        <g class="far">${leg("fh")}${leg("ff")}</g><g class="tp"><g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g></g><g class="near">${leg("nh")}${leg("nf")}</g>`;
+        <g class="far">${leg("fh")}${leg("ff")}</g><g class="tp"><polygon class="tl"/><circle class="tt"/><g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g></g><g class="near">${leg("nh")}${leg("nf")}</g>`;
     } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}${k === "groom" ? tongue(skin) : ""}${k === "sit" ? `<g class="arm" style="opacity:0"><polygon class="a1"/><polygon class="a2"/><circle class="aj"/><circle class="ap"/><path class="cl"/></g>` : ""}`;
     return `<svg ${NS} class="mun-p p-${k}" data-p="${k}" viewBox="${vx} ${vy} ${vw} ${vh}" style="height:calc(${vh}px*var(--s,.2))" aria-hidden="true">${body}</svg>`;
   };
@@ -100,7 +100,9 @@
   const S = { el: null, x: -1, face: 1, pose: "sit", tm: 0, walkTm: 0, sayTm: 0, act: Date.now(), t0: Date.now(), hidAt: 0, pokes: [], away: false, cfg: {}, said: {}, nextTalk: 0, s: 0.2 };
   const now = () => Date.now(), rnd = (a, b) => a + Math.random() * (b - a);
   const cfgOf = () => { const u = (typeof UIP !== "undefined" && UIP.mun) || {}; const pro = typeof can === "function" ? can("mascot_pro") || (typeof ME !== "undefined" && ME?.eff_plan === "pro") : false;
-    let skin = u.skin || "classic"; if (SKINS.find((x) => x.k === skin)?.tier === "pro" && !pro) skin = "classic"; return { on: u.on !== false, talk: u.talk || "n", skin }; };
+    let skin = u.skin || "classic"; if (SKINS.find((x) => x.k === skin)?.tier === "pro" && !pro) skin = "classic"; return { on: u.on !== false, talk: u.talk || "n", skin, size: ["s", "m", "l"].includes(u.size) ? u.size : "l" }; };
+  const SZ = { s: [0.165, 0.2], m: [0.2, 0.24], l: [0.235, 0.28] };      // cỡ Mun: Nhỏ (như bản đầu) · Vừa · Lớn
+  const scale = () => (SZ[S.cfg.size] || SZ.l)[mob() ? 0 : 1];
   const mob = () => matchMedia("(max-width:979px)").matches;
   // đường đi: điện thoại = mép trên thanh điều hướng nổi ở dưới; máy tính = mép dưới cửa sổ, phần nội dung (bên phải thanh bên)
   function track() {
@@ -121,6 +123,17 @@
     const m = new DOMMatrix(getComputedStyle(S.el).transform); S.x = m.m41; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(m.m41)}px,0,0)`;
   }
   function pose(p) { if (p !== "walk") halt(); S.pose = p; S.el.dataset.pose = p; if (p === "walk") { rigDraw(0); rigStart(); } }
+  // 🪑 ngồi xuống: chân đặt về chỗ → hạ hông, ngẩng ngực (khung xương) → chuyển mờ sang hình ngồi. Đứng dậy: ngược lại rồi mới bước
+  function tween(from, to, ms, done) { const t0 = performance.now(); const f = (t) => { const u = Math.min(1, (t - t0) / ms), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; G.sit = from + (to - from) * e; if (!G.on) rigDraw(0); if (u < 1) requestAnimationFrame(f); else done?.(); }; requestAnimationFrame(f); }
+  function sitDown(p = "sit", then) {
+    if (!S.el) return; if (S.pose !== "walk" || RM.matches) { pose(p); then?.(); return; }
+    halt(); G.v = 0; S.el.classList.remove("run"); S.sitting = true;
+    tween(0, 1, 460, () => { S.sitting = false; if (S.pose === "walk") pose(p); setTimeout(() => { G.sit = 0; }, 200); then?.(); });
+  }
+  function standUp(go) {
+    if (!S.el || RM.matches || !["sit", "groom", "sleep"].includes(S.pose)) { go(); return; }
+    G.sit = 1; G.v = 0; pose("walk"); tween(1, 0, 380, go);
+  }
   function face(d) { S.face = d; S.el.dataset.face = d > 0 ? "r" : "l"; }
   const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("typing")
     || (mob() && document.activeElement?.matches?.("input, textarea, select, [contenteditable]")));
@@ -128,8 +141,9 @@
   function walkTo(x, then) {
     const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x;
     if (RM.matches || Math.abs(dx) < 24) { place(x, 0); then?.(); return; }
-    face(dx > 0 ? 1 : -1); const v = mob() ? 30 : 40, ms = Math.round(Math.abs(dx) / v * 1000); G.v = v; S.el.classList.remove("run"); pose("walk");      // đủng đỉnh: ~30–40 px/giây
-    place(x, ms); clearTimeout(S.walkTm); S.walkTm = setTimeout(() => { pose("sit"); then?.(); }, ms);
+    face(dx > 0 ? 1 : -1); const v = mob() ? 30 : 40, ms = Math.round(Math.abs(dx) / v * 1000); S.el.classList.remove("run");      // đủng đỉnh: ~30–40 px/giây
+    clearTimeout(S.walkTm); const tk = (S.walkTk = (S.walkTk || 0) + 1);
+    standUp(() => { if (tk !== S.walkTk || !S.el || S.pose !== "walk" || S.chasing) return; G.v = v; pose("walk"); place(x, ms); S.walkTm = setTimeout(() => sitDown("sit", then), ms); });
   }
   function idle() {      // vòng đời: ngồi → liếm lông → đi dạo → … ; để yên lâu thì ngủ
     if (!S.el) return;
@@ -146,36 +160,55 @@
   // ================================================================ 🦴 khung xương 4 chân (đi / chạy): tính lại MỖI khung hình (60 hình/giây) – bàn chân đặt xuống đứng yên trên đất,
   //   nhấc lên theo đường cong, đưa ra trước; 4 chân lệch nhịp như mèo thật (đi: sau-trái → trước-trái → sau-phải → trước-phải; chạy: phi nước đại, thân nhún & chúi)
   //   Vẽ bằng thuộc tính SVG (không dùng CSS transform trong SVG) → Safari / Chrome hiện y hệt.
-  const G = { c: 0, v: 0, last: 0, on: false, run: 0, refs: null };
-  const GAIT = { walk: { S: 70, H: 15, duty: 0.62, bob: 1.6, off: { nh: 0, nf: 0.25, fh: 0.5, ff: 0.75 } }, run: { S: 200, H: 32, duty: 0.34, bob: 7, off: { nh: 0, fh: 0.12, nf: 0.5, ff: 0.62 } } };
+  const G = { c: 0, v: 0, last: 0, on: false, run: 0, sit: 0, tt: 0, refs: null };
+  // đi = kiểu "tiểu thư": bước ngắn, nhấc chân cao, mũi chân duỗi, hông đung đưa; chạy = phi nước đại
+  const GAIT = { walk: { S: 64, H: 17, duty: 0.6, bob: 1.3, off: { nh: 0, nf: 0.25, fh: 0.5, ff: 0.75 } }, run: { S: 200, H: 32, duty: 0.34, bob: 7, off: { nh: 0, fh: 0.12, nf: 0.5, ff: 0.62 } } };
   const ik = (ax, ay, bx, by, l1, l2, sg) => { let vx = bx - ax, vy = by - ay, d = Math.hypot(vx, vy); const m = l1 + l2 - 0.5; if (d > m) { bx = ax + vx / d * m; by = ay + vy / d * m; d = m; } const a = Math.atan2(by - ay, bx - ax), t = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)))); return [ax + l1 * Math.cos(a + sg * t), ay + l1 * Math.sin(a + sg * t), bx, by]; };
-  // 1 đoạn chân = hình thang thuôn (rộng w1 → w2) + khớp tròn ở 2 đầu → chân liền mạch, bo tròn như nét vẽ gốc
-  const seg = (pg, j, x1, y1, w1, x2, y2, w2) => { const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a), ny = Math.cos(a), h1 = w1 / 2, h2 = w2 / 2, f = (v) => v.toFixed(1);
-    pg.setAttribute("points", `${f(x1 + nx * h1)},${f(y1 + ny * h1)} ${f(x2 + nx * h2)},${f(y2 + ny * h2)} ${f(x2 - nx * h2)},${f(y2 - ny * h2)} ${f(x1 - nx * h1)},${f(y1 - ny * h1)}`);
-    if (j) { j.setAttribute("cx", f(x1)); j.setAttribute("cy", f(y1)); j.setAttribute("r", f(h1)); } };
+  const f1 = (v) => v.toFixed(1);
+  // 1 đoạn chân = hình thang thuôn (rộng w1 → w2), khớp tròn nhỏ ở đầu đoạn (gối / cổ chân) → liền nét, góc cạnh vừa phải như nét vẽ gốc
+  const seg = (pg, j, x1, y1, w1, x2, y2, w2) => { const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a), ny = Math.cos(a), h1 = w1 / 2, h2 = w2 / 2;
+    pg.setAttribute("points", `${f1(x1 + nx * h1)},${f1(y1 + ny * h1)} ${f1(x2 + nx * h2)},${f1(y2 + ny * h2)} ${f1(x2 - nx * h2)},${f1(y2 - ny * h2)} ${f1(x1 - nx * h1)},${f1(y1 - ny * h1)}`);
+    if (j) { j.setAttribute("cx", f1(x1)); j.setAttribute("cy", f1(y1)); j.setAttribute("r", f1(h1)); } };
+  // bàn chân hình nêm nhọn mũi (như bản gốc), xoay theo góc mũi chân khi nhấc
+  const PAW = [[-5, -7], [6, -8], [17, -2], [17, 1], [-5, 1]];
+  const paw = (pg, x, y, rot) => { const c = Math.cos(rot), s2 = Math.sin(rot); pg.setAttribute("points", PAW.map(([u, v]) => `${f1(x + u * c - v * s2)},${f1(y + u * s2 + v * c)}`).join(" ")); };
   function rigRefs() {
-    const sv = S.el?.querySelector(".p-walk"); if (!sv) return null; const R = { tp: sv.querySelector(".tp") };
-    sv.querySelectorAll(".lg").forEach((g) => { const k = [...g.classList].find((c) => c !== "lg"); R[k] = { s1: g.querySelector(".s1"), s2: g.querySelector(".s2"), s3: g.querySelector(".s3"), j1: g.querySelector(".j1"), j2: g.querySelector(".j2"), j3: g.querySelector(".j3"), pw: g.querySelector(".pw") }; });
+    const sv = S.el?.querySelector(".p-walk"); if (!sv) return null; const R = { tp: sv.querySelector(".tp"), tl: sv.querySelector(".tl"), tt: sv.querySelector(".tt") };
+    sv.querySelectorAll(".lg").forEach((g) => { const k = [...g.classList].find((c) => c !== "lg"); R[k] = { s1: g.querySelector(".s1"), s2: g.querySelector(".s2"), s3: g.querySelector(".s3"), j1: g.querySelector(".j1"), j2: g.querySelector(".j2"), pw: g.querySelector(".pw") }; });
     return R;
   }
   function rigDraw(dt) {
     const R = G.refs || (G.refs = rigRefs()); if (!R || !R.tp) return;
-    const [dx, dy] = RIG[S.cfg.skin] || RIG.classic, r = G.run, lp = (a, b) => a + (b - a) * r, W = GAIT.walk, U = GAIT.run, TAU = Math.PI * 2;
-    const Sx = lp(W.S, U.S), H = lp(W.H, U.H), duty = lp(W.duty, U.duty);
-    G.c = (G.c + ((G.v / S.s) * dt) / Sx) % 1; const c = G.c;
-    const bob = lp(W.bob * Math.cos(2 * TAU * c), U.bob * Math.sin(TAU * c)), pitch = r * 4.5 * Math.sin(TAU * c + 0.8), cx = 150 + dx, cy = 170 + dy, pa = (pitch * Math.PI) / 180;
-    R.tp.setAttribute("transform", `translate(0 ${bob.toFixed(2)}) rotate(${pitch.toFixed(2)} ${cx} ${cy})`);
-    const tf = (x, y) => { const X = x - cx, Y = y - cy; return [cx + X * Math.cos(pa) - Y * Math.sin(pa), cy + X * Math.sin(pa) + Y * Math.cos(pa) + bob]; };
+    const [dx, dy] = RIG[S.cfg.skin] || RIG.classic, r = G.run, lp = (a, b, t = r) => a + (b - a) * t, W = GAIT.walk, U = GAIT.run, TAU = Math.PI * 2, D = Math.PI / 180;
+    const Sx = lp(W.S, U.S), H = lp(W.H, U.H), duty = lp(W.duty, U.duty), sit = G.sit, land = Math.min(1, sit * 1.8);
+    G.c = (G.c + ((G.v / S.s) * dt) / Sx) % 1; G.tt += dt; const c = G.c, gate = 1 - land;
+    // thân: nhún + đung đưa hông (đi) / chúi (chạy) + ngồi xuống (hạ hông, ngẩng ngực)
+    const bob = gate * lp(W.bob * Math.cos(2 * TAU * c), U.bob * Math.sin(TAU * c)), pitch = gate * lp(1.6 * Math.sin(TAU * c), 4.5 * Math.sin(TAU * c + 0.8));
+    const hx0 = 84 + dx, hy0 = 160 + dy, cx = 150 + dx, cy = 170 + dy, sp = -21 * sit, drop = 36 * sit;
+    R.tp.setAttribute("transform", `translate(0 ${f1(bob + drop)}) rotate(${pitch.toFixed(2)} ${cx} ${cy}) rotate(${sp.toFixed(2)} ${hx0} ${hy0})`);
+    const rot = (x, y, a, ox, oy) => { const X = x - ox, Y = y - oy, ca = Math.cos(a * D), sa = Math.sin(a * D); return [ox + X * ca - Y * sa, oy + X * sa + Y * ca]; };
+    const tf = (x, y) => { let [X, Y] = rot(x, y, sp, hx0, hy0); [X, Y] = rot(X, Y, pitch, cx, cy); return [X, Y + bob + drop]; };
+    // 🐾 4 chân
     for (const k of ["nh", "nf", "fh", "ff"]) {
       const L = R[k]; if (!L) continue; const hind = k[1] === "h", far = k[0] === "f", sh = far ? -13 : 0, gy = 275 + dy - (far ? 2 : 0);
       const ph = (c + lp(W.off[k], U.off[k]) + 1) % 1, [jx, jy] = tf((hind ? 84 : 224) + dx + sh, (hind ? 160 : 162) + dy), x0 = (hind ? 74 : 236) + dx + sh;
-      let px, py;
-      if (ph < duty) { px = x0 + Sx * (0.5 - ph / duty); py = gy; }      // bàn chân chạm đất: đứng yên so với mặt đất (thân trôi qua)
-      else { const u = (ph - duty) / (1 - duty), e = u * u * (3 - 2 * u); px = x0 + Sx * (-0.5 + e); py = gy - H * Math.sin(Math.PI * u); }      // nhấc lên, đưa ra trước
-      const lift = gy - py;
-      if (hind) { const hx = px - 9 - lift * 0.25, hy = py - 30 + lift * 0.15, [kx, ky] = ik(jx, jy, hx, hy, 48, 46, -1); seg(L.s1, L.j1, jx, jy, 38, kx, ky, 17); seg(L.s2, L.j2, kx, ky, 15, hx, hy, 10); seg(L.s3, L.j3, hx, hy, 10, px, py - 4, 9); }      // đùi to (hông) → gối hướng trước → cổ chân hướng sau
-      else { const wx = px - 2 - lift * 0.3, wy = py - 13 + lift * 0.1, [ex, ey] = ik(jx, jy, wx, wy, 50, 46, 1); seg(L.s1, L.j1, jx, jy, 26, ex, ey, 14); seg(L.s2, L.j2, ex, ey, 13, wx, wy, 10); seg(L.s3, L.j3, wx, wy, 10, px, py - 4, 9); }      // vai → khuỷu hướng sau → cổ tay
-      L.pw.setAttribute("cx", (px + 4).toFixed(1)); L.pw.setAttribute("cy", (py - 4).toFixed(1));
+      let px, py, toe = 0;
+      if (ph < duty) { px = x0 + Sx * (0.5 - ph / duty); py = gy; }      // chạm đất: bàn chân đứng yên, thân trôi qua
+      else { const u = (ph - duty) / (1 - duty), e = u * u * (3 - 2 * u), hh = H * (hind ? 0.85 : 1.25) * (1 - r * 0.2); px = x0 + Sx * (-0.5 + e); py = gy - hh * Math.sin(Math.PI * u); toe = (hind ? 0.5 : 0.95) * Math.sin(Math.PI * u) * (1 - r * 0.4); }      // nhấc cao, mũi chân duỗi xuống (chân trước kiểu tiểu thư)
+      if (land > 0) { const nx = hind ? x0 + 30 * sit : x0 - 4; px = lp(px, nx, land); py = lp(py, gy, land); toe *= 1 - land; }      // ngồi xuống: chân đặt về chỗ, chân sau thu vào dưới hông
+      const lift = gy - py, ax = px, ay = py - 1;
+      if (hind) { const hx = ax - 9 - lift * 0.25 + 4 * sit, hy = ay - 28 + lift * 0.15 + 8 * sit, [kx, ky] = ik(jx, jy, hx, hy, 50, 46, -1); seg(L.s1, null, jx, jy, 38, kx, ky, 15); seg(L.s2, L.j1, kx, ky, 14, hx, hy, 9.5); seg(L.s3, L.j2, hx, hy, 10, ax, ay - 4, 9); }      // đùi to liền mông → gối hướng trước → cổ chân hướng sau
+      else { const wx = ax - 2 - lift * 0.3, wy = ay - 13 + lift * 0.1, [ex, ey] = ik(jx, jy, wx, wy, 52, 46, 1); seg(L.s1, null, jx, jy, 27, ex, ey, 13); seg(L.s2, L.j1, ex, ey, 12, wx, wy, 9.5); seg(L.s3, L.j2, wx, wy, 10, ax, ay - 4, 9); }      // bả vai liền ngực → khuỷu hướng sau → cổ tay
+      paw(L.pw, ax, ay, toe);
+    }
+    // 🐈 đuôi: 12 đốt, cong hình dấu hỏi giơ cao (đi) / duỗi ra sau (chạy), sóng vẫy chạy dọc đuôi
+    if (R.tl) {
+      const N = 12, Ls = 12.5, a0 = lp(-142, -172) + 6 * Math.sin(G.tt * 1.9), kc = lp(9.6, 3), A = lp(7, 11), om = lp(5.2, 11), P = [[64 + dx, 136 + dy]], Wd = [];
+      for (let i = 0; i < N; i++) { const ang = (a0 + i * kc + A * Math.sin(om * G.tt - i * 0.5) * (i / N)) * D, [x, y] = P[i]; P.push([x + Ls * Math.cos(ang), y + Ls * Math.sin(ang)]); }
+      for (let i = 0; i <= N; i++) Wd.push(17 - 9.5 * (i / N));
+      const left = [], right = [];
+      for (let i = 0; i <= N; i++) { const [x0, y0] = P[Math.max(0, i - 1)], [x1, y1] = P[Math.min(N, i + 1)], a = Math.atan2(y1 - y0, x1 - x0), nx = -Math.sin(a), ny = Math.cos(a), [x, y] = P[i], h = Wd[i] / 2; left.push(`${f1(x + nx * h)},${f1(y + ny * h)}`); right.unshift(`${f1(x - nx * h)},${f1(y - ny * h)}`); }
+      R.tl.setAttribute("points", left.concat(right).join(" ")); R.tt.setAttribute("cx", f1(P[N][0])); R.tt.setAttribute("cy", f1(P[N][1])); R.tt.setAttribute("r", f1(Wd[N] / 2));
     }
   }
   function rigLoop(t) {
@@ -260,12 +293,14 @@
       ${it("stairs", "🪜", L("Leo cầu thang", "Climb the stairs"), L("lên cao ngắm thị trường", "look down on the market"))}
       ${it("sleep", "😴", L("Cho đi ngủ 30 phút", "Nap for 30 min"), L("không đi, không nói", "no walking, no talking"))}
       ${it("quiet", S.cfg.talk === "q" ? "💬" : "🤫", S.cfg.talk === "q" ? L("Nói chuyện bình thường", "Talk normally") : L("Ít nói thôi", "Talk less"), S.cfg.talk === "q" ? "" : L("chỉ đáp khi anh gọi", "only answers when poked"))}
+      ${it("size", "📏", L("Cỡ: ", "Size: ") + ({ s: L("Nhỏ", "Small"), m: L("Vừa", "Medium"), l: L("Lớn", "Large") })[S.cfg.size || "l"], L("chạm để đổi Nhỏ → Vừa → Lớn", "tap to cycle Small → Medium → Large"))}
       ${it("skin", "🎩", L("Đổi bộ đồ…", "Change outfit…"), L("Tài khoản › Mèo Mun", "Account › Mun"))}
       ${it("off", "🙈", L("Cất Mun đi", "Hide Mun"), L("bật lại trong Tài khoản", "turn back on in Account"))}</div>`;
     document.body.appendChild(m);
     m.querySelector("[data-x]").onclick = () => iosMenuClose();
     m.querySelectorAll("[data-mun]").forEach((b) => (b.onclick = async () => { const k = b.dataset.mun; iosMenuClose();
-      if (k === "mouse") setTimeout(() => chase(true), 250);
+      if (k === "size") { const nx = { s: "m", m: "l", l: "s" }[S.cfg.size || "l"]; UIP = { ...UIP, mun: { ...(UIP.mun || {}), size: nx } }; await uiSave(); MUN.apply(); }
+      else if (k === "mouse") setTimeout(() => chase(true), 250);
       else if (k === "stairs") setTimeout(() => stairs(true), 250);
       else if (k === "sleep") { S.napTill = now() + 30 * 60e3; pose("sleep"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
       else if (k === "quiet" || k === "off") { const u = { ...(UIP.mun || {}) }; if (k === "quiet") u.talk = S.cfg.talk === "q" ? "n" : "q"; else u.on = false; UIP = { ...UIP, mun: u }; await uiSave(); MUN.apply(); if (k === "off") toast(L("Đã cất Mun – bật lại trong Tài khoản › Mèo Mun", "Mun is hidden – turn back on in Account › Mun")); else say(u.talk === "q" ? L("Được. Tôi im.", "Fine. I'll be quiet.") : L("Tôi vẫn ở đây.", "Still here."), 3000, 2); }
@@ -290,8 +325,8 @@
     S.chasing = true; clearTimeout(S.tm); halt(); pose("sit");      // dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì Mun "dịch chuyển tức thời")
     let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
     const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
-      if (caught) { m.classList.add("poof"); pose("groom"); setTimeout(() => say(pick("catch"), 3600, 2), 200); }
-      else { pose("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
+      if (caught) { m.classList.add("poof"); sitDown("groom"); setTimeout(() => say(pick("catch"), 3600, 2), 200); }
+      else { sitDown("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
     // chuyển động có quán tính (tăng / giảm tốc từ từ) – không giật, không quay đầu loạn xạ
     const step = (t) => {
@@ -348,7 +383,7 @@
       if (!S.el || S.away) return abort();
       if (!t0) { t0 = t; last = t; } const dt = Math.min(0.05, (t - last) / 1000); last = t;
       if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; face(dir); G.v = 2.1 * w; pose("walk"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
-      else if (phase === "up") { q += dt * 2.1; const [x, y] = posAt(q); setXY(x, y); if (q >= n + 0.6) { phase = "top"; pose("sit"); face(-dir); setTimeout(() => say(pick("top"), 4200, 2), 300); setTimeout(() => { if (phase === "top") pose("groom"); }, 4800); t0 = t; } }
+      else if (phase === "up") { q += dt * 2.1; const [x, y] = posAt(q); setXY(x, y); if (q >= n + 0.6) { phase = "top"; sitDown("sit"); face(-dir); setTimeout(() => say(pick("top"), 4200, 2), 300); setTimeout(() => { if (phase === "top") pose("groom"); }, 4800); t0 = t; } }
       else if (phase === "top") { if (t - t0 > 9000) { phase = "down"; G.v = 2.4 * w; pose("walk"); face(-dir); q = n + 0.6; } }
       else if (phase === "down") { q -= dt * 2.4; const [x, y] = posAt(q); setXY(x, y); if (q <= 0) return finish(); }
       requestAnimationFrame(run);
@@ -376,7 +411,7 @@
   function build() {
     const el = document.createElement("div"); el.id = "mun"; el.className = "mun";
     el.innerHTML = `<div class="mun-say" hidden role="status"><b>Mun</b><span></span></div><div class="mun-c" role="button" tabindex="0" aria-label="${L("Mun – mèo trợ lý. Chạm để nói chuyện, giữ lâu để mở menu", "Mun – assistant cat. Tap to talk, hold for menu")}"><div class="mun-f">${Object.keys(POSES).map((k) => poseSvg(k, S.cfg.skin)).join("")}</div><i class="mun-z">z</i></div>`;
-    document.body.appendChild(el); S.el = el; S.s = mob() ? 0.235 : 0.28; el.style.setProperty("--s", S.s);
+    document.body.appendChild(el); S.el = el; S.s = scale(); el.style.setProperty("--s", S.s);
     const c = el.querySelector(".mun-c"); let lp = 0, longed = false;
     let x0 = null, y0 = 0, stroked = false;
     c.addEventListener("pointerdown", (e) => { longed = false; stroked = false; x0 = e.clientX; y0 = e.clientY; S.lastPx = e.clientX; S.lastPy = e.clientY; try { c.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } clearTimeout(lp); lp = setTimeout(() => { longed = true; navigator.vibrate?.(10); menu(); }, 520); });
@@ -406,14 +441,14 @@
     // ẩn khi đang mở bảng / menu / biểu đồ toàn màn hình / đang gõ (điện thoại); hiện lại khi xong
     setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (S.napTill && S.napTill < now()) { S.napTill = 0; pose("sit"); sched(idle, 3000); } stalkTick(); }, 400);
     addEventListener("pointermove", stalkMove, { passive: true });
-    addEventListener("resize", () => { if (!S.el) return; S.s = mob() ? 0.235 : 0.28; S.el.style.setProperty("--s", S.s); place(S.x, 0); });
+    addEventListener("resize", () => { if (!S.el) return; S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x, 0); });
     // nháy mắt ngẫu nhiên
     (function blink() { setTimeout(() => { if (S.el) { S.el.classList.add("blink"); setTimeout(() => S.el?.classList.remove("blink"), 160); } blink(); }, rnd(2500, 7000)); })();
     // thông báo: bọc hàm toast của app
     if (typeof window.toast === "function" && !window.toast.__mun) { const t0 = window.toast; window.toast = function (msg, o) { const r = t0.apply(this, arguments); try { onToast(String(msg ?? ""), o || {}); } catch (e) { /* bỏ qua */ } return r; }; window.toast.__mun = 1; }
   }
   function stop() { clearTimeout(S.tm); clearTimeout(S.walkTm); if (S.el) { const el = S.el; S.el = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
-  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), stairs: () => stairs(true), _sit: () => { S.chasing = false; clearTimeout(S.tm); pose("sit"); }, _swipe: () => swipe(), _tread: (run, v) => { clearTimeout(S.tm); halt(); S.chasing = true; G.v = v || (run ? 260 : 35); S.el.classList.toggle("run", !!run); G.run = run ? 1 : 0; pose("walk"); }, SKINS, poseSvg };
+  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x, 0); } }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), stairs: () => stairs(true), _sit: () => { S.chasing = false; clearTimeout(S.tm); pose("sit"); }, _swipe: () => swipe(), _sitDown: () => { S.chasing = false; sitDown('sit'); }, _standUp: () => standUp(() => {}), _tread: (run, v) => { clearTimeout(S.tm); halt(); S.chasing = true; G.v = v || (run ? 260 : 35); S.el.classList.toggle("run", !!run); G.run = run ? 1 : 0; pose("walk"); }, SKINS, poseSvg };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
@@ -438,7 +473,7 @@
 /* chuyển động – chỉ transform / opacity trên thẻ <svg> (giữ translateX(-50%) để căn giữa), chạy trên GPU */
 .mun[data-pose=sit] .p-sit{animation:munBr 4.2s ease-in-out infinite;transform-origin:50% 100%}
 .mun[data-pose=sleep] .p-sleep{animation:munBr2 4s ease-in-out infinite;transform-origin:50% 100%}
-.mun-p .lg>*{fill:var(--f)}.mun-p .far .lg>*{fill:var(--f2)}
+.mun-p .lg>*,.mun-p .tp .tl,.mun-p .tp .tt{fill:var(--f)}.mun-p .far .lg>*{fill:var(--f2)}
 @keyframes munBr{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.01)}}
 @keyframes munBr2{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.02)}}
 .mun-p .tg{fill:#EE6A82;opacity:0}.mun-p .tgl{fill:none;stroke:#C24760;stroke-width:1.6;stroke-linecap:round}
