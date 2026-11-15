@@ -22,7 +22,7 @@ async function scTabGo(k) {
   window.__scKeep = bar0 != null && bar0 >= 0 && bar0 < innerHeight * 0.6 ? bar0 : 64;
   await viewScalp();
   try { cusDraw(); } catch (e) { /* bỏ qua */ }      // lối tắt ★ / ↻ sáng đúng tab vừa mở
-  try { if (matchMedia("(max-width:979px) and (pointer:coarse)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.55, transform: `translateX(${dir * 10}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab – chỉ điện thoại (cảm giác lật trang của app); máy tính đổi nội dung tại chỗ, không chuyển động
+  try { if (!window.__scSwIn && matchMedia("(max-width:979px) and (pointer:coarse)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) $(".sc-body")?.animate([{ opacity: 0.55, transform: `translateX(${dir * 10}px)` }, { opacity: 1, transform: "none" }], { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }      // đổi tab: trượt theo chiều tab – chỉ điện thoại (cảm giác lật trang của app); máy tính đổi nội dung tại chỗ, không chuyển động
   setTimeout(() => { root.style.minHeight = ""; }, 400);
 }
 // ✋ lệnh tay qua ĐƯỜNG NHANH: ghi khoá nhỏ "scalpcmd" – máy chủ riêng đang chờ sẵn (hỏi kiểu chờ dài) nên nhận trong ~1 giây
@@ -63,10 +63,10 @@ function scThumbFollow(bar, k0, k1, p, end) {
     if (!st.lock) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; } if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 1.6) return; st.lock = true; }
     e.preventDefault();
     const edge = (dx > 0 && st.i === 0) || (dx < 0 && st.i === st.keys.length - 1), d = edge ? dx * 0.25 : dx; st.dx = d;
-    st.body.style.transition = "none"; st.body.style.transform = `translateX(${d}px)`; st.body.style.opacity = String(1 - Math.min(0.35, Math.abs(d) / innerWidth * 0.6));
+    st.body.style.transition = "none"; st.body.style.transform = `translateX(${d}px)`; st.body.style.opacity = String(1 - 0.45 * Math.min(1, Math.abs(d) / innerWidth));      // mờ dần LIÊN TỤC theo ngón tay (trước đây chạm trần ở ~58% màn hình → nội dung đứng hình 1 nhịp)
     const bar = document.querySelector(".sc-tabs"), nx = st.keys[st.i + (dx < 0 ? 1 : -1)];
     bar?.querySelectorAll("[data-sctab]").forEach((b) => b.classList.toggle("pv", !edge && Math.abs(d) > innerWidth * 0.22 && b.dataset.sctab === nx));
-    scThumbFollow(bar, st.keys[st.i], edge ? null : nx, Math.min(1, Math.abs(d) / (innerWidth * 0.5)));      // 🫧 giọt kính đi theo ngón tay: vuốt nửa đường → kính nằm giữa 2 tab
+    scThumbFollow(bar, st.keys[st.i], edge ? null : nx, Math.min(1, Math.abs(d) / (innerWidth * 0.8)));      // 🫧 giọt kính đi theo ngón tay suốt cả đường vuốt (trước: tới đích ở nửa màn hình rồi đứng yên trong khi ngón tay còn đi → cảm giác khựng)
   }, { passive: false });
   const end = async () => {
     if (!st) return; const s = st; st = null; if (!s.lock) return;
@@ -76,14 +76,21 @@ function scThumbFollow(bar, k0, k1, p, end) {
     s.body.style.transition = "transform .18s cubic-bezier(.2,.8,.2,1), opacity .18s";
     const bar = document.querySelector(".sc-tabs");
     if (!go) { s.body.style.transform = ""; s.body.style.opacity = ""; scThumbFollow(bar, s.keys[s.i], null, 0, true); return; }
-    // thả tay → kính đứng tại chỗ đang theo ngón tay (đã ghi vào bộ nhớ vị trí); thanh tab vẽ lại cho tab mới sẽ trượt nốt từ đúng chỗ đó tới tab mới
-    const dir = s.dx < 0 ? 1 : -1; s.body.style.transform = `translateX(${-dir * W * 0.6}px)`; s.body.style.opacity = "0";
+    // thả tay → NGAY LẬP TỨC: kính trượt nốt tới tab mới + tab mới sáng (không chờ vẽ lại trang); nội dung cũ đi TIẾP theo chiều ngón tay (không giật lùi) rồi mới vẽ tab mới
+    const dir = s.dx < 0 ? 1 : -1, rest = Math.max(0, 1 - Math.abs(s.dx) / W), dur = Math.round(90 + 110 * rest);
+    bar?.querySelectorAll("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === s.keys[j]; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+    scThumbFollow(bar, s.keys[s.i], s.keys[j], 1, true);
+    s.body.style.transition = `transform ${dur}ms cubic-bezier(.3,.7,.4,1), opacity ${dur}ms`;
+    s.body.style.transform = `translateX(${-dir * Math.max(W * 0.75, Math.abs(s.dx) + 40)}px)`; s.body.style.opacity = "0";
     navigator.vibrate?.(5);
     setTimeout(async () => {
-      await scTabGo(s.keys[j]);
+      window.__scSwIn = 1; try { await scTabGo(s.keys[j]); } finally { window.__scSwIn = 0; }      // vuốt tự lo hiệu ứng vào trang → tắt hiệu ứng nhỏ của scTabGo (không thì trang mới loé lên 1 khung hình rồi mới trượt)
       const nb = document.querySelector("#app .sc-body"); if (!nb) return;
-      try { nb.animate([{ transform: `translateX(${dir * W * 0.35}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (er) { /* bỏ qua */ }
-    }, 150);
+      // vẽ trang mới xong còn 1–2 khung hình nặng (gắn biểu đồ, đặt kính…) → giữ ẩn, đợi 2 khung hình rồi mới trượt vào: hiệu ứng chạy đủ, không bị nuốt mất nửa đầu
+      nb.style.opacity = "0";
+      requestAnimationFrame(() => requestAnimationFrame(() => { nb.style.opacity = "";
+        try { nb.animate([{ transform: `translateX(${dir * W * 0.28}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (er) { /* bỏ qua */ } }));
+    }, dur);
   };
   addEventListener("touchend", end); addEventListener("touchcancel", end);
 })();
