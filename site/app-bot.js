@@ -14,6 +14,8 @@ async function scTabGo(k) {
   if (k === window.__scTab) { await viewScalp(); try { cusDraw(); } catch (e) { /* bỏ qua */ } return; }
   const ORD = ["ov", "ord", "pm", "log", "set"], dir = Math.sign(ORD.indexOf(k) - ORD.indexOf(window.__scTab)) || 1;
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
+  // giọt kính trượt NGAY trên thanh tab hiện tại (giống khi bấm tab) – vuốt ngang đổi tab trước đây không gọi bước này → kính biến mất rồi hiện ở tab mới
+  try { const bar = $(".sc-tabs"); if (bar) { gPlaceAll([bar]); bar.querySelector(`[data-sctab="${k}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); } } catch (e) { /* bỏ qua */ }
   window.__scTab = k; lsSet("sctab", k); try { navFreqHit?.("#/bot/scalp|" + k); } catch (e) { /* bỏ qua */ }
   window.__scTabX = $(".sc-tabs")?.scrollLeft ?? null;      // giữ vị trí cuộn ngang của thanh tab qua lần vẽ lại → trượt mượt tới giữa
   const root = $("#app"), bar0 = $(".sc-tabs")?.getBoundingClientRect().top;

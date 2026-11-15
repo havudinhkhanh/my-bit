@@ -337,7 +337,10 @@ new MutationObserver((M) => {
   if (PIN_K) PIN_K = pinSnap();      // lượt vẽ lại tiếp theo (vòng tự cập nhật) không làm chớp lại khung vừa hiện
 }).observe(document.getElementById("app") || document.body, { childList: true, subtree: true });
 let gRq = 0; const gAll = () => { if (!gRq) gRq = requestAnimationFrame(() => { gRq = 0; gPlaceAll(document.querySelectorAll(GSEL)); }); };
-new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.matches?.(GSEL) || n.querySelector?.(GSEL))) { gAll(); return; } }).observe(document.documentElement, { childList: true, subtree: true });
+// thanh mới vừa gắn vào trang (vẽ lại khi đổi tab / vuốt đổi tab / tự làm mới) → đặt viên kính NGAY trong cùng lượt (trước khi trình duyệt vẽ),
+// bắt đầu từ chỗ cũ rồi trượt sang chỗ mới – trước đây chờ tới khung hình sau nên có 1 khung KHÔNG có kính (nhấp nháy "mất rồi hiện lên")
+new MutationObserver((M) => { const S = new Set(); for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(GSEL)) S.add(n); n.querySelectorAll?.(GSEL).forEach((x) => S.add(x)); }
+  if (S.size) { try { gPlaceAll(S); } catch (e) { /* bỏ qua */ } gAll(); } }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener("click", (e) => { const b = e.target.closest?.("button, a"); const g = b?.parentElement; if (g?.matches?.(GSEL)) { requestAnimationFrame(() => gPlaceAll([g])); setTimeout(gAll, 60); } }, true);
 addEventListener("resize", () => { clearTimeout(gAll._t); gAll._t = setTimeout(gAll, 120); });
 document.fonts?.ready?.then(gAll);
