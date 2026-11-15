@@ -278,6 +278,12 @@ function cbMount(root) {
       t.style.left = (h.x + 14 + tw > b.width ? Math.max(0, h.x - tw - 14) : h.x + 14) + "px";
       t.style.top = Math.max(4, Math.min(b.height - th - 4, e.clientY - b.top - th / 2)) + "px";
     };
+    const lg = el.querySelector(":scope > .leg-tg");
+    if (lg) { const tgl = (e) => { const sp = e.target.closest("[data-li]"); if (!sp || (e.type === "keydown" && e.key !== "Enter" && e.key !== " ")) return; e.preventDefault();
+      const off = LEGOFF.get(lg.dataset.lk), i = +sp.dataset.li; if (!off) return;
+      if (!off.has(i) && lg.querySelectorAll("[data-li]:not(.off)").length <= 1) return;      // luôn còn ít nhất 1 đường
+      off.has(i) ? off.delete(i) : off.add(i); sp.classList.toggle("off", off.has(i)); sp.setAttribute("aria-pressed", String(!off.has(i))); r.redraw(); };
+      lg.addEventListener("click", tgl); lg.addEventListener("keydown", tgl); }
     c.onmouseleave = () => { c.querySelectorAll(".cbv,.cbtip").forEach((x) => (x.hidden = true)); legSet(el, r.cx.leg, null); };
     // chú thích có số (legVal): kéo ngón tay trên biểu đồ → số chạy theo ngày; nhấc tay → về số tổng
     c.addEventListener("touchmove", (e) => { if (!r.cx.leg || !e.touches[0]) return; const T = e.touches[0]; c.onmousemove({ clientX: T.clientX, clientY: T.clientY }); }, { passive: true });
@@ -493,18 +499,24 @@ function niceTicks(mn, mx, n) {
   const out = []; for (let v = Math.ceil(mn / st) * st; v <= mx + st * 1e-6; v += st) out.push(+v.toFixed(10)); return out;
 }
 // mẫu màu trong chú thích: đường nét đứt → mẫu cũng nét đứt (trước đây luôn vẽ vạch liền)
+const LEGOFF = new Map();      // đường đang ẩn của từng biểu đồ (khoá = bộ tên đường)
 const legSw = (x) => { const c = x.color || css("--brand"); return x.dash ? `background:repeating-linear-gradient(90deg,${c} 0 4px,transparent 4px 7px);width:16px` : `background:${c}`; };
 function lineSvg(series, opt = {}) {
   const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum);
   if (!all.length) return `<p class="muted">Chưa có số liệu.</p>`;
   // opt.legVal = { label, fmt }: chú thích hiện LUÔN số của từng đường – mặc định số cuối (tổng), rê chuột / chạm vào biểu đồ → số tại ngày đó (không cần ô nổi nhỏ)
   const lv = opt.legVal, lf = lv ? lv.fmt || ((v) => nf(v, opt.dec ?? 1)) : null, lastY = (se) => { for (let k = se.pts.length - 1; k >= 0; k--) if (isNum(se.pts[k].y)) return se.pts[k].y; return null; };
-  const legend = series.map((x, i) => (x.name ? (lv ? `<span data-li="${i}"><small><i style="${legSw(x)}"></i>${esc(x.name)}</small><b class="lgv ${cls(lastY(x))}">${esc(lf(lastY(x)))}</b></span>` : `<span><i style="${legSw(x)}"></i>${esc(x.name)}</span>`) : "")).join("");
-  return svgMount((W, H, cx) => { if (lv) cx.leg = { fmt: lf, label: lv.label || "", tip: !!lv.tip, last: series.map(lastY) }; return lineDraw(series, opt, W, H, cx); }, { h: opt.h || 180, legend: legend ? `<div class="leg${lv ? " leg-v" : ""}"${lv ? ` style="--n:${series.filter((x) => x.name).length}"` : ""}>${lv ? `<em class="lgx">${esc(lv.label || "")}</em>` : ""}${legend}</div>` : "" });
+  // ≥ 2 đường có tên → bấm vào chú thích để ẩn / hiện từng đường (nhớ theo bộ tên đường – trang tự làm mới vẫn giữ); trục Y co lại theo các đường còn hiện
+  const tg = series.filter((x) => x.name).length > 1, lk = tg ? opt.legKey || series.map((x) => x.name || "").join("|") : "", off = tg ? LEGOFF.get(lk) || new Set() : null;
+  if (tg) { LEGOFF.set(lk, off); if (series.every((x, i) => !x.name || off.has(i))) off.clear(); }
+  const la = (i) => (tg ? ` data-li="${i}" role="button" tabindex="0" aria-pressed="${!off.has(i)}" class="${off.has(i) ? "off" : ""}" title="${esc(bi("Bấm để ẩn / hiện đường này", "Click to hide / show this line"))}"` : lv ? ` data-li="${i}"` : "");
+  const legend = series.map((x, i) => (x.name ? (lv ? `<span${la(i)}><small><i style="${legSw(x)}"></i>${esc(x.name)}</small><b class="lgv ${cls(lastY(x))}">${esc(lf(lastY(x)))}</b></span>` : `<span${la(i)}><i style="${legSw(x)}"></i>${esc(x.name)}</span>`) : "")).join("");
+  return svgMount((W, H, cx) => { if (lv) cx.leg = { fmt: lf, label: lv.label || "", tip: !!lv.tip, last: series.map(lastY) }; return lineDraw(off && off.size ? series.map((x, i) => (off.has(i) ? { ...x, off: 1 } : x)) : series, opt, W, H, cx); }, { h: opt.h || 180, legend: legend ? `<div class="leg${lv ? " leg-v" : ""}${tg ? " leg-tg" : ""}"${tg ? ` data-lk="${esc(lk)}"` : ""}${lv ? ` style="--n:${series.filter((x) => x.name).length}"` : ""}>${lv ? `<em class="lgx">${esc(lv.label || "")}</em>` : ""}${legend}</div>` : "" });
 }
 function lineDraw(series, opt, W, H, cx) {
   const pr = 10, pt = 10, pb = 20;
-  const all = series.flatMap((s) => s.pts.map((p) => p.y)).filter(isNum).concat(opt.hlines ? opt.hlines.map((h) => h.y) : []);
+  const all = series.filter((s) => !s.off).flatMap((s) => s.pts.map((p) => p.y)).filter(isNum).concat(opt.hlines ? opt.hlines.map((h) => h.y) : []);
+  if (!all.length) all.push(0);
   let mn = Math.min(...all), mx = Math.max(...all);
   if (opt.zero) { mn = Math.min(mn, 0); mx = Math.max(mx, 0); }
   if (isNum(opt.min)) mn = Math.min(mn, opt.min);
@@ -527,6 +539,7 @@ function lineDraw(series, opt, W, H, cx) {
   tv.forEach((v) => { const y = Y(v).toFixed(1); s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" class="g${Math.abs(v) < 1e-12 && !lg ? " z" : ""}"/><text x="${pl - 6}" y="${+y + 3.5}" text-anchor="end" class="ya">${esc(fmt(v))}</text>`; });
   (opt.hlines || []).forEach((h) => { s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(h.y)}" y2="${Y(h.y)}" stroke="${h.color || "var(--ink-3)"}" stroke-dasharray="4 3"/>${h.label ? `<text x="${W - pr - 2}" y="${Y(h.y) - 4}" text-anchor="end" style="fill:${h.color || "var(--ink-3)"}">${esc(h.label)}</text>` : ""}`; });
   series.forEach((se) => {
+    if (se.off) return;
     if (se.dots) { se.pts.forEach((p, i) => { if (isNum(p.y)) s += `<circle cx="${X(i).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="3.4" fill="${p.c || se.color}" stroke="var(--surface)" stroke-width="1.2"/>`; }); return; }
     if (se.bars) {
       const bw = Math.max(1, band ? Math.min(cw / n * 0.82, cw / n - 2) : cw / n - 1);
@@ -544,7 +557,7 @@ function lineDraw(series, opt, W, H, cx) {
   cx.hover = (mx2) => {
     if (mx2 < pl - 4 || mx2 > W - pr + 4) return null;
     const i = Math.max(0, Math.min(n - 1, band ? Math.floor((mx2 - pl) / cw * n) : Math.round((mx2 - pl) / (W - pl - pr) * (n - 1))));
-    const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b>${se.pts[i]?.tip ? ` <small class="${se.pts[i].tc || ""}">${esc(se.pts[i].tip)}</small>` : ""}</span>` : ""; }).join("");
+    const rows = series.map((se) => { const v = se.pts[i]?.y; return isNum(v) && !se.off ? `<span><i style="background:${se.color || (v >= 0 ? css("--up") : css("--down"))}"></i>${se.name ? esc(se.name) + ": " : ""}<b>${esc(fmt(v))}</b>${se.pts[i]?.tip ? ` <small class="${se.pts[i].tc || ""}">${esc(se.pts[i].tip)}</small>` : ""}</span>` : ""; }).join("");
     return rows ? { x: X(i), i, lab: ref[i]?.x ?? "", vals: series.map((se) => se.pts[i]?.y), html: `<em>${esc(ref[i]?.x ?? "")}</em>${rows}` } : null;
   };
   return s;

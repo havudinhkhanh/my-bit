@@ -6322,3 +6322,32 @@ html[data-fdsz="s"] .sc-feed:not(#_f){max-height:min(240px,var(--scr-cap))!impor
 html[data-fdsz="m"] .sc-feed:not(#_f){max-height:min(440px,var(--scr-cap))!important;overflow:auto!important}
 html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!important;overflow:auto!important;overscroll-behavior:contain}
 .lvt-tw:not(#_f),.sc-hl.lvt:not(#_f){max-height:min(560px,var(--scr-cap))!important}
+
+/* bảng từng lệnh có can thiệp: tiêu đề rõ + dòng chú giải "cái nào thật, cái nào ước tính" + nhãn trong thẻ trên điện thoại */
+.iv-d>summary{font-size:.875rem;color:var(--ink);padding:6px 0}
+.iv-d>summary>b{font-weight:650}
+.iv-key{display:flex;flex-wrap:wrap;gap:4px 14px;margin:2px 0 8px;font-size:.75rem;line-height:1.5;color:var(--ink-3)}
+.iv-key b{font-weight:650;color:var(--ink-2)}
+.iv-src.sim{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.iv-lt-t td .iv-src{margin-right:2px}
+.iv-lt-t .iv-who{display:none}
+.iv-lt-t th.iv-gs,.iv-lt-t td:nth-child(2),.iv-lt-t td:nth-child(4),.iv-lt-t td:nth-child(6){box-shadow:inset 1px 0 0 var(--line)}
+.iv-lt-t thead th{position:sticky;top:0;z-index:3;background:var(--sunk)}
+@media (max-width:760px){
+  .iv-key{flex-direction:column;gap:3px}
+  table.rs.iv-lt-t td{box-shadow:none!important;white-space:nowrap!important}
+  .iv-lt-t .iv-who{display:inline-block;font-style:normal;font-size:.625rem;font-weight:650;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-3);margin-right:6px;min-width:6.4em}
+  .iv-lt-t td:nth-child(6) .iv-who{min-width:0;text-transform:none;font-size:.6875rem;font-weight:550}
+}
+/* chú thích biểu đồ: bấm để ẩn / hiện từng đường (chuẩn chart hiện đại) */
+.leg-tg [data-li]{cursor:pointer;user-select:none;-webkit-user-select:none;border-radius:var(--r-ctl,6px);transition:opacity .15s,background-color .15s}
+.leg-tg:not(.leg-v) [data-li]{padding:2px 6px;margin:-2px -6px}
+@media (hover:hover){.leg-tg [data-li]:hover{background:color-mix(in srgb,var(--ink) 8%,transparent)}}
+.leg-tg [data-li]:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.leg-tg [data-li].off{opacity:.42}
+.leg-tg [data-li].off i{background:transparent!important;box-shadow:inset 0 0 0 1.5px var(--ink-3)}
+.leg-tg [data-li].off small,.leg-tg:not(.leg-v) [data-li].off{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--ink) 40%,transparent)}
+@media (max-width:760px){      /* hàng 1: lệnh bên trái, chênh bên phải chung 1 ô → cột số chỉ rộng bằng số tiền, phần chữ "anh làm / bot thoát" không bị cắt */
+  table.rs.iv-lt-t td:nth-child(1){grid-column:1/-1;justify-self:start;max-width:58%}
+  table.rs.iv-lt-t td:nth-child(6){grid-column:1/-1;justify-self:end}
+}
