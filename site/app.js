@@ -574,20 +574,27 @@ async function softRender(fn) {
   for (let i = 0; i < panels.length; i++) { const r = panels[i].getBoundingClientRect(); if (r.bottom > 60) { ai = i; aoff = r.top; akey = pKey(panels[i], panels); break; } }
   // vị trí cuộn của từng bảng: nhớ theo DANH TÍNH (tên khung chứa + loại bảng + thứ tự trong khung), không theo thứ tự trên cả trang –
   // trước đây 1 bảng khác xuất hiện / mất đi phía trên (bảng so sánh nạp sau, khối giám sát…) làm lệch chỉ số → bảng Lệnh đã đóng bị kéo về đầu mỗi lần trang tự làm mới
-  const SCSEL = ".tw, .bot-log, .sc-r, [data-keep]", scKey = (el) => { if (el.dataset.keep) return "k:" + el.dataset.keep; const pn = el.closest(".panel, section"), h = pn?.querySelector(".ph h2, h2")?.textContent?.trim() || "", ol = el.closest("[data-ol]")?.dataset.ol || "";
+  const SCSEL = ".tw, .bot-log, .sc-r, .sc-hl, [data-keep]", scKey = (el) => { if (el.dataset.keep) return "k:" + el.dataset.keep; const pn = el.closest(".panel, section"), h = pn?.querySelector(".ph h2, h2")?.textContent?.trim() || "", ol = el.closest("[data-ol]")?.dataset.ol || "";
     const same = pn ? [...pn.querySelectorAll(SCSEL)].filter((x) => x.className === el.className) : []; return `${ol}|${h}|${el.className}|${Math.max(0, same.indexOf(el))}`; };
-  const sc = new Map([...root.querySelectorAll(SCSEL)].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [scKey(el), [el.scrollTop, el.scrollLeft]]));
+  // + mốc neo trong bảng (tiêu đề ngày đang ở đầu khung, data-cd): có lệnh mới chen lên trên thì vẫn giữ đúng NGÀY anh đang xem, không lệch xuống 1 hàng
+  //   neo = hàng lệnh (data-cdd) đầu tiên nằm dưới tiêu đề ngày đang dính – bỏ qua tiêu đề dính (luôn ở đầu khung nên không dùng làm mốc được)
+  const ancOf = (el, key) => { if (!key) return null; const [d, i] = key; return [...el.querySelectorAll(`[data-cdd="${CSS.escape(d)}"]`)][i] || null; };
+  const anc = (el) => { const r0 = el.getBoundingClientRect().top, R = [...el.querySelectorAll("[data-cdd]")], a = R.find((x) => x.offsetParent && x.getBoundingClientRect().top > r0 + 44);
+    if (!a) return null; const d = a.dataset.cdd, i = R.filter((x) => x.dataset.cdd === d).indexOf(a); return [[d, i], a.getBoundingClientRect().top - r0]; };
+  const sc = new Map([...root.querySelectorAll(SCSEL)].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [scKey(el), [el.scrollTop, el.scrollLeft, el.scrollTop > 0 ? anc(el) : null]]));
   const open = [...root.querySelectorAll("details")].map((d) => d.open);
   const y = scrollY;
   root.style.minHeight = root.offsetHeight + "px";
   SR_H = h0;
   // đặt lại vị trí cuộn NGAY khi nội dung mới được gắn vào (MutationObserver chạy trước khi trình duyệt vẽ khung hình) –
   // trước đây chỉ đặt lại sau khi vẽ xong cả trang → kịp vẽ 1 khung ở đầu bảng rồi mới nhảy về chỗ cũ (nháy / giật)
-  const fixNow = () => { if (sc.size) root.querySelectorAll(SCSEL).forEach((el) => { const v = sc.get(scKey(el)); if (v && (el.scrollTop !== v[0] || el.scrollLeft !== v[1])) { el.scrollTop = v[0]; el.scrollLeft = v[1]; } });
+  const fixNow = () => { if (sc.size) root.querySelectorAll(SCSEL).forEach((el) => { const v = sc.get(scKey(el)); if (!v) return; if (el.scrollTop !== v[0] || el.scrollLeft !== v[1]) { el.scrollTop = v[0]; el.scrollLeft = v[1]; }
+      if (v[2]) { const a = ancOf(el, v[2][0]); if (a) { const d = a.getBoundingClientRect().top - el.getBoundingClientRect().top - v[2][1]; if (Math.abs(d) > 1) el.scrollTop += d; } } });
     if (akey) { const L = [...root.querySelectorAll("section.panel, .panel")], A = L.find((pn) => pKey(pn, L) === akey); if (A) { const d = A.getBoundingClientRect().top - aoff; if (Math.abs(d) > 1) scrollTo(0, Math.max(0, scrollY + d)); } } };
   // khối có chữ ký nội dung (data-sig) mà nội dung không đổi → gắn lại ĐÚNG khối cũ thay cho khối vừa vẽ (giữ cuộn, độ rộng cột, trạng thái; không nháy)
-  const keepSig = new Map([...root.querySelectorAll("[data-sig]")].map((el) => [el.dataset.sig, el]));
-  const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const o = keepSig.get(el.dataset.sig); if (o && o !== el && !o.isConnected) { el.replaceWith(o); keepSig.delete(el.dataset.sig); } }); };
+  const keepSig = new Map([...root.querySelectorAll("[data-sig]")].map((el) => [el.dataset.sig, { el, st: [el, ...el.querySelectorAll("*")].filter((x) => x.scrollTop || x.scrollLeft).map((x) => [x, x.scrollTop, x.scrollLeft]) }]));
+  // gắn lại khối cũ: trình duyệt xoá vị trí cuộn khi khối bị gỡ khỏi trang → đặt lại ngay vị trí cuộn đã lưu của khối & các khung con
+  const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const K = keepSig.get(el.dataset.sig); if (K && K.el !== el && !K.el.isConnected) { el.replaceWith(K.el); K.st.forEach(([x, t, l]) => { x.scrollTop = t; x.scrollLeft = l; }); keepSig.delete(el.dataset.sig); } }); };
   const mo = new MutationObserver(() => { reuse(); fixNow(); }); mo.observe(root, { childList: true, subtree: true });
   try { await fn(); } finally { mo.disconnect(); SR_H = null; SR_DUMMY = null; }
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
@@ -595,7 +602,7 @@ async function softRender(fn) {
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
   const A2 = (akey && P2.find((pn) => pKey(pn, P2) === akey)) || (ai >= 0 ? P2[ai] : null);      // khung đang xem: tìm theo tên khung (khung khác thêm / bớt phía trên không làm trang nhảy)
   if (A2) scrollTo(0, Math.max(0, scrollY + A2.getBoundingClientRect().top - aoff)); else scrollTo(0, y);
-  if (sc.size) [...root.querySelectorAll(SCSEL)].forEach((el) => { const v = sc.get(scKey(el)); if (v) { el.scrollTop = v[0]; el.scrollLeft = v[1]; } });
+  fixNow();
   [...root.querySelectorAll("details")].forEach((d, i) => { if (open[i] != null) d.open = open[i]; });
   setTimeout(() => { root.style.minHeight = ""; }, 1200);
 }
