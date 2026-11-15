@@ -20,6 +20,11 @@
   //    Nên: mọi chuyển động "cả con" (thở, liếm, nhún) đặt trên thẻ <svg> (hộp HTML bình thường), còn chân khi đi = 8 khung hình vẽ sẵn
   //    (skew bằng thuộc tính SVG – không dùng CSS), CSS chỉ bật / tắt từng khung theo nhịp → mọi trình duyệt hiện giống nhau.
   const NF = 8;
+  const WK = { classic: 0, shades: 2, fedora: 1 };      // chân sau phía xa (bản gốc không vẽ): lệch theo vị trí chân sau gần của từng bộ đồ
+  // lưỡi hồng khi liếm: 2 khung (thè ngắn / thè dài) bật tắt theo nhịp liếm, đặt ngay dưới cằm, sát chân đang giơ
+  const TG = { classic: [259, 101], shades: [259, 104], fedora: [259, 106] };
+  const tongue = (skin) => { const [x, y] = TG[skin] || TG.classic;
+    return `<path class="tg tg1" d="M${x - 7} ${y - 1}Q${x + 1} ${y - 3} ${x + 7} ${y + 1}Q${x + 6.5} ${y + 9} ${x + 1} ${y + 11}Q${x - 5} ${y + 9} ${x - 7} ${y - 1}Z"/><path class="tg tg2" d="M${x - 7} ${y - 1}Q${x + 1} ${y - 3} ${x + 7.5} ${y + 1}Q${x + 9} ${y + 16} ${x + 2} ${y + 22}Q${x - 5.5} ${y + 18} ${x - 7} ${y - 1}Z"/><path class="tg tg2 tgl" d="M${x} ${y + 3}L${x + 1.5} ${y + 14}"/>`; };
   const poseSvg = (k, skin) => {
     const a = (ART[skin] || ART.classic)[k] || ART.classic[k], [x0, y0, x1, y1] = a.bb, pd = 3, vx = x0 - pd, vy = y0 - pd, vw = x1 - x0 + 2 * pd, vh = y1 - y0 + 2 * pd;
     const E = a.eye, eyeBg = E ? `<rect class="eb" x="${E[0] - 2}" y="${E[1] - 2}" width="${E[2] + 4}" height="${E[3] + 4}"/>` : "", lid = E && skin !== "shades" ? `<rect class="lid" x="${E[0] - 1}" y="${E[1] - 1}" width="${E[2] + 2}" height="${E[3] + 2}"/>` : "";
@@ -27,11 +32,14 @@
     let body;
     if (k === "walk") {      // dáng đi: phần trên đứng yên; chân sau / chân trước đưa qua lại ngược nhịp, lắc quanh đường bụng (tại đường bụng không xê dịch → không lộ đường nối)
       const id = "mw" + ++UID, yb = a.y0, xs = a.xs, H = vy + vh - yb;
-      const fr = Array.from({ length: NF }, (_, i) => { const t = 11 * Math.cos((2 * Math.PI * i) / NF), sk = (d) => `translate(0 ${yb}) skewX(${d.toFixed(2)}) translate(0 ${-yb})`;
-        return `<g class="wf${i ? "" : " wf0"}" style="animation-delay:calc(var(--wd,.72s)*${(-i / NF).toFixed(3)})"><g clip-path="url(#${id}h)"><use href="#${id}g" transform="${sk(t)}"/></g><g clip-path="url(#${id}f)"><use href="#${id}g" transform="${sk(-t)}"/></g></g>`; }).join("");
-      body = `<defs><path id="${id}g" style="fill:var(--f)" d="${a.b}"/><clipPath id="${id}t"><rect x="${vx}" y="${vy}" width="${vw}" height="${yb - vy + 5}"/></clipPath><clipPath id="${id}h"><rect x="${vx}" y="${yb}" width="${xs - vx}" height="${H}"/></clipPath><clipPath id="${id}f"><rect x="${xs}" y="${yb}" width="${vx + vw - xs}" height="${H}"/></clipPath></defs>
-        <g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g>${fr}`;
-    } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}`;
+      const sk = (d, dx = 0) => `translate(${dx} ${yb}) skewX(${d.toFixed(2)}) translate(0 ${-yb})`, dl = (i) => `style="animation-delay:calc(var(--wd,.72s)*${(-i / NF).toFixed(3)})"`, T = (i) => 11 * Math.cos((2 * Math.PI * i) / NF);
+      const fr = Array.from({ length: NF }, (_, i) => `<g class="wf${i ? "" : " wf0"}" ${dl(i)}><g clip-path="url(#${id}h)"><use href="#${id}g" transform="${sk(T(i))}"/></g><g clip-path="url(#${id}f)"><use href="#${id}g" transform="${sk(-T(i))}"/></g></g>`).join("");
+      // bản gốc chỉ có 1 chân sau → thêm chân sau phía xa (lệch nhẹ, tông xám đen, nằm SAU thân) đi ngược nhịp chân sau gần – như dáng đi thật (chéo nhau)
+      const ox = (WK[skin] || 0), FL = `M${72 + ox} 182L${104 + ox} 184L${106 + ox} 214L${98 + ox} 238L${103 + ox} 262L${112 + ox} 268L${113 + ox} ${y1}L${92 + ox} ${y1}L${90 + ox} 262L${84 + ox} 240L${80 + ox} 212Z`;
+      const far = Array.from({ length: NF }, (_, i) => `<g class="wf${i ? "" : " wf0"}" ${dl(i)}><use href="#${id}g2" transform="${sk(-T(i))}"/></g>`).join("");
+      body = `<defs><path id="${id}g" style="fill:var(--f)" d="${a.b}"/><linearGradient id="${id}lg" gradientUnits="userSpaceOnUse" x1="0" y1="${yb + 8}" x2="0" y2="${yb + 50}"><stop offset="0" style="stop-color:var(--f)"/><stop offset="1" style="stop-color:var(--f2)"/></linearGradient><path id="${id}g2" fill="url(#${id}lg)" d="${FL}"/><clipPath id="${id}t"><rect x="${vx}" y="${vy}" width="${vw}" height="${yb - vy + 5}"/></clipPath><clipPath id="${id}h"><rect x="${vx}" y="${yb}" width="${xs - vx}" height="${H}"/></clipPath><clipPath id="${id}f"><rect x="${xs}" y="${yb}" width="${vx + vw - xs}" height="${H}"/></clipPath></defs>
+        ${far}<g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g>${fr}`;
+    } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}${k === "groom" ? tongue(skin) : ""}`;
     return `<svg ${NS} class="mun-p p-${k}" data-p="${k}" viewBox="${vx} ${vy} ${vw} ${vh}" style="height:calc(${vh}px*var(--s,.2))" aria-hidden="true">${body}</svg>`;
   };
   window.MUN_ART = { poseSvg, POSES, SKINS };
@@ -49,7 +57,17 @@
       ["Muốn giàu nhanh thì sang app khác. Ở đây làm chậm mà chắc.", "Want to get rich quick? Wrong app. We go slow and sure here."], ["Đừng bấm lung tung. Tôi đang nhìn đấy.", "Stop clicking around. I'm watching."], ["Kỷ luật là thứ anh có lúc 9 giờ sáng và đánh rơi lúc 11 giờ đêm.", "Discipline: you have it at 9 a.m. and drop it at 11 p.m."],
       ["Hôm qua anh cũng nói “lệnh cuối”.", "Yesterday you also said “last trade”."], ["Gồng lỗ không phải kiên nhẫn. Là cứng đầu.", "Holding a loser isn't patience. It's stubbornness."], ["Lời nhỏ mà đều vẫn hơn một cú lớn rồi về mo.", "Small steady wins beat one big win and back to zero."],
       ["Tôi có chín mạng. Tài khoản của anh thì chỉ có một.", "I have nine lives. Your account has one."], ["Ngồi thẳng lưng lên. Ra dáng người có kế hoạch đi.", "Sit up straight. Look like someone with a plan."], ["Tôi không cần lời khuyên của ai. Anh thì cần đấy.", "I don't need anyone's advice. You do."],
-      ["Đòn bẩy cao nhìn thì oai. Lúc thanh lý thì hết oai.", "High leverage looks cool. Until liquidation."], ["Tin đồn trên mạng à? Tôi chỉ tin vào luật của mình.", "Online rumours? I only trust my rules."], ["Đừng nhìn tôi. Nhìn vào kế hoạch.", "Don't look at me. Look at your plan."]],
+      ["Đòn bẩy cao nhìn thì oai. Lúc thanh lý thì hết oai.", "High leverage looks cool. Until liquidation."], ["Tin đồn trên mạng à? Tôi chỉ tin vào luật của mình.", "Online rumours? I only trust my rules."], ["Đừng nhìn tôi. Nhìn vào kế hoạch.", "Don't look at me. Look at your plan."],
+      ["Lệnh không có điểm cắt lỗ là lệnh cầu nguyện.", "A trade without a stop is a prayer."], ["Đừng đổi kế hoạch giữa trận chỉ vì nến đỏ một cây.", "Don't rewrite the plan because of one red candle."], ["Anh không cần đúng mọi lần. Chỉ cần thua nhỏ.", "You don't need to be right every time. Just lose small."],
+      ["Tôi không vồ mọi con chuột. Chỉ con nào đáng.", "I don't pounce on every mouse. Only the worthy ones."], ["Biểu đồ đẹp không có nghĩa là lệnh đẹp.", "A pretty chart isn't a pretty trade."], ["Nhồi lệnh để gỡ à? Kinh điển. Kinh điển cháy.", "Doubling down to win it back? Classic. Classic blow-up."],
+      ["Tôi kiêu vì tôi có lý do. Anh tự tin vì lý do gì?", "I'm arrogant for a reason. What's your reason?"], ["Thị trường đi ngang thì anh cũng nên ngồi yên. Như tôi.", "Sideways market? Sit still. Like me."], ["Đừng kể lệnh lời cho tôi nghe. Kể lệnh lỗ kìa.", "Don't tell me your wins. Tell me your losses."],
+      ["Một quy tắc anh giữ được hơn mười quy tắc anh chép trên mạng.", "One rule you keep beats ten you copied online."], ["Ai cũng có kế hoạch cho tới khi giá chạy ngược.", "Everyone has a plan until price moves against them."], ["Tôi đã xem lịch sử lệnh của anh. Tôi giữ im lặng. Vì lịch sự.", "I've seen your trade history. I'm staying quiet. Out of courtesy."],
+      ["Phí giao dịch cũng là tiền đấy. Đừng bấm cho vui tay.", "Fees are money too. Stop clicking for fun."], ["Lời rồi thì chốt bớt. Tham thì thâm, mèo cũng biết.", "In profit? Take some off. Even cats know greed bites."], ["Tôi không cần xem tin tức. Tôi xem anh là đủ hiểu thị trường đang điên.", "I don't need the news. Watching you tells me the market's mad."]],
+    climb: [["Lên cao chút cho thoáng.", "Going up for some air."], ["Tránh đường. Mèo lên.", "Make way. Cat coming up."], ["Bậc thang cũng như kế hoạch: từng bước một.", "Stairs are like plans: one step at a time."]],
+    top: [["Nhìn từ trên này, biểu đồ cũng chỉ là đường gấp khúc.", "From up here, the chart's just a zigzag."], ["Đứng cao nhìn xa. Anh thì cứ dí mắt vào nến 1 phút.", "Higher view, longer horizon. You keep staring at 1-minute candles."], ["Ở trên này, FOMO không với tới tôi.", "Up here, FOMO can't reach me."],
+      ["Toàn cảnh đẹp đấy. Mấy lệnh của anh thì… để sau.", "Nice view. Your trades… let's not."], ["Khung lớn trước, khung nhỏ sau. Nhớ chưa?", "Big timeframe first, small one later. Got it?"]],
+    weekend: [["Cuối tuần. Thị trường còn chạy, anh thì nên nghỉ.", "Weekend. The market runs, you should rest."], ["Cuối tuần thanh khoản mỏng. Đừng tưởng là cơ hội.", "Weekend liquidity is thin. Don't mistake it for opportunity."]],
+    monday: [["Thứ Hai. Đọc lại nhật ký tuần trước trước khi bấm gì.", "Monday. Reread last week's journal before clicking anything."]],
     bot: [["Bot đang làm việc. Đừng đứng sau lưng nó.", "The bot is working. Don't hover behind it."], ["Luật đã đặt thì để luật chạy.", "Rules are set. Let them run."], ["Can thiệp tay ít thôi. Bảng so sánh ghi hết đấy.", "Easy on the manual moves. The comparison table remembers."],
       ["Sàn thử trước, tiền thật sau. Tôi cũng nếm sữa trước khi uống.", "Paper first, real money later. I taste the milk first too."], ["Để bot yên. Nó làm tốt hơn khi anh không thò tay vào.", "Leave the bot alone. It does better without your paws in it."], ["Bot không có cảm xúc. Anh nên học nó.", "The bot has no feelings. Learn from it."]],
     night: [["Khuya rồi. Mèo còn biết đi ngủ.", "It's late. Even cats sleep."], ["Quyết định lúc 2 giờ sáng hiếm khi là quyết định hay.", "2 a.m. decisions are rarely good ones."], ["Giờ này còn thức? Mai đừng có ngáp với tôi.", "Still up? Don't yawn at me tomorrow."], ["Đêm khuya chỉ có mèo và người sắp vào lệnh dở là còn thức.", "Only cats and people about to make bad trades are up this late."]],
@@ -114,6 +132,7 @@
   function idle() {      // vòng đời: ngồi → liếm lông → đi dạo → … ; để yên lâu thì ngủ
     if (!S.el) return;
     if (S.away || S.napTill > now() || S.chasing || ST.on) { sched(idle, 1500); return; }
+    if (S.nextStairs && now() > S.nextStairs && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextStairs = now() + rnd(12, 25) * 60e3; if (stairs()) return; }
     if (S.nextMouse && now() > S.nextMouse && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextMouse = now() + rnd(10, 22) * 60e3; if (chase()) return; }
     if (now() - S.act > 80e3) { if (S.pose !== "sleep") pose("sleep"); sched(idle, 4000); return; }
     talkMaybe();
@@ -143,6 +162,8 @@
     else if (h >= 5 && h < 10 && lsGet("mun_morn", "") !== d) { k = "morn"; lsSet("mun_morn", d); }
     else if (now() - S.t0 > 50 * 60e3 && !S.said.long) { k = "long"; S.said.long = 1; setTimeout(() => (S.said.long = 0), 50 * 60e3); }
     else if (/^#\/bot/.test(hs) && Math.random() < 0.5) k = "bot";
+    else if ([0, 6].includes(new Date().getDay()) && Math.random() < 0.25) k = "weekend";
+    else if (new Date().getDay() === 1 && h < 12 && !S.said.mon) { k = "monday"; S.said.mon = 1; }
     if (say(pick(k))) S.nextTalk = now() + rnd(7, 14) * 60e3;
   }
   // ---------------------------------------------------------------- chạm / giữ lâu
@@ -162,6 +183,7 @@
     m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="munMenu" role="menu" aria-label="Mun" style="left:${left}px;width:${W}px;bottom:${Math.round(innerHeight - R.top + 8)}px;transform-origin:${Math.round(R.left + R.width / 2 - left)}px calc(100% + 8px)">
       <div class="ios-menu-h">🐈‍⬛ Mun</div>
       ${it("mouse", "🐭", L("Thả chuột cho Mun", "Release a mouse"), L("xem Mun rượt", "watch Mun hunt"))}
+      ${it("stairs", "🪜", L("Leo cầu thang", "Climb the stairs"), L("lên cao ngắm thị trường", "look down on the market"))}
       ${it("sleep", "😴", L("Cho đi ngủ 30 phút", "Nap for 30 min"), L("không đi, không nói", "no walking, no talking"))}
       ${it("quiet", S.cfg.talk === "q" ? "💬" : "🤫", S.cfg.talk === "q" ? L("Nói chuyện bình thường", "Talk normally") : L("Ít nói thôi", "Talk less"), S.cfg.talk === "q" ? "" : L("chỉ đáp khi anh gọi", "only answers when poked"))}
       ${it("skin", "🎩", L("Đổi bộ đồ…", "Change outfit…"), L("Tài khoản › Mèo Mun", "Account › Mun"))}
@@ -170,6 +192,7 @@
     m.querySelector("[data-x]").onclick = () => iosMenuClose();
     m.querySelectorAll("[data-mun]").forEach((b) => (b.onclick = async () => { const k = b.dataset.mun; iosMenuClose();
       if (k === "mouse") setTimeout(() => chase(true), 250);
+      else if (k === "stairs") setTimeout(() => stairs(true), 250);
       else if (k === "sleep") { S.napTill = now() + 30 * 60e3; pose("sleep"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
       else if (k === "quiet" || k === "off") { const u = { ...(UIP.mun || {}) }; if (k === "quiet") u.talk = S.cfg.talk === "q" ? "n" : "q"; else u.on = false; UIP = { ...UIP, mun: u }; await uiSave(); MUN.apply(); if (k === "off") toast(L("Đã cất Mun – bật lại trong Tài khoản › Mèo Mun", "Mun is hidden – turn back on in Account › Mun")); else say(u.talk === "q" ? L("Được. Tôi im.", "Fine. I'll be quiet.") : L("Tôi vẫn ở đây.", "Still here."), 3000, 2); }
       else if (k === "skin") location.hash = "#/account";
@@ -191,26 +214,72 @@
     const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = Math.random() < 0.45;
     const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
     S.chasing = true; clearTimeout(S.tm); halt(); pose("sit");      // dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì Mun "dịch chuyển tức thời")
-    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, dash = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
+    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
     const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
       if (caught) { m.classList.add("poof"); pose("groom"); setTimeout(() => say(pick("catch"), 3600, 2), 200); }
       else { pose("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
+    // chuyển động có quán tính (tăng / giảm tốc từ từ) – không giật, không quay đầu loạn xạ
     const step = (t) => {
       if (done) return; if (!S.el || S.away) { m.remove(); S.chasing = false; S.el?.classList.remove("run"); sched(idle, 2000); return; }
       const dt = Math.min(0.05, (t - last) / 1000); last = t; const el = t - t0;
-      // chuột: chạy – thỉnh thoảng khựng lại ngó – bị đuổi gần thì tăng tốc
-      const gap = Math.abs((mx + mw / 2) - (cx + cw / 2)); if (t > pauseTill && Math.random() < 0.012 && el > 900) pauseTill = t + rnd(220, 480);
-      const vm = t < pauseTill ? 0 : gap < 90 && !win ? 300 : 175 + dash; mx += dir * vm * dt;
+      const mc = mx + mw / 2, cc = cx + cw / 2, gap = Math.abs(mc - cc);
+      // chuột: chạy đều; giữa đường dừng ngó 1 lần nếu Mun còn xa; Mun đuổi sát thì tăng tốc (hoặc hoảng chạy chậm lại nếu lần này bị bắt)
+      if (!sniffed && el > 1100 && mc > innerWidth * 0.3 && mc < innerWidth * 0.7 && gap > 150) { sniffed = true; pauseTill = t + rnd(380, 620); }
+      const want = t < pauseTill ? 0 : gap < 130 ? (win ? 150 : 300) : 165;
+      vm += (want - vm) * Math.min(1, dt * 7); mx += dir * vm * dt;
       if (!shout && mx > -mw * 0.3 && mx < innerWidth - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // Mun: ngó 0,45 giây rồi phóng theo
-      if (el > 450) { const tx = mx + mw / 2 - cw / 2, d = tx - cx, vc = 235; if (Math.abs(d) > 2) { const nx = cx + Math.sign(d) * Math.min(Math.abs(d), vc * dt); cx = Math.max(tr.l, Math.min(tr.r, nx)); face(d > 0 ? 1 : -1); if (S.pose !== "walk") { pose("walk"); S.el.classList.add("run"); } } place(cx, 0); }
+      if (el > 450) {
+        const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4);
+        v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
+        const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (nx === cx) v = 0; cx = nx;
+        if (Math.abs(v) > 35) { face(v > 0 ? 1 : -1); if (S.pose !== "walk") pose("walk"); S.el.classList.toggle("run", Math.abs(v) > 140); }
+        else if (S.pose === "walk" && Math.abs(v) < 12) { S.el.classList.remove("run"); pose("sit"); }
+        place(cx, 0);
+      }
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
       if (win && gap < 22 && el > 600) return end(true);
       if (mx > innerWidth + 30 || mx < -mw - 30 || el > 16e3) return end(false);
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step); return true;
+  }
+  // ---------------------------------------------------------------- 🪜 leo cầu thang: các nét cầu thang hiện dần từng nét, Mun nhảy lên từng bậc, ngồi trên đỉnh ngắm, rồi xuống – cầu thang xoá dần
+  function stairs(force) {
+    if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
+    S.chasing = true; clearTimeout(S.tm); halt(); pose("sit");
+    const tr = track(), cw = 345 * S.s, k = S.s / 0.235, n = 5, w = Math.round(30 * k), h = Math.round(15 * k), land = Math.round(cw * 0.55), Wd = n * w + land, Ht = n * h;
+    const cc = S.x + cw / 2, room = (d) => (d > 0 ? innerWidth - 8 - cc : cc - 8);
+    const dir = room(1) >= Wd + 10 ? (room(-1) >= Wd + 10 && Math.random() < 0.5 ? -1 : 1) : room(-1) >= Wd + 10 ? -1 : 0;
+    if (!dir) { S.chasing = false; sched(idle, 2000); return false; }
+    const x0 = cc + dir * cw * 0.3;      // chân bậc đầu, ngay trước mũi Mun
+    // các nét: đứng (cao h) – ngang (rộng w) … – chiếu nghỉ trên cùng – đứng xuống đất ở cuối
+    const P = [[0, 0]]; for (let i = 0; i < n; i++) { P.push([i * w, (i + 1) * h]); P.push([(i + 1) * w, (i + 1) * h]); } P[P.length - 1] = [n * w + land - w, n * h]; P.push([n * w + land - w, 0]);
+    const L = P.slice(1).map((q, i) => [P[i], q]), ox = Math.min(0, dir * Wd), X = (u) => (dir > 0 ? u : -u) - ox;
+    const svgW = Wd, el = document.createElement("div"); el.className = "mun-st"; el.style.cssText = `left:${Math.round(x0 + ox)}px;bottom:${tr.b}px;width:${svgW}px;height:${Ht + 2}px`;
+    el.innerHTML = `<svg ${NS} viewBox="-1 -1 ${svgW + 2} ${Ht + 3}" aria-hidden="true">${L.map(([p0, p1], i) => `<path d="M${X(p0[0])} ${Ht - p0[1]}L${X(p1[0])} ${Ht - p1[1]}" pathLength="1" style="--i:${i};--n:${L.length}"/>`).join("")}</svg>`;
+    document.body.appendChild(el); requestAnimationFrame(() => el.classList.add("in"));
+    const drawMs = L.length * 90 + 300;
+    // vị trí Mun theo bậc: tâm Mun đi theo mặt bậc, mỗi bậc 1 cú nhún
+    const posAt = (q) => { const kq = Math.max(0, Math.min(n + 0.6, q));
+      if (kq >= n) return [cc + dir * (n * w + ((kq - n) / 0.6) * land * 0.35) - cw / 2, n * h];      // đi ra giữa chiếu nghỉ
+      const i = Math.floor(kq), f = kq - i, g = Math.min(1, f / 0.55), up = i * h + h * g, hop = Math.sin(g * Math.PI) * h * 0.35;
+      return [cc + dir * kq * w - cw / 2, up + hop]; };
+    const setXY = (x, y) => { S.x = x; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(x)}px,${-Math.round(y)}px,0)`; };
+    let t0 = 0, phase = "draw", q = 0, last = 0;
+    const finish = () => { el.classList.add("out"); setTimeout(() => el.remove(), L.length * 70 + 400); S.chasing = false; S.y = 0; setXY(S.x, 0); pose("sit"); sched(idle, rnd(3e3, 6e3)); };
+    const abort = () => { el.remove(); S.chasing = false; S.y = 0; if (S.el) { setXY(S.x, 0); pose("sit"); } sched(idle, 2000); };
+    const run = (t) => {
+      if (!S.el || S.away) return abort();
+      if (!t0) { t0 = t; last = t; } const dt = Math.min(0.05, (t - last) / 1000); last = t;
+      if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; face(dir); pose("walk"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
+      else if (phase === "up") { q += dt * 2.1; const [x, y] = posAt(q); setXY(x, y); if (q >= n + 0.6) { phase = "top"; pose("sit"); face(-dir); setTimeout(() => say(pick("top"), 4200, 2), 300); setTimeout(() => { if (phase === "top") pose("groom"); }, 4800); t0 = t; } }
+      else if (phase === "top") { if (t - t0 > 9000) { phase = "down"; pose("walk"); face(-dir); q = n + 0.6; } }
+      else if (phase === "down") { q -= dt * 2.4; const [x, y] = posAt(q); setXY(x, y); if (q <= 0) return finish(); }
+      requestAnimationFrame(run);
+    };
+    requestAnimationFrame(run); return true;
   }
   // 🖱️ máy tính: rê chuột xuống gần mép dưới → Mun rình theo con trỏ; để con trỏ đứng yên sát Mun → vồ. Rình lâu quá thì chán, nghỉ vài phút
   const ST = { on: false, t0: 0, last: 0, mv: 0, px: 0, cool: 0 };
@@ -253,7 +322,7 @@
     requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("mun_hi", 0)) { lsSet("mun_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 8 * 60e3; }
       else S.nextTalk = now() + rnd(2, 5) * 60e3;
-      S.nextMouse = now() + rnd(3, 7) * 60e3;
+      S.nextMouse = now() + rnd(3, 7) * 60e3; S.nextStairs = now() + rnd(5, 10) * 60e3;
       pose("groom"); sched(idle, 5000); }); });
     if (started) return; started = true;
     ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && S.pose === "sleep" && !(S.napTill > now())) { pose("sit"); sched(idle, 2500); } }, { passive: true, capture: true }));
@@ -268,7 +337,7 @@
     if (typeof window.toast === "function" && !window.toast.__mun) { const t0 = window.toast; window.toast = function (msg, o) { const r = t0.apply(this, arguments); try { onToast(String(msg ?? ""), o || {}); } catch (e) { /* bỏ qua */ } return r; }; window.toast.__mun = 1; }
   }
   function stop() { clearTimeout(S.tm); clearTimeout(S.walkTm); if (S.el) { const el = S.el; S.el = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
-  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), SKINS, poseSvg };
+  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), stairs: () => stairs(true), SKINS, poseSvg };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
@@ -283,8 +352,8 @@
 @keyframes munHop{40%{transform:translateY(-6px) scaleY(1.03)}}
 @keyframes munHopL{0%,100%{transform:scaleX(-1)}40%{transform:scaleX(-1) translateY(-6px) scaleY(1.03)}}
 .mun-p{position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:none;overflow:visible;width:auto;
-  --f:#0a0a0b;--eye:#fff;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
-:root[data-theme=dark] .mun-p{--f:#060708;--eye:#ECE8DC;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.55))}
+  --f:#0a0a0b;--f2:#34363c;--eye:#fff;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
+:root[data-theme=dark] .mun-p{--f:#060708;--f2:#24262b;--eye:#ECE8DC;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.55))}
 .mun[data-pose=sit] .p-sit,.mun[data-pose=groom] .p-groom,.mun[data-pose=walk] .p-walk,.mun[data-pose=sleep] .p-sleep{display:block}
 .mun-p .f{fill:var(--f)}.mun-p .eb{fill:var(--eye)}.mun-p .hb{fill:#C8A064}
 .mun-p .lid{fill:var(--f);opacity:0}
@@ -300,8 +369,17 @@
 @keyframes munBr2{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.03)}}
 @keyframes munLk{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) rotate(-1.6deg)}}
 @keyframes munBob{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) translateY(calc(-3px*var(--s,.25)/.25))}}
+.mun-p .tg{fill:#EE6A82;opacity:0}.mun-p .tgl{fill:none;stroke:#C24760;stroke-width:1.6;stroke-linecap:round}
+.mun[data-pose=groom] .tg1{animation:munTg1 .62s linear infinite}.mun[data-pose=groom] .tg2{animation:munTg2 .62s linear infinite}
+@keyframes munTg1{0%,24%{opacity:0}25%,49%{opacity:1}50%,74%{opacity:0}75%,95%{opacity:1}96%,100%{opacity:0}}
+@keyframes munTg2{0%,49%{opacity:0}50%,74%{opacity:1}75%,100%{opacity:0}}
 @keyframes munFr{0%{opacity:1}12.5%{opacity:0}100%{opacity:0}}
 
+.mun-st{position:fixed;z-index:39;pointer-events:none}
+.mun-st svg{display:block;width:100%;height:100%;overflow:visible}
+.mun-st path{fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round;stroke-dasharray:1 1;stroke-dashoffset:1;transition:stroke-dashoffset .14s ease-out;transition-delay:calc(var(--i)*90ms)}
+.mun-st.in path{stroke-dashoffset:0}
+.mun-st.out path{stroke-dashoffset:-1;transition-delay:calc((var(--n) - var(--i))*70ms)}
 .mun-mouse{position:fixed;left:0;z-index:40;width:calc(115px*var(--s,.25));height:calc(52px*var(--s,.25));pointer-events:none;will-change:transform}
 .mun-mouse>i{display:block;width:100%;height:100%}.mun-mouse.l>i{transform:scaleX(-1)}
 .mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
