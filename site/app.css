@@ -6352,7 +6352,7 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
   table.rs.iv-lt-t td:nth-child(6){grid-column:1/-1;justify-self:end}
 }
 
-/* 🐈‍⬛ Tài khoản › Mèo Na Na: chọn bộ đồ bằng thẻ có hình xem trước */
+/* 🐈‍⬛ Tài khoản › Mèo na na: chọn bộ đồ bằng thẻ có hình xem trước */
 .mun-sk{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .mun-sk>button{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;padding:8px 6px 7px;border-radius:var(--r-ctl,8px);border:1px solid var(--bd);background:var(--surface);color:var(--ink-2);font:inherit;font-size:.75rem;cursor:pointer;transition:border-color .15s,background-color .15s}
 .mun-sk>button.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,var(--surface));color:var(--ink)}
