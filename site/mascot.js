@@ -20,7 +20,10 @@
   //    Nên: mọi chuyển động "cả con" (thở, liếm, nhún) đặt trên thẻ <svg> (hộp HTML bình thường), còn chân khi đi = 8 khung hình vẽ sẵn
   //    (skew bằng thuộc tính SVG – không dùng CSS), CSS chỉ bật / tắt từng khung theo nhịp → mọi trình duyệt hiện giống nhau.
   const NF = 8;
-  const WK = { classic: 0, shades: 2, fedora: 1 };      // chân sau phía xa (bản gốc không vẽ): lệch theo vị trí chân sau gần của từng bộ đồ
+  // khớp hông / vai / mặt đất (đơn vị điểm ảnh bản gốc) của từng bộ đồ – để gắn 4 chân khung xương vào thân; cb = đáy vùng giữ lại của hình gốc phía ngực
+  const RIG = { classic: [0, 0], shades: [5, -2], fedora: [1, 2] };      // lệch (x, y) so với bộ Cổ điển
+  // vùng GIỮ LẠI của hình gốc khi đi (bỏ 4 chân vẽ sẵn): đường cắt chạy dọc mông – bụng – ức (toạ độ bộ Cổ điển)
+  const KEEP = [[-20, -20], [400, -20], [400, 178], [252, 178], [236, 186], [204, 191], [150, 182], [118, 175], [96, 170], [64, 163], [-20, 163]];
   // lưỡi hồng khi liếm: 2 khung (thè ngắn / thè dài) bật tắt theo nhịp liếm, đặt ngay dưới cằm, sát chân đang giơ
   const TG = { classic: [259, 101], shades: [259, 104], fedora: [259, 106] };
   const tongue = (skin) => { const [x, y] = TG[skin] || TG.classic;
@@ -30,16 +33,12 @@
     const E = a.eye, eyeBg = E ? `<rect class="eb" x="${E[0] - 2}" y="${E[1] - 2}" width="${E[2] + 4}" height="${E[3] + 4}"/>` : "", lid = E && skin !== "shades" ? `<rect class="lid" x="${E[0] - 1}" y="${E[1] - 1}" width="${E[2] + 2}" height="${E[3] + 2}"/>` : "";
     const hat = a.g ? `<path class="hb" d="${a.g}"/>` : "";
     let body;
-    if (k === "walk") {      // dáng đi: phần trên đứng yên; chân sau / chân trước đưa qua lại ngược nhịp, lắc quanh đường bụng (tại đường bụng không xê dịch → không lộ đường nối)
-      const id = "mw" + ++UID, yb = a.y0, xs = a.xs, H = vy + vh - yb;
-      const sk = (d, dx = 0) => `translate(${dx} ${yb}) skewX(${d.toFixed(2)}) translate(0 ${-yb})`, dl = (i) => `style="animation-delay:calc(var(--wd,.72s)*${(-i / NF).toFixed(3)})"`, T = (i) => 11 * Math.cos((2 * Math.PI * i) / NF);
-      const fr = Array.from({ length: NF }, (_, i) => `<g class="wf${i ? "" : " wf0"}" ${dl(i)}><g clip-path="url(#${id}h)"><use href="#${id}g" transform="${sk(T(i))}"/></g><g clip-path="url(#${id}f)"><use href="#${id}g" transform="${sk(-T(i))}"/></g></g>`).join("");
-      // bản gốc chỉ có 1 chân sau → thêm chân sau phía xa (lệch nhẹ, tông xám đen, nằm SAU thân) đi ngược nhịp chân sau gần – như dáng đi thật (chéo nhau)
-      const ox = (WK[skin] || 0), FL = `M${72 + ox} 182L${104 + ox} 184L${106 + ox} 214L${98 + ox} 238L${103 + ox} 262L${112 + ox} 268L${113 + ox} ${y1}L${92 + ox} ${y1}L${90 + ox} 262L${84 + ox} 240L${80 + ox} 212Z`;
-      const far = Array.from({ length: NF }, (_, i) => `<g class="wf${i ? "" : " wf0"}" ${dl(i)}><use href="#${id}g2" transform="${sk(-T(i))}"/></g>`).join("");
-      body = `<defs><path id="${id}g" style="fill:var(--f)" d="${a.b}"/><linearGradient id="${id}lg" gradientUnits="userSpaceOnUse" x1="0" y1="${yb + 8}" x2="0" y2="${yb + 50}"><stop offset="0" style="stop-color:var(--f)"/><stop offset="1" style="stop-color:var(--f2)"/></linearGradient><path id="${id}g2" fill="url(#${id}lg)" d="${FL}"/><clipPath id="${id}t"><rect x="${vx}" y="${vy}" width="${vw}" height="${yb - vy + 5}"/></clipPath><clipPath id="${id}h"><rect x="${vx}" y="${yb}" width="${xs - vx}" height="${H}"/></clipPath><clipPath id="${id}f"><rect x="${xs}" y="${yb}" width="${vx + vw - xs}" height="${H}"/></clipPath></defs>
-        ${far}<g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g>${fr}`;
-    } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}${k === "groom" ? tongue(skin) : ""}`;
+    if (k === "walk") {      // dáng đi / chạy: thân + đầu + đuôi lấy từ hình gốc (cắt ngang bụng), 4 chân là KHUNG XƯƠNG (đùi – cẳng – bàn) tính lại từng khung hình (xem rig bên dưới)
+      const id = "mw" + ++UID, [dx, dy] = RIG[skin] || RIG.classic;
+      const leg = (k2) => `<g class="lg ${k2}"><polygon class="s1"/><polygon class="s2"/><polygon class="s3"/><circle class="j1"/><circle class="j2"/><circle class="j3"/><ellipse class="pw" rx="10" ry="5.5"/></g>`;
+      body = `<defs><clipPath id="${id}t"><polygon points="${KEEP.map(([x, y]) => `${x + dx},${y + dy}`).join(" ")}"/></clipPath></defs>
+        <g class="far">${leg("fh")}${leg("ff")}</g><g class="tp"><g clip-path="url(#${id}t)">${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}</g></g><g class="near">${leg("nh")}${leg("nf")}</g>`;
+    } else body = `${eyeBg}<path class="f" d="${a.b}"/>${hat}${lid}${k === "groom" ? tongue(skin) : ""}${k === "sit" ? `<g class="arm" style="opacity:0"><polygon class="a1"/><polygon class="a2"/><circle class="aj"/><circle class="ap"/><path class="cl"/></g>` : ""}`;
     return `<svg ${NS} class="mun-p p-${k}" data-p="${k}" viewBox="${vx} ${vy} ${vw} ${vh}" style="height:calc(${vh}px*var(--s,.2))" aria-hidden="true">${body}</svg>`;
   };
   window.MUN_ART = { poseSvg, POSES, SKINS };
@@ -80,6 +79,9 @@
     wake: [["…Hửm?", "…Hm?"], ["Tôi không ngủ. Tôi đang suy nghĩ.", "I wasn't asleep. I was thinking."], ["Ai cho phép đánh thức tôi?", "Who said you could wake me?"], ["Năm phút nữa.", "Five more minutes."], ["…Có chuyện gì thì nói nhanh.", "…Make it quick."]],
     err: [["Có chuyện. Bình tĩnh mà xử.", "Something's off. Handle it calmly."], ["Lỗi thì sửa. Không cần hoảng.", "Errors get fixed. No panic needed."], ["Lại hỏng gì nữa rồi?", "What broke this time?"], ["Tôi còn chưa hoảng, anh hoảng làm gì.", "I'm not panicking. Why are you?"]],
     ok: [["Gọn.", "Clean."], ["Được.", "Good."], ["Ổn.", "Fine."], ["Tạm được.", "Acceptable."], ["Cũng biết làm đấy.", "So you can do it."], ["Hừm. Không tệ.", "Hm. Not bad."]],
+    scratch: [["Tôi đã cảnh cáo rồi.", "I did warn you."], ["Cào cho nhớ.", "A scratch to remember me by."], ["Lần sau là cắn.", "Next time I bite."], ["Tay hư thì bị cào. Luật đấy.", "Naughty hands get scratched. House rule."]],
+    against: [["Đừng vuốt ngược lông!", "Not against the fur!"], ["Ngược lông rồi! Học lại cách vuốt mèo đi.", "Wrong way! Learn how to pet a cat."], ["Hừ! Vuốt ngược như vào lệnh ngược xu hướng – chỉ tổ ăn cào.", "Hiss! Petting against the fur is like trading against the trend – you get scratched."]],
+    purr: [["Prrr… đúng chiều đấy.", "Prrr… right direction."], ["Ừm. Được. Tiếp đi.", "Mm. Fine. Keep going."], ["Prrr… thôi, đừng để ai thấy.", "Prrr… don't let anyone see this."], ["Xuôi lông, xuôi xu hướng. Anh học nhanh đấy.", "With the fur, with the trend. You learn fast."]],
     enough: [["Đủ rồi.", "Enough."], ["Thôi. Tôi đi chỗ khác.", "That's it. I'm leaving."], ["Hết kiên nhẫn rồi đấy.", "Out of patience."]],
     hi: [["Tôi là Mun. Tôi trông chừng kỷ luật của anh – không hơn.", "I'm Mun. I keep an eye on your discipline – nothing more."]],
     hi2: [["Cần gì thì giữ lâu vào tôi. Đừng chọc linh tinh.", "Press and hold me if you need something. Don't poke."]],
@@ -118,7 +120,7 @@
     clearTimeout(S.walkTm); if (!S.el || S.el.style.transition === "none" || !S.el.style.transition) return;
     const m = new DOMMatrix(getComputedStyle(S.el).transform); S.x = m.m41; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(m.m41)}px,0,0)`;
   }
-  function pose(p) { if (p !== "walk") halt(); S.pose = p; S.el.dataset.pose = p; }
+  function pose(p) { if (p !== "walk") halt(); S.pose = p; S.el.dataset.pose = p; if (p === "walk") { rigDraw(0); rigStart(); } }
   function face(d) { S.face = d; S.el.dataset.face = d > 0 ? "r" : "l"; }
   const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("typing")
     || (mob() && document.activeElement?.matches?.("input, textarea, select, [contenteditable]")));
@@ -126,7 +128,7 @@
   function walkTo(x, then) {
     const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x;
     if (RM.matches || Math.abs(dx) < 24) { place(x, 0); then?.(); return; }
-    face(dx > 0 ? 1 : -1); pose("walk"); const v = mob() ? 30 : 40, ms = Math.round(Math.abs(dx) / v * 1000);      // đủng đỉnh: ~30–40 px/giây
+    face(dx > 0 ? 1 : -1); const v = mob() ? 30 : 40, ms = Math.round(Math.abs(dx) / v * 1000); G.v = v; S.el.classList.remove("run"); pose("walk");      // đủng đỉnh: ~30–40 px/giây
     place(x, ms); clearTimeout(S.walkTm); S.walkTm = setTimeout(() => { pose("sit"); then?.(); }, ms);
   }
   function idle() {      // vòng đời: ngồi → liếm lông → đi dạo → … ; để yên lâu thì ngủ
@@ -141,6 +143,49 @@
     else if (r < 0.6) { pose("groom"); sched(idle, rnd(3.5e3, 6.5e3)); }
     else { let x = rnd(tr.l, tr.r); if (Math.abs(x - S.x) < 70) x = S.x + (S.x - tr.l > tr.r - S.x ? -1 : 1) * rnd(80, 180); walkTo(x, () => sched(idle, rnd(3e3, 7e3))); }
   }
+  // ================================================================ 🦴 khung xương 4 chân (đi / chạy): tính lại MỖI khung hình (60 hình/giây) – bàn chân đặt xuống đứng yên trên đất,
+  //   nhấc lên theo đường cong, đưa ra trước; 4 chân lệch nhịp như mèo thật (đi: sau-trái → trước-trái → sau-phải → trước-phải; chạy: phi nước đại, thân nhún & chúi)
+  //   Vẽ bằng thuộc tính SVG (không dùng CSS transform trong SVG) → Safari / Chrome hiện y hệt.
+  const G = { c: 0, v: 0, last: 0, on: false, run: 0, refs: null };
+  const GAIT = { walk: { S: 70, H: 15, duty: 0.62, bob: 1.6, off: { nh: 0, nf: 0.25, fh: 0.5, ff: 0.75 } }, run: { S: 200, H: 32, duty: 0.34, bob: 7, off: { nh: 0, fh: 0.12, nf: 0.5, ff: 0.62 } } };
+  const ik = (ax, ay, bx, by, l1, l2, sg) => { let vx = bx - ax, vy = by - ay, d = Math.hypot(vx, vy); const m = l1 + l2 - 0.5; if (d > m) { bx = ax + vx / d * m; by = ay + vy / d * m; d = m; } const a = Math.atan2(by - ay, bx - ax), t = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)))); return [ax + l1 * Math.cos(a + sg * t), ay + l1 * Math.sin(a + sg * t), bx, by]; };
+  // 1 đoạn chân = hình thang thuôn (rộng w1 → w2) + khớp tròn ở 2 đầu → chân liền mạch, bo tròn như nét vẽ gốc
+  const seg = (pg, j, x1, y1, w1, x2, y2, w2) => { const a = Math.atan2(y2 - y1, x2 - x1), nx = -Math.sin(a), ny = Math.cos(a), h1 = w1 / 2, h2 = w2 / 2, f = (v) => v.toFixed(1);
+    pg.setAttribute("points", `${f(x1 + nx * h1)},${f(y1 + ny * h1)} ${f(x2 + nx * h2)},${f(y2 + ny * h2)} ${f(x2 - nx * h2)},${f(y2 - ny * h2)} ${f(x1 - nx * h1)},${f(y1 - ny * h1)}`);
+    if (j) { j.setAttribute("cx", f(x1)); j.setAttribute("cy", f(y1)); j.setAttribute("r", f(h1)); } };
+  function rigRefs() {
+    const sv = S.el?.querySelector(".p-walk"); if (!sv) return null; const R = { tp: sv.querySelector(".tp") };
+    sv.querySelectorAll(".lg").forEach((g) => { const k = [...g.classList].find((c) => c !== "lg"); R[k] = { s1: g.querySelector(".s1"), s2: g.querySelector(".s2"), s3: g.querySelector(".s3"), j1: g.querySelector(".j1"), j2: g.querySelector(".j2"), j3: g.querySelector(".j3"), pw: g.querySelector(".pw") }; });
+    return R;
+  }
+  function rigDraw(dt) {
+    const R = G.refs || (G.refs = rigRefs()); if (!R || !R.tp) return;
+    const [dx, dy] = RIG[S.cfg.skin] || RIG.classic, r = G.run, lp = (a, b) => a + (b - a) * r, W = GAIT.walk, U = GAIT.run, TAU = Math.PI * 2;
+    const Sx = lp(W.S, U.S), H = lp(W.H, U.H), duty = lp(W.duty, U.duty);
+    G.c = (G.c + ((G.v / S.s) * dt) / Sx) % 1; const c = G.c;
+    const bob = lp(W.bob * Math.cos(2 * TAU * c), U.bob * Math.sin(TAU * c)), pitch = r * 4.5 * Math.sin(TAU * c + 0.8), cx = 150 + dx, cy = 170 + dy, pa = (pitch * Math.PI) / 180;
+    R.tp.setAttribute("transform", `translate(0 ${bob.toFixed(2)}) rotate(${pitch.toFixed(2)} ${cx} ${cy})`);
+    const tf = (x, y) => { const X = x - cx, Y = y - cy; return [cx + X * Math.cos(pa) - Y * Math.sin(pa), cy + X * Math.sin(pa) + Y * Math.cos(pa) + bob]; };
+    for (const k of ["nh", "nf", "fh", "ff"]) {
+      const L = R[k]; if (!L) continue; const hind = k[1] === "h", far = k[0] === "f", sh = far ? -13 : 0, gy = 275 + dy - (far ? 2 : 0);
+      const ph = (c + lp(W.off[k], U.off[k]) + 1) % 1, [jx, jy] = tf((hind ? 84 : 224) + dx + sh, (hind ? 160 : 162) + dy), x0 = (hind ? 74 : 236) + dx + sh;
+      let px, py;
+      if (ph < duty) { px = x0 + Sx * (0.5 - ph / duty); py = gy; }      // bàn chân chạm đất: đứng yên so với mặt đất (thân trôi qua)
+      else { const u = (ph - duty) / (1 - duty), e = u * u * (3 - 2 * u); px = x0 + Sx * (-0.5 + e); py = gy - H * Math.sin(Math.PI * u); }      // nhấc lên, đưa ra trước
+      const lift = gy - py;
+      if (hind) { const hx = px - 9 - lift * 0.25, hy = py - 30 + lift * 0.15, [kx, ky] = ik(jx, jy, hx, hy, 48, 46, -1); seg(L.s1, L.j1, jx, jy, 38, kx, ky, 17); seg(L.s2, L.j2, kx, ky, 15, hx, hy, 10); seg(L.s3, L.j3, hx, hy, 10, px, py - 4, 9); }      // đùi to (hông) → gối hướng trước → cổ chân hướng sau
+      else { const wx = px - 2 - lift * 0.3, wy = py - 13 + lift * 0.1, [ex, ey] = ik(jx, jy, wx, wy, 50, 46, 1); seg(L.s1, L.j1, jx, jy, 26, ex, ey, 14); seg(L.s2, L.j2, ex, ey, 13, wx, wy, 10); seg(L.s3, L.j3, wx, wy, 10, px, py - 4, 9); }      // vai → khuỷu hướng sau → cổ tay
+      L.pw.setAttribute("cx", (px + 4).toFixed(1)); L.pw.setAttribute("cy", (py - 4).toFixed(1));
+    }
+  }
+  function rigLoop(t) {
+    if (!S.el || S.pose !== "walk") { G.on = false; return; }
+    const dt = G.last ? Math.min(0.05, (t - G.last) / 1000) : 0; G.last = t;
+    G.run += ((S.el.classList.contains("run") ? 1 : 0) - G.run) * Math.min(1, dt * 7);
+    rigDraw(dt); requestAnimationFrame(rigLoop);
+  }
+  function rigStart() { if (!G.on) { G.on = true; G.last = 0; requestAnimationFrame(rigLoop); } }
+
   // ---------------------------------------------------------------- nói
   function say(text, ms = 5200, prio = 0) {
     if (!S.el || S.away || hiddenNow()) return false;
@@ -172,8 +217,37 @@
     if (S.pose === "sleep") { S.act = now(); pose("sit"); say(pick("wake"), 3500, 2); sched(idle, 5000); return; }
     S.pokes = S.pokes.filter((t) => now() - t < 6000); S.pokes.push(now()); navigator.vibrate?.(6);
     S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop");
+    if (S.pokes.length === 3) { say(pick("scratch"), 3000, 2); swipe(S.lastPx, S.lastPy); sched(idle, 7000); return; }
     if (S.pokes.length >= 5) { S.pokes = []; say(pick("enough"), 2600, 2); const tr = track(); walkTo(S.x - tr.l > tr.r - S.x ? tr.l : tr.r, () => { pose("groom"); sched(idle, 6000); }); return; }
     pose(Math.random() < 0.5 ? "sit" : "groom"); say(pick("poke"), 3800, 2); sched(idle, 7000);
+  }
+  // ---------------------------------------------------------------- 🐾 cào: chạm nhiều quá → Mun giơ chân cào (vuốt thò ra) + để lại 3 vết cào ngay chỗ ngón tay
+  const ARM = { classic: [0, 0], shades: [-2, 0], fedora: [0, 2] };
+  function swipe(px, py) {
+    if (!S.el) return; halt(); pose("sit"); const g = S.el.querySelector(".p-sit .arm"); if (!g) return;
+    const [dx, dy] = ARM[S.cfg.skin] || ARM.classic, sx = 196 + dx, sy = 150 + dy, a1 = g.querySelector(".a1"), a2 = g.querySelector(".a2"), aj = g.querySelector(".aj"), ap = g.querySelector(".ap"), cl = g.querySelector(".cl");
+    const t0 = performance.now(), D = 420, ease = (u) => 1 - Math.pow(1 - u, 3);
+    const fr = (t) => {
+      const u = Math.min(1, (t - t0) / D), up = u < 0.38 ? ease(u / 0.38) : u < 0.58 ? 1 : 1 - ease((u - 0.58) / 0.42);
+      const A = ((90 - 125 * up) * Math.PI) / 180, B = A - (0.35 * up), ex = sx + 50 * Math.cos(A), ey = sy + 50 * Math.sin(A), wx = ex + 46 * Math.cos(B), wy = ey + 46 * Math.sin(B);
+      seg(a1, null, sx, sy, 28, ex, ey, 16); seg(a2, aj, ex, ey, 16, wx, wy, 13); ap.setAttribute("cx", wx.toFixed(1)); ap.setAttribute("cy", wy.toFixed(1)); ap.setAttribute("r", "9.5");
+      const c = Math.cos(B), s2 = Math.sin(B), nx = -s2, ny = c; cl.setAttribute("d", up > 0.7 ? [-5, 0, 5].map((o) => `M${(wx + nx * o + c * 6).toFixed(1)} ${(wy + ny * o + s2 * 6).toFixed(1)}l${(c * 9).toFixed(1)} ${(s2 * 9).toFixed(1)}`).join("") : "");
+      g.style.opacity = up > 0.04 ? "1" : "0"; if (u < 1) requestAnimationFrame(fr); else g.style.opacity = "0";
+    };
+    requestAnimationFrame(fr); navigator.vibrate?.([8, 30, 8]);
+    if (px != null) setTimeout(() => {      // vết cào trên màn hình
+      const m = document.createElement("div"); m.className = "mun-scr"; m.style.left = px - 24 + "px"; m.style.top = py - 24 + "px";
+      m.innerHTML = `<svg ${NS} viewBox="0 0 48 48" aria-hidden="true"><path pathLength="1" d="M10 6 Q20 22 16 42"/><path pathLength="1" d="M22 4 Q32 22 28 44"/><path pathLength="1" d="M34 6 Q43 22 39 40"/></svg>`;
+      document.body.appendChild(m); setTimeout(() => m.classList.add("out"), 700); setTimeout(() => m.remove(), 1300);
+    }, 150);
+  }
+  // 🤚 vuốt lông: kéo ngón tay / chuột ngang qua Mun – xuôi lông (đầu → đuôi) thì Mun khoái, ngược lông thì gắt (và có thể cào)
+  function stroke(dir, px, py) {
+    if (S.chasing || !S.el) return; S.act = now(); clearTimeout(S.tm);
+    if (S.pose === "sleep") pose("sit");
+    if (dir === S.face) { say(pick("against"), 3200, 2); if (Math.random() < 0.6) swipe(px, py); else { S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); } }
+    else { pose("sit"); say(pick("purr"), 3200, 2); S.el.classList.add("purr"); navigator.vibrate?.([6, 40, 6, 40, 6]); setTimeout(() => S.el?.classList.remove("purr"), 1600); }
+    sched(idle, 7000);
   }
   function menu() {
     if (typeof iosMenuClose === "function" && document.getElementById("iosMenu")) iosMenuClose();
@@ -234,7 +308,7 @@
         const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4);
         v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
         const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (nx === cx) v = 0; cx = nx;
-        if (Math.abs(v) > 35) { face(v > 0 ? 1 : -1); if (S.pose !== "walk") pose("walk"); S.el.classList.toggle("run", Math.abs(v) > 140); }
+        G.v = Math.abs(v); if (Math.abs(v) > 35) { face(v > 0 ? 1 : -1); S.el.classList.toggle("run", Math.abs(v) > 110); if (S.pose !== "walk") pose("walk"); }
         else if (S.pose === "walk" && Math.abs(v) < 12) { S.el.classList.remove("run"); pose("sit"); }
         place(cx, 0);
       }
@@ -273,9 +347,9 @@
     const run = (t) => {
       if (!S.el || S.away) return abort();
       if (!t0) { t0 = t; last = t; } const dt = Math.min(0.05, (t - last) / 1000); last = t;
-      if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; face(dir); pose("walk"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
+      if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; face(dir); G.v = 2.1 * w; pose("walk"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
       else if (phase === "up") { q += dt * 2.1; const [x, y] = posAt(q); setXY(x, y); if (q >= n + 0.6) { phase = "top"; pose("sit"); face(-dir); setTimeout(() => say(pick("top"), 4200, 2), 300); setTimeout(() => { if (phase === "top") pose("groom"); }, 4800); t0 = t; } }
-      else if (phase === "top") { if (t - t0 > 9000) { phase = "down"; pose("walk"); face(-dir); q = n + 0.6; } }
+      else if (phase === "top") { if (t - t0 > 9000) { phase = "down"; G.v = 2.4 * w; pose("walk"); face(-dir); q = n + 0.6; } }
       else if (phase === "down") { q -= dt * 2.4; const [x, y] = posAt(q); setXY(x, y); if (q <= 0) return finish(); }
       requestAnimationFrame(run);
     };
@@ -304,9 +378,11 @@
     el.innerHTML = `<div class="mun-say" hidden role="status"><b>Mun</b><span></span></div><div class="mun-c" role="button" tabindex="0" aria-label="${L("Mun – mèo trợ lý. Chạm để nói chuyện, giữ lâu để mở menu", "Mun – assistant cat. Tap to talk, hold for menu")}"><div class="mun-f">${Object.keys(POSES).map((k) => poseSvg(k, S.cfg.skin)).join("")}</div><i class="mun-z">z</i></div>`;
     document.body.appendChild(el); S.el = el; S.s = mob() ? 0.235 : 0.28; el.style.setProperty("--s", S.s);
     const c = el.querySelector(".mun-c"); let lp = 0, longed = false;
-    c.addEventListener("pointerdown", (e) => { longed = false; clearTimeout(lp); lp = setTimeout(() => { longed = true; navigator.vibrate?.(10); menu(); }, 520); });
-    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => c.addEventListener(ev, () => clearTimeout(lp)));
-    c.addEventListener("click", (e) => { if (longed) { longed = false; return; } poke(); });
+    let x0 = null, y0 = 0, stroked = false;
+    c.addEventListener("pointerdown", (e) => { longed = false; stroked = false; x0 = e.clientX; y0 = e.clientY; S.lastPx = e.clientX; S.lastPy = e.clientY; try { c.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } clearTimeout(lp); lp = setTimeout(() => { longed = true; navigator.vibrate?.(10); menu(); }, 520); });
+    c.addEventListener("pointermove", (e) => { if (x0 == null || stroked) return; const dx = e.clientX - x0; if (Math.abs(dx) > 8 || Math.abs(e.clientY - y0) > 8) clearTimeout(lp); if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(e.clientY - y0)) { stroked = true; stroke(dx > 0 ? 1 : -1, e.clientX, e.clientY); } });
+    ["pointerup", "pointercancel"].forEach((ev) => c.addEventListener(ev, () => { clearTimeout(lp); x0 = null; }));
+    c.addEventListener("click", (e) => { if (longed) { longed = false; return; } if (stroked) { stroked = false; return; } S.lastPx = e.clientX || S.lastPx; S.lastPy = e.clientY || S.lastPy; poke(); });
     c.addEventListener("contextmenu", (e) => { e.preventDefault(); clearTimeout(lp); menu(); });
     c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); poke(); } else if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); menu(); } });
     face(1); pose("sit");
@@ -315,7 +391,7 @@
   function start() {
     S.cfg = cfgOf(); if (!S.cfg.on) return stop();
     if (S.el) { // đổi bộ đồ → vẽ lại dáng
-      S.el.querySelector(".mun-f").innerHTML = Object.keys(POSES).map((k) => poseSvg(k, S.cfg.skin)).join(""); return;
+      S.el.querySelector(".mun-f").innerHTML = Object.keys(POSES).map((k) => poseSvg(k, S.cfg.skin)).join(""); G.refs = null; return;
     }
     build(); const tr = track(); const fromL = Math.random() < 0.5;
     place(fromL ? tr.l - 140 : tr.r + 140, 0); S.el.style.opacity = "0";
@@ -337,7 +413,7 @@
     if (typeof window.toast === "function" && !window.toast.__mun) { const t0 = window.toast; window.toast = function (msg, o) { const r = t0.apply(this, arguments); try { onToast(String(msg ?? ""), o || {}); } catch (e) { /* bỏ qua */ } return r; }; window.toast.__mun = 1; }
   }
   function stop() { clearTimeout(S.tm); clearTimeout(S.walkTm); if (S.el) { const el = S.el; S.el = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
-  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), stairs: () => stairs(true), SKINS, poseSvg };
+  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), stairs: () => stairs(true), _sit: () => { S.chasing = false; clearTimeout(S.tm); pose("sit"); }, _swipe: () => swipe(), _tread: (run, v) => { clearTimeout(S.tm); halt(); S.chasing = true; G.v = v || (run ? 260 : 35); S.el.classList.toggle("run", !!run); G.run = run ? 1 : 0; pose("walk"); }, SKINS, poseSvg };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
@@ -351,30 +427,34 @@
 .mun[data-face=l].hop .mun-f{animation-name:munHopL}
 @keyframes munHop{40%{transform:translateY(-6px) scaleY(1.03)}}
 @keyframes munHopL{0%,100%{transform:scaleX(-1)}40%{transform:scaleX(-1) translateY(-6px) scaleY(1.03)}}
-.mun-p{position:absolute;bottom:0;left:50%;transform:translateX(-50%);display:none;overflow:visible;width:auto;
+.mun-p{position:absolute;bottom:0;left:50%;transform:translateX(-50%);overflow:visible;width:auto;
   --f:#0a0a0b;--f2:#34363c;--eye:#fff;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
 :root[data-theme=dark] .mun-p{--f:#060708;--f2:#24262b;--eye:#ECE8DC;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.55))}
-.mun[data-pose=sit] .p-sit,.mun[data-pose=groom] .p-groom,.mun[data-pose=walk] .p-walk,.mun[data-pose=sleep] .p-sleep{display:block}
+.mun-p{display:block;visibility:hidden;opacity:0;transition:opacity .16s ease,visibility 0s linear .16s}
+.mun[data-pose=sit] .p-sit,.mun[data-pose=groom] .p-groom,.mun[data-pose=walk] .p-walk,.mun[data-pose=sleep] .p-sleep{visibility:visible;opacity:1;transition:opacity .16s ease}
 .mun-p .f{fill:var(--f)}.mun-p .eb{fill:var(--eye)}.mun-p .hb{fill:#C8A064}
 .mun-p .lid{fill:var(--f);opacity:0}
 .mun.blink .lid{opacity:1}
 /* chuyển động – chỉ transform / opacity trên thẻ <svg> (giữ translateX(-50%) để căn giữa), chạy trên GPU */
-.mun[data-pose=sit] .p-sit{animation:munBr 3.4s ease-in-out infinite;transform-origin:50% 100%}
+.mun[data-pose=sit] .p-sit{animation:munBr 4.2s ease-in-out infinite;transform-origin:50% 100%}
 .mun[data-pose=sleep] .p-sleep{animation:munBr2 4s ease-in-out infinite;transform-origin:50% 100%}
-.mun[data-pose=groom] .p-groom{animation:munLk .62s ease-in-out infinite;transform-origin:42% 100%}
-.mun[data-pose=walk] .p-walk{animation:munBob calc(var(--wd,.72s)/2) ease-in-out infinite}
-.p-walk .wf{opacity:0;animation:munFr var(--wd,.72s) steps(1,end) infinite}
-.mun.run{--wd:.36s}
-@keyframes munBr{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.014)}}
-@keyframes munBr2{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.03)}}
-@keyframes munLk{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) rotate(-1.6deg)}}
-@keyframes munBob{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) translateY(calc(-3px*var(--s,.25)/.25))}}
+.mun-p .lg>*{fill:var(--f)}.mun-p .far .lg>*{fill:var(--f2)}
+@keyframes munBr{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.01)}}
+@keyframes munBr2{0%,100%{transform:translateX(-50%)}50%{transform:translateX(-50%) scaleY(1.02)}}
 .mun-p .tg{fill:#EE6A82;opacity:0}.mun-p .tgl{fill:none;stroke:#C24760;stroke-width:1.6;stroke-linecap:round}
 .mun[data-pose=groom] .tg1{animation:munTg1 .62s linear infinite}.mun[data-pose=groom] .tg2{animation:munTg2 .62s linear infinite}
 @keyframes munTg1{0%,24%{opacity:0}25%,49%{opacity:1}50%,74%{opacity:0}75%,95%{opacity:1}96%,100%{opacity:0}}
 @keyframes munTg2{0%,49%{opacity:0}50%,74%{opacity:1}75%,100%{opacity:0}}
-@keyframes munFr{0%{opacity:1}12.5%{opacity:0}100%{opacity:0}}
 
+.mun-c{touch-action:none}
+.mun-p .arm>*{fill:var(--f)}.mun-p .arm .cl{fill:none;stroke:#EDEAE0;stroke-width:3;stroke-linecap:round}
+.mun.purr .lid{opacity:1}
+.mun-scr{position:fixed;width:48px;height:48px;z-index:96;pointer-events:none}
+.mun-scr svg{width:100%;height:100%;overflow:visible}
+.mun-scr path{fill:none;stroke:#D64545;stroke-width:3.2;stroke-linecap:round;stroke-dasharray:1 1;stroke-dashoffset:1;animation:munScr .16s ease-out forwards}
+.mun-scr path:nth-child(2){animation-delay:.04s}.mun-scr path:nth-child(3){animation-delay:.08s}
+.mun-scr.out{opacity:0;transition:opacity .5s}
+@keyframes munScr{to{stroke-dashoffset:0}}
 .mun-st{position:fixed;z-index:39;pointer-events:none}
 .mun-st svg{display:block;width:100%;height:100%;overflow:visible}
 .mun-st path{fill:none;stroke:var(--ink-2);stroke-width:2;stroke-linecap:round;stroke-dasharray:1 1;stroke-dashoffset:1;transition:stroke-dashoffset .14s ease-out;transition-delay:calc(var(--i)*90ms)}
@@ -399,7 +479,7 @@
 .mun-say::after{content:"";position:absolute;top:100%;left:var(--tx,50%);margin-left:-6px;border:6px solid transparent;border-top-color:var(--mn-bg,var(--surface));filter:drop-shadow(0 1px 0 rgba(0,0,0,.05))}
 .mun-say.out{opacity:0;transform:translateY(4px) scale(.96);transition:opacity .2s,transform .2s}
 @keyframes munIn{from{opacity:0;transform:translateY(6px) scale(.94)}}
-@media (prefers-reduced-motion:reduce){.mun-p,.mun-p *,.mun-z,.mun-say{animation:none!important}.p-walk .wf0{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mun-p,.mun-p *,.mun-z,.mun-say{animation:none!important}}
 @media print{.mun{display:none}}`;
   document.head.appendChild(st);
 

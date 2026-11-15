@@ -6359,6 +6359,6 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 .mun-sk>button.lock{opacity:.72}
 .mun-sk>button em{font-style:normal;font-size:.625rem;font-weight:650;color:var(--ink-3)}
 .mun-sk .mun-pv{display:block;height:46px;width:56px}
-.mun-sk .mun-p{display:block!important;position:static!important;transform:none!important;height:46px!important;width:auto;margin:0 auto}
+.mun-sk .mun-p{display:block!important;visibility:visible!important;opacity:1!important;animation:none!important;position:static!important;transform:none!important;height:46px!important;width:auto;margin:0 auto}
 @media (hover:hover){.mun-sk>button:not(.on):hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))}}
 @media (max-width:700px){.mun-sk{justify-content:flex-start}}
