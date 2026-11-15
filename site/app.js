@@ -291,13 +291,14 @@ function cbMount(root) {
 const GSEL = ".sc-tabs, .sc-env, .sc-om, .bseg, .dseg, .sc-sub2, .seg, .czseg";
 const GPOS = new Map();
 const gOn = (g) => [...g.querySelectorAll(":scope > button, :scope > a")].find((b) => b.offsetParent && (b.classList.contains("on") || b.getAttribute("aria-selected") === "true" || b.getAttribute("aria-current") === "page"));
-const gKey = (g) => `${location.hash.split("?")[0]}|${g.className.replace(/\s*\b(gseg|on)\b/g, "").trim()}|${g.getAttribute("aria-label") || ""}|${g.querySelectorAll(":scope > button, :scope > a").length}`;
+const gKey = (g) => `${location.hash.split("?")[0]}|${g.className.split(/\s+/).filter((c) => c && !/^(gseg|on|pv|ovx-.*)$/.test(c)).join(" ")}|${g.getAttribute("aria-label") || ""}|${g.querySelectorAll(":scope > button, :scope > a").length}`;      // bỏ lớp thay đổi theo trạng thái (gseg, bóng cuộn ovx-…) – không thì thanh vẽ lại có khoá khác → kính nhảy về chỗ cũ rồi mới trượt
 function gPlaceAll(list) {
   const R = [];
   const G = [...list].filter((g) => g.isConnected && !g.classList.contains("czseg") && !g.closest(".cbt"));
   G.forEach((g) => { if (!g.classList.contains("gseg")) g.classList.add("gseg"); });      // ghi 1 lượt (khung thành gốc toạ độ) …
   for (const g of G) {      // … rồi đọc hết, rồi mới ghi tiếp. Thanh 1 hàng: viên kính cao đúng lòng thanh (không lòi ra khi nút cao hơn thanh)
     const on = gOn(g); if (!on) { R.push([g, null, null]); continue; }
+    if (!on.offsetWidth || !g.offsetParent) continue;      // thanh chưa được dựng bố cục (vừa gắn, đang ẩn) → đo ra 0 sai: để lượt sau (khung hình kế) đặt, không ghi vị trí sai
     const its = [...g.querySelectorAll(":scope > button, :scope > a")].filter((b) => b.offsetParent), one = its.every((b) => Math.abs(b.offsetTop - its[0].offsetTop) < 4);
     const cs = getComputedStyle(g), pt = parseFloat(cs.paddingTop) || 0, pb = parseFloat(cs.paddingBottom) || 0, inner = g.clientHeight - pt - pb;
     R.push([g, on, one && inner > 8 ? { x: Math.max(on.offsetLeft, 3), y: 0, w: Math.min(on.offsetWidth - Math.max(0, 3 - on.offsetLeft), g.scrollWidth - 3 - Math.max(on.offsetLeft, 3)), h: 0, one: 1, pt, pb } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);

@@ -14,8 +14,7 @@ async function scTabGo(k) {
   if (k === window.__scTab) { await viewScalp(); try { cusDraw(); } catch (e) { /* bỏ qua */ } return; }
   const ORD = ["ov", "ord", "pm", "log", "set"], dir = Math.sign(ORD.indexOf(k) - ORD.indexOf(window.__scTab)) || 1;
   $$("[data-sctab]").forEach((x) => { const on = x.dataset.sctab === k; x.classList.toggle("on", on); x.setAttribute("aria-selected", on); });
-  // giọt kính trượt NGAY trên thanh tab hiện tại (giống khi bấm tab) – vuốt ngang đổi tab trước đây không gọi bước này → kính biến mất rồi hiện ở tab mới
-  try { const bar = $(".sc-tabs"); if (bar) { gPlaceAll([bar]); bar.querySelector(`[data-sctab="${k}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); } } catch (e) { /* bỏ qua */ }
+  try { $(".sc-tabs")?.querySelector(`[data-sctab="${k}"]`)?.scrollIntoView({ inline: "nearest", block: "nearest", behavior: "smooth" }); } catch (e) { /* bỏ qua */ }
   window.__scTab = k; lsSet("sctab", k); try { navFreqHit?.("#/bot/scalp|" + k); } catch (e) { /* bỏ qua */ }
   window.__scTabX = $(".sc-tabs")?.scrollLeft ?? null;      // giữ vị trí cuộn ngang của thanh tab qua lần vẽ lại → trượt mượt tới giữa
   const root = $("#app"), bar0 = $(".sc-tabs")?.getBoundingClientRect().top;
@@ -34,6 +33,16 @@ async function scCmd(act, k, at) {
 const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng 11): vào ngay bằng giá thị trường lúc vừa có cú sốc TB −3 bps/lệnh sau phí (cả danh mục −44%); chờ ở 1,25× / 1,5× như bot: +50 bps/lệnh (+144%). Bot chỉ tự vào ngay khi Long và 15 phút trước giá đã giảm ≥ 3%. Đây là lựa chọn của anh, bot không khuyên.";
 // ĐIỆN THOẠI: vuốt ngang trên nội dung để chuyển tab Bot Phản Xạ (Tổng quan ↔ Lệnh ↔ Phương pháp ↔ Hoạt động ↔ Thiết lập) – như lật trang trong app.
 // Mép trái/phải màn hình để dành cho vuốt lùi/tới trang; vuốt trên bảng cuộn ngang, biểu đồ, ô nhập, thanh nút thì không đổi tab.
+// giọt kính của thanh tab Bot đi theo ngón tay khi vuốt đổi tab: p = 0 (tab hiện tại) → 1 (tab kế bên); end = thả tay (trượt có hiệu ứng) – ghi luôn vị trí vào bộ nhớ
+// vị trí kính (GPOS) để thanh tab vẽ lại sau đó bắt đầu từ đúng chỗ đang đứng, không nhảy
+function scThumbFollow(bar, k0, k1, p, end) {
+  const th = bar?.querySelector(":scope > .gthumb"), b0 = bar?.querySelector(`[data-sctab="${k0}"]`); if (!th || !b0) return;
+  const b1 = (k1 && bar.querySelector(`[data-sctab="${k1}"]`)) || b0, X = (b) => Math.max(b.offsetLeft, 3), W = (b) => Math.min(b.offsetWidth - Math.max(0, 3 - b.offsetLeft), bar.scrollWidth - 3 - X(b));
+  const x = X(b0) + (X(b1) - X(b0)) * p, w = W(b0) + (W(b1) - W(b0)) * p;
+  th.style.transition = end ? "" : "none"; th.style.transform = `translateX(${x}px)`; th.style.width = w + "px";
+  if (!end) { const r = bar.getBoundingClientRect(), tx = x - bar.scrollLeft; if (tx < 8) bar.scrollLeft += tx - 8; else if (tx + w > r.width - 8) bar.scrollLeft += tx + w - r.width + 8; }      // tab đích khuất → thanh tab cuộn theo
+  try { const cs = getComputedStyle(bar); GPOS.set(gKey(bar), { x, y: 0, w, h: 0, one: 1, pt: parseFloat(cs.paddingTop) || 0, pb: parseFloat(cs.paddingBottom) || 0 }); } catch (e) { /* bỏ qua */ }
+}
 (function scSwipe() {
   if (window.__scSwipe) return; window.__scSwipe = 1;
   const MOBq = matchMedia("(max-width:979px)");
@@ -57,6 +66,7 @@ const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng
     st.body.style.transition = "none"; st.body.style.transform = `translateX(${d}px)`; st.body.style.opacity = String(1 - Math.min(0.35, Math.abs(d) / innerWidth * 0.6));
     const bar = document.querySelector(".sc-tabs"), nx = st.keys[st.i + (dx < 0 ? 1 : -1)];
     bar?.querySelectorAll("[data-sctab]").forEach((b) => b.classList.toggle("pv", !edge && Math.abs(d) > innerWidth * 0.22 && b.dataset.sctab === nx));
+    scThumbFollow(bar, st.keys[st.i], edge ? null : nx, Math.min(1, Math.abs(d) / (innerWidth * 0.5)));      // 🫧 giọt kính đi theo ngón tay: vuốt nửa đường → kính nằm giữa 2 tab
   }, { passive: false });
   const end = async () => {
     if (!st) return; const s = st; st = null; if (!s.lock) return;
@@ -64,7 +74,9 @@ const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng
     const W = innerWidth, v = Math.abs(s.dx) / Math.max(1, Date.now() - s.t), j = s.i + (s.dx < 0 ? 1 : -1);
     const go = j >= 0 && j < s.keys.length && (Math.abs(s.dx) > W * 0.22 || (v > 0.5 && Math.abs(s.dx) > 40));
     s.body.style.transition = "transform .18s cubic-bezier(.2,.8,.2,1), opacity .18s";
-    if (!go) { s.body.style.transform = ""; s.body.style.opacity = ""; return; }
+    const bar = document.querySelector(".sc-tabs");
+    if (!go) { s.body.style.transform = ""; s.body.style.opacity = ""; scThumbFollow(bar, s.keys[s.i], null, 0, true); return; }
+    // thả tay → kính đứng tại chỗ đang theo ngón tay (đã ghi vào bộ nhớ vị trí); thanh tab vẽ lại cho tab mới sẽ trượt nốt từ đúng chỗ đó tới tab mới
     const dir = s.dx < 0 ? 1 : -1; s.body.style.transform = `translateX(${-dir * W * 0.6}px)`; s.body.style.opacity = "0";
     navigator.vibrate?.(5);
     setTimeout(async () => {
