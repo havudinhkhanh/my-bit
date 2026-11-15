@@ -569,8 +569,14 @@ async function softRender(fn) {
   const h0 = location.hash, tab0 = CUR_TAB;
   const panels = [...root.querySelectorAll("section.panel, .panel")];
   let ai = -1, aoff = 0;
-  for (let i = 0; i < panels.length; i++) { const r = panels[i].getBoundingClientRect(); if (r.bottom > 60) { ai = i; aoff = r.top; break; } }
-  const sc = [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].map((el) => [el.scrollTop, el.scrollLeft]);
+  const pKey = (pn, list) => { const h = pn.querySelector(".ph h2, h2")?.textContent?.trim() || ""; return h ? `${h}#${list.filter((x) => (x.querySelector(".ph h2, h2")?.textContent?.trim() || "") === h).indexOf(pn)}` : ""; };
+  let akey = "";
+  for (let i = 0; i < panels.length; i++) { const r = panels[i].getBoundingClientRect(); if (r.bottom > 60) { ai = i; aoff = r.top; akey = pKey(panels[i], panels); break; } }
+  // vị trí cuộn của từng bảng: nhớ theo DANH TÍNH (tên khung chứa + loại bảng + thứ tự trong khung), không theo thứ tự trên cả trang –
+  // trước đây 1 bảng khác xuất hiện / mất đi phía trên (bảng so sánh nạp sau, khối giám sát…) làm lệch chỉ số → bảng Lệnh đã đóng bị kéo về đầu mỗi lần trang tự làm mới
+  const SCSEL = ".tw, .bot-log, .sc-r, [data-keep]", scKey = (el) => { if (el.dataset.keep) return "k:" + el.dataset.keep; const pn = el.closest(".panel, section"), h = pn?.querySelector(".ph h2, h2")?.textContent?.trim() || "", ol = el.closest("[data-ol]")?.dataset.ol || "";
+    const same = pn ? [...pn.querySelectorAll(SCSEL)].filter((x) => x.className === el.className) : []; return `${ol}|${h}|${el.className}|${Math.max(0, same.indexOf(el))}`; };
+  const sc = new Map([...root.querySelectorAll(SCSEL)].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [scKey(el), [el.scrollTop, el.scrollLeft]]));
   const open = [...root.querySelectorAll("details")].map((d) => d.open);
   const y = scrollY;
   root.style.minHeight = root.offsetHeight + "px";
@@ -579,8 +585,9 @@ async function softRender(fn) {
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
   if (CUR_TAB && root.querySelector(".ph") && !root.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB);
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
-  if (ai >= 0 && P2[ai]) scrollTo(0, Math.max(0, scrollY + P2[ai].getBoundingClientRect().top - aoff)); else scrollTo(0, y);
-  [...root.querySelectorAll(".tw, .bot-log, .sc-r, [data-keep]")].forEach((el, i) => { if (sc[i]) { el.scrollTop = sc[i][0]; el.scrollLeft = sc[i][1]; } });
+  const A2 = (akey && P2.find((pn) => pKey(pn, P2) === akey)) || (ai >= 0 ? P2[ai] : null);      // khung đang xem: tìm theo tên khung (khung khác thêm / bớt phía trên không làm trang nhảy)
+  if (A2) scrollTo(0, Math.max(0, scrollY + A2.getBoundingClientRect().top - aoff)); else scrollTo(0, y);
+  if (sc.size) [...root.querySelectorAll(SCSEL)].forEach((el) => { const v = sc.get(scKey(el)); if (v) { el.scrollTop = v[0]; el.scrollLeft = v[1]; } });
   [...root.querySelectorAll("details")].forEach((d, i) => { if (open[i] != null) d.open = open[i]; });
   setTimeout(() => { root.style.minHeight = ""; }, 1200);
 }
