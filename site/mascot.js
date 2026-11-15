@@ -40,20 +40,34 @@
       ["Thua một lệnh là chuyện nhỏ. Phá luật mới là chuyện lớn.", "Losing a trade is small. Breaking your rules is not."], ["Ngồi yên cũng là một vị thế.", "Sitting still is a position too."], ["Kẻ vội vàng luôn trả học phí.", "The hasty always pay tuition."],
       ["Đừng nhìn nến 1 phút quá lâu. Nó nhìn lại đấy.", "Don't stare at the 1-minute chart. It stares back."], ["Tôi liếm lông. Anh xem lại luật cắt lỗ.", "I groom. You review your stop rules."], ["Người khôn không cần ồn ào.", "Smart money doesn't need noise."],
       ["Cơ hội không đi một mình. Luôn có cái sau.", "Opportunities never come alone. There's always a next one."], ["Cắt lỗ là phép lịch sự với chính mình.", "A stop-loss is good manners toward yourself."], ["Đừng trả thù thị trường. Nó không nhớ anh là ai.", "Don't take revenge on the market. It doesn't know you."],
-      ["Ít lệnh, lệnh tốt. Như tôi: ít nói, nói đúng.", "Fewer trades, better trades. Like me: few words, right words."], ["Ghi nhật ký đi. Trí nhớ hay nói dối.", "Keep a journal. Memory lies."], ["Kiên nhẫn là lợi thế duy nhất không ai sao chép được.", "Patience is the one edge nobody can copy."]],
-    bot: [["Bot đang làm việc. Đừng đứng sau lưng nó.", "The bot is working. Don't hover behind it."], ["Luật đã đặt thì để luật chạy.", "Rules are set. Let them run."], ["Can thiệp tay ít thôi. Bảng so sánh có ghi hết đấy.", "Easy on the manual moves. The comparison table remembers."],
-      ["Sàn thử trước, tiền thật sau. Tôi cũng nếm sữa trước khi uống.", "Paper first, real money later. I taste the milk first too."]],
-    night: [["Khuya rồi. Mèo còn biết đi ngủ.", "It's late. Even cats sleep."], ["Quyết định lúc 2 giờ sáng hiếm khi là quyết định hay.", "2 a.m. decisions are rarely good ones."]],
-    long: [["Ngồi lâu rồi. Đứng dậy duỗi lưng đi – như tôi.", "You've been sitting long. Stretch – like me."], ["Uống nước đi. Tôi không nhắc lần hai.", "Drink some water. I won't say it twice."]],
-    back: [["Về rồi à. Tôi vẫn ở đây.", "Back already. I'm still here."], ["Vắng anh, mọi thứ vẫn yên.", "All quiet while you were gone."]],
-    morn: [["Chào buổi sáng. Cà phê trước, lệnh sau.", "Morning. Coffee first, orders later."]],
-    poke: [["Chuyện gì?", "What is it?"], ["Tôi đang bận… liếm lông.", "I'm busy… grooming."], ["Đừng vuốt ngược lông.", "Not against the fur."], ["Prrr… thôi được rồi.", "Prrr… fine."], ["Có việc thì nói. Không thì để tôi yên.", "Speak if you need something. Otherwise, let me be."], ["Tôi là Mun. Nhớ chưa?", "I'm Mun. Remember that."]],
-    wake: [["…Hửm?", "…Hm?"], ["Tôi không ngủ. Tôi đang suy nghĩ.", "I wasn't asleep. I was thinking."]],
-    err: [["Có chuyện. Bình tĩnh mà xử.", "Something's off. Handle it calmly."], ["Lỗi thì sửa. Không cần hoảng.", "Errors get fixed. No panic needed."]],
-    ok: [["Gọn.", "Clean."], ["Được.", "Good."], ["Ổn.", "Fine."]],
-    enough: [["Đủ rồi.", "Enough."]],
+      ["Ít lệnh, lệnh tốt. Như tôi: ít nói, nói đúng.", "Fewer trades, better trades. Like me: few words, right words."], ["Ghi nhật ký đi. Trí nhớ hay nói dối.", "Keep a journal. Memory lies."], ["Kiên nhẫn là lợi thế duy nhất không ai sao chép được.", "Patience is the one edge nobody can copy."],
+      ["Anh mở app lần thứ mấy hôm nay rồi? Tôi đếm không xuể.", "How many times have you opened this today? I lost count."], ["Nhìn biểu đồ thêm 5 phút nữa thì giá cũng không đổi vì anh đâu.", "Staring 5 more minutes won't move the price for you."],
+      ["Tôi ngủ 16 tiếng một ngày mà chưa từng cháy tài khoản. Nghĩ đi.", "I sleep 16 hours a day and never blew an account. Think about it."], ["FOMO à? Tôi ngửi thấy từ đây.", "FOMO? I can smell it from here."], ["Thị trường không nợ anh gì cả. Tôi cũng vậy.", "The market owes you nothing. Neither do I."],
+      ["Muốn giàu nhanh thì sang app khác. Ở đây làm chậm mà chắc.", "Want to get rich quick? Wrong app. We go slow and sure here."], ["Đừng bấm lung tung. Tôi đang nhìn đấy.", "Stop clicking around. I'm watching."], ["Kỷ luật là thứ anh có lúc 9 giờ sáng và đánh rơi lúc 11 giờ đêm.", "Discipline: you have it at 9 a.m. and drop it at 11 p.m."],
+      ["Hôm qua anh cũng nói “lệnh cuối”.", "Yesterday you also said “last trade”."], ["Gồng lỗ không phải kiên nhẫn. Là cứng đầu.", "Holding a loser isn't patience. It's stubbornness."], ["Lời nhỏ mà đều vẫn hơn một cú lớn rồi về mo.", "Small steady wins beat one big win and back to zero."],
+      ["Tôi có chín mạng. Tài khoản của anh thì chỉ có một.", "I have nine lives. Your account has one."], ["Ngồi thẳng lưng lên. Ra dáng người có kế hoạch đi.", "Sit up straight. Look like someone with a plan."], ["Tôi không cần lời khuyên của ai. Anh thì cần đấy.", "I don't need anyone's advice. You do."],
+      ["Đòn bẩy cao nhìn thì oai. Lúc thanh lý thì hết oai.", "High leverage looks cool. Until liquidation."], ["Tin đồn trên mạng à? Tôi chỉ tin vào luật của mình.", "Online rumours? I only trust my rules."], ["Đừng nhìn tôi. Nhìn vào kế hoạch.", "Don't look at me. Look at your plan."]],
+    bot: [["Bot đang làm việc. Đừng đứng sau lưng nó.", "The bot is working. Don't hover behind it."], ["Luật đã đặt thì để luật chạy.", "Rules are set. Let them run."], ["Can thiệp tay ít thôi. Bảng so sánh ghi hết đấy.", "Easy on the manual moves. The comparison table remembers."],
+      ["Sàn thử trước, tiền thật sau. Tôi cũng nếm sữa trước khi uống.", "Paper first, real money later. I taste the milk first too."], ["Để bot yên. Nó làm tốt hơn khi anh không thò tay vào.", "Leave the bot alone. It does better without your paws in it."], ["Bot không có cảm xúc. Anh nên học nó.", "The bot has no feelings. Learn from it."]],
+    night: [["Khuya rồi. Mèo còn biết đi ngủ.", "It's late. Even cats sleep."], ["Quyết định lúc 2 giờ sáng hiếm khi là quyết định hay.", "2 a.m. decisions are rarely good ones."], ["Giờ này còn thức? Mai đừng có ngáp với tôi.", "Still up? Don't yawn at me tomorrow."], ["Đêm khuya chỉ có mèo và người sắp vào lệnh dở là còn thức.", "Only cats and people about to make bad trades are up this late."]],
+    long: [["Ngồi lâu rồi. Đứng dậy duỗi lưng đi – như tôi.", "You've been sitting long. Stretch – like me."], ["Uống nước đi. Tôi không nhắc lần hai.", "Drink some water. I won't say it twice."], ["Ghế mọc rễ chưa? Đứng dậy đi lại đi.", "Grown roots in that chair yet? Get up and walk."]],
+    back: [["Về rồi à. Tôi vẫn ở đây.", "Back already. I'm still here."], ["Vắng anh, mọi thứ vẫn yên.", "All quiet while you were gone."], ["Giờ mới về? Tôi tưởng anh bỏ nghề rồi.", "Only now? I thought you'd quit."], ["Không có anh tôi yên tĩnh hơn hẳn. Thôi, vào việc đi.", "Much quieter without you. Anyway, get to work."]],
+    morn: [["Chào buổi sáng. Cà phê trước, lệnh sau.", "Morning. Coffee first, orders later."], ["Sáng rồi. Rửa mặt trước khi nhìn biểu đồ.", "Morning. Wash your face before the charts."], ["Chưa uống cà phê thì đừng đặt lệnh.", "No coffee, no orders."]],
+    poke: [["Chuyện gì?", "What is it?"], ["Tôi đang bận… liếm lông.", "I'm busy… grooming."], ["Đừng vuốt ngược lông.", "Not against the fur."], ["Prrr… thôi được rồi.", "Prrr… fine."], ["Có việc thì nói. Không thì để tôi yên.", "Speak if you need something. Otherwise, let me be."],
+      ["Tôi là Mun. Nhớ chưa?", "I'm Mun. Remember that."], ["Bỏ tay ra.", "Hands off."], ["Lại nữa à?", "Again?"], ["Tôi cào đấy.", "I will scratch."], ["Anh rảnh quá nhỉ.", "You've got time to kill, huh."], ["Muốn được vuốt ve thì đi nuôi chó.", "Want cuddles? Get a dog."],
+      ["Chạm thêm lần nữa là tính phí.", "Next touch is billable."], ["Tôi đang làm việc. Kiểu… nhìn anh làm sai.", "I'm working. As in… watching you mess up."], ["Hừ.", "Hmph."], ["Tay anh rảnh thế thì đi ghi nhật ký giao dịch.", "If your hands are that free, go write your trading journal."]],
+    wake: [["…Hửm?", "…Hm?"], ["Tôi không ngủ. Tôi đang suy nghĩ.", "I wasn't asleep. I was thinking."], ["Ai cho phép đánh thức tôi?", "Who said you could wake me?"], ["Năm phút nữa.", "Five more minutes."], ["…Có chuyện gì thì nói nhanh.", "…Make it quick."]],
+    err: [["Có chuyện. Bình tĩnh mà xử.", "Something's off. Handle it calmly."], ["Lỗi thì sửa. Không cần hoảng.", "Errors get fixed. No panic needed."], ["Lại hỏng gì nữa rồi?", "What broke this time?"], ["Tôi còn chưa hoảng, anh hoảng làm gì.", "I'm not panicking. Why are you?"]],
+    ok: [["Gọn.", "Clean."], ["Được.", "Good."], ["Ổn.", "Fine."], ["Tạm được.", "Acceptable."], ["Cũng biết làm đấy.", "So you can do it."], ["Hừm. Không tệ.", "Hm. Not bad."]],
+    enough: [["Đủ rồi.", "Enough."], ["Thôi. Tôi đi chỗ khác.", "That's it. I'm leaving."], ["Hết kiên nhẫn rồi đấy.", "Out of patience."]],
     hi: [["Tôi là Mun. Tôi trông chừng kỷ luật của anh – không hơn.", "I'm Mun. I keep an eye on your discipline – nothing more."]],
-    hi2: [["Cần gì thì giữ lâu vào tôi.", "Press and hold me if you need anything."]],
+    hi2: [["Cần gì thì giữ lâu vào tôi. Đừng chọc linh tinh.", "Press and hold me if you need something. Don't poke."]],
+    chase: [["Chuột!", "Mouse!"], ["Đứng lại đó!", "Stop right there!"], ["Của tôi!", "Mine!"], ["Hừ, dám vào lãnh địa của tôi?", "In MY territory?"]],
+    catch: [["Bắt được. Như mọi khi.", "Caught. As always."], ["Dễ. Như cắt lỗ đúng chỗ.", "Easy. Like a well-placed stop."], ["Thấy chưa? Kiên nhẫn rồi mới ra đòn.", "See? Patience, then strike."], ["Bữa phụ.", "Snack time."]],
+    miss: [["Tôi… cho nó đi đấy.", "I… let it go."], ["Không đáng công. Như mấy lệnh FOMO của anh.", "Not worth it. Like your FOMO trades."], ["Hôm nay tôi ăn chay.", "I'm vegetarian today."], ["Đuổi theo thứ chạy nhanh hơn mình là ngu. Ghi nhớ đi.", "Chasing what outruns you is dumb. Take note."]],
+    stalk: [["Đừng tưởng tôi không thấy con trỏ của anh.", "Don't think I can't see your cursor."], ["Rê nữa đi. Tôi vồ đấy.", "Keep moving it. I'll pounce."], ["Cái chấm nhỏ đó… của tôi.", "That little pointer… is mine."]],
+    pounce: [["Bắt được!", "Got it!"], ["Hà! Chậm quá.", "Ha! Too slow."]],
+    bored: [["Chán rồi.", "Bored now."], ["Trò trẻ con.", "Child's play."]],
   };
   const recent = [];
   const pick = (k) => { const A = T[k] || T.gen, fresh = A.filter((x) => !recent.includes(x[0])), x = (fresh.length ? fresh : A)[Math.floor(Math.random() * (fresh.length || A.length))]; recent.push(x[0]); if (recent.length > 8) recent.shift(); return L(x[0], x[1]); };
@@ -68,7 +82,7 @@
   // đường đi: điện thoại = mép trên thanh điều hướng nổi ở dưới; máy tính = mép dưới cửa sổ, phần nội dung (bên phải thanh bên)
   function track() {
     const tb = document.getElementById("tabs"), r = tb?.getBoundingClientRect(), W = innerWidth, cw = 345 * S.s;
-    const fab = document.querySelector(".pnfab"), fr = fab && fab.offsetParent ? fab.getBoundingClientRect() : null;      // nút "Bảng phụ" nổi → Mun không đi xuyên qua
+    const fab = document.querySelector(".pnfab"), fr0 = fab?.getBoundingClientRect(), fr = fr0 && fr0.width > 0 ? fr0 : null;      // nút cố định (position:fixed) không có offsetParent → đo khung      // nút "Bảng phụ" nổi → Mun không đi xuyên qua
     if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > innerHeight - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > innerWidth / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(innerHeight - r.top - 2), l: r.left + 14, r: rr }; }
     let l = r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12);
     return { b: 0, l, r: W - 12 - cw };
@@ -96,7 +110,8 @@
   }
   function idle() {      // vòng đời: ngồi → liếm lông → đi dạo → … ; để yên lâu thì ngủ
     if (!S.el) return;
-    if (S.away || S.napTill > now()) { sched(idle, 1500); return; }
+    if (S.away || S.napTill > now() || S.chasing || ST.on) { sched(idle, 1500); return; }
+    if (S.nextMouse && now() > S.nextMouse && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextMouse = now() + rnd(10, 22) * 60e3; if (chase()) return; }
     if (now() - S.act > 80e3) { if (S.pose !== "sleep") pose("sleep"); sched(idle, 4000); return; }
     talkMaybe();
     const r = Math.random(), tr = track();
@@ -109,10 +124,11 @@
     if (!S.el || S.away || hiddenNow()) return false;
     const b = S.el.querySelector(".mun-say"); if (!b.hidden && prio < (b._p || 0)) return false;
     b._p = prio; b.querySelector("span").textContent = text; b.hidden = false; b.classList.remove("out");
-    requestAnimationFrame(() => {      // giữ bóng thoại trong màn hình
-      const cw = 345 * S.s, bw = b.offsetWidth, cx = S.x + cw / 2, left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw / 2));
-      b.style.left = (left - S.x) + "px"; b.style.setProperty("--tx", Math.max(12, Math.min(bw - 12, cx - left)) + "px");
-    });
+    // giữ bóng thoại trong màn hình theo vị trí THẬT của Mun từng khung hình (Mun đang đi / đang rượt chuột thì bóng thoại đi theo mà không lòi ra mép)
+    b._bw = b.offsetWidth; b._lx = null;
+    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } const bw = b._bw, x = new DOMMatrix(getComputedStyle(S.el).transform).m41, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw / 2));
+      if (b._lx !== Math.round(x)) { b._lx = Math.round(x); b.style.left = (left - x) + "px"; b.style.setProperty("--tx", Math.max(12, Math.min(bw - 12, cx - left)) + "px"); } requestAnimationFrame(fol); };
+    if (!b._run) { b._run = 1; fol(); }
     clearTimeout(S.sayTm); S.sayTm = setTimeout(() => { b.classList.add("out"); setTimeout(() => { if (b.classList.contains("out")) { b.hidden = true; b._p = 0; } }, 220); }, ms);
     return true;
   }
@@ -128,6 +144,7 @@
   }
   // ---------------------------------------------------------------- chạm / giữ lâu
   function poke() {
+    if (S.chasing) return;
     if (S.pose === "sleep") { S.act = now(); pose("sit"); say(pick("wake"), 3500, 2); sched(idle, 5000); return; }
     S.pokes = S.pokes.filter((t) => now() - t < 6000); S.pokes.push(now()); navigator.vibrate?.(6);
     S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop");
@@ -141,6 +158,7 @@
     const it = (k, ic, t, sub) => `<button type="button" data-mun="${k}"><span class="ios-t">${t}${sub ? `<small>${sub}</small>` : ""}</span><span class="ios-ic">${ic}</span></button>`;
     m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="munMenu" role="menu" aria-label="Mun" style="left:${left}px;width:${W}px;bottom:${Math.round(innerHeight - R.top + 8)}px;transform-origin:${Math.round(R.left + R.width / 2 - left)}px calc(100% + 8px)">
       <div class="ios-menu-h">🐈‍⬛ Mun</div>
+      ${it("mouse", "🐭", L("Thả chuột cho Mun", "Release a mouse"), L("xem Mun rượt", "watch Mun hunt"))}
       ${it("sleep", "😴", L("Cho đi ngủ 30 phút", "Nap for 30 min"), L("không đi, không nói", "no walking, no talking"))}
       ${it("quiet", S.cfg.talk === "q" ? "💬" : "🤫", S.cfg.talk === "q" ? L("Nói chuyện bình thường", "Talk normally") : L("Ít nói thôi", "Talk less"), S.cfg.talk === "q" ? "" : L("chỉ đáp khi anh gọi", "only answers when poked"))}
       ${it("skin", "🎩", L("Đổi bộ đồ…", "Change outfit…"), L("Tài khoản › Mèo Mun", "Account › Mun"))}
@@ -148,7 +166,8 @@
     document.body.appendChild(m);
     m.querySelector("[data-x]").onclick = () => iosMenuClose();
     m.querySelectorAll("[data-mun]").forEach((b) => (b.onclick = async () => { const k = b.dataset.mun; iosMenuClose();
-      if (k === "sleep") { S.napTill = now() + 30 * 60e3; pose("sleep"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
+      if (k === "mouse") setTimeout(() => chase(true), 250);
+      else if (k === "sleep") { S.napTill = now() + 30 * 60e3; pose("sleep"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
       else if (k === "quiet" || k === "off") { const u = { ...(UIP.mun || {}) }; if (k === "quiet") u.talk = S.cfg.talk === "q" ? "n" : "q"; else u.on = false; UIP = { ...UIP, mun: u }; await uiSave(); MUN.apply(); if (k === "off") toast(L("Đã cất Mun – bật lại trong Tài khoản › Mèo Mun", "Mun is hidden – turn back on in Account › Mun")); else say(u.talk === "q" ? L("Được. Tôi im.", "Fine. I'll be quiet.") : L("Tôi vẫn ở đây.", "Still here."), 3000, 2); }
       else if (k === "skin") location.hash = "#/account";
     }));
@@ -156,17 +175,62 @@
   }
   // ---------------------------------------------------------------- thông báo: Mun ngồi liếm lông cạnh thông báo (máy tính: đi tới góc phải, dưới chồng thông báo)
   function onToast(msg, o = {}) {
-    if (!S.el || S.away || S.napTill > now()) return;
+    if (!S.el || S.away || S.napTill > now() || S.chasing) return;
     const tp = o.type || (/^(⛔|❌|Lỗi|Error)/i.test(msg) ? "err" : /^(✅|Đã)/.test(msg) ? "ok" : "info");
     const react = () => { pose("groom"); sched(idle, rnd(5e3, 8e3)); if (S.cfg.talk !== "q" && (tp === "err" ? Math.random() < 0.6 : tp === "ok" ? Math.random() < 0.25 : false)) setTimeout(() => say(pick(tp), 3200, 1), 700); };
     clearTimeout(S.tm);
     if (!mob()) { const tb = document.getElementById("toasts")?.getBoundingClientRect(); walkTo(tb ? tb.left - 345 * S.s - 6 : track().r, react); } else react();
   }
+  // ---------------------------------------------------------------- 🐭 rượt chuột: thỉnh thoảng 1 con chuột chạy ngang mép dưới, Mun rượt theo (bắt được hoặc để sổng)
+  const MOUSE = `<svg ${NS} viewBox="-8 0 66 30" aria-hidden="true"><path class="mt" d="M7 24 C1 24 -2 19 -7 17"/><path class="ms" d="M5 26 C8 15 20 8 33 9 C44 10 52 15 57 22 C58 25 56 27 52 27 Z"/><circle class="ms" cx="38" cy="8.5" r="5.5"/><circle class="mi" cx="38.5" cy="8.8" r="2.6"/><circle class="me" cx="49.5" cy="16.5" r="1.5"/><path class="ml" d="M20 26 L17 29 M40 26 L43 29"/></svg>`;
+  function chase(force) {
+    if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
+    const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = Math.random() < 0.45;
+    const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
+    S.chasing = true; clearTimeout(S.tm); halt(); pose("sit");      // dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì Mun "dịch chuyển tức thời")
+    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, dash = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
+    const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
+      if (caught) { m.classList.add("poof"); pose("groom"); setTimeout(() => say(pick("catch"), 3600, 2), 200); }
+      else { pose("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
+      setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
+    const step = (t) => {
+      if (done) return; if (!S.el || S.away) { m.remove(); S.chasing = false; S.el?.classList.remove("run"); sched(idle, 2000); return; }
+      const dt = Math.min(0.05, (t - last) / 1000); last = t; const el = t - t0;
+      // chuột: chạy – thỉnh thoảng khựng lại ngó – bị đuổi gần thì tăng tốc
+      const gap = Math.abs((mx + mw / 2) - (cx + cw / 2)); if (t > pauseTill && Math.random() < 0.012 && el > 900) pauseTill = t + rnd(220, 480);
+      const vm = t < pauseTill ? 0 : gap < 90 && !win ? 300 : 175 + dash; mx += dir * vm * dt;
+      if (!shout && mx > -mw * 0.3 && mx < innerWidth - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
+      // Mun: ngó 0,45 giây rồi phóng theo
+      if (el > 450) { const tx = mx + mw / 2 - cw / 2, d = tx - cx, vc = 235; if (Math.abs(d) > 2) { const nx = cx + Math.sign(d) * Math.min(Math.abs(d), vc * dt); cx = Math.max(tr.l, Math.min(tr.r, nx)); face(d > 0 ? 1 : -1); if (S.pose !== "walk") { pose("walk"); S.el.classList.add("run"); } } place(cx, 0); }
+      m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
+      if (win && gap < 22 && el > 600) return end(true);
+      if (mx > innerWidth + 30 || mx < -mw - 30 || el > 16e3) return end(false);
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step); return true;
+  }
+  // 🖱️ máy tính: rê chuột xuống gần mép dưới → Mun rình theo con trỏ; để con trỏ đứng yên sát Mun → vồ. Rình lâu quá thì chán, nghỉ vài phút
+  const ST = { on: false, t0: 0, last: 0, mv: 0, px: 0, cool: 0 };
+  function stalkEnd(bored) { ST.on = false; if (bored) { if (S.cfg.talk !== "q") say(pick("bored"), 2600, 1); ST.cool = now() + 3 * 60e3; } sched(idle, rnd(2e3, 4e3)); }
+  function stalkMove(e) {
+    if (e.pointerType !== "mouse" || !S.el || S.away || S.chasing || S.napTill > now() || mob() || RM.matches) return;
+    const tr = track(), near = e.clientY > innerHeight - tr.b - 150 * (S.s / 0.28) - 40;
+    if (!near) { if (ST.on) stalkEnd(false); return; }
+    if (now() < ST.cool) return;
+    if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.pose === "sleep") pose("sit"); if (S.cfg.talk !== "q" && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
+    ST.px = e.clientX; ST.mv = now();
+    if (now() - ST.t0 > 25e3) return stalkEnd(true);
+    if (now() - ST.last > 650) { ST.last = now(); const cw = 345 * S.s, tx = e.clientX - cw / 2; if (Math.abs(tx - S.x) > 30) walkTo(tx, () => pose("sit")); }
+  }
+  function stalkTick() {
+    if (!ST.on || !S.el) return; const cw = 345 * S.s;
+    if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk") { S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); say(pick("pounce"), 2200, 2); ST.cool = now() + 90e3; stalkEnd(false); }
+  }
   // ---------------------------------------------------------------- dựng / bật / tắt
   function build() {
     const el = document.createElement("div"); el.id = "mun"; el.className = "mun";
     el.innerHTML = `<div class="mun-say" hidden role="status"><b>Mun</b><span></span></div><div class="mun-c" role="button" tabindex="0" aria-label="${L("Mun – mèo trợ lý. Chạm để nói chuyện, giữ lâu để mở menu", "Mun – assistant cat. Tap to talk, hold for menu")}"><div class="mun-f">${Object.keys(POSES).map((k) => poseSvg(k, S.cfg.skin)).join("")}</div><i class="mun-z">z</i></div>`;
-    document.body.appendChild(el); S.el = el; S.s = mob() ? 0.19 : 0.22; el.style.setProperty("--s", S.s);
+    document.body.appendChild(el); S.el = el; S.s = mob() ? 0.235 : 0.28; el.style.setProperty("--s", S.s);
     const c = el.querySelector(".mun-c"); let lp = 0, longed = false;
     c.addEventListener("pointerdown", (e) => { longed = false; clearTimeout(lp); lp = setTimeout(() => { longed = true; navigator.vibrate?.(10); menu(); }, 520); });
     ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => c.addEventListener(ev, () => clearTimeout(lp)));
@@ -186,20 +250,22 @@
     requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("mun_hi", 0)) { lsSet("mun_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 8 * 60e3; }
       else S.nextTalk = now() + rnd(2, 5) * 60e3;
+      S.nextMouse = now() + rnd(3, 7) * 60e3;
       pose("groom"); sched(idle, 5000); }); });
     if (started) return; started = true;
     ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && S.pose === "sleep" && !(S.napTill > now())) { pose("sit"); sched(idle, 2500); } }, { passive: true, capture: true }));
     document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 15 * 60e3 && S.cfg.talk !== "q") setTimeout(() => say(pick("back"), 4000, 1), 900); });
     // ẩn khi đang mở bảng / menu / biểu đồ toàn màn hình / đang gõ (điện thoại); hiện lại khi xong
-    setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (S.napTill && S.napTill < now()) { S.napTill = 0; pose("sit"); sched(idle, 3000); } }, 400);
-    addEventListener("resize", () => { if (!S.el) return; S.s = mob() ? 0.19 : 0.22; S.el.style.setProperty("--s", S.s); place(S.x, 0); });
+    setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (S.napTill && S.napTill < now()) { S.napTill = 0; pose("sit"); sched(idle, 3000); } stalkTick(); }, 400);
+    addEventListener("pointermove", stalkMove, { passive: true });
+    addEventListener("resize", () => { if (!S.el) return; S.s = mob() ? 0.235 : 0.28; S.el.style.setProperty("--s", S.s); place(S.x, 0); });
     // nháy mắt ngẫu nhiên
     (function blink() { setTimeout(() => { if (S.el) { S.el.classList.add("blink"); setTimeout(() => S.el?.classList.remove("blink"), 160); } blink(); }, rnd(2500, 7000)); })();
     // thông báo: bọc hàm toast của app
     if (typeof window.toast === "function" && !window.toast.__mun) { const t0 = window.toast; window.toast = function (msg, o) { const r = t0.apply(this, arguments); try { onToast(String(msg ?? ""), o || {}); } catch (e) { /* bỏ qua */ } return r; }; window.toast.__mun = 1; }
   }
   function stop() { clearTimeout(S.tm); clearTimeout(S.walkTm); if (S.el) { const el = S.el; S.el = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
-  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), SKINS, poseSvg };
+  window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; }, say: (t, ms) => say(t, ms, 2), chase: () => chase(true), SKINS, poseSvg };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
@@ -232,6 +298,14 @@
 @keyframes munLk{50%{transform:rotate(-1.6deg)}}
 @keyframes munSk{0%,100%{transform:skewX(11deg)}50%{transform:skewX(-11deg)}}
 @keyframes munBob{50%{transform:translateY(-3px)}}
+.mun.run .sk1,.mun.run .sk2{animation-duration:.36s}.mun.run .sk2{animation-delay:-.18s}.mun.run .bob{animation-duration:.18s}
+.mun-mouse{position:fixed;left:0;z-index:40;width:calc(115px*var(--s,.25));height:calc(52px*var(--s,.25));pointer-events:none;will-change:transform}
+.mun-mouse>i{display:block;width:100%;height:100%}.mun-mouse.l>i{transform:scaleX(-1)}
+.mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.mun-mouse .ms{fill:#7e838d}.mun-mouse .mi{fill:#c9a7a7}.mun-mouse .me{fill:#111}.mun-mouse .mt,.mun-mouse .ml{fill:none;stroke:#7e838d;stroke-width:2.2;stroke-linecap:round}
+:root[data-theme=dark] .mun-mouse .ms{fill:#a3a9b4}:root[data-theme=dark] .mun-mouse .mt,:root[data-theme=dark] .mun-mouse .ml{stroke:#a3a9b4}
+.mun-mouse.poof>i{transform:scale(0) rotate(40deg);opacity:0;transition:transform .3s cubic-bezier(.5,0,.8,.4),opacity .3s}
+@keyframes mmBob{50%{transform:translateY(-1.5px)}}
 .mun-z{position:absolute;left:calc(50% + 115px*var(--s));bottom:calc(150px*var(--s));font:italic 700 11px/1 system-ui;color:var(--ink-3);display:none;pointer-events:none}
 .mun[data-face=l] .mun-z{left:auto;right:calc(50% + 115px*var(--s))}
 .mun[data-pose=sleep] .mun-z{display:block;animation:munZ 2.6s ease-in infinite}
