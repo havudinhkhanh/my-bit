@@ -7740,3 +7740,21 @@ function ksHud(on) {
   }
   addEventListener("hashchange", () => { if (pend) done(); });
 })();
+// 🔄 BẢN APP MỚI: app mở sẵn trên điện thoại / máy tính (PWA) không tự tải lại khi có bản mới → vẫn chạy mã cũ.
+//    Mỗi lần quay lại app (và 10 phút/lần) đọc trang gốc, so mã phiên bản của app.js: khác → app vừa rời > 2 phút thì tự tải lại ngay,
+//    còn đang dùng thì hiện thông báo "Có bản mới – chạm để tải lại" (không tự tải lại giữa chừng khi anh đang thao tác).
+(function appUpdate() {
+  const cur = () => (document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "").match(/[?&]v=([\w]+)/)?.[1] || "";
+  let last = 0, hidAt = 0, told = false;
+  const check = async (resume) => {
+    if (!cur() || Date.now() - last < 60e3) return; last = Date.now();
+    try {
+      const r = await fetch("/", { cache: "no-store", credentials: "same-origin" }); if (!r.ok) return;
+      const v = (await r.text()).match(/app\.js\?v=([\w]+)/)?.[1]; if (!v || v === cur()) return;
+      if (resume && !document.getElementById("iosSheet") && !document.querySelector(".ios-menu")) { location.reload(); return; }
+      if (!told) { told = true; toast(bi("🔄 Có bản app mới – chạm để tải lại", "🔄 New version – tap to reload"), { type: "info", ms: 15000, href: location.hash || "#/" }); document.querySelector("#toasts .toast:last-child")?.addEventListener("click", () => location.reload()); }
+    } catch (e) { /* mất mạng – bỏ qua */ }
+  };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) hidAt = Date.now(); else check(hidAt && Date.now() - hidAt > 120e3); });
+  setInterval(() => { if (!document.hidden) check(false); }, 10 * 60e3);
+})();
