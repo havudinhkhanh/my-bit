@@ -18,15 +18,20 @@
   const FLIP = { loaf: 1, lickbody: 1 }, EYE = { loaf: [26, -128], lickbody: [62, -130], stretch: [72, -63], crouch: [76, -51] };      // 2 dáng vẽ quay mặt trái → lật cho cùng hướng; dáng nhắm mắt → chấm neo đầu cho mũ / kính
   const addPose = (k, v) => { const [w, h, eye, ps] = v, fl = FLIP[k]; POSE[k] = { id: k, w, h, eye: EYE[k] || eye, polys: ps.map((a) => { const t = a[0], n = (a.length - 1) / 2, p = new Float32Array(n * 2); let x = 0, y = 0; for (let i = 0; i < n; i++) { x += a[1 + 2 * i]; y += a[2 + 2 * i]; if (i === 0) { x = a[1]; y = a[2]; } const j = fl ? n - 1 - i : i; p[2 * j] = fl ? -x : x; p[2 * j + 1] = y; } return mk(t, p); }) }; };
   for (const k in RAW) addPose(k, RAW[k]);
-  // ================================================================ BẢNG KHUNG (bảng Jason gửi): mỗi khung trong bảng = 1 khung hình, giữ nguyên, không gộp, không bỏ.
-  //  Chạy theo đồng hồ, tối đa = tần số màn hình (120 Hz trên máy 120 Hz); mỗi lần vẽ tiến tối đa 1 khung → không bao giờ nhảy cóc khung nào.
-  //  fps: khung / giây · upf: bước chân đi được mỗi khung (đơn vị hình) → tốc độ đi khớp chân, không trượt
+  // ================================================================ BẢNG KHUNG (bảng Jason gửi): đủ mọi khung trong bảng, đúng thứ tự.
+  //  Mượt tối đa: (1) khi dựng: ổn định vị trí từng khung + làm mềm chớp rất nhẹ; (2) khi chạy: thời gian liên tục, MỖI LẦN VẼ (60 / 120 Hz) đều nắn hình
+  //  giữa 2 khung kề theo đúng thời điểm → chuyển động liên tục, không giật bậc; (3) bước nào bảng gốc đổi hình nhiều (w lớn) thì chiếu lâu hơn → tốc độ đều.
+  //  fps: khung / giây (danh định) · upf: bước chân đi được mỗi khung (đơn vị hình) → tốc độ đi khớp chân, không trượt
   //  Tải sau (mascot-seq-*.json, gắn phiên bản theo băm) → mascot.js nhẹ, mở trang không chậm; tải hỏng thì dùng dáng cũ
   const SHEET = {}, SHV = { walk: "__JSV_SEQ_walk__", sit: "__JSV_SEQ_sit__", roll: "__JSV_SEQ_roll__" }, SHL = {};
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
-      SHEET[nm] = d.f.map((v, i) => { addPose(nm + i, v); return POSE[nm + i]; }); if (nm === "sit") CLIP.sit = CLIP.sitIdle; return SHEET[nm];
+      const F = d.f.map((v, i) => { addPose(nm + i, v); return POSE[nm + i]; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
+      F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); SHEET[nm] = F; if (nm === "sit") CLIP.sit = CLIP.sitIdle;
+      // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
+      let k = 0; const n = F.length, warm = () => { const t0 = performance.now(); while (k < n && performance.now() - t0 < 6) { const j = (k + 1) % n; if (j || d.loop) mapOf(F[k], F[j], !(F.hard.has(k) || j < k)); k++; } if (k < n) (window.requestIdleCallback || setTimeout)(warm); };
+      (window.requestIdleCallback || setTimeout)(warm); return F;
     }).catch(() => { delete SHL[nm]; }));
   }
   const loadSheets = () => loadSheet("walk").finally(() => loadSheet("sit")).finally(() => loadSheet("roll"));
@@ -107,7 +112,7 @@
     if (R.acc) { const hasHat = sh.polys.some((q) => q.t === 2); if (e && !hasHat) { R.acc.setAttribute("transform", `translate(${f1(e[0] - (skin === "fedora" ? 8 : 0))} ${f1(e[1] - (skin === "fedora" ? 16 : 0))})`); R.acc.style.opacity = k; } else R.acc.style.opacity = 0; }
   }
   function preview(skin, pose = "sit") { const box = document.createElement("div"); box.innerHTML = catSvg(skin); const R = bind(box.firstElementChild); draw(R, POSE[pose] || POSE.sit, "", skin); return box.innerHTML; }
-  window.MUN_ART = { preview, poseSvg: (k, skin) => preview(skin, k), SKINS, POSE, morph, draw, bind, catSvg, mapOf };
+  window.MUN_ART = { preview, poseSvg: (k, skin) => preview(skin, k), SKINS, POSE, morph, draw, bind, catSvg, mapOf, loadSheet };
 
   // ================================================================ lời thoại – ngắn, kiêu, đanh đá; KHÔNG nói mua / bán / coin nào
   const L = (vi, en) => (typeof EN !== "undefined" && EN ? en : vi);
@@ -173,7 +178,7 @@
     sit: { p: "sit", br: 1 }, lookup: { p: "lookup", br: 1 }, loaf: { p: "loaf", br: 1 }, lie: { p: "lie", br: 1 }, curl: { p: "curl", br: 2 },
     groom: { p: "groom", osc: ["sit", 0.28, 0.7] }, lickbody: { p: "lickbody", osc: ["loaf", 0.16, 0.65] }, licklip: { p: "licklip", osc: ["lookup", 0.4, 0.5] },
     stretch: { p: "stretch", osc: ["crouch", 0.1, 2.2] }, crouch: { p: "crouch", osc: ["stalk", 0.12, 0.26] },
-    walk: { sheet: "walk", loop: 1, fps: 120, upf: 1.45, seam: 8, fb: { loop: Array.from({ length: 8 }, (_, i) => "wk" + String(i * 4).padStart(2, "0")), stride: 130 } },      // 🚶 bảng đi bộ 100 khung · 120 khung/giây · seam: 8 khung cuối hoà dần vào 8 khung đầu (bảng không khép vòng) stalk: { loop: ["st0", "st1", "st2", "st3", "st4"], stride: 210 }, run: { loop: ["rn0", "rn1", "rn2", "rn3", "rn4", "rn5"], stride: 520 },
+    walk: { sheet: "walk", loop: 1, fps: 120, upf: 1.45, fb: { loop: Array.from({ length: 8 }, (_, i) => "wk" + String(i * 4).padStart(2, "0")), stride: 130 } },      // 🚶 bảng đi bộ 100 khung · 120 khung/giây · khung cuối → khung đầu được nắn hình (bảng không khép vòng) stalk: { loop: ["st0", "st1", "st2", "st3", "st4"], stride: 210 }, run: { loop: ["rn0", "rn1", "rn2", "rn3", "rn4", "rn5"], stride: 520 },
     chase: { p: "chase" }, jump: { p: "jump" },
     // 🙃 nằm ngửa lăn lộn & vặn mình: 61 khung liền (bảng Jason gửi) – khom → nằm → ngửa → vặn → cuộn tròn → bật dậy vờn → đi vài bước → ngồi; mv: khoảng khung có bước đi thì dời mèo tới trước
     rollplay: { sheet: "roll", fps: 30, mv: [47, 56, 150] },
@@ -183,23 +188,30 @@
   };
   const A = { sh: POSE.sit, snap: null, map: null, t0: 0, dur: 1, clip: CLIP.sit, name: "sit", ct: 0, ph: 0, v: 0, ty: 0, rot: 0, last: 0, on: false, R: null };
   const easeIO = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
-  const clipStart = (c) => (c.sheet ? (SHEET[c.sheet] ? SHEET[c.sheet][c.loop && c.seam ? c.seam : c.a || 0] : clipStart(c.fb || CLIP.sit)) : POSE[c.p || (c.seq || c.loop)[0]]);
-  const sheetN = (c) => (c.b ?? SHEET[c.sheet].length - 1) - (c.a || 0) + 1;
-  const sheetMs = (c) => (sheetN(c) / Math.min(c.fps, HZ)) * 1000;
+  const clipStart = (c) => (c.sheet ? (SHEET[c.sheet] ? SHEET[c.sheet][c.a || 0] : clipStart(c.fb || CLIP.sit)) : POSE[c.p || (c.seq || c.loop)[0]]);
+  // thời gian (đơn vị = 1 khung danh định) của đoạn [a, b] trong bảng; vòng lặp có thêm bước nối b → a
+  const sheetSpan = (c) => { const F = SHEET[c.sheet], a = c.a || 0, b = c.b ?? F.length - 1, T = F.T; if (!F.W) return b - a + (c.loop ? 1 : 0);
+    let t = T[b] - T[a]; if (c.loop) t += b === F.length - 1 && F.W.length === F.length ? F.W[b] : 1; return t; };
+  const sheetMs = (c) => (sheetSpan(c) / c.fps) * 1000;
+  function sheetAt(c, ph) {      // thời điểm → [khung i, khung kề j, u]
+    const F = SHEET[c.sheet], a = c.a || 0, b = c.b ?? F.length - 1, T = F.T, W = F.W;
+    if (!W) { const k = Math.floor(ph), i = a + Math.min(k, b - a); const j = i < b ? i + 1 : c.loop ? a : i; return [i, j, ph - k]; }
+    const t = T[a] + ph; let lo = a, hi = b;
+    if (t >= T[b]) { const wl = c.loop ? (b === F.length - 1 && W.length === F.length ? W[b] : 1) : 1; return c.loop ? [b, a, Math.min(1, (t - T[b]) / wl)] : [b, b, 0]; }
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (T[m] <= t) lo = m; else hi = m; }
+    return [lo, lo + 1, (t - T[lo]) / (W[lo] || 1)];
+  }
   function clipShape(c, dt) {
     if (c.sheet) {
       const F = SHEET[c.sheet]; if (!F) return clipShape(c.fb || CLIP.sit, dt);
-      const a0 = c.a || 0, n = sheetN(c), sm = c.loop ? c.seam || 0 : 0;
-      let rate = c.upf && A.v > 0 ? A.v / (U2P() * c.upf) : Math.min(c.fps, HZ); rate = Math.min(rate, HZ * 1.05);      // khung / giây; đi bộ: theo tốc độ bước thật
-      const adv = Math.min(1, dt * rate);      // mỗi lần vẽ tiến ≤ 1 khung → không bỏ khung nào
-      if (c.loop) A.ph = (A.ph + adv) % (n - sm); else A.ph = Math.min(n - 1, A.ph + adv);
-      const k = Math.floor(A.ph), u = A.ph - k, idx = c.loop ? sm + k : k;
-      if (c.mv && idx >= c.mv[0] && idx < c.mv[1] && !A.snap) place(S.x + S.face * c.mv[2] * U2P() * dt);
-      const cur = F[a0 + idx];
-      if (sm && idx >= n - sm) { const j = idx - (n - sm), w = (j + u) / sm; A.gx = [cur, Math.min(1, (1 - w) * 2), Math.min(1, w * 2)]; return F[a0 + j]; }      // nối vòng: khung cuối mờ dần, khung đầu hiện dần
-      const nx = idx + 1 < n ? F[a0 + idx + 1] : c.loop ? F[a0 + sm] : null;
-      if (nx && rate < HZ * 0.75 && u > 0.02) return morph(cur, nx, u, true, true);      // khung chiếu lâu hơn 1 lần vẽ (bảng chậm hơn màn hình) → nắn chuyển tiếp cho khỏi giật bậc
-      return cur;
+      const span = sheetSpan(c), rate = c.upf && A.v > 0 ? A.v / (U2P() * c.upf) : c.fps;      // khung danh định / giây; đi bộ: theo tốc độ bước thật
+      A.ph = c.loop ? (A.ph + dt * rate) % span : Math.min(span, A.ph + dt * rate);
+      const [i, j, u] = sheetAt(c, A.ph);
+      if (c.mv && i >= c.mv[0] && i < c.mv[1] && !A.snap) place(S.x + S.face * c.mv[2] * U2P() * dt);
+      if (i === j || u < 0.004) return F[i];
+      const hard = F.hard.has(i) || j < i;
+      if (hard && mapOf(F[i], F[j]).cost > 0.5) { A.gx = [F[i], Math.min(1, (1 - u) * 2), Math.min(1, u * 2)]; return F[j]; }      // 2 khung khác hẳn (cuộn tròn → bật dậy) → hoà tan
+      return morph(F[i], F[j], u, true, !hard);      // mỗi lần vẽ đều nắn đúng thời điểm giữa 2 khung; bước nhảy lớn / nối vòng → khớp điểm kỹ (DTW)
     }
     if (c.seq) {
       const n = c.seq.length; A.ph = Math.min(n - 1, A.ph + dt * c.fps); const i = Math.floor(A.ph);
