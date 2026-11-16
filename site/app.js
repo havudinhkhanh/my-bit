@@ -217,7 +217,7 @@ function candleChart(el, o, opts = {}) {
     const s = c.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
     s.setData(o.t.map((t, i) => (v[i] == null ? null : { time: t, value: v[i] })).filter(Boolean));
   });
-  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: l.w || 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: T(l.title || "") }); });
+  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: l.w || 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: opts.noTitle ? "" : T(l.title || "") }); });      // noTitle: tên đường đã có ở chú thích ngoài biểu đồ
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
   if (el.clientHeight >= 300) {      // chừa ~110px trống bên phải: nhãn giá & đường kế hoạch ("cắt lỗ", "hỗ trợ (3)"…) không đè lên các nến mới nhất
     const ts = c.timeScale(), lr = ts.getVisibleLogicalRange(), w = Math.max(200, el.clientWidth - 80), bs = lr && lr.to > lr.from ? w / (lr.to - lr.from) : 6;
@@ -2777,7 +2777,8 @@ async function ocDraw() {
   const cur0 = o.c[n - 1];
   if (I.liq && Math.abs(I.liq / cur0 - 1) < 0.15) lines.push({ price: I.liq, color: css("--warn") || css("--down"), title: bi("thanh lý", "liq."), style: 2 });      // chỉ vẽ khi gần (xa thì xem ở ô số)
   el.innerHTML = "";
-  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)] });
+  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)], noTitle: true });
+  { const lg = document.querySelector("#ocChart .occ-lg"), lq = lines.find((l) => l.price === I.liq); lg?.querySelector(".occ-l.lq")?.remove(); if (lg && lq) lg.querySelector("#occSrc")?.insertAdjacentHTML("beforebegin", `<span class="occ-l lq"><i></i>${bi("Thanh lý", "Liq.")} <b>${px(I.liq)}</b></span>`); }      // thanh lý chỉ ghi chú khi đường có trên biểu đồ
   ch.c.applyOptions({ crosshair: { mode: 1 }, handleScale: { axisPressedMouseMove: { time: true, price: true } } });
   // chú thích nến dưới con trỏ (mặc định nến mới nhất): giờ · mở · cao · thấp · đóng · % · khối lượng
   const oEl = document.getElementById("occO"), idx = new Map(o.t.map((t, i) => [t, i]));

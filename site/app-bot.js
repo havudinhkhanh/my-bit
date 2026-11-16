@@ -2445,6 +2445,9 @@ async function viewTrade(env, sym, ms) {
   const ST = { wait: ["⏳ " + bi("Chờ khớp", "Waiting to fill"), "warn"], open: ["● " + bi("Đang giữ", "Open"), "buy"], closed: [(r.pnl ?? 0) >= 0 ? bi("Đã đóng · lời", "Closed · win") : bi("Đã đóng · lỗ", "Closed · loss"), (r.pnl ?? 0) >= 0 ? "buy" : "sell"], miss: ["✕ " + bi("Hụt – giá không tới", "Missed"), ""] }[r.status];
   const now = Date.now(), tm = (t) => (t ? new Date(t).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—");
   const fillsAvg = r.e || null, entLv = (r.lv || []).filter((l) => !l.mk), expX = r.tX ? null : r.tXe ?? (r.tF && r.hold ? r.tF + r.hold * 60e3 : null);
+  // chú thích các đường giá NẰM NGOÀI biểu đồ (tên + giá) – trên biểu đồ chỉ còn nhãn giá màu ở trục phải, không chữ đè lên nến
+  const lgI = (cl, t, v) => (isNum(v) && v > 0 ? `<span><i class="${cl}"></i>${t} <b>${px(v)}</b></span>` : "");
+  const trLg = [...entLv.map((l, i) => l.st === "x" ? "" : lgI(l.st === "f" ? "l-lf" : "l-lv", `${bi("mức", "lvl")} ${i + 1}${l.st === "f" ? bi(" (khớp)", " (filled)") : ""}`, l.px)), lgI("l-c0", bi("sau sốc", "post-shock"), r.c0), lgI("l-e", bi("vào", "entry"), fillsAvg), lgI("l-sl", bi("cắt lỗ", "stop"), r.stop), lgI("l-tp", bi("chốt lời", "target"), r.tp), lgI((r.pnl ?? 0) >= 0 ? "l-x" : "l-xd", bi("ra", "exit"), r.x)].join("");
   const TFS = [["1m", 60], ["5m", 300], ["15m", 900], ["1h", 3600], ["4h", 14400]], tf0 = r.strat === "hook" || r.strat === "sec" ? "1m" : r.strat === "pump" || r.strat === "list" ? "1h" : "15m";
   const TF = TFS.some(([k]) => k === window.__tTf) ? window.__tTf : tf0;
   // ---- kế hoạch & kết quả
@@ -2472,7 +2475,7 @@ async function viewTrade(env, sym, ms) {
   const others = ALLR.filter((x) => x !== r && x.t0).sort((a, b) => b.t0 - a.t0).slice(0, 8);
   const othP = others.length ? panel(bi(`Lệnh ${sym} khác`, `Other ${sym} trades`), `<div class="tr-oth">${others.map((x) => `<a href="#/t/${env}/${enc(sym)}/${x.t0}" class="tr-o"><small class="faint">${tm(x.t0)}</small><span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span><span>${esc(NM[x.strat] || x.strat)}</span>${x.status === "closed" ? `<b class="${cls(x.pnl)}">${j$(x.pnl || 0)}</b>` : `<small>${{ wait: bi("chờ khớp", "waiting"), open: bi("đang giữ", "open"), miss: bi("hụt", "missed") }[x.status]}</small>`}</a>`).join("")}</div>`) : "";
   app().innerHTML = `${head(`<span class="pill ${ST[1]}">${ST[0]}</span>${r.status === "closed" ? ` <b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b>` : ""}`)}
-    <section class="panel tr-ch"><div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}<span class="tr-lg"><i class="l-lv"></i>${bi("mức chờ", "levels")}<i class="l-e"></i>${bi("giá vào", "entry")}<i class="l-sl"></i>${bi("cắt lỗ", "stop")}<i class="l-x"></i>${bi("giá ra", "exit")}</span></div><div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
+    <section class="panel tr-ch"><div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}</div>${trLg ? `<div class="tr-lg">${trLg}</div>` : ""}<div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
     <div class="g g2w"><div>${panel(bi("Lý do & kế hoạch", "Why & plan"), `<p class="tr-why">${why}</p>${plan}`)}</div><div>${logP}${othP}</div></div>
     <p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`;
   $$("[data-sctab-go]").forEach((a) => (a.onclick = () => { window.__scEnv = env === "paper" ? "paper" : "live"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }));
@@ -2494,8 +2497,8 @@ async function viewTrade(env, sym, ms) {
     const last = data[data.length - 1].time, endT = tt(Math.max(tB + post / 3, 0));
     for (let t = last + sec; t <= endT && t - last < 400 * sec; t += sec) data.push({ time: t });      // khoảng trống tới giờ ra dự kiến
     cs.setData(data);
-    const PL = [], L = (price, color, title, style = 2, w = 1) => { if (!(isNum(price) && price > 0)) return; PL.push(+price); cs.createPriceLine({ price: +price, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }); };
-    entLv.forEach((l, i) => L(l.px, l.st === "f" ? css("--brand") : css("--ink-3"), `${bi("mức", "lvl")} ${i + 1}`, 2));
+    const PL = [], L = (price, color, title, style = 2, w = 1) => { if (!(isNum(price) && price > 0)) return; PL.push(+price); cs.createPriceLine({ price: +price, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title: "" }); };      // tên đường ở chú thích ngoài biểu đồ
+    entLv.forEach((l, i) => { if (l.st !== "x") L(l.px, l.st === "f" ? css("--brand") : css("--ink-3"), `${bi("mức", "lvl")} ${i + 1}`, 2); });      // mức đã huỷ không vẽ (vẫn có trong danh sách "Giá định vào")
     if (r.c0) L(r.c0, css("--brass") || css("--warn"), bi("sau sốc", "post-shock"), 3);
     if (fillsAvg) L(fillsAvg, css("--brand"), bi("vào", "entry"), 0, 2);
     if (r.stop) L(r.stop, css("--down"), bi("cắt lỗ", "stop"), 2);
@@ -2550,7 +2553,7 @@ async function tPeek(env, sym, ms, box) {
   const dec = pdec(+K[K.length - 1][4]), cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
   cs.setData(K.map((k) => ({ time: tt(+k[0]), open: +k[1], high: +k[2], low: +k[3], close: +k[4] })));
   const PL = [], L = (p, color, title, style = 2, w = 1) => { if (!(isNum(p) && p > 0)) return; PL.push(+p); cs.createPriceLine({ price: +p, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }); };
-  if (!r.tF) lv.forEach((l, i) => L(l.px, css("--ink-3"), `${bi("mức", "lvl")} ${i + 1}`));
+  if (!r.tF) lv.forEach((l, i) => { if (l.st !== "x") L(l.px, css("--ink-3"), ""); });
   if (r.e) L(r.e, css("--brand"), bi("vào", "in"), 0, 2); if (r.stop) L(r.stop, css("--down"), bi("cắt lỗ", "stop")); if (r.x) L(r.x, (r.pnl ?? 0) >= 0 ? css("--up") : css("--down"), bi("ra", "out"), 0, 2);
   if (PL.length) cs.applyOptions({ autoscaleInfoProvider: (orig) => { const o = orig(); if (!o?.priceRange) return o; const lo = Math.min(o.priceRange.minValue, ...PL), hi = Math.max(o.priceRange.maxValue, ...PL), pd = (hi - lo) * 0.05; return { ...o, priceRange: { minValue: lo - pd, maxValue: hi + pd } }; } });
   const up = r.side > 0, M = [];
