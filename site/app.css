@@ -6416,3 +6416,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .lvw-garden .lg-cat{background:none!important;border:0!important;box-shadow:none!important;outline:0;border-radius:0!important;min-height:0!important}
 .lvw-garden .lg-say{bottom:78px}
 .lvw.lvw-mfull .lvw-body,.lvw.lvw-mfull .lvw-segw{touch-action:pan-y}      /* vuốt ngang để đổi tab: trình duyệt chỉ cuộn dọc, cử chỉ ngang giao cho trang */
+/* nút đóng lệnh / vào ngay / huỷ… ngay trong biểu đồ bật ra – cùng kiểu nút trên thẻ, đặt dưới các ô số */
+.occ-act{justify-content:flex-start;flex-wrap:wrap;gap:6px;margin:2px 0 8px;padding:0}
+.occ-act .sc-mx{font-size:.8125rem;padding:7px 14px;border-radius:10px}
+@media (max-width:760px){.occ-act{justify-content:stretch}.occ-act .sc-mx{flex:1 1 auto;padding:9px 10px}}

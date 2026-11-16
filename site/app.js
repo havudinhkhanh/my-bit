@@ -225,10 +225,14 @@ function pxTags(el, c, cs, lines, cur) {
     raf = requestAnimationFrame(place); if (document.hidden) return;
     let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
     const V = tg.map((t) => ({ t, y: cs.priceToCoordinate(t.p) })).filter((v) => isNum(v.y) && v.y >= 0 && v.y <= H).sort((a, b) => a.y - b.y);
-    const key = V.map((v) => v.y.toFixed(1)).join() + H; if (key === last) return; last = key;
-    const G = 16, Y = V.map((v) => v.y);      // giãn cách tối thiểu 16px: đẩy xuống rồi kéo ngược lên nếu tràn đáy
-    for (let i = 1; i < Y.length; i++) Y[i] = Math.max(Y[i], Y[i - 1] + G);
-    for (let i = Y.length - 1; i >= 0; i--) { const mx = i === Y.length - 1 ? H - 8 : Y[i + 1] - G; if (Y[i] > mx) Y[i] = mx; }
+    let cp = null; try { cp = typeof cur === "function" ? cur() : cur; } catch (e) { /* bỏ qua */ } const yc = isNum(cp) ? cs.priceToCoordinate(cp) : null;
+    const key = V.map((v) => v.y.toFixed(1)).join() + H + "|" + (isNum(yc) ? yc.toFixed(1) : ""); if (key === last) return; last = key;
+    // xếp NHƯ thư viện xếp các ô giá ở trục: từ trên xuống, ô nào chạm ô phía trên thì bị đẩy xuống đúng 1 ô (cao ~16px) – kể cả ô GIÁ HIỆN TẠI
+    // (không có nhãn tên nhưng vẫn chiếm chỗ) → nhãn tên luôn NGANG HÀNG ô giá của chính nó
+    const G = 16, Q = V.map((v, i) => ({ i, y: v.y })); if (isNum(yc) && yc >= 0 && yc <= H) Q.push({ i: -1, y: yc });
+    Q.sort((a, b) => a.y - b.y || (a.i < 0 ? -1 : b.i < 0 ? 1 : 0)); for (let k = 1; k < Q.length; k++) Q[k].y = Math.max(Q[k].y, Q[k - 1].y + G);
+    for (let k = Q.length - 1; k >= 0; k--) { const mx = k === Q.length - 1 ? H - 8 : Q[k + 1].y - G; if (Q[k].y > mx) Q[k].y = mx; }
+    const Y = V.map((v) => v.y); for (const q of Q) if (q.i >= 0) Y[q.i] = q.y;
     tg.forEach((t) => (t.d.hidden = true));
     V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", Math.abs(Y[i] - v.y) > 3); });
   };
@@ -2564,7 +2568,9 @@ function ocInfo(card) {
     what: (card.querySelector(".r1s")?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 90),
     lv: [...card.querySelectorAll("[data-lgap][data-px]")].filter((x) => x.dataset.f !== "1").map((x) => n(x.dataset.px)).filter(Boolean),      // chỉ mức CÒN CHỜ (mức đã khớp / đã huỷ không phải lệnh chờ)
     lf: [...card.querySelectorAll("[data-lgap][data-px][data-f='1']:not([data-cx])")].map((x) => n(x.dataset.px)).filter(Boolean),
-    fund: +g("[data-lpnl]", "fund") || 0, liq: n(g("[data-lpnl]", "liq")), man: card.classList.contains("man") && !card.classList.contains("mpend") };
+    fund: +g("[data-lpnl]", "fund") || 0, liq: n(g("[data-lpnl]", "liq")), man: card.classList.contains("man") && !card.classList.contains("mpend"),
+    acts: [...card.querySelectorAll(".sc-mxr button")].map((b) => { const k = ["mclose", "menter", "mln", "mlc", "madd", "mkeep", "mcopy"].find((a) => b.dataset[a] != null); if (!k) return null;
+      const at = "data-" + k.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()); return { sel: `[${at}="${CSS.escape(b.getAttribute(at) || "")}"]`, html: b.innerHTML, cls: b.className, dis: b.disabled }; }).filter(Boolean) };
   // ✋ lệnh tay trên Binance: 1 mã = 1 vị thế → biểu đồ hiện ĐỦ lệnh thật của mã đó (vào / cắt lỗ / chốt / thanh lý + mọi lệnh chờ giá), mở từ thẻ nào cũng vậy
   if (card.classList.contains("man")) {
     const same = [...document.querySelectorAll(".sc-oc.man")].filter((c) => c.querySelector(`[data-lpnl="${CSS.escape(I.k)}"],[data-lgap="${CSS.escape(I.k)}"]`));
@@ -2599,6 +2605,7 @@ function ocOpen(I) {
       <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}">${bi("Phân tích", "Analysis")} →</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
     ${I.what ? `<div class="occ-what faint">${esc(I.what)}</div>` : ""}
     <div class="occ-st" id="occSt"></div>
+    ${(I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : ""}
     <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
       <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"]].map(([k, t]) => `<button type="button" data-octg="${k}" class="${ocOpt(k) ? "on" : ""}">${t}</button>`).join("")}</span></div>
     <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<small class="faint" id="occSrc"></small></div>
@@ -2610,6 +2617,9 @@ function ocOpen(I) {
   { const P = m.querySelector(".occ-p"); OCC.ready = new Promise((res) => { let d = 0; const f = () => { if (!d) { d = 1; res(); } }; P.addEventListener("transitionend", (e) => { if (e.propertyName === "transform") f(); }); setTimeout(f, 460); }); }
   void m.offsetWidth; requestAnimationFrame(() => m.classList.add("on"));
   m.querySelectorAll("[data-occx]").forEach((x) => (x.onclick = ocClose));
+  // nút trên biểu đồ = bấm đúng nút đó trên thẻ lệnh (thẻ vẽ lại 20 giây / lần → tìm lại theo thuộc tính); bảng xác nhận nổi lên trên biểu đồ
+  m.querySelectorAll("[data-occa]").forEach((x) => (x.onclick = () => { const a = I.acts[+x.dataset.occa], t = a && [...document.querySelectorAll(a.sel)].find((b) => !b.closest("#ocChart,.occ") && !b.disabled);
+    if (!t) { toast(bi("Lệnh này vừa thay đổi (đã đóng / khớp) – xem lại ở thẻ lệnh", "This trade just changed – check its card"), { type: "warn" }); return; } t.click(); }));
   m.querySelector(".occ-go").onclick = () => ocClose();
   m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg, v = !ocOpt(k); lsSet("oc_" + k, v); b.classList.toggle("on", v); ocDraw(); }));
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
