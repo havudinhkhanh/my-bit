@@ -305,6 +305,7 @@ export class LiveExec {
       await this.mPend().catch((e) => { if (!this.mpErrAt || Date.now() - this.mpErrAt > 600e3) { this.mpErrAt = Date.now(); this.err("📍 lệnh chờ giá", e); } });
       await this.mHist().catch((e) => { if (!this.mhErrAt || Date.now() - this.mhErrAt > 900e3) { this.mhErrAt = Date.now(); this.err("đọc lệnh tay đã đóng", e); } });
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
+      await this.mFund().catch((e) => { if (!this.mfErrAt || Date.now() - this.mfErrAt > 900e3) { this.mfErrAt = Date.now(); this.err("đọc funding lệnh tay đang mở", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
   }
@@ -516,6 +517,8 @@ export class LiveExec {
     const L = await this.req("GET", "/fapi/v2/positionRisk", {}).catch(() => this.req("GET", "/fapi/v3/positionRisk", {})), bot = this.botSyms();
     const pos = (L || []).filter((x) => +x.positionAmt !== 0).map((x) => ({ sym: x.symbol, amt: +x.positionAmt, ep: +x.entryPrice, mk: +x.markPrice, lev: +x.leverage || 1, up: +(+x.unRealizedProfit || 0).toFixed(4),
       liq: +x.liquidationPrice || 0, mt: x.marginType === "isolated" ? "iso" : "cross", im: +(+x.isolatedMargin || 0).toFixed(4), ps: x.positionSide || "BOTH", bot: bot.has(x.symbol) }));
+    const MF = this.S.mof?.[env] || {};
+    for (const p of pos) { const f = MF[p.sym]; if (f && f.sd === Math.sign(p.amt) && f.t1) { p.t1 = iso(f.t1); if (Number.isFinite(f.fund)) p.fund = f.fund; } }      // 💸 funding đã trả của lệnh tay đang mở (mFund đọc)
     const ord = {};
     if (pos.some((p) => !p.bot)) {
       const want = new Set(pos.filter((p) => !p.bot).map((p) => p.sym)), put = (o) => { if (want.has(o.sym)) (ord[o.sym] ||= []).push(o); };
@@ -558,6 +561,33 @@ export class LiveExec {
       delete L[sym]; this.save();
       this.say(`⏱ Lệnh tay ${coin(sym)}: ${why} → đóng theo hẹn`, "info");
       this.mWhyNext = x.pk && !(x.exp && Date.now() >= x.exp) ? "FOLLOW" : "TIMER"; await this.mClose(sym, 1);
+    }
+  }
+  // 💸 FUNDING CỦA LỆNH TAY ĐANG MỞ: tìm lúc vị thế mở (lần cuối đi từ 0 → khác 0, đọc ngược sổ khớp lệnh), rồi cộng funding thật (income FUNDING_FEE) từ lúc đó.
+  // 10 phút/mã/lần; vị thế đổi chiều / đóng hẳn → tính lại từ đầu. Chỉ đọc, không đặt lệnh.
+  async mFund() {
+    const env = this.env(); if (!this.keys(env)) return;
+    const MF = ((this.S.mof ||= {})[env] ||= {}), now = Date.now(), L = (this.S.man?.pos || []).filter((p) => !p.bot);
+    for (const sym of Object.keys(MF)) if (!L.some((p) => p.sym === sym && Math.sign(p.amt) === MF[sym].sd)) delete MF[sym];
+    for (const p of L) {
+      const sd = Math.sign(p.amt); let f = MF[p.sym];
+      if (!f || f.sd !== sd) f = MF[p.sym] = { sd, t1: 0, fund: null, chk: 0 };
+      if (now - f.chk < 10 * 60e3) continue; f.chk = now;
+      if (!f.t1) {      // lúc mở: đi ngược sổ khớp (tối đa 30 ngày) tới khi vị thế về 0
+        let pos = p.amt, end = now;
+        for (let k = 0; k < 5 && !f.t1; k++) {
+          const a = end - 7 * 864e5, T = ((await this.req("GET", "/fapi/v1/userTrades", { symbol: p.sym, startTime: String(a), endTime: String(end), limit: "1000" })) || []).sort((x, y) => y.time - x.time || y.id - x.id);
+          for (const t of T) { pos = +(pos - (t.side === "BUY" ? 1 : -1) * +t.qty).toFixed(10); if (Math.abs(pos) < 1e-9 || Math.sign(pos) !== sd) { f.t1 = t.time; break; } }
+          end = a;
+        }
+        if (!f.t1) f.t1 = now - 30 * 864e5;      // mở từ trước 30 ngày → tính funding 30 ngày gần nhất
+      }
+      let fund = 0;
+      for (let a = f.t1 - 1000; a < now; a += 7 * 864e5) {
+        const I = await this.req("GET", "/fapi/v1/income", { symbol: p.sym, incomeType: "FUNDING_FEE", startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" });
+        for (const x of I || []) if (x.asset === "USDT" && +x.time >= f.t1) fund += +x.income || 0;
+      }
+      f.fund = +fund.toFixed(4);
     }
   }
   // 🧾 LỆNH TAY ĐÃ ĐÓNG: dựng lại từ sổ khớp lệnh của Binance (userTrades) – mỗi lần vị thế từ 0 → mở → về 0 = 1 lệnh; lời/lỗ, phí, funding lấy đúng số của sàn.
