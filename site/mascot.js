@@ -307,7 +307,7 @@
   function pose(p) { if (!S.el) return; if (!["walk", "run", "stalk"].includes(p)) halt(); play(p); }
   function sitDown(p = "sit", then) { if (!S.el) return; halt(); S.el.classList.remove("run"); pose(p); if (then) setTimeout(then, 420); }
   function face(d) { S.face = d; S.el.dataset.face = d > 0 ? "r" : "l"; }
-  const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("typing")
+  const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("lvw-mf") || document.body.classList.contains("typing")
     || (mob() && document.activeElement?.matches?.("input, textarea, select, [contenteditable]")));
   function sched(fn, ms) { clearTimeout(S.tm); S.tm = setTimeout(fn, ms); }
   function walkTo(x, then, opt = {}) {

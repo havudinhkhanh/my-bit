@@ -7386,7 +7386,9 @@ function lvsDraw() {
       if (e.target.closest("[data-lvw-dot]")) { e.stopPropagation(); lvwMode("dot"); return; }
       const m = e.target.closest("[data-lvw-m]"); if (m) { lvwMode(m.dataset.lvwM); return; }
       if (e.target.closest("[data-lvw-t]")) { lvwMode(LVW.mode === "full" ? LVW.rest : LVW.mode === "dot" ? "mini" : "full"); return; }      // chấm → viên → thẻ; bấm viên khi đang mở → thu về
-      const tb = e.target.closest("[data-lvw-tab]"); if (tb) { LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw(); lvwPx().then(() => lvsDraw()); return; }
+      const tb = e.target.closest("[data-lvw-tab]"); if (tb) { const d = LVW.swd || (tb.dataset.lvwTab === "paper" ? 1 : -1); LVW.swd = 0; if (LVW.tab === tb.dataset.lvwTab) return; LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw();
+        const bdy = el.querySelector(".lvw-body"); if (bdy && el.classList.contains("lvw-mfull")) bdy.animate([{ transform: `translateX(${d * 36}px)`, opacity: 0.2 }, { transform: "none", opacity: 1 }], { duration: 240, easing: "cubic-bezier(.2,.8,.2,1)" });
+        lvwPx().then(() => lvsDraw()); return; }
       const go = e.target.closest("[data-lvw-go]"); if (go) { window.__scEnv = go.dataset.lvwGo === "live" ? "live" : "paper"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }
       if (e.target.closest("a") && MOB.matches) setTimeout(() => lvwMode(LVW.rest), 60);
     });
@@ -7410,6 +7412,12 @@ function lvsDraw() {
         if (navigator.vibrate) try { navigator.vibrate(8); } catch (_) {} };
       addEventListener("pointermove", mv, { passive: false }); addEventListener("pointerup", up); addEventListener("pointercancel", up);
     });
+    // 👆 vuốt ngang trên thẻ đang mở (điện thoại) = đổi Binance thật ↔ Sàn thử (vuốt trái → tab bên phải, như lật trang)
+    let sw = null;
+    el.addEventListener("touchstart", (e) => { if (!el.classList.contains("lvw-mfull") || e.touches.length !== 1 || !e.target.closest(".lvw-body,.lvw-segw")) { sw = null; return; } const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY, at: Date.now() }; }, { passive: true });
+    el.addEventListener("touchend", (e) => { if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; const ok = Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6 && Date.now() - sw.at < 700; sw = null; if (!ok) return;
+      const btn = [...el.querySelectorAll("[data-lvw-tab]")], cur = btn.findIndex((b) => b.classList.contains("on")), nx = cur + (dx < 0 ? 1 : -1); if (!btn[nx]) { el.querySelector(".lvw-body")?.animate([{ transform: "translateX(0)" }, { transform: `translateX(${dx < 0 ? -14 : 14}px)` }, { transform: "translateX(0)" }], { duration: 260, easing: "ease-out" }); return; }
+      LVW.swd = dx < 0 ? 1 : -1; btn[nx].click(); try { navigator.vibrate?.(6); } catch (_) {} }, { passive: true });
     // bấm / chạm RA NGOÀI thẻ đang mở (hoặc Esc) → thu về; điện thoại: nền mờ phía sau thẻ, chạm nền = đóng (không bấm nhầm vào trang)
     const bd = document.createElement("div"); bd.id = "lvwBd"; bd.className = "lvw-bd"; document.body.appendChild(bd);
     document.addEventListener("pointerdown", (e) => { if (LVW.mode !== "full") return; const x = document.getElementById("lvw"); if (!x || x.contains(e.target) || e.target.closest?.("#iosSheet,.ios-sheet,.ios-menu,#ocChart,.occ")) return;
@@ -7426,9 +7434,40 @@ function lvsDraw() {
   const pillEl = el.querySelector(".lvw-pill"); set(".lvw-pill", "pill", P.pill); pillEl.setAttribute("aria-expanded", String(LVW.mode === "full"));
   pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
   ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
-  document.getElementById("lvwBd")?.classList.toggle("on", LVW.mode === "full" && MOB.matches);
-  if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); lvwHold(el, D, P); }
+  document.getElementById("lvwBd")?.classList.toggle("on", LVW.mode === "full" && MOB.matches); if (LVW.mode !== "full") el.__gdOpen = 0;
+  if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); if (el.classList.contains("lvw-mfull")) requestAnimationFrame(() => lvwGarden(el, P)); else lvwHold(el, D, P); }
   lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && (LVW.mode !== "full" || MOB.matches));      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang el.__pw = el.querySelector(".lvw-pill").offsetWidth;
+}
+// 🌿 VƯỜN CỦA NA NA: thẻ mở trên điện thoại còn khoảng trống dưới danh sách → bãi cỏ nhỏ, na na ra chơi, nói đanh đá; chạm na na = đổi dáng + cãi lại.
+//    Chỉ dùng hiệu ứng CSS (biến hình / mờ) – không vẽ lại từng khung → không làm nặng máy. Na na tắt trong cài đặt → vườn không có mèo.
+const LG_HI = [["Đang nằm yên, ai cho mở cái bảng này ra?", "I was lying still. Who opened this?"], ["Vườn của na na. Nhìn thôi, đừng giẫm cỏ.", "My garden. Look, don't step on the grass."],
+  ["Ít lệnh thế mà cũng gọi na na dậy à?", "This few trades and you woke me up?"], ["Đang ngủ ngon thì bị lôi ra vườn. Vui chưa?", "Dragged out of a good nap. Happy now?"],
+  ["Muốn chơi thì ném len đây. Không thì đóng lại.", "Toss the yarn or close this."], ["Bướm này của na na. Cấm nhìn.", "That butterfly is mine. Don't stare."],
+  ["Nắng đẹp thế này mà ngồi dán mắt vào bảng.", "Lovely sun, and you're glued to a table."], ["Mở ra rồi thì ngồi chơi với na na năm phút.", "You opened it. Five minutes with me, then."]];
+const LG_EMPTY = [["Không có lệnh nào. Thế thì để na na chơi.", "No trades. So let me play."], ["Bảng trống trơn. Na na chiếm chỗ nhé.", "Empty table. I'm taking the space."]];
+const LG_POKE = [["Chạm nữa là cào đấy.", "Touch again and I scratch."], ["Rồi rồi, chơi 5 giây thôi.", "Fine. Five seconds of play."], ["Đừng chọc, đang canh bướm.", "Don't poke. I'm hunting."],
+  ["Na na không phải nút bấm.", "I'm not a button."], ["Hừ. Nhảy cho xem này.", "Hmph. Watch this jump."], ["Lần cuối. Thật đấy.", "Last time. I mean it."], ["Thôi được, lăn một vòng.", "Fine, one roll."], ["Đi ra. À không, ngồi lại.", "Go away. No wait, stay."]];
+const LG_POSE = ["lookup", "crouch", "jump", "yarnsit", "stretch", "roll", "scratch", "loaf", "sit"];
+function lvwGarden(el, P) {
+  const b = el.querySelector(".lvw-body"); if (!b || !el.classList.contains("lvw-mfull")) return;
+  let g = b.querySelector(":scope > .lvw-garden"); const last = [...b.children].filter((x) => x !== g && x.offsetParent).pop(), br = b.getBoundingClientRect();
+  const used = last ? last.getBoundingClientRect().bottom - br.top + b.scrollTop : 0, free = b.clientHeight - used - 16; if (free < 130) { g?.remove(); return; }      // không đủ chỗ → không có vườn (danh sách lệnh là chính)
+  const mun = (typeof UIP === "undefined" || UIP.mun?.on !== false), skin = (typeof UIP !== "undefined" && UIP.mun?.skin) || "classic";
+  if (!LVW.gd) { LVW.gd = document.createElement("div"); LVW.gd.className = "lvw-garden"; LVW.gd.setAttribute("aria-hidden", "false"); LVW.gd.k = 0;
+    const fl = (x, c, h) => `<g transform="translate(${x} 0)"><path d="M0 0v-${h}" stroke="var(--lg-stem)" stroke-width="1.6"/><circle cy="-${h}" r="3.4" fill="${c}"/><circle cy="-${h}" r="1.3" fill="#fff8d6"/></g>`;
+    LVW.gd.innerHTML = `<svg class="lg-bg" viewBox="0 0 360 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60V26C40 18 80 30 120 24S200 14 240 22s80 8 120-2v40Z" fill="var(--lg-g2)"/><path d="M0 60V38c50-8 90 4 140-2s90-10 130-2 60 6 90 0v26Z" fill="var(--lg-g1)"/></svg>
+      <svg class="lg-fl" viewBox="0 0 360 40" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><g transform="translate(0 40)">${fl(28, "#f4a9b8", 16)}${fl(52, "#ffd36e", 11)}${fl(300, "#b9a4f2", 14)}${fl(326, "#f4a9b8", 9)}${fl(342, "#ffd36e", 17)}</g></svg>
+      <svg class="lg-fly" viewBox="0 0 20 16" aria-hidden="true"><g class="lg-w"><path d="M10 8C6 1 1 2 2 6s5 4 8 2Z" fill="#f2a65a"/><path d="M10 8c4-7 9-6 8-2s-5 4-8 2Z" fill="#f2a65a"/><path d="M10 8C7 12 3 14 4 11s4-3 6-3Z" fill="#e58a3c"/><path d="M10 8c3 4 7 6 6 3s-4-3-6-3Z" fill="#e58a3c"/></g><path d="M10 4v9" stroke="#3a2a1a" stroke-width="1.2" stroke-linecap="round"/></svg>
+      ${mun ? `<button type="button" class="lg-cat" aria-label="na na"></button><div class="lg-say" role="status"></div>` : ""}`;
+    const cat = LVW.gd.querySelector(".lg-cat"), say = LVW.gd.querySelector(".lg-say");
+    const talk = (L) => { if (!say) return; const t = L[Math.floor(Math.random() * L.length)]; say.textContent = bi(t[0], t[1]); say.classList.remove("on"); void say.offsetWidth; say.classList.add("on"); clearTimeout(LVW.gdT); LVW.gdT = setTimeout(() => say.classList.remove("on"), 4200); };
+    const pose = (k) => { if (!cat || !window.MUN_ART) return; cat.innerHTML = window.MUN_ART.poseSvg(k, skin); cat.dataset.p = k; cat.classList.remove("lgpop"); void cat.offsetWidth; cat.classList.add("lgpop"); };
+    LVW.gd.talk = talk; LVW.gd.pose = pose;
+    cat?.addEventListener("click", (e) => { e.stopPropagation(); const g2 = LVW.gd; g2.k = (g2.k + 1) % LG_POSE.length; pose(LG_POSE[g2.k]); talk(LG_POKE); try { navigator.vibrate?.(5); } catch (_) {} });
+    if (mun) lazyJs("mascot.js").then(() => { pose("sit"); setTimeout(() => talk(P.n ? LG_HI : LG_EMPTY), 900); }).catch(() => cat?.remove());
+  } else if (!el.__gdOpen && LVW.gd.talk) { LVW.gd.classList.remove("seen"); setTimeout(() => LVW.gd.talk(P.n ? LG_HI : LG_EMPTY), 900); }      // mở lại thẻ → na na ra lại, nói câu khác
+  el.__gdOpen = 1; clearTimeout(LVW.gdS); LVW.gdS = setTimeout(() => LVW.gd?.classList.add("seen"), 1000);      // đã ra vườn → vẽ lại danh sách không chạy lại cảnh đi vào
+  g = LVW.gd; const H = `${Math.min(320, free)}px`; if (g.style.height !== H) g.style.height = H; if (g.parentNode !== b) b.appendChild(g);
 }
 // đổi tab Binance thật ↔ Sàn thử: thẻ GIỮ NGUYÊN chiều cao (= tab dài hơn, tối đa vừa màn hình) → hàng tab, nút, chân thẻ đứng yên đúng chỗ, mắt & chuột không phải dò lại
 function lvwHold(el, D, P) {

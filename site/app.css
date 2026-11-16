@@ -6383,3 +6383,36 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 .lvw.lvw-mfull .lvw-body{overflow-y:auto;overscroll-behavior:contain}
 .lvw.lvw-mfull .lvw-grip{visibility:hidden}
 body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:opacity .15s}      /* nút Bảng phụ không chen cạnh viên đang ở giữa đáy */
+/* 📱 thẻ lệnh bot mở trên điện thoại: nút Binance thật / Sàn thử ở DƯỚI (gần ngón cái), vuốt ngang để đổi */
+.lvw.lvw-mfull .lvw-body{order:2;display:flex;flex-direction:column;gap:6px}
+.lvw.lvw-mfull .lvw-segw{order:3}.lvw.lvw-mfull .lvw-f{order:4}
+.lvw.lvw-mfull .lvw-seg{padding:8px 10px;border-top:1px solid var(--bd-2)}
+.lvw.lvw-mfull .lvw-seg button{height:38px;border-radius:11px;font-weight:600}
+.lvw.lvw-mfull .lvw-f{border-top:0;padding-top:2px}
+/* 🌿 vườn của na na */
+.lvw-garden{--lg-g1:color-mix(in srgb,#5fae63 42%,var(--surface));--lg-g2:color-mix(in srgb,#8cc97a 30%,var(--surface));--lg-stem:color-mix(in srgb,#4f8f4a 70%,var(--surface));
+  position:relative;flex:0 0 auto;margin-top:auto;border-radius:14px;overflow:hidden;min-height:130px;
+  background:linear-gradient(180deg,color-mix(in srgb,#9fd3ff 16%,var(--surface)) 0%,color-mix(in srgb,#ffe9b0 14%,var(--surface)) 70%)}
+:root[data-theme=dark] .lvw-garden,:root:not([data-theme=light]) .lvw-garden{--lg-g1:color-mix(in srgb,#3f7a46 55%,var(--surface));--lg-g2:color-mix(in srgb,#5b8f4e 40%,var(--surface));background:linear-gradient(180deg,color-mix(in srgb,#5a6fb0 16%,var(--surface)),var(--surface) 80%)}
+:root[data-theme=light] .lvw-garden{--lg-g1:color-mix(in srgb,#5fae63 42%,#fff);--lg-g2:color-mix(in srgb,#8cc97a 30%,#fff);background:linear-gradient(180deg,#eef7ff 0%,#fff8e6 70%)}
+.lg-bg{position:absolute;left:0;right:0;bottom:0;width:100%;height:46%}
+.lg-fl{position:absolute;left:0;right:0;bottom:6px;width:100%;height:40px}
+.lg-fly{position:absolute;width:20px;height:16px;left:62%;top:22%;animation:lgFly 9s ease-in-out infinite}
+.lg-fly .lg-w{transform-origin:10px 8px;animation:lgFlap .22s ease-in-out infinite alternate}
+@keyframes lgFlap{to{transform:scaleX(.35)}}
+@keyframes lgFly{0%{transform:translate(0,0)}20%{transform:translate(-60px,14px)}40%{transform:translate(-110px,-6px)}60%{transform:translate(-40px,-18px)}80%{transform:translate(30px,8px)}100%{transform:translate(0,0)}}
+.lg-cat{position:absolute;left:12%;bottom:8px;width:118px;height:80px;padding:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:lgIn .9s cubic-bezier(.2,.8,.2,1) both}
+.lg-cat .mun-cat{position:static!important;transform:none!important;width:100%!important;height:100%!important;display:block}
+.lg-cat.lgpop{animation:lgPop .42s cubic-bezier(.3,1.6,.5,1)}
+.lg-cat[data-p=jump].lgpop{animation:lgHop .6s cubic-bezier(.3,.9,.4,1)}
+@keyframes lgIn{from{transform:translateX(-160%);opacity:0}to{transform:none;opacity:1}}
+@keyframes lgPop{0%{transform:scale(.86)}100%{transform:none}}
+@keyframes lgHop{0%{transform:none}45%{transform:translateY(-34px)}100%{transform:none}}
+.lg-say{position:absolute;left:calc(12% + 96px);right:12px;bottom:72px;max-width:220px;padding:7px 11px;border-radius:14px 14px 14px 4px;background:var(--surface);color:var(--ink);font-size:.8125rem;line-height:1.35;
+  box-shadow:0 6px 18px -6px rgba(0,0,0,.25),0 0 0 1px var(--bd-2);opacity:0;transform:translateY(6px) scale(.96);transform-origin:left bottom;transition:opacity .2s,transform .25s cubic-bezier(.3,1.4,.5,1);pointer-events:none}
+.lg-say.on{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.lg-fly,.lg-fly .lg-w,.lg-cat,.lg-cat.lgpop{animation:none!important}}
+.lvw-garden.seen .lg-cat:not(.lgpop){animation:none}
+.lvw-garden .lg-cat{background:none!important;border:0!important;box-shadow:none!important;outline:0;border-radius:0!important;min-height:0!important}
+.lvw-garden .lg-say{bottom:78px}
+.lvw.lvw-mfull .lvw-body,.lvw.lvw-mfull .lvw-segw{touch-action:pan-y}      /* vuốt ngang để đổi tab: trình duyệt chỉ cuộn dọc, cử chỉ ngang giao cho trang */
