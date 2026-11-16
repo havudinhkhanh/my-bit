@@ -505,6 +505,7 @@ export class LiveExec {
     else if (k.startsWith("mcp:")) { const [, sym, sd, usd, lev, sl, tp, ex, ...rest] = k.split(":"); await this.mCopy(sym, +sd > 0 ? 1 : -1, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +ex || 0, rest.join(":")); }
     else if (k.startsWith("mlo:")) { const [, sym, sd, pxs, usd, lev, sl, tp, vd, eh, av] = k.split(":"); await this.mLimit(sym, +sd > 0 ? 1 : -1, +pxs || 0, +usd || 0, Math.max(1, Math.min(20, Math.round(+lev || 1))), +sl || 0, +tp || 0, +vd || 0, +eh || 0, av === "1"); }
     else if (k.startsWith("mlc:")) { await this.mPendCancel(k.slice(4), "anh huỷ trên trang"); }
+    else if (k.startsWith("mln:")) { await this.mPendNow(k.slice(4)); }
     else if (k.startsWith("mlk:")) { const [, sym, sd, ex, ...rest] = k.split(":"); this.mLink(sym, +sd || 0, +ex || 0, rest.join(":")); this.save(); await this.mSync(true); }
   }
   // ---------------------------------------------------------------- ✋ LỆNH TAY: vị thế anh tự mở trên Binance Futures (bot KHÔNG mở) – bot không tự đụng tới.
@@ -527,7 +528,7 @@ export class LiveExec {
       const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
-    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo", "swa"],
+    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, cap: ["mlo", "swa", "mln"],
       pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, avg: !!m.avg, t0: m.t0, vd: m.vd, eh: m.eh })),
       pdone: Object.values(this.S.mo || {}).filter((m) => m.done && m.env === env && Date.now() - (m.t2 || 0) < 86400e3).slice(-10).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, st: m.st, t2: m.t2 })) };
   }
@@ -656,8 +657,8 @@ export class LiveExec {
   }
   // 📋 CHÉP 1 lệnh sàn thử sang Binance (anh bấm trên trang): vào bằng lệnh thị trường, ký quỹ CÔ LẬP, đòn bẩy anh chọn; rồi đặt cắt lỗ / chốt lời trên sàn
   // và hẹn đóng đúng giờ của lệnh sàn thử (+ đóng ngay khi sàn thử đóng lệnh đó). Sau đó là 1 lệnh tay bình thường (thẻ ✋ trên trang).
-  async mCopy(sym, sd, usd, lev, sl, tp, exp, pk) {
-    const tag = `📋 Chép ${pk ? this.pkName(pk) : "lệnh sàn thử"} → ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`;
+  async mCopy(sym, sd, usd, lev, sl, tp, exp, pk, tag0 = "") {
+    const tag = tag0 || `📋 Chép ${pk ? this.pkName(pk) : "lệnh sàn thử"} → ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`;
     if (this.env() !== "live" && this.env() !== "demo") return;
     if (this.botSyms().has(sym)) { this.say(`${tag}: bot đang có lệnh trên mã này – không chép (Binance gộp chung vị thế)`, "info"); return; }
     const F = await this.filters(sym); if (!F) { this.say(`${tag}: mã không giao dịch futures được`, "info"); return; }
@@ -766,6 +767,23 @@ export class LiveExec {
     await this.mPendCheck(m, true);      // lỡ khớp 1 phần trước khi huỷ → vẫn đặt cắt lỗ / chốt lời cho phần đã vào
     if (!m.done) { m.done = true; m.st = "cxl"; m.t2 = Date.now(); this.say(`📍 Huỷ lệnh chờ ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"} @ ${m.px} – ${why}`, "info"); }
     this.save(); this.mAt = 0; await this.mSync(true);
+  }
+  // ⚡ VÀO NGAY thay vì chờ giá: huỷ lệnh chờ TRƯỚC (không khớp đôi) → phần đã lỡ khớp giữ nguyên (đặt cắt lỗ / chốt như cũ) → phần còn lại vào lệnh thị trường,
+  //    cùng chiều, cùng đòn bẩy, cùng cắt lỗ / chốt lời / hẹn đóng đã chọn. Cắt lỗ đã nằm sai phía giá hiện tại → không vào (mCopy báo).
+  async mPendNow(id) {
+    const m = this.S.mo?.[id]; if (!m || m.done) return;
+    const tag = `📍⚡ Vào ngay ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"} (thay lệnh chờ @ ${m.px})`;
+    if (m.env !== this.env()) { this.say(`${tag}: lệnh chờ thuộc tài khoản ${LTAG(m.env)}, bot đang ở ${LTAG(this.env())} – không vào`, "info"); return; }
+    if (!this.enabled()) { this.say(`${tag}: tài khoản Binance của bot đang tắt – không vào`, "info"); return; }
+    let fq = 0;
+    if (m.algo) { const a = await this.req("GET", "/fapi/v1/algoOrder", { algoId: m.oid }).catch(() => null); fq = +a?.executedQty || 0; await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: m.oid }).catch(() => {}); }
+    else { await this.req("DELETE", "/fapi/v1/order", { symbol: m.sym, orderId: m.oid }).catch(() => {}); const o = await this.req("GET", "/fapi/v1/order", { symbol: m.sym, orderId: m.oid }).catch(() => null); fq = +o?.executedQty || 0; }
+    await this.mPendCheck(m, true);      // lỡ khớp 1 phần trước khi huỷ → phần đó thành lệnh tay, có cắt lỗ / chốt lời
+    if (!m.done) { m.done = true; m.st = "now"; m.t2 = Date.now(); }
+    this.save();
+    const F = await this.filters(m.sym), mk = this.mark(coin(m.sym) + ":F") || m.px, rq = Math.max(0, m.q - fq), usd = (m.usd || m.q * m.px) * rq / m.q;      // giữ đúng số USDT anh định vào (phần chưa khớp)
+    if (!F || !(rq * mk >= F.minN)) { this.say(`${tag}: lệnh chờ đã khớp ${fq ? "gần hết" : ""} – không còn phần nào để vào thêm`, "info"); this.mAt = 0; await this.mSync(true); return; }
+    await this.mCopy(m.sym, m.sd, usd, m.lev || 1, m.sl || 0, m.tp || 0, m.eh > 0 ? Date.now() + m.eh * 3600e3 : 0, "", tag);
   }
   // kiểm tra 1 lệnh chờ: đã khớp (toàn bộ / 1 phần) → đặt cắt lỗ, chốt lời, hẹn đóng; sàn đã huỷ / hết hạn → bỏ
   async mPendCheck(m, cancelled) {

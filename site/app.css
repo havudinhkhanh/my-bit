@@ -6364,3 +6364,6 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 /* ✂️ lệnh tay đã đóng bớt: phần đã chốt (về ví) + cả lệnh tới giờ */
 .sc-oc .r4.sc-part{flex-direction:column;align-items:flex-start;gap:1px;padding:5px 8px;margin-top:2px;border-radius:8px;background:color-mix(in srgb,var(--brand) 7%,transparent)}
 .sc-oc .r4.sc-part .faint{margin-left:0}
+/* 📍 thẻ lệnh chờ giá: nút ⚡ Vào ngay + Huỷ cùng nhóm bên phải */
+.sc-oc.mpend .r4{justify-content:space-between}.sc-oc.mpend .sc-mpb{display:inline-flex;gap:6px;margin-left:auto;flex:none}
+.sc-oc.mpend .r4 .faint{margin-left:0}
