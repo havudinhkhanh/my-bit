@@ -7350,11 +7350,15 @@ function lvwPlace(el, anim = true) {
   const fab = document.querySelector(".pnfab"), fr = fab && fab.offsetParent && fab.getBoundingClientRect();
   if (fr && fr.width && x < fr.right && x + w > fr.left && y < fr.bottom && y + h > fr.top) y = y + h / 2 < fr.top + fr.height / 2 ? fr.top - h - 8 : fr.bottom + 8;
   x = Math.round(Math.max(dot ? 0 : K.L, Math.min((dot ? K.W : K.R) - w, x))); y = Math.round(Math.max(K.T, Math.min(K.B - h, y)));
-  const cx = x + w / 2, cy = y + h / 2, up = P.e === "b" || (P.e !== "t" && cy - K.T > K.B - cy), al = P.e === "l" || (P.e !== "r" && cx < K.W / 2);
+  // 📱 điện thoại, mở rộng: bố cục CỐ ĐỊNH dù viên đang ở đâu – viên xuống giữa đáy (trên thanh tab), thẻ tràn ngang từ trên xuống tới sát viên;
+  //    bấm lại viên (hoặc chạm ra ngoài) → thu về, viên quay về đúng chỗ cũ (LVW.pos không đổi)
+  const mf = mob && LVW.mode === "full"; el.classList.toggle("lvw-mfull", mf); document.body.classList.toggle("lvw-mf", mf);
+  if (mf) { x = Math.round((K.W - w) / 2); y = Math.round(K.B - h); }
+  const cx = x + w / 2, cy = y + h / 2, up = mf || P.e === "b" || (P.e !== "t" && cy - K.T > K.B - cy), al = P.e === "l" || (P.e !== "r" && cx < K.W / 2);
   // điện thoại: thẻ mở ra TRÀN NGANG màn hình (chừa 8px mỗi bên) như bong bóng chat Messenger; máy tính: thẻ 360px cạnh viên
   const cw = mob ? K.W - 16 : Math.min(360, K.W - 24), room = up ? y - K.T - 8 : K.B - (y + h) - 8;
   const cl = mob ? 8 - x : Math.max(12 - x, Math.min(K.W - 12 - cw - x, al ? 0 : w - cw));
-  el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, room))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
+  el.style.setProperty("--lvw-mh", `${mf ? Math.max(200, room) : Math.max(200, Math.min(560, room))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
   ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-" + P.e)); el.classList.toggle("lvw-upw", up); el.classList.toggle("lvw-al", al);
   if (!Number.isFinite(x) || !Number.isFinite(y) || x > K.W - 20 || y > K.H - 20 || x + w < 20 || y + h < 20) {      // vị trí hỏng / ngoài màn hình → về chỗ mặc định
     if (!el.__fix) { el.__fix = 1; LVW.pos = null; lsSet("lvwpos", null); return lvwPlace(el, false); } x = Math.max(8, K.W - w - 12); y = Math.max(8, K.H - h - 90);
@@ -7388,7 +7392,7 @@ function lvsDraw() {
     });
     // kéo thả: giữ viên / chấm / thanh tiêu đề → theo ngón tay → thả ra hít vào mép gần nhất, giữ đúng vị trí dọc theo mép
     el.addEventListener("pointerdown", (e) => {
-      const hnd = e.target.closest("[data-lvw-drag]"); if (!hnd || (e.button !== 0 && e.pointerType === "mouse") || e.target.closest("[data-lvw-m],[data-lvw-dot]")) return;
+      const hnd = e.target.closest("[data-lvw-drag]"); if (!hnd || (e.button !== 0 && e.pointerType === "mouse") || e.target.closest("[data-lvw-m],[data-lvw-dot]") || el.classList.contains("lvw-mfull")) return;      // đang mở cố định trên điện thoại: không kéo
       const [x0, y0] = el.__xy || [0, 0], px0 = e.clientX, py0 = e.clientY, pill = el.querySelector(".lvw-pill"), pw = pill.offsetWidth, ph = pill.offsetHeight; let moved = false, raf = 0, lx = px0, ly = py0;
       const mv = (ev) => { lx = ev.clientX; ly = ev.clientY; if (!moved && Math.hypot(lx - px0, ly - py0) < 7) return;
         if (!moved) { moved = true; el.classList.add("drag"); try { hnd.setPointerCapture(e.pointerId); } catch (_) {} }
@@ -7424,7 +7428,7 @@ function lvsDraw() {
   ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
   document.getElementById("lvwBd")?.classList.toggle("on", LVW.mode === "full" && MOB.matches);
   if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); lvwHold(el, D, P); }
-  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && LVW.mode !== "full");      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang el.__pw = el.querySelector(".lvw-pill").offsetWidth;
+  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && (LVW.mode !== "full" || MOB.matches));      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang el.__pw = el.querySelector(".lvw-pill").offsetWidth;
 }
 // đổi tab Binance thật ↔ Sàn thử: thẻ GIỮ NGUYÊN chiều cao (= tab dài hơn, tối đa vừa màn hình) → hàng tab, nút, chân thẻ đứng yên đúng chỗ, mắt & chuột không phải dò lại
 function lvwHold(el, D, P) {

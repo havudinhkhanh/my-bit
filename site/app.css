@@ -6378,3 +6378,8 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 .lvw-bd{position:fixed;inset:0;z-index:49;background:rgba(10,14,20,.38);opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s;-webkit-tap-highlight-color:transparent}
 .lvw-bd.on{opacity:1;visibility:visible;transition:opacity .2s ease,visibility 0s}
 @media (min-width:980px){.lvw-bd{display:none}}
+/* 📱 mở rộng trên điện thoại: thẻ luôn cao từ dưới thanh đầu trang tới sát viên (viên ở giữa đáy) */
+.lvw.lvw-mfull .lvw-card{height:var(--lvw-mh);max-height:none}
+.lvw.lvw-mfull .lvw-body{overflow-y:auto;overscroll-behavior:contain}
+.lvw.lvw-mfull .lvw-grip{visibility:hidden}
+body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:opacity .15s}      /* nút Bảng phụ không chen cạnh viên đang ở giữa đáy */
