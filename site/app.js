@@ -204,6 +204,12 @@ function mkChart(el, extra = {}) {
 }
 // 🏷️ TÊN ĐƯỜNG GIÁ nằm BÊN PHẢI trục giá (không đè lên nến): cột nhãn riêng, tự giãn khi 2 đường sát nhau (không chồng chữ),
 //    di chuột / chạm gần 1 đường → hiện đường gì · giá · cách giá hiện tại bao nhiêu %. lines: [{ price, color, title }]
+// 🌙 iPhone: lớp toàn màn hình đang mở → html.ovl-on (thay cho html:has(...) trong CSS – :has ở gốc trang làm mọi thay đổi nhỏ phải tính lại cả trang)
+if (document.documentElement.classList.contains("nl-ios")) { const OVL = "body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])";
+  let q = 0; const chk = () => { q = 0; document.documentElement.classList.toggle("ovl-on", !!document.querySelector(OVL)); };
+  new MutationObserver(() => { if (!q) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] }); chk(); }
+// rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na na (mascot) đứng yên cho biểu đồ chạy mượt
+addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweight-charts")) window.__chartHot = performance.now(); }, { passive: true, capture: true });
 function pxTags(el, c, cs, lines, cur) {
   try { el._ptStop?.(); } catch (e) { /* bỏ qua */ }
   const L = (lines || []).filter((l) => isNum(l.price) && +l.price > 0 && l.title); if (!L.length) { c._ptW = 0; return 0; }
@@ -227,15 +233,19 @@ function pxTags(el, c, cs, lines, cur) {
     V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", Math.abs(Y[i] - v.y) > 3); });
   };
   place();
-  const hv = (pm) => {
+  let curT = null, tipW = 0, tipXY = "";
+  const hv = (pm) => {      // chỉ đụng DOM khi đổi đường được trỏ / đổi chỗ hộp – rê chuột không làm trình duyệt tính lại cả trang
     const pt = pm?.point; let best = null;
     if (pt) for (const t of tg) { const y = cs.priceToCoordinate(t.p); if (isNum(y) && Math.abs(y - pt.y) <= 6 && (!best || Math.abs(y - pt.y) < best.dy)) best = { t, dy: Math.abs(y - pt.y) }; }
-    tg.forEach((t) => t.d.classList.toggle("on", t === best?.t));
-    if (!best) { tip.hidden = true; return; }
-    const cp = typeof cur === "function" ? cur() : cur, d = cp ? (best.t.p / cp - 1) * 100 : null;
-    tip.innerHTML = `<i style="background:${best.t.l.color || css("--ink-3")}"></i><b>${esc(T(best.t.l.title))}</b> ${px(best.t.p)}${isNum(d) ? ` <small>${bi(`cách giá ${d >= 0 ? "+" : ""}${nf(d, 2)}%`, `${d >= 0 ? "+" : ""}${nf(d, 2)}% from price`)}</small>` : ""}`;
-    tip.hidden = false; const w = tip.offsetWidth, x = Math.min(Math.max(4, pt.x + 12), el.clientWidth - w - 4), y = cs.priceToCoordinate(best.t.p) - 30;
-    tip.style.transform = `translate(${Math.round(x)}px,${Math.round(Math.max(2, y))}px)`;
+    const nt = best?.t || null;
+    if (nt !== curT) { curT?.d.classList.remove("on"); nt?.d.classList.add("on"); curT = nt;
+      if (!nt) { tip.hidden = true; tipXY = ""; return; }
+      const cp = typeof cur === "function" ? cur() : cur, d = cp ? (nt.p / cp - 1) * 100 : null;
+      tip.innerHTML = `<i style="background:${nt.l.color || css("--ink-3")}"></i><b>${esc(T(nt.l.title))}</b> ${px(nt.p)}${isNum(d) ? ` <small>${bi(`cách giá ${d >= 0 ? "+" : ""}${nf(d, 2)}%`, `${d >= 0 ? "+" : ""}${nf(d, 2)}% from price`)}</small>` : ""}`;
+      tip.hidden = false; tipW = tip.offsetWidth; }
+    if (!nt) return;
+    const x = Math.min(Math.max(4, pt.x + 12), el.clientWidth - tipW - 4), y = Math.max(2, cs.priceToCoordinate(nt.p) - 30), xy = `${Math.round(x / 4) * 4},${Math.round(y)}`;
+    if (xy !== tipXY) { tipXY = xy; tip.style.transform = `translate(${xy.replace(",", "px,")}px)`; }
   };
   c.subscribeCrosshairMove(hv);
   el._ptStop = () => { alive = false; cancelAnimationFrame(raf); try { c.unsubscribeCrosshairMove(hv); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
@@ -1444,6 +1454,10 @@ function sclSync(ids) {
   }
   if (!SCL.iv) SCL.iv = setInterval(sclApply, 1000);     // đếm ngược thời gian giữ chạy cả khi chưa có giá mới
 }
+// ghi chữ KHÔNG thay phần tử: chỉ đổi dữ liệu của nút chữ sẵn có (rẻ), giống thì bỏ qua – thay phần tử con mỗi nhịp giá làm trình duyệt
+// tính lại kiểu dáng cả trang (~4ms/lần vì các luật :has) → rê chuột trên biểu đồ giật
+function setT(el, t) { if (!el) return; const f = el.firstChild; if (f && f.nodeType === 3 && !f.nextSibling) { if (f.data !== t) f.data = t; } else if (el.textContent !== t) el.textContent = t; }
+function setC(el, c) { if (el && el.className !== c) el.className = c; }
 function sclKick() { if (!SCL.tm) SCL.tm = setTimeout(() => { SCL.tm = 0; sclApply(); }, 200); }
 function sclApply() {
   if (location.hash !== "#/bot/scalp" || !document.getElementById("app")) { sclStop(); return; }
@@ -1452,7 +1466,7 @@ function sclApply() {
   document.querySelectorAll("[data-lpx]").forEach((el) => {
     const p = SCL.px[el.dataset.lpx]; if (!p) return;
     const o = +el.dataset.v || 0; if (p === o) return;
-    el.dataset.v = p; el.textContent = px(p);
+    el.dataset.v = p; setT(el, px(p));
     if (o && el.animate) el.animate([{ backgroundColor: `color-mix(in srgb, ${p > o ? up : dn} 26%, transparent)` }, { backgroundColor: "transparent" }], { duration: 650, easing: "ease-out" });
   });
   let tot = 0, nn = 0; const seen = new Set();
@@ -1461,20 +1475,22 @@ function sclApply() {
     const e = +el.dataset.e, q = +el.dataset.q, sd = +el.dataset.sd, usd = sd * q * (m - e) - (+el.dataset.f0) - q * m * (+el.dataset.fr) / 100 + (+el.dataset.fund || 0), b = usd / (q * e) * 1e4;
     if (!seen.has(el.dataset.lpnl)) { seen.add(el.dataset.lpnl); tot += usd; nn++; }
     const sl = +el.dataset.sl, tp = +el.dataset.tp, ok = (v) => v > 0 && v < 1e15, w = Math.max(0, Math.min(100, (sd > 0 ? (m - sl) / (tp - sl) : (sl - m) / (sl - tp)) * 100));
-    el.className = (el.classList.contains("r2") ? "r2 " : "") + cls(usd);
-    el.innerHTML = `<b>${usd >= 0 ? "+" : ""}${usd2(usd)}</b> <small>${b >= 0 ? "+" : ""}${nf(b, 1)} bps</small>${ok(sl) && ok(tp) ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i style="left:${w.toFixed(0)}%"></i></span>` : ""}`;
+    setC(el, (el.classList.contains("r2") ? "r2 " : "") + cls(usd));
+    const rg = ok(sl) && ok(tp);
+    if (!el._lp || !!el._lp.i !== rg) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
+    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, `${b >= 0 ? "+" : ""}${nf(b, 1)} bps`); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
   });
-  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100; el.textContent = EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`; });
-  document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); if (el.textContent !== t) el.textContent = t; });
+  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100; setT(el, EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`); });
+  document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); setT(el, t); });
   const u = document.getElementById("scUpnl");
-  if (u && nn) { u.className = "sc-up " + cls(tot); u.textContent = `${tot >= 0 ? "+" : ""}${usd2(tot)}`; }
+  if (u && nn) { setC(u, "sc-up " + cls(tot)); setT(u, `${tot >= 0 ? "+" : ""}${usd2(tot)}`); }
   document.querySelectorAll("[data-lt0]").forEach((el) => {
     const t0 = +el.dataset.lt0, h = +el.dataset.lh, left = Math.max(0, h - (now - t0) / 1000), f = el.querySelector(".sc-cd i"), s = el.querySelector("small");
-    if (f) f.style.width = `${(100 - left / h * 100).toFixed(1)}%`;
-    if (s) s.textContent = left >= 86400 ? `${Math.floor(left / 86400)} ngày ${Math.floor((left % 86400) / 3600)} giờ` : left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor((left % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(left % 60)).padStart(2, "0")}` : left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`;
+    if (f) { const W = `${(100 - left / h * 100).toFixed(1)}%`; if (f.style.width !== W) f.style.width = W; }
+    if (s) setT(s, left >= 86400 ? `${Math.floor(left / 86400)} ngày ${Math.floor((left % 86400) / 3600)} giờ` : left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor((left % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(left % 60)).padStart(2, "0")}` : left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`);
   });
   const lv = document.getElementById("scLive"), last = Math.max(0, ...Object.values(SCL.at));
-  if (lv) { const ok = last && now - last < 5000; lv.className = "sc-lv " + (ok ? "on" : ""); lv.textContent = ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""; }
+  if (lv) { const ok = last && now - last < 5000; setC(lv, "sc-lv " + (ok ? "on" : "")); setT(lv, ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""); }
 }
 // bảng có class "rs": trên điện thoại mỗi dòng thành 1 thẻ (nhãn cột lấy từ tiêu đề) – không phải kéo ngang
 function rsTables(root) {
@@ -2823,10 +2839,14 @@ async function ocDraw() {
   // chú thích nến dưới con trỏ (mặc định nến mới nhất): giờ · mở · cao · thấp · đóng · % · khối lượng
   const oEl = document.getElementById("occO"), idx = new Map(o.t.map((t, i) => [t, i]));
   const fT = (t) => new Date(t * 1000 + 7 * 3600e3).toISOString().replace("T", " ").slice(intraTf(tf) ? 5 : 0, /s$/.test(tf) ? 19 : intraTf(tf) ? 16 : 10).replace(/-/g, "/");
+  // dựng khung 1 lần, rê chuột chỉ đổi CHỮ (không thay phần tử) → trình duyệt không phải tính lại kiểu dáng cả trang mỗi lần di chuột
+  if (oEl) oEl.innerHTML = `<span><b data-k="t">&#8203;</b></span><span>${bi("M", "O")} <b data-k="o">&#8203;</b></span><span>${bi("C", "H")} <b data-k="h">&#8203;</b></span><span>${bi("T", "L")} <b data-k="l">&#8203;</b></span><span>${bi("Đ", "C")} <b data-k="c">&#8203;</b></span><span><b data-k="d">&#8203;</b></span><span>${bi("KL", "Vol")} <b data-k="v">&#8203;</b></span><span class="faint">${bi("biên", "range")} <b data-k="r" style="font-weight:inherit">&#8203;</b></span>`;
+  const LG = {}; oEl?.querySelectorAll("[data-k]").forEach((x) => (LG[x.dataset.k] = x)); LG.t && (LG.t.style.fontWeight = "inherit");
+  const put = (k, v, c) => { const x = LG[k]; if (!x) return; if (x.firstChild.data !== v) x.firstChild.data = v; if (c !== undefined && x.className !== c) x.className = c; };
   const leg = (i) => { if (!oEl || i == null || i < 0) return; const S = OCC.src || o, c0 = S.c[i - 1] ?? S.o[i], d = (S.c[i] / c0 - 1) * 100;
-    oEl.innerHTML = `<span>${fT(S.t[i])}</span><span>${bi("M", "O")} <b>${px(S.o[i])}</b></span><span>${bi("C", "H")} <b>${px(S.h[i])}</b></span><span>${bi("T", "L")} <b>${px(S.l[i])}</b></span><span>${bi("Đ", "C")} <b class="${cls(d)}">${px(S.c[i])}</b></span><span class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</span><span>${bi("KL", "Vol")} <b>${usd(S.v[i] || 0)}</b></span><span class="faint">${bi("biên", "range")} ${nf((S.h[i] / S.l[i] - 1) * 100, 2)}%</span>`; };
+    put("t", fT(S.t[i])); put("o", px(S.o[i])); put("h", px(S.h[i])); put("l", px(S.l[i])); put("c", px(S.c[i]), cls(d)); put("d", `${d >= 0 ? "+" : ""}${nf(d, 2)}%`, cls(d)); put("v", usd(S.v[i] || 0)); put("r", `${nf((S.h[i] / S.l[i] - 1) * 100, 2)}%`); };
   OCC.src = o; leg(n - 1);
-  ch.c.subscribeCrosshairMove((pm) => { const i = pm?.time != null ? idx.get(pm.time) : null; leg(i != null ? i : (OCC.src || o).t.length - 1); });
+  let legI = -1; ch.c.subscribeCrosshairMove((pm) => { const i0 = pm?.time != null ? idx.get(pm.time) : null, i = i0 != null ? i0 : (OCC.src || o).t.length - 1; if (i === legI) return; legI = i; leg(i); });      // cùng nến → không vẽ lại chữ
   try { chartPxMenu(el, ch, () => ({ base: I.base, man: I.man ? I.base + "USDT" : null, side: I.side, e: I.e, fut: I.fut })); } catch (e) { /* bỏ qua */ }
   // RSI 14 (tuỳ chọn) – khung nhỏ dưới, cùng trục thời gian
   const rEl = document.getElementById("occR"); OCC.rc = null;
@@ -6796,8 +6816,8 @@ function ntBanner(list) {
   let y0 = null, dy = 0, moved = false;
   card.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; dy = 0; moved = false; clearTimeout(tm); card.style.transition = "none"; box.classList.remove("gl"); }, { passive: true });
   card.addEventListener("touchmove", (e) => { if (y0 == null) return; dy = e.touches[0].clientY - y0; if (Math.abs(dy) > 6) moved = true; if (!moved) return; if (e.cancelable) e.preventDefault();
-    card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, Math.max(0, dy) / 50).toFixed(3)); }, { passive: false });
-  card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.style.removeProperty("--pull"); setTimeout(() => { if (!gone) box.classList.add("gl"); }, 360);
+    box.classList.add("drag"); card.style.transform = dy < 0 ? `translateY(${dy}px)` : `translateY(${(open ? 0.15 : 0.35) * dy * (1 - Math.min(0.6, dy / 600))}px)`; if (!open) box.style.setProperty("--pull", Math.min(1, Math.max(0, dy) / 50).toFixed(3)); }, { passive: false });
+  card.addEventListener("touchend", () => { if (y0 == null) return; y0 = null; card.style.transition = ""; card.style.transform = ""; box.classList.remove("drag"); box.style.removeProperty("--pull"); setTimeout(() => { if (!gone) box.classList.add("gl"); }, 360);
     if (!moved) { arm(); return; }
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; card.addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => card.removeEventListener("click", eat, { capture: true }), 350);
     if (dy < -28) out(); else if (dy > 36 && !open) setOpen(true); else if (dy < -10 && open) setOpen(false); else arm(); }, { passive: true });

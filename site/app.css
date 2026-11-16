@@ -1030,7 +1030,7 @@ th.brand{color:var(--brand)}
 .lay>.lc.s1{grid-column:span 1}.lay>.lc.s2{grid-column:span 2}.lay>.lc.s3{grid-column:1/-1}
 .lay>.lc.hid{display:none}
 .lay>.lc:has(> section[hidden]){display:none}
-.lay>.lc:not(:has(> :not(.lbar))){display:none}
+.lay>.lc:empty,.lay>.lc:has(> .lbar:only-child){display:none}      /* ô chỉ còn thanh tiêu đề (trước: :has(> :not(.lbar)) – khớp mọi phần tử → chậm cả trang) */
 .lay>.lc.col>:not(.lbar)>:not(.ph):not(summary){display:none}
 .lay>.lc.col>.panel{flex:0 0 auto;cursor:pointer}
 .lay>.lc.col>.panel .ph::after{content:"▸ mở";font-size:.6875rem;color:var(--ink-3);margin-left:8px}
@@ -5911,11 +5911,12 @@ html[data-nl]{background-color:var(--nl-bg,var(--bg))!important}
 body.pn-sheet .pnav .edge-grip,body.pn-sheet .pnav .eg-btn{display:none!important}
 /* 🌙 lớp ấm chính chừa thanh MyBit (để Safari iPhone tô vùng giờ/pin bằng màu đặc của thanh). Các lớp TOÀN MÀN HÌNH mở đè lên thanh
    (bảng phụ, bảng Thêm, tìm kiếm, thông báo, menu, hộp thoại, biểu đồ toàn màn hình…) tự phủ thêm đúng dải trên cùng đó → cả màn ấm đều, không còn dải trắng */
-html.nl-ios[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden]))::before{
+html.nl-ios[data-nl].ovl-on::before{      /* .ovl-on: JS bật khi có lớp toàn màn hình (trước dùng html:has(...) → MỌI thay đổi nhỏ trên trang bắt trình duyệt tính lại cả trang ~15ms → rê chuột trên biểu đồ giật) */
+
   content:"";position:fixed;left:0;right:0;top:0;height:var(--top-h,calc(56px + env(safe-area-inset-top,0px)));z-index:2147483647;pointer-events:none;
   background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26)}
 /* khi một lớp toàn màn hình đang mở (đã tự phủ ấm dải trên cùng) → thanh MyBit về màu gốc, tránh bị ấm 2 lần (nâu sậm hơn phần dưới) */
-html.nl-ios[data-nl]:has(body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])) .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
+html.nl-ios[data-nl].ovl-on .top:not(#_t){background:var(--nl-top0,var(--surface))!important}
 /* 📍 menu chuột phải trên biểu đồ + bảng lệnh chờ giá */
 .px-menu .ios-menu-in>button .ios-t small{display:block;font-size:.6875rem;font-weight:400;color:var(--ink-3);margin-top:1px}
 .px-menu .ios-menu-in>button .ios-t.up{color:var(--up)}.px-menu .ios-menu-in>button .ios-t.down{color:var(--down)}
@@ -6231,7 +6232,7 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 .nb:not(.open) .nb-xi .nb-mi{transform:translateY(-6px)}
 .nb-c{will-change:transform}
 .nb-g{transition:opacity .2s,width .15s ease,background-color .15s!important;width:calc(34px + var(--pull,0) * 18px)!important;margin-left:calc(-17px - var(--pull,0) * 9px)!important}
-.nb:has(.nb-c[style*="translateY"]) .nb-g{background:color-mix(in srgb,var(--ink) 38%,transparent)}
+.nb.drag .nb-g{background:color-mix(in srgb,var(--ink) 38%,transparent)}
 .nb-ex:not(#_n){transition:transform .38s cubic-bezier(.32,.72,0,1),background-color .15s}
 @media (prefers-reduced-motion:reduce){.nb-xi,.nb.open .nb-xi,.nb-stk{transition:none!important}}
 /* 👤 hàng TÀI KHOẢN cuối thanh bên (máy tính ≥1180px, như Linear / Notion / ChatGPT): ảnh · tên · gói · ⚙ → mở menu tài khoản ngược lên.

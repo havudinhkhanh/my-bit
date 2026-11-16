@@ -249,7 +249,7 @@
       else if (A.dis) { const e = easeIO(u); gh = morphMap(A.map, e * 0.3, true); sh = morphMap(A.rmap, (1 - e) * 0.3, true); gb = Math.min(1, u / 0.5); ga = Math.min(1, (1 - u) / 0.5); }
       else { sh = morphMap(A.map, easeIO(u)); gh = null; } }
     A.sh = A.snap && A.dis ? (u0 => u0 < 0.5 ? gh : sh)((t - A.t0) / A.dur) : sh; A.fr = (A.fr || 0) + 1;
-    if (S.away || (!A.snap && !c.loop && !c.seq && !c.sheet && A.fr % 2)) { requestAnimationFrame(loop); return; }
+    if (still() || (!A.snap && !c.loop && !c.seq && !c.sheet && A.fr % 2)) { requestAnimationFrame(loop); return; }
     let tf = "";
     const bob = c.bob ? -c.bob * Math.abs(Math.sin(2 * Math.PI * A.ph)) : 0, ty = (A.ty || 0) + bob;
     if (ty) tf += `translate(0 ${f1(ty)}) `;
@@ -287,10 +287,14 @@
   }
   function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.el.style.bottom = tr.b + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`; }
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
+  // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
+  //    mỗi khung hình na na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
+  const still = () => S.away || (window.__chartHot && performance.now() - window.__chartHot < 900);
   function moveTo(x, vmax, done, opt = {}) {
     const tk = (S.mvTk = (S.mvTk || 0) + 1), Ac = vmax * 1.6; let v = 0, last = 0;
     const f = (t) => {
-      if (tk !== S.mvTk || !S.el) return; const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+      if (tk !== S.mvTk || !S.el) return; if (still()) { last = t; requestAnimationFrame(f); return; }
+      const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
       const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
       v += Math.max(-Ac * dt, Math.min(Ac * dt, want - v)); S.x += Math.sign(d) * Math.min(Math.abs(d), v * dt); A.v = v;
       S.el.style.transform = `translate3d(${S.x.toFixed(1)}px,0,0)`;
