@@ -6363,3 +6363,6 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 @media (hover:hover){.mun-sk>button:not(.on):hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))}}
 @media (max-width:700px){.mun-sk{justify-content:flex-start}}
 .mun-sk .mun-cat{position:static!important;display:block;width:58px!important;height:50px!important;margin:0 auto}
+/* ✂️ lệnh tay đã đóng bớt: phần đã chốt (về ví) + cả lệnh tới giờ */
+.sc-oc .r4.sc-part{flex-direction:column;align-items:flex-start;gap:1px;padding:5px 8px;margin-top:2px;border-radius:8px;background:color-mix(in srgb,var(--brand) 7%,transparent)}
+.sc-oc .r4.sc-part .faint{margin-left:0}

@@ -518,7 +518,7 @@ export class LiveExec {
     const pos = (L || []).filter((x) => +x.positionAmt !== 0).map((x) => ({ sym: x.symbol, amt: +x.positionAmt, ep: +x.entryPrice, mk: +x.markPrice, lev: +x.leverage || 1, up: +(+x.unRealizedProfit || 0).toFixed(4),
       liq: +x.liquidationPrice || 0, mt: x.marginType === "isolated" ? "iso" : "cross", im: +(+x.isolatedMargin || 0).toFixed(4), ps: x.positionSide || "BOTH", bot: bot.has(x.symbol) }));
     const MF = this.S.mof?.[env] || {};
-    for (const p of pos) { const f = MF[p.sym]; if (f && f.sd === Math.sign(p.amt) && f.t1) { p.t1 = iso(f.t1); if (Number.isFinite(f.fund)) p.fund = f.fund; } }      // 💸 funding đã trả của lệnh tay đang mở (mFund đọc)
+    for (const p of pos) { const f = MF[p.sym]; if (f && f.sd === Math.sign(p.amt) && f.t1) { p.t1 = iso(f.t1); if (Number.isFinite(f.fund)) p.fund = f.fund; if (f.part) p.part = f.part; } }      // 💸 funding đã trả của lệnh tay đang mở (mFund đọc)
     const ord = {};
     if (pos.some((p) => !p.bot)) {
       const want = new Set(pos.filter((p) => !p.bot).map((p) => p.sym)), put = (o) => { if (want.has(o.sym)) (ord[o.sym] ||= []).push(o); };
@@ -564,7 +564,7 @@ export class LiveExec {
     }
   }
   // 💸 FUNDING CỦA LỆNH TAY ĐANG MỞ: tìm lúc vị thế mở (lần cuối đi từ 0 → khác 0, đọc ngược sổ khớp lệnh), rồi cộng funding thật (income FUNDING_FEE) từ lúc đó.
-  // 10 phút/mã/lần; vị thế đổi chiều / đóng hẳn → tính lại từ đầu. Chỉ đọc, không đặt lệnh.
+  // 5 phút/mã/lần (đóng bớt trên MyBit → đọc lại ngay); vị thế đổi chiều / đóng hẳn → tính lại từ đầu. Chỉ đọc, không đặt lệnh.
   async mFund() {
     const env = this.env(); if (!this.keys(env)) return;
     const MF = ((this.S.mof ||= {})[env] ||= {}), now = Date.now(), L = (this.S.man?.pos || []).filter((p) => !p.bot);
@@ -572,7 +572,7 @@ export class LiveExec {
     for (const p of L) {
       const sd = Math.sign(p.amt); let f = MF[p.sym];
       if (!f || f.sd !== sd) f = MF[p.sym] = { sd, t1: 0, fund: null, chk: 0 };
-      if (now - f.chk < 10 * 60e3) continue; f.chk = now;
+      if (now - f.chk < 5 * 60e3) continue; f.chk = now;
       if (!f.t1) {      // lúc mở: đi ngược sổ khớp (tối đa 30 ngày) tới khi vị thế về 0
         let pos = p.amt, end = now;
         for (let k = 0; k < 5 && !f.t1; k++) {
@@ -588,6 +588,13 @@ export class LiveExec {
         for (const x of I || []) if (x.asset === "USDT" && +x.time >= f.t1) fund += +x.income || 0;
       }
       f.fund = +fund.toFixed(4);
+      // ✂️ đã chốt một phần (đóng 1/2, 1/3… mà vị thế chưa về 0): cộng lời/lỗ thực hiện + phí của các lần đóng bớt từ lúc mở → trang hiện ngay, không đợi đóng hết
+      const T = [];
+      for (let a = f.t1 - 1000; a < now; a += 7 * 864e5) T.push(...(((await this.req("GET", "/fapi/v1/userTrades", { symbol: p.sym, startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" })) || []).filter((t) => +t.time >= f.t1)));
+      const fee$ = (t) => (/^(USDT|USDC|FDUSD)$/.test(t.commissionAsset) ? +t.commission : +t.commission * (this.pxm?.[t.commissionAsset] || 0));
+      const X = T.filter((t) => (t.side === "BUY" ? 1 : -1) !== sd), ids = new Set(X.map((t) => t.orderId));
+      const rp = X.reduce((a, t) => a + (+t.realizedPnl || 0), 0), xf = X.reduce((a, t) => a + fee$(t), 0), xq = X.reduce((a, t) => a + +t.qty, 0);
+      f.part = X.length ? { n: ids.size, q: +xq.toPrecision(10), gross: +rp.toFixed(4), fee: +xf.toFixed(4), pnl: +(rp - xf).toFixed(4), t2: iso(Math.max(...X.map((t) => +t.time))) } : null;
     }
   }
   // 🧾 LỆNH TAY ĐÃ ĐÓNG: dựng lại từ sổ khớp lệnh của Binance (userTrades) – mỗi lần vị thế từ 0 → mở → về 0 = 1 lệnh; lời/lỗ, phí, funding lấy đúng số của sàn.
@@ -696,6 +703,7 @@ export class LiveExec {
     (this.S.mxWhy ||= {})[sym] = { why: this.mWhyNext || "MANUAL", at: Date.now() }; this.mWhyNext = null; this.mhAt = 0;
     this.say(`✋ Anh đóng ${q >= q0 ? "" : `${Math.round(q / q0 * 100)}% `}lệnh tay ${coin(sym)} ${amt > 0 ? "Long" : "Short"} ${q.toFixed(F.sd)} @ ${ax} · ước ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (chưa trừ phí)`, pnl >= 0 ? "win" : "loss");
     if (q >= q0) await this.mCancel(sym, () => true);      // đóng hết → huỷ cắt lỗ / chốt lời còn treo của mã này
+    const mf = this.S.mof?.[this.env()]?.[sym]; if (mf) mf.chk = 0;      // đóng bớt → đọc lại phần đã chốt ngay lượt sau
     this.mAt = 0; await this.mSync(true);
   }
   async mCancel(sym, pick) {
