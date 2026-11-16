@@ -6368,7 +6368,7 @@ function ntfList(items, f) {
   // kiểu iOS / Android mới: CHƯA ĐỌC gom lên đầu (mục "Mới"), ĐÃ ĐỌC xếp dưới theo ngày, nhạt hơn → nhìn là biết
   const U = L.filter((n) => !n.read_at || n._un), Rd = L.filter((n) => !(!n.read_at || n._un));
   const by = []; for (const n of Rd) { const d = ntfDay(n.created_at); if (!by.length || by[by.length - 1][0] !== d) by.push([d, []]); by[by.length - 1][1].push(n); }
-  return (U.length ? `<h4 class="nt-d nt-dn"><span>${bi("Mới", "New")}</span><em>${U.length}</em><button type="button" class="nt-rall" data-rall>${bi("Đánh dấu đã đọc hết", "Mark all read")}</button></h4>${U.map(ntfRow).join("")}` : "")
+  return (U.length ? `<h4 class="nt-d nt-dn"><span>${bi("Mới", "New")}</span><em>${U.length}</em></h4>${U.map(ntfRow).join("")}` : "")
     + by.map(([d, X], i) => `<h4 class="nt-d${U.length && i === 0 ? " nt-do" : ""}">${U.length && i === 0 ? `${bi("Đã xem", "Earlier")} · ` : ""}${esc(d)}</h4>${X.map(ntfRow).join("")}`).join("");
 }
 function ntfChips(items, f) {
@@ -6378,8 +6378,7 @@ function ntfChips(items, f) {
   return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
 }
 function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => ntBindRow(it, items, redraw));
-  $$("[data-rall]", root).forEach((b) => (b.onclick = async (e) => { e.preventDefault(); e.stopPropagation(); const ids = items.filter((n) => !n.read_at || n._un).map((n) => n.id); if (!ids.length) return;
-    b.disabled = true; await api("notifications/read", "POST", { ids }).catch(() => {}); items.forEach((n) => { if (ids.includes(n.id)) { n.read_at ||= "x"; delete n._un; } }); redraw?.(); bellCount(); })); }
+  }      // "đọc hết": nút ✓✓ trên đầu bảng (bellAll) / thanh trang thông báo (nAll) – không lặp lại ở tiêu đề nhóm "Mới"
 function ntBindRow(it, items, redraw) {
   if (it._b) return; it._b = { items, redraw };
   const n = () => items?.find((x) => x.id === Number(it.dataset.nid));

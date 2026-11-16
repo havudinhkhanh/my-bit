@@ -5988,8 +5988,6 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 /* tiêu đề mục */
 .nt-d.nt-dn{display:flex;align-items:center;gap:8px;color:var(--ink)!important}
 .nt-d.nt-dn em{font-style:normal;min-width:20px;height:18px;padding:0 6px;border-radius:9px;background:var(--nt-un);color:#fff;font-size:.6875rem;font-weight:700;display:inline-grid;place-items:center}
-.nt-rall{margin-left:auto;border:0;background:transparent;color:var(--nt-un);font:600 .75rem/1 inherit;font-family:inherit;cursor:pointer;padding:4px 2px;text-transform:none;letter-spacing:0}
-.nt-rall:hover{text-decoration:underline}
 .nt-d.nt-do{margin-top:14px;color:var(--ink-3)!important}
 .nt-d.nt-ds{font-size:.6875rem;opacity:.8}
 /* nút đánh dấu: chưa đọc → "✓" ; đã đọc → chấm rỗng (đánh dấu chưa đọc) */
