@@ -6420,3 +6420,12 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .occ-act{justify-content:flex-start;flex-wrap:wrap;gap:6px;margin:2px 0 8px;padding:0}
 .occ-act .sc-mx{font-size:.8125rem;padding:7px 14px;border-radius:10px}
 @media (max-width:760px){.occ-act{justify-content:stretch}.occ-act .sc-mx{flex:1 1 auto;padding:9px 10px}}
+/* ô số trên biểu đồ lệnh: LƯỚI cố định theo bề rộng màn hình (không theo độ dài chữ) → số nhảy, đồng hồ đếm ngược đổi độ dài cũng không làm xuống hàng / nhảy trang */
+.occ-st{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px}
+.occ-k{min-width:0;overflow:hidden}
+.occ-k>small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.occ-k>b{display:block;overflow:hidden;text-overflow:ellipsis}
+.occ-px{font-variant-numeric:tabular-nums}
+@media (max-width:640px){.occ-st{grid-template-columns:repeat(3,minmax(0,1fr))}.occ-k>b{font-size:.8125rem}.occ-k>b small{font-size:.6875rem}}
+/* tiêu đề biểu đồ lệnh trên điện thoại: giá luôn ở dòng riêng → giá dài / ngắn đi không làm tiêu đề lúc 1 dòng lúc 2 dòng */
+@media (max-width:640px){.occ-t .occ-px{flex-basis:100%;order:9}}
