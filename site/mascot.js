@@ -313,7 +313,8 @@
   function walkTo(x, then, opt = {}) {
     const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x;
     if (RM.matches || Math.abs(dx) < 24) { place(x); then?.(); return; }
-    face(dx > 0 ? 1 : -1); const cw = CLIP[opt.clip || "walk"], v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1); S.el.classList.remove("run");
+    if (!CLIP[opt.clip]) opt = { ...opt, clip: "walk" };      // dáng đi không có bảng riêng (vd "stalk" rình chuột) → đi bộ thường (trước: lỗi, na na đứng đơ)
+    face(dx > 0 ? 1 : -1); const cw = CLIP[opt.clip], v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1); S.el.classList.remove("run");
     clearTimeout(S.walkTm); const tk = (S.walkTk = (S.walkTk || 0) + 1);
     play(opt.clip || "walk"); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, 260);
   }

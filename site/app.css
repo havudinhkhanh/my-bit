@@ -6374,3 +6374,7 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 .pxtip{position:absolute;top:0;left:0;z-index:4;pointer-events:none;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;background:var(--surface);color:var(--ink);font-size:.75rem;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.14),0 0 0 1px var(--line)}
 .pxtip i{width:8px;height:8px;border-radius:2px}.pxtip small{color:var(--ink-3)}
 @media (max-width:640px){.tr-tfs .tr-lg{display:none}}      /* điện thoại: tên đường đã ở cột nhãn bên phải trục giá */
+/* 📱 lệnh bot trực tiếp mở rộng trên điện thoại: nền mờ phía sau (chạm = thu về), thẻ tràn ngang màn hình */
+.lvw-bd{position:fixed;inset:0;z-index:49;background:rgba(10,14,20,.38);opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s .2s;-webkit-tap-highlight-color:transparent}
+.lvw-bd.on{opacity:1;visibility:visible;transition:opacity .2s ease,visibility 0s}
+@media (min-width:980px){.lvw-bd{display:none}}
