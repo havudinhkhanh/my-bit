@@ -202,6 +202,45 @@ function mkChart(el, extra = {}) {
   }
   return c;
 }
+// 🏷️ TÊN ĐƯỜNG GIÁ nằm BÊN PHẢI trục giá (không đè lên nến): cột nhãn riêng, tự giãn khi 2 đường sát nhau (không chồng chữ),
+//    di chuột / chạm gần 1 đường → hiện đường gì · giá · cách giá hiện tại bao nhiêu %. lines: [{ price, color, title }]
+function pxTags(el, c, cs, lines, cur) {
+  try { el._ptStop?.(); } catch (e) { /* bỏ qua */ }
+  const L = (lines || []).filter((l) => isNum(l.price) && +l.price > 0 && l.title); if (!L.length) { c._ptW = 0; return 0; }
+  if (getComputedStyle(el).position === "static") el.style.position = "relative";
+  const box = document.createElement("div"); box.className = "pxtags"; box.style.width = "200px"; el.appendChild(box);      // đo chữ trước khi chốt bề rộng cột
+  const tip = document.createElement("div"); tip.className = "pxtip"; tip.hidden = true; el.appendChild(tip);
+  const tg = L.map((l) => { const d = document.createElement("span"); d.className = "pxtag"; d.style.setProperty("--c", l.color || css("--ink-3")); d.textContent = T(l.title); d.title = `${T(l.title)} · ${px(+l.price)}`; box.appendChild(d); return { l, d, p: +l.price }; });
+  const TW = Math.min(96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
+  c.applyOptions({ rightPriceScale: { minimumWidth: 74 + TW } });
+  let raf = 0, alive = true, last = "";
+  const place = () => {
+    if (!alive) return; if (!el.isConnected) { alive = false; return; }
+    raf = requestAnimationFrame(place); if (document.hidden) return;
+    let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
+    const V = tg.map((t) => ({ t, y: cs.priceToCoordinate(t.p) })).filter((v) => isNum(v.y) && v.y >= 0 && v.y <= H).sort((a, b) => a.y - b.y);
+    const key = V.map((v) => v.y.toFixed(1)).join() + H; if (key === last) return; last = key;
+    const G = 16, Y = V.map((v) => v.y);      // giãn cách tối thiểu 16px: đẩy xuống rồi kéo ngược lên nếu tràn đáy
+    for (let i = 1; i < Y.length; i++) Y[i] = Math.max(Y[i], Y[i - 1] + G);
+    for (let i = Y.length - 1; i >= 0; i--) { const mx = i === Y.length - 1 ? H - 8 : Y[i + 1] - G; if (Y[i] > mx) Y[i] = mx; }
+    tg.forEach((t) => (t.d.hidden = true));
+    V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", Math.abs(Y[i] - v.y) > 3); });
+  };
+  place();
+  const hv = (pm) => {
+    const pt = pm?.point; let best = null;
+    if (pt) for (const t of tg) { const y = cs.priceToCoordinate(t.p); if (isNum(y) && Math.abs(y - pt.y) <= 6 && (!best || Math.abs(y - pt.y) < best.dy)) best = { t, dy: Math.abs(y - pt.y) }; }
+    tg.forEach((t) => t.d.classList.toggle("on", t === best?.t));
+    if (!best) { tip.hidden = true; return; }
+    const cp = typeof cur === "function" ? cur() : cur, d = cp ? (best.t.p / cp - 1) * 100 : null;
+    tip.innerHTML = `<i style="background:${best.t.l.color || css("--ink-3")}"></i><b>${esc(T(best.t.l.title))}</b> ${px(best.t.p)}${isNum(d) ? ` <small>${bi(`cách giá ${d >= 0 ? "+" : ""}${nf(d, 2)}%`, `${d >= 0 ? "+" : ""}${nf(d, 2)}% from price`)}</small>` : ""}`;
+    tip.hidden = false; const w = tip.offsetWidth, x = Math.min(Math.max(4, pt.x + 12), el.clientWidth - w - 4), y = cs.priceToCoordinate(best.t.p) - 30;
+    tip.style.transform = `translate(${Math.round(x)}px,${Math.round(Math.max(2, y))}px)`;
+  };
+  c.subscribeCrosshairMove(hv);
+  el._ptStop = () => { alive = false; cancelAnimationFrame(raf); try { c.unsubscribeCrosshairMove(hv); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
+  return TW;
+}
 function candleChart(el, o, opts = {}) {
   const c = mkChart(el);
   const cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"),
@@ -217,13 +256,14 @@ function candleChart(el, o, opts = {}) {
     const s = c.addLineSeries({ color, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
     s.setData(o.t.map((t, i) => (v[i] == null ? null : { time: t, value: v[i] })).filter(Boolean));
   });
-  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: l.w || 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: opts.noTitle ? "" : T(l.title || "") }); });      // noTitle: tên đường đã có ở chú thích ngoài biểu đồ
+  (opts.lines || []).forEach((l) => { if (isNum(l.price)) cs.createPriceLine({ price: Number(l.price), color: l.color || css("--ink-3"), lineWidth: l.w || 1, lineStyle: l.style ?? 2, axisLabelVisible: true, title: "" }); });      // tên đường: cột nhãn bên phải trục giá (pxTags)
   if (opts.from) c.timeScale().setVisibleRange({ from: opts.from, to: o.t[o.t.length - 1] });
   if (el.clientHeight >= 300) {      // chừa ~110px trống bên phải: nhãn giá & đường kế hoạch ("cắt lỗ", "hỗ trợ (3)"…) không đè lên các nến mới nhất
     const ts = c.timeScale(), lr = ts.getVisibleLogicalRange(), w = Math.max(200, el.clientWidth - 80), bs = lr && lr.to > lr.from ? w / (lr.to - lr.from) : 6;
     ts.applyOptions({ rightOffset: Math.max(4, Math.min(80, Math.ceil(110 / Math.max(1, bs)))) }); if (opts.from) ts.scrollToRealTime();
   }
   if (opts.dkey) drawHook(el, c, cs, o, opts.dkey);
+  try { pxTags(el, c, cs, opts.lines, () => { try { const d = cs.data(); return d[d.length - 1]?.close; } catch (e) { return o.c[o.c.length - 1]; } }); } catch (e) { /* bỏ qua */ }
   return { c, cs };
 }
 // ---------------------------------------------------------------- khung biểu đồ: vẽ đúng kích thước thật (chữ không phóng to), nhỏ mặc định, có "Mở rộng" & "Toàn màn hình"
@@ -2777,7 +2817,7 @@ async function ocDraw() {
   const cur0 = o.c[n - 1];
   if (I.liq && Math.abs(I.liq / cur0 - 1) < 0.15) lines.push({ price: I.liq, color: css("--warn") || css("--down"), title: bi("thanh lý", "liq."), style: 2 });      // chỉ vẽ khi gần (xa thì xem ở ô số)
   el.innerHTML = "";
-  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)], noTitle: true });
+  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)] });
   { const lg = document.querySelector("#ocChart .occ-lg"), lq = lines.find((l) => l.price === I.liq); lg?.querySelector(".occ-l.lq")?.remove(); if (lg && lq) lg.querySelector("#occSrc")?.insertAdjacentHTML("beforebegin", `<span class="occ-l lq"><i></i>${bi("Thanh lý", "Liq.")} <b>${px(I.liq)}</b></span>`); }      // thanh lý chỉ ghi chú khi đường có trên biểu đồ
   ch.c.applyOptions({ crosshair: { mode: 1 }, handleScale: { axisPressedMouseMove: { time: true, price: true } } });
   // chú thích nến dưới con trỏ (mặc định nến mới nhất): giờ · mở · cao · thấp · đóng · % · khối lượng
@@ -2793,7 +2833,7 @@ async function ocDraw() {
   if (rEl) { rEl.innerHTML = ""; rEl.hidden = !ocOpt("rsi"); if (ocOpt("rsi")) { const rc = LightweightCharts.createChart(rEl, { ...themeOpts(), autoSize: true, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 } }); charts.push(rc);
     const rs = rc.addLineSeries({ color: css("--ref"), lineWidth: 1, priceLineVisible: false }); const rv = IND.rsi(o.c, 14); rs.setData(o.t.map((t, i) => (rv[i] == null ? null : { time: t, value: rv[i] })).filter(Boolean));
     [70, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
-    ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 } });
+    ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 + (ch.c._ptW || 0) } }); rc.applyOptions({ rightPriceScale: { minimumWidth: 74 + (ch.c._ptW || 0) } });
     ch.c.timeScale().subscribeVisibleLogicalRangeChange((r2) => { if (r2) rc.timeScale().setVisibleLogicalRange(r2); }); rc.timeScale().setVisibleLogicalRange(ch.c.timeScale().getVisibleLogicalRange()); OCC.rc = { rs, rv }; } }
   {      // khung giá luôn thấy giá vào & lệnh chờ; cắt lỗ / chốt lời chỉ kéo vào khi trong khoảng ±15% giá hiện tại (cắt lỗ thảm hoạ −35% sẽ làm nến dẹt)
     const cur = o.c[n - 1], keep = [I.e, ...lvP, ...[I.sl, I.tp].filter((v) => v && Math.abs(v / cur - 1) < 0.15)].filter(Boolean);
@@ -4160,7 +4200,7 @@ function subPanes(host, main) {
   host.innerHTML = "";
   const panes = [];
   const mk = (h, title, fmt) => { const d = document.createElement("div"); d.className = "pane"; d.style.height = h + "px"; d.innerHTML = `<span class="pane-t">${title}</span>`; host.appendChild(d);
-    const c = mkChart(d, { localization: { locale: LOC, priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74, scaleMargins: { top: 0.3, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
+    const c = mkChart(d, { localization: { locale: LOC, priceFormatter: fmt }, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 + (main?._ptW || 0), scaleMargins: { top: 0.3, bottom: 0.08 } }, handleScroll: false, handleScale: false }); panes.push(c); return c; };
   const line = (c, col, w = 1.3) => c.addLineSeries({ color: col, lineWidth: w, priceLineVisible: false, lastValueVisible: true, crosshairMarkerVisible: false, priceFormat: { type: "price", precision: 2, minMove: 0.01 } });
   const r = mk(92, "RSI 14 · 70 quá mua · 30 quá bán", (v) => nf(v, 0)), rs = line(r, css("--brand"));
   [70, 50, 30].forEach((y) => rs.createPriceLine({ price: y, color: css("--ink-3"), lineStyle: 2, lineWidth: 1, axisLabelVisible: false }));
@@ -4233,7 +4273,7 @@ function rtTicket(D, E, tf) {
 }
 function chartTools(D, el, ch, tf) {
   const r = D.row;
-  ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 } });
+  ch.c.applyOptions({ rightPriceScale: { minimumWidth: 74 + (ch.c._ptW || 0) } });
   const ov = lsGet("showSmc", true) ? smcOverlay(el, ch.c, ch.cs) : null;
   const ph = $("#panes"); if (ph) ph.innerHTML = "";
   const pn = ph && lsGet("showPanes", true) ? subPanes(ph, ch.c) : null;

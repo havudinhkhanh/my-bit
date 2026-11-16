@@ -4107,10 +4107,9 @@ input:not([type=checkbox]):not([type=radio]):not([type=range]),select,textarea{f
 .tr-cv{height:380px;position:relative}
 @media (max-width:640px){.tr-cv{height:320px}}
 .tr-tfs{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.tr-lg{display:flex;align-items:center;gap:6px 14px;font-size:.78rem;color:var(--ink-2);flex-wrap:wrap;margin:8px 0 6px}
-.tr-lg span{display:inline-flex;align-items:center;gap:5px}.tr-lg b{font-variant-numeric:tabular-nums}
-.tr-lg i{display:inline-block;width:14px;height:0;border-top:2px dashed var(--ink-3)}
-.tr-lg i.l-lf{border-top-color:var(--brand)}.tr-lg i.l-c0{border-top:2px dotted var(--brass,var(--warn))}.tr-lg i.l-e{border-top:2px solid var(--brand)}.tr-lg i.l-sl{border-top-color:var(--down)}.tr-lg i.l-tp{border-top-color:var(--up)}.tr-lg i.l-x{border-top:2px solid var(--up)}.tr-lg i.l-xd{border-top:2px solid var(--down)}
+.tr-lg{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:var(--fs-xs);color:var(--ink-3);flex-wrap:wrap}
+.tr-lg i{display:inline-block;width:16px;height:0;border-top:2px dashed var(--ink-3);margin-left:6px}
+.tr-lg i.l-e{border-top:2px solid var(--brand)}.tr-lg i.l-sl{border-top-color:var(--down)}.tr-lg i.l-x{border-top:2px solid var(--up)}
 .tr-why{margin:0 0 10px;line-height:1.5}
 .tr-pl{list-style:none;margin:0;padding:0;display:grid;gap:0}
 .tr-pl>li{display:grid;grid-template-columns:120px minmax(0,1fr);column-gap:12px;row-gap:2px;padding:8px 0;border-top:1px solid var(--bd-2);align-items:baseline}
@@ -6368,3 +6367,12 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
 /* 📍 thẻ lệnh chờ giá: nút ⚡ Vào ngay + Huỷ cùng nhóm bên phải */
 .sc-oc.mpend .r4{justify-content:space-between}.sc-oc.mpend .sc-mpb{display:inline-flex;gap:6px;margin-left:auto;flex:none}
 .sc-oc.mpend .r4 .faint{margin-left:0}
+/* 🏷️ tên đường giá: cột bên phải trục giá (pxTags) – nhãn tự giãn khi sát nhau; di chuột gần đường → hộp nhỏ "đường gì · giá · cách %" */
+.pxtags{position:absolute;top:0;right:0;bottom:0;pointer-events:none;z-index:3}
+.pxtag{position:absolute;top:0;left:1px;max-width:calc(100% - 3px);height:16px;box-sizing:border-box;padding:0 5px 0 4px;border-left:2px solid var(--c);border-radius:0 4px 4px 0;font-size:10.5px;font-weight:600;line-height:16px;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  color:var(--c);background:color-mix(in srgb,var(--c) 13%,var(--surface));pointer-events:auto;cursor:default;transition:transform .12s ease-out}
+.pxtag.off{outline:1px dashed color-mix(in srgb,var(--c) 45%,transparent);outline-offset:-1px}
+.pxtag.on{background:var(--c);color:#fff}
+.pxtip{position:absolute;top:0;left:0;z-index:4;pointer-events:none;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:8px;background:var(--surface);color:var(--ink);font-size:.75rem;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.14),0 0 0 1px var(--line)}
+.pxtip i{width:8px;height:8px;border-radius:2px}.pxtip small{color:var(--ink-3)}
+@media (max-width:640px){.tr-tfs .tr-lg{display:none}}      /* điện thoại: tên đường đã ở cột nhãn bên phải trục giá */
