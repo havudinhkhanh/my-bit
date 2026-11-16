@@ -5602,7 +5602,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .occ-tf button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
 .occ-lg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:8px;font-size:.78rem;color:var(--ink-2)}
 .occ-l{display:inline-flex;align-items:center;gap:5px}.occ-l i{width:14px;height:0;border-top:2px solid currentColor}
-.occ-l.e i{color:var(--brand)}.occ-l.sl i{color:var(--down);border-top-style:dashed}.occ-l.tp i{color:var(--up);border-top-style:dashed}.occ-l.lv i{color:var(--ink-3);border-top-style:dotted}
+.occ-l.e i{color:var(--brand)}.occ-l.sl i{color:var(--down);border-top-style:dashed}.occ-l.tp i{color:var(--up);border-top-style:dashed}.occ-l.lv i{color:var(--ink-3);border-top-style:dotted}.occ-l.lf i{color:var(--brand);border-top-style:dotted}.occ-l.lq i{color:var(--warn);border-top-style:dashed}
 .occ-lg #occSrc{margin-left:auto}
 .occ-c{position:relative;flex:1 1 auto;min-height:0;border-radius:12px;overflow:hidden}
 .occ-c>.cbt,.occ .cbt-o{display:none!important}
