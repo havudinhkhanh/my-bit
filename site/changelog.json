@@ -120,6 +120,14 @@
      "te": "Trades on Unicode-named coins (e.g. 龙虾) now show price and P/L",
      "d": "Trước đây trang chỉ nhận giá trực tiếp cho mã chữ Latin. Giờ mã Unicode được xin giá riêng, và thẻ lệnh dùng thêm giá máy chủ gửi kèm khi chưa có giá trực tiếp.",
      "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Trang coin cho mã chưa có dữ liệu (coin mới, tên chữ Hán)",
+     "te": "Coin page for coins not yet in the dataset",
+     "d": "Trước đây báo lỗi “Unexpected token <”. Giờ hiện trang nhẹ: giá, 24 giờ, funding, OI và biểu đồ nến trực tiếp từ Binance, kèm ghi chú coin chưa có định giá / kế hoạch.",
+     "go": "#/coins"
     }
    ]
   },

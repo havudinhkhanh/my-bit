@@ -84,6 +84,7 @@ function load(path) {
     try {
       const r = await fetch(path + (path.includes("?") ? "" : `?v=${v}`), { cache: v ? "default" : "no-cache" });
       if (!r.ok) throw new Error(`Không tải được ${path} (HTTP ${r.status})`);
+      if (/text\/html/.test(r.headers.get("content-type") || "")) throw new Error(`Chưa có dữ liệu ${path.replace(/^data\//, "").replace(/\.json$/, "")} – mục này chưa được hệ thống tính (thay cho lỗi khó hiểu "Unexpected token <")`);      // máy chủ trả trang web thay cho tệp dữ liệu không có
       return (cache[path] = await r.json());
     } finally { delete inflight[path]; }
   })());
@@ -2419,7 +2420,8 @@ async function viewCoins(view0) {
 const SUBT = [["", "Tổng quan"], ["smc", "SMC & vào lệnh"], ["val", "Định giá"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
 async function viewCoin(key, sub = "") {
   await coins();
-  const D = await load(`data/c/${enc(key)}.json`);
+  const D = await tryLoad(`data/c/${enc(key)}.json`);
+  if (!D?.row) return viewCoinLite(key);      // coin chưa có trong bộ dữ liệu (mới niêm yết, tên chữ Hán…) → trang nhẹ: giá & biểu đồ trực tiếp Binance thay vì lỗi "Unexpected token <"
   D._ij = await tryLoad("data/ideas.json");
   if (D._ij?.names) IDEA_NAMES = { ...IDEA_NAMES, ...D._ij.names };
   if (!PF) await pfLoad().catch(() => null);
@@ -2441,6 +2443,26 @@ async function viewCoin(key, sub = "") {
   show(SUBT.some(([k]) => k === sub) ? sub : "");
 }
 const BIND = {};
+// 🪶 TRANG COIN NHẸ: mã chưa nằm trong bộ dữ liệu phân tích (cập nhật 4 giờ/lần, chỉ coin đủ lịch sử) – thường là coin vừa niêm yết hoặc tên Unicode (vd 龙虾).
+//    Đọc thẳng Binance từ trình duyệt: giá, 24 giờ, funding, OI + biểu đồ nến trực tiếp (cùng khung biểu đồ của trang coin đầy đủ). Không có định giá / SMC / kế hoạch.
+async function viewCoinLite(key) {
+  const k = String(key).replace(/USDT$/i, ""), sym = k + "USDT", g = (u) => fetchJ(u, 8000).catch(() => null);
+  const [t, pi, oi, ts] = await Promise.all([g(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${encodeURIComponent(sym)}`), g(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${encodeURIComponent(sym)}`),
+    g(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${encodeURIComponent(sym)}`), g(`https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(sym)}`)]);
+  const fut = !!t?.lastPrice, spot = !!ts?.lastPrice, T = fut ? t : ts;
+  if (!T) { app().innerHTML = `<div class="ph"><h1>${esc(k)}</h1></div><div class="empty">${bi(`Không tìm thấy ${esc(k)} trên Binance (futures lẫn spot) và chưa có trong bộ dữ liệu MyBit.`, `${esc(k)} isn't on Binance and isn't in MyBit's dataset.`)} <a href="#/coins">${bi("Về danh sách coin", "Back to coins")}</a></div>`; return; }
+  const p = +T.lastPrice, r1 = +T.priceChangePercent, f8 = pi?.lastFundingRate != null ? +pi.lastFundingRate * 100 : null, oiU = oi?.openInterest ? +oi.openInterest * (+pi?.markPrice || p) : null;
+  const D = { lite: 1, row: { k, n: "", p, r1, bf: fut ? sym : null, bfm: 1, sp: spot ? sym : null, sm: 1 } };
+  const bot = (window.__scCache?.d?.[1]?.data?.live?.ev || []).some((e) => e.sym === sym) || (window.__scCache?.d?.[1]?.data?.live?.man?.pos || []).some((x) => x.sym === sym && x.amt);
+  app().innerHTML = `<div class="ph stk"><h1>${esc(k)} <small class="muted">${fut ? "Binance Futures" : "Binance Spot"}</small></h1>
+    <span class="meta"><b id="lp" data-k="${esc(k)}" class="lp">${px(p)}</b> <b class="${cls(r1)}">${pct(r1)}</b> · 24h <button class="star ${WL.has(k) ? "on" : ""}" id="wlb" title="${bi("Theo dõi", "Watch")}">★</button></span></div>
+    <div class="note">ℹ️ ${bi(`<b>${esc(k)}</b> chưa có trong bộ dữ liệu phân tích của MyBit (cập nhật 4 giờ/lần, chỉ gồm coin đủ lịch sử – coin mới niêm yết sẽ vào sau). Trang này đọc trực tiếp từ Binance: giá, 24 giờ, funding và biểu đồ nến; chưa có định giá, SMC hay kế hoạch lệnh.`, `<b>${esc(k)}</b> isn't in MyBit's analysis dataset yet. Live Binance price, 24h stats, funding and candles only.`)}${bot ? ` <a href="#/bot/scalp">${bi("Bot đang có lệnh mã này → Bot Phản Xạ", "The bot holds this coin → Reflex Bot")}</a>` : ""}</div>
+    <div class="cv-grid cv-lite">${panel(bi("Biểu đồ", "Chart"), chartBox(D, 440, true))}
+      <div class="col cv-side">${panel(bi("24 giờ trên Binance", "24h on Binance"), kpis([[bi("Giá", "Price"), px(p)], ["24h", pct(r1), cls(r1)], [bi("Cao 24h", "24h high"), px(+T.highPrice)], [bi("Thấp 24h", "24h low"), px(+T.lowPrice)],
+        [bi("KL 24h", "24h volume"), usd(+T.quoteVolume)], fut ? ["Funding 8h", f8s(f8), f8c(f8)] : null, fut && oiU ? ["OI futures", usd(oiU)] : null, fut && pi?.markPrice ? [bi("Giá đánh dấu", "Mark price"), px(+pi.markPrice)] : null]))}</div></div>`;
+  $("#wlb").onclick = async () => { await WL.toggle(k); $("#wlb").classList.toggle("on", WL.has(k)); };
+  bindChart(D);
+}
 // ---- biểu đồ nhiều khung: 1 phút → năm. Giá trực tiếp lấy thẳng từ Binance trên trình duyệt (Việt Nam truy cập được), dự phòng dữ liệu máy chủ
 const TFS = [["1s", "1s"], ["5s", "5s"], ["15s", "15s"], ["30s", "30s"], ["1m", "1p"], ["5m", "5p"], ["10m", "10p"], ["15m", "15p"], ["30m", "30p"], ["1h", "1h"], ["4h", "4h"], ["1d", "Ngày"], ["1w", "Tuần"], ["15d", "15 ngày"], ["1M", "Tháng"], ["3M", "Quý"], ["1y", "Năm"]];
 const TFB = { "1s": ["1s"], "3s": ["1s", 3], "5s": ["1s", 5], "15s": ["1s", 15], "30s": ["1s", 30], "1m": ["1m"], "5m": ["5m"], "10m": ["5m", 600], "15m": ["15m"], "30m": ["30m"], "1h": ["1h"], "4h": ["4h"], "1d": ["1d"], "1w": ["1w"], "15d": ["1d", "15d"], "1M": ["1M"], "3M": ["1M", "q"], "1y": ["1M", "y"] };
