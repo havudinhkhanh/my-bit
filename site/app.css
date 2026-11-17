@@ -6553,3 +6553,5 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 /* 5 ô tài sản: hàng 1 = dòng tiền (vốn gốc → tổng tiền đầu tư → tài sản hiện tại), hàng 2 = kết quả (lời/lỗ thật · sụt sâu nhất) */
 .lv-kp.k5{grid-template-columns:repeat(6,minmax(0,1fr))}.lv-kp.k5>span{grid-column:span 2}.lv-kp.k5>span:nth-child(n+4){grid-column:span 3}
 @media (max-width:640px){.lv-kp.k5{grid-template-columns:repeat(6,minmax(0,1fr))}}
+/* thanh đổi sàn (Binance thật | Sàn thử): viên kính không bao giờ lòi khỏi viên thanh – kể cả lúc nảy lò xo */
+.sc-env.gseg{overflow:hidden;isolation:isolate}

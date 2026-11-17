@@ -364,6 +364,8 @@ function gPlaceAll(list) {
     R.push([g, on, one && inner > 8 ? { x: Math.max(on.offsetLeft, 3), y: 0, w: Math.min(on.offsetWidth - Math.max(0, 3 - on.offsetLeft), g.scrollWidth - 3 - Math.max(on.offsetLeft, 3)), h: 0, one: 1, pt, pb } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);
   }
   for (const [g, on, p] of R) {
+    if (p) { const W = g.clientWidth; p.bw = W; if (W > 8) { p.x = Math.max(0, Math.min(p.x, W - 6)); p.w = Math.max(4, Math.min(p.w, W - 3 - p.x)); } }      // viên kính luôn nằm trong lòng thanh (không lòi ra ngoài mép)
+    // vị trí cũ đo lúc thanh rộng khác (đổi sàn → đổi nhãn / số đếm) → đặt thẳng chỗ mới, không trượt từ chỗ sai
     let th = g.querySelector(":scope > .gthumb");
     if (!p) { if (th) th.style.opacity = "0"; continue; }
     if (!th) { th = document.createElement("i"); th.className = "gthumb"; th.setAttribute("aria-hidden", "true"); g.prepend(th); g.classList.add("gseg"); }
@@ -372,7 +374,7 @@ function gPlaceAll(list) {
       if (q.one) { g.dataset.one = 1; g.style.setProperty("--gpt", q.pt + "px"); g.style.setProperty("--gpb", q.pb + "px"); th.style.height = ""; th.style.transform = `translateX(${q.x}px)`; }
       else { delete g.dataset.one; th.style.height = q.h + "px"; th.style.transform = `translate(${q.x}px,${q.y}px)`; }
       th.style.width = q.w + "px"; };
-    if (!th._set) { th._set = 1; th.style.transition = "none"; put(prev && Math.abs(prev.y - p.y) < 2 && !!prev.one === !!p.one ? prev : p); th.style.opacity = "1"; void th.offsetWidth; th.style.transition = ""; }
+    if (!th._set) { th._set = 1; th.style.transition = "none"; put(prev && Math.abs(prev.y - p.y) < 2 && !!prev.one === !!p.one && Math.abs((prev.bw || 0) - p.bw) < 2 && prev.x + prev.w <= p.bw ? prev : p); th.style.opacity = "1"; void th.offsetWidth; th.style.transition = ""; }
     put(p); GPOS.set(k, p);
   }
 }

@@ -80,7 +80,7 @@ function scThumbFollow(bar, k0, k1, p, end) {
   const x = X(b0) + (X(b1) - X(b0)) * p, w = W(b0) + (W(b1) - W(b0)) * p;
   th.style.transition = end ? "" : "none"; th.style.transform = `translateX(${x}px)`; th.style.width = w + "px";
   if (!end) { const r = bar.getBoundingClientRect(), tx = x - bar.scrollLeft; if (tx < 8) bar.scrollLeft += tx - 8; else if (tx + w > r.width - 8) bar.scrollLeft += tx + w - r.width + 8; }      // tab đích khuất → thanh tab cuộn theo
-  try { const cs = getComputedStyle(bar); GPOS.set(gKey(bar), { x, y: 0, w, h: 0, one: 1, pt: parseFloat(cs.paddingTop) || 0, pb: parseFloat(cs.paddingBottom) || 0 }); } catch (e) { /* bỏ qua */ }
+  try { const cs = getComputedStyle(bar); GPOS.set(gKey(bar), { x, y: 0, w, h: 0, one: 1, bw: bar.clientWidth, pt: parseFloat(cs.paddingTop) || 0, pb: parseFloat(cs.paddingBottom) || 0 }); } catch (e) { /* bỏ qua */ }
 }
 (function scSwipe() {
   if (window.__scSwipe) return; window.__scSwipe = 1;

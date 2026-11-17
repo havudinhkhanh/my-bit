@@ -96,6 +96,14 @@
      "t": "Lệnh tay mở ngay sau lệnh bot cùng mã không còn bị ẩn",
      "te": "Manual trade right after a bot trade now shows",
      "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Đổi Binance thật ↔ Sàn thử: viên kính không còn trượt ra ngoài mép",
+     "te": "Venue switch: the glass no longer slides past the edge",
+     "d": "Viên kính luôn nằm trong thanh; vị trí cũ đo lúc thanh rộng khác thì đặt thẳng chỗ mới thay vì trượt từ chỗ sai.",
+     "f": "bot"
     }
    ]
   },
