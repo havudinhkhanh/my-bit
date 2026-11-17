@@ -55,6 +55,15 @@
     },
     {
      "c": "new",
+     "a": "live",
+     "t": "Ô Tổng tiền đầu tư cạnh Vốn gốc",
+     "te": "Total invested tile next to initial capital",
+     "d": "Tài sản futures: hàng trên là dòng tiền (vốn gốc → tổng tiền đầu tư = gốc + nạp thêm − rút → tài sản hiện tại, % trên tiền đầu tư), hàng dưới là kết quả (lời/lỗ thật, sụt sâu nhất).",
+     "aud": "admin",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "new",
      "a": "bot",
      "t": "Nhịp tài sản: % trung bình mỗi ngày & ngoại suy",
      "te": "Equity pace: daily average & run-rate",

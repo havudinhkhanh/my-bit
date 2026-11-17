@@ -6550,3 +6550,6 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .chg-bar .seg{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scrollbar-width:none}.chg-bar .seg::-webkit-scrollbar{display:none}.chg-bar .seg button{white-space:nowrap;flex:none}
 @media (max-width:760px){.chg-bar .seg{width:100%}}
 .chg-sh{display:none}@media (max-width:760px){.chg-lg{display:none}.chg-sh{display:inline}}
+/* 5 ô tài sản: hàng 1 = dòng tiền (vốn gốc → tổng tiền đầu tư → tài sản hiện tại), hàng 2 = kết quả (lời/lỗ thật · sụt sâu nhất) */
+.lv-kp.k5{grid-template-columns:repeat(6,minmax(0,1fr))}.lv-kp.k5>span{grid-column:span 2}.lv-kp.k5>span:nth-child(n+4){grid-column:span 3}
+@media (max-width:640px){.lv-kp.k5{grid-template-columns:repeat(6,minmax(0,1fr))}}
