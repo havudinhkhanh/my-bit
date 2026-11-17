@@ -619,6 +619,7 @@ export class LiveExec {
   async mHist() {
     const env = this.env(); if (!this.keys(env) || Date.now() - (this.mhAt || 0) < 300e3) return; this.mhAt = Date.now();
     const H = ((this.S.mh ||= {})[env] ||= { last: Date.now() - 30 * 864e5, L: {} }), now = Date.now(), syms = new Set();
+    if ((H.v || 0) < 2) { H.v = 2; H.last = Math.min(H.last, now - 3 * 864e5); }      // bản sửa cách nhận lệnh bot (11/2026): đọc lại 3 ngày để thêm lệnh tay bị bỏ sót
     for (let a = H.last - 2 * 3600e3; a < now; a += 7 * 864e5) {
       const I = await this.req("GET", "/fapi/v1/income", { incomeType: "REALIZED_PNL", startTime: String(a), endTime: String(Math.min(now, a + 7 * 864e5 - 1)), limit: "1000" });
       for (const x of I || []) syms.add(x.symbol);
@@ -642,7 +643,9 @@ export class LiveExec {
         const open = Math.sign(q) === R.sd; if (open) { R.eq += Math.abs(q); R.ev += Math.abs(q) * +t.price; } else { R.xq += Math.abs(q); R.xv += Math.abs(q) * +t.price; }
         R.pnl += +t.realizedPnl || 0; R.fee += /^(USDT|USDC|FDUSD)$/.test(t.commissionAsset) ? +t.commission : +t.commission * (this.pxm?.[t.commissionAsset] || 0); R.maxQ = Math.max(R.maxQ, Math.abs(pos));      // phí trả bằng BNB → quy USDT theo giá spot
         if (pos === 0 || Math.sign(pos) !== R.sd) {
-          const t2 = t.time, bot = W.some(([a, b]) => a && t2 >= a - 60e3 && R.t1 <= (b || now) + 60e3);
+          // lệnh của bot: vòng mở → đóng này BẮT ĐẦU trước khi lệnh bot đóng (chừa 15 giây ghi sổ). Trước: chừa 60 giây → lệnh tay anh mở ngay sau
+          // khi bot vừa đóng cùng mã (vd chép lại Short bơm BLESS 40 giây sau) bị coi là của bot → không hiện ở "Lệnh tay đã đóng"
+          const t2 = t.time, bot = W.some(([a, b]) => a && t2 >= a - 60e3 && R.t1 <= (b || now) + 15e3);
           if (!bot && R.eq > 0 && R.xq > 0) {
             const key = `${sym}|${R.t1}`, wy = this.S.mxWhy?.[sym], why = wy && Math.abs(wy.at - t2) < 180e3 ? wy.why : "EXCH", e = R.ev / R.eq, x = R.xv / R.xq;
             if (!H.L[key]) (this.mNew ||= new Set()).add(key);
