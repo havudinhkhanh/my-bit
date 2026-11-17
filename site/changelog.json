@@ -1,0 +1,896 @@
+{
+ "v": 1,
+ "rel": [
+  {
+   "v": "2026.11.17",
+   "d": "2026-11-17",
+   "t": "Lệnh ngay trên biểu đồ & báo kết quả từng lệnh",
+   "te": "Trade from the chart & per-order feedback",
+   "s": "Thao tác lệnh ngay trên biểu đồ, máy chủ báo lại kết quả từng lần bấm, lời/lỗ thống nhất bằng %.",
+   "se": "Act on orders right on the chart, the server confirms every tap, P/L unified in %.",
+   "it": [
+    {
+     "c": "new",
+     "a": "live",
+     "t": "🏁 Hẹn đóng lệnh theo giá",
+     "te": "🏁 Close at a price",
+     "d": "Chuột phải (giữ lâu trên điện thoại) một mức giá trên biểu đồ lệnh → “Đóng lệnh khi giá lên/xuống tới X”. Có đường 🏁 trên biểu đồ, bấm vào đường để bỏ hẹn.",
+     "de": "Right-click (long-press) a price on the order chart → close the trade when price reaches it.",
+     "aud": "admin",
+     "hi": 1,
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Thao tác lệnh ngay trên đường giá",
+     "te": "Act on order lines",
+     "d": "Chuột phải đúng vào đường lệnh: huỷ lệnh chờ, ⚡ vào ngay, bỏ cắt lỗ / chốt lời – luôn có bảng xác nhận.",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Báo kết quả mọi lệnh bấm trên trang",
+     "te": "Feedback for every order you send",
+     "d": "Vài giây sau khi gửi: ✓ đã làm · ! chưa làm được kèm lý do · ✕ sàn báo lỗi. Hết cảnh tưởng đã vào lệnh mà thật ra chưa.",
+     "de": "Within seconds: done · not done with the reason · exchange error.",
+     "aud": "admin"
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Kiểm tra mức tối thiểu của sàn trước khi gửi",
+     "te": "Exchange minimum checked before sending",
+     "d": "Bảng vào thêm / chép lệnh / lệnh chờ tính số coin sau khi sàn làm tròn; chưa đủ 1 lệnh thì khoá nút và gợi ý số tiền nhỏ nhất.",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Đối chiếu lời ngày MyBit ↔ Binance",
+     "te": "Daily P/L reconciliation with Binance",
+     "d": "Tách rõ ngày Binance (từ 7:00 giờ VN) và ngày VN, bóc chốt lời/lỗ, phí, funding.",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Nhịp tài sản: % trung bình mỗi ngày & ngoại suy",
+     "te": "Equity pace: daily average & run-rate",
+     "d": "Lãi kép và lãi đơn, $ mỗi ngày, ngoại suy tới hết tuần / tháng / năm; theo ngày, tuần, tháng hoặc từng lệnh.",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Lời/lỗ từng lệnh thống nhất bằng %",
+     "te": "Per-trade P/L shown in % everywhere",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Sàn thử so với Binance: bảng gọn + lọc khớp / hụt",
+     "te": "Paper vs Binance: compact table + filters",
+     "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Bảng xác nhận không còn nhảy chữ khi rê chuột",
+     "te": "Confirm sheets no longer jitter on hover"
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Lệnh tay mở ngay sau lệnh bot cùng mã không còn bị ẩn",
+     "te": "Manual trade right after a bot trade now shows",
+     "aud": "admin"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.16",
+   "d": "2026-11-16",
+   "t": "Biểu đồ lệnh dễ đọc, funding rõ ràng",
+   "te": "Clearer order charts & funding",
+   "s": "Nhãn đường giá ra cột riêng bên phải trục, funding tách bạch, thẻ lệnh live gọn trên điện thoại.",
+   "se": "Price-line labels in their own column, funding broken out, tidier live card on phones.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Nhãn đường giá xếp cạnh trục, không đè nhau",
+     "te": "Price-line labels beside the axis",
+     "d": "Tên đường (chờ, vào, cắt lỗ…) nằm ngay cạnh ô giá ở trục, tự giãn khi sát nhau; rê chuột gần đường → tên · giá · cách bao nhiêu %.",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Funding tách riêng",
+     "te": "Funding broken out",
+     "d": "Thẻ Funding 7 ngày, funding đã trả của lệnh tay đang mở, funding trong lời/lỗ trên biểu đồ.",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Lệnh chờ giá: còn bao nhiêu % + ⚡ Vào ngay",
+     "te": "Pending orders: distance + Enter now",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Nút Đóng ½ / Đóng lệnh / Vào thêm trong cửa sổ biểu đồ lệnh",
+     "te": "Close ½ / Close / Add buttons in the order chart",
+     "aud": "admin"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thẻ lệnh nổi trên điện thoại kiểu bong bóng Messenger",
+     "te": "Live order bubble on phones",
+     "d": "Chạm ra ngoài là thu lại, mở rộng tràn ngang, nút đổi sàn xuống đáy gần ngón cái, vuốt ngang để đổi tab.",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Lệnh tay đóng bớt hiện phần đã chốt",
+     "te": "Partially closed manual trades show the realised part",
+     "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "perf",
+     "t": "Rê chuột trên biểu đồ hết giật",
+     "te": "Smooth chart hover",
+     "d": "Bỏ một luật CSS làm cả trang tính lại mỗi lần giá đổi; mèo đứng yên khi anh đang xem biểu đồ."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Ô số trên biểu đồ lệnh không còn nhảy hàng",
+     "te": "Order-chart stat tiles no longer reflow"
+    },
+    {
+     "c": "fix",
+     "a": "notif",
+     "t": "Bỏ nút “Đánh dấu đã đọc hết” bị trùng",
+     "te": "Removed duplicate “mark all read” button"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.15",
+   "d": "2026-11-15",
+   "t": "Mèo na na & app tự cập nhật",
+   "te": "Na na the cat & auto-update",
+   "s": "Chào na na – mèo mascot đi dạo mép màn hình; app tự nhận bản mới; trang tự làm mới không còn nháy.",
+   "se": "Meet na na, the mascot cat; the app picks up new versions; auto-refresh no longer flickers.",
+   "it": [
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "🐈‍⬛ Mèo na na",
+     "te": "🐈‍⬛ Na na the cat",
+     "d": "Đi dạo mép dưới màn hình, ngồi, liếm lông, lăn lộn, rượt chuột; nói ngắn nhắc kỷ luật và đọc thông báo của app (không bao giờ khuyên mua / bán).",
+     "de": "Walks along the bottom edge, grooms, rolls, chases the mouse; reads app notices (never gives buy/sell advice).",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "App tự nhận bản mới",
+     "te": "The app detects new versions",
+     "d": "Quay lại app sau hơn 2 phút mà có bản mới thì tự tải lại; đang dùng thì hiện “Có bản app mới – chạm để tải lại”."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Trang tự làm mới không nháy, giữ vị trí cuộn",
+     "te": "Auto-refresh keeps your scroll position",
+     "d": "Bảng lệnh đã đóng giữ đúng ngày đang xem, khung không đổi thì không vẽ lại."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Vuốt đổi tab Bot: viên kính đi theo ngón tay",
+     "te": "Swipe between Bot tabs: the glass follows your finger",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Khung sự kiện và bảng lệnh luôn thấp hơn 1 màn hình",
+     "te": "Event and trade panels fit one screen",
+     "f": "bot"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.14",
+   "d": "2026-11-14",
+   "t": "Vào thêm lệnh & menu tài khoản mới",
+   "te": "Add to trades & new account menu",
+   "s": "Vào thêm để bình quân giá ngay trên thẻ lệnh; mọi thiết lập giao diện về một chỗ trong menu tài khoản.",
+   "se": "Average into open trades from the card; all appearance settings in the account menu.",
+   "it": [
+    {
+     "c": "new",
+     "a": "live",
+     "t": "➕ Vào thêm cho lệnh tay và lệnh Short bơm",
+     "te": "➕ Add to manual and pump-Short trades",
+     "d": "Chọn ½× / 1× / 2× hoặc nhập số; xem trước ký quỹ thêm, vị thế và giá vào bình quân sau khi gộp; giữ cắt lỗ / chốt lời / hẹn đóng.",
+     "aud": "admin",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "acct",
+     "t": "Menu tài khoản v4",
+     "te": "Account menu v4",
+     "d": "Thẻ hồ sơ có gói đang dùng, Giao diện Sáng/Tối/Hệ thống, Ánh sáng ấm, Ngôn ngữ, Hướng dẫn & Phím tắt – một chỗ duy nhất."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh bên: hàng tài khoản cố định cuối thanh",
+     "te": "Sidebar: account row pinned at the bottom"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Mọi ô chọn có mũi tên tự vẽ, chữ không đè",
+     "te": "All dropdowns get a proper arrow"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: mở bảng trượt không kéo trang phía sau chạy theo",
+     "te": "Phones: sheets no longer scroll the page behind"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ánh sáng ấm phủ kín từ mép trên trên mọi máy",
+     "te": "Night light covers the top edge on every device"
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Lệnh chọn “tôi tự đóng” không còn bị bot tự đóng",
+     "te": "“I'll close it myself” is now respected",
+     "aud": "admin"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.13",
+   "d": "2026-11-13",
+   "t": "Đặt lệnh chờ từ biểu đồ & thông báo kiểu mới",
+   "te": "Price orders from the chart & new notifications",
+   "s": "Chuột phải trên biểu đồ để đặt lệnh chờ giá; thông báo đọc / chưa đọc kiểu Mail; mọi menu nổi cùng một kiểu.",
+   "se": "Right-click the chart to place price orders; Mail-style read/unread; one style for every menu.",
+   "it": [
+    {
+     "c": "new",
+     "a": "live",
+     "t": "📍 Lệnh chờ giá từ biểu đồ",
+     "te": "📍 Price orders from the chart",
+     "d": "Chuột phải / giữ lâu trên biểu đồ → Long / Short khi giá về mức đó, kèm cắt lỗ, chốt lời, hạn hiệu lực, tự đóng sau khi khớp; có chế độ bình quân vào lệnh đang có.",
+     "aud": "admin",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Thông báo đọc / chưa đọc kiểu Mail",
+     "te": "Mail-style read / unread",
+     "d": "Nhóm chưa đọc lên đầu có số đếm, chấm xanh, tiêu đề đậm; đã đọc chữ nhạt hơn."
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "So sánh bot tự chạy với can thiệp tay",
+     "te": "Bot-alone vs your interventions",
+     "d": "So từng lệnh: anh làm gì so với nếu để bot chạy tiếp tới khi tự thoát; biểu đồ 3 đường, bảng từng lệnh.",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Mọi menu nổi cùng một kiểu kính",
+     "te": "All pop-up menus share one glass style",
+     "d": "Cùng cỡ chữ, cỡ mục (44px trên màn chạm), biểu tượng thẳng cột; bấm ra ngoài / Esc / đổi trang là tự đóng."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Lệnh đã đóng: hàng tổng ngày thẳng cột, thu / mở từng ngày",
+     "te": "Closed trades: aligned day rows, collapsible days",
+     "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "notif",
+     "t": "Không còn 2 thông báo trùng khi app đang mở",
+     "te": "No more duplicate banners while the app is open"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: toast nằm ngay dưới thanh trên cùng",
+     "te": "Phones: toasts sit under the top bar"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.12",
+   "d": "2026-11-12",
+   "t": "Thiết kế kính v4, biểu đồ đổi cỡ, ánh sáng ấm",
+   "te": "Glass v4, resizable charts, night light",
+   "s": "Viên kính trượt trên mọi thanh chọn, biểu đồ chọn cỡ S/M/L/toàn màn hình, ánh sáng ấm cho buổi tối.",
+   "se": "Sliding glass on every switcher, S/M/L/full-screen charts, a warm night light.",
+   "it": [
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Thiết kế v4 – kính lỏng",
+     "te": "Design v4 – liquid glass",
+     "d": "Thanh chọn có viên kính trượt lò xo; thanh dưới điện thoại dạng viên nổi, nhấn rồi trượt ngón để chọn trang.",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ đổi cỡ S · M · L · toàn màn hình",
+     "te": "Charts: S · M · L · full screen",
+     "d": "Dùng chung cho mọi biểu đồ, nhớ cỡ theo từng biểu đồ; trang coin có biểu đồ chiếm cả hàng."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Ánh sáng ấm",
+     "te": "Night light",
+     "d": "Lớp ấm chỉnh độ ấm được, tự bật 19:00–6:00 nếu muốn; phủ cả vùng thanh trạng thái iPhone."
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Cửa sổ biểu đồ lớn cho từng lệnh",
+     "te": "Large chart window for each trade",
+     "d": "Nút 📈 trên thẻ lệnh: đủ khung 1 giây tới 1 năm, thẻ vị thế (giá vào, lời/lỗ).",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Rê chuột hiện phím tắt",
+     "te": "Hover shows the shortcut"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Phím tắt chạy cùng bộ gõ tiếng Việt (Unikey / Telex)",
+     "te": "Shortcuts work with Vietnamese input methods"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Kết quả theo ngày: tiêu đề kiểu người đọc, ghi chú tự lưu, lọc phương pháp",
+     "te": "Daily results: readable headers, auto-saved notes, method filter",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Thông báo hỏi việc tiếp theo khi lệnh sắp tự đóng mà đang lỗ",
+     "te": "Ask-what-next when a losing trade is about to auto-close",
+     "aud": "admin"
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Đổi sàn / đổi thẻ Bot vẽ ngay từ dữ liệu vừa có",
+     "te": "Switching Bot tabs renders instantly",
+     "f": "bot"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.11",
+   "d": "2026-11-11",
+   "t": "Thông báo theo lệnh, tìm nhanh trên điện thoại",
+   "te": "Grouped trade notifications, mobile search",
+   "s": "Thông báo gom theo từng lệnh với nút làm nhanh; kéo lên từ thanh dưới để tìm hoặc xem thông báo.",
+   "se": "Notifications grouped per trade with quick actions; pull up from the tab bar to search or see alerts.",
+   "it": [
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Thông báo gom theo lệnh + nút làm nhanh",
+     "te": "Notifications grouped per trade + quick actions",
+     "d": "Chờ › khớp › giữ › đóng trong một nhóm; nút Xem / Gia hạn / Đóng / Nhắc sau mở thẳng bảng xác nhận. Banner trong app vuốt xuống để mở rộng.",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "⏱ Gia hạn / giữ lệnh",
+     "te": "⏱ Extend / keep a trade",
+     "d": "+5/10/30 phút (lệnh nhiều ngày: +1 giờ / 6 giờ / 1 ngày), ra ở đỉnh nhịp nảy, ra khi về hoà vốn, hoặc giữ tay.",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điện thoại: kéo lên từ thanh dưới",
+     "te": "Phones: pull up from the tab bar",
+     "d": "Nửa trái = tìm kiếm, nửa phải = thông báo; kết quả tìm khớp nhất nằm sát ô tìm."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điện thoại: vuốt từ mép phải mở Bảng phụ",
+     "te": "Phones: swipe from the right edge for the side panel"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Tab Lệnh: cùng bố cục cho sàn thử & Binance",
+     "te": "Orders tab: one layout for paper & Binance",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Menu thả xuống v3, thang bo góc thống nhất",
+     "te": "Dropdown v3, unified corner radii"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Lời/lỗ thật không còn sụt giả khi nạp / rút",
+     "te": "Real P/L no longer dips on deposits",
+     "aud": "admin"
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Ít lượt đọc dữ liệu hơn – chuông chỉ đếm khi đang xem trang",
+     "te": "Fewer data reads – the bell counts only while visible"
+    },
+    {
+     "c": "res",
+     "a": "res",
+     "t": "Nghiên cứu vòng 15–16: thoát và vào lệnh theo đạo hàm / độ cong",
+     "te": "Research rounds 15–16",
+     "aud": "admin"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.10",
+   "d": "2026-11-10",
+   "t": "Lệnh tay trên Binance & phím tắt",
+   "te": "Manual Binance trades & shortcuts",
+   "s": "Quản lý lệnh anh tự mở trên Binance ngay trong MyBit; phím tắt cho gần như mọi chức năng.",
+   "se": "Manage your own Binance trades in MyBit; keyboard shortcuts for nearly everything.",
+   "it": [
+    {
+     "c": "new",
+     "a": "live",
+     "t": "✋ Lệnh tay Binance Futures",
+     "te": "✋ Manual Binance Futures trades",
+     "d": "Giá và lời/lỗ trực tiếp, cắt lỗ / chốt lời, thanh lý; đóng cả hoặc ½, hẹn tự đóng, theo một lệnh sàn thử; tính vào mọi thống kê, sổ lệnh và sổ thuế.",
+     "aud": "admin",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "📋 Chép lệnh sàn thử sang Binance",
+     "te": "📋 Copy a paper trade to Binance",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Phím tắt cho gần như mọi chức năng",
+     "te": "Keyboard shortcuts for nearly everything",
+     "d": "Trang Phím tắt, bấm ? ở bất kỳ đâu để xem nhanh, g + chữ cái để nhảy trang.",
+     "go": "#/keys"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Khung xương khi tải trang",
+     "te": "Skeleton loading",
+     "d": "Vệt sáng chạy theo hình từng trang thay cho chữ “Đang tải…”."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh vị trí: ‹ › trang trước / sau, bản đồ mọi trang",
+     "te": "Breadcrumb: back / forward and a page map"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Hộp xác nhận mang nhận diện MyBit",
+     "te": "MyBit-styled confirm dialogs",
+     "d": "Đóng lệnh hiện kết quả ròng nổi bật, giá vào → bây giờ, bóc tách phí / funding."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Trang bot vẽ lại nhanh ~7 lần",
+     "te": "Bot page redraws ~7× faster",
+     "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ nến quanh lệnh vẽ đúng bề rộng, không nháy khi tự làm mới",
+     "te": "Trade candle charts: full width, no flicker",
+     "f": "bot"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.09",
+   "d": "2026-11-09",
+   "t": "Sổ thuế, ghim lối tắt, thiết kế không viền",
+   "te": "Tax ledger, pinned shortcuts, borderless design",
+   "s": "Sổ thuế TNCN tài sản mã hoá, ghim bất kỳ lối tắt nào lên thanh bên, phong cách mảng màu thay viền.",
+   "se": "Crypto tax ledger, pin any shortcut to the sidebar, colour blocks instead of borders.",
+   "it": [
+    {
+     "c": "new",
+     "a": "port",
+     "t": "🧾 Sổ thuế TNCN tài sản mã hoá",
+     "te": "🧾 Crypto personal-income-tax ledger",
+     "d": "Nhập file Binance, thuế 0,1% theo kịch bản, xuất hồ sơ Excel.",
+     "go": "#/tax",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Ghim lối tắt lên thanh bên",
+     "te": "Pin shortcuts to the sidebar",
+     "d": "Trang, tab con, chức năng (Tính lệnh nhanh, Tìm nhanh, Bảng phụ, Sáng/tối)."
+    },
+    {
+     "c": "new",
+     "a": "acct",
+     "t": "Đổi email đăng nhập",
+     "te": "Change sign-in email",
+     "d": "Cần mật khẩu hiện tại; sai nhiều lần khoá 15 phút; email cũ nhận thư báo."
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Ô lệnh bot nổi ở góc màn hình",
+     "te": "Floating live-trade widget",
+     "d": "3 chế độ mở rộng · viên · chấm, kéo tới mép bất kỳ.",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Vuốt thông báo kiểu iPhone / Android",
+     "te": "iOS / Android-style swipe on notifications",
+     "d": "Trái = đọc / chưa đọc, có rung; xem nhanh lệnh bot với biểu đồ nhỏ."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thiết kế v3: bỏ viền xám, dùng mảng màu",
+     "te": "Design v3: colour blocks instead of grey borders"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Bản tiếng Anh dịch đủ thanh bên, tài khoản, thông báo bot",
+     "te": "English: sidebar, account and bot notices translated"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Tài sản & lời/lỗ cộng dồn theo khoảng ngày",
+     "te": "Equity & cumulative P/L by date range",
+     "f": "bot"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.08",
+   "d": "2026-11-08",
+   "t": "Lịch lời/lỗ & trang chi tiết lệnh",
+   "te": "P/L calendar & trade detail page",
+   "s": "Lịch lời/lỗ theo tháng, trang riêng cho từng lệnh, sổ lệnh có nhóm coin.",
+   "se": "Monthly P/L calendar, a page per trade, coin sectors in the trade book.",
+   "it": [
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "📅 Lịch lời/lỗ theo tháng",
+     "te": "📅 Monthly P/L calendar",
+     "d": "Mỗi ô 1 ngày: lời/lỗ, % ngày, luỹ kế; % khử tiền nạp / rút theo kiểu quỹ.",
+     "f": "bot",
+     "hi": 1,
+     "go": "#/bot/days"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Trang chi tiết lệnh",
+     "te": "Trade detail page",
+     "d": "Bấm thông báo của bot là tới: biểu đồ nến đúng khung, mốc vào / ra.",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Sổ lệnh: nhóm coin + trang Lệnh hụt",
+     "te": "Trade book: coin sectors + missed trades",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Lệnh đã đóng gom theo ngày",
+     "te": "Closed trades grouped by day",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Tách Bot (hiệu quả) và Tài khoản Binance (tiền)",
+     "te": "Bot = performance, Binance account = money",
+     "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Lịch: chọn ngày không còn cuộn trang lên đầu trên iPhone",
+     "te": "Calendar: picking a day no longer jumps on iPhone"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.07",
+   "d": "2026-11-07",
+   "t": "Điều hướng mới 5 nhóm & vuốt như app",
+   "te": "New 5-group navigation & app-like swipes",
+   "s": "Menu chia 5 nhóm theo việc cần làm, vuốt mép để lùi / tới, vuốt ngang đổi tab Bot.",
+   "se": "Navigation in 5 task groups, edge swipes for back / forward, swipe between Bot tabs.",
+   "it": [
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điều hướng 5 nhóm",
+     "te": "5-group navigation",
+     "d": "Thị trường · Cơ hội · Giao dịch tay · Bot · Học; nút ★ tuỳ chọn và ↻ Hay vào.",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điện thoại: vuốt mép để lùi / tới",
+     "te": "Phones: edge swipe back / forward",
+     "d": "Trang đi theo ngón tay như app iPhone."
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Vuốt ngang đổi tab Bot Phản Xạ",
+     "te": "Swipe between Bot tabs",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "🎛️ Một danh sách bật / tắt cho cả 10 kiểu chơi",
+     "te": "🎛️ One on/off list for all 10 strategies",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Nhật ký có nhãn nguồn + lọc",
+     "te": "Event log with source labels + filters",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "⚠️ Cảnh báo khi bật tiền thật cho phương pháp chưa có lời ở sàn thử",
+     "te": "⚠️ Warning before real money on unproven strategies",
+     "aud": "admin"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thang chữ chung 6 bậc cho toàn app",
+     "te": "One 6-step type scale across the app"
+    },
+    {
+     "c": "new",
+     "a": "acct",
+     "t": "Đổi ảnh đại diện",
+     "te": "Change your avatar"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Bot Phản Xạ hết giật khi đổi sàn / tab",
+     "te": "Bot page no longer jumps when switching",
+     "f": "bot"
+    },
+    {
+     "c": "res",
+     "a": "res",
+     "t": "Nghiên cứu vòng 8, 11–13: chờ gần / xa, lãi gộp, chốt lời sớm",
+     "te": "Research rounds 8, 11–13",
+     "aud": "admin"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.04",
+   "d": "2026-11-04",
+   "t": "Bảng thử nghiệm gọn",
+   "te": "Compact experiments board",
+   "s": "Gộp các kiểu chơi thử nghiệm vào một danh sách, mỗi kiểu một thanh với hai công tắc.",
+   "se": "Experimental strategies in one list, one row each with two switches.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "🧪 Thử nghiệm: một danh sách, mỗi kiểu chơi một thanh",
+     "te": "🧪 Experiments: one row per strategy",
+     "f": "bot",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Thông số thử nghiệm thẳng hàng",
+     "te": "Aligned experiment settings",
+     "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ngăn chi tiết trên điện thoại vuốt để đóng, trang dưới không cuộn theo",
+     "te": "Phone detail drawer: swipe to close"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.03",
+   "d": "2026-11-03",
+   "t": "Sổ lệnh & 6 phương pháp định lượng",
+   "te": "Trade book & 6 quant strategies",
+   "s": "Toàn bộ lịch sử giao dịch kèm bài học, 6 phương pháp định lượng trên sàn thử, thanh bên thu gọn.",
+   "se": "Full trade history with lessons, 6 quant strategies on paper, collapsible sidebar.",
+   "it": [
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "📒 Sổ lệnh & bài học",
+     "te": "📒 Trade book & lessons",
+     "d": "Mọi lệnh sàn thử / Demo / thật: giờ, giá, khối lượng, phí, funding, lời/lỗ ròng, lý do đóng.",
+     "f": "bot",
+     "hi": 1,
+     "go": "#/bot/days"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "📐 6 phương pháp định lượng",
+     "te": "📐 6 quant strategies",
+     "d": "Cặp coin, RSI2, funding cực âm, ORB+NR7, VWAP, thác thanh lý – chạy trên sàn thử.",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Thanh bên ghim hoặc tự thu gọn",
+     "te": "Pinned or auto-collapsing sidebar",
+     "d": "Phím [ để đổi; nhớ lựa chọn."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Nút và ô chọn đang bật đủ tương phản, có vòng focus",
+     "te": "Higher-contrast active buttons with focus rings"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Cuộn chuột tự nhiên trong các hộp cuộn",
+     "te": "Natural scroll chaining in scroll boxes"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Sắp xếp lại tab Bot theo cách dùng",
+     "te": "Bot tabs reordered by how you use them",
+     "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "acct",
+     "t": "Bảo mật: che email trong nhật ký hệ thống",
+     "te": "Security: emails masked in system logs"
+    }
+   ]
+  },
+  {
+   "v": "2026.11.02",
+   "d": "2026-11-02",
+   "t": "Đóng lệnh tay & giới hạn an toàn",
+   "te": "Manual close & safety limits",
+   "s": "Nút đóng lệnh trên mọi lệnh đang mở, danh mục cập nhật từ Binance, giới hạn an toàn chung.",
+   "se": "Close any open trade, portfolio sync from Binance, global safety limits.",
+   "it": [
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "✋ Nút Đóng lệnh trên mọi lệnh đang mở",
+     "te": "✋ Close button on every open trade",
+     "d": "Bảng xác nhận ước tính lời/lỗ ròng sau phí, trượt giá, funding và giá hoà vốn.",
+     "f": "bot",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "port",
+     "t": "🔄 Danh mục cập nhật từ Binance",
+     "te": "🔄 Portfolio sync from Binance",
+     "d": "Coin mọi ví, stablecoin thành tiền mặt, vị thế futures; giữ giá vốn đã nhập, xem trước khi áp dụng.",
+     "go": "#/portfolio"
+    },
+    {
+     "c": "imp",
+     "a": "port",
+     "t": "Danh mục: tổng tài sản & kiểm soát rủi ro thiết kế lại",
+     "te": "Portfolio: redesigned totals & risk"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "🛡️ Giới hạn an toàn chung cho tài khoản Binance",
+     "te": "🛡️ Global safety limits for the Binance account",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "🧪 Short coin vừa bơm bằng tiền thật (bật riêng)",
+     "te": "🧪 Pump-Short with real money (opt-in)",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Thông báo: chuột phải mở menu nhỏ, đánh dấu chưa đọc",
+     "te": "Notifications: context menu, mark as unread"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Menu trái: nhãn nhóm không còn tràn khung",
+     "te": "Sidebar group labels no longer overflow"
+    }
+   ]
+  }
+ ]
+}

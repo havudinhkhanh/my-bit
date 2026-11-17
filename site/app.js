@@ -834,7 +834,8 @@ function mSheet(open) {
       if (n.classList.contains("nav-g")) { if (grp) html += `</div>`; html += `<h4 class="msheet-g">${n.innerHTML}</h4><div class="msheet-l">`; grp = 1; }
       else if (n.tagName === "A" && !n.classList.contains("nav-cus") && n.getAttribute("href") !== "#/bot/sup") {
         const svg = n.querySelector("svg")?.outerHTML || "", t = n.querySelector(".nav-t")?.textContent || n.textContent, h = n.getAttribute("title") || "";
-        html += `<a href="${n.getAttribute("href")}" class="${n.classList.contains("on") ? "on" : ""}">${svg}<span class="ms-t"><b>${esc(t)}</b>${h ? `<small>${esc(h)}</small>` : ""}</span></a>`;
+        const bd = n.querySelector("[data-chgn]:not([hidden])")?.outerHTML || "";      // ✨ số thay đổi chưa xem của "Có gì mới"
+        html += `<a href="${n.getAttribute("href")}" class="${n.classList.contains("on") ? "on" : ""}">${svg}<span class="ms-t"><b>${esc(t)}</b>${h ? `<small>${esc(h)}</small>` : ""}</span>${bd}</a>`;
       }
     }
     $("#msheetB").innerHTML = html + (grp ? "</div>" : "");
@@ -1690,6 +1691,7 @@ async function route() {
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
     else if (r === "keys") { setTab("keys"); await viewKeys(); }
+    else if (r === "changes" || r === "changelog") { setTab("changes"); await viewChanges(arg[0]); }
     else app().innerHTML = `<div class="empty">Không có trang này. <a href="#/">Về trang Thị trường</a></div>`;
   } catch (e) {
     console.error(e);
@@ -7202,6 +7204,7 @@ function initAccountUI() {
       <hr class="mm-sep">
       <a href="#/methods">${ic(I.help)}<span>Hướng dẫn & FAQ</span></a>
       <a href="#/keys" class="mm-kb">${ic(I.key)}<span>Phím tắt</span><kbd>?</kbd></a>
+      <a href="#/changes">${ic('<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>')}<span>Có gì mới</span><i class="chg-n" data-chgn hidden></i></a>
       ${ME.role === "admin" ? `<hr class="mm-sep"><a href="#/admin">${ic(I.adm)}<span>Quản trị</span></a>` : ""}
       <hr class="mm-sep">
       <button type="button" id="meOut" class="mm-out">${ic(I.out)}<span>Đăng xuất</span></button>`;
@@ -7817,6 +7820,7 @@ const KS = [
     { k: ["g", "z"], t: ["Kiểm chứng", "Verification"], h: "#/backtest" },
     { k: ["g", "o"], t: ["Trang thông báo", "Notifications page"], h: "#/notifications" },
     { k: ["g", "a"], t: ["Tài khoản & cài đặt", "Account & settings"], h: "#/account" },
+    { k: ["g", "w"], t: ["Có gì mới – nhật ký phiên bản", "What's new – release notes"], h: "#/changes" },
     { k: ["g", "?"], t: ["Trang phím tắt này", "This shortcuts page"], h: "#/keys" },
     { k: ["<"], t: ["Trang trước theo thứ tự menu", "Previous page in menu order"], run: () => navStep(-1) },
     { k: [">"], t: ["Trang sau theo thứ tự menu", "Next page in menu order"], run: () => navStep(1) },
@@ -7869,6 +7873,66 @@ const ksHint = (h) => (KS_GO[h] ? `<span class="ks-hint">${KS_GO[h].map(ksKey).j
 function ksHTML(compact) {
   return `<div class="ks-grid${compact ? " ks-c" : ""}">${KS.map((g) => `<section class="ks-g${compact ? "" : " panel"}" data-ksg="${g.id}"><div class="ks-gh"><h2>${bi(...g.t)}</h2>${g.d[0] ? `<small>${bi(...g.d)}</small>` : ""}</div>
     <div class="ks-rows">${g.it.map((x) => `<div class="ks-r" data-kst="${esc(fold(bi(...x.t) + " " + x.k.join(" ")))}"><span class="ks-t">${esc(bi(...x.t))}</span><span class="ks-k">${ksKeys(x)}</span></div>`).join("")}</div></section>`).join("")}</div>`;
+}
+// ================================================================ ✨ CÓ GÌ MỚI – nhật ký phiên bản (site/changelog.json, viết tay bằng lời người dùng)
+// Mỗi phiên bản (v = năm.tháng.ngày) có tiêu đề, tóm tắt và các mục: c = new tính năng mới · imp cải tiến · fix sửa lỗi · res nghiên cứu;
+// a = khu vực; f = tính năng theo gói (★ Pro khi gói Miễn phí không có – người chưa có gói thấy nút nâng cấp); aud "admin" = chỉ quản trị viên thấy; go = mở thẳng tính năng.
+// Chưa xem → chấm trên menu "Có gì mới" + nhãn Mới trên phiên bản; vừa tự tải bản app mới → toast mời xem.
+const CHG_C = { new: ["✨", "Tính năng mới", "New"], imp: ["⚡", "Cải tiến", "Improved"], fix: ["🔧", "Sửa lỗi", "Fixed"], res: ["🔬", "Nghiên cứu", "Research"] };
+const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na na", "Na na"], res: ["Nghiên cứu", "Research"] };
+const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
+let CHG_P = null;
+const chgLoad = () => (CHG_P ||= fetch("changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.rel || []).catch(() => { CHG_P = null; return []; }));
+const chgVis = (x) => x.aud !== "admin" || isAdmin();
+const chgCmp = (a, b) => (a === b ? 0 : String(a).localeCompare(String(b), "en", { numeric: true }));
+function chgSeen(R) { let v = lsGet("chg_seen", ""); if (!v && R.length) { v = R[1]?.v || "0"; lsSet("chg_seen", v); } return v; }      // lần đầu: coi như đã xem tới bản trước → chỉ bản mới nhất hiện "Mới"
+// điện thoại: mục "Có gì mới" nằm trong bảng Thêm → chấm nhỏ trên nút Thêm của thanh dưới
+const chgMore = (on) => { const b = $("#navMore"); if (!b) return; let d = b.querySelector(".chg-md"); if (on && !d) { d = document.createElement("i"); d.className = "chg-md"; b.appendChild(d); } else if (!on) d?.remove(); };
+const chgUnseen = (R, seen) => R.filter((r) => chgCmp(r.v, seen) > 0).reduce((n, r) => n + r.it.filter(chgVis).length, 0);
+async function chgBadge() {
+  const R = await chgLoad(); if (!R.length) return;
+  const n = chgUnseen(R, chgSeen(R));
+  $$("[data-chgn]").forEach((b) => { b.hidden = !n; b.textContent = n > 99 ? "99+" : n || ""; });
+  chgMore(!!n);
+  try { if (sessionStorage.getItem("mb_upd")) { sessionStorage.removeItem("mb_upd"); if (n && !/^#\/changes/.test(location.hash)) toast(bi(`Đã cập nhật lên bản ${R[0].v} – ${n} thay đổi mới`, `Updated to ${R[0].v} – ${n} new changes`), { type: "ok", title: bi("✨ Có gì mới", "✨ What's new"), href: "#/changes", ms: 9000 }); } } catch (e) { /* bỏ qua */ }
+}
+const chgDate = (d) => { const t = new Date(d + "T00:00:00"); return isNaN(t) ? d : t.toLocaleDateString(LOC, { day: "numeric", month: "short", year: "numeric" }); };
+async function viewChanges(focusV) {
+  const R0 = await chgLoad();
+  if (!R0.length) { app().innerHTML = `<div class="ph"><h1>${bi("Có gì mới", "What's new")}</h1></div><div class="empty">${bi("Chưa tải được nhật ký phiên bản – thử lại khi có mạng.", "Couldn't load the changelog – try again when online.")}</div>`; return; }
+  const R = R0.map((r) => ({ ...r, it: r.it.filter(chgVis) })).filter((r) => r.it.length), seen = chgSeen(R0), EN = I18N.lang !== "vi";
+  const st = { c: lsGet("chg_c", "all"), a: lsGet("chg_a", "all"), q: "" };
+  const all = R.flatMap((r) => r.it), cnt = (k, v) => all.filter((x) => x[k] === v).length, days = Math.max(1, Math.round((Date.parse(R[0].d) - Date.parse(R[R.length - 1].d)) / 864e5) + 1);
+  const unseen = chgUnseen(R, seen), CS = Object.keys(CHG_C).filter((k) => cnt("c", k)), AS = Object.keys(CHG_A).filter((k) => cnt("a", k));
+  if (!CS.includes(st.c)) st.c = "all"; if (st.a !== "all" && !AS.includes(st.a)) st.a = "all";
+  const tx = (x, k) => (EN && x[k + "e"]) || x[k] || "";
+  const tier = (x) => (x.f && CHG_PRO.has(x.f) ? (can(x.f) ? `<span class="chg-pro">★ Pro</span>` : `<a class="chg-pro lock" href="#/account" title="${bi("Tính năng của gói Pro – xem các gói", "A Pro feature – see plans")}">★ Pro · ${bi("nâng cấp", "upgrade")}</a>`) : "") + (x.aud === "admin" ? `<span class="chg-adm">${bi("Quản trị", "Admin")}</span>` : "");
+  const item = (x) => { const c = CHG_C[x.c] || CHG_C.imp, d = tx(x, "d");
+    return `<li class="chg-i c-${x.c}${x.hi ? " hi" : ""}" data-c="${x.c}" data-a="${x.a}" data-q="${esc(fold([x.t, x.te, x.d, x.de].join(" ")))}"><span class="chg-tag">${c[0]} ${EN ? c[2] : c[1]}</span>
+      <div class="chg-ib"><p class="chg-it"><b>${esc(tx(x, "t"))}</b>${tier(x)}</p>${d ? `<p class="chg-id">${esc(d)}</p>` : ""}<p class="chg-im"><span>${esc(EN ? CHG_A[x.a]?.[1] : CHG_A[x.a]?.[0] || x.a)}</span>${x.go ? `<a href="${esc(x.go)}">${bi("Mở", "Open")} →</a>` : ""}</p></div></li>`; };
+  const rel = (r, i) => { const nw = chgCmp(r.v, seen) > 0, ord = ["new", "imp", "fix", "res"], its = r.it.slice().sort((a, b) => (b.hi || 0) - (a.hi || 0) || ord.indexOf(a.c) - ord.indexOf(b.c));
+    const sm = ord.filter((k) => r.it.some((x) => x.c === k)).map((k) => `<span class="c-${k}">${CHG_C[k][0]} ${r.it.filter((x) => x.c === k).length}</span>`).join("");
+    return `<article class="chg-r${nw ? " nw" : ""}" id="v${r.v.replace(/\./g, "-")}"><div class="chg-when"><b>${esc(chgDate(r.d))}</b><span class="chg-v">v${esc(r.v)}</span>${i === 0 ? `<span class="chg-cur">${bi("Bản đang dùng", "Current")}</span>` : ""}${nw ? `<span class="chg-nw">${bi("Mới", "New")}</span>` : ""}</div>
+      <div class="chg-rb panel"><header><h2>${esc(tx(r, "t"))}</h2><p>${esc(tx(r, "s"))}</p><div class="chg-sm">${sm}</div></header><ul>${its.map(item).join("")}</ul><p class="chg-none faint" hidden>${bi("Không có mục nào khớp bộ lọc trong bản này.", "Nothing in this release matches.")}</p></div></article>`; };
+  app().innerHTML = `<div class="ph"><h1>${bi("Có gì mới", "What's new")}</h1><span class="meta">${bi("Nhật ký phiên bản – tính năng mới, cải tiến và các lần sửa lỗi", "Release notes – new features, improvements and fixes")}</span></div>
+    <section class="chg-hero panel"><div class="chg-hv"><small>${bi("Phiên bản đang dùng", "Current version")}</small><b>v${esc(R[0].v)}</b><span>${esc(chgDate(R[0].d))} · ${esc(tx(R[0], "t"))}</span></div>
+      <div class="chg-hs"><div><b>${cnt("c", "new")}</b><small>${bi("tính năng mới", "new features")}</small></div><div><b>${cnt("c", "imp")}</b><small>${bi("cải tiến", "improvements")}</small></div><div><b>${cnt("c", "fix")}</b><small>${bi("lần sửa lỗi", "fixes")}</small></div><div><b>${R.length}</b><small>${bi(`phiên bản / ${days} ngày`, `releases / ${days} days`)}</small></div></div>
+      ${unseen ? `<p class="chg-un">✨ ${bi(`${unseen} thay đổi mới từ lần trước anh xem`, `${unseen} new changes since your last visit`)}</p>` : ""}</section>
+    <div class="chg-bar"><span class="seg" id="chgC"><button type="button" data-chc="all" class="${st.c === "all" ? "on" : ""}">${bi("Tất cả", "All")}</button>${CS.map((k) => `<button type="button" data-chc="${k}" class="${st.c === k ? "on" : ""}">${CHG_C[k][0]} ${k === "new" && !EN ? `<span class="chg-lg">Tính năng mới</span><span class="chg-sh">Mới</span>` : EN ? CHG_C[k][2] : CHG_C[k][1]}</button>`).join("")}</span>
+      <label class="msearch sbx-s chg-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="chgQ" type="search" autocomplete="off" placeholder="${bi("Tìm thay đổi, ví dụ: biểu đồ", "Search changes, e.g. chart")}"></label></div>
+    <div class="nt-cs chg-as"><button type="button" class="nt-c${st.a === "all" ? " on" : ""}" data-cha="all">${bi("Mọi khu vực", "All areas")}</button>${AS.map((k) => `<button type="button" class="nt-c${st.a === k ? " on" : ""}" data-cha="${k}">${esc(EN ? CHG_A[k][1] : CHG_A[k][0])} <i>${cnt("a", k)}</i></button>`).join("")}</div>
+    <div class="chg-tl">${R.map(rel).join("")}</div><div class="empty chg-empty" hidden>${bi("Không có thay đổi nào khớp.", "No matching changes.")}</div>
+    <p class="faint chg-foot">${bi("MyBit cập nhật liên tục, thường nhiều lần mỗi ngày – app tự nhận bản mới khi anh quay lại.", "MyBit ships continuously, often several times a day – the app picks up new versions when you come back.")}</p>`;
+  const apply = () => { const q = fold(st.q.trim()); let any = 0;
+    $$("#app .chg-r").forEach((r) => { let n = 0; r.querySelectorAll(".chg-i").forEach((li) => { const ok = (st.c === "all" || li.dataset.c === st.c) && (st.a === "all" || li.dataset.a === st.a) && (!q || li.dataset.q.includes(q)); li.hidden = !ok; n += ok; });
+      r.hidden = !n && (st.c !== "all" || st.a !== "all" || !!q); any += n; });
+    $("#app .chg-empty").hidden = !!any; };
+  $$("#chgC [data-chc]").forEach((b) => (b.onclick = () => { st.c = b.dataset.chc; lsSet("chg_c", st.c); $$("#chgC [data-chc]").forEach((x) => x.classList.toggle("on", x === b)); apply(); }));
+  $$("#app [data-cha]").forEach((b) => (b.onclick = () => { st.a = b.dataset.cha; lsSet("chg_a", st.a); $$("#app [data-cha]").forEach((x) => x.classList.toggle("on", x === b)); apply(); }));
+  const q = $("#chgQ"); q.oninput = () => { st.q = q.value; apply(); }; q.onkeydown = (e) => { if (e.key === "Escape") { q.value = ""; st.q = ""; apply(); q.blur(); } };
+  apply();
+  if (focusV) document.getElementById("v" + focusV.replace(/\./g, "-"))?.scrollIntoView({ block: "start" });
+  setTimeout(() => { if (/^#\/changes/.test(location.hash)) { lsSet("chg_seen", R0[0].v); $$("[data-chgn]").forEach((b) => (b.hidden = true)); chgMore(false); } }, 1500);      // xem trang ≥ 1,5 giây = đã xem hết
 }
 async function viewKeys() {
   const touch = matchMedia("(pointer:coarse)").matches && !matchMedia("(any-pointer:fine)").matches;
@@ -7998,6 +8062,7 @@ function ksHud(on) {
 // 🔄 BẢN APP MỚI: app mở sẵn trên điện thoại / máy tính (PWA) không tự tải lại khi có bản mới → vẫn chạy mã cũ.
 //    Mỗi lần quay lại app (và 10 phút/lần) đọc trang gốc, so mã phiên bản của app.js: khác → app vừa rời > 2 phút thì tự tải lại ngay,
 //    còn đang dùng thì hiện thông báo "Có bản mới – chạm để tải lại" (không tự tải lại giữa chừng khi anh đang thao tác).
+setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().catch(() => {})); }, 3500);      // ✨ chấm "Có gì mới" – đọc nhật ký sau khi trang đã mở xong
 (function appUpdate() {
   const cur = () => (document.querySelector('script[src*="app.js"]')?.getAttribute("src") || "").match(/[?&]v=([\w]+)/)?.[1] || "";
   let last = 0, hidAt = 0, told = false;
@@ -8006,8 +8071,9 @@ function ksHud(on) {
     try {
       const r = await fetch("/", { cache: "no-store", credentials: "same-origin" }); if (!r.ok) return;
       const v = (await r.text()).match(/app\.js\?v=([\w]+)/)?.[1]; if (!v || v === cur()) return;
-      if (resume && !document.getElementById("iosSheet") && !document.querySelector(".ios-menu")) { location.reload(); return; }
-      if (!told) { told = true; toast(bi("🔄 Có bản app mới – chạm để tải lại", "🔄 New version – tap to reload"), { type: "info", ms: 15000, onclick: () => location.reload() }); }
+      const go = () => { try { sessionStorage.setItem("mb_upd", "1"); } catch (e) { /* bỏ qua */ } location.reload(); };      // tải lại vì bản mới → sau khi mở lại mời xem "Có gì mới"
+      if (resume && !document.getElementById("iosSheet") && !document.querySelector(".ios-menu")) { go(); return; }
+      if (!told) { told = true; toast(bi("🔄 Có bản app mới – chạm để tải lại", "🔄 New version – tap to reload"), { type: "info", ms: 15000, onclick: go }); }
     } catch (e) { /* mất mạng – bỏ qua */ }
   };
   document.addEventListener("visibilitychange", () => { if (document.hidden) hidAt = Date.now(); else check(hidAt && Date.now() - hidAt > 120e3); });
