@@ -961,7 +961,7 @@ async function viewScalp() {
   const LVI = LVE === "live" ? "💰" : "🟡";
   // BẢNG GỌN: 1 cú sốc = 1 dòng (lúc · coin · sốc · sàn thử · Binance · chênh · ghi chú); điện thoại: mỗi dòng thành thẻ nhỏ (bảng .rs)
   const cmpRes = (ok, usd, b, miss) => (ok ? `<b class="${cls(usd)}">${sg$(usd)}</b> <small class="${cls(b)}">${isNum(b) ? pctB(b) : ""}</small>` : `<small class="faint">${miss}</small>`);
-  const cmpList = CMP.slice(0, 300).map((r) => {      // đủ mọi cú sốc (số trên nút lọc khớp đúng số dòng) const p = pFind(r.k, r.tm), d = r.d, m = d?.m, dt = new Date(r.tm + 7 * 3600e3).toISOString();
+  const cmpList = CMP.slice(0, 300).map((r) => { const p = pFind(r.k, r.tm), d = r.d, m = d?.m, dt = new Date(r.tm + 7 * 3600e3).toISOString();
     const dMiss = !d ? bi("chưa đặt lệnh", "no order") : m?.what === "nofill" ? `✕ ${bi("thiếu", "short")} ${nf(m.gap, 2)}%` : `✕ ${esc(m?.why || bi("bỏ qua", "skipped"))}`;
     const gap = d?.ok && p ? (d.bps ?? 0) - p.net : null;
     const note = [d?.ok && d.why ? esc(JWHY[d.why] || d.why) : "", d?.ok && d.nl > 1 ? `${d.nl} ${bi("mức", "lvls")}` : "", m?.realHit ? `<span class="warn">${bi("sàn thật đã chạm", "real touched")}</span>` : "", !d?.ok && p?.why ? `🧪 ${esc(JWHY[p.why] || p.why)}` : ""].filter(Boolean).join(" · ");
