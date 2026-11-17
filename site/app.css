@@ -6431,3 +6431,13 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (max-width:640px){.occ-t .occ-px{flex-basis:100%;order:9}}
 .sc-bd{cursor:pointer;white-space:nowrap;border-bottom:1px dotted currentColor}
 .mbd-f .mbd-c:empty{display:none}
+/* 📈 nhịp lời/lỗ: số ngày · % TB / ngày (kép / đơn) · $ / ngày · ngoại suy hết tuần / tháng / năm */
+.lv-pace{margin:0 0 10px;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--sunk) 60%,transparent);border:1px dashed var(--bd-2)}
+.lv-pace-h,.lv-pace-r{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 10px}
+.lv-pace-r{grid-template-columns:auto repeat(3,minmax(0,1fr));align-items:end;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd-2)}
+.lv-pace span{display:grid;gap:1px;min-width:0}.lv-pace i{font-style:normal;font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lv-pace i em{font-style:normal;opacity:.8}
+.lv-pace b{font-variant-numeric:tabular-nums;font-size:.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lv-pace small{font-size:var(--fs-xs);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lv-pace .up{color:var(--up)}.lv-pace .down{color:var(--down)}.lv-pace-r>small{align-self:center;white-space:normal;max-width:96px;line-height:1.25}
+.lv-pace-n{margin:6px 0 0;font-size:.6875rem;line-height:1.35}
+@media (max-width:640px){.lv-pace-h{grid-template-columns:repeat(2,minmax(0,1fr))}.lv-pace-r{grid-template-columns:repeat(3,minmax(0,1fr))}.lv-pace-r>small{grid-column:1/-1;max-width:none}}
+.lv-pace small span{display:inline}
