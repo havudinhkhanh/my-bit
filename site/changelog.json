@@ -112,6 +112,14 @@
      "te": "Venue switch: the glass no longer slides past the edge",
      "d": "Viên kính luôn nằm trong thanh; vị trí cũ đo lúc thanh rộng khác thì đặt thẳng chỗ mới thay vì trượt từ chỗ sai.",
      "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Lệnh trên mã chữ Hán (vd 龙虾) có giá và lời/lỗ",
+     "te": "Trades on Unicode-named coins (e.g. 龙虾) now show price and P/L",
+     "d": "Trước đây trang chỉ nhận giá trực tiếp cho mã chữ Latin. Giờ mã Unicode được xin giá riêng, và thẻ lệnh dùng thêm giá máy chủ gửi kèm khi chưa có giá trực tiếp.",
+     "f": "bot"
     }
    ]
   },

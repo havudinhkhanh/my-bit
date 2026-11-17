@@ -1442,19 +1442,29 @@ function BWS(url) {
   };
   go(); return H;
 }
+// 1 luồng Binance cho 1 mã: tên luồng chữ thường a-z0-9 → đặt thẳng trong địa chỉ như cũ; mã Unicode (vd 龙虾usdt@kline_1m) → nối /ws trống rồi xin bằng tin SUBSCRIBE
+//    (máy chủ bot vẫn xin kiểu này) – không nhét ký tự lạ vào địa chỉ. Tin về vẫn đúng dạng như luồng đặt trong địa chỉ.
+function BWS1(base, stream) {
+  if (/^[a-z0-9@_.]+$/.test(stream)) return BWS(base + stream);
+  const w = BWS(base.replace(/\/$/, "") + (/fstream/.test(base) ? "?" : "")); w.onopen = () => w.send(JSON.stringify({ method: "SUBSCRIBE", params: [stream], id: 9 })); return w;
+}
 // Bot Phản Xạ: giá khớp từng lệnh (aggTrade) của các coin đang giữ + đầu radar → giá, lãi/lỗ đang mở, đếm ngược cập nhật ~5 lần/giây giữa 2 lần máy chủ gửi trạng thái
 const SCL = { px: {}, at: {}, ws: {}, want: { F: "", S: "" }, tm: 0, iv: 0 };
 function sclStop() { for (const t of ["F", "S"]) { try { SCL.ws[t]?.close(); } catch (e) { /* bỏ qua */ } SCL.ws[t] = null; SCL.want[t] = ""; } clearInterval(SCL.iv); SCL.iv = 0; }
+// giá máy chủ gửi kèm trạng thái (mỗi ~10 giây) → mồi cho SCL khi chưa có / đã cũ giá trực tiếp của trình duyệt (luồng Binance chưa nối, mã lạ) – thẻ lệnh luôn có giá & lời/lỗ
+function sclSeed(M) { const now = Date.now(); for (const [id, m] of Object.entries(M || {})) if (m > 0 && !(now - (SCL.at[id] || 0) < 15e3)) { SCL.px[id] = +m; } }
 function sclSync(ids) {
   const g = { F: [], S: [] };
-  for (const id of ids) { const [b, t] = String(id).split(":"); if (g[t] && /^[A-Z0-9]+$/.test(b)) g[t].push(b.toLowerCase() + "usdt"); }
+  for (const id of ids) { const [b, t] = String(id).split(":"); if (g[t] && b && !/[\s/@?&#]/.test(b)) g[t].push(b.toLowerCase() + "usdt"); }      // cả mã chữ Hán / Unicode (vd 龙虾USDT) – trước chỉ nhận A-Z0-9 nên lệnh mã đó không có giá, không có lời/lỗ
   for (const t of ["F", "S"]) {
     const L = [...new Set(g[t])].slice(0, 40).sort(), key = L.join("/");
     if (key === SCL.want[t] && SCL.ws[t]) continue;
     try { SCL.ws[t]?.close(); } catch (e) { /* bỏ qua */ }
     SCL.ws[t] = null; SCL.want[t] = key; if (!L.length) continue;
-    const q = L.map((x) => x + "@aggTrade").join("/");
+    // mã chữ thường a-z0-9 → đặt thẳng trong địa chỉ; mã Unicode (vd 龙虾usdt) → xin thêm bằng tin SUBSCRIBE sau khi nối (như máy chủ bot vẫn làm), không nhét ký tự lạ vào địa chỉ
+    const asc = L.filter((x) => /^[a-z0-9]+$/.test(x)), uni = L.filter((x) => !/^[a-z0-9]+$/.test(x)), q = (asc.length ? asc : ["btcusdt"]).map((x) => x + "@aggTrade").join("/");
     const w = BWS(t === "F" ? `wss://fstream.binance.com/stream?streams=${q}` : `wss://data-stream.binance.vision/stream?streams=${q}`);
+    if (uni.length) w.onopen = () => w.send(JSON.stringify({ method: "SUBSCRIBE", params: uni.map((x) => x + "@aggTrade"), id: 7 }));
     w.onmessage = (ev) => { let d; try { d = JSON.parse(ev.data).data; } catch (e) { return; } if (!d?.s || !d.p) return; const id = d.s.replace(/USDT$/, "") + ":" + t; SCL.px[id] = +d.p; SCL.at[id] = Date.now(); sclKick(); };
     w.onclose = () => { if (SCL.ws[t] === w) { SCL.ws[t] = null; SCL.want[t] = ""; } };
     SCL.ws[t] = w;
@@ -2533,9 +2543,8 @@ async function priceChart(D, el, tf) {
     const ch = drawO(D, el, o, tf, `${L.src} ${L.sym} · trực tiếp`);
     const tools = chartTools(D, el, ch, tf); tools.upd(o, true);
     if (L.kind !== "okx") {
-      const url = (L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`;
       try {
-        const ws = BWS(url); WSS.push(ws);
+        const ws = BWS1(L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/", `${L.sym.toLowerCase()}@kline_${base}`); WSS.push(ws);
         ws.onmessage = (ev) => {
           const k = JSON.parse(ev.data).k; if (!k) return;
           const t = Math.floor(k.t / 1000), m = L.m, i = raw.t.length - 1;
@@ -2954,7 +2963,7 @@ async function ocDraw() {
   setPx(o.c[n - 1]);
   if (L.kind === "okx") return;
   try {
-    const ws = BWS((L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/") + `${L.sym.toLowerCase()}@kline_${base}`); OCC.ws = ws;
+    const ws = BWS1(L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/", `${L.sym.toLowerCase()}@kline_${base}`); OCC.ws = ws;
     ws.onmessage = (ev) => {
       const k = JSON.parse(ev.data).k; if (!k || OCC.ws !== ws) return;
       const t = Math.floor(k.t / 1000), mm = L.m, i = raw.t.length - 1, bar = [+k.o / mm, +k.h / mm, +k.l / mm, +k.c / mm, +k.q];

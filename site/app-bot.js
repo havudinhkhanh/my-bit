@@ -1867,6 +1867,13 @@ async function viewScalp() {
     toast(bi("Đã gửi – máy chủ vào lệnh trên Binance trong vài giây, xem ở thẻ ✋ lệnh tay", "Sent – the server places it within seconds; see the ✋ manual card"));
   }));
   if (LV && (!window.__mwAt || Date.now() - window.__mwAt > 120e3)) { window.__mwAt = Date.now(); scCmd("close", "mw:", new Date().toISOString()); }      // mở trang → máy chủ đọc lại lệnh tay ngay (không chờ 20 giây)
+  { const M = {}, k = (sym) => String(sym).replace(/USDT$/, "") + ":F";      // giá từ máy chủ: lệnh Bắt râu sập (m), Short bơm (m), định lượng (m từng chân), lệnh tay (mk)
+    for (const e of X.live?.ev || []) if (e.m > 0) M[e.k || k(e.sym)] = e.m;
+    for (const p of X.live?.swp?.open || []) if (p.m > 0) M[k(p.sym)] = p.m;
+    for (const p of X.live?.qp?.open || []) for (const L of p.legs || []) if (L.m > 0) M[k(L.sym)] = L.m;
+    for (const p of X.live?.man?.pos || []) if (p.mk > 0) M[k(p.sym)] = p.mk;
+    for (const [id, p] of Object.entries(X.pos || {})) if (p.m > 0 && !M[id]) M[id] = p.m;
+    sclSeed(M); }
   sclSync([...Object.keys(X.pos || {}), ...Object.keys(X.hk || {}), ...(X.live?.ev || []).map((e) => e.sym.replace(/USDT$/, "") + ":F"), ...MAN.L.map((p) => p.sym.replace(/USDT$/, "") + ":F"), ...(X.live?.man?.pend || []).map((m) => m.sym.replace(/USDT$/, "") + ":F"), ...(X.live?.swp?.open || []).map((p) => String(p.sym).replace(/USDT$/, "") + ":F"), ...(X.live?.qp?.open || []).flatMap((p) => (p.legs || []).map((L) => String(L.sym).replace(/USDT$/, "") + ":F")), ...rows.slice(0, 24).map(([id]) => id)]); sclApply();
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
