@@ -417,7 +417,7 @@ export class ScalpCore {
       else if (k.startsWith("q:")) { const [, kk, id] = k.split(":"), P = this.S.q?.[kk]?.pos?.[id]; if (P) this.q.close(kk, P, "MANUAL", now); }
       else if (k.startsWith("kp:") || k.startsWith("kz:")) {      // ⏱ gia hạn / giữ lệnh (kp:<mã lệnh>:<spec>) · 🔕 hoãn nhắc (kz:<mã lệnh>:<phút>)
         const spec = k.slice(k.lastIndexOf(":") + 1), ref = k.slice(3, k.lastIndexOf(":"));
-        if (/^(lv|swp|lq):/.test(ref)) this.io.onManual?.(k);
+        if (/^(lv|swp|lq):/.test(ref)) this.io.onManual?.(k, at);
         else { let P = null, end = 0, set = null; const [t, kk, id] = ref.split(":");
           if (t === "pp") { P = this.S.pos[ref.slice(3)]; if (P) { end = P.t0 + P.h * 1000; set = (ms) => { P.h = Math.max(1, (ms - P.t0) / 1000); }; } }
           else if (t === "sw") { P = this.S.sw?.[kk]?.pos?.[id]; if (P) { end = Date.parse(P.t1 + "Z"); set = (ms) => { P.t1 = new Date(ms).toISOString().slice(0, 19); }; } }
@@ -428,7 +428,7 @@ export class ScalpCore {
       else if (k.startsWith("ux:pp:")) {      // 🏁 hẹn đóng sàn thử theo giá (ux:pp:<mã>:<giá>:<chiều>)
         const r = k.slice(6).split(":"), ds = r.pop(), pxs = r.pop(), id = r.join(":"), P = this.S.pos?.[id];
         if (P) { if (+pxs > 0) { P.ux = { px: +pxs, dir: +ds >= 0 ? 1 : -1, at: now }; this.say(now, `🏁 Sàn thử ${id.split(":")[0]}: hẹn đóng khi giá ${P.ux.dir > 0 ? "lên tới" : "xuống tới"} ${+pxs}`, "info"); } else if (P.ux) { delete P.ux; this.say(now, `🏁 Sàn thử ${id.split(":")[0]}: bỏ hẹn đóng theo giá`, "info"); } } }
-      else if (/^(lv|swp|swa|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc|mln|ux):/.test(k)) this.io.onManual?.(k);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
+      else if (/^(lv|swp|swa|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc|mln|ux):/.test(k)) this.io.onManual?.(k, at);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
     return true;
   }

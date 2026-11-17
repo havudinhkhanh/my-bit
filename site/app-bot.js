@@ -29,6 +29,45 @@ async function scTabGo(k) {
 async function scCmd(act, k, at) {
   const L = (window.__scCmdL || []).filter((x) => Date.now() - Date.parse(x.at) < 10 * 60e3); L.push({ act, k, at }); window.__scCmdL = L;
   try { await Store.put("scalpcmd", { list: L.slice(-20) }); } catch (e) { /* còn đường thiết lập dự phòng */ }
+  if (act === "close") scCmdWatch(k, at);
+}
+// 🧾 PHẢN HỒI LỆNH: sau khi gửi 1 lệnh tiền thật / Demo (vào thêm, chép, lệnh chờ, đóng, cắt lỗ / chốt, hẹn đóng…), trang đọc lại trạng thái máy chủ riêng
+// tới khi thấy phản hồi đúng lần bấm này (cres[].at) → báo NGAY: ✅ đã làm · ⚠️ máy chủ không làm + lý do (vd chưa đủ 1 lệnh của sàn) · ⛔ sàn báo lỗi.
+// Trước đây máy chủ chỉ ghi lý do vào Sự kiện → anh tưởng đã vào lệnh. Máy chủ cũ (chưa có cres) → không chờ. Quá 2 phút chưa có phản hồi → báo để anh kiểm tra.
+const SC_RCPT = /^((lv|swp|swa|lq|mx|mst|mtp|mlk|mcp|mlo|mlc|mln):|(kp|kz|ux):(lv|swp|lq):)/;
+const BN_ERR = [[/-2019|insufficient/i, "số dư ký quỹ khả dụng không đủ"], [/-4164|notional/i, "giá trị lệnh dưới mức tối thiểu của sàn"], [/-1111|precision/i, "số lẻ khối lượng / giá không hợp lệ"], [/-2021|immediately trigger/i, "giá kích hoạt đã bị giá hiện tại vượt qua"],
+  [/-4131|PERCENT_PRICE|counterparty/i, "giá lệch quá xa giá thị trường"], [/-2022|ReduceOnly/i, "lệnh giảm vị thế bị từ chối (vị thế đã đổi)"], [/-4061|position side/i, "sai chế độ vị thế (1 chiều / 2 chiều)"], [/-1021|timestamp/i, "đồng hồ máy chủ lệch giờ sàn"]];
+function scCmdName(k) {
+  const [t, a] = k.split(":"), c = (x) => String(x || "").replace(/USDT$/, "");
+  return { mcp: /:0:0:0:$/.test(k) ? bi(`Vào thêm ${c(a)}`, `Add to ${c(a)}`) : bi(`Vào lệnh ${c(a)}`, `Order ${c(a)}`), swa: bi("Vào thêm Short bơm", "Add to pump Short"), mx: bi(`Đóng ${c(a)}`, `Close ${c(a)}`), mst: bi(`Cắt lỗ ${c(a)}`, `Stop ${c(a)}`), mtp: bi(`Chốt lời ${c(a)}`, `Target ${c(a)}`),
+    mlo: bi(`Lệnh chờ ${c(a)}`, `Price order ${c(a)}`), mlc: bi("Huỷ lệnh chờ", "Cancel order"), mln: bi("Vào ngay lệnh chờ", "Enter now"), mlk: bi(`Hẹn đóng ${c(a)}`, `Auto-close ${c(a)}`), ux: bi("Hẹn đóng theo giá", "Close at price"),
+    kp: bi("Gia hạn lệnh", "Extend trade"), kz: bi("Hoãn nhắc", "Snooze"), lv: bi("Đóng lệnh bot", "Close bot trade"), swp: bi("Đóng Short bơm", "Close pump Short"), lq: bi("Đóng lệnh định lượng", "Close quant trade") }[t] || bi("Lệnh", "Order");
+}
+function scCmdShow(R, k) {
+  if (R.seen) return; R.seen = 1;
+  const M = (R.m || []).filter((x) => x?.m), by = (kd) => M.filter((x) => x.k === kd).map((x) => x.m).pop() || "", last = M[M.length - 1]?.m || "";
+  const cut = (x) => { const i = x.indexOf(": "); return i > 0 && i < 70 ? [x.slice(0, i).replace(/^⚠️\s*/u, ""), x.slice(i + 2)] : ["", x]; };
+  const bnWhy = (x) => BN_ERR.find(([re]) => re.test(x))?.[1] || "", nm0 = scCmdName(k);
+  if (R.ok === 1) { const [tg, tx] = cut(by("win")); toast(tx, { type: "ok", title: tg || nm0, ms: 7000 }); }
+  else if (R.ok === 4) { const [tg, tx] = cut(by("win")), [, ex] = cut(by("stop")), w = bnWhy(ex); toast(`${tx} · ${bi("Lỗi", "Error")}: ${w ? w + " – " : ""}${ex}`, { type: "warn", title: `${tg || nm0} – ${bi("đã vào, nhưng 1 bước sau bị lỗi", "done, but a follow-up step failed")}`, ms: 15000 }); }
+  else if (R.ok === 0) { const [tg, tx] = cut(by("no")); toast(tx, { type: "warn", title: `${tg || nm0} – ${bi("chưa làm được", "not done")}`, ms: 14000 }); }
+  else if (R.ok === -1) { const [, tx] = cut(by("stop")), w = bnWhy(tx); toast(w ? `${w} · ${tx}` : tx, { type: "err", title: `${nm0} – ${bi("sàn báo lỗi, chưa làm được", "exchange error, nothing done")}`, ms: 15000 }); }
+  else if (R.ok === 3) toast(bi("Máy chủ đã nhận nhưng không còn lệnh / vị thế này (có thể vừa đóng).", "The server got it, but that trade no longer exists."), { type: "warn", title: nm0, ms: 9000 });
+  else if (last) { const [tg, tx] = cut(last); toast(tx, { type: "info", title: tg || nm0, ms: 6000 }); }
+}
+function scCmdWatch(k, at) {
+  if (!SC_RCPT.test(k) || !at) return;
+  const t0 = Date.now(); let n = 0;
+  const step = async () => {
+    n++; let LV = null;
+    try { LV = (await Store.net("scalpstate"))?.data?.live || null; } catch (e) { /* thử lại */ }
+    const R = (LV?.cres || []).find((x) => x.at === at);
+    if (R) { scCmdShow(R, k); return; }
+    if (LV && !Array.isArray(LV.cres)) return;      // máy chủ riêng chưa cập nhật bản có phản hồi → giữ cách cũ (xem ở Sự kiện)
+    if (Date.now() - t0 > 120e3) { toast(bi("Máy chủ riêng chưa phản hồi sau 2 phút – lệnh có thể chưa chạy. Xem Bot Phản Xạ → Hoạt động → Sự kiện, hoặc máy chủ có đang chạy không.", "No reply from the private server after 2 minutes – check Bot → Activity → Events."), { type: "warn", title: scCmdName(k), ms: 12000 }); return; }
+    setTimeout(step, n < 6 ? 3000 : 6000);
+  };
+  setTimeout(step, 2500);
 }
 const HK_ENTER_NOTE = "Kiểm chứng 01/2025–11/2026 (731 coin futures, vòng 11): vào ngay bằng giá thị trường lúc vừa có cú sốc TB −3 bps/lệnh sau phí (cả danh mục −44%); chờ ở 1,25× / 1,5× như bot: +50 bps/lệnh (+144%). Bot chỉ tự vào ngay khi Long và 15 phút trước giá đã giảm ≥ 3%. Đây là lựa chọn của anh, bot không khuyên.";
 // ĐIỆN THOẠI: vuốt ngang trên nội dung để chuyển tab Bot Phản Xạ (Tổng quan ↔ Lệnh ↔ Phương pháp ↔ Hoạt động ↔ Thiết lập) – như lật trang trong app.
@@ -1805,13 +1844,18 @@ async function viewScalp() {
       <tr><td>${bi("Cắt lỗ", "Stop")}${avg ? `<small>${bi("cho cả vị thế", "whole position")}</small>` : ""}</td><td>${sl ? `<b class="down">${px(sl)}</b>` : avg ? `<span class="faint">${bi("giữ như đang đặt", "keep current")}</span>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
       <tr><td>${bi("Chốt lời", "Target")}${avg ? `<small>${bi("cho cả vị thế", "whole position")}</small>` : ""}</td><td>${tp ? `<b class="up">${px(tp)}</b>` : avg ? `<span class="faint">${bi("giữ như đang đặt", "keep current")}</span>` : `<span class="faint">${bi("không (như sàn thử)", "none (same as paper)")}</span>`}</td></tr>
       <tr><td>${bi("Tự đóng", "Auto-close")}<small>${lk0 ? bi("vị thế đã có hẹn đóng – giữ hẹn cũ", "the position already has an auto-close – kept") : bi("và đóng ngay khi sàn thử đóng lệnh này", "and closes as soon as paper closes this trade")}</small></td><td>${lk0 ? bi("giữ như cũ", "unchanged") : left ? `${bi("sau", "in")} <b>${left}</b>` : bi("theo sàn thử", "with paper")}</td></tr>
-      </tbody></table><div class="mxw">⚠️ ${real ? bi("Lệnh TIỀN THẬT trên Binance. Giá vào là giá thị trường lúc khớp nên khác giá vào của sàn thử.", "REAL-money order on Binance. Entry is the market price at fill, so it differs from the paper entry.") : bi("Lệnh trên Binance Demo.", "Order on Binance Demo.")}</div>
+      </tbody></table><div id="cpFx"></div><div class="mxw">⚠️ ${real ? bi("Lệnh TIỀN THẬT trên Binance. Giá vào là giá thị trường lúc khớp nên khác giá vào của sàn thử.", "REAL-money order on Binance. Entry is the market price at fill, so it differs from the paper entry.") : bi("Lệnh trên Binance Demo.", "Order on Binance Demo.")}</div>
       <p class="mxn">${bi("Sau khi vào, lệnh hiện ở thẻ ✋ lệnh tay – sửa cắt lỗ / chốt lời / giờ đóng hoặc đóng ở đó.", "Afterwards it shows as a ✋ manual trade – edit stop / target / timer or close it there.")}</p>`;
-    let usd = n0, lev = +d.lev || 1;
-    if (avg) setTimeout(() => { const i = $("#cpUsd"); if (i) i.addEventListener("input", () => { const t = $("#cpAvg"); if (t) t.innerHTML = avgRow(+i.value || 0); }); }, 0);
+    let usd = n0, lev = +d.lev || 1, FX = LV?.man?.fx?.[sym] || null; const mkx = () => m || P0?.mk || 0;
+    setTimeout(() => { const sh = document.getElementById("iosSheet"), i = $("#cpUsd"); if (!sh || !i) return;
+      const re = () => { const v = +i.value || 0; if (avg) { const t = $("#cpAvg"); if (t) t.innerHTML = avgRow(v); }
+        const r = fxChk(FX, v, mkx()), w = sh.querySelector("#cpFx"); if (w) w.innerHTML = fxHtml(r, FX, v, c0); fxLock(sh, r);
+        w?.querySelector("[data-fxmin]")?.addEventListener("click", (e) => { i.value = e.currentTarget.dataset.fxmin; re(); }); };
+      i.addEventListener("input", re); re(); if (!FX) bnFx(sym, LV).then((f) => { FX = f; if (document.getElementById("iosSheet") === sh) re(); }); }, 0);
     const ok = await iosSheet({ title: avg ? bi(`➕ Bình quân ${c0} – chép lệnh sàn thử?`, `➕ Average ${c0} – copy the paper trade?`) : bi("📋 Chép lệnh sàn thử sang Binance?", "📋 Copy the paper trade to Binance?"), body, ok: real ? bi("Vào lệnh TIỀN THẬT", "Place REAL order") : bi("Vào lệnh Demo", "Place Demo order"), danger: real, cancel: bi("Thôi", "Cancel"), wait: 1200 }).then((v) => { usd = +($("#cpUsd")?.value || usd); lev = +($("#cpLev")?.value || lev); return v; });
     if (!ok) return;
     if (!(usd >= 5)) { toast(bi("Số tiền tối thiểu khoảng 5–6 USDT (mức nhỏ nhất của sàn)", "Minimum about 5–6 USDT (exchange minimum)"), { type: "warn" }); return; }
+    { const r = fxChk(FX, usd, mkx()); if (r) { toast(bi(`Chưa đủ 1 lệnh: cần ít nhất ${usd2(r.need)} – chưa gửi`, `Below the exchange minimum: at least ${usd2(r.need)} – not sent`), { type: "warn", ms: 8000 }); return; } }
     lev = Math.max(1, Math.min(20, Math.round(lev || 1)));
     await scCmd("close", `mcp:${sym}:${sd}:${+usd.toFixed(2)}:${lev}:${sl}:${tp}:${Math.round(exp)}:${d.mcopy}`, new Date().toISOString());
     b.disabled = true; b.textContent = bi("⏳ Đang gửi…", "⏳ Sending…");

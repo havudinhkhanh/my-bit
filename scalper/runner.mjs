@@ -182,7 +182,7 @@ let cmdAt = "", cmdSeen = new Set();
     } catch (e) { await new Promise((r) => setTimeout(r, 5000)); }
   }
 })();
-core.io.onManual = (k) => live.onManual(k);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
+core.io.onManual = (k, at) => live.onManual(k, at);      // ✋ anh bấm "Đóng" trên trang      // 🧪 Short coin vừa bơm → lệnh thật (khi anh bật trong Thiết lập)
 let busy = false, lastErr = "";
 async function tick(first) {
   if (busy) return; busy = true;

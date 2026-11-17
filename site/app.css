@@ -3261,6 +3261,7 @@ td .sc-mxr{margin:0}
 .mxw{margin:8px 0 0;padding:8px 10px;border-radius:10px;font-size:.84375rem;line-height:1.35;background:rgba(255,59,48,.12);color:#c4251c}
 .mxw.ok{background:rgba(52,199,89,.13);color:#1e7a37}.mxw.inf{background:rgba(0,122,255,.1);color:#0a5ccc}
 :root[data-theme="dark"] .mxw{color:#ff8a80}:root[data-theme="dark"] .mxw.ok{color:#6fe08e}:root[data-theme="dark"] .mxw.inf{color:#7ab8ff}
+.mxw.fxw{background:rgba(255,149,0,.14);color:#a35a00}.mxw.fxw .mchip{display:inline-block;margin:6px 0 0;font-weight:600}:root[data-theme="dark"] .mxw.fxw{color:#ffb340}
 .mxn{margin:6px 0 0;font-size:.6875rem;opacity:.65}
 
 /* thông báo: nút "đánh dấu chưa đọc" (chấm tròn rỗng – hiện khi rê chuột / luôn hiện trên điện thoại) + menu chuột phải */
@@ -4872,6 +4873,7 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .mbd .mxw{background:color-mix(in srgb,var(--down) 11%,transparent);color:color-mix(in srgb,var(--down) 70%,var(--ink))}
 .mbd .mxw.ok{background:color-mix(in srgb,var(--up) 12%,transparent);color:color-mix(in srgb,var(--up) 70%,var(--ink))}
 .mbd .mxw.inf{background:var(--fill);color:var(--ink-2)}
+.mbd .mxw.fxw{background:var(--ref-bg);color:var(--ref)}.mbd .mxw.fxw .mchip{display:inline-block;margin:6px 0 0;font-weight:600}
 .mbd .mxn{color:var(--ink-3);opacity:1}
 @media (max-width:420px){.cx-px{grid-template-columns:1fr auto 1fr}.cx-px>div:last-child{display:none}.cx-hero b{font-size:26px}}
 .mbd .mbd-w:focus{outline:0}
