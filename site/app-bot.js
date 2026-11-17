@@ -808,14 +808,20 @@ async function viewScalp() {
   //    Chỉ là phép tính trên số đã có – không phải dự báo, không phải lời khuyên.
   const vnEnd = (u) => { const n = new Date(Date.now() + 7 * 3600e3), y = n.getUTCFullYear(), m = n.getUTCMonth(), d = n.getUTCDate(), wd = (n.getUTCDay() + 6) % 7;      // 0 = thứ Hai
     const end = u === "w" ? Date.UTC(y, m, d + 7 - wd) : u === "m" ? Date.UTC(y, m + 1, 1) : Date.UTC(y + 1, 0, 1); return { left: Math.max(0, (end - 7 * 3600e3 - Date.now()) / 864e5), end: new Date(end - 864e5) }; };
-  const paceHtml = (o) => {      // o: { N ngày, R tổng % (dạng số thập phân) | null, pd $/ngày, E vốn hiện tại | null, sub chú thích }
+  const paceHtml = (o) => {      // o: { N ngày, R tổng % (thập phân), pd $/ngày, E tài sản hiện tại }
     if (!(o.N > 0)) return "";
-    const dC = isNum(o.R) && o.R > -1 ? Math.pow(1 + o.R, 1 / o.N) - 1 : null, dS = isNum(o.R) ? o.R / o.N : null, dd = (n) => `${nf(n, n < 10 ? 1 : 0)} ${bi("ngày", "d")}`, pc = (v) => `${v >= 0 ? "+" : ""}${nf(v * 100, Math.abs(v) < 0.1 ? 2 : 1)}%`;
-    const H = [["w", bi("Hết tuần", "End of week")], ["m", bi("Hết tháng", "End of month")], ["y", bi("Hết năm", "End of year")]].map(([k, t]) => { const { left, end } = vnEnd(k);
-      const aS = o.pd * left, aC = dC != null && o.E > 0 ? o.E * (Math.pow(1 + dC, left) - 1) : null, big = aC != null && Math.abs(aC) > 50 * Math.max(1, Math.abs(aS));
-      return `<span title="${esc(bi(`Còn ${nf(left, 1)} ngày tới hết ${end.toISOString().slice(0, 10).split("-").reverse().join("/")}. Lãi đơn: ${sg$(o.pd)}/ngày × ${nf(left, 1)} ngày. ${aC != null ? `Lãi kép: vốn ${usd2(o.E)} × ((1 ${dC >= 0 ? "+" : "−"} ${nf(Math.abs(dC) * 100, 3)}%)^${nf(left, 1)} − 1).` : ""}`, ""))}"><i>${t} <em>· ${dd(left)}</em></i><b class="${cls(aS)}">${sg$(aS)}</b><small>${aC != null ? `${bi("kép", "compound")} <span class="${cls(aC)}">${big ? "≫ " : ""}${sg$(aC)}</span>` : bi("lãi đơn", "simple")}</small></span>`; }).join("");
-    return `<div class="lv-pace"><div class="lv-pace-h"><span><i>${bi("Số ngày", "Days")}</i><b>${dd(o.N)}</b></span>${dC != null ? `<span><i>${bi("TB / ngày · kép", "Avg / day · compound")}</i><b class="${cls(dC)}">${pc(dC)}</b></span><span><i>${bi("TB / ngày · đơn", "Avg / day · simple")}</i><b class="${cls(dS)}">${pc(dS)}</b></span>` : ""}<span><i>${bi("$ / ngày", "$ / day")}</i><b class="${cls(o.pd)}">${sg$(o.pd)}</b></span></div>
-      <div class="lv-pace-r"><small class="faint">${bi("Nếu giữ đúng nhịp này tới:", "At this pace until:")}</small>${H}</div>${o.sub ? `<p class="faint lv-pace-n">${o.sub}</p>` : ""}</div>`;
+    const dC = isNum(o.R) && o.R > -1 ? Math.pow(1 + o.R, 1 / o.N) - 1 : null, dS = isNum(o.R) ? o.R / o.N : null, pc = (v) => `${v >= 0 ? "+" : ""}${nf(v * 100, 2)}%`;
+    const H = ["w", "m", "y"].map((k) => { const { left, end } = vnEnd(k), aS = o.pd * left, aC = dC != null && o.E > 0 ? o.E * (Math.pow(1 + dC, left) - 1) : null; return { k, left, end, aS, aC }; });
+    const th = { w: bi("Hết tuần", "End of week"), m: bi("Hết tháng", "End of month"), y: bi("Hết năm", "End of year") }, dl = (d) => d.toISOString().slice(5, 10).split("-").reverse().join("/");
+    const td = (v) => `<td class="${cls(v)}">${v == null ? "—" : sg$(v)}</td>`;
+    return `<div class="lv-pace">
+      <div class="lv-pace-h"><span class="lv-pace-k">${bi("Nhịp", "Pace")} · <b>${nf(o.N, o.N < 10 ? 1 : 0)} ${bi("ngày", "days")}</b></span>
+        <span><b class="${cls(o.pd)}">${sg$(o.pd)}</b><small>/${bi("ngày", "day")}</small></span>
+        ${dC != null ? `<span><b class="${cls(dC)}">${pc(dC)}</b><small>/${bi("ngày · kép", "day · compound")}</small></span><span><b class="${cls(dS)}">${pc(dS)}</b><small>/${bi("ngày · đơn", "day · simple")}</small></span>` : ""}</div>
+      <table class="lv-pace-t"><thead><tr><th>${bi("Giữ nhịp tới", "Pace until")}</th>${H.map((x) => `<th>${th[x.k]}<small>${dl(x.end)} · ${nf(x.left, x.left < 10 ? 1 : 0)} ${bi("ngày", "d")}</small></th>`).join("")}</tr></thead>
+        <tbody><tr><td>${bi("Lãi đơn", "Simple")}</td>${H.map((x) => td(x.aS)).join("")}</tr>
+        ${dC != null ? `<tr><td>${bi("Lãi kép", "Compound")}</td>${H.map((x) => td(x.aC)).join("")}</tr><tr class="lv-pace-e"><td>${bi("Tài sản (kép)", "Equity (comp.)")}</td>${H.map((x) => `<td>${x.aC == null ? "—" : u$(o.E + x.aC)}</td>`).join("")}</tr>` : ""}</tbody></table>
+      <p class="faint lv-pace-n">${bi("Số tiền LỜI THÊM từ nay tới mốc đó. Lãi đơn = $/ngày × số ngày còn lại · lãi kép = %/ngày cộng dồn trên tài sản hiện tại. Chỉ là phép tính trên số đã có, không phải dự báo.", "Simple = $/day × days left · compound = daily % on current equity. Arithmetic only, not a forecast.")}</p></div>`;
   };
   const lvEqHtml = () => {
     const rk = LVR.some((r) => r[0] === window.__lvRng) ? window.__lvRng : LVR.some((r) => r[0] === lsGet("lvrng", "7d")) ? lsGet("lvrng", "7d") : "7d", md = window.__lvMd || lsGet("lvmd", "eq"), cm = window.__lvCm || lsGet("lvcm", "t");
@@ -862,9 +868,17 @@ async function viewScalp() {
       if (FLAT.some((v) => v != null)) S.push({ name: bi("Nạp (xanh) / rút (cam)", "Deposit (blue) / withdraw (orange)"), dots: true, color: "#3B82F6", pts: FLAT.map((y, i) => ({ x: "", y: y == null ? null : yv(i), c: FLC[i] })) });
       const hl = md === "eq" ? [{ y: Math.max(...A.map((q) => q[1])), color: "var(--ink-3)", label: bi("đỉnh", "peak") }] : md === "dd" && mdd < 0 ? [{ y: mdd, color: css("--down"), label: `${bi("sụt sâu nhất", "max DD")} ${nf(mdd, 2)}%` }] : [];
       const nW = TR.filter((h) => h.pnl > 0).length;
-      const sum = `<div class="lv-kp"><span><i>${bi("Lời/lỗ thật", "Real P/L")}</i><b class="${cls(pl)}">${sg$(pl)}</b><small class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</small></span><span><i>${bi("Sụt sâu nhất", "Max drawdown")}</i><b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b><small>${mdd < 0 ? fx(A[ddAt][0] * 60000) : "—"}</small></span><span${Math.abs(drop) >= 0.01 ? ` title="${esc(bi(`Sổ Binance ghi thêm ${sg$(drop)} nạp/rút không thấy làm đổi số dư trong kỳ (đã nằm sẵn trong số dư đầu kỳ hoặc ghi trùng) – không trừ vào lời/lỗ`, `Binance lists ${sg$(drop)} more transfers that never moved the balance in this range (already in the opening balance or duplicated) – not deducted`))}"` : ""}><i>${bi("Nạp/rút ròng", "Net transfers")}</i><b>${net ? sg$(net) : "$0"}${Math.abs(drop) >= 0.01 ? " *" : ""}</b><small>${u$(E0)} → ${u$(E1)}</small></span><span><i>${bi("Lệnh đóng", "Closed trades")}</i><b>${TR.length}</b><small>${TR.length ? `${bi("thắng", "won")} ${nf(nW / TR.length * 100, 0)}%` : "—"}</small></span></div>`;
+      // vốn: điểm tài sản ĐẦU TIÊN có trong máy chủ = tiền nạp ban đầu (vốn gốc); khoảng xem bắt đầu muộn hơn → "tài sản đầu kỳ"
+      const first = Math.min(EQDY[0]?.[0] ?? Infinity, EQHR[0]?.[0] ?? Infinity, EQ5[0]?.[0] ?? Infinity), atStart = A[0][0] - first <= 1440, cap = E0 + net, roc = cap > 0 ? pl / cap * 100 : null;
+      const dropT = Math.abs(drop) >= 0.01 ? bi(` · Sổ Binance ghi thêm ${sg$(drop)} nạp/rút không thấy làm đổi số dư trong kỳ – không trừ vào lời/lỗ`, "") : "";
+      const kq = (t, v, c, sub, tip) => `<span${tip ? ` title="${esc(tip)}"` : ""}><i>${t}</i><b class="${c || ""}">${v}</b>${sub ? `<small>${sub}</small>` : ""}</span>`;
+      const sum = `<div class="lv-kp">${[
+        kq(bi("Lời/lỗ thật", "Real P/L"), sg$(pl), cls(pl), `<span class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</span>`, bi("% kiểu quỹ đầu tư: nối % từng đoạn giữa các lần nạp/rút → nạp thêm không làm % đẹp giả", "Time-weighted return")),
+        kq(atStart ? bi("Vốn gốc", "Initial capital") : bi("Tài sản đầu kỳ", "Opening equity"), u$(E0), "", `${net ? `+ ${bi("nạp", "added")} ${sg$(net).replace(/^\+/, "")} = ${u$(cap)}` : atStart ? bi("nạp ban đầu", "first deposit") : bi("không nạp/rút", "no transfers")}`, `${atStart ? bi("Số dư futures lúc máy chủ bắt đầu ghi – tiền anh nạp ban đầu", "First recorded balance") : bi("Tài sản lúc đầu khoảng đang xem", "Equity at range start")}${dropT}`),
+        kq(bi("Tài sản hiện tại", "Equity now"), u$(E1), "", isNum(roc) ? `${bi("trên vốn", "on capital")} <span class="${cls(roc)}">${roc >= 0 ? "+" : ""}${nf(roc, 1)}%</span>` : "", bi("Lời/lỗ thật ÷ (vốn đầu + tiền nạp thêm)", "P/L ÷ (opening + net deposits)")),
+        kq(bi("Sụt sâu nhất", "Max drawdown"), `${nf(mdd, 2)}%`, mdd < 0 ? "down" : "", mdd < 0 ? fx(A[ddAt][0] * 60000) : "—")].join("")}</div>`;
       const Nd = Math.max(1 / 24, (A[A.length - 1][0] - A[0][0]) / 1440);
-      const pace = paceHtml({ N: Nd, R: tw - 1, pd: pl / Nd, E: E1, sub: bi("% theo thời gian (kiểu quỹ, bỏ ảnh hưởng nạp/rút); kép = cộng dồn % mỗi ngày trên vốn hiện tại; đơn = $ / ngày × số ngày còn lại. Chỉ là ngoại suy từ số đã có, không phải dự báo.", "Time-weighted %; compound applies the daily % to current equity; simple = $/day × days left. Extrapolation only, not a forecast.") });
+      const pace = paceHtml({ N: Nd, R: tw - 1, pd: pl / Nd, E: E1 });
       eqP = segM + sum + pace + lineSvg(S, { h: 210, dec: 2, zero: md !== "eq", hlines: hl, fmt: md === "dd" ? (v) => nf(v, 1) + "%" : null });
       DK.eq = { t: md === "pl" ? bi("Lời/lỗ thật", "Real P/L") : md === "dd" ? bi("Sụt từ đỉnh", "Drawdown") : bi("Tài sản futures", "Futures equity"), v: md === "dd" ? `${nf(DD[DD.length - 1], 2)}%` : md === "pl" ? sg$(pl) : u$(E1), vc: md === "eq" ? "" : cls(md === "dd" ? DD[DD.length - 1] : pl),
         s: md === "eq" ? `<b class="${cls(pl)}">${sg$(pl)}</b> · <span class="${cls(twr)}">${twr >= 0 ? "+" : ""}${nf(twr, 2)}%</span>` : `${bi("sụt sâu nhất", "max DD")} <b class="${mdd < 0 ? "down" : ""}">${nf(mdd, 2)}%</b>`,
@@ -872,24 +886,63 @@ async function viewScalp() {
     }
     // ---- 2) lời/lỗ cộng dồn theo từng lệnh hoặc từng ngày (sau phí & funding) + đường trước phí để thấy phí ăn bao nhiêu
     let cumP;
-    const segC = `<div class="bseg">${[["t", bi("Từng lệnh", "Per trade")], ["d", bi("Từng ngày", "Per day")]].map(([k, t]) => `<button type="button" data-lvc="${k}" class="${k === cm ? "on" : ""}">${t}</button>`).join("")}</div>`;
+    // 📊 LỜI/LỖ THEO LỆNH: xem theo Từng lệnh · Ngày · Tuần · Tháng – chỉ số đổi theo cách xem (theo lệnh: TB / trung vị / thắng–thua / giữ / cỡ lệnh; theo kỳ: số kỳ, kỳ lời, lệnh / kỳ, TB / kỳ, kỳ tốt / tệ, chuỗi)
+    const CMV = [["t", bi("Từng lệnh", "Per trade")], ["d", bi("Ngày", "Day")], ["w", bi("Tuần", "Week")], ["m", bi("Tháng", "Month")]], cmk = CMV.some((x) => x[0] === cm) ? cm : "t";
+    const segC = `<div class="bseg">${CMV.map(([k, t]) => `<button type="button" data-lvc="${k}" class="${k === cmk ? "on" : ""}">${t}</button>`).join("")}</div>`;
     if (TR.length < 1) cumP = segC + empty(bi("Không có lệnh nào đóng trong khoảng này.", "No trades closed in this range."));
     else {
-      const fx = lvFmtX(Math.max(1, TR[TR.length - 1].tm - TR[0].tm));
-      let pts = TR.map((h) => ({ x: fx(h.tm), v: h.pnl, g: h.g, tip: `${String(h.k).split(":")[0]} ${h.side > 0 ? "Long" : "Short"} · ${JWHY[h.why] || h.why || ""}` }));
-      if (cm === "d") { const G = new Map(); for (const h of TR) { const d = vnDayOf(String(h.t2).slice(0, 19)), g = G.get(d) || { x: d.slice(8, 10) + "/" + d.slice(5, 7), v: 0, g: 0, n: 0 }; g.v += h.pnl; g.g += h.g; g.n++; G.set(d, g); } pts = [...G.values()].map((g) => ({ ...g, tip: `${g.n} ${bi("lệnh", "trades")}` })); }
-      let cn = 0, cg = 0; const NET = pts.map((p) => +(cn += p.v).toFixed(3)), GR = pts.map((p) => +(cg += p.g).toFixed(3));
-      const S = [{ name: bi("Cộng dồn sau phí & funding", "Cumulative after fees & funding"), color: css("--brass") || css("--brand"), width: 2.2, pts: pts.map((p, i) => ({ x: p.x, y: NET[i] })) },
-        { name: bi("Cộng dồn trước phí", "Cumulative before fees"), color: css("--ink-3"), width: 1.2, dash: "4 3", pts: pts.map((p, i) => ({ x: p.x, y: GR[i] })) },
-        { name: cm === "d" ? bi("Lời/lỗ từng ngày", "Daily P/L") : bi("Lời/lỗ từng lệnh", "P/L per trade"), bars: true, pts: pts.map((p) => ({ x: p.x, y: +p.v.toFixed(3), tip: p.tip, tc: p.v >= 0 ? "up" : "down" })) }];
-      const W = TR.filter((h) => h.pnl > 0), Lz = TR.filter((h) => h.pnl <= 0), gw = W.reduce((s2, h) => s2 + h.pnl, 0), gl = -Lz.reduce((s2, h) => s2 + h.pnl, 0), fees = TR.reduce((s2, h) => s2 + (h.fee || 0) - (h.fund || 0), 0);
-      const best = TR.reduce((m, h) => (h.pnl > m.pnl ? h : m), TR[0]), worst = TR.reduce((m, h) => (h.pnl < m.pnl ? h : m), TR[0]);
-      const sum = `<div class="lv-kp"><span><i>${bi("Ròng", "Net")}</i><b class="${cls(cn)}">${sg$(cn)}</b><small>${TR.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / TR.length * 100, 0)}%</small></span><span><i>${bi("TB / lệnh", "Avg / trade")}</i><b class="${cls(cn)}">${sg$(cn / TR.length)}</b><small>${gl > 0 ? `${bi("hệ số lời", "profit factor")} ${nf(gw / gl, 2)}` : bi("chưa có lệnh lỗ", "no losing trade")}</small></span><span><i>${bi("Phí & funding", "Fees & funding")}</i><b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b><small>${cg > 0 ? `${nf(fees / cg * 100, 0)}% ${bi("lời trước phí", "of gross")}` : "—"}</small></span><span><i>${bi("Lệnh tốt nhất", "Best trade")}</i><b class="${cls(best.pnl)}">${sg$(best.pnl)} <small>${esc(String(best.k).split(":")[0])}</small></b><small>${bi("tệ nhất", "worst")} <b class="${cls(worst.pnl)}">${sg$(worst.pnl)}</b> ${esc(String(worst.k).split(":")[0])}</small></span></div>`;
-      DK.cum = { t: bi("Lời/lỗ cộng dồn", "Cumulative P/L"), v: sg$(cn), vc: cls(cn), s: `${TR.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / TR.length * 100, 0)}% · ${bi("phí", "fees")} <b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b>`,
+      const kp = (t, v, c, sub, tip) => `<span${tip ? ` title="${esc(tip)}"` : ""}><i>${t}</i><b class="${c || ""}">${v}</b>${sub ? `<small>${sub}</small>` : ""}</span>`;
+      const med = (A2) => { const s2 = A2.slice().sort((x, y) => x - y), n = s2.length; return n ? (n % 2 ? s2[(n - 1) / 2] : (s2[n / 2 - 1] + s2[n / 2]) / 2) : null; };
+      const W = TR.filter((h) => h.pnl > 0), Lz = TR.filter((h) => h.pnl <= 0), gw = W.reduce((s2, h) => s2 + h.pnl, 0), gl = -Lz.reduce((s2, h) => s2 + h.pnl, 0);
+      const fees = TR.reduce((s2, h) => s2 + (h.fee || 0) - (h.fund || 0), 0), cn = TR.reduce((s2, h) => s2 + h.pnl, 0), cg = TR.reduce((s2, h) => s2 + h.g, 0), n = TR.length;
+      const best = TR.reduce((m, h) => (h.pnl > m.pnl ? h : m), TR[0]), worst = TR.reduce((m, h) => (h.pnl < m.pnl ? h : m), TR[0]), cN = (h) => esc(String(h.k).split(":")[0]);
+      const Nt = Math.max(1 / 24, (b - (a || TR[0].tm)) / 864e5);
+      let sum, S, S2 = null;
+      if (cmk === "t") {
+        const fx = lvFmtX(Math.max(1, TR[TR.length - 1].tm - TR[0].tm)), avgW = W.length ? gw / W.length : 0, avgL = Lz.length ? gl / Lz.length : 0, hs = TR.map((h) => h.hold).filter((v) => isNum(v) && v >= 0);
+        let c1 = 0, c2 = 0;
+        S = [{ name: bi("Cộng dồn sau phí & funding", "Cumulative after fees & funding"), color: css("--brass") || css("--brand"), width: 2.2, pts: TR.map((h) => ({ x: fx(h.tm), y: +(c1 += h.pnl).toFixed(3) })) },
+          { name: bi("Cộng dồn trước phí", "Cumulative before fees"), color: css("--ink-3"), width: 1.2, dash: "4 3", pts: TR.map((h) => ({ x: fx(h.tm), y: +(c2 += h.g).toFixed(3) })) },
+          { name: bi("Lời/lỗ từng lệnh", "P/L per trade"), bars: true, pts: TR.map((h) => ({ x: fx(h.tm), y: +h.pnl.toFixed(3), tip: `${cN(h)} ${h.side > 0 ? "Long" : "Short"} ${sg$(h.pnl)} (${pctB(h.bps)}) · ${JWHY[h.why] || h.why || ""}`, tc: h.pnl >= 0 ? "up" : "down" })) }];
+        sum = `<div class="lv-kp lv-kp8">${[
+          kp(bi("Số lệnh", "Trades"), nf(n, 0), "", `${bi("thắng", "won")} ${nf(W.length / n * 100, 0)}% · ${nf(n / Nt, 1)}/${bi("ngày", "day")}`),
+          kp(bi("TB / lệnh", "Avg / trade"), sg$(cn / n), cls(cn), `${pctB(TR.reduce((s2, h) => s2 + h.bps, 0) / n)} ${bi("cỡ lệnh", "of size")}`, bi("% = lời/lỗ ÷ giá trị lệnh, trung bình các lệnh", "Average P/L as % of trade size")),
+          kp(bi("Trung vị / lệnh", "Median / trade"), sg$(med(TR.map((h) => h.pnl))), cls(med(TR.map((h) => h.pnl))), pctB(med(TR.map((h) => h.bps))), bi("Lệnh ở giữa khi xếp từ lỗ nhất tới lời nhất – ít bị 1 lệnh lớn kéo lệch", "Middle trade – not skewed by one big trade")),
+          kp(bi("Lệnh thắng TB", "Avg win"), sg$(avgW), "up", avgL > 0 ? `${bi("thua TB", "avg loss")} <span class="down">${sg$(-avgL)}</span> · ${nf(avgW / avgL, 1)}×` : bi("chưa có lệnh lỗ", "no losses"), bi("Lời TB 1 lệnh thắng, lỗ TB 1 lệnh thua và tỉ lệ giữa 2 số", "Average win, average loss and their ratio")),
+          kp(bi("Hệ số lời", "Profit factor"), gl > 0 ? nf(gw / gl, 2) : "∞", gw >= gl ? "up" : "down", `${sg$(gw)} / ${sg$(-gl)}`, bi("Tổng lời các lệnh thắng ÷ tổng lỗ các lệnh thua; > 1 là có lời", "Gross wins ÷ gross losses")),
+          kp(bi("Giữ TB", "Avg hold"), hs.length ? jHold(hs.reduce((s2, v) => s2 + v, 0) / hs.length) : "—", "", hs.length ? `${bi("trung vị", "median")} ${jHold(med(hs))}` : ""),
+          kp(bi("Cỡ lệnh TB", "Avg size"), u$(TR.reduce((s2, h) => s2 + (h.N || 0), 0) / n), "", `${bi("tổng", "total")} ${u$(TR.reduce((s2, h) => s2 + (h.N || 0), 0))}`),
+          kp(bi("Lệnh tốt nhất", "Best trade"), sg$(best.pnl), cls(best.pnl), `${cN(best)} · ${bi("tệ nhất", "worst")} <span class="${cls(worst.pnl)}">${sg$(worst.pnl)}</span> ${cN(worst)}`, `${bi("Phí & funding cả khoảng", "Fees & funding")}: ${fees ? "−" + usd2(Math.abs(fees)) : "$0"}`)].join("")}</div>`;
+      } else {
+        // gom theo kỳ (giờ VN): ngày / tuần (thứ Hai) / tháng – kỳ không có lệnh vẫn hiện (cột trống) để thấy nhịp thật
+        const key = (ms) => { const d = new Date(ms + 7 * 3600e3); if (cmk === "m") return d.toISOString().slice(0, 7); if (cmk === "w") { const wd = (d.getUTCDay() + 6) % 7; return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - wd)).toISOString().slice(0, 10); } return d.toISOString().slice(0, 10); };
+        const lab = (k) => (cmk === "m" ? k.slice(5, 7) + "/" + k.slice(2, 4) : k.slice(8, 10) + "/" + k.slice(5, 7)), G = new Map();
+        const t0 = a || TR[0].tm; for (let t = t0; t <= b + 1; t += cmk === "d" ? 864e5 : cmk === "w" ? 7 * 864e5 : 28 * 864e5) { const k = key(t); if (!G.has(k)) G.set(k, { k, v: 0, g: 0, n: 0, w: 0, bp: 0 }); }
+        for (const h of TR) { const k = key(h.tm), g = G.get(k) || { k, v: 0, g: 0, n: 0, w: 0, bp: 0 }; g.v += h.pnl; g.g += h.g; g.n++; g.bp += h.bps; if (h.pnl > 0) g.w++; G.set(k, g); }
+        const P = [...G.values()].sort((x, y) => (x.k < y.k ? -1 : 1)), Pa = P.filter((g) => g.n), up = Pa.filter((g) => g.v > 0), U = { d: bi("ngày", "day"), w: bi("tuần", "week"), m: bi("tháng", "month") }[cmk];
+        const bP = Pa.reduce((m, g) => (g.v > m.v ? g : m), Pa[0]), wP = Pa.reduce((m, g) => (g.v < m.v ? g : m), Pa[0]);
+        let run = 0, runMax = 0; for (const g of Pa) { run = g.v > 0 ? run + 1 : 0; runMax = Math.max(runMax, run); }
+        let c1 = 0, c2 = 0;
+        S = [{ name: bi("Cộng dồn sau phí & funding", "Cumulative after fees & funding"), color: css("--brass") || css("--brand"), width: 2.2, pts: P.map((g) => ({ x: lab(g.k), y: +(c1 += g.v).toFixed(3) })) },
+          { name: bi("Cộng dồn trước phí", "Cumulative before fees"), color: css("--ink-3"), width: 1.2, dash: "4 3", pts: P.map((g) => ({ x: lab(g.k), y: +(c2 += g.g).toFixed(3) })) },
+          { name: `${bi("Lời/lỗ mỗi", "P/L per")} ${U}`, bars: true, pts: P.map((g) => ({ x: lab(g.k), y: +g.v.toFixed(3), tip: `${lab(g.k)} · ${g.n} ${bi("lệnh", "trades")}${g.n ? ` · ${bi("thắng", "won")} ${g.w}/${g.n}` : ""}`, tc: g.v >= 0 ? "up" : "down" })) }];
+        // biểu đồ 2: TB mỗi lệnh từng kỳ (cột) – kỳ nào lệnh "ngon" hơn; số lệnh trong chú thích cột
+        S2 = [{ name: `${bi("TB / lệnh mỗi", "Avg / trade per")} ${U}`, bars: true, pts: P.map((g) => ({ x: lab(g.k), y: g.n ? +(g.v / g.n).toFixed(3) : 0, tip: g.n ? `${lab(g.k)} · TB ${sg$(g.v / g.n)} (${pctB(g.bp / g.n)}) · ${g.n} ${bi("lệnh", "trades")}` : `${lab(g.k)} · ${bi("không có lệnh", "no trades")}`, tc: g.v >= 0 ? "up" : "down" })) },
+          { name: bi("TB / lệnh cả khoảng", "Avg / trade, whole range"), color: css("--ink-3"), width: 1, dash: "3 3", pts: P.map((g) => ({ x: lab(g.k), y: +(cn / n).toFixed(3) })) }];
+        sum = `<div class="lv-kp lv-kp8">${[
+          kp(`${bi("Số", "No. of")} ${U}`, nf(P.length, 0), "", `${bi("có lệnh", "with trades")} ${Pa.length} · ${bi("lời", "up")} ${up.length}${Pa.length ? ` (${nf(up.length / Pa.length * 100, 0)}%)` : ""}`),
+          kp(`${bi("TB / ", "Avg / ")}${U}`, sg$(cn / P.length), cls(cn), `${bi("kỳ có lệnh", "active")} ${Pa.length ? sg$(cn / Pa.length) : "—"}`, bi("Chia cho mọi kỳ trong khoảng (kể cả kỳ không có lệnh); dòng dưới chỉ tính kỳ có lệnh", "Over every period; below: active periods only")),
+          kp(`${bi("Lệnh / ", "Trades / ")}${U}`, nf(n / P.length, 1), "", `${bi("nhiều nhất", "max")} ${Math.max(...P.map((g) => g.n))}`),
+          kp(bi("TB / lệnh", "Avg / trade"), sg$(cn / n), cls(cn), `${pctB(TR.reduce((s2, h) => s2 + h.bps, 0) / n)} · ${bi("thắng", "won")} ${nf(W.length / n * 100, 0)}%`),
+          kp(`${U[0].toUpperCase() + U.slice(1)} ${bi("tốt nhất", "best")}`, sg$(bP.v), cls(bP.v), `${lab(bP.k)} · ${bP.n} ${bi("lệnh", "trades")}`),
+          kp(`${U[0].toUpperCase() + U.slice(1)} ${bi("tệ nhất", "worst")}`, sg$(wP.v), cls(wP.v), `${lab(wP.k)} · ${wP.n} ${bi("lệnh", "trades")}`),
+          kp(bi("Chuỗi lời dài nhất", "Longest win streak"), `${runMax} ${U}`, runMax ? "up" : "", `${bi("trung vị / ", "median / ")}${U} ${sg$(med(Pa.map((g) => g.v)) || 0)}`),
+          kp(bi("Phí & funding", "Fees & funding"), fees ? "−" + usd2(Math.abs(fees)) : "$0", "down", cg > 0 ? `${nf(fees / cg * 100, 0)}% ${bi("lời trước phí", "of gross")}` : "—")].join("")}</div>`;
+      }
+      DK.cum = { t: bi("Lời/lỗ cộng dồn", "Cumulative P/L"), v: sg$(cn), vc: cls(cn), s: `${n} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / n * 100, 0)}% · ${bi("phí", "fees")} <b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b>`,
         S: [{ ...S[0], name: "" }, { ...S[2], name: "" }], o: { h: 92, dec: 1, zero: true } };
-      const Nt = Math.max(1 / 24, (b - (a || TR[0].tm)) / 864e5), Eb = A.length ? A[0][1] : null;
-      const paceT = paceHtml({ N: Nt, R: Eb > 0 ? cn / Eb : null, pd: cn / Nt, E: A.length ? A[A.length - 1][1] : null, sub: bi(`Theo lệnh đã đóng (sau phí & funding) · ${nf(TR.length / Nt, 1)} lệnh / ngày${Eb > 0 ? ` · % tính trên tài sản đầu kỳ ${usd2(Eb)}` : ""}. Chỉ là ngoại suy, không phải dự báo.`, "Closed trades only. Extrapolation, not a forecast.") });
-      cumP = segC + sum + paceT + lineSvg(S, { h: 210, dec: 2, zero: true }) + `<p class="sc-more-l"><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh đầy đủ →", "Full trade book →")}</a></p>`;
+      cumP = segC + sum + lineSvg(S, { h: 210, dec: 2, zero: true }) + (S2 ? `<p class="lv-sub-h">${bi("TB mỗi lệnh theo", "Average per trade by")} ${cmk === "d" ? bi("ngày", "day") : cmk === "w" ? bi("tuần", "week") : bi("tháng", "month")} <small class="faint">${bi("– rê / chạm cột xem số lệnh", "– hover a bar for the count")}</small></p>${lineSvg(S2, { h: 130, dec: 2, zero: true })}` : "")
+        + `<p class="sc-more-l"><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh đầy đủ →", "Full trade book →")}</a></p>`;
     }
     window.__lvDk = DK.eq || DK.cum ? DK : null; setTimeout(() => window.lvDock?.(), 0);
     return `${bar}<div class="sc-g2">${panel(bi("Tài sản futures", "Futures equity"), `${eqP}<p class="faint sc-cap">${bi("Gồm lãi/lỗ đang mở · chấm = lúc đóng lệnh (rê chuột để xem coin & lời/lỗ). <b>Lời/lỗ thật</b> = tài sản thay đổi trừ tiền nạp/rút ví futures; <b>%</b> và <b>Sụt từ đỉnh</b> tính kiểu quỹ đầu tư (nối % từng đoạn giữa các lần nạp/rút) nên nạp thêm tiền không làm số đẹp giả.", "Includes unrealized P/L · dots = trade closes (hover for coin & P/L). <b>Real P/L</b> = equity change minus futures-wallet transfers; <b>%</b> and <b>Drawdown</b> are time-weighted, so deposits don't flatter the numbers.")}</p>`)}${panel(bi("⚖️ Lời/lỗ cộng dồn", "⚖️ Cumulative P/L"), cumP, `${TR.length} ${bi("lệnh trong khoảng", "trades in range")}`)}</div>`;
@@ -2276,13 +2329,13 @@ function jLessons(F) {
   if (trap.length) out.push(["warn", `${trap.length} lệnh lời theo giá nhưng LỖ sau phí/funding (tổng ${j$(trap.reduce((a, r) => a + r.pnl, 0))}) – lệnh "tưởng hoà" thật ra là lỗ.`]);
   if (Math.abs(fund) >= 0.01) out.push([fund < 0 ? "warn" : "good", `Funding cả khoảng: ${j$(fund)} (${fund < 0 ? "trả" : "nhận"}).`]);
   const why = grp((r) => r.why || "?").sort((a, b) => a.pnl - b.pnl);
-  if (why.length > 1 && why[0].pnl < 0) out.push(["bad", `Đóng vì «${JWHY[why[0].k] || why[0].k}» lỗ nhiều nhất: ${why[0].n} lệnh, ${j$(why[0].pnl)}, TB ${nf(why[0].ab, 0)} bps/lệnh.`]);
+  if (why.length > 1 && why[0].pnl < 0) out.push(["bad", `Đóng vì «${JWHY[why[0].k] || why[0].k}» lỗ nhiều nhất: ${why[0].n} lệnh, ${j$(why[0].pnl)}, TB ${pctB(why[0].ab)}/lệnh.`]);
   const bw = why[why.length - 1]; if (bw && bw.pnl > 0) out.push(["good", `Đóng vì «${JWHY[bw.k] || bw.k}» đem lại nhiều lời nhất: ${bw.n} lệnh, ${j$(bw.pnl)}.`]);
-  const sd = grp((r) => (r.side > 0 ? "Long" : "Short")); if (sd.length === 2) { const [a, b] = sd.sort((x, y) => y.ab - x.ab); out.push([b.pnl < 0 ? "warn" : "", `${a.k} tốt hơn ${b.k}: TB ${nf(a.ab, 0)} vs ${nf(b.ab, 0)} bps/lệnh (thắng ${nf(a.w / a.n * 100, 0)}% vs ${nf(b.w / b.n * 100, 0)}%).`]); }
+  const sd = grp((r) => (r.side > 0 ? "Long" : "Short")); if (sd.length === 2) { const [a, b] = sd.sort((x, y) => y.ab - x.ab); out.push([b.pnl < 0 ? "warn" : "", `${a.k} tốt hơn ${b.k}: TB ${nf(a.ab, 0)} vs ${pctB(b.ab)}/lệnh (thắng ${nf(a.w / a.n * 100, 0)}% vs ${nf(b.w / b.n * 100, 0)}%).`]); }
   const hr = grp((r) => { const h = (new Date(jT(r.t2)).getUTCHours() + 7) % 24; return h < 6 ? "0–6 giờ" : h < 12 ? "6–12 giờ" : h < 18 ? "12–18 giờ" : "18–24 giờ"; }).filter((g) => g.n >= 3).sort((a, b) => a.ab - b.ab);
-  if (hr.length > 1) out.push([hr[0].pnl < 0 ? "warn" : "", `Khung giờ kém nhất (giờ VN): ${hr[0].k} – ${hr[0].n} lệnh, TB ${nf(hr[0].ab, 0)} bps; tốt nhất: ${hr[hr.length - 1].k} – TB ${nf(hr[hr.length - 1].ab, 0)} bps.`]);
+  if (hr.length > 1) out.push([hr[0].pnl < 0 ? "warn" : "", `Khung giờ kém nhất (giờ VN): ${hr[0].k} – ${hr[0].n} lệnh, TB ${pctB(hr[0].ab)}; tốt nhất: ${hr[hr.length - 1].k} – TB ${pctB(hr[hr.length - 1].ab)}.`]);
   const hk = F.filter((r) => r.strat === "hook" && r.R), sh = grp((r) => (r.strat !== "hook" || !r.R ? null : Math.abs(r.R) < 400 ? "sốc < 4%" : Math.abs(r.R) < 800 ? "sốc 4–8%" : "sốc ≥ 8%")).sort((a, b) => a.ab - b.ab);
-  if (hk.length >= 5 && sh.length > 1) out.push([sh[0].pnl < 0 ? "warn" : "", `Bắt râu sập theo cỡ cú sốc: ${sh.map((g) => `${g.k} ${g.n} lệnh, TB ${nf(g.ab, 0)} bps`).join(" · ")}.`]);
+  if (hk.length >= 5 && sh.length > 1) out.push([sh[0].pnl < 0 ? "warn" : "", `Bắt râu sập theo cỡ cú sốc: ${sh.map((g) => `${g.k} ${g.n} lệnh, TB ${pctB(g.ab)}`).join(" · ")}.`]);
   const co = grp((r) => r.k.split(":")[0]).filter((g) => g.n >= 2).sort((a, b) => a.pnl - b.pnl);
   if (co.length && co[0].pnl < 0) out.push(["bad", `Coin lỗ lặp lại: ${co.filter((g) => g.pnl < 0).slice(0, 3).map((g) => `${g.k} (${g.n} lệnh, ${j$(g.pnl)})`).join(", ")}.`]);
   const W = F.filter((r) => r.pnl > 0), Lz = F.filter((r) => r.pnl <= 0), ah = (A) => A.reduce((a, r) => a + (isNum(r.hold) ? r.hold : 0), 0) / Math.max(1, A.length);
