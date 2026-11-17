@@ -2632,7 +2632,13 @@ function chartPxMenu(el, ch, ctx) {
   if (!el || !ch?.cs || el.__pxm) return; el.__pxm = 1;
   const priceAt = (cy) => { const r = el.getBoundingClientRect(), y = cy - r.top; if (y < 0 || y > r.height - 26) return null; const p = ch.cs.coordinateToPrice(y); return isNum(p) && p > 0 ? p : null; };
   const cur = () => { try { const d = ch.cs.data?.(); const b = d?.[d.length - 1]; return b?.close ?? b?.value ?? null; } catch (e) { return null; } };
-  const open = (cx, cy) => { const p = priceAt(cy); if (!p) return; const C = { ...(ctx?.() || {}) }; C.cur = C.cur || cur(); pxMenu(cx, cy, p, C, ch); };
+  // lệnh THẬT đang nằm trên sàn sát chỗ bấm (≤ 10px): lệnh chờ giá, cắt lỗ / chốt lời của lệnh tay → menu có thêm Huỷ / Vào ngay / Bỏ
+  const nearOrd = (cy, base) => { const MN = window.__scCache?.d?.[1]?.data?.live?.man; if (!MN || !base) return []; const sym = base + "USDT", y = cy - el.getBoundingClientRect().top, out = [];
+    const add = (o) => { let yy = null; try { yy = ch.cs.priceToCoordinate(o.px); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - y) <= 10) out.push({ ...o, dy: Math.abs(yy - y) }); };
+    for (const m of MN.pend || []) if (m.sym === sym) add({ k: "pend", id: m.id, px: +m.px, sd: m.sd, avg: !!m.avg });
+    for (const o of MN.ord?.[sym] || []) add({ k: /^STOP/.test(o.type || "") ? "sl" : /^TAKE_PROFIT/.test(o.type || "") ? "tp" : "", px: +o.px, sym });
+    return out.filter((o) => o.k && o.px > 0).sort((a, b) => a.dy - b.dy); };
+  const open = (cx, cy) => { const p = priceAt(cy); if (!p) return; const C = { ...(ctx?.() || {}) }; C.cur = C.cur || cur(); C.near = nearOrd(cy, C.base); pxMenu(cx, cy, p, C, ch); };
   el.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); open(e.clientX, e.clientY); });
   let lp = null;      // giữ lâu ~0,55 giây không di ngón → mở menu (điện thoại không có chuột phải)
   el.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; const t = e.touches[0], x = t.clientX, y = t.clientY; clearTimeout(lp?.t); lp = { x, y, t: setTimeout(() => { navigator.vibrate?.(8); open(x, y); lp = null; }, 550) }; }, { passive: true });
@@ -2650,7 +2656,12 @@ function pxMenu(cx, cy, p0, C, ch) {
   const it = (a, ic, t, sub, c = "") => `<button type="button" role="menuitem" data-pxa="${a}"><span class="ios-ck">${ic}</span><span class="ios-t ${c}">${t}<small>${sub}</small></span></button>`;
   const manOK = C.man && C.side && cur;
   const avgT = (sd) => (C.man && C.side === sd ? `<em class="px-avg">${bi("➕ Bình quân vào lệnh tay đang có", "➕ Averages into your open trade")}</em>` : "");      // dòng riêng – không bị cắt "…"
-  const items = [it("s", "🔻", bi(`Short khi giá về ${px(p)}`, `Short at ${px(p)}`), L(-1) + avgT(-1), "down"), it("l", "🔺", bi(`Long khi giá về ${px(p)}`, `Long at ${px(p)}`), L(1) + avgT(1), "up"),
+  // bấm đúng vào đường lệnh thật (lệnh chờ / cắt lỗ / chốt lời) → thao tác với CHÍNH lệnh đó lên đầu menu
+  const nearIt = (C.near || []).map((o) => o.k === "pend"
+      ? it(`cx:${o.id}`, "✕", bi(`Huỷ lệnh chờ ${o.sd > 0 ? "Long" : "Short"} @ ${px(o.px)}`, `Cancel ${o.sd > 0 ? "Long" : "Short"} order @ ${px(o.px)}`), bi(`lệnh chờ giá trên Binance${o.avg ? " (bình quân)" : ""} · máy chủ huỷ trong vài giây`, "resting on Binance · cancelled within seconds"), "down")
+        + (document.querySelector(`[data-mln="${CSS.escape(o.id)}"]`) ? it(`nw:${o.id}`, "⚡", bi("Vào ngay, không chờ giá", "Enter now instead"), bi("huỷ lệnh chờ rồi vào giá thị trường – có bảng xác nhận", "cancel and enter at market – with confirmation")) : "")
+      : it(`c${o.k}:${o.px}`, "✕", o.k === "sl" ? bi(`Bỏ cắt lỗ @ ${px(o.px)}`, `Remove stop @ ${px(o.px)}`) : bi(`Bỏ chốt lời @ ${px(o.px)}`, `Remove target @ ${px(o.px)}`), bi("lệnh điều kiện của lệnh tay trên Binance", "the manual trade's conditional order"), "down")).join("");
+  const items = (nearIt ? nearIt + `<div class="px-sep" role="separator"></div>` : "") + [it("s", "🔻", bi(`Short khi giá về ${px(p)}`, `Short at ${px(p)}`), L(-1) + avgT(-1), "down"), it("l", "🔺", bi(`Long khi giá về ${px(p)}`, `Long at ${px(p)}`), L(1) + avgT(1), "up"),
     manOK && (C.side > 0 ? p < cur : p > cur) ? it("sl", "🛑", bi("Đặt cắt lỗ lệnh tay ở đây", "Set the manual stop here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
     manOK && (C.side > 0 ? p > cur : p < cur) ? it("tp", "🎯", bi("Đặt chốt lời lệnh tay ở đây", "Set the manual target here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
     C.man && C.side ? it("add", "➕", bi(`Vào thêm ngay ${C.side > 0 ? "Long" : "Short"} (giá thị trường)`, `Add now (${C.side > 0 ? "Long" : "Short"}, market)`), bi("gộp vào lệnh tay đang có · giữ cắt lỗ / chốt", "merges into your open trade · keeps stop/target"), C.side > 0 ? "up" : "down") : "",
@@ -2668,6 +2679,13 @@ function pxMenu(cx, cy, p0, C, ch) {
     if (a === "cp") { try { await navigator.clipboard.writeText(String(p)); toast(bi(`Đã chép ${p}`, `Copied ${p}`)); } catch (e) { toast(String(p)); } return; }
     if (a === "sl" || a === "tp") return pxManCond(C.man, a, p, C);
     if (a === "add") return manAddSheet(C.man);
+    if (a.startsWith("nw:")) { document.querySelector(`[data-mln="${CSS.escape(a.slice(3))}"]`)?.click(); return; }
+    if (a.startsWith("cx:")) { const o = (C.near || []).find((x) => x.k === "pend" && x.id === a.slice(3)); if (!o) return;
+      const ok = await iosSheet({ title: bi("Huỷ lệnh chờ giá?", "Cancel the price order?"), body: `<p>${esc(k || "")} <b class="${o.sd > 0 ? "up" : "down"}">${o.sd > 0 ? "Long" : "Short"}</b> @ <b>${px(o.px)}</b></p><p class="faint">${bi("Máy chủ huỷ lệnh trên Binance trong vài giây. Nếu lệnh đã khớp 1 phần, phần đã vào vẫn được đặt cắt lỗ / chốt lời như đã chọn.", "The server cancels it on Binance within seconds. If partly filled, that part keeps its stop/target.")}</p>`, ok: bi("Huỷ lệnh chờ", "Cancel order"), danger: true, cancel: bi("Giữ", "Keep") });
+      if (!ok) return; await lazyJs("app-bot.js"); await scCmd("close", `mlc:${o.id}`, new Date().toISOString()); toast(bi("Đã gửi lệnh huỷ – máy chủ huỷ trên Binance trong vài giây", "Cancel sent")); return; }
+    if (a.startsWith("csl:") || a.startsWith("ctp:")) { const sl = a.startsWith("csl:"), o = (C.near || []).find((x) => x.k === (sl ? "sl" : "tp")); if (!o) return;
+      const ok = await iosSheet({ title: sl ? bi("Bỏ cắt lỗ?", "Remove the stop?") : bi("Bỏ chốt lời?", "Remove the target?"), body: `<p>${esc(k || "")} · ${sl ? bi("cắt lỗ", "stop") : bi("chốt lời", "target")} @ <b>${px(o.px)}</b></p><p class="faint">${sl ? bi("Lệnh tay sẽ KHÔNG còn cắt lỗ trên sàn.", "The manual trade will have NO exchange stop.") : bi("Lệnh tay sẽ không còn chốt lời tự động.", "No automatic target any more.")}</p>`, ok: sl ? bi("Bỏ cắt lỗ", "Remove stop") : bi("Bỏ chốt lời", "Remove target"), danger: sl, cancel: bi("Giữ", "Keep") });
+      if (!ok) return; await lazyJs("app-bot.js"); await scCmd("close", `${sl ? "mst" : "mtp"}:${o.sym}:0`, new Date().toISOString()); toast(bi("Đã gửi – máy chủ cập nhật trên Binance trong vài giây", "Sent")); return; }
     pxOrderSheet({ base: k, sd: a === "l" ? 1 : -1, px: p, cur });
   }));
 }

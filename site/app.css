@@ -6481,3 +6481,4 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cmp-fl .chip[aria-pressed="true"]{background:color-mix(in srgb,var(--brass,var(--brand)) 16%,var(--surface))!important;color:var(--ink)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass,var(--brand)) 60%,transparent)}
 .cmp-l[data-f="x"] .cmp-r:not([data-x]),.cmp-l[data-f="po"] .cmp-r:not([data-po]),.cmp-l[data-f="do"] .cmp-r:not([data-do]){display:none}
 .cmp-l[data-f="x"]:not(:has(.cmp-r[data-x])) .cmp-none,.cmp-l[data-f="po"]:not(:has(.cmp-r[data-po])) .cmp-none,.cmp-l[data-f="do"]:not(:has(.cmp-r[data-do])) .cmp-none{display:block}
+.px-menu .px-sep{height:1px;margin:4px 6px;background:color-mix(in srgb,var(--ink) 10%,transparent)}
