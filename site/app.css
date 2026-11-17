@@ -4868,7 +4868,7 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .cx-ver.bad{background:color-mix(in srgb,var(--down) 11%,transparent);color:color-mix(in srgb,var(--down) 70%,var(--ink))}
 .cx-fine{margin:8px 2px 2px!important;font-size:11.5px;color:var(--ink-3)}
 /* nội dung cũ đặt trong hộp mới (các xác nhận khác): bảng & ghi chú theo token của app */
-.mbd .mxe td{border-bottom:0!important;padding:6px 0}.mbd .mxe .up{color:var(--up)}.mbd .mxe .down{color:var(--down)}
+.mbd .mxe td,.mbd .mxe tr:hover td{border-bottom:0!important;padding:6px 0;background:none}.mbd .mxe td:last-child,.mbd .mxe tr:hover td:last-child{padding-left:10px}      /* rê chuột qua dòng không đổi đệm (trước: 6px ↔ 5px → bảng nhảy, chữ nhoè) */.mbd .mxe .up{color:var(--up)}.mbd .mxe .down{color:var(--down)}
 .mbd .mxw{background:color-mix(in srgb,var(--down) 11%,transparent);color:color-mix(in srgb,var(--down) 70%,var(--ink))}
 .mbd .mxw.ok{background:color-mix(in srgb,var(--up) 12%,transparent);color:color-mix(in srgb,var(--up) 70%,var(--ink))}
 .mbd .mxw.inf{background:var(--fill);color:var(--ink-2)}
