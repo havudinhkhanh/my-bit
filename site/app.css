@@ -6429,3 +6429,5 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (max-width:640px){.occ-st{grid-template-columns:repeat(3,minmax(0,1fr))}.occ-k>b{font-size:.8125rem}.occ-k>b small{font-size:.6875rem}}
 /* tiêu đề biểu đồ lệnh trên điện thoại: giá luôn ở dòng riêng → giá dài / ngắn đi không làm tiêu đề lúc 1 dòng lúc 2 dòng */
 @media (max-width:640px){.occ-t .occ-px{flex-basis:100%;order:9}}
+.sc-bd{cursor:pointer;white-space:nowrap;border-bottom:1px dotted currentColor}
+.mbd-f .mbd-c:empty{display:none}

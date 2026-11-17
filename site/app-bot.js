@@ -680,7 +680,12 @@ async function viewScalp() {
     ...(() => {      // hôm nay: tổng · bot · lệnh tay (lệnh tay đang mở: lời/lỗ tạm tính để riêng)
       const td = vnToday(), T = LH.filter((h) => vnDayOf(h.t2) === td), Tb = T.filter((h) => h.strat !== "man"), Tm = T.filter((h) => h.strat === "man"), sum = (A) => A.reduce((a, h) => a + (h.pnl || 0), 0), win = (A) => A.filter((h) => h.pnl > 0).length;
       const sb = sum(Tb), sm = sum(Tm), st = sb + sm, upM = MAN.L.reduce((a, p) => a + (p.up || 0), 0), ptM = MAN.L.filter((p) => p.part?.n && vnDayOf(String(p.part.t2).slice(0, 19)) === td).reduce((a, p) => a + (p.part.pnl || 0), 0);
-      return [[bi("Hôm nay · tổng", "Today · total"), T.length || LV?.day ? sg$(st) + pTag(st) : "—", `${T.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${win(T)}`, sgn(st)],
+      // 📒 đối chiếu với Binance: app Binance tính ngày từ 07:00 VN (00:00 UTC) và cộng TỪNG khoản lúc phát sinh (chốt lời/lỗ, phí, funding – kể cả lệnh đang mở / đóng bớt);
+      //    MyBit tính ngày từ 00:00 VN và cộng CẢ lệnh vào ngày đóng → 2 số lệch nhẹ. Máy chủ đọc sổ thu chi của sàn để hiện số theo cách Binance + bóc tách chênh lệch.
+      const BD = LV?.bday?.utc ? LV.bday : null, f$ = (v) => sg$(v || 0);
+      const bdTip = BD ? bi(`Theo cách Binance (từ 07:00 sáng giờ VN = 00:00 UTC, cộng từng khoản lúc phát sinh): ${f$(BD.utc.tot)} = chốt lời/lỗ ${f$(BD.utc.rp)} · phí ${f$(BD.utc.fee)} · funding ${f$(BD.utc.fund)}${nz(BD.utc.oth, 2) ? ` · khác ${f$(BD.utc.oth)}` : ""}.\nCùng sổ đó nhưng từ 00:00 giờ VN: ${f$(BD.vn.tot)}.\nMyBit (từ 00:00 VN, cả lệnh tính vào ngày ĐÓNG – phí lúc mở & funding các ngày trước đi theo lệnh): ${f$(st)}.\nChênh với Binance = khác mốc giờ ${f$(BD.vn.tot - BD.utc.tot)} + khác cách ghi nhận ${f$(st - BD.vn.tot)} (phí / funding của lệnh mở hôm trước, funding & đóng bớt của lệnh đang mở). Không gồm lời/lỗ tạm tính của lệnh đang mở.`, `Binance-style (from 00:00 UTC, each item when it happens): ${f$(BD.utc.tot)}; MyBit (from 00:00 VN, whole trade on its close day): ${f$(st)}.`) : "";
+      window.__bdInfo = BD ? { BD, st } : null;
+      return [[bi("Hôm nay · tổng", "Today · total"), T.length || LV?.day ? sg$(st) + pTag(st) : "—", `${T.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${win(T)}${BD ? ` · <span class="sc-bd" role="button" tabindex="0" title="${esc(bdTip)}">${bi("Binance (từ 7h)", "Binance (UTC day)")} <b class="${cls(BD.utc.tot)}">${f$(BD.utc.tot)}</b> ⓘ</span>` : ""}`, sgn(st), bdTip],
         [`🤖 ${bi("Hôm nay · bot", "Today · bot")}`, Tb.length || LV?.day ? sg$(sb) + pTag(sb) : "—", `${Tb.length} ${bi("lệnh", "trades")} · ${bi("dừng ở −", "stop at −")}${usd2(LV?.size?.dayLim ?? C.lv_cap * C.lv_daily / 100)}`, sgn(sb)],
         [`✋ ${bi("Hôm nay · lệnh tay", "Today · manual")}`, Tm.length ? sg$(sm) + pTag(sm) : "$0", `${Tm.length} ${bi("lệnh đóng", "closed")}${MAN.L.length ? ` · ${MAN.L.length} ${bi("đang mở", "open")} ${sg$(upM)}` : ""}${nz(ptM, 2) ? ` · ✂️ ${bi("đã chốt bớt", "partly closed")} ${sg$(ptM)}` : ""}`, sgn(sm)]];
     })(),
@@ -1669,6 +1674,16 @@ async function viewScalp() {
     }, 0);
   }
   $$("[data-madd]").forEach((b) => (b.onclick = () => manAddSheet(b.dataset.madd)));
+  // 📒 bấm "Binance (từ 7h) ⓘ" → bảng đối chiếu lời ngày MyBit ↔ Binance (bóc tách từng phần chênh)
+  $$(".sc-bd").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const X = window.__bdInfo; if (!X) return; const { BD, st } = X, r = (t, v, sub = "", strong = false) => `<tr><td>${t}${sub ? `<small>${sub}</small>` : ""}</td><td>${strong ? "<b>" : ""}<span class="${cls(v)}">${sg$(v || 0)}</span>${strong ? "</b>" : ""}</td></tr>`;
+    iosSheet({ title: bi("📒 Lời hôm nay: MyBit ↔ Binance", "📒 Today's P/L: MyBit ↔ Binance"), ok: bi("Đã hiểu", "Got it"), cancel: "",
+      body: `<table class="mxe"><tbody>
+        ${r(bi("Binance – lời/lỗ hôm nay", "Binance – today's P/L"), BD.utc.tot, bi(`từ 07:00 sáng (00:00 UTC) · ${BD.utc.n} lần chốt`, "from 00:00 UTC"), true)}
+        ${r(bi("· chốt lời / lỗ", "· realized"), BD.utc.rp)}${r(bi("· phí giao dịch", "· fees"), BD.utc.fee)}${r(bi("· funding", "· funding"), BD.utc.fund, bi("cả lệnh đang mở", "incl. open trades"))}${nz(BD.utc.oth, 2) ? r(bi("· khác", "· other"), BD.utc.oth) : ""}
+        ${r(bi("+ khác mốc giờ", "+ day boundary"), BD.vn.tot - BD.utc.tot, bi("khoản phát sinh 00:00 → 07:00 giờ VN (Binance tính vào hôm qua)", "items between 00:00 and 07:00 VN time"))}
+        ${r(bi("+ khác cách ghi nhận", "+ booking method"), st - BD.vn.tot, bi("MyBit dồn cả lệnh vào ngày đóng: phí lúc mở & funding các ngày trước của lệnh đóng hôm nay tính vào hôm nay; funding / đóng bớt của lệnh còn mở chưa tính", "MyBit books the whole trade on its close day"))}
+        ${r(bi("= MyBit – hôm nay", "= MyBit – today"), st, bi("từ 00:00 giờ VN · lệnh đã đóng", "from 00:00 VN · closed trades"), true)}
+      </tbody></table><p class="mxn">${bi(`Số Binance đọc từ sổ thu chi của sàn lúc ${hms(BD.at)} (3 phút / lần). Phí trả bằng BNB quy ra USDT theo giá hiện tại. Cả hai đều chưa gồm lời/lỗ tạm tính của lệnh đang mở.`, "Read from the exchange income history every 3 minutes.")}</p>` }); }));
   $$("[data-swa]").forEach((b) => (b.onclick = () => swAddSheet(b.dataset.swa)));
   $$("[data-mlc]").forEach((b) => (b.onclick = async () => { const card = b.closest(".sc-oc"), nm = card?.querySelector(".r1 > span")?.textContent.replace(/\s+/g, " ").trim() || "";
     const ok = await iosSheet({ title: bi("Huỷ lệnh chờ giá?", "Cancel the price order?"), body: `<p>${esc(nm)}</p><p class="faint">${bi("Máy chủ huỷ lệnh trên Binance trong vài giây. Nếu lệnh đã khớp 1 phần, phần đã vào vẫn được đặt cắt lỗ / chốt lời như đã chọn.", "The server cancels it on Binance within seconds. If partly filled, that part keeps its stop/target.")}</p>`, ok: bi("Huỷ lệnh chờ", "Cancel order"), danger: true, cancel: bi("Giữ", "Keep") });

@@ -305,6 +305,7 @@ export class LiveExec {
       await this.mPend().catch((e) => { if (!this.mpErrAt || Date.now() - this.mpErrAt > 600e3) { this.mpErrAt = Date.now(); this.err("📍 lệnh chờ giá", e); } });
       await this.mHist().catch((e) => { if (!this.mhErrAt || Date.now() - this.mhErrAt > 900e3) { this.mhErrAt = Date.now(); this.err("đọc lệnh tay đã đóng", e); } });
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
+      await this.bDay().catch((e) => { if (!this.bdErrAt || Date.now() - this.bdErrAt > 1800e3) { this.bdErrAt = Date.now(); this.err("đọc sổ thu chi trong ngày", e); } });
       await this.mFund().catch((e) => { if (!this.mfErrAt || Date.now() - this.mfErrAt > 900e3) { this.mfErrAt = Date.now(); this.err("đọc funding lệnh tay đang mở", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
     } finally { this.busy = false; }
@@ -563,6 +564,21 @@ export class LiveExec {
       this.say(`⏱ Lệnh tay ${coin(sym)}: ${why} → đóng theo hẹn`, "info");
       this.mWhyNext = x.pk && !(x.exp && Date.now() >= x.exp) ? "FOLLOW" : "TIMER"; await this.mClose(sym, 1);
     }
+  }
+  // 📒 ĐỐI CHIẾU LỜI NGÀY VỚI BINANCE: cộng sổ thu chi của sàn (lời/lỗ đã chốt, phí, funding, khác – từng khoản theo GIỜ PHÁT SINH) cho 2 cách tính ngày:
+  //   • ngày Binance: từ 00:00 UTC (= 07:00 giờ VN) – app Binance dùng mốc này cho "Lời/lỗ hôm nay";  • ngày VN: từ 00:00 giờ VN – MyBit dùng mốc này.
+  //   Phí trả bằng BNB quy ra USDT theo giá hiện tại. 3 phút / lần, chỉ đọc. Không gồm lời/lỗ tạm tính của lệnh đang mở.
+  async bDay() {
+    const env = this.env(); if (!this.keys(env)) return;
+    const now = Date.now(), B = ((this.S.bday ||= {})[env] ||= {}); if (now - (B.chk || 0) < 180e3) return; B.chk = now;
+    const u0 = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate()), v0 = Date.parse(vnDay(now) + "T00:00:00Z") - 7 * 3600e3, a0 = Math.min(u0, v0);
+    const px = await this.prices().catch(() => this.pxm || {}), I = [];
+    for (let st = a0, k = 0; k < 10; k++) { const L = (await this.req("GET", "/fapi/v1/income", { startTime: String(st), endTime: String(now), limit: "1000" })) || []; I.push(...L); if (L.length < 1000) break; st = +L[L.length - 1].time + 1; }
+    const sum = (t0) => { const o = { rp: 0, fee: 0, fund: 0, oth: 0, n: 0 };
+      for (const x of I) { if (+x.time < t0 || /TRANSFER|WELCOME|BONUS|COIN_SWAP|AUTO_EXCHANGE/.test(x.incomeType)) continue; const v = /^(USDT|USDC|FDUSD|BUSD)$/.test(x.asset) ? +x.income : +x.income * (px?.[x.asset] || 0); if (!Number.isFinite(v)) continue;
+        if (x.incomeType === "REALIZED_PNL") { o.rp += v; o.n++; } else if (x.incomeType === "COMMISSION") o.fee += v; else if (x.incomeType === "FUNDING_FEE") o.fund += v; else o.oth += v; }
+      for (const k of ["rp", "fee", "fund", "oth"]) o[k] = +o[k].toFixed(4); o.tot = +(o.rp + o.fee + o.fund + o.oth).toFixed(4); return o; };
+    Object.assign(B, { at: iso(now), du: new Date(u0).toISOString().slice(0, 10), utc: sum(u0), dv: vnDay(now), vn: sum(v0) });
   }
   // 💸 FUNDING CỦA LỆNH TAY ĐANG MỞ: tìm lúc vị thế mở (lần cuối đi từ 0 → khác 0, đọc ngược sổ khớp lệnh), rồi cộng funding thật (income FUNDING_FEE) từ lúc đó.
   // 5 phút/mã/lần (đóng bớt trên MyBit → đọc lại ngay); vị thế đổi chiều / đóng hẳn → tính lại từ đầu. Chỉ đọc, không đặt lệnh.
@@ -1161,7 +1177,7 @@ export class LiveExec {
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: vnDay(Date.now()), pnl: D.d === vnDay(Date.now()) ? +D.pnl.toFixed(2) : 0 }])),      // sang ngày mới chưa có lệnh đóng → 0, không hiện lời ngày cũ tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },
       ev: this.active().map((e) => ({ id: e.id, keep: e.keep ? 1 : 0, xm: e.xm || null, xu: e.xu || null, xs: e.xs || null, x0: e.x0 || null, k: e.k, R: e.R, c0: e.c0, fees: +(e.feeA ?? e.fees ?? 0).toFixed(4), fund: e.fundA ?? null, sym: e.sym, side: e.side, t0: iso(e.t0), exp: iso(e.exp), lv: e.lv.map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })), pos: e.pos, stop: e.stop?.px || null, stopKind: e.stop?.kind || null, hold: e.hold })),
-      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, mh: Object.values(this.S.mh?.[this.env()]?.L || {}).slice(-150), walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
+      hist: this.S.hist.slice(-80), log: this.S.log.slice(-200), miss: (this.S.miss || []).slice(-40), eqH: Object.fromEntries(Object.entries(this.S.eqH || {}).map(([k, H]) => [k, H.slice(-2016)])), wal: this.S.wal || null, man: this.S.man || null, bday: (({ chk, ...b }) => b)(this.S.bday?.[this.env()] || {}), mh: Object.values(this.S.mh?.[this.env()]?.L || {}).slice(-150), walH: Object.fromEntries(Object.entries(this.S.walH || {}).map(([k, H]) => [k, H.slice(-720)])),
       eqHr: Object.fromEntries(Object.entries(this.S.eqHr || {}).map(([k, H]) => [k, H.slice(-24 * 45)])), eqDay: this.S.eqDay || {}, flow: Object.fromEntries(Object.entries(this.S.flow || {}).map(([k, F]) => [k, F.L.slice(-300)])) };
   }
 }
