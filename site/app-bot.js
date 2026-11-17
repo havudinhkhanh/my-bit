@@ -2331,7 +2331,7 @@ function jLessons(F) {
   const why = grp((r) => r.why || "?").sort((a, b) => a.pnl - b.pnl);
   if (why.length > 1 && why[0].pnl < 0) out.push(["bad", `Đóng vì «${JWHY[why[0].k] || why[0].k}» lỗ nhiều nhất: ${why[0].n} lệnh, ${j$(why[0].pnl)}, TB ${pctB(why[0].ab)}/lệnh.`]);
   const bw = why[why.length - 1]; if (bw && bw.pnl > 0) out.push(["good", `Đóng vì «${JWHY[bw.k] || bw.k}» đem lại nhiều lời nhất: ${bw.n} lệnh, ${j$(bw.pnl)}.`]);
-  const sd = grp((r) => (r.side > 0 ? "Long" : "Short")); if (sd.length === 2) { const [a, b] = sd.sort((x, y) => y.ab - x.ab); out.push([b.pnl < 0 ? "warn" : "", `${a.k} tốt hơn ${b.k}: TB ${nf(a.ab, 0)} vs ${pctB(b.ab)}/lệnh (thắng ${nf(a.w / a.n * 100, 0)}% vs ${nf(b.w / b.n * 100, 0)}%).`]); }
+  const sd = grp((r) => (r.side > 0 ? "Long" : "Short")); if (sd.length === 2) { const [a, b] = sd.sort((x, y) => y.ab - x.ab); out.push([b.pnl < 0 ? "warn" : "", `${a.k} tốt hơn ${b.k}: TB ${pctB(a.ab)} vs ${pctB(b.ab)}/lệnh (thắng ${nf(a.w / a.n * 100, 0)}% vs ${nf(b.w / b.n * 100, 0)}%).`]); }
   const hr = grp((r) => { const h = (new Date(jT(r.t2)).getUTCHours() + 7) % 24; return h < 6 ? "0–6 giờ" : h < 12 ? "6–12 giờ" : h < 18 ? "12–18 giờ" : "18–24 giờ"; }).filter((g) => g.n >= 3).sort((a, b) => a.ab - b.ab);
   if (hr.length > 1) out.push([hr[0].pnl < 0 ? "warn" : "", `Khung giờ kém nhất (giờ VN): ${hr[0].k} – ${hr[0].n} lệnh, TB ${pctB(hr[0].ab)}; tốt nhất: ${hr[hr.length - 1].k} – TB ${pctB(hr[hr.length - 1].ab)}.`]);
   const hk = F.filter((r) => r.strat === "hook" && r.R), sh = grp((r) => (r.strat !== "hook" || !r.R ? null : Math.abs(r.R) < 400 ? "sốc < 4%" : Math.abs(r.R) < 800 ? "sốc 4–8%" : "sốc ≥ 8%")).sort((a, b) => a.ab - b.ab);
