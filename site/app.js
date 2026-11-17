@@ -211,6 +211,23 @@ if (document.documentElement.classList.contains("nl-ios")) { const OVL = "body.p
   new MutationObserver(() => { if (!q) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] }); chk(); }
 // rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na na (mascot) đứng yên cho biểu đồ chạy mượt
 addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweight-charts")) window.__chartHot = performance.now(); }, { passive: true, capture: true });
+// 🖱️ CHỐNG "DÍNH KÉO" BIỂU ĐỒ: bấm giữ kéo rồi nhả mà biểu đồ vẫn chạy theo chuột = thư viện biểu đồ không nhận được lần nhả chuột
+//    (trình duyệt bắt đầu kéo-thả gốc – liên kết logo, chữ đang bôi đen – hoặc lần nhả rơi ngoài trang). Hai lớp:
+//    1) trong biểu đồ không cho kéo-thả gốc / bôi đen;  2) thấy chuột di chuyển mà KHÔNG còn giữ nút trong khi biểu đồ còn đang "giữ" → tự gửi lần nhả chuột cho biểu đồ.
+(() => {
+  let dn = null;
+  addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse" && e.button === 0) { const c = e.target?.closest?.(".tv-lightweight-charts"); dn = c ? { t: e.target, c } : null; } }, true);
+  const clr = () => { dn = null; };
+  addEventListener("pointerup", clr, true); addEventListener("mouseup", clr, true); addEventListener("pointercancel", clr, true);
+  addEventListener("dragstart", (e) => { if (e.target?.closest?.(".tv-lightweight-charts, .cv-chart, #pchart, #occC")) e.preventDefault(); }, true);
+  addEventListener("pointermove", (e) => {
+    if (!dn || e.pointerType !== "mouse" || e.buttons & 1) return;
+    const { t } = dn; dn = null; const o = { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY, screenX: e.screenX, screenY: e.screenY, button: 0, buttons: 0, view: window };
+    try { (t.isConnected ? t : document).dispatchEvent(new PointerEvent("pointerup", { ...o, pointerId: e.pointerId, pointerType: "mouse", isPrimary: true })); } catch (x) { /* bỏ qua */ }
+    try { (t.isConnected ? t : document).dispatchEvent(new MouseEvent("mouseup", o)); } catch (x) { /* bỏ qua */ }
+  }, true);
+  addEventListener("blur", () => { dn = null; });
+})();
 function pxTags(el, c, cs, lines, cur) {
   try { el._ptStop?.(); } catch (e) { /* bỏ qua */ }
   const L = (lines || []).filter((l) => isNum(l.price) && +l.price > 0 && l.title); if (!L.length) { c._ptW = 0; return 0; }

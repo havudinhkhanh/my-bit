@@ -128,6 +128,13 @@
      "te": "Coin page for coins not yet in the dataset",
      "d": "Trước đây báo lỗi “Unexpected token <”. Giờ hiện trang nhẹ: giá, 24 giờ, funding, OI và biểu đồ nến trực tiếp từ Binance, kèm ghi chú coin chưa có định giá / kế hoạch.",
      "go": "#/coins"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ không còn “dính” chạy theo chuột sau khi nhả",
+     "te": "Charts no longer keep panning after you release the mouse",
+     "d": "Khi trình duyệt nuốt mất lần nhả chuột (kéo-thả gốc, nhả ngoài trang), biểu đồ tưởng vẫn đang giữ và chạy theo chuột. Giờ trang tự nhận ra và nhả giúp; trong biểu đồ cũng không còn bôi đen / kéo-thả gốc."
     }
    ]
   },
