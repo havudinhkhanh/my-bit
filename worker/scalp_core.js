@@ -425,7 +425,10 @@ export class ScalpCore {
           if (P && k.startsWith("kz:")) { P.xs = +spec > 0 ? now + +spec * 60e3 : 0; this.say(now, `🔕 Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${+spec > 0 ? `hoãn nhắc ${+spec >= 60 ? +spec / 60 + " giờ" : spec + " phút"}` : "nhắc lại như thường"}`, "info"); }
           else if (P) this.say(now, `⏱ Lệnh sàn thử ${ref.split(":").slice(1).join(" ")}: ${extSet(P, spec, now, end, set)}`, "info"); }
       }
-      else if (/^(lv|swp|swa|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc|mln):/.test(k)) this.io.onManual?.(k);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
+      else if (k.startsWith("ux:pp:")) {      // 🏁 hẹn đóng sàn thử theo giá (ux:pp:<mã>:<giá>:<chiều>)
+        const r = k.slice(6).split(":"), ds = r.pop(), pxs = r.pop(), id = r.join(":"), P = this.S.pos?.[id];
+        if (P) { if (+pxs > 0) { P.ux = { px: +pxs, dir: +ds >= 0 ? 1 : -1, at: now }; this.say(now, `🏁 Sàn thử ${id.split(":")[0]}: hẹn đóng khi giá ${P.ux.dir > 0 ? "lên tới" : "xuống tới"} ${+pxs}`, "info"); } else if (P.ux) { delete P.ux; this.say(now, `🏁 Sàn thử ${id.split(":")[0]}: bỏ hẹn đóng theo giá`, "info"); } } }
+      else if (/^(lv|swp|swa|lq|mx|mst|mtp|mw|mlk|mcp|mlo|mlc|mln|ux):/.test(k)) this.io.onManual?.(k);      // mlo/mlc: 📍 lệnh chờ giá đặt / huỷ từ biểu đồ      // mx/mst/mtp/mw: ✋ lệnh tay anh tự mở trên Binance (đóng · cắt lỗ · chốt lời · đọc lại)
     } catch (e) { this.err((act === "enter" ? "vào ngay " : "đóng tay ") + k + ": " + e.message); }
     return true;
   }
@@ -870,6 +873,7 @@ export class ScalpCore {
     const P = this.S?.pos?.[x.id]; if (!P) return;
     const exitPx = P.side > 0 ? x.bid : x.ask;
     if (P.side > 0 ? exitPx <= P.sl : exitPx >= P.sl) this.close1(x, exitPx, "SL", now);
+    else if (P.ux && (P.ux.dir > 0 ? exitPx >= P.ux.px : exitPx <= P.ux.px)) this.close1(x, exitPx, "UX", now);      // 🏁 tới giá anh hẹn
     else if (P.xm && P.e > 0 && (this.xw = extExit(P, P.side * (exitPx / P.e - 1) * 1e4, now))) this.close1(x, exitPx, this.xw, now);      // ⏱ gia hạn kiểu đỉnh nhịp nảy / hoà vốn
     else if (P.strat === "hook" && this.cfg.hk_tra > 0 && P.e > 0 && P.xm !== "man") {      // ✋ "giữ, tôi tự đóng" → không tự đóng (tắt đuổi lời & đỉnh nhịp) · 🪝 cắt lỗ đuổi: đã lời ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời
       const pr = P.side * (exitPx / P.e - 1) * 1e4; let tr = false;
@@ -934,7 +938,7 @@ export class ScalpCore {
     if (P.shk) this.shAdd(P.shk, net, true, now);
     if (P.bx && why !== "BTC") this.bxAdd(P.bx.ep, clamp(P.side * (P.bx.px - px) / P.e * 1e4, -1000, 1000));      // lệnh thật giữ qua cú sốc BTC: thoát lúc đó thì hơn/kém bao nhiêu      // kết quả lệnh thật cũng cộng vào kiểm nghiệm (cùng thước đo)
     const D = (S.dstat ||= { d: vnDay(now), n: 0, net: 0, fees: 0, win: 0 }); D.n++; D.net += usd; D.fees += P.fee + fee; if (usd > 0) D.win++;
-    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `🧪 SÀN THỬ · ${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", TIME: "hết thời gian giữ", "TIME+": "hết giờ (đã giữ thêm vì tín hiệu còn thuận)", REV: "tín hiệu đảo chiều – thoát sớm", BTC: "BTC sốc ngược chiều – thoát ngay", STALE: "mất dữ liệu", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)" }[why] || why} · ${net >= 0 ? "+" : ""}${(net / 100).toFixed(2)}% sau phí\nVào ${+P.e.toPrecision(6)} → ra ${+px.toPrecision(6)} · ${(P.q * P.e).toFixed(2)} USDT · giữ ${(now - P.t0) >= 120e3 ? `${Math.round((now - P.t0) / 60000)} phút` : `${((now - P.t0) / 1000).toFixed(0)}s`} · phí ${(P.fee + fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""}\nHôm nay ${D.n} lệnh · ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · tài sản sàn thử ${this.equity().toFixed(2)} USDT`, "#/bot/scalp", P.strat === "hook" ? `hk:${x.id}:${P.ts}` : null);
+    this.note(`t:${P.id}`, P.strat === "hook" ? 2 : 1, `🧪 SÀN THỬ · ${P.strat === "hook" ? "🪝" : "⚡"} ${x.id.split(":")[0]} ${P.side > 0 ? "Long" : "Short"} ${usd >= 0 ? "+" : ""}${usd.toFixed(2)} USDT`, `${{ TP: "chốt lời", SL: "cắt lỗ", UX: "tới giá anh hẹn", TIME: "hết thời gian giữ", "TIME+": "hết giờ (đã giữ thêm vì tín hiệu còn thuận)", REV: "tín hiệu đảo chiều – thoát sớm", BTC: "BTC sốc ngược chiều – thoát ngay", STALE: "mất dữ liệu", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)" }[why] || why} · ${net >= 0 ? "+" : ""}${(net / 100).toFixed(2)}% sau phí\nVào ${+P.e.toPrecision(6)} → ra ${+px.toPrecision(6)} · ${(P.q * P.e).toFixed(2)} USDT · giữ ${(now - P.t0) >= 120e3 ? `${Math.round((now - P.t0) / 60000)} phút` : `${((now - P.t0) / 1000).toFixed(0)}s`} · phí ${(P.fee + fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""}\nHôm nay ${D.n} lệnh · ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · tài sản sàn thử ${this.equity().toFixed(2)} USDT`, "#/bot/scalp", P.strat === "hook" ? `hk:${x.id}:${P.ts}` : null);
   }
 
   // ---------------------------------------------------------------- 🪝 BẮT RÂU SẬP – đặt lệnh chờ sâu sau cú sốc 1 phút

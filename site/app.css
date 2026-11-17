@@ -6482,3 +6482,5 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cmp-l[data-f="x"] .cmp-r:not([data-x]),.cmp-l[data-f="po"] .cmp-r:not([data-po]),.cmp-l[data-f="do"] .cmp-r:not([data-do]){display:none}
 .cmp-l[data-f="x"]:not(:has(.cmp-r[data-x])) .cmp-none,.cmp-l[data-f="po"]:not(:has(.cmp-r[data-po])) .cmp-none,.cmp-l[data-f="do"]:not(:has(.cmp-r[data-do])) .cmp-none{display:block}
 .px-menu .px-sep{height:1px;margin:4px 6px;background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.sc-oc .sc-uxr small{color:var(--brass,var(--brand))}.sc-oc .sc-uxr b{font-variant-numeric:tabular-nums}
+.px-menu .ios-t.brass{color:var(--brass,var(--brand))}
