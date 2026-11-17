@@ -942,7 +942,7 @@ async function viewScalp() {
       const fees = TR.reduce((s2, h) => s2 + (h.fee || 0) - (h.fund || 0), 0), cn = TR.reduce((s2, h) => s2 + h.pnl, 0), cg = TR.reduce((s2, h) => s2 + h.g, 0), n = TR.length;
       const best = TR.reduce((m, h) => (h.pnl > m.pnl ? h : m), TR[0]), worst = TR.reduce((m, h) => (h.pnl < m.pnl ? h : m), TR[0]), cN = (h) => esc(String(h.k).split(":")[0]);
       const Nt = Math.max(1 / 24, (b - (a || TR[0].tm)) / 864e5);
-      let sum, S, S2 = null;
+      let sum, S, S2 = null, S2o = null;
       if (cmk === "t") {
         const fx = lvFmtX(Math.max(1, TR[TR.length - 1].tm - TR[0].tm)), avgW = W.length ? gw / W.length : 0, avgL = Lz.length ? gl / Lz.length : 0, hs = TR.map((h) => h.hold).filter((v) => isNum(v) && v >= 0);
         let c1 = 0, c2 = 0;
@@ -973,7 +973,8 @@ async function viewScalp() {
           { name: `${bi("Lời/lỗ mỗi", "P/L per")} ${U}`, bars: true, pts: P.map((g) => ({ x: lab(g.k), y: +g.v.toFixed(3), tip: `${lab(g.k)} · ${g.n} ${bi("lệnh", "trades")}${g.n ? ` · ${bi("thắng", "won")} ${g.w}/${g.n}` : ""}`, tc: g.v >= 0 ? "up" : "down" })) }];
         // biểu đồ 2: TB mỗi lệnh từng kỳ (cột) – kỳ nào lệnh "ngon" hơn; số lệnh trong chú thích cột
         S2 = [{ name: `${bi("TB / lệnh mỗi", "Avg / trade per")} ${U}`, bars: true, pts: P.map((g) => ({ x: lab(g.k), y: g.n ? +(g.v / g.n).toFixed(3) : 0, tip: g.n ? `${lab(g.k)} · TB ${sg$(g.v / g.n)} (${pctB(g.bp / g.n)}) · ${g.n} ${bi("lệnh", "trades")}` : `${lab(g.k)} · ${bi("không có lệnh", "no trades")}`, tc: g.v >= 0 ? "up" : "down" })) },
-          { name: bi("TB / lệnh cả khoảng", "Avg / trade, whole range"), color: css("--ink-3"), width: 1, dash: "3 3", pts: P.map((g) => ({ x: lab(g.k), y: +(cn / n).toFixed(3) })) }];
+          { name: `${bi("TB / lệnh cả khoảng", "Avg / trade, whole range")} ${sg$(cn / n)} · ${pctB(TR.reduce((s2, h) => s2 + h.bps, 0) / n)}`, color: css("--ink-3"), width: 1, dash: "3 3", pts: P.map((g) => ({ x: lab(g.k), y: +(cn / n).toFixed(3) })) }];
+        S2o = { hl: [{ y: +(cn / n).toFixed(3), color: css("--ink-2"), label: `${bi("TB cả khoảng", "Range avg")} ${sg$(cn / n)}`, nol: 1, at: "l" }] };      // nhãn số ngay trên đường nét đứt (đường đã vẽ bằng chuỗi số → hline chỉ ghi chữ)
         sum = `<div class="lv-kp lv-kp8">${[
           kp(`${bi("Số", "No. of")} ${U}`, nf(P.length, 0), "", `${bi("có lệnh", "with trades")} ${Pa.length} · ${bi("lời", "up")} ${up.length}${Pa.length ? ` (${nf(up.length / Pa.length * 100, 0)}%)` : ""}`),
           kp(`${bi("TB / ", "Avg / ")}${U}`, sg$(cn / P.length), cls(cn), `${bi("kỳ có lệnh", "active")} ${Pa.length ? sg$(cn / Pa.length) : "—"}`, bi("Chia cho mọi kỳ trong khoảng (kể cả kỳ không có lệnh); dòng dưới chỉ tính kỳ có lệnh", "Over every period; below: active periods only")),
@@ -986,7 +987,7 @@ async function viewScalp() {
       }
       DK.cum = { t: bi("Lời/lỗ cộng dồn", "Cumulative P/L"), v: sg$(cn), vc: cls(cn), s: `${n} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(W.length / n * 100, 0)}% · ${bi("phí", "fees")} <b class="down">${fees ? "−" + usd2(Math.abs(fees)) : "$0"}</b>`,
         S: [{ ...S[0], name: "" }, { ...S[2], name: "" }], o: { h: 92, dec: 1, zero: true } };
-      cumP = segC + sum + lineSvg(S, { h: 210, dec: 2, zero: true }) + (S2 ? `<p class="lv-sub-h">${bi("TB mỗi lệnh theo", "Average per trade by")} ${cmk === "d" ? bi("ngày", "day") : cmk === "w" ? bi("tuần", "week") : bi("tháng", "month")} <small class="faint">${bi("– rê / chạm cột xem số lệnh", "– hover a bar for the count")}</small></p>${lineSvg(S2, { h: 130, dec: 2, zero: true })}` : "")
+      cumP = segC + sum + lineSvg(S, { h: 210, dec: 2, zero: true }) + (S2 ? `<p class="lv-sub-h">${bi("TB mỗi lệnh theo", "Average per trade by")} ${cmk === "d" ? bi("ngày", "day") : cmk === "w" ? bi("tuần", "week") : bi("tháng", "month")} <small class="faint">${bi("– rê / chạm cột xem số lệnh", "– hover a bar for the count")}</small></p>${lineSvg(S2, { h: 130, dec: 2, zero: true, hlines: S2o?.hl })}` : "")
         + `<p class="sc-more-l"><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh đầy đủ →", "Full trade book →")}</a></p>`;
     }
     window.__lvDk = DK.eq || DK.cum ? DK : null; setTimeout(() => window.lvDock?.(), 0);

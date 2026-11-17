@@ -72,6 +72,14 @@
     },
     {
      "c": "imp",
+     "a": "chart",
+     "t": "Đường TB mỗi lệnh cả khoảng hiện số",
+     "te": "Range-average line now shows its value",
+     "d": "Biểu đồ TB mỗi lệnh theo ngày / tuần / tháng: nhãn số ngay trên đường nét đứt và trong chú thích ($ và %). Nhãn trên mọi đường mốc có viền nền, đè lên cột vẫn đọc được.",
+     "f": "bot"
+    },
+    {
+     "c": "imp",
      "a": "bot",
      "t": "Lời/lỗ từng lệnh thống nhất bằng %",
      "te": "Per-trade P/L shown in % everywhere",
