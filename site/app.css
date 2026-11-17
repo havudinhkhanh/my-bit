@@ -6476,3 +6476,8 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
   .cmp-t td{font-size:.8125rem!important}
 }
 .cmp-t tr.cmp-r:not([data-p]):not([data-d])>td{color:var(--ink-3)}
+/* lọc nhanh Sàn thử vs Binance: tất cả · cả 2 khớp · cả 2 hụt · chỉ 1 bên khớp */
+.cmp-fl{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.cmp-fl .chip{font-size:.75rem;padding:4px 10px}.cmp-fl .chip i{font-style:normal;color:var(--ink-3);margin-left:2px}
+.cmp-fl .chip[aria-pressed="true"]{background:color-mix(in srgb,var(--brass,var(--brand)) 16%,var(--surface))!important;color:var(--ink)!important;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brass,var(--brand)) 60%,transparent)}
+.cmp-l[data-f="x"] .cmp-r:not([data-x]),.cmp-l[data-f="po"] .cmp-r:not([data-po]),.cmp-l[data-f="do"] .cmp-r:not([data-do]){display:none}
+.cmp-l[data-f="x"]:not(:has(.cmp-r[data-x])) .cmp-none,.cmp-l[data-f="po"]:not(:has(.cmp-r[data-po])) .cmp-none,.cmp-l[data-f="do"]:not(:has(.cmp-r[data-do])) .cmp-none{display:block}
