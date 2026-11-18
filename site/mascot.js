@@ -369,7 +369,7 @@
     groomplay: { sheet: "sit", fps: 60 },
     sitIdle: { sheet: "sit", a: 96, b: 119, loop: 1, fps: 20 },
     // 🎬 từ video: vòng lặp đã cắt khớp đầu–cuối; chuyển dáng cắt đúng đoạn có động tác (b), dx = mèo dời bao nhiêu trong clip → cuối clip dời cả khung cho chân không trượt
-    vsit: { sheet: "vsit", loop: 1, fps: 24 }, s2st: { sheet: "vs2st", fps: 24, b: 84 }, st2s: { sheet: "vst2s", fps: 24, b: 62 }, turn: { sheet: "vturn", fps: 24, b: 100 },      // ngồi yên vẫy đuôi = 24 khung cuối bảng (khép vòng sẵn) – thay dáng ngồi tĩnh khi đã tải xong
+    vsit: { sheet: "vsit", loop: 1, fps: 24 }, s2st: { sheet: "vs2st", fps: 24, b: 84 }, st2s: { sheet: "vst2s", fps: 24, b: 62 }, turn: { sheet: "vturn", fps: 24, b: 100 }, turnQ: { sheet: "vturn", a: 28, b: 96, fps: 56 },      // ngồi yên vẫy đuôi = 24 khung cuối bảng (khép vòng sẵn) – thay dáng ngồi tĩnh khi đã tải xong
     roll: { p: "roll", rock: 10 }, yarn: { loop: ["yarnsit", "yarnlie"], per: 1.5 }, scratch: { p: "scratch", scr: 1 },
   };
   // na: không dời khung theo tâm thân (dáng chờ dùng khi đuổi chuột – vị trí do vòng đuổi tự đặt)
@@ -516,7 +516,7 @@
     let l = (r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12) + pad; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12 + pad);
     return { b: 0, l, r: W - 16 - cw - pad };
   }
-  function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.el.style.bottom = Math.round(tr.b) + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x)}px,0,0)`; }
+  function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.yo = 0; S.el.style.bottom = Math.round(tr.b) + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x)}px,0,0)`; }
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
   // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
   //    mỗi khung hình na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
@@ -540,7 +540,7 @@
   //    và dịch hình đang vẽ ngược lại (hình trên màn hình đứng yên, chân không trượt); quay đầu: lật hướng ngay, không hiệu ứng lật
   function rebase(dx, flip) {
     if (!S.el) return; const u = U2P(), f = S.face;
-    S.x += f * dx * u; S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
+    S.x += f * dx * u; S.el.style.transform = `translate3d(${snap(S.x)}px,${-Math.round(S.yo || 0)}px,0)`;      // S.yo: đang đứng trên cao (cầu thang) → giữ độ cao
     const sh = A.sh, X = (x) => (flip ? dx - x : x - dx);
     // lật: đảo luôn thứ tự điểm → giữ chiều vẽ của viền (lật gương đổi chiều; không đảo thì lúc nắn sang dáng đi viền tự cắt nhau → thủng lỗ, lộ bóng xám)
     if (sh) A.sh = { id: null, pe: sh.pe, eye: sh.eye ? (sh.eye.length > 2 ? [X(sh.eye[0]), sh.eye[1], X(sh.eye[2]), sh.eye[3], sh.eye[4] ?? 1] : [X(sh.eye[0]), sh.eye[1]]) : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
@@ -559,9 +559,9 @@
     const c = CLIP[k], F = c && SHEET[c.sheet]; if (!F || RM.matches) return runSeq(L, done, tk);
     const md = RM.matches ? 1 : (c.md || 360) * (MUN_ART.slow || 1); play(k, c.md || 360, true); if (c.on) setTimeout(() => { if (A.clip === c && tk === S.walkTk) c.on[1](); }, md + (c.on[0] - (c.a || 0)) / c.fps * 1000);
     const ms = c.ms || md + (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;      // nắn 360 ms (clip chờ ở khung đầu trong lúc nắn) rồi mới chạy
-    setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; leave(k === "turn"); runSeq(L, done, tk); }, ms);
+    setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; leave(k === "turn" || k === "turnQ"); runSeq(L, done, tk); }, ms);
   }
-  const SITS = new Set(["sit", "gpaw", "gbody", "vroll"]), STANDS = new Set(["enter", "walk", "run", "s2st", "turn", "stalk", "vstretch", "l2st", "wake", "ready", "pounce", "pounceF", "vmeow", "vannoy"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);
+  const SITS = new Set(["sit", "gpaw", "gbody", "vroll"]), STANDS = new Set(["enter", "walk", "run", "s2st", "turn", "turnQ", "stalk", "vstretch", "l2st", "wake", "ready", "pounce", "pounceF", "vmeow", "vannoy"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);
   const napping = () => NAPS.has(S.pose) || S.pose === "curl";
   // các clip để ĐỨNG lên từ dáng hiện tại (ngồi → đứng dậy · nằm → chống chân đứng lên · cuộn / ngủ → [duỗi ra] thức dậy, ngáp, vươn vai)
   const upSeq = () => { const p = S.pose; if (SITS.has(p)) return SHEET.vs2st ? ["s2st"] : []; if (LIES.has(p)) return hasV("l2st") ? ["l2st"] : [];
@@ -609,7 +609,8 @@
     clearTimeout(S.walkTm); const tk = (S.walkTk = (S.walkTk || 0) + 1);
     // 🎬 trước khi đi: đang ngồi → clip đứng dậy; đi ngược hướng đang nhìn → clip quay đầu (khi có bộ video) – không còn nắn / lật hình đột ngột
     const pre = upSeq();
-    if (need !== S.face && SHEET.vturn && (pre.length || STANDS.has(S.pose))) pre.push("turn");
+    // quay đầu bằng clip THẬT từ mọi dáng (trước: dáng cũ như nhìn lên / liếm môi / thủ thế → không có clip đứng dậy → lật hình cái rụp)
+    if (need !== S.face && SHEET.vturn) { if (!pre.length && !STANDS.has(S.pose) && SHEET.vs2st) pre.push("s2st"); pre.push("turn"); }
     runSeq(pre, () => {
       face(need); const v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1);
       play(opt.clip || "walk", 320, true); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, 300);      // chờ nắn sang dáng đi xong mới bước (trước 60 ms: thân trượt trong lúc chân đứng yên → giật lúc vừa quay đầu đi)
@@ -903,7 +904,6 @@
     if (!LF.on) return; LF.on = false; const tr = track(), mh = liftMax(tr), fresh = now() - LF.lt < 100, G = 2600, fl = S.fly;
     let h = LF.h, vh = fresh ? Math.max(0, Math.min(2800, -LF.vy * 1000)) : 0, vx = fresh ? Math.max(-1600, Math.min(1600, LF.vx * 1000)) : 0, x = S.x, last = performance.now(), peak = h;
     const thrown = vh > 450 || Math.abs(vx) > 650, T = (vh + Math.sqrt(vh * vh + 2 * G * h)) / G, flip = vh > 1500 && T > 0.7 ? (vx < 0 ? -1 : 1) : 0;
-    if (thrown && Math.abs(vx) > 250) face(vx > 0 ? 1 : -1);
     const f = (t) => {
       if (fl !== S.fly || !S.el) return;
       const dt = Math.min(0.04, (t - last) / 1000); last = t;
@@ -936,7 +936,6 @@
   // nhảy theo đường cong tới (x1) ở mặt đất mới (chênh dh px so với mặt đất cũ); chân khom trước khi bật, lơ lửng giữa không, đáp ngồi
   function hopTo(x1, dh, then) {
     if (!S.el) return; halt(); clearTimeout(S.tm); S.busy = true; const tk = (S.walkTk = (S.walkTk || 0) + 1), x0 = S.x, k = 36 + Math.abs(dh) * 0.3, D = RM.matches ? 1 : 460 + Math.min(260, Math.abs(dh));
-    if (Math.abs(x1 - x0) > 4) face(x1 > x0 ? 1 : -1);
     const go = () => { if (tk !== S.walkTk || !S.el) return; if (hasV("dangle")) play("dangle", 140, true); S.noSh = true; const t0 = performance.now();
       const f = (t) => { if (tk !== S.walkTk || !S.el) return; const u = Math.min(1, (t - t0) / D), y = dh * u + 4 * k * u * (1 - u);
         S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x0 + (x1 - x0) * u)}px,${-Math.round(y)}px,0)`;
@@ -953,7 +952,7 @@
   function perchOn(p) {
     if (!S.el || S.away || S.hide || LF.on || napping()) return;
     const b0 = track().b; S.chasing = false; ST.on = false; S.perch = p; TRC = null; const tr = track(), sp = tr.r - tr.l;
-    S.el.classList.add("mperch"); hopTo(Math.max(tr.l, Math.min(tr.r, S.x + rnd(-0.15, 0.15) * sp)), tr.b - b0, () => { if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("perch"), 2400, 1); sched(idle, rnd(4e3, 7e3)); });
+    S.el.classList.add("mperch"); hopTo(Math.max(tr.l, Math.min(tr.r, S.x + S.face * rnd(0, 0.08) * sp)), tr.b - b0, () => { if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("perch"), 2400, 1); sched(idle, rnd(4e3, 7e3)); });
   }
   function perchOff() {
     if (!S.el) { S.perch = null; return; } const b0 = track().b; S.perch = null; TRC = null; const tr = track();
@@ -1002,8 +1001,8 @@
     if (!T.length) return false;
     clearTimeout(S.tm); S.bat = now();
     const o = T[Math.floor(Math.random() * T.length)], useA = o.A != null && (o.B == null || Math.abs(o.A - S.x) < Math.abs(o.B - S.x)), x = useA ? o.A : o.B, dir = useA ? 1 : -1;
-    const strike = () => { S.bat = 0; if (!S.el || S.busy) return sched(idle, 2000); if (S.face !== dir) face(dir);
-      const up = STANDS.has(S.pose) ? [] : upSeq(); if (!act([...up, "pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 420)) return sched(idle, 2000);
+    const strike = () => { S.bat = 0; if (!S.el || S.busy) return sched(idle, 2000);
+      const up = [...(STANDS.has(S.pose) ? [] : upSeq()), ...(S.face !== dir ? ["turnQ"] : [])]; if (!act([...up, "pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 420)) return sched(idle, 2000);
       const tk = S.walkTk; setTimeout(() => { if (tk !== S.walkTk || !o.e.isConnected) return; o.e.classList.remove("mun-bat"); void o.e.offsetWidth; o.e.classList.add("mun-bat"); setTimeout(() => o.e.classList.remove("mun-bat"), 700);
         if (S.cfg.talk !== "q" && Math.random() < 0.7) setTimeout(() => say(pick("bat"), 2400, 1), 500); }, 360 + (82 - 46) / 24 * 1000 + up.reduce((m, k) => m + sheetMs(CLIP[k]), 0)); };
     // đi tới chỗ đứng sao cho lúc tới nơi mặt đã hướng về đồ vật (đi ngược hướng thì vòng ra xa rồi đi lại)
@@ -1073,8 +1072,12 @@
     if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
     const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = Math.random() < 0.45;
     const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
-    S.chasing = true; clearTimeout(S.tm); halt(); if (hasV("ready")) play("ready", 500, true); else play("crouch");      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na "dịch chuyển")
-    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
+    S.chasing = true; clearTimeout(S.tm); halt(); let turning = false;
+    // chuột tới từ PHÍA SAU → quay đầu thật (clip quay người) rồi mới thủ thế; trước: lật hình cái rụp
+    const d0 = (fromL ? -mw : innerWidth) + mw / 2 > S.x + cw / 2 ? 1 : -1;
+    if (d0 !== S.face && hasV("turnQ")) { turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq(["turnQ"], () => { turning = false; cx = S.x; if (S.pose !== "walk" && S.pose !== "run") play(hasV("ready") ? "ready" : "crouch", 300, true); }, tk); }
+    else { if (d0 !== S.face) face(d0); if (hasV("ready")) play("ready", 500, true); else play("crouch"); }      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na "dịch chuyển")
+    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
     const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
         setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (84 - 46) / 24 * 1000); return; }
@@ -1092,17 +1095,22 @@
       vm += (want - vm) * Math.min(1, dt * 7); mx += dir * vm * dt;
       if (!shout && mx > -mw * 0.3 && mx < innerWidth - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // na: ngó 0,45 giây rồi phóng theo
-      if (el > 700) {
-        const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4), moving = S.pose === "walk" || S.pose === "run";
+      if (el > 700 && !turning) {
+        const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4), moving = S.pose === "walk" || S.pose === "run", QT = hasV("turnQ");
+        // chuột chạy ra SAU lưng → phanh lại, đứng quay đầu bằng clip thật rồi mới đuổi tiếp (trước: lật hình giữa lúc chạy)
+        if (QT && Math.abs(tv) > 35 && Math.sign(tv) !== S.face) {
+          if (moving && Math.abs(v) > 15) { v += Math.max(-1000 * dt, Math.min(1000 * dt, -v)); cx = Math.max(tr.l, Math.min(tr.r, cx + v * dt * (A.snap ? 0 : 1))); }
+          else { v = 0; A.v = 0; place(cx); turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq(["turnQ"], () => { turning = false; cx = S.x; }, tk); }
+        }
         // chỉ dời mèo khi đang ĐI / CHẠY (chân bước theo tốc độ) – trước: đang khom chờ mà vẫn dời chậm → mèo cúi người trượt tới, chân không bước
-        if (!moving && Math.abs(tv) > 35) { face(tv > 0 ? 1 : -1); play("walk", 260, true); }
+        else if (!moving && Math.abs(tv) > 35) { if (!QT) face(tv > 0 ? 1 : -1); play("walk", 260, true); }
         else if (moving) {
           v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
           if (Math.abs(v) < 12 && Math.abs(tv) < 12) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); }
-          else { if (Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260, true);
+          else { if (!QT && Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260, true);
             const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt * (A.snap ? 0 : 1))); if (nx === cx) v = 0; cx = nx; }      // đang nắn sang dáng đi (chân chưa bước) → dời chậm lại
         }
-        A.v = Math.abs(v); place(cx);
+        if (!turning) { A.v = Math.abs(v); place(cx); }
       }
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
       if (win && gap < 22 && el > 600) return end(true);
@@ -1117,7 +1125,7 @@
     S.chasing = true; clearTimeout(S.tm); halt(); play("sit");
     const tr = track(), cw = 345 * S.s, k = S.s / 0.235, n = 5, w = Math.round(30 * k), h = Math.round(15 * k), land = Math.round(cw * 0.55), Wd = n * w + land, Ht = n * h;
     const cc = S.x + cw / 2, room = (d) => (d > 0 ? innerWidth - 8 - cc : cc - 8);
-    const dir = room(1) >= Wd + 10 ? (room(-1) >= Wd + 10 && Math.random() < 0.5 ? -1 : 1) : room(-1) >= Wd + 10 ? -1 : 0;
+    const okR = room(1) >= Wd + 10, okL = room(-1) >= Wd + 10, dir = (S.face > 0 ? okR : okL) ? S.face : okR ? 1 : okL ? -1 : 0;      // ưu tiên phía na đang nhìn – khỏi phải quay đầu
     if (!dir) { S.chasing = false; sched(idle, 2000); return false; }
     const x0 = cc + dir * cw * 0.3;      // chân bậc đầu, ngay trước mũi na
     // các nét: đứng (cao h) – ngang (rộng w) … – chiếu nghỉ trên cùng – đứng xuống đất ở cuối
@@ -1132,17 +1140,21 @@
       if (kq >= n) return [cc + dir * (n * w + ((kq - n) / 0.6) * land * 0.35) - cw / 2, n * h];      // đi ra giữa chiếu nghỉ
       const i = Math.floor(kq), f = kq - i, g = Math.min(1, f / 0.55), up = i * h + h * g, hop = Math.sin(g * Math.PI) * h * 0.35;
       return [cc + dir * kq * w - cw / 2, up + hop]; };
-    const setXY = (x, y) => { S.x = x; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(x)}px,${-Math.round(y)}px,0)`; };
-    let t0 = 0, phase = "draw", q = 0, last = 0;
+    const setXY = (x, y) => { S.x = x; S.yo = y; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(x)}px,${-Math.round(y)}px,0)`; };
+    let t0 = 0, phase = "draw", q = 0, last = 0, offX = 0, turned = false;
+    // quay đầu bằng clip thật (không lật hình): lúc cầu thang đang hiện (phía sau lưng) và lúc trên chiếu nghỉ trước khi xuống
+    const turnQ = (then) => { if (!hasV("turnQ") || RM.matches) { face(-S.face); return then(); } const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([...(STANDS.has(S.pose) ? [] : ["s2st"]), "turnQ"], then, tk); };
+    if (dir !== S.face) { phase = "turn"; turnQ(() => { if (phase === "turn") { phase = "draw"; t0 = 0; } }); }
     const finish = () => { el.classList.add("out"); setTimeout(() => el.remove(), L.length * 70 + 400); S.chasing = false; S.y = 0; setXY(S.x, 0); play("sit"); sched(idle, rnd(3e3, 6e3)); };
     const abort = () => { el.remove(); S.chasing = false; S.y = 0; if (S.el) { setXY(S.x, 0); play("sit"); } sched(idle, 2000); };
     const run = (t) => {
       if (!S.el || S.away) return abort();
       if (!t0) { t0 = t; last = t; } const dt = Math.min(0.05, (t - last) / 1000); last = t;
-      if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; face(dir); A.v = 2.1 * w; play("walk"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
-      else if (phase === "up") { q += dt * 2.1; const [x, y] = posAt(q); setXY(x, y); if (q >= n + 0.6) { phase = "top"; A.v = 0; play("lookup"); face(-dir); setTimeout(() => say(pick("top"), 4200, 2), 300); setTimeout(() => { if (phase === "top") play("groom"); }, 4800); t0 = t; } }
-      else if (phase === "top") { if (t - t0 > 9000) { phase = "down"; A.v = 2.4 * w; play("walk"); face(-dir); q = n + 0.6; } }
-      else if (phase === "down") { q -= dt * 2.4; const [x, y] = posAt(q); setXY(x, y); if (q <= 0) return finish(); }
+      if (phase === "turn") { /* đang quay đầu – chờ clip */ }
+      else if (phase === "draw") { if (t - t0 > drawMs) { phase = "up"; if (S.face !== dir) face(dir); offX = S.x - posAt(0)[0]; A.v = 2.1 * w; play("walk", 320, true); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("climb"), 2400, 1); } }
+      else if (phase === "up") { if (!A.snap) q += dt * 2.1; const [x, y] = posAt(q); setXY(x + offX * Math.max(0, 1 - q / (n + 0.6)), y); if (q >= n + 0.6) { phase = "top"; A.v = 0; play("ready", 360, true); setTimeout(() => say(pick("top"), 4200, 2), 300); t0 = t; } }
+      else if (phase === "top") { if (t - t0 > 6000 && !turned) { turned = true; phase = "turning"; turnQ(() => { if (phase !== "turning") return; offX = S.x - posAt(n + 0.6)[0]; phase = "down"; A.v = 2.4 * w; play("walk", 320, true); q = n + 0.6; }); } }
+      else if (phase === "down") { if (!A.snap) q -= dt * 2.4; const [x, y] = posAt(q); setXY(x + offX * Math.max(0, q / (n + 0.6)), y); if (q <= 0) return finish(); }
       requestAnimationFrame(run);
     };
     requestAnimationFrame(run); return true;
@@ -1166,7 +1178,7 @@
   function stalkGo(px) {
     const cw = 345 * S.s, rel = px - (S.x + cw / 2), dir = Math.sign(rel) || S.face;
     if (Math.abs(rel) < 0.95 * cw) return;      // đã sát con mồi → đứng yên chờ vồ (trước: tính đích lùi lại → mèo quay đầu bỏ đi như né chuột)
-    if (["s2st", "turn", "l2st", "wake", "pounceF", "st2s"].includes(S.pose)) return;      // đang đứng dậy / quay đầu / vồ → để xong đã
+    if (["s2st", "turn", "turnQ", "l2st", "wake", "pounceF", "st2s"].includes(S.pose)) return;      // đang đứng dậy / quay đầu / vồ → để xong đã
     if (dir !== S.face) { if (!ST.side || ST.side.d !== dir) { ST.side = { d: dir, t: now() }; return; } if (now() - ST.side.t < 1200) return; }      // chuột sang phía sau: chờ 1,2 giây chắc chắn mới quay đầu (quay đầu mất 4 giây)
     ST.side = null; walkTo(px - cw / 2 - dir * 0.7 * cw, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" });      // dừng TRƯỚC con trỏ, đầu sát con mồi
   }
@@ -1232,7 +1244,7 @@
   }
   function stop() { clearTimeout(S.tm); halt(); if (S.el) { const el = S.el; S.el = null; NT.q = []; NT.cur = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
   window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); } }, say: (t, ms) => say(t, ms, 2), meow: (n) => { unlock(); meow(n || 2); }, chase: () => chase(true), stairs: () => stairs(true), notify,
-    toy: (k) => toy(k, true), _hide: () => hideSeek(true), _bat: () => batObj(true), _hd: () => S.hide && { ...S.hide, res: 0 }, roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _skim: () => skimTalk(true), _skimText: (F) => skimText(F), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
+    toy: (k) => toy(k, true), _hide: () => hideSeek(true), _stairs: () => { S.chasing = false; S.busy = false; return stairs(true); }, _chase: () => { S.chasing = false; S.busy = false; return chase(true); }, _bat: () => batObj(true), _hd: () => S.hide && { ...S.hide, res: 0 }, roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _skim: () => skimTalk(true), _skimText: (F) => skimText(F), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
