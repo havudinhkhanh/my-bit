@@ -35,7 +35,7 @@
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) P.pe = d.es || [10, 12]; return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
-      F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
+      F.T = T; F.W = d.w; F.pe = d.pe; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
       if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
       // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
@@ -317,6 +317,9 @@
       A.ph = c.loop ? (A.ph + dt * rate) % span : c.yo ? (A.ph + dt * rate) % (2 * span) : Math.min(span, A.ph + dt * rate);
       const [i, j, u] = sheetAt(c, phq(c, A.ph, span)); A.fi = [i, j, u];
       if (c.mv && i >= c.mv[0] && i < c.mv[1] && !A.snap) place(S.x + S.face * c.mv[2] * U2P() * dt);
+      // 🎬 bảng từ VIDEO: hiện đúng khung gần nhất, KHÔNG nắn hình giữa 2 khung – nắn giữa 2 khung video làm tai, chân, đuôi co lại ở giữa
+      //    rồi nhọn lại ở khung sau (đo: chu vi hụt 5–10% mỗi nhịp) → hình "phập phồng" 24 lần / giây = nhấp nháy. Video 24 hình/giây vốn đã mượt.
+      if (F.pe) { const k = u < 0.5 ? i : j; A.fi = [k, k, 0]; return F[k]; }
       if (i === j || u < 0.004) return F[i];
       const hard = F.hard.has(i) || j < i;
       if (hard && mapOf(F[i], F[j]).cost > 0.5) { A.gx = [F[i], Math.min(1, (1 - u) * 2), Math.min(1, u * 2)]; return F[j]; }      // 2 khung khác hẳn (cuộn tròn → bật dậy) → hoà tan
@@ -380,9 +383,11 @@
     if (!A.blT) A.blT = t + 7000 + Math.random() * 9000;
     let bl = 0; if (t >= A.blT) { const u = (t - A.blT) / 260; if (u >= 1) { A.blT = t + 7000 + Math.random() * 9000; } else bl = u < 0.4 ? u / 0.4 : 1 - (u - 0.4) / 0.6; }
     if (A.v > 120 || !sh?.eye) bl = 0;      // đang chạy / nhắm mắt ngủ (khung không có mắt) → không chớp
-    if (A.R) { cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); A.dc = (A.dc || 0) + 1; }
+    // chỉ vẽ lại khi hình đổi (khung video mới, đang nắn, chớp mắt, dời / xoay) – khung video giữ nguyên thì bỏ qua → đỡ máy, nhịp hiện khung đều
+    const dk = S.cfg.skin + (document.documentElement.dataset.theme || "") + S.s, same = !gh && !ops.length && !A.snap && sh === A.dSh && bl === A.dBl && dk === A.dSk;
+    if (A.R && !same) { cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || c.scr;
-    nx(mv || bl > 0 || t + 70 >= A.blT ? 0 : c.lo ? 60 : c.loop || c.seq || c.sheet ? 26 : 60);
+    nx(mv || bl > 0 || t + 70 >= A.blT || (c.sheet && SHEET[c.sheet]?.pe) ? 0 : c.loop || c.seq || c.sheet ? 26 : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
   }
   function morphMap(m, u, keep) {
     const polys = [], hk = keep ? 1 : 1 - Math.sin(Math.PI * u);
@@ -438,7 +443,7 @@
     if (sh) A.sh = { id: null, pe: sh.pe, eye: sh.eye ? (sh.eye.length > 2 ? [X(sh.eye[0]), sh.eye[1], X(sh.eye[2]), sh.eye[3], sh.eye[4] ?? 1] : [X(sh.eye[0]), sh.eye[1]]) : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
     A.snap = null; A.gx = null;
     if (flip) { S.el.classList.add("nof"); face(-f); void S.el.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => S.el?.classList.remove("nof"))); }
-    if (A.R && A.sh) cvDraw(A.R, A.sh, [], S.cfg.skin);      // vẽ lại NGAY cùng lượt với lật / dời khung – không có khung hình nào mèo nhìn sai hướng
+    A.dSh = null; if (A.R && A.sh) cvDraw(A.R, A.sh, [], S.cfg.skin);      // vẽ lại NGAY cùng lượt với lật / dời khung – không có khung hình nào mèo nhìn sai hướng
   }
   // rời 1 clip máy quay đứng yên (chuyển dáng, liếm, nằm…): dời khung tới đúng chỗ thân mèo đang ở (khung vừa vẽ) → clip sau nối tiếp không trượt
   function leave(flip) {

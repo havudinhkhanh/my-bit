@@ -70,6 +70,14 @@
      "d": "Mắt trước đây lấy theo đốm màu trong từng khung video nên lúc to lúc nhỏ, lúc trắng lúc vàng, chợt hiện chợt tắt – giờ được vẽ lại cùng một kiểu (mắt hổ phách, đồng tử dọc) ở vị trí đã làm mượt. Vòng cổ và mép lông được làm mềm qua 5 khung nên không còn lóe từng khung; mèo chớp mắt thưa và chậm như mèo thật. Lúc chuyển từ động tác này sang động tác khác, clip mới chờ ở khung đầu cho tới khi nắn hình xong, hết cảnh nhảy cóc vài khung (rõ nhất lúc bắt đầu đi).",
      "te": "Cat's eyes no longer pop in and out, collar no longer flashes, no jumps between moves",
      "de": "Eyes used to be traced from colour blobs in each video frame, so they grew, shrank, switched between white and gold and flickered on and off – they are now drawn the same way every frame (amber with a vertical pupil) at a smoothed position. The collar and fur edges are smoothed over 5 frames so they no longer flash; blinking is rarer and slower, like a real cat. When one move hands over to the next, the new clip waits on its first frame until the blend finishes, so there is no skip of several frames (most visible when starting to walk)."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mèo hết phập phồng: hiện đúng từng khung video, dáng ngồi mới nhìn nghiêng",
+     "d": "Trước đây giữa 2 khung video trang tự nắn hình chuyển tiếp – cách nắn làm tai, chân, đuôi co lại rồi nhọn lại 24 lần mỗi giây nên viền mèo phập phồng, nhấp nháy. Giờ mèo hiện đúng từng khung của video (24 hình/giây vốn đã mượt) và chỉ vẽ lại khi sang khung mới: mép lóe giảm khoảng 4 lần, máy nhẹ hơn. Dáng ngồi yên dùng video mới, mèo nhìn nghiêng hẳn, chỉ vẫy đuôi.",
+     "te": "No more pulsing: real video frames shown as-is, new side-profile sitting pose",
+     "de": "The page used to blend shapes between two video frames, which made ears, paws and tail shrink and sharpen again 24 times a second, so the outline pulsed and flickered. The cat now shows each real video frame (24 fps is already smooth) and only redraws when the frame changes: edge flicker is about 4× lower and the page is lighter. The sitting pose uses a new video in strict side profile with just the tail swaying."
     }
    ]
   },
