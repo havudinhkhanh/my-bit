@@ -4642,7 +4642,9 @@ h1 small,.ph h1 small{font-size:15px!important}
 .sc-oc .r1>span>.sc-t,.sc-oc .r1>span>.jtag,.sc-oc .r1>span>.gtag,.sc-oc .r1>span>[class*="grp"]{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
 .sc-oc .r1>b.lpx,.sc-oc .r1>b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .sc-oc{container-type:inline-size}
-.sc-oc .r1>span>b{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sc-oc .r1>span>b{flex:0 1 auto;min-width:auto;display:inline-flex;align-items:baseline;gap:4px;overflow:hidden}
+/* mã coin KHÔNG bao giờ bị cắt "IR…" – chỉ nhãn Futures/Spot co lại / ẩn khi chật */
+.sc-oc .r1>span>b>b{flex:none}.sc-oc .r1>span>b>.sc-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:360px){.sc-oc .r1>span>.jtag{display:none}}
 @container (max-width:310px){.sc-oc .r1>span>.sc-t{display:none}}
 /* hàng tab Bot Phản Xạ: nút đang chọn cách đều 4 mép khung (trái = trên = dưới = phải = 5px), bo góc đồng tâm */
@@ -6353,13 +6355,14 @@ html[data-fdsz="l"] .sc-feed:not(#_f){max-height:min(640px,var(--scr-cap))!impor
   table.rs.iv-lt-t td:nth-child(6){grid-column:1/-1;justify-self:end}
 }
 
-/* 🐈‍⬛ Tài khoản › Mèo na na: chọn bộ đồ bằng thẻ có hình xem trước */
+/* 🐈‍⬛ Tài khoản › Mèo na: chọn bộ đồ bằng thẻ có hình xem trước */
 .mun-sk{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .mun-sk>button{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;padding:8px 6px 7px;border-radius:var(--r-ctl,8px);border:1px solid var(--bd);background:var(--surface);color:var(--ink-2);font:inherit;font-size:.75rem;cursor:pointer;transition:border-color .15s,background-color .15s}
 .mun-sk>button.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 9%,var(--surface));color:var(--ink)}
 .mun-sk>button.lock{opacity:.72}
 .mun-sk>button em{font-style:normal;font-size:.625rem;font-weight:650;color:var(--ink-3)}
 .mun-sk .mun-pv{display:block;height:46px;width:56px}
+.mun-sk .mun-pvc{display:block;width:56px;height:46px}
 .mun-sk .mun-p{display:block!important;visibility:visible!important;opacity:1!important;animation:none!important;position:static!important;transform:none!important;height:46px!important;width:auto;margin:0 auto}
 @media (hover:hover){.mun-sk>button:not(.on):hover{background:color-mix(in srgb,var(--ink) 5%,var(--surface))}}
 @media (max-width:700px){.mun-sk{justify-content:flex-start}}
@@ -6391,7 +6394,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .lvw.lvw-mfull .lvw-seg{padding:8px 10px;border-top:1px solid var(--bd-2)}
 .lvw.lvw-mfull .lvw-seg button{height:38px;border-radius:11px;font-weight:600}
 .lvw.lvw-mfull .lvw-f{border-top:0;padding-top:2px}
-/* 🌿 vườn của na na */
+/* 🌿 vườn của na */
 .lvw-garden{--lg-g1:color-mix(in srgb,#5fae63 42%,var(--surface));--lg-g2:color-mix(in srgb,#8cc97a 30%,var(--surface));--lg-stem:color-mix(in srgb,#4f8f4a 70%,var(--surface));
   position:relative;flex:0 0 auto;margin-top:auto;border-radius:14px;overflow:hidden;min-height:130px;
   background:linear-gradient(180deg,color-mix(in srgb,#9fd3ff 16%,var(--surface)) 0%,color-mix(in srgb,#ffe9b0 14%,var(--surface)) 70%)}
@@ -6403,11 +6406,11 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .lg-fly .lg-w{transform-origin:10px 8px;animation:lgFlap .22s ease-in-out infinite alternate}
 @keyframes lgFlap{to{transform:scaleX(.35)}}
 @keyframes lgFly{0%{transform:translate(0,0)}20%{transform:translate(-60px,14px)}40%{transform:translate(-110px,-6px)}60%{transform:translate(-40px,-18px)}80%{transform:translate(30px,8px)}100%{transform:translate(0,0)}}
-.lg-cat{position:absolute;left:12%;bottom:8px;width:118px;height:80px;padding:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:lgIn .9s cubic-bezier(.2,.8,.2,1) both}
+.lg-cat{position:absolute;left:4%;bottom:6px;width:180px;height:104px;padding:0;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:lgIn .9s cubic-bezier(.2,.8,.2,1) both}
 .lg-cat .mun-cat{position:static!important;transform:none!important;width:100%!important;height:100%!important;display:block}
 .lg-cat.lgpop{animation:lgPop .42s cubic-bezier(.3,1.6,.5,1)}
 .lg-cat[data-p=jump].lgpop{animation:lgHop .6s cubic-bezier(.3,.9,.4,1)}
-@keyframes lgIn{from{transform:translateX(-160%);opacity:0}to{transform:none;opacity:1}}
+@keyframes lgIn{from{opacity:0}to{opacity:1}}
 @keyframes lgPop{0%{transform:scale(.86)}100%{transform:none}}
 @keyframes lgHop{0%{transform:none}45%{transform:translateY(-34px)}100%{transform:none}}
 .lg-say{position:absolute;left:calc(12% + 96px);right:12px;bottom:72px;max-width:220px;padding:7px 11px;border-radius:14px 14px 14px 4px;background:var(--surface);color:var(--ink);font-size:.8125rem;line-height:1.35;
@@ -6416,7 +6419,8 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (prefers-reduced-motion:reduce){.lg-fly,.lg-fly .lg-w,.lg-cat,.lg-cat.lgpop{animation:none!important}}
 .lvw-garden.seen .lg-cat:not(.lgpop){animation:none}
 .lvw-garden .lg-cat{background:none!important;border:0!important;box-shadow:none!important;outline:0;border-radius:0!important;min-height:0!important}
-.lvw-garden .lg-say{bottom:78px}
+.lvw-garden .lg-say{bottom:96px}
+.lg-cv{display:block;width:100%;height:100%;pointer-events:none}
 .lvw.lvw-mfull .lvw-body,.lvw.lvw-mfull .lvw-segw{touch-action:pan-y}      /* vuốt ngang để đổi tab: trình duyệt chỉ cuộn dọc, cử chỉ ngang giao cho trang */
 /* nút đóng lệnh / vào ngay / huỷ… ngay trong biểu đồ bật ra – cùng kiểu nút trên thẻ, đặt dưới các ô số */
 .occ-act{justify-content:flex-start;flex-wrap:wrap;gap:6px;margin:2px 0 8px;padding:0}

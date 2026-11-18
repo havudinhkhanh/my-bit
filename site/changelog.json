@@ -4,43 +4,43 @@
   {
    "v": "2026.11.18",
    "d": "2026-11-18",
-   "t": "Mèo na na chuyển động như mèo thật",
-   "te": "Na na moves like a real cat",
+   "t": "Mèo na chuyển động như mèo thật",
+   "te": "Na moves like a real cat",
    "s": "Đi, chạy, ngồi, đứng dậy, quay đầu, liếm lông, vươn vai, nằm, ngủ, thức dậy, lăn ngửa, rình, vồ, kêu meo, cáu lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
    "se": "Walk, trot, sit, stand up, turn, groom, stretch, lie down, sleep, wake, roll, stalk, pounce, meow and tail-lash taken from real cat video; 3× lighter, blinking, ground shadow.",
    "it": [
     {
      "c": "new",
      "a": "mascot",
-     "t": "👀 na na hóng hớt: liếc trang đang mở, chõ mỏ vào một câu rồi thôi",
+     "t": "👀 na hóng hớt: liếc trang đang mở, chõ mỏ vào một câu rồi thôi",
      "hi": 1,
-     "d": "Chả phải việc của na na, nhưng na na cứ liếc trang anh đang mở rồi buông một câu ngắn – 1 chi tiết, thỉnh thoảng 2: \"Liếc trộm: BTC ôm 45%. Kệ anh.\", \"Bot +0,98% hôm nay. Ngủ tiếp.\", \"Chẳng có kèo nào. Ngồi im.\". Có ở Danh mục, Bot, Sàn thử, trang coin, Cơ hội, Thị trường; đòn bẩy vượt mức thì luôn nhắc. Gọi: giữ lâu vào mèo → 👀 Đọc lướt trang này; hoặc chạm mèo, vào trang mới, hay tự hóng lúc rảnh. Chỉ số liệu của chính trang đó, không bao giờ khuyên mua / bán.",
-     "te": "👀 Nosy na na: glances at the open page, butts in with one line, moves on",
-     "de": "Not her job, but na na glances at the page you have open and drops one short line – one detail, sometimes two: \"Snooped: BTC is 45% of it. Your call.\", \"Bot +0.98% today. Back to sleep.\", \"No setups. Sit still.\". Works on Portfolio, Bot, Paper, coin pages, Opportunities, Market; leverage over the cap is always mentioned. Ask: long-press the cat → 👀 Skim this page; or tap her, open a new page, or let her butt in when idle. Only that page's own numbers, never buy/sell advice."
+     "d": "Chả phải việc của na, nhưng na cứ liếc trang anh đang mở rồi buông một câu ngắn – 1 chi tiết, thỉnh thoảng 2: \"Liếc trộm: BTC ôm 45%. Kệ anh.\", \"Bot +0,98% hôm nay. Ngủ tiếp.\", \"Chẳng có kèo nào. Ngồi im.\". Có ở Danh mục, Bot, Sàn thử, trang coin, Cơ hội, Thị trường; đòn bẩy vượt mức thì luôn nhắc. Gọi: giữ lâu vào mèo → 👀 Đọc lướt trang này; thỉnh thoảng na cũng tự hóng khi anh vào trang mới hay lúc rảnh. Chỉ số liệu của chính trang đó, không bao giờ khuyên mua / bán.",
+     "te": "👀 Nosy na: glances at the open page, butts in with one line, moves on",
+     "de": "Not her job, but na glances at the page you have open and drops one short line – one detail, sometimes two: \"Snooped: BTC is 45% of it. Your call.\", \"Bot +0.98% today. Back to sleep.\", \"No setups. Sit still.\". Works on Portfolio, Bot, Paper, coin pages, Opportunities, Market; leverage over the cap is always mentioned. Ask: long-press the cat → 👀 Skim this page; now and then she also butts in when you open a page or sit idle. Only that page's own numbers, never buy/sell advice."
     },
     {
      "c": "new",
      "a": "mascot",
-     "t": "na na có tính khí riêng: kháy lúc anh định vào lệnh, bị nhấc lên thì cằn nhằn, có lúc chẳng thèm tiếp",
-     "d": "Rê chuột / chạm vào nút vào lệnh, đặt lệnh, Long / Short → na na meo một tiếng và kháy một câu cho anh chậm lại một nhịp (\"Tay nhanh hơn não rồi đó\", \"Ai rủ vào kèo này, khai mau\", \"Nghĩ kỹ chưaaa\"); nút đóng / chốt lệnh thì \"Đóng tay hả, bot khóc đấy\" (tối đa 3 phút một lần, không chặn thao tác). Kéo mèo LÊN để nhấc: mèo treo lủng lẳng, đung đưa theo tay, thả ra thì rơi xuống đáp đất và cằn nhằn – lần hai \"Bế mèo thì giỏi, cắt lỗ thì không\", lần ba bỏ đi (đang lỗ thì \"Lệnh lỗ kìa, lo coi đi\"). Có lúc chạm vào mèo chẳng thèm tiếp (\"Không tiếp khách giờ này\"); lượn trang loạn xạ thì bị kháy. Tiểu từ cuối câu thỉnh thoảng kéo dài (chưaaa, gìiii, hảaa); \"bớt chế kèo\". Mèo vào trang là bước vào luôn, không ngồi ngoài mép đứng dậy quay đầu nữa.",
-     "te": "na na has a temper: teases you before trades, grumbles when lifted, sometimes ignores you",
-     "de": "Hover / tap an enter, place-order, Long / Short button → na na meows and teases you into slowing down (\"Your hand is faster than your brain\", \"Who talked you into this, confess\"); close buttons get \"Closing by hand, the bot will cry\" (at most every 3 minutes, never blocks the click). Drag the cat UP to lift her: she dangles and sways, drops and lands grumbling – second time \"Great at lifting cats, bad at cutting losses\", third time she walks off (with a losing trade: \"There's a losing trade, go look at it\"). Sometimes she just ignores your tap; frantic page-hopping gets a jab. Sentence-final particles occasionally drawn out. She now walks straight in on page load."
+     "t": "na có tính khí riêng: kháy lúc anh định vào lệnh, bị nhấc lên thì cằn nhằn, có lúc chẳng thèm tiếp",
+     "d": "Rê chuột / chạm vào nút vào lệnh, đặt lệnh, Long / Short → na meo một tiếng và kháy một câu cho anh chậm lại một nhịp (\"Tay nhanh hơn não rồi đó\", \"Ai rủ vào kèo này, khai mau\", \"Nghĩ kỹ chưaaa\"); nút đóng / chốt lệnh thì \"Đóng tay hả, bot khóc đấy\" (tối đa 3 phút một lần, không chặn thao tác). Kéo mèo LÊN để nhấc: mèo treo lủng lẳng, đung đưa theo tay, thả ra thì rơi xuống đáp đất và cằn nhằn – lần hai \"Bế mèo thì giỏi, cắt lỗ thì không\", lần ba bỏ đi (đang lỗ thì \"Lệnh lỗ kìa, lo coi đi\"). Có lúc chạm vào mèo chẳng thèm tiếp (\"Không tiếp khách giờ này\"); lượn trang loạn xạ thì bị kháy. Tiểu từ cuối câu thỉnh thoảng kéo dài (chưaaa, gìiii, hảaa); \"bớt chế kèo\". Mèo vào trang là bước vào luôn, không ngồi ngoài mép đứng dậy quay đầu nữa.",
+     "te": "na has a temper: teases you before trades, grumbles when lifted, sometimes ignores you",
+     "de": "Hover / tap an enter, place-order, Long / Short button → na meows and teases you into slowing down (\"Your hand is faster than your brain\", \"Who talked you into this, confess\"); close buttons get \"Closing by hand, the bot will cry\" (at most every 3 minutes, never blocks the click). Drag the cat UP to lift her: she dangles and sways, drops and lands grumbling – second time \"Great at lifting cats, bad at cutting losses\", third time she walks off (with a losing trade: \"There's a losing trade, go look at it\"). Sometimes she just ignores your tap; frantic page-hopping gets a jab. Sentence-final particles occasionally drawn out. She now walks straight in on page load."
     },
     {
      "c": "imp",
      "a": "mascot",
-     "t": "na na làm người gác cổng: ít nói, đanh đá, luôn kéo anh về kỷ luật",
-     "d": "na na không khen nữa: mỗi lần hóng trang chỉ 1 con số kèm 1 câu kéo về đúng đường – \"Lời +7,2%, đừng vì thế mà nhồi thêm lệnh\", \"Bot +0,98% hôm nay, để yên nó làm, đừng thò tay\", \"BTC +1,2% hôm nay, thấy xanh đừng nhảy vào\", \"Tâm lý 62, tham lam, lúc này dễ FOMO nhất\". Thêm câu nhắc: \"Bớt tự đánh đi, để bot làm\", \"Táy máy với bot, có ngày thua đấy\". Nói thưa hơn: 2–4 phút một câu, đổi trang chỉ thỉnh thoảng (≥ 3 phút, 1/5 số lần) mới bình luận. Bỏ kéo dài chữ cuối (hiếm lắm mới có, ~1/1000 câu). Mèo không còn đứng đè lên thanh cuộn bên phải, đi dạo tránh sát mép.",
-     "te": "na na as gatekeeper: talks less, sassy, always pulls you back to discipline",
+     "t": "na làm người gác cổng: ít nói, đanh đá, luôn kéo anh về kỷ luật",
+     "d": "na không khen nữa: mỗi lần hóng trang chỉ 1 con số kèm 1 câu kéo về đúng đường – \"Lời +7,2%, đừng vì thế mà nhồi thêm lệnh\", \"Bot +0,98% hôm nay, để yên nó làm, đừng thò tay\", \"BTC +1,2% hôm nay, thấy xanh đừng nhảy vào\", \"Tâm lý 62, tham lam, lúc này dễ FOMO nhất\". Thêm câu nhắc: \"Bớt tự đánh đi, để bot làm\", \"Táy máy với bot, có ngày thua đấy\". Nói thưa hơn: 2–4 phút một câu, đổi trang chỉ thỉnh thoảng (≥ 3 phút, 1/5 số lần) mới bình luận. Bỏ kéo dài chữ cuối (hiếm lắm mới có, ~1/1000 câu). Mèo không còn đứng đè lên thanh cuộn bên phải, đi dạo tránh sát mép.",
+     "te": "na as gatekeeper: talks less, sassy, always pulls you back to discipline",
      "de": "No more praise: each page glance is one number plus one line pulling you back – \"Up +7.2%, don't use that as an excuse to pile on\", \"Bot +0.98% today, let it work, hands off\", \"BTC +1.2% today, green isn't an invitation\", \"Sentiment 62, greedy, peak FOMO season\". New reminders: \"Trade less by hand, let the bot work\", \"Keep fiddling with the bot, you'll lose one day\". Talks less: one line every 2–4 minutes, page changes only occasionally commented (≥ 3 min, 1 in 5). Dragged letters removed (~1 in 1000 lines). The cat no longer sits on the right scrollbar and strolls away from the edges."
     },
     {
      "c": "imp",
      "a": "mascot",
-     "t": "na na đanh đá hơn: coi thường anh một chút, nói kéo dài chữ cuối",
-     "d": "Viết lại toàn bộ câu nói của na na theo giọng đanh đá, hơi coi thường: \"Ít lệnh, coi cũng tạm đấyyy\", \"Gồng lỗ mà tưởng kiên nhẫn, dễ thương ghêee\", \"Thị trường lên thì ai chả giỏiii\". Câu nối bằng dấu phẩy cho tự nhiên, chữ cuối hay bị kéo dài. Phần hóng trang cũng vậy: \"Liếc trộm: Lời +7,2%, chắc ăn mayyy\", \"Bot +0,98% hôm nay, giỏi hơn anhhh\", \"Sàn thử chưa lệnh nào, sợ àaa\". Thông báo hệ thống giữ nguyên, không kéo chữ.",
-     "te": "Sassier na na: a little condescending, drags out the last letters",
-     "de": "All of na na's lines rewritten in a sassy, slightly condescending voice: \"Fewer trades, almost decenttt\", \"Holding losers and calling it patience, cuteee\", \"Everyone's a genius when it pumpsss\". Comma-joined, with the last letters often dragged out. Page snooping too: \"Snooped: up +7.2%, probably luckkk\", \"Bot +0.98% today, better than youuu\". System notifications stay as they are."
+     "t": "na đanh đá hơn: coi thường anh một chút, nói kéo dài chữ cuối",
+     "d": "Viết lại toàn bộ câu nói của na theo giọng đanh đá, hơi coi thường: \"Ít lệnh, coi cũng tạm đấyyy\", \"Gồng lỗ mà tưởng kiên nhẫn, dễ thương ghêee\", \"Thị trường lên thì ai chả giỏiii\". Câu nối bằng dấu phẩy cho tự nhiên, chữ cuối hay bị kéo dài. Phần hóng trang cũng vậy: \"Liếc trộm: Lời +7,2%, chắc ăn mayyy\", \"Bot +0,98% hôm nay, giỏi hơn anhhh\", \"Sàn thử chưa lệnh nào, sợ àaa\". Thông báo hệ thống giữ nguyên, không kéo chữ.",
+     "te": "Sassier na: a little condescending, drags out the last letters",
+     "de": "All of na's lines rewritten in a sassy, slightly condescending voice: \"Fewer trades, almost decenttt\", \"Holding losers and calling it patience, cuteee\", \"Everyone's a genius when it pumpsss\". Comma-joined, with the last letters often dragged out. Page snooping too: \"Snooped: up +7.2%, probably luckkk\", \"Bot +0.98% today, better than youuu\". System notifications stay as they are."
     },
     {
      "c": "new",
@@ -55,22 +55,22 @@
      "a": "mascot",
      "t": "😴 Liếm lông, vươn vai, nằm, ngủ, thức dậy – lấy từ video mèo thật",
      "te": "😴 Grooming, stretching, lying down, sleeping and waking – from real cat video",
-     "d": "na na giờ liếm chân rửa mặt, cúi liếm ngực, vươn vai, nằm duỗi nghỉ, cuộn tròn hay nằm gục đầu ngủ (thở đều, có chữ z), rồi thức dậy ngáp, vươn mình đứng lên. Mọi động tác nối nhau liền mạch, không nhảy hình. Chạm hoặc vuốt khi mèo đang ngủ là mèo dậy; vuốt xuôi lông thì mèo nằm xuống khoan khoái.",
-     "de": "na na now licks a paw and washes her face, grooms her chest, stretches, lies down to rest, curls up or sleeps with her head down (breathing, with z's), then wakes with a yawn and a stretch. Every move flows into the next without jumps. Tap or scroll to wake her; pet along the fur and she lies down contentedly."
+     "d": "na giờ liếm chân rửa mặt, cúi liếm ngực, vươn vai, nằm duỗi nghỉ, cuộn tròn hay nằm gục đầu ngủ (thở đều, có chữ z), rồi thức dậy ngáp, vươn mình đứng lên. Mọi động tác nối nhau liền mạch, không nhảy hình. Chạm hoặc vuốt khi mèo đang ngủ là mèo dậy; vuốt xuôi lông thì mèo nằm xuống khoan khoái.",
+     "de": "na now licks a paw and washes her face, grooms her chest, stretches, lies down to rest, curls up or sleeps with her head down (breathing, with z's), then wakes with a yawn and a stretch. Every move flows into the next without jumps. Tap or scroll to wake her; pet along the fur and she lies down contentedly."
     },
     {
      "c": "new",
      "a": "mascot",
      "t": "🐾 Lăn ngửa, rình, vồ, kêu meo, cáu quất đuôi – từ video mèo thật",
      "te": "🐾 Rolling, stalking, pouncing, meowing and tail-lashing – from real cat video",
-     "d": "na na lăn ngửa vờn chân rồi ngồi dậy; rê chuột sát đáy trang là na na khom người rình theo, đứng yên là vồ; bướm bay xuống thì đứng dậy khom ngoáy mông rồi vồ đúng lúc chân vươn cao nhất; đuổi chuột bắt được thì vồ chứ không còn nhảy hình. Thỉnh thoảng na na đứng lên kêu meo (tiếng khớp lúc há miệng). Vuốt ngược lông hay chọc nhiều quá thì na na đứng dậy quất đuôi rồi bỏ đi.",
-     "de": "na na rolls on her back pawing the air, then sits up; move the mouse along the bottom of the page and she stalks it low, and pounces when it stops; when a butterfly drifts down she stands, wiggles and pounces right at the top of her leap; catching the mouse is a real pounce, no more jumping frames. Now and then she stands up to meow (the sound matches her open mouth). Pet her the wrong way or poke too much and she lashes her tail and walks off."
+     "d": "na lăn ngửa vờn chân rồi ngồi dậy; rê chuột sát đáy trang là na khom người rình theo, đứng yên là vồ; bướm bay xuống thì đứng dậy khom ngoáy mông rồi vồ đúng lúc chân vươn cao nhất; đuổi chuột bắt được thì vồ chứ không còn nhảy hình. Thỉnh thoảng na đứng lên kêu meo (tiếng khớp lúc há miệng). Vuốt ngược lông hay chọc nhiều quá thì na đứng dậy quất đuôi rồi bỏ đi.",
+     "de": "na rolls on her back pawing the air, then sits up; move the mouse along the bottom of the page and she stalks it low, and pounces when it stops; when a butterfly drifts down she stands, wiggles and pounces right at the top of her leap; catching the mouse is a real pounce, no more jumping frames. Now and then she stands up to meow (the sound matches her open mouth). Pet her the wrong way or poke too much and she lashes her tail and walks off."
     },
     {
      "c": "imp",
      "a": "perf",
-     "t": "Mèo na na nhẹ máy hơn ~3 lần",
-     "te": "Na na uses ~3× less CPU",
+     "t": "Mèo na nhẹ máy hơn ~3 lần",
+     "te": "Na uses ~3× less CPU",
      "d": "Trước: mỗi khung hình trình duyệt dựng lại hình SVG + bóng đổ (điện thoại chậm: ~35% sức máy chỉ vì mèo). Giờ vẽ bằng canvas, bóng tự vẽ, nhịp vẽ theo việc mèo đang làm (đi: 60/giây, động tác tại chỗ: 30, ngồi: 15). Cuộn trang ít khung giật hơn ~3 lần.",
      "de": "Canvas instead of per-frame SVG re-raster; activity-based frame rate."
     },
@@ -155,10 +155,67 @@
     {
      "c": "imp",
      "a": "mascot",
-     "t": "na na nói nhiều hơn, ít ngủ gật hơn",
-     "d": "Trước: na na chỉ nói khi tới lượt nghĩ việc kế tiếp – từ khi có động tác video dài (liếm, nằm, vươn vai…) lượt đó thưa hẳn; lại ngủ sau 80 giây anh không chạm / cuộn trang (đang đọc là ngủ, mà ngủ thì im). Giờ na na nói theo giờ riêng, khoảng 1–2 phút một câu (trước 1,2–2,6 phút), 3 phút không đụng tới mới ngủ, bị đánh thức thì càu nhàu. Muốn yên tĩnh: giữ lâu vào mèo → Ít nói thôi.",
-     "te": "na na talks more and dozes off less",
-     "de": "Before: na na only spoke when deciding her next move – with the long video moves (grooming, lying, stretching…) that came much less often; and she fell asleep after 80 s without a tap or scroll (reading = asleep = silent). Now she speaks on her own timer, roughly every 1–2 minutes (was 1.2–2.6), only naps after 3 minutes untouched, and grumbles when woken. Want quiet: long-press the cat → Talk less."
+     "t": "na nói nhiều hơn, ít ngủ gật hơn",
+     "d": "Trước: na chỉ nói khi tới lượt nghĩ việc kế tiếp – từ khi có động tác video dài (liếm, nằm, vươn vai…) lượt đó thưa hẳn; lại ngủ sau 80 giây anh không chạm / cuộn trang (đang đọc là ngủ, mà ngủ thì im). Giờ na nói theo giờ riêng, khoảng 1–2 phút một câu (trước 1,2–2,6 phút), 3 phút không đụng tới mới ngủ, bị đánh thức thì càu nhàu. Muốn yên tĩnh: giữ lâu vào mèo → Ít nói thôi.",
+     "te": "na talks more and dozes off less",
+     "de": "Before: na only spoke when deciding her next move – with the long video moves (grooming, lying, stretching…) that came much less often; and she fell asleep after 80 s without a tap or scroll (reading = asleep = silent). Now she speaks on her own timer, roughly every 1–2 minutes (was 1.2–2.6), only naps after 3 minutes untouched, and grumbles when woken. Want quiet: long-press the cat → Talk less."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "hi": 1,
+     "t": "Mèo trong thẻ \"Lệnh bot · trực tiếp\" (điện thoại) giờ là mèo video, giống mèo chính",
+     "d": "Vườn cỏ trong thẻ lệnh bot và ô xem trước bộ đồ trong Cài đặt trước còn dùng hình vẽ cũ. Giờ là cùng con mèo từ video: ngồi vẫy đuôi, chớp mắt; chạm thì na liếm chân, chải lông hoặc lăn ra – việc của na, na tự làm. Chỉ chạy khi thẻ đang hiện trên màn hình.",
+     "te": "The cat in the \"Bot trades · live\" card (phone) is now the video cat",
+     "de": "The garden in the bot-trades card and the outfit previews in Settings used the old drawing. Now it's the same video cat: sits, flicks its tail, blinks; tap it and na licks a paw, grooms or rolls over. It only animates while the card is on screen."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Tên mèo là \"na\"",
+     "d": "Đổi cách gọi \"na na\" thành \"na\" ở mọi chỗ: bong bóng nói, cài đặt, nhật ký.",
+     "te": "The cat's name is \"na\"",
+     "de": "\"na na\" is now \"na\" everywhere: speech bubble, settings, changelog."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Chạm mèo: na đáp kiểu mèo độc lập, không đọc số liệu tài khoản",
+     "d": "Chạm na không còn ra câu tóm tắt tài khoản (nghe gượng). na giờ đáp kiểu tự vận hành, không nhận lệnh của ai. Lúc lướt trang na cũng ít liếc số liệu hơn.",
+     "te": "Tapping the cat: independent replies, no account summaries",
+     "de": "Tapping na no longer reads out account numbers. na answers like a self-running cat that takes orders from nobody, and glances at page numbers less often."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "na bênh bot khi anh định xen vào lệnh bot đặt",
+     "d": "Rê / chạm nút Huỷ lệnh chờ, Vào ngay hay Đóng trên thẻ lệnh do bot đặt, na kêu một tiếng và kháy một câu (bot đặt mà, ai cho huỷ?). Lệnh tay của anh thì na nhắc kiểu khác. Tối đa 2 phút một lần.",
+     "te": "na defends the bot when you meddle with its trades",
+     "de": "Hover / touch Cancel, Enter now or Close on a bot-placed trade card and na meows with a jab (the bot placed it, who said cancel?). Your own manual trades get different lines. At most once every 2 minutes."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Thẻ lệnh chờ: mã coin luôn hiện đủ, không còn \"IR…\"",
+     "d": "Hàng đầu thẻ lệnh (bot và lệnh tay) chật thì nhãn Futures/Spot co lại hoặc ẩn, mã coin giữ nguyên.",
+     "te": "Pending order cards: full coin symbol, no more \"IR…\"",
+     "de": "When the top row of an order card is tight, the Futures/Spot label shrinks or hides; the symbol stays whole."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Hết cảnh mèo cúi chúi mũi, nhún lên nhún xuống rồi trượt tới",
+     "d": "Dáng khom chờ vồ chỉ dùng đoạn đã khom hẳn (ngoáy mông nhẹ). Khi bắt đầu đi, mèo đứng yên cho tới lúc chân bắt đầu bước – không còn trượt người tới trước.",
+     "te": "No more nose-dip, bobbing and sliding forward",
+     "de": "The ready-to-pounce crouch now uses only the fully crouched frames (a light butt wiggle). When starting to walk the cat stays put until its legs move, no forward slide."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Trang nhẹ và mượt hơn khi có mèo",
+     "d": "Điện thoại: lúc ngồi yên na vẽ 24 hình/giây (đúng nhịp video) thay vì 48; đang cuộn / chạm trang thì na chỉ vẽ khung chính, nhường máy cho trang. Giữ sẵn hình đã dựng, không dựng lại mỗi lần vẽ. Sửa thẻ lệnh bot tự đặt lại vị trí 1 giây sau mỗi lần cập nhật (khựng nhẹ), và rung khi nhấc mèo lên.",
+     "te": "Lighter, smoother pages with the cat on",
+     "de": "Phones: idle na draws 24 frames/s (the video rate) instead of 48; while you scroll or touch, na draws key frames only. Built shapes are cached instead of rebuilt every draw. Fixed the bot-trades card re-placing itself a second after each update (a small hitch), and the haptic tap when lifting the cat."
     }
    ]
   },
@@ -376,16 +433,16 @@
   {
    "v": "2026.11.15",
    "d": "2026-11-15",
-   "t": "Mèo na na & app tự cập nhật",
-   "te": "Na na the cat & auto-update",
-   "s": "Chào na na – mèo mascot đi dạo mép màn hình; app tự nhận bản mới; trang tự làm mới không còn nháy.",
-   "se": "Meet na na, the mascot cat; the app picks up new versions; auto-refresh no longer flickers.",
+   "t": "Mèo na & app tự cập nhật",
+   "te": "Na the cat & auto-update",
+   "s": "Chào na – mèo mascot đi dạo mép màn hình; app tự nhận bản mới; trang tự làm mới không còn nháy.",
+   "se": "Meet na, the mascot cat; the app picks up new versions; auto-refresh no longer flickers.",
    "it": [
     {
      "c": "new",
      "a": "mascot",
-     "t": "🐈‍⬛ Mèo na na",
-     "te": "🐈‍⬛ Na na the cat",
+     "t": "🐈‍⬛ Mèo na",
+     "te": "🐈‍⬛ Na the cat",
      "d": "Đi dạo mép dưới màn hình, ngồi, liếm lông, lăn lộn, rượt chuột; nói ngắn nhắc kỷ luật và đọc thông báo của app (không bao giờ khuyên mua / bán).",
      "de": "Walks along the bottom edge, grooms, rolls, chases the mouse; reads app notices (never gives buy/sell advice).",
      "hi": 1

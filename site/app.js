@@ -209,7 +209,7 @@ function mkChart(el, extra = {}) {
 if (document.documentElement.classList.contains("nl-ios")) { const OVL = "body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])";
   let q = 0; const chk = () => { q = 0; document.documentElement.classList.toggle("ovl-on", !!document.querySelector(OVL)); };
   new MutationObserver(() => { if (!q) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] }); chk(); }
-// rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na na (mascot) đứng yên cho biểu đồ chạy mượt
+// rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na (mascot) đứng yên cho biểu đồ chạy mượt
 addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweight-charts")) window.__chartHot = performance.now(); }, { passive: true, capture: true });
 // 🖱️ CHỐNG "DÍNH KÉO" BIỂU ĐỒ: bấm giữ kéo rồi nhả mà biểu đồ vẫn chạy theo chuột = thư viện biểu đồ không nhận được lần nhả chuột
 //    (trình duyệt bắt đầu kéo-thả gốc – liên kết logo, chữ đang bôi đen – hoặc lần nhả rơi ngoài trang). Hai lớp:
@@ -2058,7 +2058,7 @@ async function sbPage(r, a) {
   const note = app().querySelector(".note p, .note")?.textContent?.trim();
   return note ? `<p class="sbp">${esc(note.slice(0, 260))}${note.length > 260 ? "…" : ""}</p>` : "";
 }
-// 👀 "đọc lướt" cho mèo na na: vài con số chính của trang đang mở (chỉ số liệu – mèo tự nói bằng giọng lười; KHÔNG khuyên mua / bán)
+// 👀 "đọc lướt" cho mèo na: vài con số chính của trang đang mở (chỉ số liệu – mèo tự nói bằng giọng lười; KHÔNG khuyên mua / bán)
 async function pageSkim() {
   const seg = location.hash.replace(/^#\/?/, "").split("/"), r = seg[0] || "market", a = seg.slice(1).map(decodeURIComponent);
   const n = (v) => (isNum(v) ? +v : null);
@@ -7193,19 +7193,20 @@ const MUN_SK = [["classic", "Cổ điển", 0], ["shades", "Kính râm", 0], ["f
 const munPro = () => can("mascot_pro") || ME?.eff_plan === "pro";
 function munPrefHtml() {
   const u = UIP.mun || {}, md = u.on === false ? "off" : u.talk === "q" ? "q" : "n", pro = munPro(), sk = MUN_SK.find(([k, , p]) => k === (u.skin || "classic") && (!p || pro))?.[0] || "classic";
-  return acRow("🐈‍⬛ Mèo na na", "Mèo quý tộc dạo quanh app, nhắc kỷ luật, đọc thông báo thay chuông. Không bao giờ khuyên mua / bán. Chạm · vuốt lông · giữ lâu mở menu",
+  return acRow("🐈‍⬛ Mèo na", "Mèo quý tộc dạo quanh app, nhắc kỷ luật, đọc thông báo thay chuông. Không bao giờ khuyên mua / bán. Chạm · vuốt lông · giữ lâu mở menu",
     `<div class="bseg" id="munMd">${[["n", "Bật"], ["q", "Ít nói"], ["off", "Tắt"]].map(([k, t]) => `<button type="button" data-munmd="${k}" class="${md === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row")
-    + acRow("Tiếng kêu", "na na thỉnh thoảng kêu “meo” khi máy đang bật loa", `<div class="bseg" id="munSnd">${[["1", "Bật"], ["0", "Tắt"]].map(([k, t]) => `<button type="button" data-munsnd="${k}" class="${(u.snd !== false) === (k === "1") ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row4")
-    + acRow("Cỡ na na", "Nhỏ = như bản đầu tiên · Lớn = rõ nhất", `<div class="bseg" id="munSz">${[["s", "Nhỏ"], ["m", "Vừa"], ["l", "Lớn"]].map(([k, t]) => `<button type="button" data-munsz="${k}" class="${(u.size || "l") === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row3")
-    + acRow("Bộ đồ của na na", pro ? "Gói Pro: mở khoá mọi bộ đồ" : "Mũ phớt dành cho gói Pro", `<div class="mun-sk" role="radiogroup" aria-label="Bộ đồ của na na">${MUN_SK.map(([k, t, p]) => `<button type="button" role="radio" data-munsk="${k}" aria-checked="${sk === k}" class="${sk === k ? "on" : ""}${p && !pro ? " lock" : ""}"><i class="mun-pv" data-munpv="${k}"></i><span>${t}${p ? ` <em>${pro ? "★ Pro" : "🔒 Pro"}</em>` : ""}</span></button>`).join("")}</div>`, "mun-row2");
+    + acRow("Tiếng kêu", "na thỉnh thoảng kêu “meo” khi máy đang bật loa", `<div class="bseg" id="munSnd">${[["1", "Bật"], ["0", "Tắt"]].map(([k, t]) => `<button type="button" data-munsnd="${k}" class="${(u.snd !== false) === (k === "1") ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row4")
+    + acRow("Cỡ na", "Nhỏ = như bản đầu tiên · Lớn = rõ nhất", `<div class="bseg" id="munSz">${[["s", "Nhỏ"], ["m", "Vừa"], ["l", "Lớn"]].map(([k, t]) => `<button type="button" data-munsz="${k}" class="${(u.size || "l") === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row3")
+    + acRow("Bộ đồ của na", pro ? "Gói Pro: mở khoá mọi bộ đồ" : "Mũ phớt dành cho gói Pro", `<div class="mun-sk" role="radiogroup" aria-label="Bộ đồ của na">${MUN_SK.map(([k, t, p]) => `<button type="button" role="radio" data-munsk="${k}" aria-checked="${sk === k}" class="${sk === k ? "on" : ""}${p && !pro ? " lock" : ""}"><i class="mun-pv" data-munpv="${k}"></i><span>${t}${p ? ` <em>${pro ? "★ Pro" : "🔒 Pro"}</em>` : ""}</span></button>`).join("")}</div>`, "mun-row2");
 }
 function munPrefBind() {
   const re = () => { const a = $(".mun-row"), b = $(".mun-row2"), c = $(".mun-row3"), d = $(".mun-row4"); if (!a || !b) return; const tmp = document.createElement("div"); tmp.innerHTML = munPrefHtml(); b.remove(); c?.remove(); d?.remove(); a.replaceWith(...tmp.children); munPrefBind(); };
   $$("[data-munsnd]").forEach((b) => (b.onclick = async () => { const on = b.dataset.munsnd === "1"; UIP = { ...UIP, mun: { ...(UIP.mun || {}), snd: on } }; await uiSave(); re(); if (on) window.MUN?.meow(2); }));
   $$("[data-munsz]").forEach((b) => (b.onclick = async () => { UIP = { ...UIP, mun: { ...(UIP.mun || {}), size: b.dataset.munsz } }; await uiSave(); re(); }));
-  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất na na" : k === "q" ? "na na sẽ ít nói – chỉ đáp khi anh chạm" : "na na đã bật"); }));
-  $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro – na na chỉ đội cho khách VIP", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
-  lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (!i.firstChild) i.innerHTML = window.MUN_ART.preview(i.dataset.munpv, "sit"); })).catch(() => {});
+  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất na" : k === "q" ? "na sẽ ít nói – chỉ đáp khi anh chạm" : "na đã bật"); }));
+  $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro – na chỉ đội cho khách VIP", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
+  lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (i.firstChild) return; const A = window.MUN_ART, k = i.dataset.munpv, old = () => (i.innerHTML = A.preview(k, "sit"));      // xem trước bộ đồ = mèo video (cùng mèo chính)
+    if (!A.mini) return old(); i.innerHTML = '<canvas class="mun-pvc" aria-hidden="true"></canvas>'; A.mini(i.firstChild, k, { still: 1, fail: old }); })).catch(() => {});
 }
 uiApply();
 async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }
@@ -7595,17 +7596,21 @@ function lvsDraw() {
   ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
   document.getElementById("lvwBd")?.classList.toggle("on", LVW.mode === "full" && MOB.matches); if (LVW.mode !== "full") el.__gdOpen = 0;
   if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); if (el.classList.contains("lvw-mfull")) requestAnimationFrame(() => lvwGarden(el, P)); else lvwHold(el, D, P); }
-  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && (LVW.mode !== "full" || MOB.matches));      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang el.__pw = el.querySelector(".lvw-pill").offsetWidth;
+  lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && (LVW.mode !== "full" || MOB.matches)); el.__pw = el.querySelector(".lvw-pill").offsetWidth;      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang
 }
-// 🌿 VƯỜN CỦA NA NA: thẻ mở trên điện thoại còn khoảng trống dưới danh sách → bãi cỏ nhỏ, na na ra chơi, nói đanh đá; chạm na na = đổi dáng + cãi lại.
-//    Chỉ dùng hiệu ứng CSS (biến hình / mờ) – không vẽ lại từng khung → không làm nặng máy. Na na tắt trong cài đặt → vườn không có mèo.
-const LG_HI = [["Đang nằm yên, ai cho mở cái bảng này ra?", "I was lying still. Who opened this?"], ["Vườn của na na. Nhìn thôi, đừng giẫm cỏ.", "My garden. Look, don't step on the grass."],
-  ["Ít lệnh thế mà cũng gọi na na dậy à?", "This few trades and you woke me up?"], ["Đang ngủ ngon thì bị lôi ra vườn. Vui chưa?", "Dragged out of a good nap. Happy now?"],
-  ["Muốn chơi thì ném len đây. Không thì đóng lại.", "Toss the yarn or close this."], ["Bướm này của na na. Cấm nhìn.", "That butterfly is mine. Don't stare."],
-  ["Nắng đẹp thế này mà ngồi dán mắt vào bảng.", "Lovely sun, and you're glued to a table."], ["Mở ra rồi thì ngồi chơi với na na năm phút.", "You opened it. Five minutes with me, then."]];
-const LG_EMPTY = [["Không có lệnh nào. Thế thì để na na chơi.", "No trades. So let me play."], ["Bảng trống trơn. Na na chiếm chỗ nhé.", "Empty table. I'm taking the space."]];
-const LG_POKE = [["Chạm nữa là cào đấy.", "Touch again and I scratch."], ["Rồi rồi, chơi 5 giây thôi.", "Fine. Five seconds of play."], ["Đừng chọc, đang canh bướm.", "Don't poke. I'm hunting."],
-  ["Na na không phải nút bấm.", "I'm not a button."], ["Hừ. Nhảy cho xem này.", "Hmph. Watch this jump."], ["Lần cuối. Thật đấy.", "Last time. I mean it."], ["Thôi được, lăn một vòng.", "Fine, one roll."], ["Đi ra. À không, ngồi lại.", "Go away. No wait, stay."]];
+// 🌿 VƯỜN CỦA NA: thẻ mở trên điện thoại còn khoảng trống dưới danh sách → bãi cỏ nhỏ, na ra chơi, nói đanh đá; chạm na = đổi dáng + cãi lại.
+//    Mèo = cùng mèo video với mèo chính (MUN_ART.mini: canvas, chỉ vẽ khi thẻ đang hiện). Na tắt trong cài đặt → vườn không có mèo.
+const LG_HI = [["Đang nằm yên, ai cho mở cái bảng này ra?", "I was lying still. Who opened this?"], ["Vườn của na. Nhìn thôi, đừng giẫm cỏ.", "My garden. Look, don't step on the grass."],
+  ["Lệnh bot đặt thì để bot lo. Ngồi im.", "Bot placed it, bot handles it. Sit still."], ["Đang ngủ ngon thì bị lôi ra vườn. Vui chưa?", "Dragged out of a good nap. Happy now?"],
+  ["Mở ra xem thôi đấy, đừng có táy máy.", "Look, don't fiddle."], ["Bướm này của na. Cấm nhìn.", "That butterfly is mine. Don't stare."],
+  ["Nắng đẹp thế này mà ngồi dán mắt vào bảng.", "Lovely sun, and you're glued to a table."], ["Bot chạy ngon lành, cần gì người xen vào.", "The bot's fine. Nobody asked you to step in."]];
+const LG_EMPTY = [["Không có lệnh nào. Thế thì để na chơi.", "No trades. So let me play."], ["Bảng trống trơn. Na chiếm chỗ nhé.", "Empty table. I'm taking the space."], ["Chưa có kèo thì chờ. Chờ cũng là việc.", "No setup, so wait. Waiting is a job too."]];
+const LG_POKE = [["Chạm nữa là cào đấy.", "Touch again and I scratch."], ["Đừng chọc, đang canh bướm.", "Don't poke. I'm hunting."], ["Na không phải nút bấm.", "I'm not a button."], ["Lần cuối. Thật đấy.", "Last time. I mean it."]];
+// chạm mèo vườn: mỗi lần 1 việc riêng của na (liếm chân · liếm ngực · lăn) – na làm việc của na, không phục vụ ai
+const LG_ACT = [["gpaw", [["Đang bận liếm chân. Hẹn sau.", "Busy with my paw. Later."], ["Chân na, na tự lo.", "My paw, my business."]]],
+  ["gbody", [["Chải lông. Việc quan trọng hơn cái bảng kia.", "Grooming. More important than that table."], ["Đừng nhìn, đang chỉnh trang.", "Don't look. I'm tidying up."]]],
+  ["roll", [["Lăn vì thích, không phải vì anh chạm.", "I roll because I want to. Not because you poked."], ["Không ai thấy gì hết nhé.", "Nobody saw that."]]]];
+const LG_BUSY = [["Đang dở việc. Chờ.", "Busy. Wait."], ["Một việc một lúc thôi.", "One thing at a time."]];
 const LG_POSE = ["lookup", "crouch", "jump", "yarnsit", "stretch", "roll", "scratch", "loaf", "sit"];
 function lvwGarden(el, P) {
   const b = el.querySelector(".lvw-body"); if (!b || !el.classList.contains("lvw-mfull")) return;
@@ -7617,14 +7622,19 @@ function lvwGarden(el, P) {
     LVW.gd.innerHTML = `<svg class="lg-bg" viewBox="0 0 360 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60V26C40 18 80 30 120 24S200 14 240 22s80 8 120-2v40Z" fill="var(--lg-g2)"/><path d="M0 60V38c50-8 90 4 140-2s90-10 130-2 60 6 90 0v26Z" fill="var(--lg-g1)"/></svg>
       <svg class="lg-fl" viewBox="0 0 360 40" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><g transform="translate(0 40)">${fl(28, "#f4a9b8", 16)}${fl(52, "#ffd36e", 11)}${fl(300, "#b9a4f2", 14)}${fl(326, "#f4a9b8", 9)}${fl(342, "#ffd36e", 17)}</g></svg>
       <svg class="lg-fly" viewBox="0 0 20 16" aria-hidden="true"><g class="lg-w"><path d="M10 8C6 1 1 2 2 6s5 4 8 2Z" fill="#f2a65a"/><path d="M10 8c4-7 9-6 8-2s-5 4-8 2Z" fill="#f2a65a"/><path d="M10 8C7 12 3 14 4 11s4-3 6-3Z" fill="#e58a3c"/><path d="M10 8c3 4 7 6 6 3s-4-3-6-3Z" fill="#e58a3c"/></g><path d="M10 4v9" stroke="#3a2a1a" stroke-width="1.2" stroke-linecap="round"/></svg>
-      ${mun ? `<button type="button" class="lg-cat" aria-label="na na"></button><div class="lg-say" role="status"></div>` : ""}`;
+      ${mun ? `<button type="button" class="lg-cat" aria-label="na"><canvas class="lg-cv" aria-hidden="true"></canvas></button><div class="lg-say" role="status"></div>` : ""}`;
     const cat = LVW.gd.querySelector(".lg-cat"), say = LVW.gd.querySelector(".lg-say");
     const talk = (L) => { if (!say) return; const t = L[Math.floor(Math.random() * L.length)]; say.textContent = bi(t[0], t[1]); say.classList.remove("on"); void say.offsetWidth; say.classList.add("on"); clearTimeout(LVW.gdT); LVW.gdT = setTimeout(() => say.classList.remove("on"), 4200); };
+    // mèo vườn = CÙNG mèo video với mèo chính (canvas, khung dựng từ video); hỏng tải bảng khung → hình vẽ cũ
     const pose = (k) => { if (!cat || !window.MUN_ART) return; cat.innerHTML = window.MUN_ART.poseSvg(k, skin); cat.dataset.p = k; cat.classList.remove("lgpop"); void cat.offsetWidth; cat.classList.add("lgpop"); };
     LVW.gd.talk = talk; LVW.gd.pose = pose;
-    cat?.addEventListener("click", (e) => { e.stopPropagation(); const g2 = LVW.gd; g2.k = (g2.k + 1) % LG_POSE.length; pose(LG_POSE[g2.k]); talk(LG_POKE); try { navigator.vibrate?.(5); } catch (_) {} });
-    if (mun) lazyJs("mascot.js").then(() => { pose("sit"); setTimeout(() => talk(P.n ? LG_HI : LG_EMPTY), 900); }).catch(() => cat?.remove());
-  } else if (!el.__gdOpen && LVW.gd.talk) { LVW.gd.classList.remove("seen"); setTimeout(() => LVW.gd.talk(P.n ? LG_HI : LG_EMPTY), 900); }      // mở lại thẻ → na na ra lại, nói câu khác
+    cat?.addEventListener("click", (e) => { e.stopPropagation(); const g2 = LVW.gd; try { navigator.vibrate?.(5); } catch (_) {}
+      if (g2.mini) { if (g2.mini.busy()) return talk(LG_BUSY); g2.k = (g2.k + 1) % LG_ACT.length; const a = LG_ACT[g2.k]; g2.mini.act(a[0]); talk(a[1]); return; }
+      g2.k = (g2.k + 1) % LG_POSE.length; pose(LG_POSE[g2.k]); talk(LG_POKE); });
+    if (mun) lazyJs("mascot.js").then(() => { const cv = cat?.querySelector("canvas"); const A = window.MUN_ART;
+      if (cv && A.mini) LVW.gd.mini = A.mini(cv, skin, { ax: 0.38, fail: () => { LVW.gd.mini?.stop(); LVW.gd.mini = null; pose("sit"); } }); else pose("sit");
+      setTimeout(() => talk(P.n ? LG_HI : LG_EMPTY), 900); }).catch(() => cat?.remove());
+  } else if (!el.__gdOpen && LVW.gd.talk) { LVW.gd.classList.remove("seen"); setTimeout(() => LVW.gd.talk(P.n ? LG_HI : LG_EMPTY), 900); }      // mở lại thẻ → na ra lại, nói câu khác
   el.__gdOpen = 1; clearTimeout(LVW.gdS); LVW.gdS = setTimeout(() => LVW.gd?.classList.add("seen"), 1000);      // đã ra vườn → vẽ lại danh sách không chạy lại cảnh đi vào
   g = LVW.gd; const H = `${Math.min(320, free)}px`; if (g.style.height !== H) g.style.height = H; if (g.parentNode !== b) b.appendChild(g);
 }
@@ -7959,7 +7969,7 @@ function ksHTML(compact) {
 // a = khu vực; f = tính năng theo gói (★ Pro khi gói Miễn phí không có – người chưa có gói thấy nút nâng cấp); aud "admin" = chỉ quản trị viên thấy; go = mở thẳng tính năng.
 // Chưa xem → chấm trên menu "Có gì mới" + nhãn Mới trên phiên bản; vừa tự tải bản app mới → toast mời xem.
 const CHG_C = { new: ["✨", "Tính năng mới", "New"], imp: ["⚡", "Cải tiến", "Improved"], fix: ["🔧", "Sửa lỗi", "Fixed"], res: ["🔬", "Nghiên cứu", "Research"] };
-const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na na", "Na na"], res: ["Nghiên cứu", "Research"] };
+const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na", "Na"], res: ["Nghiên cứu", "Research"] };
 const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
 let CHG_P = null;
 const chgLoad = () => (CHG_P ||= fetch("changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.rel || []).catch(() => { CHG_P = null; return []; }));
