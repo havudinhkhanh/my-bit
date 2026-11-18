@@ -438,15 +438,15 @@
   //    mỗi khung hình na na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
   const still = () => S.away || (window.__chartHot && performance.now() - window.__chartHot < 900);
   function moveTo(x, vmax, done, opt = {}) {
-    const tk = (S.mvTk = (S.mvTk || 0) + 1), Ac = vmax * 1.6; let v = 0, last = 0;
+    const tk = (S.mvTk = (S.mvTk || 0) + 1), Ac = vmax * 1.6, G = (S.mv = { x, done, tk }); let v = 0, last = 0;      // G: đích có thể đổi giữa chừng (rình theo chuột) mà không dừng lại bước lại
     const f = (t) => {
       if (tk !== S.mvTk || !S.el) return; if (still()) { last = t; requestAnimationFrame(f); return; }
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
-      const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
+      x = G.x; const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
       v += Math.max(-Ac * dt, Math.min(Ac * dt, want - v)); S.x += Math.sign(d) * Math.min(Math.abs(d), v * dt); A.v = v;
       S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
       if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; return slip(); }
-      if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; done?.(); return; }
+      if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; G.done?.(); return; }
       requestAnimationFrame(f);
     };
     requestAnimationFrame(f);
@@ -514,10 +514,14 @@
     || (mob() && document.activeElement?.matches?.("input, textarea, select, [contenteditable]")));
   function sched(fn, ms) { clearTimeout(S.tm); S.tm = setTimeout(fn, ms); }
   function walkTo(x, then, opt = {}) {
-    const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x;
-    if (RM.matches || Math.abs(dx) < 24) { place(x); then?.(); return; }
+    const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x, cn = CLIP[opt.clip] ? opt.clip : "walk";
+    // đang đi đúng dáng này → chỉ đổi đích (cùng hướng) hoặc dừng tại chỗ (đích ngay sát / phía sau) – trước: gọi lại = dừng, nắn lại, bước lại, đích gần thì "nhảy" tới → khựng khựng
+    if (S.mv && S.mv.tk === S.mvTk && S.pose === cn && A.v > 0 && (dx * S.face > 0 || Math.abs(dx) < 24)) { S.mv.x = dx * S.face > 0 ? x : S.x + S.face * A.v * 0.35; S.mv.done = () => sitDown(opt.end || "sit", then); return; }
+    if (RM.matches) { place(x); then?.(); return; }
+    if (Math.abs(dx) < 24) { then?.(); return; }      // lệch chút xíu → đứng yên (trước: "nhảy" khung mèo tới chỗ mới = giật)
     if (!CLIP[opt.clip]) opt = { ...opt, clip: "walk" };      // dáng đi không có bảng riêng (vd "stalk" rình chuột) → đi bộ thường (trước: lỗi, na na đứng đơ)
-    const need = dx > 0 ? 1 : -1, cw = CLIP[opt.clip]; S.el.classList.remove("run");
+    const need = dx > 0 ? 1 : -1, cw = CLIP[opt.clip];
+    S.el.classList.remove("run");
     clearTimeout(S.walkTm); const tk = (S.walkTk = (S.walkTk || 0) + 1);
     // 🎬 trước khi đi: đang ngồi → clip đứng dậy; đi ngược hướng đang nhìn → clip quay đầu (khi có bộ video) – không còn nắn / lật hình đột ngột
     const pre = upSeq();
@@ -855,6 +859,7 @@
     const tr = track(), near = e.clientY > innerHeight - tr.b - 150 * (S.s / 0.28) - 40;
     if (!near) { if (ST.on) stalkEnd(false); return; }
     if (now() < ST.cool) return;
+    if (!ST.on && Math.abs(e.clientX - (S.x + 345 * S.s / 2)) > 4.5 * 345 * S.s) return;      // chuột ở xa hẳn (đang dùng trang) → không rình
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > 25e3) return stalkEnd(true);
@@ -862,8 +867,13 @@
     if (now() - ST.last > 650) { ST.last = now(); stalkGo(e.clientX); }
   }
   // đi khom tới TRƯỚC con trỏ (đầu sát con mồi), không đứng đè lên; đang đứng dậy / quay đầu thì để xong đã
-  function stalkGo(px) { const cw = 345 * S.s, dir = px > S.x + cw / 2 ? 1 : -1, tx = px - cw / 2 - dir * 0.62 * cw;
-    if (Math.abs(tx - S.x) > 40 && !["s2st", "turn", "l2st", "wake", "pounceF"].includes(S.pose)) walkTo(tx, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" }); }
+  function stalkGo(px) {
+    const cw = 345 * S.s, rel = px - (S.x + cw / 2), dir = Math.sign(rel) || S.face;
+    if (Math.abs(rel) < 0.95 * cw) return;      // đã sát con mồi → đứng yên chờ vồ (trước: tính đích lùi lại → mèo quay đầu bỏ đi như né chuột)
+    if (["s2st", "turn", "l2st", "wake", "pounceF", "st2s"].includes(S.pose)) return;      // đang đứng dậy / quay đầu / vồ → để xong đã
+    if (dir !== S.face) { if (!ST.side || ST.side.d !== dir) { ST.side = { d: dir, t: now() }; return; } if (now() - ST.side.t < 1200) return; }      // chuột sang phía sau: chờ 1,2 giây chắc chắn mới quay đầu (quay đầu mất 4 giây)
+    ST.side = null; walkTo(px - cw / 2 - dir * 0.7 * cw, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" });      // dừng TRƯỚC con trỏ, đầu sát con mồi
+  }
   function stalkTick() {
     if (!ST.on || !S.el) return; const cw = 345 * S.s;
     const ahead = (ST.px - (S.x + cw / 2)) * S.face;      // con trỏ ở phía trước mặt mèo bao xa
