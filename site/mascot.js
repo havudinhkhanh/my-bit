@@ -225,11 +225,14 @@
       ["Lệnh không cắt lỗ thì gọi là cầu nguyện", "No stop loss is just praying"], ["Gồng lỗ mà tưởng kiên nhẫn, dễ thương ghê", "Holding losers and calling it patience, cute"], ["Chín mạng là của na na, anh có một thôi", "Nine lives are mine, you get one"], ["Đòn bẩy cao trông oai lắm, tới lúc thanh lý", "High leverage looks cool, until liquidation"],
       ["Lại 'lệnh cuối' nữa à, lần thứ mấy rồi", "'Last trade' again, which number is this"], ["Ghi nhật ký đi, trí nhớ anh không đáng tin đâu", "Journal it, your memory isn't trustworthy"], ["Nhồi lệnh gỡ hả, cháy kinh điển", "Revenge sizing, classic blow-up"], ["Thị trường lên thì ai chả giỏi", "Everyone's a genius when it pumps"],
       ["Lệnh tốt thì nhàm, anh lại thích kịch tính", "Good trades are boring, you like drama"], ["Cảm xúc là phí ẩn, anh trả hơi nhiều đấy", "Emotion's a hidden fee, you pay a lot"], ["na na thấy anh phá luật rồi nha", "Saw you break a rule, just so you know"], ["Giữ tiền mặt có gì xấu hổ đâu", "Holding cash isn't embarrassing"],
-      ["Mắt đỏ rồi kìa, đâu phải tại nến", "Red eyes, and not from the candles"], ["Đừng đi trả thù thị trường, nó có biết anh là ai đâu", "Don't take revenge on the market, it doesn't know you"], ["Chốt bớt đi, tham thì thâm", "Take some off, greed bites"], ["Hôm nay chưa làm gì dại, cũng lạ", "No dumb moves today yet, weird"]],
+      ["Mắt đỏ rồi kìa, đâu phải tại nến", "Red eyes, and not from the candles"], ["Đừng đi trả thù thị trường, nó có biết anh là ai đâu", "Don't take revenge on the market, it doesn't know you"], ["Chốt bớt đi, tham thì thâm", "Take some off, greed bites"], ["Hôm nay chưa làm gì dại, cũng lạ", "No dumb moves today yet, weird"],
+      ["Bớt tự đánh đi, để bot làm", "Trade less by hand, let the bot work"], ["Táy máy với bot, có ngày thua đấy", "Keep fiddling with the bot, you'll lose one day"], ["Thấy xanh là muốn nhảy vào, đúng kiểu FOMO", "See green, want in, textbook FOMO"], ["Mở app lần thứ mấy rồi, giá vẫn thế", "How many times have you opened this, price is the same"],
+      ["Lệnh tay hôm nay đủ rồi, nghỉ đi", "Enough manual trades today, stop"], ["Lời được chút đừng tưởng mình là thiên tài", "A small win doesn't make you a genius"], ["Thua một lệnh không cần gỡ ngay", "One loss doesn't need instant revenge"], ["Đặt cắt lỗ chưa, hay lại để tí nữa", "Stop loss set, or 'later' again"],
+      ["Nghe tin trên mạng rồi vào lệnh, quen quá", "Trading on internet rumours again, so familiar"], ["Không có kèo thì ngồi im, đừng tự chế kèo", "No setup, sit still, don't invent one"]],
     aris: [["na na không vội, anh vội gì", "I never hurry, why do you"], ["Người sang không đuổi giá, nhớ chưa", "Classy people don't chase price, remember"], ["Thua cũng phải thua cho có duyên chứ", "Even losing should have some grace"], ["Đừng nhìn na na bằng ánh mắt FOMO", "Don't give me FOMO eyes"],
       ["na na không phán xét, na na chỉ nhìn, lâu", "I don't judge, I just stare, long"], ["Kỷ luật đâu phải đồ trang sức mà đeo cho vui", "Discipline isn't jewellery you wear for fun"], ["Ồn ào quá, cả cái danh mục nữa", "So noisy, your portfolio too"], ["na na kén ăn, anh kén lệnh giùm cái", "I'm picky with food, be picky with trades"],
       ["Bấm từ tốn thôi, đừng như mèo hoang", "Click gently, don't be a stray"], ["Lại 'chắc ăn' à, lần thứ một trăm rồi đó", "Another 'sure thing', that's the hundredth"], ["na na ngày nào cũng liếm lông, anh xem rủi ro chưa", "I groom daily, did you check your risk"], ["Ngẩng cằm lên, có cắt lỗ, thế mới sang", "Chin up, stop set, that's class"]],
-    bot: [["Để bot yên đi, nó làm giỏi hơn anh", "Leave the bot alone, it's better than you"], ["Bot chăm hơn anh nhiều", "The bot works way harder than you"], ["Luật đặt rồi thì để luật chạy, đừng táy máy", "Rules are set, let them run, hands off"], ["Thò tay vào bot hả, bảng so sánh ghi hết đó", "Meddling again, the comparison remembers"]],
+    bot: [["Để bot yên đi, nó làm giỏi hơn anh", "Leave the bot alone, it's better than you"], ["Đóng lệnh bot bằng tay là phá luật đấy", "Closing bot trades by hand breaks the rules"], ["Sửa thông số giữa chừng, có ngày thua đấy", "Tweaking settings mid-run, you'll lose one day"], ["Bot chăm hơn anh nhiều", "The bot works way harder than you"], ["Luật đặt rồi thì để luật chạy, đừng táy máy", "Rules are set, let them run, hands off"], ["Thò tay vào bot hả, bảng so sánh ghi hết đó", "Meddling again, the comparison remembers"]],
     night: [["Khuya rồi, mèo còn biết đi ngủ", "It's late, even cats know to sleep"], ["Hai giờ sáng toàn ra quyết định dở", "2 a.m. decisions are always bad"]],
     long: [["Ngồi lâu rồi đó, duỗi lưng đi", "You've been sitting forever, stretch"], ["Uống nước đi, na na không nhắc lần hai đâu", "Drink water, I won't say it twice"]],
     back: [["Về rồi hả", "Oh, you're back"], ["Tưởng anh bỏ nghề rồi chứ", "Thought you'd quit"]],
@@ -270,7 +273,7 @@
   };
   // kéo dài chữ cuối câu kiểu đanh đá: "đấy" → "đấyyy", "Gì" → "Gììì" (bỏ qua mã coin viết hoa, số); luôn kéo từ cuối, thêm 1 chỗ khác ~30%
   function drag(t) {
-    t = String(t).normalize("NFC"); const M = [...t.matchAll(/(\p{L}+)(?=\s*[.!?…,]*\s*$|[.!?…,]\s)/gu)].filter((m) => !/^\p{Lu}{2,}$/u.test(m[1]) && m[1].toLowerCase() !== "na");
+    t = String(t).normalize("NFC"); if (Math.random() > 0.001) return t;      // hiếm lắm mới dễ thương kéo chữ (~1/1000 câu) – bình thường đanh đá, nói gọn const M = [...t.matchAll(/(\p{L}+)(?=\s*[.!?…,]*\s*$|[.!?…,]\s)/gu)].filter((m) => !/^\p{Lu}{2,}$/u.test(m[1]) && m[1].toLowerCase() !== "na");
     if (!M.length) return t; const pickM = [M[M.length - 1], ...M.slice(0, -1).filter(() => Math.random() < 0.3).slice(0, 1)];
     let out = t; pickM.sort((a, b) => b.index - a.index).forEach((m) => { const w = m[1], c = w[w.length - 1], n = 2 + (Math.random() < 0.5 ? 1 : 0); out = out.slice(0, m.index) + w + c.repeat(n) + out.slice(m.index + w.length); });
     return out;
@@ -434,11 +437,12 @@
   const scale = () => (SZ[S.cfg.size] || SZ.l)[mob() ? 0 : 1];
   const U2P = () => S.s * K;      // 1 đơn vị hình → px
   function track() {
-    const tb = document.getElementById("tabs"), r = tb?.getBoundingClientRect(), W = innerWidth, cw = 345 * S.s;
+    // W: bề ngang KHÔNG tính thanh cuộn (trước dùng innerWidth → mèo đè lên thanh cuộn bên phải); pad: thân / đuôi mèo vẽ lấn ra ngoài khung ~60 đơn vị mỗi bên
+    const tb = document.getElementById("tabs"), r = tb?.getBoundingClientRect(), W = document.documentElement.clientWidth || innerWidth, cw = 345 * S.s, pad = Math.round(70 * S.s * 1.17);
     const fab = document.querySelector(".pnfab"), fr0 = fab?.getBoundingClientRect(), fr = fr0 && fr0.width > 0 ? fr0 : null;
     if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > innerHeight - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > innerWidth / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(innerHeight - r.top - 2), l: r.left + 14, r: rr }; }
-    let l = r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12);
-    return { b: 0, l, r: W - 12 - cw };
+    let l = (r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12) + pad; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12 + pad);
+    return { b: 0, l, r: W - 16 - cw - pad };
   }
   function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.el.style.bottom = Math.round(tr.b) + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x)}px,0,0)`; }
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
@@ -615,7 +619,7 @@
     }
     else if (r < 0.55) { const [p, a, b] = still[Math.floor(Math.random() * still.length)]; if (p === "groom" && groomPlay()) return; play(p); if (p === "stretch" && Math.random() < 0.5) say(pick("stretch"), 2400, 0); sched(idle, rnd(a, b) * 1000); }
     else if (r < 0.63) rollPlay();
-    else { let x = rnd(tr.l, tr.r); if (Math.abs(x - S.x) < 70) x = S.x + (S.x - tr.l > tr.r - S.x ? -1 : 1) * rnd(80, 180); walkTo(x, () => sched(idle, rnd(3e3, 7e3)), { slip: Math.random() < 0.06 }); }
+    else { const sp = tr.r - tr.l; let x = rnd(tr.l + sp * 0.08, tr.r - sp * 0.08); if (Math.abs(x - S.x) < 70) x = S.x + (S.x - tr.l > tr.r - S.x ? -1 : 1) * rnd(80, 180); walkTo(x, () => sched(idle, rnd(3e3, 7e3)), { slip: Math.random() < 0.06 }); }      // đi dạo: tránh sát 2 mép
   }
   function seqPlay(name, talk, talkAt) {      // chạy trọn 1 chuỗi khung; bị chạm / đổi dáng giữa chừng thì thôi
     const c = CLIP[name]; if (!S.el || S.busy || S.chasing || !SHEET[c.sheet]) { loadSheet(c.sheet); return false; }
@@ -671,48 +675,47 @@
   const fM = (v) => (v < 0 ? "-" : "") + "$" + fNum(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2), fP = (v, d = 1) => (v >= 0 ? "+" : "") + fNum(v, d) + "%";
   const oneOf = (A) => A[Math.floor(Math.random() * A.length)];
   // giọng: KHÔNG phải việc của na na – chỉ hóng hớt, chõ mỏ vào 1 câu ngắn (1 chi tiết, thỉnh thoảng 2) rồi quay đi
-  const SKO = [["Hóng tí:", "Peeked:"], ["Liếc trộm:", "Snooped:"], ["Chả phải việc của na na, nhưng", "Not my job, but"], ["Ồ,", "Oh,"], ["Tò mò thôi nha:", "Just nosy:"]];
-  const SKE = [["Thôi kệ", "Whatever"], ["Nói vậy thôi", "Just saying"], ["Không liên quan", "Not my business"], ["Ngủ tiếp", "Back to sleep"], ["Hết hóng", "Done snooping"], ["Kệ anh", "Your call"]];
+  const SKO = [["Liếc trộm:", "Snooped:"], ["Ồ,", "Oh,"], ["Nhìn ké:", "Glanced:"], ["Này,", "Hey,"]];
+  const SKE = [["Nhớ đấy", "Remember that"], ["Nói một lần thôi", "Saying it once"], ["Đừng để na na nhắc lại", "Don't make me repeat it"], ["Kỷ luật vào", "Discipline"], ["Biết chưa", "Got it"]];
+  // hóng trang: 1 con số + 1 câu kéo anh về đúng đường (bớt tự đánh, đừng táy máy bot, đừng FOMO) – KHÔNG khen, KHÔNG khuyên mua / bán coin nào
   function skimText(F) {
     if (!F || F.err || (F.empty && !["portfolio", "bot", "paper", "c"].includes(F.r)) || (F.r === "c" && !F.k)) return null;
     const C = [], must = [], add = (vi, en, m) => (m ? must : C).push(L(vi, en));
     if (F.r === "portfolio") {
-      if (F.empty) return drag(L("Danh mục trống trơn, nhẹ đầu ghê", "Empty portfolio, how relaxing"));
-      add(`${fM(F.eq)} cả thảy, tưởng nhiều`, `${fM(F.eq)} total, thought it'd be more`);
-      if (F.pnlPct != null) F.pnlPct >= 0 ? add(`lời ${fP(F.pnlPct)}, chắc ăn may`, `up ${fP(F.pnlPct)}, probably luck`) : add(`lỗ ${fP(F.pnlPct)}, đoán trước rồi`, `down ${fP(F.pnlPct)}, saw that coming`);
-      if (F.top && F.top.w >= 35) add(`${F.top.k} ôm ${fNum(F.top.w, 0)}%, liều ghê`, `${F.top.k} is ${fNum(F.top.w, 0)}%, bold`);
-      if (F.best && F.best.g > 0) add(`${F.best.k} ${fP(F.best.g, 0)}, chọn trúng một con cũng giỏi`, `${F.best.k} ${fP(F.best.g, 0)}, you got one right, wow`);
-      if (F.worst && F.worst.g < 0) add(`${F.worst.k} ${fP(F.worst.g, 0)}, ờ`, `${F.worst.k} ${fP(F.worst.g, 0)}, yeah`);
-      if (F.lev > F.cap) add(`đòn bẩy x${fNum(F.lev, 1)}, quá mức rồi đó, biết chưa`, `leverage x${fNum(F.lev, 1)}, over the cap, hello`, 1);
+      if (F.empty) return drag(L("Danh mục trống, vậy cũng đỡ lỗ", "Empty portfolio, at least nothing to lose"));
+      add(`${fM(F.eq)} cả thảy, giữ cho kỹ, đừng tự đánh thêm`, `${fM(F.eq)} in total, guard it, stop adding manual trades`);
+      if (F.pnlPct != null) F.pnlPct >= 0 ? add(`lời ${fP(F.pnlPct)}, đừng vì thế mà nhồi thêm lệnh`, `up ${fP(F.pnlPct)}, don't use that as an excuse to pile on`) : add(`lỗ ${fP(F.pnlPct)}, đừng có gỡ, càng gỡ càng sâu`, `down ${fP(F.pnlPct)}, don't chase it back, it gets deeper`);
+      if (F.top && F.top.w >= 35) add(`${F.top.k} ôm ${fNum(F.top.w, 0)}%, dồn một chỗ, ngã là đau`, `${F.top.k} is ${fNum(F.top.w, 0)}%, all in one place, falls hurt`);
+      if (F.best && F.best.g > 0) add(`${F.best.k} ${fP(F.best.g, 0)}, trúng một lần đừng tưởng mình giỏi`, `${F.best.k} ${fP(F.best.g, 0)}, one hit doesn't make you good`);
+      if (F.worst && F.worst.g < 0) add(`${F.worst.k} ${fP(F.worst.g, 0)}, nhìn mãi nó cũng không lên đâu`, `${F.worst.k} ${fP(F.worst.g, 0)}, staring won't fix it`);
+      if (F.lev > F.cap) add(`đòn bẩy x${fNum(F.lev, 1)}, quá mức rồi, hạ xuống đi`, `leverage x${fNum(F.lev, 1)}, over the cap, bring it down`, 1);
     } else if (F.r === "bot") {
-      if (F.empty) return drag(L("Bot nghỉ hết rồi, giống na na", "All bots off, like me"));
-      if (F.pause) add("bot đang nghỉ, giống na na", "bot's paused, relatable", 1);
-      if (F.day != null) add(`bot ${fP(F.day, 2)} hôm nay, giỏi hơn anh`, `bot ${fP(F.day, 2)} today, better than you`);
-      if (F.ret != null) add(`từ đầu ${fP(F.ret)}, nhờ bot cả đấy`, `${fP(F.ret)} since start, all the bot's work`);
-      add(F.open ? `${F.open} lệnh đang treo` : "không lệnh nào, bot cũng lười giống anh", F.open ? `${F.open} trades hanging` : "nothing open, bot's lazy like you");
-      if (F.live && F.live.pnl != null) add(F.live.pnl >= 0 ? `tiền thật +${fM(F.live.pnl)} hôm nay, đủ mua pate cho na na` : `tiền thật -${fM(-F.live.pnl)} hôm nay, quen rồi`, F.live.pnl >= 0 ? `real money +${fM(F.live.pnl)} today, enough for my treats` : `real money -${fM(-F.live.pnl)} today, used to it`);
+      if (F.empty) return drag(L("Bot chưa chạy, đừng có tự đánh thay", "No bot running, don't trade by hand instead"));
+      if (F.pause) add("bot đang nghỉ, đừng tự đánh thay nó", "bot's paused, don't trade in its place", 1);
+      if (F.day != null) add(`bot ${fP(F.day, 2)} hôm nay, để yên nó làm, đừng thò tay`, `bot ${fP(F.day, 2)} today, let it work, hands off`);
+      if (F.ret != null) add(`từ đầu ${fP(F.ret)}, nhờ anh chưa phá đấy, giữ vậy`, `${fP(F.ret)} since start, because you haven't meddled, keep it that way`);
+      add(F.open ? `${F.open} lệnh bot đang treo, đừng có đóng tay` : "bot chưa vào lệnh, đừng sốt ruột mà tự đánh", F.open ? `${F.open} bot trades open, don't close them by hand` : "bot's waiting, don't get impatient and trade yourself");
+      if (F.live && F.live.pnl != null) add(F.live.pnl >= 0 ? `tiền thật +${fM(F.live.pnl)} hôm nay, đừng vui quá mà tăng vốn` : `tiền thật -${fM(-F.live.pnl)} hôm nay, đừng tắt bot vì một ngày`, F.live.pnl >= 0 ? `real money +${fM(F.live.pnl)} today, don't get happy and add capital` : `real money -${fM(-F.live.pnl)} today, don't kill the bot over one day`);
     } else if (F.r === "paper") {
-      if (F.empty) return drag(L("Sàn thử trống, chơi thử cũng ngại à", "Paper's empty, too scared even to pretend"));
-      add(`sàn thử ${fP(F.pnlPct, 1)}, tiền ảo mà cũng run`, `paper ${fP(F.pnlPct, 1)}, nervous with fake money`); add(F.open ? `${F.open} lệnh mở` : "chưa lệnh nào, sợ à", F.open ? `${F.open} open` : "nothing open, scared");
+      if (F.empty) return drag(L("Sàn thử trống, tập ở đây trước rồi hẵng tiền thật", "Paper's empty, practise here before real money"));
+      add(`sàn thử ${fP(F.pnlPct, 1)}, tập cho kỹ rồi hẵng tiền thật`, `paper ${fP(F.pnlPct, 1)}, practise properly before real money`); add(F.open ? `${F.open} lệnh mở, có cắt lỗ chưa` : "chưa lệnh nào, tập đi chứ", F.open ? `${F.open} open, stops set` : "nothing open, go practise");
     } else if (F.r === "c") {
-      if (F.empty) return drag(L(`${F.k} hả, không quen`, `${F.k}, never heard of it`));
-      if (F.r1 != null) add(`${F.k} ${fP(F.r1)} hôm nay, đừng có mừng`, `${F.k} ${fP(F.r1)} today, don't get excited`);
-      if (F.r30 != null) add(`một tháng ${fP(F.r30, 0)}, tạm`, `${fP(F.r30, 0)} this month, meh`);
-      if (F.tsc != null) add(`điểm kỹ thuật ${fNum(F.tsc, 0)}${F.trend === 1 ? ", đang lên" : F.trend === -1 ? ", đang xuống" : ""}, kệ nó`, `tech score ${fNum(F.tsc, 0)}${F.trend === 1 ? ", trending up" : F.trend === -1 ? ", trending down" : ""}, whatever`);
+      if (F.empty) return drag(L(`${F.k} hả, không quen, đừng nghe ai rủ`, `${F.k}, never heard of it, don't listen to shills`));
+      if (F.r1 != null) add(`${F.k} ${fP(F.r1)} hôm nay${F.r1 > 0 ? ", thấy xanh đừng nhảy vào" : ", đừng hoảng"}`, `${F.k} ${fP(F.r1)} today${F.r1 > 0 ? ", green isn't an invitation" : ", don't panic"}`);
+      if (F.r30 != null && F.r30 > 15) add(`một tháng ${fP(F.r30, 0)}, chạy rồi, đuổi theo là FOMO`, `${fP(F.r30, 0)} this month, already ran, chasing is FOMO`);
+      if (F.tsc != null) add(`điểm kỹ thuật ${fNum(F.tsc, 0)}, đọc cho biết thôi, không phải tín hiệu`, `tech score ${fNum(F.tsc, 0)}, for reading, not a signal`);
     } else if (F.r === "ideas") {
-      F.n ? add(`${F.n} kèo có lợi thế, chọn đi rồi na na cười`, `${F.n} setups with an edge, pick one and I'll laugh`) : add("chẳng có kèo nào, ngồi im giùm", "no setups, sit still for once");
+      F.n ? add(`${F.n} kèo có lợi thế, qua Lên lệnh mà tính, đừng bấm vội`, `${F.n} setups with an edge, run them through Plan, don't rush`) : add("chẳng có kèo nào, ngồi im, đừng tự chế kèo", "no setups, sit still, don't invent one");
     } else if (F.lightTxt) {
-      add(`đèn ${F.lightTxt}, đừng vội xông lên`, `light's ${F.light}, don't charge in`);
-      if (F.fng != null) add(`tâm lý ${fNum(F.fng, 0)}${F.fngZone ? `, ${F.fngZone.toLowerCase()}` : ""}, như anh`, `sentiment ${fNum(F.fng, 0)}, just like you`);
-      if (F.btc != null) add(`BTC ${fP(F.btc)}, vậy thôi`, `BTC ${fP(F.btc)}, that's it`);
-    } else if (F.title) return drag(L("Toàn chữ, na na không đọc đâu", "All words, not reading that"));
+      add(`đèn ${F.lightTxt}, ${F.light === "green" ? "xanh không có nghĩa là xông lên" : F.light === "red" ? "đỏ thì bớt đánh" : "vàng thì đánh nhỏ thôi"}`, `light's ${F.light}, ${F.light === "green" ? "green doesn't mean charge" : F.light === "red" ? "red means trade less" : "yellow means small size"}`);
+      if (F.fng != null && F.fng >= 60) add(`tâm lý ${fNum(F.fng, 0)}, tham lam, lúc này dễ FOMO nhất`, `sentiment ${fNum(F.fng, 0)}, greedy, peak FOMO season`);
+      if (F.btc != null && Math.abs(F.btc) >= 3) add(`BTC ${fP(F.btc)}, nhìn thôi, đừng đuổi`, `BTC ${fP(F.btc)}, watch, don't chase`);
+    } else if (F.title) return null;
     else return null;
-    const pk = must.slice(0, 1); const rest = C.slice().sort(() => Math.random() - 0.5);
-    while (pk.length < (Math.random() < 0.3 ? 2 : 1) && rest.length) pk.push(rest.shift());
+    const pk = must.length ? must.slice(0, 1) : [C[Math.floor(Math.random() * C.length)]].filter(Boolean);      // 1 ý thôi
     if (!pk.length) return null;
-    const o = Math.random() < 0.5 ? L(...oneOf(SKO)) + " " : "", e = Math.random() < 0.4 ? ". " + L(...oneOf(SKE)) : "";
-    let b = pk.join(", "); if (!o || /[:]\s$/.test(o)) b = /^[A-Z0-9$]{2,}\b/.test(b) ? b : b[0].toUpperCase() + b.slice(1);      // đầu câu viết hoa (trừ mã coin); sau "Ồ," / "nhưng" để thường
-    if ((o + b + e).length > 66 && pk.length > 1) b = /^[A-Z0-9$]{2,}\b/.test(pk[0]) || (o && !/[:]\s$/.test(o)) ? pk[0] : pk[0][0].toUpperCase() + pk[0].slice(1);      // dài quá → bớt 1 ý
+    const o = Math.random() < 0.35 ? L(...oneOf(SKO)) + " " : "", e = Math.random() < 0.25 && pk[0].length < 46 ? ". " + L(...oneOf(SKE)) : "";
+    let b = pk[0]; if (!o || /[:]\s$/.test(o)) b = /^[A-Z0-9$]{2,}\b/.test(b) ? b : b[0].toUpperCase() + b.slice(1);
     return drag(o + b + e);
   }
   async function skimTalk(force) {
@@ -733,8 +736,8 @@
     else if (/^#\/bot/.test(hs) && Math.random() < 0.4) k = "bot";
     else if ([0, 6].includes(new Date().getDay()) && Math.random() < 0.2) k = "weekend";
     else if (new Date().getDay() === 1 && h < 12 && !S.said.mon) { k = "monday"; S.said.mon = 1; }
-    if (!k && SKIMR.test(location.hash) && Math.random() < 0.3 && !(S.skimH === location.hash && now() - (S.skimAt || 0) < 4 * 60e3)) { S.nextTalk = now() + rnd(0.8, 1.8) * 60e3; skimTalk(); return; }
-    if (say(k ? pick(k) : pickGen())) { S.nextTalk = now() + rnd(0.8, 1.8) * 60e3; if (Math.random() < 0.18) meow(1); }
+    if (!k && SKIMR.test(location.hash) && Math.random() < 0.2 && !(S.skimH === location.hash && now() - (S.skimAt || 0) < 4 * 60e3)) { S.nextTalk = now() + rnd(2, 4) * 60e3; skimTalk(); return; }
+    if (say(k ? pick(k) : pickGen())) { S.nextTalk = now() + rnd(2, 4) * 60e3; if (Math.random() < 0.18) meow(1); }
   }
   // ---------------------------------------------------------------- 📣 THÔNG BÁO do na na nói: thay thẻ thông báo cũ khi na na đang hiện – giữ nguyên chức năng
   //   (nội dung, tiêu đề, bấm để mở trang / hành động, đóng, giữ tay để dừng đếm giờ), thêm 1 câu châm biếm + nhắc việc; nhiều thông báo → lần lượt
@@ -779,7 +782,7 @@
     if (S.pokes.length === 3) { say(pick("scratch"), 3000, 2); swipe(S.lastPx, S.lastPy); meow(1); sched(idle, 7000); return; }
     if (S.pokes.length >= 5) { S.pokes = []; say(pick("enough"), 2600, 2); const tr = track(); const away = () => walkTo(S.x - tr.l > tr.r - S.x ? tr.l : tr.r, () => { if (!groomV("gpaw")) { pose("groom"); sched(idle, 6000); } }); if (!annoyV(away)) away(); return; }
     if (!(Math.random() < 0.5 && (SITS.has(S.pose) ? groomV() : false))) { if (G2.every((n) => SHEET[n])) { if (!SITS.has(S.pose) && !STANDS.has(S.pose)) play("sit"); } else pose(["sit", "groom", "licklip", "lookup"][Math.floor(Math.random() * 4)]); }
-    if (SKIMR.test(location.hash) && Math.random() < 0.4 && now() - (S.skimAt || 0) > 20e3) skimTalk(true); else say(pick("poke"), 3000, 2);      // chạm mèo → hay đọc lướt trang giùm (lười, cho xong) if (Math.random() < 0.3) meow(1); sched(idle, 7000);
+    if (SKIMR.test(location.hash) && Math.random() < 0.2 && now() - (S.skimAt || 0) > 60e3) skimTalk(true); else say(pick("poke"), 3000, 2);      // chạm mèo → hay đọc lướt trang giùm (lười, cho xong) if (Math.random() < 0.3) meow(1); sched(idle, 7000);
   }
   // 🐾 cào: xù lên thủ thế + 3 vết cào ngay chỗ ngón tay
   function swipe(px, py) {
@@ -974,16 +977,16 @@
     place(fromL ? tr.l - 140 : tr.r + 140); S.el.style.opacity = "0";
     Promise.race([SHL.walk || ld, new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("nana_hi", 0)) { lsSet("nana_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 3 * 60e3; }
-      else S.nextTalk = now() + rnd(0.3, 0.8) * 60e3;
+      else S.nextTalk = now() + rnd(1, 2) * 60e3;
       S.nextMouse = now() + rnd(3, 6) * 60e3; S.nextStairs = now() + rnd(6, 12) * 60e3; S.nextMeow = now() + rnd(1, 3) * 60e3; S.nextToy = now() + rnd(1.5, 3.5) * 60e3;
       if (!groomV("gpaw")) { pose("groom"); sched(idle, 5000); } }); }));
     if (started) return; started = true;
     ["pointerdown", "keydown", "touchend"].forEach((ev) => addEventListener(ev, unlock, { passive: true, capture: true }));
     ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && napping() && !(S.napTill > now()) && !S.busy) { if (wakeV()) { if (S.cfg.talk !== "q" && Math.random() < 0.6) setTimeout(() => say(pick("wake"), 3200, 1), 1800); return; } play("stretch"); setTimeout(() => S.pose === "stretch" && play("sit"), 1500); sched(idle, 3500); } }, { passive: true, capture: true }));
     // đổi trang → bình luận theo trang (≈ 60% số lần, cách nhau ≥ 35 giây)
-    addEventListener("hashchange", () => { if (!S.el || S.cfg.talk === "q" || S.chasing || NT.cur || now() - (S.navAt || 0) < 35e3 || Math.random() > 0.6) return; S.navAt = now();
+    addEventListener("hashchange", () => { if (!S.el || S.cfg.talk === "q" || S.chasing || NT.cur || now() - (S.navAt || 0) < 3 * 60e3 || Math.random() > 0.2) return; S.navAt = now();      // đổi trang: lâu lâu mới nói (≥ 3 phút, 20%) – không phải trang nào cũng bình luận
       const h = location.hash, k = /^#\/bot/.test(h) ? "p_bot" : /portfolio/.test(h) ? "p_pf" : /plan|paper|live/.test(h) ? "p_trade" : /ideas|radar|coins|pairs|futures|sectors/.test(h) ? "p_opp" : /tax/.test(h) ? "p_tax" : /account|keys/.test(h) ? "p_acc" : /backtest|methods/.test(h) ? "p_journal" : "p_market";
-      if (SKIMR.test(h) && Math.random() < 0.65) setTimeout(() => skimTalk(), 1700); else setTimeout(() => say(pick(k), 4200, 1), 1100); });      // vào trang có số liệu → hay liếc qua tóm tắt
+      if (SKIMR.test(h) && Math.random() < 0.5) setTimeout(() => skimTalk(), 1700); else setTimeout(() => say(pick(k), 4200, 1), 1100); });      // vào trang có số liệu → hay liếc qua tóm tắt
     { let sc = 0, st = 0; addEventListener("scroll", () => { const t = now(); if (t - st > 1500) { st = t; sc = 0; } sc++; if (sc > 40 && S.el && S.cfg.talk !== "q" && t - (S.scAt || 0) > 4 * 60e3) { S.scAt = t; say(pick("scroll"), 3200, 1); } }, { passive: true, capture: true }); }
     document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 10 * 60e3 && S.cfg.talk !== "q") setTimeout(() => { say(pick("back"), 4000, 1); meow(1); }, 900); });
     setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (!S.away && !S.chasing && !ST.on && !napping() && !NT.cur && now() >= (S.nextTalk || 0)) talkMaybe();      // nói theo giờ, không chờ tới lượt nghĩ việc kế tiếp (động tác video dài → trước ít khi tới lượt nói)

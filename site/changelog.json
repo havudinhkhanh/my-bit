@@ -21,6 +21,14 @@
     {
      "c": "imp",
      "a": "mascot",
+     "t": "na na làm người gác cổng: ít nói, đanh đá, luôn kéo anh về kỷ luật",
+     "d": "na na không khen nữa: mỗi lần hóng trang chỉ 1 con số kèm 1 câu kéo về đúng đường – \"Lời +7,2%, đừng vì thế mà nhồi thêm lệnh\", \"Bot +0,98% hôm nay, để yên nó làm, đừng thò tay\", \"BTC +1,2% hôm nay, thấy xanh đừng nhảy vào\", \"Tâm lý 62, tham lam, lúc này dễ FOMO nhất\". Thêm câu nhắc: \"Bớt tự đánh đi, để bot làm\", \"Táy máy với bot, có ngày thua đấy\". Nói thưa hơn: 2–4 phút một câu, đổi trang chỉ thỉnh thoảng (≥ 3 phút, 1/5 số lần) mới bình luận. Bỏ kéo dài chữ cuối (hiếm lắm mới có, ~1/1000 câu). Mèo không còn đứng đè lên thanh cuộn bên phải, đi dạo tránh sát mép.",
+     "te": "na na as gatekeeper: talks less, sassy, always pulls you back to discipline",
+     "de": "No more praise: each page glance is one number plus one line pulling you back – \"Up +7.2%, don't use that as an excuse to pile on\", \"Bot +0.98% today, let it work, hands off\", \"BTC +1.2% today, green isn't an invitation\", \"Sentiment 62, greedy, peak FOMO season\". New reminders: \"Trade less by hand, let the bot work\", \"Keep fiddling with the bot, you'll lose one day\". Talks less: one line every 2–4 minutes, page changes only occasionally commented (≥ 3 min, 1 in 5). Dragged letters removed (~1 in 1000 lines). The cat no longer sits on the right scrollbar and strolls away from the edges."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
      "t": "na na đanh đá hơn: coi thường anh một chút, nói kéo dài chữ cuối",
      "d": "Viết lại toàn bộ câu nói của na na theo giọng đanh đá, hơi coi thường: \"Ít lệnh, coi cũng tạm đấyyy\", \"Gồng lỗ mà tưởng kiên nhẫn, dễ thương ghêee\", \"Thị trường lên thì ai chả giỏiii\". Câu nối bằng dấu phẩy cho tự nhiên, chữ cuối hay bị kéo dài. Phần hóng trang cũng vậy: \"Liếc trộm: Lời +7,2%, chắc ăn mayyy\", \"Bot +0,98% hôm nay, giỏi hơn anhhh\", \"Sàn thử chưa lệnh nào, sợ àaa\". Thông báo hệ thống giữ nguyên, không kéo chữ.",
      "te": "Sassier na na: a little condescending, drags out the last letters",
