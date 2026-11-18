@@ -595,7 +595,7 @@
     if (S.nextStairs && now() > S.nextStairs && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextStairs = now() + rnd(12, 25) * 60e3; if (stairs()) return; }
     if (S.nextMouse && now() > S.nextMouse && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextMouse = now() + rnd(8, 18) * 60e3; if (chase()) return; }
     if (S.nextToy && now() > S.nextToy && now() - S.act < 90e3) { S.nextToy = now() + rnd(4, 9) * 60e3; if (toy(["yarn", "post", "fly"][Math.floor(Math.random() * 3)])) return; }
-    if (now() - S.act > 80e3) { if (!napping() && !napV()) play("curl"); sched(idle, 4000); return; }
+    if (now() - S.act > 180e3) { if (!napping() && !napV()) play("curl"); sched(idle, 4000); return; }      // 3 phút không đụng tới mới ngủ (trước 80 giây – đang đọc trang là mèo ngủ, im re)
     talkMaybe(); if (meowMaybe()) return;
     const r = Math.random(), tr = track();
     const still = [["sit", 5, 10], ["lookup", 3, 6], ["loaf", 5, 9], ["groom", 3, 6], ["lickbody", 3, 5], ["licklip", 2, 3.5], ["lie", 5, 10], ["stretch", 2, 3]];
@@ -666,7 +666,7 @@
     else if (/^#\/bot/.test(hs) && Math.random() < 0.4) k = "bot";
     else if ([0, 6].includes(new Date().getDay()) && Math.random() < 0.2) k = "weekend";
     else if (new Date().getDay() === 1 && h < 12 && !S.said.mon) { k = "monday"; S.said.mon = 1; }
-    if (say(k ? pick(k) : pickGen())) { S.nextTalk = now() + rnd(1.2, 2.6) * 60e3; if (Math.random() < 0.18) meow(1); }
+    if (say(k ? pick(k) : pickGen())) { S.nextTalk = now() + rnd(0.8, 1.8) * 60e3; if (Math.random() < 0.18) meow(1); }
   }
   // ---------------------------------------------------------------- 📣 THÔNG BÁO do na na nói: thay thẻ thông báo cũ khi na na đang hiện – giữ nguyên chức năng
   //   (nội dung, tiêu đề, bấm để mở trang / hành động, đóng, giữ tay để dừng đếm giờ), thêm 1 câu châm biếm + nhắc việc; nhiều thông báo → lần lượt
@@ -900,23 +900,24 @@
   function start() {
     S.cfg = cfgOf(); if (!S.cfg.on) return stop();
     if (S.el) { if (A.R) cvDraw(A.R, A.sh, [], S.cfg.skin); return; }      // đổi bộ đồ: canvas vẽ bộ đồ mới ngay khung sau (S.cfg.skin)
-    build(); const ld = loadSheets(); const tr = track(); const fromL = Math.random() < 0.5;
+    build(); S.nextTalk = now() + 45e3; const ld = loadSheets(); const tr = track(); const fromL = Math.random() < 0.5;
     place(fromL ? tr.l - 140 : tr.r + 140); S.el.style.opacity = "0";
     Promise.race([SHL.walk || ld, new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("nana_hi", 0)) { lsSet("nana_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 3 * 60e3; }
-      else S.nextTalk = now() + rnd(0.5, 1.2) * 60e3;
+      else S.nextTalk = now() + rnd(0.3, 0.8) * 60e3;
       S.nextMouse = now() + rnd(3, 6) * 60e3; S.nextStairs = now() + rnd(6, 12) * 60e3; S.nextMeow = now() + rnd(1, 3) * 60e3; S.nextToy = now() + rnd(1.5, 3.5) * 60e3;
       if (!groomV("gpaw")) { pose("groom"); sched(idle, 5000); } }); }));
     if (started) return; started = true;
     ["pointerdown", "keydown", "touchend"].forEach((ev) => addEventListener(ev, unlock, { passive: true, capture: true }));
-    ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && napping() && !(S.napTill > now()) && !S.busy) { if (wakeV()) return; play("stretch"); setTimeout(() => S.pose === "stretch" && play("sit"), 1500); sched(idle, 3500); } }, { passive: true, capture: true }));
+    ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && napping() && !(S.napTill > now()) && !S.busy) { if (wakeV()) { if (S.cfg.talk !== "q" && Math.random() < 0.6) setTimeout(() => say(pick("wake"), 3200, 1), 1800); return; } play("stretch"); setTimeout(() => S.pose === "stretch" && play("sit"), 1500); sched(idle, 3500); } }, { passive: true, capture: true }));
     // đổi trang → bình luận theo trang (≈ 60% số lần, cách nhau ≥ 35 giây)
     addEventListener("hashchange", () => { if (!S.el || S.cfg.talk === "q" || S.chasing || NT.cur || now() - (S.navAt || 0) < 35e3 || Math.random() > 0.6) return; S.navAt = now();
       const h = location.hash, k = /^#\/bot/.test(h) ? "p_bot" : /portfolio/.test(h) ? "p_pf" : /plan|paper|live/.test(h) ? "p_trade" : /ideas|radar|coins|pairs|futures|sectors/.test(h) ? "p_opp" : /tax/.test(h) ? "p_tax" : /account|keys/.test(h) ? "p_acc" : /backtest|methods/.test(h) ? "p_journal" : "p_market";
       setTimeout(() => say(pick(k), 4200, 1), 1100); });
     { let sc = 0, st = 0; addEventListener("scroll", () => { const t = now(); if (t - st > 1500) { st = t; sc = 0; } sc++; if (sc > 40 && S.el && S.cfg.talk !== "q" && t - (S.scAt || 0) > 4 * 60e3) { S.scAt = t; say(pick("scroll"), 3200, 1); } }, { passive: true, capture: true }); }
     document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 10 * 60e3 && S.cfg.talk !== "q") setTimeout(() => { say(pick("back"), 4000, 1); meow(1); }, 900); });
-    setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (S.napTill && S.napTill < now()) { S.napTill = 0; if (!wakeV()) { play("stretch"); sched(idle, 3000); } } stalkTick(); }, 400);
+    setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (!S.away && !S.chasing && !ST.on && !napping() && !NT.cur && now() >= (S.nextTalk || 0)) talkMaybe();      // nói theo giờ, không chờ tới lượt nghĩ việc kế tiếp (động tác video dài → trước ít khi tới lượt nói)
+      if (S.napTill && S.napTill < now()) { S.napTill = 0; if (!wakeV()) { play("stretch"); sched(idle, 3000); } } stalkTick(); }, 400);
     addEventListener("pointermove", stalkMove, { passive: true });
     addEventListener("resize", () => { if (!S.el) return; S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); });
     // 📣 thông báo của app: khi na na đang hiện → na na nói (bóng thoại); không thì thẻ thông báo cũ

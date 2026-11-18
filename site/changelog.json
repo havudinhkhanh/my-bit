@@ -118,6 +118,14 @@
      "d": "Trên màn cảm ứng không còn nút ☰ Bảng phụ nổi che nội dung; vuốt từ mép phải màn hình vào để mở. Lần đầu vào trang có Bảng phụ sẽ có nhắc cách vuốt. Máy tính dùng chuột vẫn giữ nút.",
      "te": "Phones: floating \"Side panel\" button removed, swipe in from the right edge",
      "de": "On touch screens the floating ☰ Side panel button no longer covers content; swipe in from the right edge to open it. A one-time hint shows how. Mouse users on desktop keep the button."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "na na nói nhiều hơn, ít ngủ gật hơn",
+     "d": "Trước: na na chỉ nói khi tới lượt nghĩ việc kế tiếp – từ khi có động tác video dài (liếm, nằm, vươn vai…) lượt đó thưa hẳn; lại ngủ sau 80 giây anh không chạm / cuộn trang (đang đọc là ngủ, mà ngủ thì im). Giờ na na nói theo giờ riêng, khoảng 1–2 phút một câu (trước 1,2–2,6 phút), 3 phút không đụng tới mới ngủ, bị đánh thức thì càu nhàu. Muốn yên tĩnh: giữ lâu vào mèo → Ít nói thôi.",
+     "te": "na na talks more and dozes off less",
+     "de": "Before: na na only spoke when deciding her next move – with the long video moves (grooming, lying, stretching…) that came much less often; and she fell asleep after 80 s without a tap or scroll (reading = asleep = silent). Now she speaks on her own timer, roughly every 1–2 minutes (was 1.2–2.6), only naps after 3 minutes untouched, and grumbles when woken. Want quiet: long-press the cat → Talk less."
     }
    ]
   },
