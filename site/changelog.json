@@ -74,10 +74,10 @@
     {
      "c": "fix",
      "a": "mascot",
-     "t": "Mèo hết phập phồng: hiện đúng từng khung video, dáng ngồi mới nhìn nghiêng",
-     "d": "Trước đây giữa 2 khung video trang tự nắn hình chuyển tiếp – cách nắn làm tai, chân, đuôi co lại rồi nhọn lại 24 lần mỗi giây nên viền mèo phập phồng, nhấp nháy. Giờ mèo hiện đúng từng khung của video (24 hình/giây vốn đã mượt) và chỉ vẽ lại khi sang khung mới: mép lóe giảm khoảng 4 lần, máy nhẹ hơn. Dáng ngồi yên dùng video mới, mèo nhìn nghiêng hẳn, chỉ vẫy đuôi.",
-     "te": "No more pulsing: real video frames shown as-is, new side-profile sitting pose",
-     "de": "The page used to blend shapes between two video frames, which made ears, paws and tail shrink and sharpen again 24 times a second, so the outline pulsed and flickered. The cat now shows each real video frame (24 fps is already smooth) and only redraws when the frame changes: edge flicker is about 4× lower and the page is lighter. The sitting pose uses a new video in strict side profile with just the tail swaying."
+     "t": "Mèo hết phập phồng, chuyển động mượt theo tần số màn hình, dáng ngồi & vồ mới",
+     "d": "Trước đây hình chuyển tiếp giữa 2 khung video ghép điểm viền lệch chỗ nên tai, chân, đuôi co lại rồi nhọn lại 24 lần mỗi giây – viền phập phồng, nhấp nháy. Giờ viền mỗi khung được chia điểm cách đều nên hình chuyển tiếp giữ nguyên dáng (hụt dưới 1% thay vì 5–10%), mèo chuyển động mượt theo tần số màn hình (60/120 hình/giây) thay vì 24, mép lóe giảm khoảng 4 lần. Dáng ngồi yên dùng video mới nhìn nghiêng hẳn; cú vồ dùng video mới không còn cụt tai ở mép trên.",
+     "te": "No more pulsing, motion as smooth as your screen, new sitting & pounce clips",
+     "de": "In-between shapes used to pair outline points in the wrong places, so ears, paws and tail shrank and sharpened again 24 times a second – the outline pulsed and flickered. Outlines are now evenly resampled so in-betweens keep their shape (under 1% shrink instead of 5–10%), the cat moves at your screen's refresh rate (60/120 fps) instead of 24, and edge flicker is about 4× lower. The sitting pose uses a new strict side-profile video, and the pounce uses a new video whose ears no longer get cut off at the top."
     }
    ]
   },

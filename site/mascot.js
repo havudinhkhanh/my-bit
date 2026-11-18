@@ -34,7 +34,7 @@
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
-      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) P.pe = d.es || [10, 12]; return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
+      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); } return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
       F.T = T; F.W = d.w; F.pe = d.pe; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
       if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
@@ -51,6 +51,12 @@
   let HZ = 60; const DTS = [];      // tần số màn hình đo được
   function mk(t, p) { let cx = 0, cy = 0, ar = 0; const n = p.length / 2; for (let i = 0; i < n; i++) { cx += p[2 * i]; cy += p[2 * i + 1]; const j = (i + 1) % n; ar += p[2 * i] * p[2 * j + 1] - p[2 * j] * p[2 * i + 1]; } return { t, p, n, cx: cx / n, cy: cy / n, ar: Math.abs(ar / 2) }; }
   // ================================================================ biến hình: ghép đa giác cùng loại gần nhau, dàn đều số điểm, chọn điểm đầu khớp nhất; đa giác lẻ thì thu / nở từ tâm
+  // chia lại viền theo ĐỘ DÀI (điểm cách đều ~3 đơn vị): viền từ video có điểm thưa chỗ thẳng, dày chỗ cong, mỗi khung một kiểu → khớp điểm theo thứ tự
+  //  giữa 2 khung bị lệch → lúc nắn tai / chân co lại. Cách đều thì điểm thứ i của 2 khung nằm cùng chỗ trên thân → nắn giữa 2 khung giữ nguyên dáng
+  const arcRes = (p, sp = 3) => { const n = p.length / 2, L = [0]; for (let i = 0; i < n; i++) { const j = (i + 1) % n; L.push(L[i] + Math.hypot(p[2 * j] - p[2 * i], p[2 * j + 1] - p[2 * i + 1])); }
+    const tot = L[n], m = Math.max(12, Math.round(tot / sp)), o = new Float32Array(m * 2); let k = 0;
+    for (let i = 0; i < m; i++) { const d = (i * tot) / m; while (L[k + 1] < d) k++; const j = (k + 1) % n, u = (d - L[k]) / (L[k + 1] - L[k] || 1); o[2 * i] = p[2 * k] + (p[2 * j] - p[2 * k]) * u; o[2 * i + 1] = p[2 * k + 1] + (p[2 * j + 1] - p[2 * k + 1]) * u; }
+    return o; };
   const resamp = (a, n) => { if (a.n === n) return a.p; const o = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const f = (i * a.n) / n, j = Math.floor(f), u = f - j, k = (j + 1) % a.n; o[2 * i] = a.p[2 * j] + (a.p[2 * k] - a.p[2 * j]) * u; o[2 * i + 1] = a.p[2 * j + 1] + (a.p[2 * k + 1] - a.p[2 * j + 1]) * u; } return o; };
   function align(a, b) {      // b (đã cùng số điểm với a) → xoay vòng điểm đầu cho khớp a nhất (so sau khi đưa 2 hình về cùng tâm)
     const n = a.n, A = a.p, step = n > 60 ? 2 : 1; let best = 0, bd = Infinity, bx = 0, by = 0;
@@ -290,7 +296,7 @@
     // nhóm 3 · ready: dáng khom chờ vồ (đoạn đầu clip vồ, phát tới–lui = ngoáy mông) · pounceF: vồ ngay từ lúc khom (bỏ đoạn rình lâu) · on: [khung, việc] làm đúng lúc (tiếng meo khi há miệng)
     vroll: { sheet: "vroll", fps: 24 }, vstalk: { sheet: "vstalk", loop: 1, fps: 24, upf: 0 },
     vmeow: { sheet: "vmeow", fps: 24, on: [62, () => meow(1)] }, vannoy: { sheet: "vannoy", fps: 24 },
-    pounce: { sheet: "vpounce", fps: 24 }, pounceF: { sheet: "vpounce", a: 44, fps: 24 }, ready: { sheet: "vpounce", a: 22, b: 54, yo: 1, fps: 14, na: 1 },
+    pounce: { sheet: "vpounce", fps: 24 }, pounceF: { sheet: "vpounce", a: 46, fps: 24 }, ready: { sheet: "vpounce", a: 20, b: 46, yo: 1, fps: 14, na: 1 },      // bảng cắt ở khung 92 (vừa đáp đất) – sau đó máy quay lia theo, chân sẽ trượt
   });
   CLIP.walk = { sheet: "vwalk", loop: 1, fps: 24, upf: 0, fb: CLIP.walk0 }; CLIP.run0 = CLIP.run; CLIP.run = { sheet: "vrun", loop: 1, fps: 24, upf: 0, fb: CLIP.run0 };
   const A = { sh: POSE.sit, snap: null, map: null, t0: 0, dur: 1, clip: CLIP.sit, name: "sit", ct: 0, ph: 0, v: 0, ty: 0, rot: 0, last: 0, on: false, R: null };
@@ -317,9 +323,9 @@
       A.ph = c.loop ? (A.ph + dt * rate) % span : c.yo ? (A.ph + dt * rate) % (2 * span) : Math.min(span, A.ph + dt * rate);
       const [i, j, u] = sheetAt(c, phq(c, A.ph, span)); A.fi = [i, j, u];
       if (c.mv && i >= c.mv[0] && i < c.mv[1] && !A.snap) place(S.x + S.face * c.mv[2] * U2P() * dt);
-      // 🎬 bảng từ VIDEO: hiện đúng khung gần nhất, KHÔNG nắn hình giữa 2 khung – nắn giữa 2 khung video làm tai, chân, đuôi co lại ở giữa
-      //    rồi nhọn lại ở khung sau (đo: chu vi hụt 5–10% mỗi nhịp) → hình "phập phồng" 24 lần / giây = nhấp nháy. Video 24 hình/giây vốn đã mượt.
-      if (F.pe) { const k = u < 0.5 ? i : j; A.fi = [k, k, 0]; return F[k]; }
+      // 🎬 bảng từ VIDEO: nắn hình giữa 2 khung → mượt theo tần số màn hình (60 / 120 hình/giây) thay vì 24. Viền đã chia điểm cách đều (arcRes)
+      //    nên điểm khớp đúng chỗ – trước khớp lệch làm tai, chân co lại giữa 2 khung (chu vi hụt 5–10%) → phập phồng; giờ hụt < 1%
+      A.fi = [i, j, u];
       if (i === j || u < 0.004) return F[i];
       const hard = F.hard.has(i) || j < i;
       if (hard && mapOf(F[i], F[j]).cost > 0.5) { A.gx = [F[i], Math.min(1, (1 - u) * 2), Math.min(1, u * 2)]; return F[j]; }      // 2 khung khác hẳn (cuộn tròn → bật dậy) → hoà tan
@@ -539,7 +545,7 @@
       setTimeout(() => { el.style.transform += " scaleY(0)"; setTimeout(() => el.remove(), 500); S.busy = false; play("stretch"); setTimeout(() => play("sit"), 1600); sched(idle, rnd(5e3, 8e3)); }, rnd(4200, 5600));
     } else if (kind === "fly" && hasV("pounceF", "ready", "s2st") && !LIES.has(S.pose) && !NAPS.has(S.pose)) {      // 🦋 bướm: đứng dậy (nếu đang ngồi) → khom ngoáy mông → vồ, bướm bay tới đúng chỗ chân vươn cao nhất
       const sz = 62 * u, el = prop("fly", sz, sz), caught = Math.random() < 0.5, t0 = performance.now(); let done = false; S.busy = false;
-      const prep = SITS.has(S.pose) ? 360 + (84 / 24) * 1000 : 0, wait = rnd(900, 1500), peak = prep + wait + 360 + ((86 - 44) / 24) * 1000;
+      const prep = SITS.has(S.pose) ? 360 + (84 / 24) * 1000 : 0, wait = rnd(900, 1500), peak = prep + wait + 360 + ((68 - 46) / 24) * 1000;
       act(SITS.has(S.pose) ? ["s2st"] : [], "ready", () => { const tk = S.walkTk; setTimeout(() => { if (tk === S.walkTk) act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 360); }, wait); }, 420);
       say(pick("fly"), 2600, 1); el.style.bottom = "0px";
       const tx = () => catCX() + d * 185 * u, ty0 = tr.b + 255 * u;      // chỗ 2 chân trước vươn tới lúc vồ cao nhất (đo từ video)
@@ -758,7 +764,7 @@
     let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
     const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
-        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (88 - 44) / 24 * 1000); return; }
+        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (84 - 46) / 24 * 1000); return; }
       if (caught) { m.classList.add("poof"); sitDown("licklip"); setTimeout(() => { say(pick("catch"), 3600, 2); meow(1); }, 200); setTimeout(() => { if (S.pose === "licklip") play("sit"); }, 2600); }
       else { sitDown("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
