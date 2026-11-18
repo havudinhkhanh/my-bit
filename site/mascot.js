@@ -1099,16 +1099,17 @@
         const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4), moving = S.pose === "walk" || S.pose === "run", QT = hasV("turnQ");
         // chuột chạy ra SAU lưng → phanh lại, đứng quay đầu bằng clip thật rồi mới đuổi tiếp (trước: lật hình giữa lúc chạy)
         if (QT && Math.abs(tv) > 35 && Math.sign(tv) !== S.face) {
-          if (moving && Math.abs(v) > 15) { v += Math.max(-1000 * dt, Math.min(1000 * dt, -v)); cx = Math.max(tr.l, Math.min(tr.r, cx + v * dt * (A.snap ? 0 : 1))); }
+          if (moving && Math.abs(v) > 15) { v += Math.max(-1000 * dt, Math.min(1000 * dt, -v)); if (!A.snap) cx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); }
           else { v = 0; A.v = 0; place(cx); turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq(["turnQ"], () => { turning = false; cx = S.x; }, tk); }
         }
         // chỉ dời mèo khi đang ĐI / CHẠY (chân bước theo tốc độ) – trước: đang khom chờ mà vẫn dời chậm → mèo cúi người trượt tới, chân không bước
-        else if (!moving && Math.abs(tv) > 35) { if (!QT) face(tv > 0 ? 1 : -1); play("walk", 260, true); }
+        else if (!moving && Math.abs(tv) > 35) { if (!((tv < 0 && cx <= tr.l + 1) || (tv > 0 && cx >= tr.r - 1))) { if (!QT) face(tv > 0 ? 1 : -1); play("walk", 260, true); } }      // chạm mép sân → đứng nhìn theo, không bước tại chỗ
         else if (moving) {
           v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
           if (Math.abs(v) < 12 && Math.abs(tv) < 12) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); }
-          else { if (!QT && Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260, true);
-            const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt * (A.snap ? 0 : 1))); if (nx === cx) v = 0; cx = nx; }      // đang nắn sang dáng đi (chân chưa bước) → dời chậm lại
+          else { if (!QT && Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = S.pose === "run" ? (Math.abs(v) < 85 ? "walk" : "run") : Math.abs(v) > 135 ? "run" : "walk"; if (S.pose !== want) play(want, 260, true);      // đi ↔ chạy có khoảng đệm, không đổi qua lại liên tục
+            // đang nắn sang dáng mới (chân chưa bước) → đứng chờ nhưng GIỮ đà; trước: đà về 0 mỗi lần nắn → chạy→đi→chạy liên tục, mèo khựng khựng gần như đứng yên
+            if (!A.snap) { const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (nx === cx && v) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); } cx = nx; } }      // đang nắn sang dáng đi (chân chưa bước) → dời chậm lại
         }
         if (!turning) { A.v = Math.abs(v); place(cx); }
       }

@@ -266,6 +266,14 @@
      "d": "Vài chỗ na vẫn lật ngược hình thay vì quay người: đuổi chuột (chuột chạy ra sau lưng), bắt đầu đi khi đang ở dáng cũ (nhìn lên, liếm môi, thủ thế), leo cầu thang, vồ đồ vật, nhảy lên menu, bị thảy. Giờ na phanh lại, quay người bằng động tác thật từ video rồi mới đi tiếp; leo cầu thang ưu tiên phía đang nhìn, trên chiếu nghỉ quay người rồi mới xuống.",
      "te": "The cat really turns around instead of flipping",
      "de": "In a few places na still mirrored instantly instead of turning: chasing the mouse when it ran behind her, starting a walk from an old pose (looking up, lip-licking, crouching), climbing stairs, pouncing on things, jumping onto the menu, being tossed. Now na brakes and turns with the real video motion before moving on; stairs go up on the side she's facing and she turns on the landing before coming down."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Đuổi chuột: na chạy một mạch, hết khựng khựng",
+     "d": "Lỗi: mỗi lần na đổi từ đi sang chạy (hoặc ngược lại), đà chạy bị đặt về 0 trong lúc đổi dáng → na lại đi chậm → lại đổi sang chạy… cứ 0,4 giây khựng một lần, gần như đứng tại chỗ. Giờ na giữ đà, đổi đi ↔ chạy có khoảng đệm nên chạy liền một mạch; chạm mép sân thì đứng thủ thế nhìn theo thay vì bước tại chỗ.",
+     "te": "Mouse chase: na runs smoothly, no more stop-start",
+     "de": "Bug: every switch between walking and running reset na's speed to zero during the pose change, so she slowed to a walk, switched back to a run, and so on – a hitch every 0.4 s, barely moving. Now she keeps her momentum and walk ↔ run has a buffer, so she runs in one go; at the edge of her area she crouches and watches instead of stepping in place."
     }
    ]
   },
