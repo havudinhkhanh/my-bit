@@ -282,6 +282,55 @@
      "d": "Khung vẽ của na chỉ đủ cao cho mèo đứng, nên khi bị thảy lộn ngược hay lủng lẳng nghiêng, phần đầu hoặc thân vượt ra ngoài khung và bị cắt mất. Giờ lúc xoay na dùng khung cao hơn cả trên lẫn dưới, lộn quanh giữa thân (không văng vòng rộng); thôi xoay thì về khung thường cho nhẹ máy.",
      "te": "Mid-air flips no longer cut off the head or body",
      "de": "na's drawing box was only tall enough for a standing cat, so when tossed upside down or swinging sideways her head or body went outside it and got cut off. Now while rotating she uses a taller box above and below and flips around her middle; once she stops she goes back to the normal box to stay light."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "hi": 1,
+     "t": "Tia laser cho na (máy tính)",
+     "d": "Giữ lâu vào mèo → 🔴 Tia laser: chấm đỏ đi theo con chuột, na phóng tới (chạy nước rút), khom rình rồi vồ – và không bao giờ bắt được (na chối là cố tình trượt). Chấm ở sau lưng thì na quay người lại. Bấm chuột, Esc hoặc sau 60 giây là tắt.",
+     "te": "Laser pointer for na (desktop)",
+     "de": "Long-press the cat → 🔴 Laser pointer: a red dot follows your mouse, na sprints over, crouches and pounces – and never catches it (she claims she missed on purpose). If the dot is behind her she turns around. Click, Esc or 60 seconds turns it off."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Thả na lên dòng coin, biểu đồ hay đường cắt lỗ",
+     "d": "Nhấc na lên rồi thả nhẹ trên một dòng coin hoặc thẻ lệnh: na đậu xuống, ngửi ngửi rồi buông một câu bâng quơ (không bao giờ khuyên mua / bán). Thả lên biểu đồ: na ngồi xem một lúc. Thả ngay trên đường cắt lỗ của biểu đồ: na ngồi lì canh (\"Cắt lỗ đặt rồi thì để yên\"). Cuộn trang là na nhảy xuống.",
+     "te": "Drop na on a coin row, a chart or the stop-loss line",
+     "de": "Lift na and gently drop her on a coin row or order card: she lands, sniffs and drops a throwaway line (never buy/sell advice). On a chart she sits and watches for a while. Right on a chart's stop-loss line she sits there stubbornly (\"Stop is set. Leave it\"). Scroll and she hops down."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Bot có tin → na chạy tới vồ cái chuông",
+     "d": "Khi có thông báo mới của bot (khớp / đóng lệnh), na chạy nước rút về phía cái chuông, khom rồi vồ lên – chuông lắc, na meo một tiếng và báo một câu. Tối đa 90 giây một lần; na đang bận thì chỉ lắc chuông.",
+     "te": "Bot news → na runs and pounces at the bell",
+     "de": "When the bot sends a new notification (fill / close), na sprints toward the bell, crouches and leaps at it – the bell wobbles, she meows and says a line. At most once every 90 seconds; if she's busy only the bell wobbles."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Điện thoại: cuộn mạnh là na chao người",
+     "d": "Vuốt cuộn trang thật mạnh: na nghiêng theo đà, bám chân xuống rồi lắc lư tắt dần như đứng trên xe; cuộn quá tay thì càu nhàu (\"Từ từ thôi, say xe đấy\").",
+     "te": "Phones: scroll hard and na sways",
+     "de": "Fling the page and na tilts with the momentum, digs in her paws and wobbles back like she's standing on a bus; overdo it and she grumbles (\"Easy, I'm getting carsick\")."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Vuốt đúng chiều: na nheo mắt chậm và rừ rừ",
+     "d": "Vuốt lông xuôi chiều: na nằm xuống, nheo mắt thật chậm (kiểu mèo tỏ ý tin người), kèm tiếng rừ rừ trầm theo nhịp thở khi máy bật loa; điện thoại rung nhẹ theo nhịp.",
+     "te": "Pet her the right way: slow blink and purr",
+     "de": "Stroke along the fur: na lies down and does a slow blink (a cat's sign of trust), with a low purr that follows her breathing when sound is on; phones buzz gently in rhythm."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mèo không còn trượt ngang lúc đang quay đầu; không đứng đè nút Bảng phụ",
+     "d": "Lượt đi cũ vẫn dời mèo trong lúc mèo bắt đầu quay đầu sang lượt đi mới → trượt ngang. Giờ dừng hẳn rồi mới quay. Máy tính: mèo không đi vào chỗ nút nổi Bảng phụ ở góc phải dưới nữa.",
+     "te": "No more sliding sideways while turning; no standing on the Side panel button",
+     "de": "The previous walk kept moving the cat while she started turning for a new one, so she slid sideways. Now she stops first. Desktop: she no longer walks into the floating Side panel button at the bottom right."
     }
    ]
   },

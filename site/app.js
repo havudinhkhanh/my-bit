@@ -6946,7 +6946,7 @@ async function bellCount(o = {}) {      // o.quiet: thông báo hệ thống đ�
     if (__bellN > n0 || __bellTop == null) {
       const L = (await api("notifications?limit=6").catch(() => ({ items: [] }))).items || [];
       const top = Math.max(0, ...L.map((x) => x.id));
-      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at && !__bellSeen.has(x.id)); nw.forEach((x) => __bellSeen.add(x.id)); if (nw.length && !run.quiet) ntBanner(nw); }
+      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at && !__bellSeen.has(x.id)); nw.forEach((x) => __bellSeen.add(x.id)); if (nw.length && !run.quiet) ntBanner(nw); if (nw.length) try { window.MUN?.onBell?.(nw); } catch (e) { /* bỏ qua */ } }
       __bellTop = Math.max(__bellTop || 0, top);
     }
   } catch (e) { /* bỏ qua */ } finally { __bellBusy = null; } })();
