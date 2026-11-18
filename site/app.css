@@ -6557,3 +6557,6 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .sc-env.gseg{overflow:hidden;isolation:isolate}
 /* biểu đồ: không bôi đen chữ / kéo-thả gốc (liên kết logo…) khi bấm giữ để kéo – tránh biểu đồ "dính" chạy theo chuột sau khi nhả */
 .tv-lightweight-charts,.tv-lightweight-charts *{-webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+
+/* màn cảm ứng ≤ 1179px: bỏ nút nổi "☰ Bảng phụ" – mở bằng vuốt từ mép phải (swipePanel); máy tính cửa sổ hẹp (chuột) vẫn giữ nút */
+@media (max-width:1179px) and (hover:none) and (pointer:coarse){body.pn-has .pnfab,body.pn-mini .pnfab,.pnfab{display:none!important}}

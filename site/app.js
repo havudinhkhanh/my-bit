@@ -1798,6 +1798,8 @@ function pnCheck(force) {
   document.body.classList.toggle("pn-mini", mini);
   nav.hidden = !on;
   if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
+  // màn cảm ứng: bỏ nút nổi "Bảng phụ" (vuốt từ mép phải để mở) → nhắc cách vuốt 1 lần duy nhất
+  if (matchMedia("(max-width:1179px) and (hover:none) and (pointer:coarse)").matches && !lsGet("pn_swipe_hint", 0)) { lsSet("pn_swipe_hint", 1); setTimeout(() => toast(T("Vuốt từ mép phải màn hình vào để mở Bảng phụ")), 1800); }
   pnTocBadge(named.length);
   const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
   const nr = its.reduce((n, p) => n + pnRows(p).length, 0);

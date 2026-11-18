@@ -110,6 +110,14 @@
      "d": "Trước: con trỏ ở sát mèo thì mèo tính đích lùi lại nên quay đầu bỏ đi như né chuột; chuột di chuyển thì cứ 0,65 giây mèo dừng, nắn dáng, bước lại (đích gần thì khung mèo nhảy cóc tới) → giật giật. Giờ: mèo chỉ rình khi chuột ở gần (không phản ứng khi anh dùng trang ở xa), sát con mồi thì đứng yên chờ vồ, chuột đổi chỗ thì mèo đổi đích ngay trong lúc đang bước (không dừng lại), chuột vòng ra sau thì chờ 1,2 giây chắc chắn mới quay đầu; không còn cảnh khung mèo nhảy tới.",
      "te": "Moving the mouse near the cat: smooth stalking, no dodging, no stutter",
      "de": "Before: with the pointer right next to her, the cat computed a target behind her and turned away as if dodging; while the mouse moved she stopped, re-blended and stepped again every 0.65 s (and jumped forward on short targets) – stuttering. Now she only stalks when the pointer is near (no reaction while you use the page far away), waits in place when already close to the prey, retargets mid-stride without stopping, waits 1.2 s before turning around when the pointer goes behind her, and never jumps forward."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Điện thoại: bỏ nút nổi \"Bảng phụ\", mở bằng vuốt từ mép phải",
+     "d": "Trên màn cảm ứng không còn nút ☰ Bảng phụ nổi che nội dung; vuốt từ mép phải màn hình vào để mở. Lần đầu vào trang có Bảng phụ sẽ có nhắc cách vuốt. Máy tính dùng chuột vẫn giữ nút.",
+     "te": "Phones: floating \"Side panel\" button removed, swipe in from the right edge",
+     "de": "On touch screens the floating ☰ Side panel button no longer covers content; swipe in from the right edge to open it. A one-time hint shows how. Mouse users on desktop keep the button."
     }
    ]
   },
