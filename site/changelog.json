@@ -2,6 +2,32 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.18",
+   "d": "2026-11-18",
+   "t": "Mèo na na nhẹ máy hơn 3 lần",
+   "te": "Na na the cat, 3× lighter",
+   "s": "Mèo vẽ bằng canvas thay cho SVG, nhịp vẽ theo việc mèo đang làm; thêm chớp mắt và bóng dưới chân.",
+   "se": "Canvas rendering instead of SVG, activity-based frame rate; blinking and a ground shadow.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Mèo na na nhẹ máy hơn ~3 lần",
+     "te": "Na na uses ~3× less CPU",
+     "d": "Trước: mỗi khung hình trình duyệt dựng lại hình SVG + bóng đổ (điện thoại chậm: ~35% sức máy chỉ vì mèo). Giờ vẽ bằng canvas, bóng tự vẽ, nhịp vẽ theo việc mèo đang làm (đi: 60/giây, động tác tại chỗ: 30, ngồi: 15). Cuộn trang ít khung giật hơn ~3 lần.",
+     "de": "Canvas instead of per-frame SVG re-raster; activity-based frame rate.",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Mèo chớp mắt & có bóng dưới chân",
+     "te": "The cat blinks and casts a ground shadow",
+     "d": "Chớp mắt tự nhiên vài giây một lần (thỉnh thoảng chớp đôi); bóng mềm dưới chân, nhảy lên thì bóng nhỏ & nhạt đi."
+    }
+   ]
+  },
+  {
    "v": "2026.11.17",
    "d": "2026-11-17",
    "t": "Lệnh ngay trên biểu đồ & báo kết quả từng lệnh",

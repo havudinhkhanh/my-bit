@@ -111,6 +111,55 @@
     if (e) { R.eyeb.setAttribute("cx", f1(e[0])); R.eyeb.setAttribute("cy", f1(e[1])); R.eyeb.style.opacity = k; } else R.eyeb.style.opacity = 0;
     if (R.acc) { const hasHat = sh.polys.some((q) => q.t === 2); if (e && !hasHat) { R.acc.setAttribute("transform", `translate(${f1(e[0] - (skin === "fedora" ? 8 : 0))} ${f1(e[1] - (skin === "fedora" ? 16 : 0))})`); R.acc.style.opacity = k; } else R.acc.style.opacity = 0; }
   }
+  // ================================================================ VẼ BẰNG CANVAS (mèo đang chạy trên trang)
+  //  Trước: mỗi khung hình đổi đường viền SVG + bóng đổ CSS (drop-shadow) → trình duyệt dựng lại & lọc cả hình mỗi khung: ~35% sức máy điện thoại lúc đứng yên.
+  //  Giờ: 1 canvas, mỗi khung tô lại đúng hình (cùng dữ liệu, cùng khung Jason duyệt), bóng / viền sáng tự vẽ (không dùng bộ lọc) → nhẹ hơn nhiều, khung hình đều hơn.
+  //  Hình xem trước (chọn bộ đồ, vườn) vẫn là SVG tĩnh ở trên.
+  const ACCD = {
+    fedora: (g, gold) => { const P = (pts) => { g.beginPath(); for (let i = 0; i < pts.length; i += 2) g[i ? "lineTo" : "moveTo"](pts[i], pts[i + 1]); g.closePath(); };
+      g.lineJoin = "round"; g.lineWidth = 0.8; g.strokeStyle = "#5a5e66"; g.fillStyle = "#141417";
+      P([-30, -4, 30, -12, 33, -7, -27, 2]); g.fill(); g.stroke(); P([-20, -6, -17, -30, -3, -34, 4, -30, 19, -32, 22, -11]); g.fill(); g.stroke();
+      g.fillStyle = gold; P([-19.5, -10, 21.5, -15.5, 21, -20, -18.5, -14.5]); g.fill(); },
+    shades: (g) => { g.lineJoin = "round"; g.strokeStyle = "#d5d9e0"; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-24, -2); g.stroke();
+      g.beginPath(); [[-8, -4], [14, -6], [13, 4], [2, 6], [-7, 2]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y)); g.closePath(); g.fillStyle = "#232731"; g.fill(); g.lineWidth = 1.1; g.stroke();
+      g.globalAlpha *= 0.5; g.strokeStyle = "#fff"; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 3); g.lineTo(2, -4); g.moveTo(4, 4); g.lineTo(8, -4); g.stroke(); },
+  };
+  const cvBind = (cv) => ({ cv, g: cv.getContext("2d", { alpha: true }), w: 0, h: 0, k: 0 });
+  function cvPath(sh, types) { const P = new Path2D(); for (const q of sh.polys) { if (!types.includes(q.t)) continue; const p = q.p, n = p.length / 2; P.moveTo(p[0], p[1]); for (let i = 1; i < n; i++) P.lineTo(p[2 * i], p[2 * i + 1]); P.closePath(); } return P; }
+  // ops: biến đổi cả thân như transform SVG cũ: ["t", x, y] dời · ["r", độ, cx, cy] xoay quanh điểm · ["s", sx, sy] co giãn quanh gốc (mặt đất)
+  function cvShape(R, sh, alpha, skin, dark, blink) {
+    const g = R.g; if (!sh || alpha <= 0.002) return;
+    g.globalAlpha = alpha;
+    const body = cvPath(sh, [0, 1]), e = sh.eye, k = sh.eyeK ?? 1;
+    if (dark) { g.save(); g.translate(0, 2 / R.k); g.fillStyle = "rgba(0,0,0,.38)"; g.fill(body); g.restore(); g.lineJoin = "round"; g.lineWidth = 1.5 / R.k; g.strokeStyle = "rgba(255,255,255,.5)"; g.stroke(body); }
+    else { g.save(); g.translate(0.4 / R.k, 1.2 / R.k); g.fillStyle = "rgba(0,0,0,.13)"; g.fill(body); g.restore(); }
+    if (e && dark && k > 0.01) { g.globalAlpha = alpha * k; g.fillStyle = "#ECE6D6"; g.beginPath(); g.arc(e[0], e[1], 9, 0, 6.2832); g.fill(); g.globalAlpha = alpha; }
+    g.fillStyle = dark ? "#060708" : "#0a0a0b"; g.fill(body, "nonzero");
+    // 😑 chớp mắt: mí đen kéo từ trên xuống che lỗ mắt rồi mở ra (blink 0 → 1 → 0)
+    if (e && blink > 0.02 && k > 0.5) { g.save(); g.beginPath(); g.arc(e[0], e[1], 11.5, 0, 6.2832); g.clip(); g.fillRect(e[0] - 12, e[1] - 12, 24, 24 * blink); g.restore(); }
+    const gd = sh.polys.some((q) => q.t === 2), pk = sh.polys.some((q) => q.t === 3);
+    if (gd) { g.fillStyle = "#C8A064"; g.fill(cvPath(sh, [2])); }
+    if (pk) { g.fillStyle = "#E8687F"; g.fill(cvPath(sh, [3])); }
+    if (ACCD[skin] && e && !gd && k > 0.01) { g.save(); g.globalAlpha = alpha * k; g.translate(e[0] - (skin === "fedora" ? 8 : 0), e[1] - (skin === "fedora" ? 16 : 0)); ACCD[skin](g, "#C8A064"); g.restore(); }
+    g.globalAlpha = 1;
+  }
+  function cvDraw(R, sh, ops, skin, gh, ga, gb, blink) {
+    const w = 400 * (S.s || 0.2) * 1.17, h = 272 * (S.s || 0.2) * 1.17, dpr = Math.min(3, devicePixelRatio || 1), W = Math.round(w * dpr), H = Math.round(h * dpr);
+    if (R.w !== W || R.h !== H) { R.cv.width = W; R.cv.height = H; R.w = W; R.h = H; }      // đổi cỡ khung → đặt lại (hiếm), không đọc bố cục trang mỗi khung
+    const g = R.g, k = W / 400; R.k = k / dpr;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    g.setTransform(k, 0, 0, k, 200 * k, 262 * k);
+    const ops0 = () => { for (const o of ops || []) { if (o[0] === "t") g.translate(o[1], o[2]); else if (o[0] === "r") { g.translate(o[2], o[3]); g.rotate(o[1] * Math.PI / 180); g.translate(-o[2], -o[3]); } else if (o[0] === "s") g.scale(o[1], o[2]); } };
+    const dark = document.documentElement.dataset.theme === "dark";
+    // 🌑 bóng mềm dưới chân: rộng theo thân mèo, nhảy lên thì nhỏ & nhạt đi → mèo "đứng trên đất", không lơ lửng
+    { let x0 = 1e9, x1 = -1e9; const bb = sh && (sh._bb ||= (() => { for (const q of sh.polys) if (q.t === 0) { const p = q.p; for (let i = 0; i < p.length; i += 2) { if (p[i] < x0) x0 = p[i]; if (p[i] > x1) x1 = p[i]; } } return x1 > x0 ? [x0, x1] : null; })());
+      if (bb) { const up = Math.max(0, -(ops?.find((o) => o[0] === "t")?.[2] || 0)), f = Math.max(0.35, 1 - up / 90), cx = (bb[0] + bb[1]) / 2, rx = (bb[1] - bb[0]) * 0.46 * f;
+        g.save(); g.translate(cx, 1); g.scale(1, 0.13); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, dark ? `rgba(0,0,0,${0.55 * f})` : `rgba(0,0,0,${0.2 * f})`); gr.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, 6.2832); g.fill(); g.restore(); } }
+    ops0();
+    if (gh) cvShape(R, gh, ga, skin, dark, 0);
+    cvShape(R, sh, gh ? gb : 1, skin, dark, blink);
+  }
   function preview(skin, pose = "sit") { const box = document.createElement("div"); box.innerHTML = catSvg(skin); const R = bind(box.firstElementChild); draw(R, POSE[pose] || POSE.sit, "", skin); return box.innerHTML; }
   window.MUN_ART = { preview, poseSvg: (k, skin) => preview(skin, k), SKINS, POSE, morph, draw, bind, catSvg, mapOf, loadSheet };
 
@@ -241,7 +290,7 @@
   // khung hình: 60 hình/giây khi đang chuyển / đi, 30 khi đứng yên
   function loop(t) {
     if (!S.el) { A.on = false; return; }
-    const dt = A.last ? Math.min(0.05, (t - A.last) / 1000) : 0; A.last = t; A.ct += dt;
+    const dt = A.last ? Math.min(0.1, (t - A.last) / 1000) : 0; A.last = t; A.ct += dt;      // nhịp vẽ thưa (15–30/giây) vẫn đúng thời gian thật
     if (dt > 0 && DTS.length < 90) { DTS.push(dt); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } }
     A.gx = null; const c = A.clip, tgt = clipShape(c, dt); let sh = tgt;
     let gh = A.gx ? A.gx[0] : null, ga = A.gx ? A.gx[1] : 0, gb = A.gx ? A.gx[2] : 1;
@@ -249,16 +298,24 @@
       else if (A.dis) { const e = easeIO(u); gh = morphMap(A.map, e * 0.3, true); sh = morphMap(A.rmap, (1 - e) * 0.3, true); gb = Math.min(1, u / 0.5); ga = Math.min(1, (1 - u) / 0.5); }
       else { sh = morphMap(A.map, easeIO(u)); gh = null; } }
     A.sh = A.snap && A.dis ? (u0 => u0 < 0.5 ? gh : sh)((t - A.t0) / A.dur) : sh; A.fr = (A.fr || 0) + 1;
-    if (still() || (!A.snap && !c.loop && !c.seq && !c.sheet && A.fr % 2)) { requestAnimationFrame(loop); return; }
-    let tf = "";
+    // ⏱ NHỊP VẼ theo việc mèo đang làm (trước: luôn 60 khung/giây kể cả lúc ngồi yên → máy điện thoại bận liên tục):
+    //    đi / chạy / đang đổi dáng: mỗi khung màn hình · động tác tại chỗ theo bảng khung (vẫy đuôi, liếm, lăn): 30/giây · ngồi thở: 15/giây · bị che / đang rê biểu đồ: 4/giây chỉ để dò
+    const nx = (ms) => { if (ms) setTimeout(() => requestAnimationFrame(loop), ms); else requestAnimationFrame(loop); };
+    if (still()) { A.last = 0; nx(250); return; }
+    const ops = [];
     const bob = c.bob ? -c.bob * Math.abs(Math.sin(2 * Math.PI * A.ph)) : 0, ty = (A.ty || 0) + bob;
-    if (ty) tf += `translate(0 ${f1(ty)}) `;
-    if (A.rot) tf += `rotate(${f1(A.rot)} 0 -60) `;
-    if (c.rock && !A.snap) tf += `rotate(${f1(c.rock * Math.sin(A.ct * 3.2))} 0 -50) `;
-    if (c.scr && !A.snap) tf += `translate(0 ${f1(-4 * Math.abs(Math.sin(A.ct * 9)))}) `;
-    if (c.br && !A.snap) tf += `scale(1 ${(1 + 0.012 * c.br * Math.sin(A.ct * 1.6)).toFixed(4)})`;
-    if (A.R) { draw(A.R, sh, tf, S.cfg.skin); ghost(A.R, gh, ga, gb); }
-    requestAnimationFrame(loop);
+    if (ty) ops.push(["t", 0, ty]);
+    if (A.rot) ops.push(["r", A.rot, 0, -60]);
+    if (c.rock && !A.snap) ops.push(["r", c.rock * Math.sin(A.ct * 3.2), 0, -50]);
+    if (c.scr && !A.snap) ops.push(["t", 0, -4 * Math.abs(Math.sin(A.ct * 9))]);
+    if (c.br && !A.snap) ops.push(["s", 1, 1 + 0.012 * c.br * Math.sin(A.ct * 1.6)]);
+    // 😑 chớp mắt tự nhiên: 2,5–7 giây / lần (thỉnh thoảng chớp đôi), nhắm nhanh ~70 ms rồi mở ~110 ms – chỉ khi đang mở mắt, không chạy
+    if (!A.blT) A.blT = t + 2500 + Math.random() * 4500;
+    let bl = 0; if (t >= A.blT) { const u = (t - A.blT) / 180; if (u >= 1) { A.blT = t + (Math.random() < 0.18 ? 220 : 2500 + Math.random() * 4500); } else bl = u < 0.39 ? u / 0.39 : 1 - (u - 0.39) / 0.61; }
+    if (A.v > 120) bl = 0;
+    if (A.R) cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl);
+    const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || c.scr;
+    nx(mv || bl > 0 || t + 70 >= A.blT ? 0 : c.loop || c.seq || c.sheet ? 26 : 60);
   }
   function morphMap(m, u, keep) {
     const polys = [], hk = keep ? 1 : 1 - Math.sin(Math.PI * u);
@@ -628,8 +685,8 @@
   }  // ---------------------------------------------------------------- dựng / bật / tắt
   function build() {
     const el = document.createElement("div"); el.id = "mun"; el.className = "mun";
-    el.innerHTML = `<div class="mun-say" hidden role="status"><b>${NAME}</b><div class="tx"></div></div><div class="mun-c" role="button" tabindex="0" aria-label="${L("na na – mèo trợ lý. Chạm để nói chuyện, vuốt để vuốt lông, giữ lâu để mở menu", "na na – assistant cat. Tap to talk, swipe to pet, hold for menu")}"><div class="mun-f">${catSvg(S.cfg.skin)}</div><i class="mun-z">z</i></div>`;
-    document.body.appendChild(el); S.el = el; S.s = scale(); el.style.setProperty("--s", S.s); A.R = bind(el.querySelector(".mun-cat"));
+    el.innerHTML = `<div class="mun-say" hidden role="status"><b>${NAME}</b><div class="tx"></div></div><div class="mun-c" role="button" tabindex="0" aria-label="${L("na na – mèo trợ lý. Chạm để nói chuyện, vuốt để vuốt lông, giữ lâu để mở menu", "na na – assistant cat. Tap to talk, swipe to pet, hold for menu")}"><div class="mun-f"><canvas class="mun-cat" aria-hidden="true"></canvas></div><i class="mun-z">z</i></div>`;
+    document.body.appendChild(el); S.el = el; S.s = scale(); el.style.setProperty("--s", S.s); A.R = cvBind(el.querySelector(".mun-cat"));
     const c = el.querySelector(".mun-c"); let lp = 0, longed = false, x0 = null, y0 = 0, stroked = false;
     c.addEventListener("pointerdown", (e) => { longed = false; stroked = false; x0 = e.clientX; y0 = e.clientY; S.lastPx = e.clientX; S.lastPy = e.clientY; try { c.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } clearTimeout(lp); lp = setTimeout(() => { longed = true; navigator.vibrate?.(10); menu(); }, 520); });
     c.addEventListener("pointermove", (e) => { if (x0 == null || stroked) return; const dx = e.clientX - x0; if (Math.abs(dx) > 8 || Math.abs(e.clientY - y0) > 8) clearTimeout(lp); if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(e.clientY - y0)) { stroked = true; stroke(dx > 0 ? 1 : -1, e.clientX, e.clientY); } });
@@ -638,12 +695,12 @@
     c.addEventListener("contextmenu", (e) => { e.preventDefault(); clearTimeout(lp); menu(); });
     c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); poke(); } else if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); menu(); } });
     face(1); S.pose = "sit"; el.dataset.pose = "sit"; A.sh = POSE.sit; A.snap = null; A.clip = CLIP.sit; A.name = "sit";
-    draw(A.R, A.sh, "", S.cfg.skin); if (!A.on) { A.on = true; A.last = 0; requestAnimationFrame(loop); }
+    cvDraw(A.R, A.sh, [], S.cfg.skin); if (!A.on) { A.on = true; A.last = 0; requestAnimationFrame(loop); }
   }
   let started = false;
   function start() {
     S.cfg = cfgOf(); if (!S.cfg.on) return stop();
-    if (S.el) { S.el.querySelector(".mun-f").innerHTML = catSvg(S.cfg.skin); A.R = bind(S.el.querySelector(".mun-cat")); return; }      // đổi bộ đồ
+    if (S.el) { if (A.R) cvDraw(A.R, A.sh, [], S.cfg.skin); return; }      // đổi bộ đồ: canvas vẽ bộ đồ mới ngay khung sau (S.cfg.skin)
     build(); const ld = loadSheets(); const tr = track(); const fromL = Math.random() < 0.5;
     place(fromL ? tr.l - 140 : tr.r + 140); S.el.style.opacity = "0";
     Promise.race([SHL.walk || ld, new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
@@ -686,6 +743,7 @@
 .mun-cat{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(-10px*var(--s,.2)*1.17);width:calc(400px*var(--s,.2)*1.17);height:calc(272px*var(--s,.2)*1.17);overflow:visible;
   --f:#0a0a0b;--gold:#C8A064;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
 :root[data-theme=dark] .mun-cat{--f:#060708;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block}
 .mun-cat .b{fill:var(--f)}.mun-cat .gd{fill:var(--gold)}.mun-cat .pk{fill:#E8687F}.mun-cat .eyeb{fill:transparent}
 :root[data-theme=dark] .mun-cat .eyeb{fill:#ECE6D6}
 .mun-cat .gl{fill:#232731;stroke:#d5d9e0;stroke-width:1.1;stroke-linejoin:round}.mun-cat .gh{stroke:#fff;stroke-width:1;opacity:.5}.mun-cat .gr{stroke:#d5d9e0;stroke-width:1.2}
