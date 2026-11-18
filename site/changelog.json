@@ -249,6 +249,15 @@
      "d": "Lâu lâu na đi tới, khom người rồi vồ một biểu tượng trên thanh điều hướng, viên \"Lệnh bot\" hay nút nổi Bảng phụ – đồ vật bị vồ lắc lắc. Chỉ vài thứ sát mặt đất, không đụng vào nội dung trang. Gọi ngay: giữ lâu vào mèo → 🐾 Vồ đồ vật.",
      "te": "na pounces on things near her",
      "de": "Every so often na walks over, crouches and pounces on a bottom-bar icon, the \"Bot trades\" pill or the floating Side panel button, which wobbles. Only a few things at ground level; page content is left alone. Start it yourself: long-press the cat → 🐾 Pounce on something."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "hi": 1,
+     "t": "Cuộn trang mượt hơn hẳn, nhất là trên điện thoại",
+     "d": "Đo trên điện thoại giả lập máy yếu: máy bận khi cuộn trang Tổng quan giảm từ 46% còn 11%, Danh mục 26% → 10%, Ngành 33% → 11%, Tra cứu coin 87% → 18%; khung hình bị giật khi cuộn trang Tổng quan 19 → 0. Nguyên nhân chính: mục lục Bảng phụ dò và cuộn theo trang cả khi đang ẩn; vài nút đổi trạng thái gắn lên cả trang mỗi lần đổi hướng cuộn; nhãn đường giá trên biểu đồ tính lại 60 lần/giây; chấm \"đang chạy\" và khung chờ nhấp nháy bắt máy vẽ lại liên tục. Bảng dài (400 coin) giờ hiện từng mẻ lúc máy rảnh, chèn dòng vào bảng nhanh gấp ~3 lần.",
+     "te": "Much smoother scrolling, especially on phones",
+     "de": "Measured on a slow emulated phone: CPU busy while scrolling Overview dropped from 46% to 11%, Portfolio 26% → 10%, Sectors 33% → 11%, Coin lookup 87% → 18%; janky frames on Overview 19 → 0. Main causes: the Side panel outline tracked and scrolled along even while hidden; a few buttons flipped state on the whole page on every scroll-direction change; chart price-line labels recalculated 60 times a second; \"live\" dots and loading placeholders made the page repaint nonstop. Long tables (400 coins) now fill in batches when the device is idle, and adding rows is ~3× faster."
     }
    ]
   },

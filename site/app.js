@@ -208,7 +208,9 @@ function mkChart(el, extra = {}) {
 // 🌙 iPhone: lớp toàn màn hình đang mở → html.ovl-on (thay cho html:has(...) trong CSS – :has ở gốc trang làm mọi thay đổi nhỏ phải tính lại cả trang)
 if (document.documentElement.classList.contains("nl-ios")) { const OVL = "body.pn-sheet .pnshade,.msheet:not([hidden]),.cmdk:not([hidden]),.ntp,.ntpk,.ios-sheet,.ios-menu,.lb-dr:not([hidden]),.modal,.occ,body.sc-set-on .sc-set-bg,.sheet-bg,.cv-chart.cv-fs,.tbox,#pdfov:not([hidden])";
   let q = 0; const chk = () => { q = 0; document.documentElement.classList.toggle("ovl-on", !!document.querySelector(OVL)); };
-  new MutationObserver(() => { if (!q) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] }); chk(); }
+  // chỉ xét lại khi đổi đúng các thứ có thể là lớp phủ (thêm / bớt phần tử, lớp của body / tấm / bảng) – trước: MỌI đổi lớp trong trang (giá nhấp nháy, mục lục…) đều quét cả trang = cuộn giật trên iPhone
+  const OVK = /\b(msheet|cmdk|ntpk?|ios-sheet|ios-menu|lb-dr|modal|occ|sheet-bg|cv-chart|tbox|sc-set-bg|pnshade)\b/, rel = (m) => m.type === "childList" ? (m.addedNodes.length || m.removedNodes.length) && (m.target === document.body || m.target === document.documentElement || [...m.addedNodes, ...m.removedNodes].some((n) => n.nodeType === 1 && (OVK.test(n.className || "") || n.id === "pdfov"))) : m.target === document.body || m.target.id === "pdfov" || OVK.test(typeof m.target.className === "string" ? m.target.className : "") || OVK.test(m.oldValue || "");
+  new MutationObserver((ms) => { if (!q && ms.some(rel)) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ["hidden", "class"] }); chk(); }
 // rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na (mascot) đứng yên cho biểu đồ chạy mượt
 addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweight-charts")) window.__chartHot = performance.now(); }, { passive: true, capture: true });
 // 🖱️ CHỐNG "DÍNH KÉO" BIỂU ĐỒ: bấm giữ kéo rồi nhả mà biểu đồ vẫn chạy theo chuột = thư viện biểu đồ không nhận được lần nhả chuột
@@ -239,8 +241,8 @@ function pxTags(el, c, cs, lines, cur) {
   c.applyOptions({ rightPriceScale: { minimumWidth: 74 + TW } });
   let raf = 0, alive = true, last = "";
   const place = () => {
-    if (!alive) return; if (!el.isConnected) { alive = false; return; }
-    raf = requestAnimationFrame(place); if (document.hidden) return;
+    if (!alive) return; if (!el.isConnected) { el._ptStop?.(); return; }
+    if (document.hidden || !vis) return;
     let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
     const V = tg.map((t) => ({ t, y: cs.priceToCoordinate(t.p) })).filter((v) => isNum(v.y) && v.y >= 0 && v.y <= H).sort((a, b) => a.y - b.y);
     let cp = null; try { cp = typeof cur === "function" ? cur() : cur; } catch (e) { /* bỏ qua */ } const yc = isNum(cp) ? cs.priceToCoordinate(cp) : null;
@@ -254,10 +256,16 @@ function pxTags(el, c, cs, lines, cur) {
     tg.forEach((t) => (t.d.hidden = true));
     V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", Math.abs(Y[i] - v.y) > 3); });
   };
+  // ⏱ trước: chạy MỖI khung hình (60 lần/giây) cho từng biểu đồ, đọc kích thước khung → trang có biểu đồ luôn bận, cuộn giật.
+  //    Giờ: vẽ lại ngay khi kéo / thu phóng / rê trên biểu đồ hoặc đổi cỡ; còn lại dò 3 lần/giây (giá mới, trục tự giãn); khuất màn hình thì nghỉ
+  let vis = true; const kick = () => { if (!raf && alive) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
+  const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => { vis = es[es.length - 1].isIntersecting; if (vis) kick(); }) : null; io?.observe(el);
+  const ro = "ResizeObserver" in window ? new ResizeObserver(kick) : null; ro?.observe(el);
+  const iv = setInterval(place, 330); try { c.timeScale().subscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ }
   place();
   let curT = null, tipW = 0, tipXY = "";
   const hv = (pm) => {      // chỉ đụng DOM khi đổi đường được trỏ / đổi chỗ hộp – rê chuột không làm trình duyệt tính lại cả trang
-    const pt = pm?.point; let best = null;
+    kick(); const pt = pm?.point; let best = null;
     if (pt) for (const t of tg) { const y = cs.priceToCoordinate(t.p); if (isNum(y) && Math.abs(y - pt.y) <= 6 && (!best || Math.abs(y - pt.y) < best.dy)) best = { t, dy: Math.abs(y - pt.y) }; }
     const nt = best?.t || null;
     if (nt !== curT) { curT?.d.classList.remove("on"); nt?.d.classList.add("on"); curT = nt;
@@ -270,7 +278,7 @@ function pxTags(el, c, cs, lines, cur) {
     if (xy !== tipXY) { tipXY = xy; tip.style.transform = `translate(${xy.replace(",", "px,")}px)`; }
   };
   c.subscribeCrosshairMove(hv);
-  el._ptStop = () => { alive = false; cancelAnimationFrame(raf); try { c.unsubscribeCrosshairMove(hv); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
+  el._ptStop = () => { if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(iv); io?.disconnect(); ro?.disconnect(); try { c.unsubscribeCrosshairMove(hv); c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
   return TW;
 }
 function candleChart(el, o, opts = {}) {
@@ -956,7 +964,9 @@ function pcApply() {
   new MutationObserver(() => { if (!rq) rq = requestAnimationFrame(() => { rq = 0; try { uxStrip(A); pcApply(); } catch (e) { /* bỏ qua */ } }); }).observe(A, { childList: true, subtree: true });
 })();
 // điện thoại: cuộn xuống → ẩn nút ☰ Bảng phụ (đỡ che nội dung), cuộn lên → hiện lại
-(function scrDir() { let y0 = scrollY; addEventListener("scroll", () => { const y = scrollY; if (Math.abs(y - y0) < 12) return; document.body.classList.toggle("scr-dn", y > y0 && y > 160); y0 = y; }, { passive: true }); addEventListener("hashchange", () => document.body.classList.remove("scr-dn")); })();
+//   lớp gắn THẲNG vào nút (trước gắn vào body → mỗi lần đổi hướng cuộn trình duyệt tính lại kiểu dáng CẢ trang ~25 ms = giật); nút không hiện (điện thoại cảm ứng) → bỏ qua
+const fabOn = (() => { let f = null, t = 0; return () => { const n = performance.now(); if (n - t > 800 || (f && !f.isConnected)) { t = n; const e = document.querySelector(".pnfab"); f = e && getComputedStyle(e).display !== "none" ? e : null; } return f; }; })();
+(function scrDir() { let y0 = scrollY; addEventListener("scroll", () => { const f = fabOn(); if (!f) return; const y = scrollY; if (Math.abs(y - y0) < 12) return; const dn = y > y0 && y > 160; if (f.classList.contains("scr-dn") !== dn) f.classList.toggle("scr-dn", dn); y0 = y; }, { passive: true }); addEventListener("hashchange", () => document.querySelector(".pnfab")?.classList.remove("scr-dn")); })();
 function navKeyNow(h = location.hash || "#/") {
   if (h.startsWith("#/bot/scalp")) { const t = window.__scTab || "ov"; return "#/bot/scalp|" + (t === "ov" && window.__scEnv === "live" ? "live" : t); }
   const m = h.match(/^#\/c\/([^/]+)/); if (m) return "#/c/" + decodeURIComponent(m[1]).toUpperCase();
@@ -1531,7 +1541,9 @@ function sclApply() {
 function rsTables(root) {
   root?.querySelectorAll("table.rs").forEach((t) => {
     const H = [...t.querySelectorAll("thead th")].map((th) => th.textContent.trim());
-    t.querySelectorAll("tbody tr, tfoot tr").forEach((tr) => [...tr.children].forEach((td, i) => { if (H[i] && !td.dataset.l) td.dataset.l = H[i]; td.toggleAttribute("data-nil", i > 0 && /^[—–-]?$/.test(td.textContent.trim()) && !td.querySelector("button, input, a")); }));
+    t.querySelectorAll("tbody tr, tfoot tr").forEach((tr) => { [...tr.children].forEach((td, i) => { if (H[i] && !td.dataset.l) td.dataset.l = H[i]; td.toggleAttribute("data-nil", i > 0 && /^[—–-]?$/.test(td.textContent.trim()) && !td.querySelector("button, input, a")); });
+      // dòng ghi chú (1 ô trải hết bảng) dính liền thẻ phía trên: gắn lớp bằng JS (trước dùng tr:has(+ tr …) trong CSS → mỗi lần chèn dòng vào BẤT KỲ bảng nào trình duyệt dò lại cả bảng, chậm gấp 2)
+      const n = tr.children.length === 1 && tr.firstElementChild?.hasAttribute("colspan"); tr.classList.toggle("rs-n", !!n); tr.previousElementSibling?.classList.toggle("rs-p", !!n); });
   });
 }
 // 🪝 nến 1 phút quanh một lệnh Bắt râu sập (lấy thẳng từ Binance trong trình duyệt): cú sốc, giá sau sốc, 2 mức chờ, điểm vào / ra
@@ -1632,6 +1644,7 @@ const skHead = () => `<div class="skh">${sk("120px", 10)}${sk("min(260px,60%)", 
 // 🧠 KHUNG XƯƠNG NHỚ BỐ CỤC THẬT: mỗi lần trang hiện xong, ghi lại vị trí các khối (thanh vị trí, tiêu đề, thanh tab, các khung) của trang đó;
 //    lần sau mở lại → khung xương vẽ ĐÚNG các khối ấy (cùng chỗ, cùng cỡ) → nội dung thật hiện ra không nhảy. Lần đầu (chưa có) dùng mẫu theo loại trang.
 const SKM_K = "skm2", skmKey = (h = location.hash) => String(h || "#/").split("?")[0].replace(/^#\/(c|t|plan|paper|sector|s)\/.*/, "#/$1/*").replace(/\/\d{4}-\d{2}-\d{2}$/, "/*") + (innerWidth < 980 ? "|m" : "|d");
+const SKM_AT = {};
 function skmSave() {
   const root = $("#app"); if (!root || root.querySelector(".skw") || !root.firstElementChild) return;
   const cs = getComputedStyle(root), R0 = root.getBoundingClientRect(), R = { left: R0.left + parseFloat(cs.paddingLeft), top: R0.top + parseFloat(cs.paddingTop), width: root.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) }, lim = innerHeight * 1.6, B = [];      // toạ độ theo vùng NỘI DUNG (trừ lề trong) – khung xương đặt trong cùng vùng đó
@@ -1644,7 +1657,7 @@ function skmSave() {
   const walk = (el, d) => { for (const e of el.children) { if (B.length >= 48) return; if (e.matches(".crumb, .ph, script, style, .pg-mark, .nextstep") || e.closest(".skw")) continue;
       const r = e.getBoundingClientRect(); if (r.height < 26 || r.width < 50) continue; if (r.top - R.top > lim) return;
       if (bgOn(e)) { const bar = e.matches(".sc-tabs, .sc-sub2, .bseg, .sc-ofl, .lv-rng, .seg") || r.height < 52; push(bar ? (getComputedStyle(e).backgroundColor === SURF ? "w" : "t") : "p", e); continue; }
-      if (d < 6) walk(e, d + 1); } };
+      if (d < 6 && !e.matches("table, thead, tbody, tr, svg, canvas, ul, ol, select, .tv-lightweight-charts")) walk(e, d + 1); } };      // không lặn vào bảng / danh sách / biểu đồ (bảng 400 dòng = 400 lần đo)
   walk(root, 0);
   if (!B.length) return;
   let M = {}; try { M = JSON.parse(localStorage.getItem(SKM_K) || "{}"); } catch (e) { /* bỏ qua */ }
@@ -1732,7 +1745,7 @@ async function route() {
   // chuyển giữa các trang trong nhóm Bot: không mờ dần cả trang (trông như tải lại) – nội dung thay tại chỗ
   { const pk = r + "/" + (arg[0] || ""), same = r === "bot" && String(window.__pgR || "").startsWith("bot/"); if (pk !== window.__pgR) { window.__pgR = pk; if (!same) pageIn(); } }
   if (r === "bot") botWarm();
-  { const h0 = location.hash; clearTimeout(route.skm); route.skm = setTimeout(() => { if (location.hash === h0 && !document.hidden) try { skmSave(); } catch (e) { /* bỏ qua */ } }, 1600); }      // ghi bố cục thật cho khung xương lần sau
+  { const h0 = location.hash, k0 = skmKey(); clearTimeout(route.skm); if (!(Date.now() - (SKM_AT[k0] || 0) < 10 * 60e3)) route.skm = setTimeout(() => (window.requestIdleCallback || setTimeout)(() => { if (location.hash === h0 && !document.hidden) { SKM_AT[k0] = Date.now(); try { skmSave(); } catch (e) { /* bỏ qua */ } } }, { timeout: 4000 }), 1600); }      // ghi lúc máy rảnh, mỗi trang tối đa 10 phút / lần      // ghi bố cục thật cho khung xương lần sau
   try { navFreqHit(); } catch (e) { /* bỏ qua */ }
   requestAnimationFrame(() => app().focus({ preventScroll: true }));
   pnRoute(r, arg);
@@ -1887,22 +1900,30 @@ function pnMark(f) {
   }
   CSS.highlights.set("pn-hit", hl);
 }
+// 🧭 mục lục Bảng phụ theo chỗ đang cuộn – chỉ khi Bảng phụ đang HIỆN (điện thoại: tấm đóng → bỏ qua hẳn; trước: mỗi lần qua 1 khối lại
+//    bật / tắt lớp + scrollIntoView trên bảng đang ẩn → trình duyệt tính lại cả trang ~30 ms mỗi lần = cuộn giật)
+//    tiêu đề từng khối nhớ sẵn (trước: tìm tiêu đề trong khối mỗi khung hình cuộn) · cuộn mục lục tay, không scrollIntoView (kéo theo cả trang)
+const PN_TT = new WeakMap(), pnTT = (p) => { let t = PN_TT.get(p); if (t == null) { t = pnTitle(p); if (t) PN_TT.set(p, t); } return t; };
 function pnSpy() {
   if (!PN.items.length || PN.focus || PN.q) return;
-  const top = (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) + 40;
-  let cur = null;
-  for (const p of PN.items) { if (p.classList.contains("pn-x") || !pnTitle(p)) continue; if (p.getBoundingClientRect().top <= top) cur = p; else if (cur) break; }
-  cur = cur || PN.items.find((p) => pnTitle(p));
+  const nav = $("#pnav"); if (!nav || nav.hidden || !nav.getClientRects().length) { PN.cur = null; return; }      // Bảng phụ không hiện → không dò (mở ra sẽ dò lại)
+  if (PN.stk == null) PN.stk = (parseInt(getComputedStyle(document.documentElement).getPropertyValue("--stick")) || 60) + 40;
+  const top = PN.stk; let cur = null;
+  for (const p of PN.items) { if (p.classList.contains("pn-x") || !pnTT(p)) continue; if (p.getBoundingClientRect().top <= top) cur = p; else if (cur) break; }
+  cur = cur || PN.items.find((p) => pnTT(p));
   if (cur === PN.cur) return;
-  PN.cur = cur;
-  $$("#pnlist a[data-i]").forEach((a) => { const on = PN.items[+a.dataset.i] === cur; a.classList.toggle("on", on); if (on) a.scrollIntoView({ block: "nearest" }); });
-  $$("#pnlist .pn-g").forEach((g) => g.classList.toggle("cur", !!g.querySelector("a.on")));
+  PN.cur = cur; let onA = null;
+  $$("#pnlist a[data-i]").forEach((a) => { const on = PN.items[+a.dataset.i] === cur; if (a.classList.contains("on") !== on) a.classList.toggle("on", on); if (on) onA = a; });
+  $$("#pnlist .pn-g").forEach((g) => { const c = !!g.querySelector("a.on"); if (g.classList.contains("cur") !== c) g.classList.toggle("cur", c); });
+  if (onA) { const sc = PN.sc && PN.sc.isConnected ? PN.sc : (PN.sc = (() => { for (let e = onA.parentElement; e && e !== document.body; e = e.parentElement) { const o = getComputedStyle(e).overflowY; if (o === "auto" || o === "scroll") return e; } return null; })());
+    if (sc) { const a = onA.getBoundingClientRect(), b = sc.getBoundingClientRect(); if (a.top < b.top + 8) sc.scrollTop -= b.top + 8 - a.top; else if (a.bottom > b.bottom - 8) sc.scrollTop += a.bottom - (b.bottom - 8); } }
 }
+addEventListener("resize", () => { PN.stk = null; }, { passive: true });
 // Bảng phụ dạng tấm (điện thoại / máy tính bảng): trượt vào từ mép phải, trượt ra khi đóng; kéo dở bằng tay (vuốt mép) thì đi tiếp từ chỗ ngón tay thả
 const PN_EASE = "cubic-bezier(.2,.8,.2,1)";
 function pnSheet(v) {
   const b = document.body, N = $("#pnav"), S = $("#pnShade"), on = b.classList.contains("pn-sheet"), still = matchMedia("(prefers-reduced-motion: reduce)").matches || !N?.animate;
-  if (v) { if (!on) b.classList.add("pn-sheet"); if (still) { N.style.transform = ""; S.style.opacity = ""; return; }
+  if (v) { if (!on) { b.classList.add("pn-sheet"); requestAnimationFrame(() => pnSpy()); } if (still) { N.style.transform = ""; S.style.opacity = ""; return; }
     const x0 = N.style.transform || (on ? "none" : "translateX(100%)"), o0 = S.style.opacity || (on ? "1" : "0");
     N.animate([{ transform: x0 }, { transform: "none" }], { duration: 240, easing: PN_EASE }); S.animate([{ opacity: o0 }, { opacity: 1 }], { duration: 240 }); N.style.transform = ""; S.style.opacity = ""; return; }
   if (!on) return;
@@ -1938,7 +1959,7 @@ function pnInit() {
   if ($("#pnHide")) $("#pnHide").onclick = () => pnOpen(false);
   $$("#pnav [data-t]").forEach((b) => b.onclick = () => pnTab(b.dataset.t));
   if (!$("#pnCoins")) document.body.insertAdjacentHTML("beforeend", `<datalist id="pnCoins"></datalist>`);
-  { let ft = 0; addEventListener("scroll", () => { document.body.classList.add("fab-hide"); clearTimeout(ft); ft = setTimeout(() => document.body.classList.remove("fab-hide"), 650); }, { passive: true }); }
+  { let ft = 0; addEventListener("scroll", () => { const f = fabOn(); if (!f) return; if (!f.classList.contains("fab-hide")) f.classList.add("fab-hide"); clearTimeout(ft); ft = setTimeout(() => f.classList.remove("fab-hide"), 650); }, { passive: true }); }
   $("#pnFab").onclick = () => pnOpen(innerWidth < 1180 || document.body.classList.contains("pn-mini") ? !document.body.classList.contains("pn-sheet") : true);
   $("#pnShade").onclick = () => pnOpen(false);
   // tấm Bảng phụ: vuốt ở vùng tối hoặc vuốt quá đầu/cuối Bảng phụ không được cuộn trang phía sau (iOS bỏ qua overscroll-behavior ở nhiều bản)
@@ -2451,7 +2472,9 @@ async function viewCoins(view0) {
     const show = rows.slice(0, 400), tok = (draw.t = (draw.t || 0) + 1);
     // vẽ 50 dòng đầu ngay (trang hiện tức thì), phần còn lại chèn sau khi khung hình đầu đã hiện – mở trang không còn khựng
     const rowH = (r) => `<tr>${cols.map((c) => `<td class="${COLS[c][2] || ""}">${COLS[c][1](r)}</td>`).join("")}</tr>`;
-    if (show.length > 50) requestAnimationFrame(() => setTimeout(() => { if (draw.t !== tok) return; const tb = $("#ctab tbody"); if (tb) tb.insertAdjacentHTML("beforeend", show.slice(50).map(rowH).join("")); }, 0));
+    //   phần sau chèn từng mẻ 60 dòng lúc máy rảnh (trước: chèn 350 dòng một lèo = khựng ~0,2–0,7 giây ngay sau khi mở trang)
+    if (show.length > 50) { let at = 50; const more = () => { if (draw.t !== tok) return; const tb = $("#ctab tbody"); if (!tb) return; tb.insertAdjacentHTML("beforeend", show.slice(at, at + 60).map(rowH).join("")); at += 60; if (at < show.length) (window.requestIdleCallback || setTimeout)(more, { timeout: 400 }); };
+      requestAnimationFrame(() => setTimeout(more, 0)); }
     $("#ctab").innerHTML = `<div class="tw sticky"><table class="sortable"><thead><tr>${cols.map((c) => `<th data-s="${c}" class="${COLS[c][2] || ""} ${sort.k === c ? "on" : ""}" ${COLS[c][3] ? `title="${esc(COLS[c][3])}"` : ""}>${COLS[c][0]}${sort.k === c ? (d > 0 ? " ▲" : " ▼") : ""}</th>`).join("")}</tr></thead>
       <tbody>${show.slice(0, 50).map(rowH).join("")}</tbody></table></div>
       <p class="faint">${nf(rows.length, 0)} coin khớp bộ lọc${rows.length > 400 ? " (hiện 400 dòng đầu)" : ""}.</p>`;
@@ -8057,7 +8080,8 @@ function ksSheet() {
     return null;
   };
   const hide = () => {
-    clearTimeout(tm);
+    if (!cur && !tm && !tip?.classList.contains("on")) return;      // không có gì đang hiện → khỏi đụng DOM (gọi mỗi lần cuộn)
+    clearTimeout(tm); tm = 0;
     if (cur && cur.dataset.ktT != null) { cur.setAttribute("title", cur.dataset.ktT); delete cur.dataset.ktT; }
     cur = null; if (tip) tip.classList.remove("on");
   };

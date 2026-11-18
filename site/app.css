@@ -3003,13 +3003,13 @@ html[data-fdsz="l"] .sc-feed{max-height:none;overflow:visible}
 
 /* nút ☰ nổi: ẩn trong lúc cuộn (không che số), hiện lại khi dừng */
 .pnfab{transition:opacity .2s ease,transform .2s ease}
-body.fab-hide .pnfab{opacity:0;transform:translateY(14px) scale(.92);pointer-events:none}
+body .pnfab.fab-hide{opacity:0;transform:translateY(14px) scale(.92);pointer-events:none}
 /* bảng dạng thẻ trên điện thoại: dòng ghi chú (1 ô trải hết bảng) dính liền thẻ phía trên */
 @media (max-width:760px){
   table.rs td[colspan]{grid-column:1/-1}
-  table.rs tr:has(+ tr > td[colspan]:only-child){margin-bottom:0;border-radius:10px 10px 0 0}
-  table.rs tr:has(> td[colspan]:only-child){margin-top:-1px;border-radius:0 0 10px 10px;padding-top:2px}
-  table.rs tr:has(> td[colspan]:only-child) td::before{display:none}
+  table.rs tr.rs-p{margin-bottom:0;border-radius:10px 10px 0 0}
+  table.rs tr.rs-n{margin-top:-1px;border-radius:0 0 10px 10px;padding-top:2px}
+  table.rs tr.rs-n td::before{display:none}
   .tw:has(> table.rs){overflow-x:hidden}
 }
 @media (max-width:760px){table.rs td[data-nil]{display:none}}      /* thẻ trên điện thoại: bỏ ô trống "—" cho gọn */
@@ -3924,7 +3924,7 @@ html.ovx-drag,html.ovx-drag *{cursor:grabbing!important;user-select:none!importa
 /* review UX 11/2026 */
 @media (max-width:979px){
   .pnfab{transition:transform .22s ease,opacity .22s ease}
-  body.scr-dn .pnfab{transform:translateY(24px) scale(.85);opacity:0;pointer-events:none}
+  body .pnfab.scr-dn{transform:translateY(24px) scale(.85);opacity:0;pointer-events:none}
   .crumb[data-nd]>i{display:none}      /* số nhóm 1–5 chỉ có nghĩa khi thấy thanh bên (máy tính) */
   .ph .meta{margin-left:0;text-align:left}
 }
@@ -6564,3 +6564,13 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 
 /* màn cảm ứng ≤ 1179px: bỏ nút nổi "☰ Bảng phụ" – mở bằng vuốt từ mép phải (swipePanel); máy tính cửa sổ hẹp (chuột) vẫn giữ nút */
 @media (max-width:1179px) and (hover:none) and (pointer:coarse){body.pn-has .pnfab,body.pn-mini .pnfab,.pnfab{display:none!important}}
+/* ⚡ MƯỢT: chấm "đang chạy" nhấp nháy bằng vòng lan (transform + opacity – card đồ hoạ tự làm, không vẽ lại trang)
+   thay cho đổi bóng đổ mỗi khung hình (trình duyệt phải vẽ lại vùng quanh chấm 60 lần/giây, cả khi anh không làm gì) */
+.dot-live,.upd i.live,.live-dot,.lvs-dot.hot,.cx-live{animation:none!important;box-shadow:none!important;position:relative}
+.dot-live::after,.upd i.live::after,.live-dot::after,.lvs-dot.hot::after,.cx-live::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;pointer-events:none;animation:dotPing 1.6s ease-out infinite}
+@keyframes dotPing{0%{transform:scale(1);opacity:.6}75%,100%{transform:scale(2.8);opacity:0}}
+.lvs-dot.on{animation:none!important}
+.bd-light.red i{animation:lampBlink 2.4s ease-in-out infinite!important}
+/* khung chờ (skeleton) lấp lánh tối đa ~10 giây rồi đứng yên – trước lấp lánh mãi (khung nằm khuất / dữ liệu chậm) = vẽ lại liên tục */
+.oc-sk,.skel i,.ntpk-ld i,.sk::after{animation-iteration-count:7!important}
+@media (prefers-reduced-motion:reduce){.dot-live::after,.upd i.live::after,.live-dot::after,.lvs-dot.hot::after,.cx-live::after{animation:none}}
