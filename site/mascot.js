@@ -662,48 +662,57 @@
   const fNum = (v, d) => v.toLocaleString(isVi() ? "vi-VN" : "en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
   const fM = (v) => (v < 0 ? "-" : "") + "$" + fNum(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2), fP = (v, d = 1) => (v >= 0 ? "+" : "") + fNum(v, d) + "%";
   const oneOf = (A) => A[Math.floor(Math.random() * A.length)];
-  const SKO = [["Lướt qua rồi:", "Skimmed it:"], ["Liếc một cái:", "One glance:"], ["Nhìn sơ:", "Quick look:"], ["Tóm cho xong:", "To get it over with:"], ["Đọc giùm đây, một lần thôi:", "Reading it for you. Once:"]];
-  const SKE = [["Hết.", "That's it."], ["Xong. na na đi ngủ.", "Done. Nap time."], ["Vậy thôi, đừng hỏi thêm.", "That's all. Don't ask."], ["Chi tiết tự xem, na na lười.", "Details are your job."], ["Mệt rồi.", "Tired now."], ["Khỏi cảm ơn.", "No thanks needed."]];
+  // giọng: KHÔNG phải việc của na na – chỉ hóng hớt, chõ mỏ vào 1 câu ngắn (1 chi tiết, thỉnh thoảng 2) rồi quay đi
+  const SKO = [["Hóng tí:", "Peeked:"], ["Liếc trộm:", "Snooped:"], ["Chả phải việc của na na, nhưng", "Not my job, but"], ["Nhìn ké:", "Glanced:"], ["Ồ.", "Oh."], ["Tò mò thôi:", "Just nosy:"]];
+  const SKE = [["Thôi kệ.", "Whatever."], ["Nói vậy thôi.", "Just saying."], ["Không liên quan.", "Not my business."], ["Ngủ tiếp.", "Back to sleep."], ["Hết hóng.", "Done snooping."], ["Kệ anh.", "Your call."]];
   function skimText(F) {
-    if (!F || F.err || (F.empty && !["portfolio", "bot", "paper", "c"].includes(F.r)) || (F.r === "c" && !F.k)) return null; const o = L(...oneOf(SKO)), e = L(...oneOf(SKE)), out = [];
-    const sw = (vi, en) => out.push(L(vi, en));
+    if (!F || F.err || (F.empty && !["portfolio", "bot", "paper", "c"].includes(F.r)) || (F.r === "c" && !F.k)) return null;
+    const C = [], must = [], add = (vi, en, m) => (m ? must : C).push(L(vi, en));
     if (F.r === "portfolio") {
-      if (F.empty) return L("Danh mục trống trơn. Nhẹ đầu. Nhập coin đi rồi tính.", "Portfolio's empty. Light as air. Add coins, then we'll talk.");
-      sw(`Tổng ${fM(F.eq)}, ${F.n} coin${F.fut ? `, ${F.fut} lệnh futures` : ""}.`, `Total ${fM(F.eq)}, ${F.n} coins${F.fut ? `, ${F.fut} futures` : ""}.`);
-      if (F.pnlPct != null) sw(`So với vốn: ${fP(F.pnlPct)}${F.pnlPct < 0 ? ". Không bình luận." : "."}`, `Versus cost: ${fP(F.pnlPct)}${F.pnlPct < 0 ? ". No comment." : "."}`);
-      if (F.top && F.top.w >= 35) sw(`${F.top.k} chiếm ${fNum(F.top.w, 0)}%${F.top.w >= 55 ? " – dồn trứng một giỏ, kệ anh" : ""}.`, `${F.top.k} is ${fNum(F.top.w, 0)}%${F.top.w >= 55 ? " – all eggs, one basket. Your call" : ""}.`);
-      else if (F.best && F.worst && F.best.k !== F.worst.k) sw(`Khá nhất ${F.best.k} ${fP(F.best.g, 0)}, tệ nhất ${F.worst.k} ${fP(F.worst.g, 0)}.`, `Best ${F.best.k} ${fP(F.best.g, 0)}, worst ${F.worst.k} ${fP(F.worst.g, 0)}.`);
-      if (F.lev > F.cap) sw(`Đòn bẩy x${fNum(F.lev, 1)}, quá mức x${fNum(F.cap, 1)} hệ thống cho. Nhắc rồi đấy.`, `Leverage x${fNum(F.lev, 1)}, over the x${fNum(F.cap, 1)} cap. You've been told.`);
+      if (F.empty) return L("Danh mục trống. Nhẹ đầu.", "Empty portfolio. Light.");
+      add(`${fM(F.eq)} cả thảy.`, `${fM(F.eq)} all in.`);
+      if (F.pnlPct != null) F.pnlPct >= 0 ? add(`Lời ${fP(F.pnlPct)}.`, `Up ${fP(F.pnlPct)}.`) : add(`Lỗ ${fP(F.pnlPct)}. Khỏi nói.`, `Down ${fP(F.pnlPct)}. No comment.`);
+      if (F.top && F.top.w >= 35) add(`${F.top.k} ôm ${fNum(F.top.w, 0)}%.`, `${F.top.k} is ${fNum(F.top.w, 0)}% of it.`);
+      if (F.best && F.best.g > 0) add(`${F.best.k} ${fP(F.best.g, 0)}, con cưng.`, `${F.best.k} ${fP(F.best.g, 0)}, the favorite.`);
+      if (F.worst && F.worst.g < 0) add(`${F.worst.k} ${fP(F.worst.g, 0)}. Ờ.`, `${F.worst.k} ${fP(F.worst.g, 0)}. Hm.`);
+      if (F.lev > F.cap) add(`Đòn bẩy x${fNum(F.lev, 1)}, quá mức rồi đó.`, `Leverage x${fNum(F.lev, 1)}. Over the cap.`, 1);
     } else if (F.r === "bot") {
-      if (F.empty) return L("Chưa có bot nào chạy. Yên tĩnh. Thích.", "No bots running. Quiet. Nice.");
-      if (F.eq != null) sw(`Bot: ${fM(F.eq)}${F.ret != null ? `, từ đầu ${fP(F.ret)}` : ""}${F.day != null ? `, hôm nay ${fP(F.day, 2)}` : ""}.`, `Bot: ${fM(F.eq)}${F.ret != null ? `, ${fP(F.ret)} overall` : ""}${F.day != null ? `, ${fP(F.day, 2)} today` : ""}.`);
-      sw(F.open ? `${F.open} lệnh đang mở.` : "Không lệnh nào mở. Bot cũng lười.", F.open ? `${F.open} open.` : "Nothing open. Bot's lazy too.");
-      if (F.live && F.live.pnl != null) sw(`${F.live.real ? "Tiền thật" : "Binance demo"} hôm nay ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))}.`, `${F.live.real ? "Real money" : "Binance demo"} today ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))}.`);
-      if (F.pause) sw("Đang tạm dừng. Không phải lỗi của na na.", "Paused. Not my fault.");
+      if (F.empty) return L("Bot nghỉ hết. Giống na na.", "Bots all off. Like me.");
+      if (F.pause) add("Bot đang nghỉ. Giống na na.", "Bot's paused. Relatable.", 1);
+      if (F.day != null) add(`Bot ${fP(F.day, 2)} hôm nay.`, `Bot ${fP(F.day, 2)} today.`);
+      if (F.ret != null) add(`Từ đầu ${fP(F.ret)}.`, `${fP(F.ret)} since start.`);
+      add(F.open ? `${F.open} lệnh đang treo.` : "Không lệnh nào. Bot cũng lười.", F.open ? `${F.open} trades hanging.` : "No trades. Bot's lazy too.");
+      if (F.live && F.live.pnl != null) add(`Tiền thật ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))} hôm nay.`, `Real money ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))} today.`);
     } else if (F.r === "paper") {
-      if (F.empty) return L("Sàn thử chưa có gì. Chơi thử cũng ngại à?", "Paper account's empty. Too lazy even to pretend?");
-      sw(`Sàn thử ${fM(F.eq)} (${fP(F.pnlPct, 2)}). ${F.open} lệnh mở${F.orders ? `, ${F.orders} lệnh chờ` : ""}.`, `Paper ${fM(F.eq)} (${fP(F.pnlPct, 2)}). ${F.open} open${F.orders ? `, ${F.orders} pending` : ""}.`);
+      if (F.empty) return L("Sàn thử trống. Chơi thử cũng ngại.", "Paper's empty. Too lazy to pretend.");
+      add(`Sàn thử ${fP(F.pnlPct, 1)}.`, `Paper ${fP(F.pnlPct, 1)}.`); add(F.open ? `${F.open} lệnh mở.` : "Chưa lệnh nào.", F.open ? `${F.open} open.` : "Nothing open.");
     } else if (F.r === "c") {
-      if (F.empty) return L(`${F.k}? Không quen. Chắc coin vô danh.`, `${F.k}? Never heard of it.`);
-      sw(`${F.k}${F.r1 != null ? ` ${fP(F.r1)} 24h` : ""}${F.r7 != null ? `, ${fP(F.r7, 0)} 7 ngày` : ""}${F.r30 != null ? `, ${fP(F.r30, 0)} 30 ngày` : ""}.`, `${F.k}${F.r1 != null ? ` ${fP(F.r1)} 24h` : ""}${F.r7 != null ? `, ${fP(F.r7, 0)} 7d` : ""}${F.r30 != null ? `, ${fP(F.r30, 0)} 30d` : ""}.`);
-      if (F.tsc != null) sw(`Điểm kỹ thuật ${fNum(F.tsc, 0)}/100${F.trend === 1 ? ", xu hướng tăng" : F.trend === -1 ? ", xu hướng giảm" : ""}.`, `Tech score ${fNum(F.tsc, 0)}/100${F.trend === 1 ? ", uptrend" : F.trend === -1 ? ", downtrend" : ""}.`);
-      out.push(L("Vào hay không – việc của anh.", "In or out – your problem."));
+      if (F.empty) return L(`${F.k}? Không quen.`, `${F.k}? Never heard.`);
+      if (F.r1 != null) add(`${F.k} ${fP(F.r1)} hôm nay.`, `${F.k} ${fP(F.r1)} today.`);
+      if (F.r30 != null) add(`Một tháng ${fP(F.r30, 0)}.`, `${fP(F.r30, 0)} this month.`);
+      if (F.tsc != null) add(`Điểm kỹ thuật ${fNum(F.tsc, 0)}${F.trend === 1 ? ", đang lên" : F.trend === -1 ? ", đang xuống" : ""}.`, `Tech score ${fNum(F.tsc, 0)}${F.trend === 1 ? ", trending up" : F.trend === -1 ? ", trending down" : ""}.`);
     } else if (F.r === "ideas") {
-      if (!F.n) sw("Không có thiết lập nào có lợi thế. Ngồi yên cũng là một kỹ năng.", "No setups with an edge. Sitting still is a skill too.");
-      else sw(`${F.n} thiết lập có lợi thế, ${F.go} cái hệ thống chấm vào được ngay. na na không chọn hộ.`, `${F.n} setups with an edge, ${F.go} rated enterable now. I'm not picking for you.`);
-    } else if (F.lightTxt !== undefined && F.lightTxt) {
-      sw(`Đèn ${F.lightTxt}${F.fng != null ? `, tâm lý ${fNum(F.fng, 0)}${F.fngZone ? ` (${F.fngZone})` : ""}` : ""}${F.btc != null ? `, BTC ${fP(F.btc)}` : ""}.`, `Light ${F.light}${F.fng != null ? `, sentiment ${fNum(F.fng, 0)}` : ""}${F.btc != null ? `, BTC ${fP(F.btc)}` : ""}.`);
-    } else if (F.title) {
-      return L(`"${F.title}". Chữ nhiều quá, na na không đọc.`, `"${F.title}". Too many words. Not reading.`);
-    } else return null;
-    return out.length ? `${o} ${out.join(" ")} ${e}` : null;
+      F.n ? add(`${F.n} kèo có lợi thế. Không chọn hộ đâu.`, `${F.n} setups with an edge. Not picking.`) : add("Chẳng có kèo nào. Ngồi im.", "No setups. Sit still.");
+    } else if (F.lightTxt) {
+      add(`Đèn ${F.lightTxt}.`, `Light's ${F.light}.`);
+      if (F.fng != null) add(`Tâm lý ${fNum(F.fng, 0)}${F.fngZone ? `, ${F.fngZone.toLowerCase()}` : ""}.`, `Sentiment ${fNum(F.fng, 0)}.`);
+      if (F.btc != null) add(`BTC ${fP(F.btc)}.`, `BTC ${fP(F.btc)}.`);
+    } else if (F.title) return L("Toàn chữ. Bỏ qua.", "All words. Skipping.");
+    else return null;
+    const pk = must.slice(0, 1); const rest = C.slice().sort(() => Math.random() - 0.5);
+    while (pk.length < (Math.random() < 0.3 ? 2 : 1) && rest.length) pk.push(rest.shift());
+    if (!pk.length) return null;
+    const o = Math.random() < 0.55 ? L(...oneOf(SKO)) + " " : "", e = Math.random() < 0.5 ? " " + L(...oneOf(SKE)) : "";
+    let b = pk.join(" "); if (o && !/[:.]\s$/.test(o) && !/^[A-Z0-9$]{2,}\b/.test(b)) b = b[0].toLowerCase() + b.slice(1);      // "…, nhưng bot …" (giữ hoa mã coin)
+    if ((o + b + e).length > 72 && pk.length > 1) { pk.pop(); b = b.slice(0, b.lastIndexOf(" ", b.length - 1)); b = pk.length ? (o && !/[:.]\s$/.test(o) && !/^[A-Z0-9$]{2,}\b/.test(pk[0]) ? pk[0][0].toLowerCase() + pk[0].slice(1) : pk[0]) : b; }      // dài quá → bớt 1 ý
+    return o + b + e;
   }
   async function skimTalk(force) {
     if (!S.el || (!force && S.cfg.talk === "q") || typeof window.pageSkim !== "function") return false;
     const h = location.hash; let F = null; try { F = await window.pageSkim(); } catch (e) { /* bỏ qua */ }
     if (location.hash !== h || !S.el) return false;
-    const t = skimText(F); if (!t) { if (force) say(L("Trang này chẳng có gì đáng đọc.", "Nothing here worth reading."), 3200, 2); return false; }
-    S.skimAt = now(); S.skimH = h; return say(t, Math.min(11000, 3800 + t.length * 45), force ? 3 : 1);
+    const t = skimText(F); if (!t) { if (force) say(L("Chẳng có gì đáng hóng.", "Nothing to snoop on."), 2600, 2); return false; }
+    S.skimAt = now(); S.skimH = h; return say(t, Math.min(7000, 2600 + t.length * 45), force ? 3 : 1);
   }
   const SKIMR = /^(#\/?)?(?:$|\?|(?:portfolio|bot|paper|ideas|futures|sectors|radar|coins)(?:$|[/?])|(?:c|plan)\/.)/;      // trang có số liệu để liếc
   function talkMaybe() {

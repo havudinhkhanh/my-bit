@@ -12,11 +12,11 @@
     {
      "c": "new",
      "a": "mascot",
-     "t": "👀 na na thành trợ lý lười: liếc trang đang mở, tóm vài con số rồi thôi",
+     "t": "👀 na na hóng hớt: liếc trang đang mở, chõ mỏ vào một câu rồi thôi",
      "hi": 1,
-     "d": "na na đọc lướt trang anh đang mở và tóm 1–3 câu bằng giọng kênh kiệu, làm cho xong: Danh mục (tổng tài sản, số coin, lời/lỗ so với vốn, coin chiếm nhiều nhất, đòn bẩy vượt mức), Bot (tài sản, từ đầu / hôm nay, lệnh đang mở, tiền thật hôm nay, tạm dừng), Sàn thử, trang coin (giá 24h / 7 / 30 ngày, điểm kỹ thuật), Cơ hội, Thị trường (đèn, tâm lý, BTC). Gọi: giữ lâu vào mèo → 👀 Đọc lướt trang này; hoặc chạm mèo, vào trang mới, hay tự nói lúc rảnh. Chỉ nói số liệu của chính trang đó, không bao giờ khuyên mua / bán.",
-     "te": "👀 na na as a lazy assistant: glances at the open page, sums up a few numbers, done",
-     "de": "na na skims the page you have open and sums it up in 1–3 haughty, get-it-over-with sentences: Portfolio (total, coin count, P/L vs cost, biggest holding, leverage over the cap), Bot (equity, overall / today, open trades, real-money P/L today, paused), Paper, coin pages (24h / 7d / 30d, tech score), Opportunities, Market (light, sentiment, BTC). Ask: long-press the cat → 👀 Skim this page; or tap her, open a new page, or let her chime in when idle. Only that page's own numbers, never buy/sell advice."
+     "d": "Chả phải việc của na na, nhưng na na cứ liếc trang anh đang mở rồi buông một câu ngắn – 1 chi tiết, thỉnh thoảng 2: \"Liếc trộm: BTC ôm 45%. Kệ anh.\", \"Bot +0,98% hôm nay. Ngủ tiếp.\", \"Chẳng có kèo nào. Ngồi im.\". Có ở Danh mục, Bot, Sàn thử, trang coin, Cơ hội, Thị trường; đòn bẩy vượt mức thì luôn nhắc. Gọi: giữ lâu vào mèo → 👀 Đọc lướt trang này; hoặc chạm mèo, vào trang mới, hay tự hóng lúc rảnh. Chỉ số liệu của chính trang đó, không bao giờ khuyên mua / bán.",
+     "te": "👀 Nosy na na: glances at the open page, butts in with one line, moves on",
+     "de": "Not her job, but na na glances at the page you have open and drops one short line – one detail, sometimes two: \"Snooped: BTC is 45% of it. Your call.\", \"Bot +0.98% today. Back to sleep.\", \"No setups. Sit still.\". Works on Portfolio, Bot, Paper, coin pages, Opportunities, Market; leverage over the cap is always mentioned. Ask: long-press the cat → 👀 Skim this page; or tap her, open a new page, or let her butt in when idle. Only that page's own numbers, never buy/sell advice."
     },
     {
      "c": "new",
