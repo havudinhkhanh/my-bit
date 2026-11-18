@@ -155,8 +155,11 @@ def tarea(M):      # diện tích thân (bỏ chân, đuôi bằng phép mở v�
         out.append(float(cv2.morphologyEx(m, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kk, kk))).sum()))
     return np.array(out)
 Hh, TA = {}, {}
+_KC = f"{OUT}/scale_cache.pkl"; _kc = pickle.load(open(_KC, "rb")) if os.path.exists(_KC) else {}      # đo cỡ mỗi clip 1 lần (chậm) rồi lưu
 for c in CLIPS:
-    _, M_, _ = get(c); Hh[c] = heights(M_); TA[c] = tarea(M_); del M_
+    if c in _kc: Hh[c], TA[c] = _kc[c]; continue
+    _, M_, _ = get(c); Hh[c] = heights(M_); TA[c] = tarea(M_); del M_; _kc[c] = (Hh[c], TA[c])
+pickle.dump(_kc, open(_KC, "wb"))
 hs_idle = np.median(Hh["sit_idle"])
 a, b = Hh["sit_to_stand"], Hh["stand_to_sit"]; ta, tb = TA["sit_to_stand"], TA["stand_to_sit"]
 ka, kb = SIT_H / np.median(a[:12]), SIT_H / np.median(b[-12:])        # 2 clip chuyển dáng: cỡ theo phần NGỒI (so với ngồi yên)
@@ -175,8 +178,11 @@ K["wake"] = ks(np.median(TA["wake"][-12:])); K["sleep"] = K["wake"] * float(np.s
 print("stand units", round(ust, 1), {k: round(v, 4) for k, v in K.items()})
 
 meta = {}
+import flowlib
 for clip in ONLY:
-    ims, M, G = get(clip); k = K[clip]; gy = ground_of(M); n = len(M)
+    # 🎞 khung chính: mép làm mượt theo thời gian CÓ BÙ CHUYỂN ĐỘNG (luồng quang học, 1-2-1) – chân / đuôi chạy nhanh không bị nhoè như làm mềm 5 khung tại chỗ
+    #    khung giữa (i+½): nội suy theo luồng quang học trên video gốc → 48 hình/giây, chân ở đúng vị trí giữa (trước nắn viền ở trình duyệt: chân dính cục, tai méo)
+    import time; _t = time.time(); M, G, MI, MG = flowlib.build(flowlib.load(SRC, clip)); print(clip, "flow build", round(time.time() - _t), "s", flush=True); k = K[clip]; gy = ground_of(M); n = len(M)
     HH = Hh[clip].mean()
     tor = [torso(m, HH) for m in M]
     loop = clip in LOOPS
@@ -208,6 +214,9 @@ for clip in ONLY:
             mj = np.roll(M[j], -sh, axis=1); gj = np.roll(G[j], -sh, axis=1)
             M[i] = ((1 - w) * sdf(M[i]) + w * sdf(mj) < 0).astype(np.uint8)
             G[i] = (G[i] if w < 0.5 else gj) & M[i]
+        for i in range(max(a0, a1 - NB), a1):      # khung giữa trong đoạn đã hoà: trung bình 2 khung chính kề nhau (luồng video không còn khớp)
+            sh = int(round(ax[i + 1] - ax[i])); mj = np.roll(M[i + 1], -sh, axis=1)
+            MI[i] = ((sdf(M[i]) + sdf(mj)) / 2 < 0).astype(np.uint8); MG[i] = G[i] & MI[i]
     # 👁 mắt ỔN ĐỊNH: hình bầu dục cỡ cố định cả clip (trung vị), tâm làm mượt 3 khung – trước đồ theo đốm màu từng khung → mắt to nhỏ, méo, chớp tắt
     # 👁 MẮT VẼ LẠI: không khoét lỗ / tô vàng theo đốm màu từng khung nữa (lúc to lúc nhỏ, lúc có lúc mất → nhấp nháy);
     #    chỉ ghi VỊ TRÍ 2 mắt (mắt gần = trái, mắt xa = phải khi mèo nhìn nghiêng ¾), lấp chỗ mất ≤ 8 khung, bỏ đoạn hiện < 5 khung, làm mượt 5 khung
@@ -251,6 +260,20 @@ for clip in ONLY:
             if E2[i] is not None: e += [int(round(E2[i][0] * k)), int(round((E2[i][1] - gy) * k))]
         eyesN += e is not None
         F.append([int(round((xs.max() - xs.min()) * k)), int(round((ys.max() - ys.min()) * k)), e, ps])
+    # khung giữa: i+½ cho i = a0 … a1-1 (vòng lặp: thêm khung nối a1 → a0)
+    MF = []
+    def eyemid(i, j):
+        if E1[i] is None or E1[j] is None: return None
+        e = [int(round((E1[i][0] + E1[j][0]) / 2 * k)), int(round(((E1[i][1] + E1[j][1]) / 2 - gy) * k))]
+        if E2[i] is not None and E2[j] is not None: e += [int(round((E2[i][0] + E2[j][0]) / 2 * k)), int(round(((E2[i][1] + E2[j][1]) / 2 - gy) * k))]
+        return e
+    for i in range(a0, a1 + (1 if loop else 0)):
+        j = i + 1 if i < a1 else a0; axm = (ax[i] + ax[j]) / 2
+        if i < a1: m, g = MI[i], MG[i]
+        else: sh = int(round(ax[j] - ax[i])); mj = np.roll(M[j], -sh, axis=1); m = ((sdf(M[i]) + sdf(mj)) / 2 < 0).astype(np.uint8); g = G[i] & m
+        gm = g & (1 - eye_blobs(m, g)); T = (lambda x, y, axm=axm: ((x - axm) * k, (y - gy) * k))
+        ys, xs = np.nonzero(m)
+        MF.append([int(round((xs.max() - xs.min()) * k)), int(round((ys.max() - ys.min()) * k)), eyemid(i, j), polys_of(m, np.zeros_like(m), gm, T)])
     last = a1
     dx = float((tor[last][0] - ax[last]) * k) if not loop else 0.0
     # tốc độ chân (đơn vị / khung): chân chạm đất trôi ngược chiều đi với đúng tốc độ mèo (máy quay bám theo mèo)
@@ -269,7 +292,7 @@ for clip in ONLY:
         upf = float(np.median(v) * k) if v else None
         print(clip, "paw samples", len(v), "upf", upf)
     tx = [round(float((tor[i][0] - ax[i]) * k), 1) for i in range(a0, a1 + 1)]      # tâm thân từng khung (đơn vị) – clip chuyển dáng cắt giữa chừng vẫn biết mèo đã dời bao nhiêu
-    js = {"n": len(F), "loop": loop, "fps": 24, "pe": 1, "es": [round(float(ew * k), 1), round(float(eh * k), 1)], "dx": round(dx, 1), "upf": round(upf, 3) if upf else None, "tx": tx, "f": F}
+    js = {"n": len(F), "loop": loop, "fps": 24, "pe": 1, "m": MF, "es": [round(float(ew * k), 1), round(float(eh * k), 1)], "dx": round(dx, 1), "upf": round(upf, 3) if upf else None, "tx": tx, "f": F}
     s = json.dumps(js, separators=(",", ":"))
     open(f"{OUT}/{clip}.json", "w").write(s)
     meta[clip] = {"frames": len(F), "a0": a0, "a1": a1, "k": k, "dx": round(dx, 1), "upf": upf, "eyes": eyesN, "faceR_start": faces[0], "faceR_end": faces[-1], "kb": round(len(s) / 1024)}

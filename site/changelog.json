@@ -78,6 +78,14 @@
      "d": "Trước đây hình chuyển tiếp giữa 2 khung video ghép điểm viền lệch chỗ nên tai, chân, đuôi co lại rồi nhọn lại 24 lần mỗi giây – viền phập phồng, nhấp nháy. Giờ viền mỗi khung được chia điểm cách đều nên hình chuyển tiếp giữ nguyên dáng (hụt dưới 1% thay vì 5–10%), mèo chuyển động mượt theo tần số màn hình (60/120 hình/giây) thay vì 24, mép lóe giảm khoảng 4 lần. Dáng ngồi yên dùng video mới nhìn nghiêng hẳn; cú vồ dùng video mới không còn cụt tai ở mép trên.",
      "te": "No more pulsing, motion as smooth as your screen, new sitting & pounce clips",
      "de": "In-between shapes used to pair outline points in the wrong places, so ears, paws and tail shrank and sharpened again 24 times a second – the outline pulsed and flickered. Outlines are now evenly resampled so in-betweens keep their shape (under 1% shrink instead of 5–10%), the cat moves at your screen's refresh rate (60/120 fps) instead of 24, and edge flicker is about 4× lower. The sitting pose uses a new strict side-profile video, and the pounce uses a new video whose ears no longer get cut off at the top."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mèo mượt 48 hình/giây mà không nhấp nháy, hết khung lỗi hình",
+     "d": "Bản trước nắn viền giữa 2 khung ngay trên trang: lúc chân bước nhanh, viền ghép sai nên chân dính cục, tai méo ở nhiều khung → vừa nhấp nháy vừa lỗi hình. Giờ khung giữa được dựng sẵn từ chính video bằng luồng quang học (biết từng điểm lông di chuyển đi đâu), mép lông làm mượt theo thời gian có bù chuyển động. Đo trên dáng đi: viền rung giảm 3 lần so với bản trước, khung lỗi hình gần như hết (sai lệch lớn nhất giảm 10–20 lần). Mèo chạy chỉ tải khi cần.",
+     "te": "Smooth 48 fps with no flicker and no broken frames",
+     "de": "The previous version blended outlines between two frames in the browser: when legs moved fast the points matched up wrongly, so legs merged into blobs and ears warped on many frames – both flicker and broken shapes. In-between frames are now built from the video itself using optical flow (tracking where each part actually moves), and fur edges are smoothed over time with motion compensation. Measured on the walk: outline jitter is 3× lower than the previous version and broken frames are essentially gone (worst error 10–20× smaller). The run clip now loads only when needed."
     }
    ]
   },

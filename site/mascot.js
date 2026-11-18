@@ -30,12 +30,13 @@
     vgpaw: "__JSV_SEQ_vgpaw__", vgbody: "__JSV_SEQ_vgbody__", vstr: "__JSV_SEQ_vstr__", vs2l: "__JSV_SEQ_vs2l__", vl2c: "__JSV_SEQ_vl2c__", vsleep: "__JSV_SEQ_vsleep__", vwake: "__JSV_SEQ_vwake__",
     // 🎬 nhóm 3: lăn ngửa · rình (đi khom) · kêu meo · cáu (quất đuôi) · vồ
     vroll: "__JSV_SEQ_vroll__", vstalk: "__JSV_SEQ_vstalk__", vmeow: "__JSV_SEQ_vmeow__", vannoy: "__JSV_SEQ_vannoy__", vpounce: "__JSV_SEQ_vpounce__" }, SHL = {};
-  const G2 = ["vgpaw", "vgbody", "vstr", "vs2l", "vl2c", "vsleep", "vwake", "vroll", "vstalk", "vmeow", "vannoy", "vpounce"], hasV = (...k) => k.every((n) => SHEET[CLIP[n]?.sheet]);
+  const G2 = ["vgpaw", "vgbody", "vstr", "vs2l", "vl2c", "vsleep", "vwake", "vrun", "vroll", "vstalk", "vmeow", "vannoy", "vpounce"], hasV = (...k) => k.every((n) => SHEET[CLIP[n]?.sheet]);
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); } return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
-      F.T = T; F.W = d.w; F.pe = d.pe; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
+      F.T = T; F.W = d.w; F.pe = d.pe;
+      if (d.m) F.mid = d.m.map((v, i) => { addPose(nm + "m" + i, v); const P = POSE[nm + "m" + i]; P.pe = d.es || [10, 12]; P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); return P; }); F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;      // F.mid: khung giữa (i+½) nội suy sẵn theo luồng quang học
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
       if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
       // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
@@ -46,7 +47,7 @@
   // ưu tiên bộ video (đi, ngồi, chuyển dáng) → rồi bảng cũ cho liếm lông / lăn lộn; bảng đi cũ chỉ tải khi bộ video hỏng
   const loadG2 = () => G2.reduce((p, n) => p.then(() => new Promise((r) => (window.requestIdleCallback || setTimeout)(r, { timeout: 4000 }))).then(() => loadSheet(n)), Promise.resolve());
   const loadSheets = () => loadSheet("vsit").finally(() => loadSheet("vwalk")).then((F) => F || loadSheet("walk")).finally(() => loadSheet("vs2st")).finally(() => loadSheet("vst2s"))
-    .finally(() => loadSheet("vturn")).finally(() => loadSheet("vrun")).finally(() => loadSheet("roll"))
+    .finally(() => loadSheet("vturn")).finally(() => loadSheet("roll"))
     .finally(() => new Promise((r) => setTimeout(r, 6000))).finally(loadG2).finally(() => SHEET.vgpaw || loadSheet("sit"));      // bảng liếm cũ chỉ tải khi bộ video liếm hỏng
   let HZ = 60; const DTS = [];      // tần số màn hình đo được
   function mk(t, p) { let cx = 0, cy = 0, ar = 0; const n = p.length / 2; for (let i = 0; i < n; i++) { cx += p[2 * i]; cy += p[2 * i + 1]; const j = (i + 1) % n; ar += p[2 * i] * p[2 * j + 1] - p[2 * j] * p[2 * i + 1]; } return { t, p, n, cx: cx / n, cy: cy / n, ar: Math.abs(ar / 2) }; }
@@ -326,6 +327,10 @@
       // 🎬 bảng từ VIDEO: nắn hình giữa 2 khung → mượt theo tần số màn hình (60 / 120 hình/giây) thay vì 24. Viền đã chia điểm cách đều (arcRes)
       //    nên điểm khớp đúng chỗ – trước khớp lệch làm tai, chân co lại giữa 2 khung (chu vi hụt 5–10%) → phập phồng; giờ hụt < 1%
       A.fi = [i, j, u];
+      // có khung giữa dựng sẵn từ video (48 hình/giây): hiện khung chính / khung giữa gần nhất – không nắn viền ở trình duyệt (nắn viền làm chân dính cục, tai méo)
+      if (F.mid) { const mi = j === i + 1 || (j < i && c.loop && i === F.length - 1 && !c.a) ? F.mid[i] : null;
+        return !mi ? (u < 0.5 ? F[i] : F[j]) : u < 0.25 ? F[i] : u < 0.75 ? mi : F[j]; }
+      if (F.pe) { const k = u < 0.5 ? i : j; A.fi = [k, k, 0]; return F[k]; }      // bảng video cũ chưa có khung giữa: hiện khung gần nhất
       if (i === j || u < 0.004) return F[i];
       const hard = F.hard.has(i) || j < i;
       if (hard && mapOf(F[i], F[j]).cost > 0.5) { A.gx = [F[i], Math.min(1, (1 - u) * 2), Math.min(1, u * 2)]; return F[j]; }      // 2 khung khác hẳn (cuộn tròn → bật dậy) → hoà tan

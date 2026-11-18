@@ -13,3 +13,5 @@
 6. Nối clip: clip máy quay đứng yên dời khung theo tâm thân (`tx`) lúc vào / ra; `ae` khớp theo mắt (nằm → đứng); `yo` phát tới–lui đoạn nằm thở để giữ dáng.
 
 7. Mắt: không khoét theo đốm màu nữa – json ghi vị trí mắt (đã lấp chỗ mất, làm mượt) + `es` (cỡ mắt), trình duyệt vẽ mắt cùng một kiểu mỗi khung (`pe`).
+8. Khung giữa (48 hình/giây): `flowlib.py` – luồng quang học DIS trên video gốc; khung chính làm mượt mép theo thời gian có bù chuyển động (1-2-1), khung giữa i+½ nội suy theo luồng → json có `m` (khung giữa). Trình duyệt hiện khung chính / khung giữa gần nhất, không nắn viền.
+9. `python3 finalize.py out4 [vwalk,…]` – chép vào site, cắt cho khớp chỉ số khung bảng đang chạy (giữ nguyên các mốc a/b/on trong mascot.js).
