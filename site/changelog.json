@@ -216,6 +216,39 @@
      "d": "Điện thoại: lúc ngồi yên na vẽ 24 hình/giây (đúng nhịp video) thay vì 48; đang cuộn / chạm trang thì na chỉ vẽ khung chính, nhường máy cho trang. Giữ sẵn hình đã dựng, không dựng lại mỗi lần vẽ. Sửa thẻ lệnh bot tự đặt lại vị trí 1 giây sau mỗi lần cập nhật (khựng nhẹ), và rung khi nhấc mèo lên.",
      "te": "Lighter, smoother pages with the cat on",
      "de": "Phones: idle na draws 24 frames/s (the video rate) instead of 48; while you scroll or touch, na draws key frames only. Built shapes are cached instead of rebuilt every draw. Fixed the bot-trades card re-placing itself a second after each update (a small hitch), and the haptic tap when lifting the cat."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "hi": 1,
+     "t": "Điện thoại: kéo mèo lên không còn bị treo lơ lửng – giờ thảy được luôn",
+     "d": "Trước: trên vài điện thoại, kéo na lên rồi thả tay thì máy không báo lại cho mèo → na treo giữa không, đung đưa mãi không rơi. Giờ thả ở đâu na cũng rơi. Kéo được lên tới sát mép trên màn hình; vung tay rồi thả = thảy: na bay tiếp theo đà, dội vách hai bên, thảy mạnh thì lộn một vòng, đáp bằng 4 chân rồi cằn nhằn.",
+     "te": "Phones: lifting the cat no longer leaves it stuck in the air – and you can toss it",
+     "de": "On some phones, letting go after lifting na wasn't reported back, so na hung in mid-air swinging forever. Now na always drops. You can lift na right up to the top of the screen; flick and let go to toss: na flies on with your swing, bounces off the sides, flips once on a hard toss and lands on all fours, grumbling."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Mở menu trên điện thoại: na nhảy lên đứng trên mép menu",
+     "d": "Bấm \"Thêm\" mở bảng menu → na khom người, nhảy lên ngồi trên mép bảng (thỉnh thoảng giục anh chọn nhanh). Đóng menu thì na nhảy xuống lại thanh điều hướng.",
+     "te": "Open the menu on a phone: na jumps up onto it",
+     "de": "Tap \"More\" to open the menu sheet and na crouches, then jumps onto its top edge (sometimes telling you to hurry up). Close it and na hops back down onto the bottom bar."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "Trốn tìm sau thanh điều hướng (điện thoại)",
+     "d": "Thỉnh thoảng na lặn xuống sau thanh điều hướng dưới đáy, rồi ló tai và mắt lên chỗ này chỗ kia. Chạm trúng cái đầu đang ló = tìm ra; không tìm ra thì na tự chui lên và vênh mặt. Gọi ngay: giữ lâu vào mèo → 🫣 Trốn tìm.",
+     "te": "Hide and seek behind the bottom bar (phones)",
+     "de": "Now and then na ducks behind the bottom navigation bar and pops her ears and eyes up here and there. Tap the peeking head to find her; miss and she climbs out looking smug. Start it yourself: long-press the cat → 🫣 Hide and seek."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "na vồ đồ vật gần chỗ đứng",
+     "d": "Lâu lâu na đi tới, khom người rồi vồ một biểu tượng trên thanh điều hướng, viên \"Lệnh bot\" hay nút nổi Bảng phụ – đồ vật bị vồ lắc lắc. Chỉ vài thứ sát mặt đất, không đụng vào nội dung trang. Gọi ngay: giữ lâu vào mèo → 🐾 Vồ đồ vật.",
+     "te": "na pounces on things near her",
+     "de": "Every so often na walks over, crouches and pounces on a bottom-bar icon, the \"Bot trades\" pill or the floating Side panel button, which wobbles. Only a few things at ground level; page content is left alone. Start it yourself: long-press the cat → 🐾 Pounce on something."
     }
    ]
   },
