@@ -37,11 +37,15 @@ def fill_small(m, amax):
     return out
 
 def frames_masks(clip):
-    ims = load(clip); S = [soft(im) for im in ims]; G = [goldmask(im) for im in ims]; del ims
-    M = []
-    for i in range(len(S)):        # làm mềm theo thời gian 0,2/0,6/0,2 → mép lông không lấp lánh giữa các khung
-        a = S[max(0, i - 1)]; c = S[min(len(S) - 1, i + 1)]; s = 0.2 * a + 0.6 * S[i] + 0.2 * c
-        m = ((s > 0.5) | (G[i] > 0)).astype(np.uint8)
+    ims = load(clip); S = [soft(im) for im in ims]; G0 = [goldmask(im) for im in ims]; del ims
+    n = len(S); M = []
+    # làm mềm theo thời gian: clip đứng yên 5 khung (1-4-6-4-1) → mép lông, khe chân, vòng cổ không lóe lên / tắt đi từng khung; đi / chạy giữ 3 khung (chân nhanh)
+    W5 = [1, 4, 6, 4, 1] if clip not in ("walk", "run") else [0, 1, 3, 1, 0]
+    def tav(L, i): ws = [(w, L[min(n - 1, max(0, i + d))]) for d, w in zip(range(-2, 3), W5) if w]; return sum(w * x.astype(np.float32) for w, x in ws) / sum(w for w, _ in ws)
+    G = [((tav(G0, i) >= 0.5).astype(np.uint8)) for i in range(n)]      # vòng cổ: đa số phiếu trong 5 khung
+    for i in range(n):
+        s = tav(S, i)
+        m = ((s > 0.5) | (G[i] > 0) | (G0[i] > 0)).astype(np.uint8)
         m = cv2.morphologyEx(m, cv2.MORPH_OPEN, np.ones((3, 3), np.uint8))
         m = biggest(m); m = fill_small(m, 900)
         M.append(m)
@@ -70,6 +74,17 @@ def eyes_of(m, g, ys0):
     eyes = [(cen[i][0], cen[i][1], st[i][2], st[i][3]) for _, i in E]      # (tâm x, tâm y, rộng, cao) – mắt chính trước
     return eyes, right
 
+def eye_blobs(m, g):      # mọi đốm vàng nhỏ, tròn gần đầu = MẮT (không phải vòng cổ) → bỏ khỏi lớp vàng; mắt sẽ được vẽ lại đều đặn ở trình duyệt
+    ys, xs = np.nonzero(m); top = ys.min(); H = ys.max() - top
+    band = (ys < top + 0.45 * H); cx = xs.mean(); right = xs[ys == top].mean() >= cx
+    hx = xs[band].max() if right else xs[band].min(); hy = ys[band][np.argmax(xs[band]) if right else np.argmin(xs[band])]
+    n, lab, st, cen = cv2.connectedComponentsWithStats(g, 8); out = np.zeros_like(g)
+    for i in range(1, n):
+        x, y, w, h, a = st[i]
+        if a > 900 or max(w, h) > 3.2 * max(1, min(w, h)): continue
+        if np.hypot(cen[i][0] - hx, cen[i][1] - hy) < 0.3 * H and cen[i][1] < top + 0.55 * H: out[lab == i] = 1
+    return out
+
 def smoothc(c, sig):      # làm mịn viền dọc theo mép (Gauss vòng kín) → bỏ lông tơ lởm chởm đổi từng khung (mép "sôi"), giữ dáng
     p = c[:, 0, :].astype(np.float32); n = len(p); k = int(sig * 3)
     if n < 4 * k + 4: return c.astype(np.float32)
@@ -84,13 +99,13 @@ def polys_of(m, em, gm, T):     # T(x, y) → đơn vị
     P = []
     if hi is None: return P
     for c, h in zip(cs, hi[0]):
-        if cv2.contourArea(c) < (60 if h[3] >= 0 else 300): continue
+        if cv2.contourArea(c) < (140 if h[3] >= 0 else 300): continue      # lỗ nhỏ (khe chân thoáng qua) bỏ → không lóe từng khung
         a = cv2.approxPolyDP(smoothc(c, 1.3 if h[3] >= 0 else 2.2), 0.8, True)[:, 0, :].astype(np.float32)
         P.append((1 if h[3] >= 0 else 0, a))
     gold = cv2.morphologyEx((gm & m & (1 - em)).astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     cs, _ = cv2.findContours(gold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     for c in cs:
-        if cv2.contourArea(c) < 40: continue
+        if cv2.contourArea(c) < 70: continue
         P.append((2, cv2.approxPolyDP(smoothc(c, 1.6), 0.8, True)[:, 0, :].astype(np.float32)))
     out = []
     for t, a in P:
@@ -126,11 +141,11 @@ SHP = (720, 1280)
 def pk(L): return [np.packbits(m.astype(bool)) for m in L]
 def up(L): return [np.unpackbits(p)[:SHP[0] * SHP[1]].reshape(SHP).astype(np.uint8) for p in L]
 def cached(c):
-    fn = f"{OUT}/cache2_{c}.pkl"
+    fn = f"{OUT}/cache3_{c}.pkl"
     if not os.path.exists(fn):
         _, M, G = frames_masks(c); pickle.dump((pk(M), pk(G)), open(fn, "wb")); del M, G
     return fn
-FN = {c: cached(c) for c in CLIPS}
+FN = {c: cached(c) for c in CLIPS}      # (cache3: mặt nạ làm mềm 5 khung)
 def get(c): M, G = pickle.load(open(FN[c], "rb")); return None, up(M), up(G)
 def tarea(M):      # diện tích thân (bỏ chân, đuôi bằng phép mở với nhân cỡ ~16% chiều cao) – đo cỡ mèo ổn định hơn chiều cao (đi thì cúi đầu, hạ đuôi)
     out = []
@@ -191,25 +206,47 @@ for clip in ONLY:
             M[i] = ((1 - w) * sdf(M[i]) + w * sdf(mj) < 0).astype(np.uint8)
             G[i] = (G[i] if w < 0.5 else gj) & M[i]
     # 👁 mắt ỔN ĐỊNH: hình bầu dục cỡ cố định cả clip (trung vị), tâm làm mượt 3 khung – trước đồ theo đốm màu từng khung → mắt to nhỏ, méo, chớp tắt
+    # 👁 MẮT VẼ LẠI: không khoét lỗ / tô vàng theo đốm màu từng khung nữa (lúc to lúc nhỏ, lúc có lúc mất → nhấp nháy);
+    #    chỉ ghi VỊ TRÍ 2 mắt (mắt gần = trái, mắt xa = phải khi mèo nhìn nghiêng ¾), lấp chỗ mất ≤ 8 khung, bỏ đoạn hiện < 5 khung, làm mượt 5 khung
     EY = [eyes_of(M[i], G[i], None) for i in range(n)]
     ew = np.median([e[0][2] for e, _ in EY if e]) if any(e for e, _ in EY) else 14; eh = np.median([e[0][3] for e, _ in EY if e]) if any(e for e, _ in EY) else 18
-    def eyec(i, q):
-        P = [(EY[j][0][q][0] - ax[j], EY[j][0][q][1]) for j in (i - 1, i, i + 1) if 0 <= j < n and len(EY[j][0]) > q]
-        if len(EY[i][0]) <= q: return None
-        return (np.mean([p[0] for p in P]) + ax[i], np.mean([p[1] for p in P]))
+    def track(sel):
+        T = [None] * n
+        for i in range(n):
+            E = sorted(EY[i][0], key=lambda e: e[0])
+            if sel == 0 and E: T[i] = (E[0][0] - ax[i], E[0][1])
+            if sel == 1 and len(E) == 2: T[i] = (E[1][0] - ax[i], E[1][1])
+        idx = [i for i in range(n) if T[i] is not None]
+        for a, b in zip(idx, idx[1:]):
+            if 1 < b - a <= 9:
+                for j in range(a + 1, b): u = (j - a) / (b - a); T[j] = (T[a][0] + (T[b][0] - T[a][0]) * u, T[a][1] + (T[b][1] - T[a][1]) * u)
+        i = 0
+        while i < n:
+            if T[i] is None: i += 1; continue
+            j = i
+            while j < n and T[j] is not None: j += 1
+            if j - i < 5:
+                for q in range(i, j): T[q] = None
+            i = j
+        O = [None] * n
+        for i in range(n):
+            if T[i] is None: continue
+            P = [T[j] for j in range(i - 2, i + 3) if 0 <= j < n and T[j] is not None]
+            O[i] = (np.mean([p[0] for p in P]), np.mean([p[1] for p in P]))
+        return O
+    E1, E2 = track(0), track(1)
     F = []; eyesN = 0; faces = []
     for i in range(a0, a1 + 1):
         m = M[i]; right = EY[i][1]; faces.append(right)
-        em = np.zeros_like(m); eye = None
-        for q in range(len(EY[i][0])):
-            c0 = eyec(i, q)
-            if c0 is None: continue
-            if q == 0: eye = c0
-            cv2.ellipse(em, (int(round(c0[0])), int(round(c0[1]))), (max(4, int(round(ew * 0.55))), max(5, int(round(eh * 0.58)))), 0, 0, 360, 1, -1)
+        gm = G[i] & (1 - eye_blobs(m, G[i]))
         T = (lambda x, y, i=i: ((x - ax[i]) * k, (y - gy) * k))
-        ps = polys_of(m, em, G[i], T)
+        ps = polys_of(m, np.zeros_like(m), gm, T)
         ys, xs = np.nonzero(m)
-        e = [int(round((eye[0] - ax[i]) * k)), int(round((eye[1] - gy) * k))] if eye else None; eyesN += e is not None
+        e = None
+        if E1[i] is not None:
+            e = [int(round(E1[i][0] * k)), int(round((E1[i][1] - gy) * k))]
+            if E2[i] is not None: e += [int(round(E2[i][0] * k)), int(round((E2[i][1] - gy) * k))]
+        eyesN += e is not None
         F.append([int(round((xs.max() - xs.min()) * k)), int(round((ys.max() - ys.min()) * k)), e, ps])
     last = a1
     dx = float((tor[last][0] - ax[last]) * k) if not loop else 0.0
@@ -229,7 +266,7 @@ for clip in ONLY:
         upf = float(np.median(v) * k) if v else None
         print(clip, "paw samples", len(v), "upf", upf)
     tx = [round(float((tor[i][0] - ax[i]) * k), 1) for i in range(a0, a1 + 1)]      # tâm thân từng khung (đơn vị) – clip chuyển dáng cắt giữa chừng vẫn biết mèo đã dời bao nhiêu
-    js = {"n": len(F), "loop": loop, "fps": 24, "dx": round(dx, 1), "upf": round(upf, 3) if upf else None, "tx": tx, "f": F}
+    js = {"n": len(F), "loop": loop, "fps": 24, "pe": 1, "es": [round(float(ew * k), 1), round(float(eh * k), 1)], "dx": round(dx, 1), "upf": round(upf, 3) if upf else None, "tx": tx, "f": F}
     s = json.dumps(js, separators=(",", ":"))
     open(f"{OUT}/{clip}.json", "w").write(s)
     meta[clip] = {"frames": len(F), "a0": a0, "a1": a1, "k": k, "dx": round(dx, 1), "upf": upf, "eyes": eyesN, "faceR_start": faces[0], "faceR_end": faces[-1], "kb": round(len(s) / 1024)}

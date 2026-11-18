@@ -32,7 +32,7 @@
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
-      const F = d.f.map((v, i) => { addPose(nm + i, v); return POSE[nm + i]; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
+      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) P.pe = d.es || [10, 12]; return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
       F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
       if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit;
@@ -87,8 +87,13 @@
     B.polys.forEach((b, j) => { if (!usedB.has(j)) pairs.push({ b: b.p, cx: b.cx, cy: b.cy, t: b.t, in: 1 }); });
     let big = null; for (const q of pairs) if (q.t === 0 && q.b && (!big || q.a.length > big.a.length)) big = q;      // độ khác nhau của 2 dáng: lệch trung bình của viền chính / cỡ hình
     let cost = 9; if (big) { let d = 0; const n = big.a.length / 2; for (let i = 0; i < n; i++) d += Math.hypot(big.a[2 * i] - big.b[2 * i], big.a[2 * i + 1] - big.b[2 * i + 1]); cost = d / n / 100; }
-    const m = { pairs, eA: A.eye, eB: B.eye, cost }; if (key) MC.set(key, m); return m;
+    const m = { pairs, eA: A.eye, eB: B.eye, pA: A.pe, pB: B.pe, cost }; if (key) MC.set(key, m); return m;
   }
+  // mắt: [x, y] hoặc [x, y, x2, y2, độ hiện mắt xa] (mắt xa chỉ thấy khi mèo nhìn chéo ¾) – nắn 2 dáng: mắt xa hiện / ẩn dần theo u
+  const eyeMix = (a, b, u) => { if (!(a && b)) return u < 0.5 ? a : b; const o = [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u];
+    if (a.length > 2 && b.length > 2) o.push(a[2] + (b[2] - a[2]) * u, a[3] + (b[3] - a[3]) * u, (a[4] ?? 1) + ((b[4] ?? 1) - (a[4] ?? 1)) * u);
+    else if (a.length > 2 || b.length > 2) { const s = a.length > 2 ? a : b; o.push(s[2] + o[0] - s[0], s[3] + o[1] - s[1], (s[4] ?? 1) * (a.length > 2 ? 1 - u : u)); }
+    return o; };
   // kết quả: { polys: [{t, p}], eye } ở mức u (0 = A, 1 = B)
   function morph(A, B, u, keep, fast) {
     if (u <= 0.0001 || A === B) return A; if (u >= 0.9999) return B;
@@ -99,8 +104,7 @@
       if (q.t === 1 && hk < 0.999) { const pq = mk(1, o); if (hk < 0.06) continue; for (let i = 0; i < o.length; i += 2) { o[i] = pq.cx + (o[i] - pq.cx) * hk; o[i + 1] = pq.cy + (o[i + 1] - pq.cy) * hk; } }
       polys.push(mk(q.t, o));
     }
-    const eye = m.eA && m.eB ? [m.eA[0] + (m.eB[0] - m.eA[0]) * u, m.eA[1] + (m.eB[1] - m.eA[1]) * u] : u < 0.5 ? m.eA : m.eB;
-    return { id: null, polys, eye, eyeK: m.eA && m.eB ? 1 : Math.abs(u - 0.5) * 2 };
+    return { id: null, polys, eye: eyeMix(m.eA, m.eB, u), eyeK: m.eA && m.eB ? 1 : Math.abs(u - 0.5) * 2, pe: u < 0.5 ? m.pA : m.pB };
   }
   const f1 = (v) => (Math.round(v * 10) / 10).toString();
   function pathOf(sh, types) { let d = ""; for (const q of sh.polys) { if (!types.includes(q.t)) continue; const p = q.p, n = p.length / 2; d += "M" + f1(p[0]) + " " + f1(p[1]); for (let i = 1; i < n; i++) d += "L" + f1(p[2 * i]) + " " + f1(p[2 * i + 1]); d += "Z"; } return d; }
@@ -140,16 +144,30 @@
   const cvBind = (cv) => ({ cv, g: cv.getContext("2d", { alpha: true }), w: 0, h: 0, k: 0 });
   function cvPath(sh, types) { const P = new Path2D(); for (const q of sh.polys) { if (!types.includes(q.t)) continue; const p = q.p, n = p.length / 2; P.moveTo(p[0], p[1]); for (let i = 1; i < n; i++) P.lineTo(p[2 * i], p[2 * i + 1]); P.closePath(); } return P; }
   // ops: biến đổi cả thân như transform SVG cũ: ["t", x, y] dời · ["r", độ, cx, cy] xoay quanh điểm · ["s", sx, sy] co giãn quanh gốc (mặt đất)
+  // 👁 mắt mèo video VẼ LẠI mỗi khung cùng 1 kiểu (hổ phách, đồng tử dọc, chấm sáng): trước lấy theo đốm màu trong video → mắt lúc to lúc nhỏ, lúc có lúc mất = nhấp nháy
+  //    sz = cỡ mắt đo từ video (đơn vị) · mắt xa (nhìn chéo ¾) hẹp hơn · chớp: mí đen kéo xuống che cả 2 mắt
+  function cvEyes(g, sz, e, a, a0, dark, blink) {
+    const rx = Math.max(3.6, sz[0] * 0.5), ry = Math.max(3.4, sz[1] * 0.46);
+    const one = (x, y, sx, al) => { if (al <= 0.02) return; g.save(); g.globalAlpha = al; g.translate(x, y); g.scale(sx, 1);
+      g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, 6.2832); g.fillStyle = dark ? "#F2C14E" : "#E2AC3F"; g.fill(); g.clip();
+      g.fillStyle = "#0b0b0c"; g.beginPath(); g.ellipse(rx * 0.12, 0, rx * 0.3, ry * 0.86, 0, 0, 6.2832); g.fill();
+      g.fillStyle = "rgba(255,255,255,.85)"; g.beginPath(); g.arc(-rx * 0.28, -ry * 0.38, Math.max(0.9, rx * 0.2), 0, 6.2832); g.fill();
+      if (blink > 0.02) { g.fillStyle = dark ? "#060708" : "#0a0a0b"; g.fillRect(-rx - 1, -ry - 1, 2 * rx + 2, (2 * ry + 2) * blink); }
+      g.restore(); };
+    one(e[0], e[1], 1, a); if (e.length > 2) one(e[2], e[3], 0.78, a * (e[4] ?? 1));
+    g.globalAlpha = a0;
+  }
   function cvShape(R, sh, alpha, skin, dark, blink) {
     const g = R.g; if (!sh || alpha <= 0.002) return;
     g.globalAlpha = alpha;
     const body = cvPath(sh, [0, 1]), e = sh.eye, k = sh.eyeK ?? 1;
     // nền tối: viền sáng mảnh 1 điểm ảnh (trước 1,5 điểm ảnh mờ 50% → trông nhoè); nền sáng: không vẽ bóng lệch quanh thân nữa (tạo mép xám đôi) – đã có bóng dưới chân
     if (dark) { g.lineJoin = "round"; g.lineWidth = 2 / R.k; g.strokeStyle = "rgba(255,255,255,.42)"; g.stroke(body); }
-    if (e && dark && k > 0.01) { g.globalAlpha = alpha * k; g.fillStyle = "#ECE6D6"; g.beginPath(); g.arc(e[0], e[1], 9, 0, 6.2832); g.fill(); g.globalAlpha = alpha; }
+    if (e && dark && k > 0.01 && !sh.pe) { g.globalAlpha = alpha * k; g.fillStyle = "#ECE6D6"; g.beginPath(); g.arc(e[0], e[1], 9, 0, 6.2832); g.fill(); g.globalAlpha = alpha; }
     g.fillStyle = dark ? "#060708" : "#0a0a0b"; g.fill(body, "nonzero");
     // 😑 chớp mắt: mí đen kéo từ trên xuống che lỗ mắt rồi mở ra (blink 0 → 1 → 0)
-    if (e && blink > 0.02 && k > 0.5) { g.save(); g.beginPath(); g.arc(e[0], e[1], 11.5, 0, 6.2832); g.clip(); g.fillRect(e[0] - 12, e[1] - 12, 24, 24 * blink); g.restore(); }
+    if (e && sh.pe && k > 0.01) cvEyes(g, sh.pe, e, alpha * k, alpha, dark, blink);
+    else if (e && blink > 0.02 && k > 0.5) { g.save(); g.beginPath(); g.arc(e[0], e[1], 11.5, 0, 6.2832); g.clip(); g.fillRect(e[0] - 12, e[1] - 12, 24, 24 * blink); g.restore(); }
     const gd = sh.polys.some((q) => q.t === 2), pk = sh.polys.some((q) => q.t === 3);
     if (gd) { g.fillStyle = "#C8A064"; g.fill(cvPath(sh, [2])); }
     if (pk) { g.fillStyle = "#E8687F"; g.fill(cvPath(sh, [3])); }
@@ -333,7 +351,7 @@
     { const d = A.lt ? (t - A.lt) / 1000 : 0; A.lt = t; if (d > 0 && d < 0.05 && DTS.length < 90) { DTS.push(d); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } } }
     if (A.skipN > 0 && !A.snap) { A.skipN--; requestAnimationFrame(loop); return; }
     const dt = A.last ? Math.min(0.1, (t - A.last) / 1000) : 0; A.last = t; A.ct += dt;      // nhịp vẽ thưa (15–30/giây) vẫn đúng thời gian thật
-    A.gx = null; const c = A.clip, tgt = clipShape(c, dt); let sh = tgt;
+    A.gx = null; const c = A.clip, tgt = clipShape(c, A.snap ? 0 : dt); let sh = tgt;      // đang nắn sang clip mới: clip CHỜ ở khung đầu (trước: clip vẫn chạy ngầm → nắn xong nhảy cóc vài khung = giật / nháy ở mọi chỗ nối)
     let gh = A.gx ? A.gx[0] : null, ga = A.gx ? A.gx[1] : 0, gb = A.gx ? A.gx[2] : 1;
     if (A.snap) { const u = Math.min(1, (t - A.t0) / A.dur); if (u >= 1) A.snap = null;
       else if (A.dis) { const e = easeIO(u); gh = morphMap(A.map, e * 0.3, true); sh = morphMap(A.rmap, (1 - e) * 0.3, true); gb = Math.min(1, u / 0.5); ga = Math.min(1, (1 - u) / 0.5); }
@@ -351,9 +369,9 @@
     if (c.rock && !A.snap) ops.push(["r", c.rock * Math.sin(A.ct * 3.2), 0, -50]);
     if (c.scr && !A.snap) ops.push(["t", 0, -4 * Math.abs(Math.sin(A.ct * 9))]);
     if (c.br && !A.snap) ops.push(["s", 1, 1 + 0.012 * c.br * Math.sin(A.ct * 1.6)]);
-    // 😑 chớp mắt tự nhiên: 2,5–7 giây / lần (thỉnh thoảng chớp đôi), nhắm nhanh ~70 ms rồi mở ~110 ms – chỉ khi đang mở mắt, không chạy
-    if (!A.blT) A.blT = t + 2500 + Math.random() * 4500;
-    let bl = 0; if (t >= A.blT) { const u = (t - A.blT) / 180; if (u >= 1) { A.blT = t + (Math.random() < 0.18 ? 220 : 2500 + Math.random() * 4500); } else bl = u < 0.39 ? u / 0.39 : 1 - (u - 0.39) / 0.61; }
+    // mèo thật ít chớp: 7–16 giây / lần, mí khép chậm 260 ms (trước 2,5–7 giây, hay chớp đôi → trông chớp chớp liên tục)
+    if (!A.blT) A.blT = t + 7000 + Math.random() * 9000;
+    let bl = 0; if (t >= A.blT) { const u = (t - A.blT) / 260; if (u >= 1) { A.blT = t + 7000 + Math.random() * 9000; } else bl = u < 0.4 ? u / 0.4 : 1 - (u - 0.4) / 0.6; }
     if (A.v > 120 || !sh?.eye) bl = 0;      // đang chạy / nhắm mắt ngủ (khung không có mắt) → không chớp
     if (A.R) { cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); A.dc = (A.dc || 0) + 1; }
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || c.scr;
@@ -367,8 +385,7 @@
       if (q.t === 1 && hk < 0.999) { const pq = mk(1, o); if (hk < 0.06) continue; for (let i = 0; i < o.length; i += 2) { o[i] = pq.cx + (o[i] - pq.cx) * hk; o[i + 1] = pq.cy + (o[i + 1] - pq.cy) * hk; } }
       polys.push({ t: q.t, p: o });
     }
-    const eye = m.eA && m.eB ? [m.eA[0] + (m.eB[0] - m.eA[0]) * u, m.eA[1] + (m.eB[1] - m.eA[1]) * u] : u < 0.5 ? m.eA : m.eB;
-    return { id: null, polys: polys.map((q) => mk(q.t, q.p)), eye, eyeK: m.eA && m.eB ? 1 : Math.abs(u - 0.5) * 2 };
+    return { id: null, polys: polys.map((q) => mk(q.t, q.p)), eye: eyeMix(m.eA, m.eB, u), eyeK: m.eA && m.eB ? 1 : Math.abs(u - 0.5) * 2, pe: u < 0.5 ? m.pA : m.pB };
   }
   // ================================================================ hành vi
   const cfgOf = () => { const u = (typeof UIP !== "undefined" && UIP.mun) || {}; const pro = typeof can === "function" ? can("mascot_pro") || (typeof ME !== "undefined" && ME?.eff_plan === "pro") : false;
@@ -411,7 +428,7 @@
     S.x += f * dx * u; S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
     const sh = A.sh, X = (x) => (flip ? dx - x : x - dx);
     // lật: đảo luôn thứ tự điểm → giữ chiều vẽ của viền (lật gương đổi chiều; không đảo thì lúc nắn sang dáng đi viền tự cắt nhau → thủng lỗ, lộ bóng xám)
-    if (sh) A.sh = { id: null, eye: sh.eye ? [X(sh.eye[0]), sh.eye[1]] : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
+    if (sh) A.sh = { id: null, pe: sh.pe, eye: sh.eye ? (sh.eye.length > 2 ? [X(sh.eye[0]), sh.eye[1], X(sh.eye[2]), sh.eye[3], sh.eye[4] ?? 1] : [X(sh.eye[0]), sh.eye[1]]) : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
     A.snap = null; A.gx = null;
     if (flip) { S.el.classList.add("nof"); face(-f); void S.el.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => S.el?.classList.remove("nof"))); }
     if (A.R && A.sh) cvDraw(A.R, A.sh, [], S.cfg.skin);      // vẽ lại NGAY cùng lượt với lật / dời khung – không có khung hình nào mèo nhìn sai hướng
@@ -425,7 +442,7 @@
   function runSeq(L, done, tk) {
     const k = L.shift(); if (!k) return done();
     const c = CLIP[k], F = c && SHEET[c.sheet]; if (!F || RM.matches) return runSeq(L, done, tk);
-    play(k, c.md || 220, true); const ms = c.ms || (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;
+    const md = RM.matches ? 1 : (c.md || 360) * (MUN_ART.slow || 1); play(k, c.md || 360, true); const ms = c.ms || md + (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;      // nắn 360 ms (clip chờ ở khung đầu trong lúc nắn) rồi mới chạy
     setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; leave(k === "turn"); runSeq(L, done, tk); }, ms);
   }
   const SITS = new Set(["sit", "gpaw", "gbody"]), STANDS = new Set(["walk", "run", "s2st", "turn", "stalk", "vstretch", "l2st", "wake"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);

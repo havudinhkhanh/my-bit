@@ -54,6 +54,14 @@
      "te": "Cat no longer flickers, crisp edges",
      "d": "Khung mèo khớp đúng lưới điểm ảnh của màn hình nên không còn nhoè; nhịp vẽ đều theo tần số màn hình (trước đây đoán sai 30 Hz trên máy 60/120 Hz); viền lông được làm mượt nên không còn rung, mắt giữ ổn định giữa các khung.",
      "de": "The cat canvas now sits exactly on the screen's pixel grid so it is no longer blurry; drawing is paced evenly to the display refresh rate (previously mis-detected as 30 Hz on 60/120 Hz screens); fur outlines are smoothed so they no longer shimmer, and the eyes stay steady between frames."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mắt mèo hết lúc có lúc mất, vòng cổ hết lóe, chỗ nối động tác không còn giật",
+     "d": "Mắt trước đây lấy theo đốm màu trong từng khung video nên lúc to lúc nhỏ, lúc trắng lúc vàng, chợt hiện chợt tắt – giờ được vẽ lại cùng một kiểu (mắt hổ phách, đồng tử dọc) ở vị trí đã làm mượt. Vòng cổ và mép lông được làm mềm qua 5 khung nên không còn lóe từng khung; mèo chớp mắt thưa và chậm như mèo thật. Lúc chuyển từ động tác này sang động tác khác, clip mới chờ ở khung đầu cho tới khi nắn hình xong, hết cảnh nhảy cóc vài khung (rõ nhất lúc bắt đầu đi).",
+     "te": "Cat's eyes no longer pop in and out, collar no longer flashes, no jumps between moves",
+     "de": "Eyes used to be traced from colour blobs in each video frame, so they grew, shrank, switched between white and gold and flickered on and off – they are now drawn the same way every frame (amber with a vertical pupil) at a smoothed position. The collar and fur edges are smoothed over 5 frames so they no longer flash; blinking is rarer and slower, like a real cat. When one move hands over to the next, the new clip waits on its first frame until the blend finishes, so there is no skip of several frames (most visible when starting to walk)."
     }
    ]
   },
