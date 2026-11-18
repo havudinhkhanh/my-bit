@@ -94,6 +94,14 @@
      "d": "Lúc mèo vừa quay đầu bước đi (nhất là đi khom theo chuột), lệnh đi được gọi lại giữa lúc đang chuyển dáng nên hiện 2 con mèo mờ chồng nhau – đã sửa, mèo video luôn nắn hình chứ không hoà mờ; mèo chờ chuyển dáng xong mới bước nên chân không trượt. Khe sáng nhỏ trên vòng cổ thỉnh thoảng lóe 1 khung (giao diện tối còn có viền sáng quanh khe → như tia điện) đã bỏ. Rê chuột lên người mèo không còn bị coi là con mồi; mèo đi khom tới đứng trước con trỏ rồi mới vồ, không đứng đè lên hay vồ giữa lúc đang đứng dậy.",
      "te": "No more ghosting when starting to walk, no flash at the neck, hovering over the cat no longer triggers a stray pounce",
      "de": "Right after turning to walk (especially stalking the mouse), the walk command was re-issued mid-transition and two faded cats appeared on top of each other – fixed: video cats always blend by shape, never cross-fade, and the cat waits until the transition ends before stepping so its feet don't slide. A tiny bright gap on the collar that flashed for a frame (with a light outline in dark mode, like an electric spark) has been removed. Hovering over the cat no longer counts as prey; she stalks to just in front of the pointer and pounces only once settled, not on top of it or while standing up."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Hết khựng lâu lâu và hết cảnh mèo khom người trượt tới",
+     "d": "Mỗi lần tải thêm một bộ động tác, trang giải mã cả nghìn khung một lèo (máy chậm khựng tới 84 ms, nhiều lần) – giờ giải mã từng mẩu nhỏ lúc máy rảnh, đo lại không còn lần khựng nào; bỏ luôn phần tính trước không còn dùng tới. Lúc đuổi chuột, mèo đang khom chờ mà vẫn bị dời chậm nên trông như cúi người trượt tới, chân không bước – giờ chỉ dời mèo khi đang đi / chạy thật.",
+     "te": "No more occasional hitches, no more crouching cat sliding forward",
+     "de": "Each time another set of moves loaded, the page decoded a thousand frames in one go (hitches of up to 84 ms on slow phones, several times) – decoding now runs in small slices when the device is idle, and no hitches were measured; unused precomputation was dropped too. While chasing the mouse, the crouched cat was still being moved slowly, so it looked like sliding forward without stepping – the cat now only moves while actually walking or running."
     }
    ]
   },

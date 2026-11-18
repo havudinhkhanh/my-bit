@@ -33,16 +33,22 @@
   const G2 = ["vgpaw", "vgbody", "vstr", "vs2l", "vl2c", "vsleep", "vwake", "vrun", "vroll", "vstalk", "vmeow", "vannoy", "vpounce"], hasV = (...k) => k.every((n) => SHEET[CLIP[n]?.sheet]);
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
-    return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
-      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.filter(keepPoly).map((q) => mk(q.t, arcRes(q.p))); } return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
-      F.T = T; F.W = d.w; F.pe = d.pe;
-      if (d.m) F.mid = d.m.map((v, i) => { addPose(nm + "m" + i, v); const P = POSE[nm + "m" + i]; P.pe = d.es || [10, 12]; P.polys = P.polys.filter(keepPoly).map((q) => mk(q.t, arcRes(q.p))); return P; }); F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;      // F.mid: khung giữa (i+½) nội suy sẵn theo luồng quang học
-      for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
-      if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
-      // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
-      let k = 0; const n = F.length, warm = () => { const t0 = performance.now(); while (k < n && performance.now() - t0 < 6) { const j = (k + 1) % n; if (j || d.loop) mapOf(F[k], F[j], !(F.hard.has(k) || j < k)); k++; } if (k < n) (window.requestIdleCallback || setTimeout)(warm); };
-      (window.requestIdleCallback || setTimeout)(warm); return F;
-    }).catch(() => { delete SHL[nm]; }));
+    return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => new Promise((done) => {
+      // giải mã khung theo từng mẩu ≤ 6 ms lúc máy rảnh (trước: giải mã + chia lại viền cả nghìn khung một lèo → trang khựng mỗi lần tải 1 bảng)
+      const F = [], MID = d.m ? [] : null, L = d.f.length, Lm = d.m ? d.m.length : 0; let i = 0;
+      const one = (key, v) => { addPose(key, v); const P = POSE[key]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.filter(keepPoly); if (!d.m) P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); } return P; };
+      const step = () => { const t0 = performance.now(); while (i < L + Lm && performance.now() - t0 < 6) { if (i < L) F.push(one(nm + i, d.f[i])); else MID.push(one(nm + "m" + (i - L), d.m[i - L])); i++; }
+        if (i < L + Lm) return (window.requestIdleCallback || setTimeout)(step, { timeout: 300 });
+        const T = [0]; (d.w || []).forEach((w, k) => T.push(T[k] + w));
+        F.T = T; F.W = d.w; F.pe = d.pe; F.mid = MID; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;      // F.mid: khung giữa (i+½) dựng sẵn bằng luồng quang học
+        for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
+        if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
+        // bảng vẽ cũ / video chưa có khung giữa: tính sẵn cách khớp điểm các cặp khung kề lúc rảnh (bảng có khung giữa không nắn trong clip → khỏi tính)
+        if (!MID) { let k = 0; const n = F.length, warm = () => { const t0 = performance.now(); while (k < n && performance.now() - t0 < 6) { const j = (k + 1) % n; if (j || d.loop) mapOf(F[k], F[j], !(F.hard.has(k) || j < k)); k++; } if (k < n) (window.requestIdleCallback || setTimeout)(warm); };
+          (window.requestIdleCallback || setTimeout)(warm); }
+        done(F); };
+      step();
+    })).catch(() => { delete SHL[nm]; }));
   }
   // ưu tiên bộ video (đi, ngồi, chuyển dáng) → rồi bảng cũ cho liếm lông / lăn lộn; bảng đi cũ chỉ tải khi bộ video hỏng
   const loadG2 = () => G2.reduce((p, n) => p.then(() => new Promise((r) => (window.requestIdleCallback || setTimeout)(r, { timeout: 4000 }))).then(() => loadSheet(n)), Promise.resolve());
@@ -787,12 +793,16 @@
       if (!shout && mx > -mw * 0.3 && mx < innerWidth - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // na na: ngó 0,45 giây rồi phóng theo
       if (el > 700) {
-        const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4);
-        v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
-        const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (nx === cx) v = 0; cx = nx;
-        A.v = Math.abs(v); if (Math.abs(v) > 35) { face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260); }
-        else if ((S.pose === "walk" || S.pose === "run") && Math.abs(v) < 12) play(hasV("ready") ? "ready" : "crouch", 300, true);
-        place(cx);
+        const d = mc - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(250, Math.abs(d) * 4), moving = S.pose === "walk" || S.pose === "run";
+        // chỉ dời mèo khi đang ĐI / CHẠY (chân bước theo tốc độ) – trước: đang khom chờ mà vẫn dời chậm → mèo cúi người trượt tới, chân không bước
+        if (!moving && Math.abs(tv) > 35) { face(tv > 0 ? 1 : -1); play("walk", 260, true); }
+        else if (moving) {
+          v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
+          if (Math.abs(v) < 12 && Math.abs(tv) < 12) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); }
+          else { if (Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260, true);
+            const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt * (A.snap ? 0.35 : 1))); if (nx === cx) v = 0; cx = nx; }      // đang nắn sang dáng đi (chân chưa bước) → dời chậm lại
+        }
+        A.v = Math.abs(v); place(cx);
       }
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
       if (win && gap < 22 && el > 600) return end(true);
