@@ -195,15 +195,19 @@
     g.globalAlpha = 1;
   }
   function cvDraw(R, sh, ops, skin, gh, ga, gb, blink) {
-    const ss = S.s || 0.2, dpr = devicePixelRatio || 1, W = 2 * Math.round(CVW * ss * 1.17 * dpr / 2), H = Math.round(272 * ss * 1.17 * dpr);
+    // 🤸 đang xoay / lộn nhào (bị thảy, lủng lẳng): khung canvas cao 272 đơn vị chỉ đủ cho mèo đứng → xoay ngang là mất đầu / mất đuôi.
+    //    Lúc xoay: khung CAO hơn cả trên lẫn dưới mặt đất (vòng quay quanh thân ~280 đơn vị); thôi xoay 0,6 giây thì về khung thường (đỡ tốn máy)
+    const rot = (ops || []).reduce((m, o) => (o[0] === "r" ? Math.max(m, Math.abs(o[1])) : m), 0), tn = performance.now();
+    if (rot > 10) R.tallT = tn; const tall = !!R.tallT && tn - R.tallT < 600, TOPU = tall ? 365 : 262, HU = tall ? 580 : 272;
+    const ss = S.s || 0.2, dpr = devicePixelRatio || 1, W = 2 * Math.round(CVW * ss * 1.17 * dpr / 2), H = Math.round(HU * ss * 1.17 * dpr);
     if (R.w !== W || R.h !== H) {      // đổi cỡ (hiếm): canvas đúng TỪNG điểm ảnh của máy (cỡ CSS = điểm ảnh / dpr, mép trái nằm trên lưới) → trình duyệt không co giãn ảnh → viền sắc
       R.cv.width = W; R.cv.height = H; R.w = W; R.h = H;
       const fw = 2 * Math.round(345 * ss / 2); if (S.el && R.cv.closest?.("#mun")) { S.el.style.width = fw + "px"; S.el.style.height = Math.round(290 * ss) + "px"; }
-      Object.assign(R.cv.style, { width: W / dpr + "px", height: H / dpr + "px", left: fw / 2 - W / 2 / dpr + "px", bottom: -Math.round(10 * ss * 1.17 * dpr) / dpr + "px", transform: "none" });
+      Object.assign(R.cv.style, { width: W / dpr + "px", height: H / dpr + "px", left: fw / 2 - W / 2 / dpr + "px", bottom: -Math.round((HU - TOPU) * ss * 1.17 * dpr) / dpr + "px", transform: "none" });
     }
     const g = R.g, k = W / CVW; R.k = k / dpr;
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
-    g.setTransform(k, 0, 0, k, CVW / 2 * k, 262 * k);
+    g.setTransform(k, 0, 0, k, CVW / 2 * k, TOPU * k);
     const ops0 = () => { for (const o of ops || []) { if (o[0] === "t") g.translate(o[1], o[2]); else if (o[0] === "r") { g.translate(o[2], o[3]); g.rotate(o[1] * Math.PI / 180); g.translate(-o[2], -o[3]); } else if (o[0] === "s") g.scale(o[1], o[2]); } };
     const dark = document.documentElement.dataset.theme === "dark";
     // 🌑 bóng mềm dưới chân: rộng theo thân mèo, nhảy lên thì nhỏ & nhạt đi → mèo "đứng trên đất", không lơ lửng
@@ -474,7 +478,7 @@
     const ops = [];
     const bob = c.bob ? -c.bob * Math.abs(Math.sin(2 * Math.PI * A.ph)) : 0, ty = (A.ty || 0) + bob;
     if (ty) ops.push(["t", 0, ty]);
-    if (A.rot) ops.push(["r", A.rot, 0, -60]);
+    if (A.rot) ops.push(["r", A.rot, 0, -60 - 55 * Math.min(1, Math.abs(A.rot) / 60)]);      // xoay mạnh (lộn nhào) → quay quanh giữa thân, không văng vòng rộng
     if (c.rock && !A.snap) ops.push(["r", c.rock * Math.sin(A.ct * 3.2), 0, -50]);
     if (c.scr && !A.snap) ops.push(["t", 0, -4 * Math.abs(Math.sin(A.ct * 9))]);
     if (c.br && !A.snap) ops.push(["s", 1, 1 + 0.012 * c.br * Math.sin(A.ct * 1.6)]);

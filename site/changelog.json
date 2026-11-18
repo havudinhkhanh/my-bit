@@ -274,6 +274,14 @@
      "d": "Lỗi: mỗi lần na đổi từ đi sang chạy (hoặc ngược lại), đà chạy bị đặt về 0 trong lúc đổi dáng → na lại đi chậm → lại đổi sang chạy… cứ 0,4 giây khựng một lần, gần như đứng tại chỗ. Giờ na giữ đà, đổi đi ↔ chạy có khoảng đệm nên chạy liền một mạch; chạm mép sân thì đứng thủ thế nhìn theo thay vì bước tại chỗ.",
      "te": "Mouse chase: na runs smoothly, no more stop-start",
      "de": "Bug: every switch between walking and running reset na's speed to zero during the pose change, so she slowed to a walk, switched back to a run, and so on – a hitch every 0.4 s, barely moving. Now she keeps her momentum and walk ↔ run has a buffer, so she runs in one go; at the edge of her area she crouches and watches instead of stepping in place."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Lộn nhào trên không không còn mất đầu / mất thân",
+     "d": "Khung vẽ của na chỉ đủ cao cho mèo đứng, nên khi bị thảy lộn ngược hay lủng lẳng nghiêng, phần đầu hoặc thân vượt ra ngoài khung và bị cắt mất. Giờ lúc xoay na dùng khung cao hơn cả trên lẫn dưới, lộn quanh giữa thân (không văng vòng rộng); thôi xoay thì về khung thường cho nhẹ máy.",
+     "te": "Mid-air flips no longer cut off the head or body",
+     "de": "na's drawing box was only tall enough for a standing cat, so when tossed upside down or swinging sideways her head or body went outside it and got cut off. Now while rotating she uses a taller box above and below and flips around her middle; once she stops she goes back to the normal box to stay light."
     }
    ]
   },
