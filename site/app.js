@@ -2058,6 +2058,34 @@ async function sbPage(r, a) {
   const note = app().querySelector(".note p, .note")?.textContent?.trim();
   return note ? `<p class="sbp">${esc(note.slice(0, 260))}${note.length > 260 ? "…" : ""}</p>` : "";
 }
+// 👀 "đọc lướt" cho mèo na na: vài con số chính của trang đang mở (chỉ số liệu – mèo tự nói bằng giọng lười; KHÔNG khuyên mua / bán)
+async function pageSkim() {
+  const seg = location.hash.replace(/^#\/?/, "").split("/"), r = seg[0] || "market", a = seg.slice(1).map(decodeURIComponent);
+  const n = (v) => (isNum(v) ? +v : null);
+  try {
+    if (!BYK) await coins();
+    if (r === "portfolio") {
+      if (!PF) await pfLoad(); const X = pfExposure(); if (!X || !(X.eq > 0)) return { r, empty: 1 };
+      let val = 0, cost = 0, top = null, best = null, worst = null;
+      (PF.holdings || []).forEach((h) => { const p = BYK?.[h.symbol]?.p; if (!isNum(p)) return; const v = h.qty * p; val += v; if (h.cost) { cost += h.qty * h.cost; const g = (p / h.cost - 1) * 100; if (!best || g > best.g) best = { k: h.symbol, g }; if (!worst || g < worst.g) worst = { k: h.symbol, g }; } if (!top || v > top.v) top = { k: h.symbol, v }; });
+      return { r, eq: X.eq, n: (PF.holdings || []).length, fut: X.n, lev: X.eff, cap: X.cap, cash: n(PF.cash), pnl: cost ? val - cost : null, pnlPct: cost ? (val / cost - 1) * 100 : null, top: top && val ? { k: top.k, w: (top.v / X.eq) * 100 } : null, best, worst };
+    }
+    if (r === "bot") {
+      let X = null; try { X = (await Store.get("scalpstate")).data; } catch (e) { /* chưa có */ }
+      if (!X || !X.at) return { r, empty: 1 };
+      return { r, sub: a[0] || "", eq: n(X.eq), ret: X.start ? (X.eq / X.start - 1) * 100 : null, day: X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null, open: Object.keys(X.pos || {}).length,
+        live: X.live?.on ? { real: X.live.env === "live", pnl: n(X.live.day?.pnl) } : null, pause: X.pause ? X.pause.why || "1" : null };
+    }
+    if (r === "paper") { await papLoad().catch(() => null); if (!PAP) return { r, empty: 1 }; const eq = papEquity(); return { r, eq, pnl: eq - PAP.start, pnlPct: (eq / PAP.start - 1) * 100, open: PAP.pos.length, orders: PAP.orders.length }; }
+    if ((r === "c" || r === "plan") && a[0]) { const K = a[0].toUpperCase(), x = BYK?.[K]; if (!x) return { r, k: K, empty: 1 }; return { r: "c", k: K, p: n(x.p), r1: n(x.r1), r7: n(x.r7), r30: n(x.r30), tsc: n(x.tsc), trend: x.ts || 0, vd: x.vd || "", f8: x.fx ? n(x.f8) : null }; }
+    if (r === "ideas") { const { items } = await sbIdeas(), E = items.filter((x) => x.edge); return { r, n: E.length, go: E.filter((x) => sbIdeaSt(x).k === "go").length }; }
+    const M = await tryLoad("data/market.json");
+    if (r === "market" || r === "futures" || r === "sectors" || r === "radar" || r === "coins") return { r, light: M?.light?.color || "", lightTxt: LIGHT_VI[M?.light?.color] || "", fng: n(M?.fng?.now), fngZone: M?.fng?.zone || "", btc: n(BYK?.BTC?.r1), f8: n(M?.agg?.f8) };
+    const h1 = app()?.querySelector("h1")?.textContent?.trim();
+    return { r, title: h1 ? h1.slice(0, 60) : "" };
+  } catch (e) { return { r, err: 1 }; }      // tải không được → mèo im (không nói bậy "danh mục trống")
+}
+window.pageSkim = pageSkim;
 function sbMarket(M) {
   if (!M) return "";
   const b = M.btc || {}, F = M.fng || {}, l = M.light || {}, dom = M.global?.dom || {};

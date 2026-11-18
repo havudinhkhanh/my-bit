@@ -12,6 +12,15 @@
     {
      "c": "new",
      "a": "mascot",
+     "t": "👀 na na thành trợ lý lười: liếc trang đang mở, tóm vài con số rồi thôi",
+     "hi": 1,
+     "d": "na na đọc lướt trang anh đang mở và tóm 1–3 câu bằng giọng kênh kiệu, làm cho xong: Danh mục (tổng tài sản, số coin, lời/lỗ so với vốn, coin chiếm nhiều nhất, đòn bẩy vượt mức), Bot (tài sản, từ đầu / hôm nay, lệnh đang mở, tiền thật hôm nay, tạm dừng), Sàn thử, trang coin (giá 24h / 7 / 30 ngày, điểm kỹ thuật), Cơ hội, Thị trường (đèn, tâm lý, BTC). Gọi: giữ lâu vào mèo → 👀 Đọc lướt trang này; hoặc chạm mèo, vào trang mới, hay tự nói lúc rảnh. Chỉ nói số liệu của chính trang đó, không bao giờ khuyên mua / bán.",
+     "te": "👀 na na as a lazy assistant: glances at the open page, sums up a few numbers, done",
+     "de": "na na skims the page you have open and sums it up in 1–3 haughty, get-it-over-with sentences: Portfolio (total, coin count, P/L vs cost, biggest holding, leverage over the cap), Bot (equity, overall / today, open trades, real-money P/L today, paused), Paper, coin pages (24h / 7d / 30d, tech score), Opportunities, Market (light, sentiment, BTC). Ask: long-press the cat → 👀 Skim this page; or tap her, open a new page, or let her chime in when idle. Only that page's own numbers, never buy/sell advice."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
      "t": "🎬 Chuyển động lấy từ video mèo thật",
      "te": "🎬 Motion from real cat video",
      "d": "Đi, chạy, ngồi yên vẫy đuôi, đứng dậy, ngồi xuống và quay đầu đồ lại từ video 24 hình/giây. Có đoạn chuyển dáng thật (không còn nắn hình hay lật gương đột ngột), chân không trượt khi nối, vòng đi nối khớp không giật.",

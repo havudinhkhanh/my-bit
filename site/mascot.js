@@ -656,6 +656,56 @@
   function sayOut() { const b = S.el?.querySelector(".mun-say"); if (!b || b.hidden) return; b.classList.add("out"); setTimeout(() => { if (b.classList.contains("out")) { b.hidden = true; b._p = 0; if (NT.cur) { NT.cur = null; setTimeout(ntNext, 250); } } }, 220); }
   const esc2 = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   function say(text, ms = 5200, prio = 0) { if (NT.cur && prio < 9) return false; return bubble(`<span>${esc2(text)}</span>`, ms, prio); }
+  // 👀 TRỢ LÝ LƯỜI: liếc trang đang mở (app.js pageSkim → vài con số), tóm 1–3 câu cho có rồi thôi – kênh kiệu, không quan tâm lắm.
+  //    Chỉ nói số liệu của chính trang đó (danh mục chỉ nói ở trang danh mục); KHÔNG khuyên mua / bán.
+  const isVi = () => !(typeof EN !== "undefined" && EN);
+  const fNum = (v, d) => v.toLocaleString(isVi() ? "vi-VN" : "en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+  const fM = (v) => (v < 0 ? "-" : "") + "$" + fNum(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2), fP = (v, d = 1) => (v >= 0 ? "+" : "") + fNum(v, d) + "%";
+  const oneOf = (A) => A[Math.floor(Math.random() * A.length)];
+  const SKO = [["Lướt qua rồi:", "Skimmed it:"], ["Liếc một cái:", "One glance:"], ["Nhìn sơ:", "Quick look:"], ["Tóm cho xong:", "To get it over with:"], ["Đọc giùm đây, một lần thôi:", "Reading it for you. Once:"]];
+  const SKE = [["Hết.", "That's it."], ["Xong. na na đi ngủ.", "Done. Nap time."], ["Vậy thôi, đừng hỏi thêm.", "That's all. Don't ask."], ["Chi tiết tự xem, na na lười.", "Details are your job."], ["Mệt rồi.", "Tired now."], ["Khỏi cảm ơn.", "No thanks needed."]];
+  function skimText(F) {
+    if (!F || F.err || (F.empty && !["portfolio", "bot", "paper", "c"].includes(F.r)) || (F.r === "c" && !F.k)) return null; const o = L(...oneOf(SKO)), e = L(...oneOf(SKE)), out = [];
+    const sw = (vi, en) => out.push(L(vi, en));
+    if (F.r === "portfolio") {
+      if (F.empty) return L("Danh mục trống trơn. Nhẹ đầu. Nhập coin đi rồi tính.", "Portfolio's empty. Light as air. Add coins, then we'll talk.");
+      sw(`Tổng ${fM(F.eq)}, ${F.n} coin${F.fut ? `, ${F.fut} lệnh futures` : ""}.`, `Total ${fM(F.eq)}, ${F.n} coins${F.fut ? `, ${F.fut} futures` : ""}.`);
+      if (F.pnlPct != null) sw(`So với vốn: ${fP(F.pnlPct)}${F.pnlPct < 0 ? ". Không bình luận." : "."}`, `Versus cost: ${fP(F.pnlPct)}${F.pnlPct < 0 ? ". No comment." : "."}`);
+      if (F.top && F.top.w >= 35) sw(`${F.top.k} chiếm ${fNum(F.top.w, 0)}%${F.top.w >= 55 ? " – dồn trứng một giỏ, kệ anh" : ""}.`, `${F.top.k} is ${fNum(F.top.w, 0)}%${F.top.w >= 55 ? " – all eggs, one basket. Your call" : ""}.`);
+      else if (F.best && F.worst && F.best.k !== F.worst.k) sw(`Khá nhất ${F.best.k} ${fP(F.best.g, 0)}, tệ nhất ${F.worst.k} ${fP(F.worst.g, 0)}.`, `Best ${F.best.k} ${fP(F.best.g, 0)}, worst ${F.worst.k} ${fP(F.worst.g, 0)}.`);
+      if (F.lev > F.cap) sw(`Đòn bẩy x${fNum(F.lev, 1)}, quá mức x${fNum(F.cap, 1)} hệ thống cho. Nhắc rồi đấy.`, `Leverage x${fNum(F.lev, 1)}, over the x${fNum(F.cap, 1)} cap. You've been told.`);
+    } else if (F.r === "bot") {
+      if (F.empty) return L("Chưa có bot nào chạy. Yên tĩnh. Thích.", "No bots running. Quiet. Nice.");
+      if (F.eq != null) sw(`Bot: ${fM(F.eq)}${F.ret != null ? `, từ đầu ${fP(F.ret)}` : ""}${F.day != null ? `, hôm nay ${fP(F.day, 2)}` : ""}.`, `Bot: ${fM(F.eq)}${F.ret != null ? `, ${fP(F.ret)} overall` : ""}${F.day != null ? `, ${fP(F.day, 2)} today` : ""}.`);
+      sw(F.open ? `${F.open} lệnh đang mở.` : "Không lệnh nào mở. Bot cũng lười.", F.open ? `${F.open} open.` : "Nothing open. Bot's lazy too.");
+      if (F.live && F.live.pnl != null) sw(`${F.live.real ? "Tiền thật" : "Binance demo"} hôm nay ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))}.`, `${F.live.real ? "Real money" : "Binance demo"} today ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))}.`);
+      if (F.pause) sw("Đang tạm dừng. Không phải lỗi của na na.", "Paused. Not my fault.");
+    } else if (F.r === "paper") {
+      if (F.empty) return L("Sàn thử chưa có gì. Chơi thử cũng ngại à?", "Paper account's empty. Too lazy even to pretend?");
+      sw(`Sàn thử ${fM(F.eq)} (${fP(F.pnlPct, 2)}). ${F.open} lệnh mở${F.orders ? `, ${F.orders} lệnh chờ` : ""}.`, `Paper ${fM(F.eq)} (${fP(F.pnlPct, 2)}). ${F.open} open${F.orders ? `, ${F.orders} pending` : ""}.`);
+    } else if (F.r === "c") {
+      if (F.empty) return L(`${F.k}? Không quen. Chắc coin vô danh.`, `${F.k}? Never heard of it.`);
+      sw(`${F.k}${F.r1 != null ? ` ${fP(F.r1)} 24h` : ""}${F.r7 != null ? `, ${fP(F.r7, 0)} 7 ngày` : ""}${F.r30 != null ? `, ${fP(F.r30, 0)} 30 ngày` : ""}.`, `${F.k}${F.r1 != null ? ` ${fP(F.r1)} 24h` : ""}${F.r7 != null ? `, ${fP(F.r7, 0)} 7d` : ""}${F.r30 != null ? `, ${fP(F.r30, 0)} 30d` : ""}.`);
+      if (F.tsc != null) sw(`Điểm kỹ thuật ${fNum(F.tsc, 0)}/100${F.trend === 1 ? ", xu hướng tăng" : F.trend === -1 ? ", xu hướng giảm" : ""}.`, `Tech score ${fNum(F.tsc, 0)}/100${F.trend === 1 ? ", uptrend" : F.trend === -1 ? ", downtrend" : ""}.`);
+      out.push(L("Vào hay không – việc của anh.", "In or out – your problem."));
+    } else if (F.r === "ideas") {
+      if (!F.n) sw("Không có thiết lập nào có lợi thế. Ngồi yên cũng là một kỹ năng.", "No setups with an edge. Sitting still is a skill too.");
+      else sw(`${F.n} thiết lập có lợi thế, ${F.go} cái hệ thống chấm vào được ngay. na na không chọn hộ.`, `${F.n} setups with an edge, ${F.go} rated enterable now. I'm not picking for you.`);
+    } else if (F.lightTxt !== undefined && F.lightTxt) {
+      sw(`Đèn ${F.lightTxt}${F.fng != null ? `, tâm lý ${fNum(F.fng, 0)}${F.fngZone ? ` (${F.fngZone})` : ""}` : ""}${F.btc != null ? `, BTC ${fP(F.btc)}` : ""}.`, `Light ${F.light}${F.fng != null ? `, sentiment ${fNum(F.fng, 0)}` : ""}${F.btc != null ? `, BTC ${fP(F.btc)}` : ""}.`);
+    } else if (F.title) {
+      return L(`"${F.title}". Chữ nhiều quá, na na không đọc.`, `"${F.title}". Too many words. Not reading.`);
+    } else return null;
+    return out.length ? `${o} ${out.join(" ")} ${e}` : null;
+  }
+  async function skimTalk(force) {
+    if (!S.el || (!force && S.cfg.talk === "q") || typeof window.pageSkim !== "function") return false;
+    const h = location.hash; let F = null; try { F = await window.pageSkim(); } catch (e) { /* bỏ qua */ }
+    if (location.hash !== h || !S.el) return false;
+    const t = skimText(F); if (!t) { if (force) say(L("Trang này chẳng có gì đáng đọc.", "Nothing here worth reading."), 3200, 2); return false; }
+    S.skimAt = now(); S.skimH = h; return say(t, Math.min(11000, 3800 + t.length * 45), force ? 3 : 1);
+  }
+  const SKIMR = /^(#\/?)?(?:$|\?|(?:portfolio|bot|paper|ideas|futures|sectors|radar|coins)(?:$|[/?])|(?:c|plan)\/.)/;      // trang có số liệu để liếc
   function talkMaybe() {
     if (S.cfg.talk === "q" || now() < S.nextTalk || (typeof userBusy === "function" && userBusy(4000))) return;
     const h = new Date().getHours(), d = new Date().toDateString(), hs = location.hash;
@@ -666,6 +716,7 @@
     else if (/^#\/bot/.test(hs) && Math.random() < 0.4) k = "bot";
     else if ([0, 6].includes(new Date().getDay()) && Math.random() < 0.2) k = "weekend";
     else if (new Date().getDay() === 1 && h < 12 && !S.said.mon) { k = "monday"; S.said.mon = 1; }
+    if (!k && SKIMR.test(location.hash) && Math.random() < 0.3 && !(S.skimH === location.hash && now() - (S.skimAt || 0) < 4 * 60e3)) { S.nextTalk = now() + rnd(0.8, 1.8) * 60e3; skimTalk(); return; }
     if (say(k ? pick(k) : pickGen())) { S.nextTalk = now() + rnd(0.8, 1.8) * 60e3; if (Math.random() < 0.18) meow(1); }
   }
   // ---------------------------------------------------------------- 📣 THÔNG BÁO do na na nói: thay thẻ thông báo cũ khi na na đang hiện – giữ nguyên chức năng
@@ -711,7 +762,7 @@
     if (S.pokes.length === 3) { say(pick("scratch"), 3000, 2); swipe(S.lastPx, S.lastPy); meow(1); sched(idle, 7000); return; }
     if (S.pokes.length >= 5) { S.pokes = []; say(pick("enough"), 2600, 2); const tr = track(); const away = () => walkTo(S.x - tr.l > tr.r - S.x ? tr.l : tr.r, () => { if (!groomV("gpaw")) { pose("groom"); sched(idle, 6000); } }); if (!annoyV(away)) away(); return; }
     if (!(Math.random() < 0.5 && (SITS.has(S.pose) ? groomV() : false))) { if (G2.every((n) => SHEET[n])) { if (!SITS.has(S.pose) && !STANDS.has(S.pose)) play("sit"); } else pose(["sit", "groom", "licklip", "lookup"][Math.floor(Math.random() * 4)]); }
-    say(pick("poke"), 3000, 2); if (Math.random() < 0.3) meow(1); sched(idle, 7000);
+    if (SKIMR.test(location.hash) && Math.random() < 0.4 && now() - (S.skimAt || 0) > 20e3) skimTalk(true); else say(pick("poke"), 3000, 2);      // chạm mèo → hay đọc lướt trang giùm (lười, cho xong) if (Math.random() < 0.3) meow(1); sched(idle, 7000);
   }
   // 🐾 cào: xù lên thủ thế + 3 vết cào ngay chỗ ngón tay
   function swipe(px, py) {
@@ -740,6 +791,7 @@
     const it = (k, ic, t, sub) => `<button type="button" data-mun="${k}"><span class="ios-t">${t}${sub ? `<small>${sub}</small>` : ""}</span><span class="ios-ic">${ic}</span></button>`;
     m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="munMenu" role="menu" aria-label="${NAME}" style="left:${left}px;width:${W}px;bottom:${Math.round(innerHeight - R.top + 8)}px;transform-origin:${Math.round(R.left + R.width / 2 - left)}px calc(100% + 8px)">
       <div class="ios-menu-h">🐈‍⬛ ${NAME}</div>
+      ${it("skim", "👀", L("Đọc lướt trang này", "Skim this page"), L("lười thôi, đừng mong chi tiết", "lazily – don't expect details"))}
       ${it("mouse", "🐭", L("Thả chuột cho na na", "Release a mouse"), L("xem na na rượt", "watch na na hunt"))}
       ${it("yarn", "🧶", L("Chơi len", "Play with yarn"), "")}
       ${it("post", "🪵", L("Cào trụ", "Scratch the post"), "")}
@@ -762,6 +814,7 @@
       else if (k === "mouse") setTimeout(() => chase(true), 250);
       else if (k === "stairs") setTimeout(() => stairs(true), 250);
       else if (k === "roll") setTimeout(() => { clearTimeout(S.tm); rollPlay(); }, 250);
+      else if (k === "skim") setTimeout(() => skimTalk(true), 250);
       else if (k === "lick") setTimeout(() => { clearTimeout(S.tm); if (!groomV("gpaw")) groomPlay(); }, 250);
       else if (k === "yarn" || k === "post" || k === "fly") setTimeout(() => toy(k, true), 250);
       else if (k === "sleep") { S.napTill = now() + 30 * 60e3; if (!napping() && !napV()) pose("curl"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
@@ -913,7 +966,7 @@
     // đổi trang → bình luận theo trang (≈ 60% số lần, cách nhau ≥ 35 giây)
     addEventListener("hashchange", () => { if (!S.el || S.cfg.talk === "q" || S.chasing || NT.cur || now() - (S.navAt || 0) < 35e3 || Math.random() > 0.6) return; S.navAt = now();
       const h = location.hash, k = /^#\/bot/.test(h) ? "p_bot" : /portfolio/.test(h) ? "p_pf" : /plan|paper|live/.test(h) ? "p_trade" : /ideas|radar|coins|pairs|futures|sectors/.test(h) ? "p_opp" : /tax/.test(h) ? "p_tax" : /account|keys/.test(h) ? "p_acc" : /backtest|methods/.test(h) ? "p_journal" : "p_market";
-      setTimeout(() => say(pick(k), 4200, 1), 1100); });
+      if (SKIMR.test(h) && Math.random() < 0.65) setTimeout(() => skimTalk(), 1700); else setTimeout(() => say(pick(k), 4200, 1), 1100); });      // vào trang có số liệu → hay liếc qua tóm tắt
     { let sc = 0, st = 0; addEventListener("scroll", () => { const t = now(); if (t - st > 1500) { st = t; sc = 0; } sc++; if (sc > 40 && S.el && S.cfg.talk !== "q" && t - (S.scAt || 0) > 4 * 60e3) { S.scAt = t; say(pick("scroll"), 3200, 1); } }, { passive: true, capture: true }); }
     document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 10 * 60e3 && S.cfg.talk !== "q") setTimeout(() => { say(pick("back"), 4000, 1); meow(1); }, 900); });
     setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (!S.away && !S.chasing && !ST.on && !napping() && !NT.cur && now() >= (S.nextTalk || 0)) talkMaybe();      // nói theo giờ, không chờ tới lượt nghĩ việc kế tiếp (động tác video dài → trước ít khi tới lượt nói)
@@ -925,7 +978,7 @@
   }
   function stop() { clearTimeout(S.tm); halt(); if (S.el) { const el = S.el; S.el = null; NT.q = []; NT.cur = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
   window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); } }, say: (t, ms) => say(t, ms, 2), meow: (n) => { unlock(); meow(n || 2); }, chase: () => chase(true), stairs: () => stairs(true), notify,
-    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
+    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _skim: () => skimTalk(true), _skimText: (F) => skimText(F), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
