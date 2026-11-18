@@ -2,7 +2,11 @@
 # mỗi khung: [w, h, eye|null, [[loại, x0, y0, dx, dy, ...], ...]]  loại 0 = thân đen, 1 = lỗ (mắt, khe giữa chân), 2 = vòng cổ vàng
 import cv2, numpy as np, json, sys, os
 SRC = sys.argv[1]; OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
-CLIPS = ["walk", "run", "sit_idle", "sit_to_stand", "stand_to_sit", "turn"]
+CLIPS = ["walk", "run", "sit_idle", "sit_to_stand", "stand_to_sit", "turn",
+         "groom_paw", "groom_body", "stretch", "sit_to_loaf", "loaf_to_curl", "sleep", "wake"]      # nhóm 2 (liếm, vươn vai, nằm, cuộn, ngủ, dậy)
+ONLY = [c for c in os.environ.get("ONLY", "").split(",") if c] or CLIPS      # chỉ ghi lại các clip này (cỡ vẫn tính theo cả bộ)
+LOOPS = ("walk", "run", "sit_idle", "sleep")
+KEEP_TAIL = ("sit_to_loaf", "loaf_to_curl")      # giữ đoạn cuối nằm yên thở → làm dáng nằm / cuộn tròn (phát tới lui)
 SIT_H = 231.0          # chiều cao dáng ngồi trong hệ đơn vị hiện tại của mèo
 
 def load(clip):
@@ -60,6 +64,9 @@ def eyes_of(m, g, ys0):
         d = np.hypot(cen[i][0] - hx, cen[i][1] - hy)
         if d < 0.24 * H and cen[i][1] < top + 0.5 * H: E.append((d, i))
     E.sort(); E = E[:2]
+    if len(E) == 2:      # mắt thứ 2 phải nằm ngang hàng, sát mắt chính – trước: mảnh vòng cổ gần đầu bị nhận là mắt → khoét lỗ trắng trên cổ
+        (_, i0), (_, i1) = E
+        if abs(cen[i1][1] - cen[i0][1]) > 0.06 * H or abs(cen[i1][0] - cen[i0][0]) > 0.16 * H: E = E[:1]
     eyes = [(cen[i][0], cen[i][1], st[i][2], st[i][3]) for _, i in E]      # (tâm x, tâm y, rộng, cao) – mắt chính trước
     return eyes, right
 
@@ -142,21 +149,26 @@ ks = lambda A: float(np.sqrt(AU / A))
 ust = AU
 K = {"sit_idle": SIT_H / hs_idle, "sit_to_stand": (ka + ks(np.median(ta[-12:]))) / 2, "stand_to_sit": (kb + ks(np.median(tb[:12]))) / 2,
      "walk": ks(np.median(TA["walk"])), "run": ks(np.median(TA["run"])), "turn": ks(np.median(TA["turn"][:12]))}
+# nhóm 2: liếm (bắt đầu NGỒI → cỡ theo chiều cao ngồi), vươn vai / nằm / cuộn (bắt đầu ĐỨNG → diện tích thân), dậy (kết thúc đứng),
+# ngủ (không có khung đứng → so diện tích với khung đầu của clip dậy, cùng dáng ngủ)
+for c in ("groom_paw", "groom_body"): K[c] = SIT_H / np.median(Hh[c][:12])
+for c in ("stretch", "sit_to_loaf", "loaf_to_curl"): K[c] = ks(np.median(TA[c][:12]))
+K["wake"] = ks(np.median(TA["wake"][-12:])); K["sleep"] = K["wake"] * float(np.sqrt(np.median(TA["wake"][:12]) / np.median(TA["sleep"])))
 print("stand units", round(ust, 1), {k: round(v, 4) for k, v in K.items()})
 
 meta = {}
-for clip in CLIPS:
+for clip in ONLY:
     ims, M, G = get(clip); k = K[clip]; gy = ground_of(M); n = len(M)
     HH = Hh[clip].mean()
     tor = [torso(m, HH) for m in M]
-    loop = clip in ("walk", "run", "sit_idle")
+    loop = clip in LOOPS
     if loop: ax = smooth([t[0] for t in tor], 25)          # vòng lặp: mốc = tâm thân làm mượt 1 giây → không trôi, giữ nhịp lắc tự nhiên
     else: ax = np.full(n, tor[0][0])                         # chuyển dáng / quay: máy quay đứng yên → giữ đúng chuyển động thật; độ dời cuối clip trả về dx
     # ---- cắt đoạn có chuyển động (clip chuyển dáng dài 8 giây nhưng động tác chỉ vài giây)
     a0, a1 = 0, n - 1
     if not loop:
         act = smooth(activity(M), 5); thr = 0.12 * act.max()
-        on = np.nonzero(act > thr)[0]; a0 = max(0, on[0] - 4); a1 = min(n - 1, on[-1] + 4)
+        on = np.nonzero(act > thr)[0]; a0 = max(0, on[0] - 4); a1 = n - 1 if clip in KEEP_TAIL else min(n - 1, on[-1] + 4)
     # ---- vòng lặp: chọn khung cuối khớp khung đầu nhất (mặt nạ chồng khít sau khi đặt mốc)
     def nm(i):
         m = M[i]; sx = int(round(ax[i] - ax[0])); return np.roll(m, -sx, axis=1)
@@ -222,4 +234,4 @@ for clip in CLIPS:
     open(f"{OUT}/{clip}.json", "w").write(s)
     meta[clip] = {"frames": len(F), "a0": a0, "a1": a1, "k": k, "dx": round(dx, 1), "upf": upf, "eyes": eyesN, "faceR_start": faces[0], "faceR_end": faces[-1], "kb": round(len(s) / 1024)}
     print(clip, meta[clip])
-json.dump(meta, open(f"{OUT}/meta.json", "w"), indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))
+json.dump(meta, open(f"{OUT}/meta_{'_'.join(ONLY) if len(ONLY) < 4 else 'all'}.json", "w"), indent=1, default=lambda o: o.item() if hasattr(o, "item") else str(o))

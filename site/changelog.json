@@ -6,8 +6,8 @@
    "d": "2026-11-18",
    "t": "Mèo na na chuyển động như mèo thật",
    "te": "Na na moves like a real cat",
-   "s": "Đi, chạy, ngồi, đứng dậy, ngồi xuống, quay đầu lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
-   "se": "Walk, trot, sit, stand up, sit down and turn taken from real cat video; 3× lighter, blinking, ground shadow.",
+   "s": "Đi, chạy, ngồi, đứng dậy, ngồi xuống, quay đầu, liếm lông, vươn vai, nằm, ngủ, thức dậy lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
+   "se": "Walk, trot, sit, stand up, sit down, turn, groom, stretch, lie down, sleep and wake taken from real cat video; 3× lighter, blinking, ground shadow.",
    "it": [
     {
      "c": "new",
@@ -16,6 +16,14 @@
      "te": "🎬 Motion from real cat video",
      "d": "Đi, chạy, ngồi yên vẫy đuôi, đứng dậy, ngồi xuống và quay đầu đồ lại từ video 24 hình/giây. Có đoạn chuyển dáng thật (không còn nắn hình hay lật gương đột ngột), chân không trượt khi nối, vòng đi nối khớp không giật.",
      "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "😴 Liếm lông, vươn vai, nằm, ngủ, thức dậy – lấy từ video mèo thật",
+     "te": "😴 Grooming, stretching, lying down, sleeping and waking – from real cat video",
+     "d": "na na giờ liếm chân rửa mặt, cúi liếm ngực, vươn vai, nằm duỗi nghỉ, cuộn tròn hay nằm gục đầu ngủ (thở đều, có chữ z), rồi thức dậy ngáp, vươn mình đứng lên. Mọi động tác nối nhau liền mạch, không nhảy hình. Chạm hoặc vuốt khi mèo đang ngủ là mèo dậy; vuốt xuôi lông thì mèo nằm xuống khoan khoái.",
+     "de": "na na now licks a paw and washes her face, grooms her chest, stretches, lies down to rest, curls up or sleeps with her head down (breathing, with z's), then wakes with a yawn and a stretch. Every move flows into the next without jumps. Tap or scroll to wake her; pet along the fur and she lies down contentedly."
     },
     {
      "c": "imp",
