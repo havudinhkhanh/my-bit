@@ -34,9 +34,9 @@
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
-      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); } return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
+      const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) { P.pe = d.es || [10, 12]; P.polys = P.polys.filter(keepPoly).map((q) => mk(q.t, arcRes(q.p))); } return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
       F.T = T; F.W = d.w; F.pe = d.pe;
-      if (d.m) F.mid = d.m.map((v, i) => { addPose(nm + "m" + i, v); const P = POSE[nm + "m" + i]; P.pe = d.es || [10, 12]; P.polys = P.polys.map((q) => mk(q.t, arcRes(q.p))); return P; }); F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;      // F.mid: khung giữa (i+½) nội suy sẵn theo luồng quang học
+      if (d.m) F.mid = d.m.map((v, i) => { addPose(nm + "m" + i, v); const P = POSE[nm + "m" + i]; P.pe = d.es || [10, 12]; P.polys = P.polys.filter(keepPoly).map((q) => mk(q.t, arcRes(q.p))); return P; }); F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;      // F.mid: khung giữa (i+½) nội suy sẵn theo luồng quang học
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
       if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
       // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
@@ -58,6 +58,8 @@
     const tot = L[n], m = Math.max(12, Math.round(tot / sp)), o = new Float32Array(m * 2); let k = 0;
     for (let i = 0; i < m; i++) { const d = (i * tot) / m; while (L[k + 1] < d) k++; const j = (k + 1) % n, u = (d - L[k]) / (L[k + 1] - L[k] || 1); o[2 * i] = p[2 * k] + (p[2 * j] - p[2 * k]) * u; o[2 * i + 1] = p[2 * k + 1] + (p[2 * j + 1] - p[2 * k + 1]) * u; }
     return o; };
+  // lỗ nhỏ / mảnh như sợi chỉ (khe sáng trên vòng cổ, kẽ lông) chỉ lóe 1–2 khung → bỏ: nhìn như "tia điện" xoẹt qua cổ mèo
+  const keepPoly = (q) => { if (q.t !== 1) return true; let L = 0; const P = q.p, n = P.length / 2; for (let i = 0; i < n; i++) { const j = (i + 1) % n; L += Math.hypot(P[2 * j] - P[2 * i], P[2 * j + 1] - P[2 * i + 1]); } return q.ar >= 80 && (2 * q.ar) / (L || 1) >= 3; };
   const resamp = (a, n) => { if (a.n === n) return a.p; const o = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const f = (i * a.n) / n, j = Math.floor(f), u = f - j, k = (j + 1) % a.n; o[2 * i] = a.p[2 * j] + (a.p[2 * k] - a.p[2 * j]) * u; o[2 * i + 1] = a.p[2 * j + 1] + (a.p[2 * k + 1] - a.p[2 * j + 1]) * u; } return o; };
   function align(a, b) {      // b (đã cùng số điểm với a) → xoay vòng điểm đầu cho khớp a nhất (so sau khi đưa 2 hình về cùng tâm)
     const n = a.n, A = a.p, step = n > 60 ? 2 : 1; let best = 0, bd = Infinity, bx = 0, by = 0;
@@ -171,7 +173,7 @@
     g.globalAlpha = alpha;
     const body = cvPath(sh, [0, 1]), e = sh.eye, k = sh.eyeK ?? 1;
     // nền tối: viền sáng mảnh 1 điểm ảnh (trước 1,5 điểm ảnh mờ 50% → trông nhoè); nền sáng: không vẽ bóng lệch quanh thân nữa (tạo mép xám đôi) – đã có bóng dưới chân
-    if (dark) { g.lineJoin = "round"; g.lineWidth = 2 / R.k; g.strokeStyle = "rgba(255,255,255,.42)"; g.stroke(body); }
+    if (dark) { g.lineJoin = "round"; g.lineWidth = 2 / R.k; g.strokeStyle = "rgba(255,255,255,.42)"; g.stroke(sh.pe ? cvPath(sh, [0]) : body); }      // viền sáng chỉ quanh thân ngoài – không viền quanh lỗ (khe nhỏ thành vệt sáng loé)
     if (e && dark && k > 0.01 && !sh.pe) { g.globalAlpha = alpha * k; g.fillStyle = "#ECE6D6"; g.beginPath(); g.arc(e[0], e[1], 9, 0, 6.2832); g.fill(); g.globalAlpha = alpha; }
     g.fillStyle = dark ? "#060708" : "#0a0a0b"; g.fill(body, "nonzero");
     // 😑 chớp mắt: mí đen kéo từ trên xuống che lỗ mắt rồi mở ra (blink 0 → 1 → 0)
@@ -354,14 +356,14 @@
     return POSE[c.p];
   }
   function play(name, dur, soft) {      // soft: nối clip video → nắn hình (không hoà tan 2 con mèo chồng nhau) trừ khi 2 dáng khác hẳn
-    const c = CLIP[name]; if (!c || !S.el) return; if (A.clip === c && !A.snap) return;
+    const c = CLIP[name]; if (!c || !S.el) return; if (A.clip === c) return;      // đang chạy đúng clip này (kể cả đang nắn vào) → thôi, không bắt đầu lại (trước: đi khom gọi lại giữa lúc nắn → hiện bóng mờ 2 con mèo)
     S.pose = name; S.el.dataset.pose = name; leave();
     const F0 = c.sheet && SHEET[c.sheet], st = soft && c.loop && F0 && F0.st ? F0.st : 0;      // vào vòng đi / chạy từ khung giống dáng đứng nhất (đo sẵn từ video)
     const tg = st ? F0[st] : clipStart(c); A.snap = A.sh; A.map = mapOf(A.sh, tg); A.t0 = performance.now(); A.clip = c; A.name = name; A.ct = 0; A.ph = st ? (F0.W ? F0.T[st] - F0.T[c.a || 0] : st - (c.a || 0)) : 0;
     if (F0 && F0.tx && !c.loop && !c.na) { const [i, j, u] = sheetAt(c, phq(c, A.ph, sheetSpan(c))), t0 = (F0.tx[i] || 0) * (1 - u) + (F0.tx[j] || 0) * u; A.fi = [i, j, u];
       const al = c.ae && A.sh?.eye && tg.eye ? A.sh.eye[0] - tg.eye[0] : -t0;
       if (al) { const sn = A.snap; rebase(al); A.snap = sn ? A.sh : null; A.map = mapOf(A.sh, tg); } A.anch = 1; }      // clip máy quay đứng yên: vào giữa chừng (nằm → dậy, phát ngược) thì dời khung cho thân mèo ở đúng chỗ cũ
-    A.dis = !soft && A.map.cost > 0.4;      // 2 dáng khác hẳn → hoà tan (dáng cũ nhích nhẹ + mờ, dáng mới hiện lên) thay vì nắn hình → không lổn nhổn giữa chừng
+    A.dis = !soft && A.map.cost > 0.4 && !tg.pe && !A.sh?.pe;      // hoà tan (bóng mờ) chỉ còn cho dáng vẽ cũ; mèo từ video luôn nắn hình      // 2 dáng khác hẳn → hoà tan (dáng cũ nhích nhẹ + mờ, dáng mới hiện lên) thay vì nắn hình → không lổn nhổn giữa chừng
     if (A.dis) A.rmap = mapOf(tg, A.snap);
     A.dur = RM.matches ? 1 : dur || (A.dis ? 380 : ["curl", "lie", "roll", "stretch"].includes(name) ? 620 : 420); A.dur *= MUN_ART.slow || 1;
   }
@@ -516,7 +518,7 @@
     if (need !== S.face && SHEET.vturn && (pre.length || STANDS.has(S.pose))) pre.push("turn");
     runSeq(pre, () => {
       face(need); const v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1);
-      play(opt.clip || "walk", pre.length ? 240 : undefined, !!pre.length); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, pre.length ? 60 : 260);
+      play(opt.clip || "walk", pre.length ? 320 : undefined, !!pre.length); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, pre.length ? 300 : 260);      // chờ nắn sang dáng đi xong mới bước (trước 60 ms: thân trượt trong lúc chân đứng yên → giật lúc vừa quay đầu đi)
     }, tk);
   }
   // 🫠 trượt té: đang đi thì trượt chân, lăn ra, vươn vai đứng dậy, chối
@@ -846,12 +848,18 @@
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > 25e3) return stalkEnd(true);
-    if (now() - ST.last > 650) { ST.last = now(); const cw = 345 * S.s, tx = e.clientX - cw / 2; if (Math.abs(tx - S.x) > 30) walkTo(tx, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" }); }
+    if (e.target?.closest?.("#mun")) return;      // chuột đang ở TRÊN mèo (rê qua / định vuốt) → không coi là con mồi
+    if (now() - ST.last > 650) { ST.last = now(); stalkGo(e.clientX); }
   }
+  // đi khom tới TRƯỚC con trỏ (đầu sát con mồi), không đứng đè lên; đang đứng dậy / quay đầu thì để xong đã
+  function stalkGo(px) { const cw = 345 * S.s, dir = px > S.x + cw / 2 ? 1 : -1, tx = px - cw / 2 - dir * 0.62 * cw;
+    if (Math.abs(tx - S.x) > 40 && !["s2st", "turn", "l2st", "wake", "pounceF"].includes(S.pose)) walkTo(tx, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" }); }
   function stalkTick() {
     if (!ST.on || !S.el) return; const cw = 345 * S.s;
-    if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk" && hasV("pounceF")) {      // 🎬 vồ con trỏ thật
-      ST.on = false; ST.cool = now() + 90e3; say(pick("pounce"), 2200, 2); act([...(STANDS.has(S.pose) ? [] : upSeq()), "pounceF", "st2s"], "sit", () => sched(idle, rnd(3e3, 5e3)), 420); return; }
+    const ahead = (ST.px - (S.x + cw / 2)) * S.face;      // con trỏ ở phía trước mặt mèo bao xa
+    if (hasV("pounceF") && now() - ST.last > 900 && !(ahead > 0.3 * cw && ahead < 1.1 * cw) && ["ready", "sit", "stalk"].includes(S.pose) && !A.v) { ST.last = now(); stalkGo(ST.px); }      // chuột dừng mà mèo chưa tới chỗ → đi tiếp
+    if (hasV("pounceF")) { if (now() - ST.mv > 1100 && ahead > 0.3 * cw && ahead < 1.1 * cw && (S.pose === "ready" || SITS.has(S.pose))) {      // 🎬 vồ con trỏ thật – chỉ khi đã đứng chờ / ngồi yên, không cắt ngang lúc đang đứng dậy, quay đầu
+      ST.on = false; ST.cool = now() + 90e3; say(pick("pounce"), 2200, 2); act([...(STANDS.has(S.pose) ? [] : upSeq()), "pounceF", "st2s"], "sit", () => sched(idle, rnd(3e3, 5e3)), 420); } return; }
     if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk") { play("chase", 120); S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); setTimeout(() => play("crouch"), 260); say(pick("pounce"), 2200, 2); ST.cool = now() + 90e3; stalkEnd(false); }
   }  // ---------------------------------------------------------------- dựng / bật / tắt
   function build() {

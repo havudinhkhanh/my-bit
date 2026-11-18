@@ -86,6 +86,14 @@
      "d": "Bản trước nắn viền giữa 2 khung ngay trên trang: lúc chân bước nhanh, viền ghép sai nên chân dính cục, tai méo ở nhiều khung → vừa nhấp nháy vừa lỗi hình. Giờ khung giữa được dựng sẵn từ chính video bằng luồng quang học (biết từng điểm lông di chuyển đi đâu), mép lông làm mượt theo thời gian có bù chuyển động. Đo trên dáng đi: viền rung giảm 3 lần so với bản trước, khung lỗi hình gần như hết (sai lệch lớn nhất giảm 10–20 lần). Mèo chạy chỉ tải khi cần.",
      "te": "Smooth 48 fps with no flicker and no broken frames",
      "de": "The previous version blended outlines between two frames in the browser: when legs moved fast the points matched up wrongly, so legs merged into blobs and ears warped on many frames – both flicker and broken shapes. In-between frames are now built from the video itself using optical flow (tracking where each part actually moves), and fur edges are smoothed over time with motion compensation. Measured on the walk: outline jitter is 3× lower than the previous version and broken frames are essentially gone (worst error 10–20× smaller). The run clip now loads only when needed."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Hết bóng mờ lúc bắt đầu đi, hết vệt sáng ở cổ, rê chuột lên mèo không còn làm mèo vồ bậy",
+     "d": "Lúc mèo vừa quay đầu bước đi (nhất là đi khom theo chuột), lệnh đi được gọi lại giữa lúc đang chuyển dáng nên hiện 2 con mèo mờ chồng nhau – đã sửa, mèo video luôn nắn hình chứ không hoà mờ; mèo chờ chuyển dáng xong mới bước nên chân không trượt. Khe sáng nhỏ trên vòng cổ thỉnh thoảng lóe 1 khung (giao diện tối còn có viền sáng quanh khe → như tia điện) đã bỏ. Rê chuột lên người mèo không còn bị coi là con mồi; mèo đi khom tới đứng trước con trỏ rồi mới vồ, không đứng đè lên hay vồ giữa lúc đang đứng dậy.",
+     "te": "No more ghosting when starting to walk, no flash at the neck, hovering over the cat no longer triggers a stray pounce",
+     "de": "Right after turning to walk (especially stalking the mouse), the walk command was re-issued mid-transition and two faded cats appeared on top of each other – fixed: video cats always blend by shape, never cross-fade, and the cat waits until the transition ends before stepping so its feet don't slide. A tiny bright gap on the collar that flashed for a frame (with a light outline in dark mode, like an electric spark) has been removed. Hovering over the cat no longer counts as prey; she stalks to just in front of the pointer and pounces only once settled, not on top of it or while standing up."
     }
    ]
   },
