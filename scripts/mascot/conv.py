@@ -60,11 +60,16 @@ def eyes_of(m, g, ys0):
         d = np.hypot(cen[i][0] - hx, cen[i][1] - hy)
         if d < 0.24 * H and cen[i][1] < top + 0.5 * H: E.append((d, i))
     E.sort(); E = E[:2]
-    em = np.isin(lab, [i for _, i in E]).astype(np.uint8)
-    if em.any(): em = cv2.dilate(em, np.ones((3, 3), np.uint8))
-    eye = None
-    if E: i = E[0][1]; eye = (cen[i][0], cen[i][1])
-    return em, eye, right
+    eyes = [(cen[i][0], cen[i][1], st[i][2], st[i][3]) for _, i in E]      # (tâm x, tâm y, rộng, cao) – mắt chính trước
+    return eyes, right
+
+def smoothc(c, sig):      # làm mịn viền dọc theo mép (Gauss vòng kín) → bỏ lông tơ lởm chởm đổi từng khung (mép "sôi"), giữ dáng
+    p = c[:, 0, :].astype(np.float32); n = len(p); k = int(sig * 3)
+    if n < 4 * k + 4: return c.astype(np.float32)
+    w = np.exp(-0.5 * (np.arange(-k, k + 1) / sig) ** 2); w /= w.sum()
+    P = np.concatenate([p[-k:], p, p[:k]])
+    q = np.stack([np.convolve(P[:, 0], w, "valid"), np.convolve(P[:, 1], w, "valid")], 1)
+    return q.reshape(-1, 1, 2).astype(np.float32)
 
 def polys_of(m, em, gm, T):     # T(x, y) → đơn vị
     body = (m & (1 - em)).astype(np.uint8)
@@ -73,13 +78,13 @@ def polys_of(m, em, gm, T):     # T(x, y) → đơn vị
     if hi is None: return P
     for c, h in zip(cs, hi[0]):
         if cv2.contourArea(c) < (60 if h[3] >= 0 else 300): continue
-        a = cv2.approxPolyDP(c, 1.1, True)[:, 0, :].astype(np.float32)
+        a = cv2.approxPolyDP(smoothc(c, 1.3 if h[3] >= 0 else 2.2), 0.8, True)[:, 0, :].astype(np.float32)
         P.append((1 if h[3] >= 0 else 0, a))
     gold = cv2.morphologyEx((gm & m & (1 - em)).astype(np.uint8), cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     cs, _ = cv2.findContours(gold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     for c in cs:
         if cv2.contourArea(c) < 40: continue
-        P.append((2, cv2.approxPolyDP(c, 1.0, True)[:, 0, :].astype(np.float32)))
+        P.append((2, cv2.approxPolyDP(smoothc(c, 1.6), 0.8, True)[:, 0, :].astype(np.float32)))
     out = []
     for t, a in P:
         U = np.array([T(x, y) for x, y in a]); r = np.round(U).astype(int)
@@ -173,9 +178,22 @@ for clip in CLIPS:
             mj = np.roll(M[j], -sh, axis=1); gj = np.roll(G[j], -sh, axis=1)
             M[i] = ((1 - w) * sdf(M[i]) + w * sdf(mj) < 0).astype(np.uint8)
             G[i] = (G[i] if w < 0.5 else gj) & M[i]
+    # 👁 mắt ỔN ĐỊNH: hình bầu dục cỡ cố định cả clip (trung vị), tâm làm mượt 3 khung – trước đồ theo đốm màu từng khung → mắt to nhỏ, méo, chớp tắt
+    EY = [eyes_of(M[i], G[i], None) for i in range(n)]
+    ew = np.median([e[0][2] for e, _ in EY if e]) if any(e for e, _ in EY) else 14; eh = np.median([e[0][3] for e, _ in EY if e]) if any(e for e, _ in EY) else 18
+    def eyec(i, q):
+        P = [(EY[j][0][q][0] - ax[j], EY[j][0][q][1]) for j in (i - 1, i, i + 1) if 0 <= j < n and len(EY[j][0]) > q]
+        if len(EY[i][0]) <= q: return None
+        return (np.mean([p[0] for p in P]) + ax[i], np.mean([p[1] for p in P]))
     F = []; eyesN = 0; faces = []
     for i in range(a0, a1 + 1):
-        m = M[i]; em, eye, right = eyes_of(m, G[i], None); faces.append(right)
+        m = M[i]; right = EY[i][1]; faces.append(right)
+        em = np.zeros_like(m); eye = None
+        for q in range(len(EY[i][0])):
+            c0 = eyec(i, q)
+            if c0 is None: continue
+            if q == 0: eye = c0
+            cv2.ellipse(em, (int(round(c0[0])), int(round(c0[1]))), (max(4, int(round(ew * 0.55))), max(5, int(round(eh * 0.58)))), 0, 0, 360, 1, -1)
         T = (lambda x, y, i=i: ((x - ax[i]) * k, (y - gy) * k))
         ps = polys_of(m, em, G[i], T)
         ys, xs = np.nonzero(m)

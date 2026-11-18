@@ -131,6 +131,7 @@
       g.globalAlpha *= 0.5; g.strokeStyle = "#fff"; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 3); g.lineTo(2, -4); g.moveTo(4, 4); g.lineTo(8, -4); g.stroke(); },
   };
   const CVW = 620;      // khung canvas rộng 620 đơn vị (−310…310): mèo thật từ video dài hơn mèo vẽ cũ (đuôi duỗi khi đi ~440)
+  const snap = (v) => { const d = devicePixelRatio || 1; return (Math.round(v * d) / d).toFixed(3); };      // vị trí đúng lưới điểm ảnh của máy → không nội suy làm nhoè, không lấp lánh khi đi
   const cvBind = (cv) => ({ cv, g: cv.getContext("2d", { alpha: true }), w: 0, h: 0, k: 0 });
   function cvPath(sh, types) { const P = new Path2D(); for (const q of sh.polys) { if (!types.includes(q.t)) continue; const p = q.p, n = p.length / 2; P.moveTo(p[0], p[1]); for (let i = 1; i < n; i++) P.lineTo(p[2 * i], p[2 * i + 1]); P.closePath(); } return P; }
   // ops: biến đổi cả thân như transform SVG cũ: ["t", x, y] dời · ["r", độ, cx, cy] xoay quanh điểm · ["s", sx, sy] co giãn quanh gốc (mặt đất)
@@ -138,8 +139,8 @@
     const g = R.g; if (!sh || alpha <= 0.002) return;
     g.globalAlpha = alpha;
     const body = cvPath(sh, [0, 1]), e = sh.eye, k = sh.eyeK ?? 1;
-    if (dark) { g.save(); g.translate(0, 2 / R.k); g.fillStyle = "rgba(0,0,0,.38)"; g.fill(body); g.restore(); g.lineJoin = "round"; g.lineWidth = 1.5 / R.k; g.strokeStyle = "rgba(255,255,255,.5)"; g.stroke(body); }
-    else { g.save(); g.translate(0.4 / R.k, 1.2 / R.k); g.fillStyle = "rgba(0,0,0,.13)"; g.fill(body); g.restore(); }
+    // nền tối: viền sáng mảnh 1 điểm ảnh (trước 1,5 điểm ảnh mờ 50% → trông nhoè); nền sáng: không vẽ bóng lệch quanh thân nữa (tạo mép xám đôi) – đã có bóng dưới chân
+    if (dark) { g.lineJoin = "round"; g.lineWidth = 2 / R.k; g.strokeStyle = "rgba(255,255,255,.42)"; g.stroke(body); }
     if (e && dark && k > 0.01) { g.globalAlpha = alpha * k; g.fillStyle = "#ECE6D6"; g.beginPath(); g.arc(e[0], e[1], 9, 0, 6.2832); g.fill(); g.globalAlpha = alpha; }
     g.fillStyle = dark ? "#060708" : "#0a0a0b"; g.fill(body, "nonzero");
     // 😑 chớp mắt: mí đen kéo từ trên xuống che lỗ mắt rồi mở ra (blink 0 → 1 → 0)
@@ -152,8 +153,12 @@
     g.globalAlpha = 1;
   }
   function cvDraw(R, sh, ops, skin, gh, ga, gb, blink) {
-    const w = CVW * (S.s || 0.2) * 1.17, h = 272 * (S.s || 0.2) * 1.17, dpr = Math.min(3, devicePixelRatio || 1), W = Math.round(w * dpr), H = Math.round(h * dpr);
-    if (R.w !== W || R.h !== H) { R.cv.width = W; R.cv.height = H; R.w = W; R.h = H; }      // đổi cỡ khung → đặt lại (hiếm), không đọc bố cục trang mỗi khung
+    const ss = S.s || 0.2, dpr = devicePixelRatio || 1, W = 2 * Math.round(CVW * ss * 1.17 * dpr / 2), H = Math.round(272 * ss * 1.17 * dpr);
+    if (R.w !== W || R.h !== H) {      // đổi cỡ (hiếm): canvas đúng TỪNG điểm ảnh của máy (cỡ CSS = điểm ảnh / dpr, mép trái nằm trên lưới) → trình duyệt không co giãn ảnh → viền sắc
+      R.cv.width = W; R.cv.height = H; R.w = W; R.h = H;
+      const fw = 2 * Math.round(345 * ss / 2); if (S.el && R.cv.closest?.("#mun")) { S.el.style.width = fw + "px"; S.el.style.height = Math.round(290 * ss) + "px"; }
+      Object.assign(R.cv.style, { width: W / dpr + "px", height: H / dpr + "px", left: fw / 2 - W / 2 / dpr + "px", bottom: -Math.round(10 * ss * 1.17 * dpr) / dpr + "px", transform: "none" });
+    }
     const g = R.g, k = W / CVW; R.k = k / dpr;
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     g.setTransform(k, 0, 0, k, CVW / 2 * k, 262 * k);
@@ -304,8 +309,10 @@
   // khung hình: 60 hình/giây khi đang chuyển / đi, 30 khi đứng yên
   function loop(t) {
     if (!S.el) { A.on = false; return; }
+    // tần số màn hình: đo từ MỌI khung (kể cả khung nghỉ) – trước đo lẫn khoảng nghỉ → ra 30 Hz → không nghỉ khung nào
+    { const d = A.lt ? (t - A.lt) / 1000 : 0; A.lt = t; if (d > 0 && d < 0.05 && DTS.length < 90) { DTS.push(d); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } } }
+    if (A.skipN > 0 && !A.snap) { A.skipN--; requestAnimationFrame(loop); return; }
     const dt = A.last ? Math.min(0.1, (t - A.last) / 1000) : 0; A.last = t; A.ct += dt;      // nhịp vẽ thưa (15–30/giây) vẫn đúng thời gian thật
-    if (dt > 0 && DTS.length < 90) { DTS.push(dt); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } }
     A.gx = null; const c = A.clip, tgt = clipShape(c, dt); let sh = tgt;
     let gh = A.gx ? A.gx[0] : null, ga = A.gx ? A.gx[1] : 0, gb = A.gx ? A.gx[2] : 1;
     if (A.snap) { const u = Math.min(1, (t - A.t0) / A.dur); if (u >= 1) A.snap = null;
@@ -314,7 +321,8 @@
     A.sh = A.snap && A.dis ? (u0 => u0 < 0.5 ? gh : sh)((t - A.t0) / A.dur) : sh; A.fr = (A.fr || 0) + 1;
     // ⏱ NHỊP VẼ theo việc mèo đang làm (trước: luôn 60 khung/giây kể cả lúc ngồi yên → máy điện thoại bận liên tục):
     //    đi / chạy / đang đổi dáng: mỗi khung màn hình · động tác tại chỗ theo bảng khung (vẫy đuôi, liếm, lăn): 30/giây · ngồi thở: 15/giây · bị che / đang rê biểu đồ: 4/giây chỉ để dò
-    const nx = (ms) => { if (ms) setTimeout(() => requestAnimationFrame(loop), ms); else requestAnimationFrame(loop); };
+    // bỏ khung ĐỀU nhau (vẽ 1 khung, nghỉ n khung màn hình) thay vì hẹn giờ → khoảng cách giữa các lần vẽ đều tăm tắp, đuôi không giật (hẹn giờ lúc 16 lúc 33 ms)
+    const nx = (ms) => { if (ms >= 200) { A.skipN = 0; setTimeout(() => requestAnimationFrame(loop), ms); } else { A.skipN = ms ? Math.max(0, Math.round(ms / (1000 / HZ)) - 1) : 0; requestAnimationFrame(loop); } };
     if (still()) { A.last = 0; nx(250); return; }
     const ops = [];
     const bob = c.bob ? -c.bob * Math.abs(Math.sin(2 * Math.PI * A.ph)) : 0, ty = (A.ty || 0) + bob;
@@ -327,7 +335,7 @@
     if (!A.blT) A.blT = t + 2500 + Math.random() * 4500;
     let bl = 0; if (t >= A.blT) { const u = (t - A.blT) / 180; if (u >= 1) { A.blT = t + (Math.random() < 0.18 ? 220 : 2500 + Math.random() * 4500); } else bl = u < 0.39 ? u / 0.39 : 1 - (u - 0.39) / 0.61; }
     if (A.v > 120) bl = 0;
-    if (A.R) cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl);
+    if (A.R) { cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); A.dc = (A.dc || 0) + 1; }
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || c.scr;
     nx(mv || bl > 0 || t + 70 >= A.blT ? 0 : c.loop || c.seq || c.sheet ? 26 : 60);
   }
@@ -356,7 +364,7 @@
     let l = r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12);
     return { b: 0, l, r: W - 12 - cw };
   }
-  function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.el.style.bottom = tr.b + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${x.toFixed(1)}px,0,0)`; }
+  function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.el.style.bottom = Math.round(tr.b) + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x)}px,0,0)`; }
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
   // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
   //    mỗi khung hình na na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
@@ -368,7 +376,7 @@
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
       const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
       v += Math.max(-Ac * dt, Math.min(Ac * dt, want - v)); S.x += Math.sign(d) * Math.min(Math.abs(d), v * dt); A.v = v;
-      S.el.style.transform = `translate3d(${S.x.toFixed(1)}px,0,0)`;
+      S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
       if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; return slip(); }
       if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; done?.(); return; }
       requestAnimationFrame(f);
@@ -380,7 +388,7 @@
   //    và dịch hình đang vẽ ngược lại (hình trên màn hình đứng yên, chân không trượt); quay đầu: lật hướng ngay, không hiệu ứng lật
   function rebase(dx, flip) {
     if (!S.el) return; const u = U2P(), f = S.face;
-    S.x += f * dx * u; S.el.style.transform = `translate3d(${S.x.toFixed(1)}px,0,0)`;
+    S.x += f * dx * u; S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
     const sh = A.sh, X = (x) => (flip ? dx - x : x - dx);
     // lật: đảo luôn thứ tự điểm → giữ chiều vẽ của viền (lật gương đổi chiều; không đảo thì lúc nắn sang dáng đi viền tự cắt nhau → thủng lỗ, lộ bóng xám)
     if (sh) A.sh = { id: null, eye: sh.eye ? [X(sh.eye[0]), sh.eye[1]] : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
@@ -770,7 +778,7 @@
   }
   function stop() { clearTimeout(S.tm); halt(); if (S.el) { const el = S.el; S.el = null; NT.q = []; NT.cur = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
   window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); } }, say: (t, ms) => say(t, ms, 2), meow: (n) => { unlock(); meow(n || 2); }, chase: () => chase(true), stairs: () => stairs(true), notify,
-    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
+    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `

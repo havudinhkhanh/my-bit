@@ -38,6 +38,14 @@
      "t": "Mèo rình, chạy, lăn, chơi len hoạt động trở lại",
      "te": "Stalk, run, roll and yarn play work again",
      "d": "Lỗi cũ: 4 động tác này bị dòng ghi chú nuốt mất trong mã nên chưa bao giờ chạy."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mèo hết nhấp nháy, viền sắc nét",
+     "te": "Cat no longer flickers, crisp edges",
+     "d": "Khung mèo khớp đúng lưới điểm ảnh của màn hình nên không còn nhoè; nhịp vẽ đều theo tần số màn hình (trước đây đoán sai 30 Hz trên máy 60/120 Hz); viền lông được làm mượt nên không còn rung, mắt giữ ổn định giữa các khung.",
+     "de": "The cat canvas now sits exactly on the screen's pixel grid so it is no longer blurry; drawing is paced evenly to the display refresh rate (previously mis-detected as 30 Hz on 60/120 Hz screens); fur outlines are smoothed so they no longer shimmer, and the eyes stay steady between frames."
     }
    ]
   },
