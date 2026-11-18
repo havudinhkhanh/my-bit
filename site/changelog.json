@@ -4,19 +4,26 @@
   {
    "v": "2026.11.18",
    "d": "2026-11-18",
-   "t": "Mèo na na nhẹ máy hơn 3 lần",
-   "te": "Na na the cat, 3× lighter",
-   "s": "Mèo vẽ bằng canvas thay cho SVG, nhịp vẽ theo việc mèo đang làm; thêm chớp mắt và bóng dưới chân.",
-   "se": "Canvas rendering instead of SVG, activity-based frame rate; blinking and a ground shadow.",
+   "t": "Mèo na na chuyển động như mèo thật",
+   "te": "Na na moves like a real cat",
+   "s": "Đi, chạy, ngồi, đứng dậy, ngồi xuống, quay đầu lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
+   "se": "Walk, trot, sit, stand up, sit down and turn taken from real cat video; 3× lighter, blinking, ground shadow.",
    "it": [
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "🎬 Chuyển động lấy từ video mèo thật",
+     "te": "🎬 Motion from real cat video",
+     "d": "Đi, chạy, ngồi yên vẫy đuôi, đứng dậy, ngồi xuống và quay đầu đồ lại từ video 24 hình/giây. Có đoạn chuyển dáng thật (không còn nắn hình hay lật gương đột ngột), chân không trượt khi nối, vòng đi nối khớp không giật.",
+     "hi": 1
+    },
     {
      "c": "imp",
      "a": "perf",
      "t": "Mèo na na nhẹ máy hơn ~3 lần",
      "te": "Na na uses ~3× less CPU",
      "d": "Trước: mỗi khung hình trình duyệt dựng lại hình SVG + bóng đổ (điện thoại chậm: ~35% sức máy chỉ vì mèo). Giờ vẽ bằng canvas, bóng tự vẽ, nhịp vẽ theo việc mèo đang làm (đi: 60/giây, động tác tại chỗ: 30, ngồi: 15). Cuộn trang ít khung giật hơn ~3 lần.",
-     "de": "Canvas instead of per-frame SVG re-raster; activity-based frame rate.",
-     "hi": 1
+     "de": "Canvas instead of per-frame SVG re-raster; activity-based frame rate."
     },
     {
      "c": "new",
@@ -24,6 +31,13 @@
      "t": "Mèo chớp mắt & có bóng dưới chân",
      "te": "The cat blinks and casts a ground shadow",
      "d": "Chớp mắt tự nhiên vài giây một lần (thỉnh thoảng chớp đôi); bóng mềm dưới chân, nhảy lên thì bóng nhỏ & nhạt đi."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Mèo rình, chạy, lăn, chơi len hoạt động trở lại",
+     "te": "Stalk, run, roll and yarn play work again",
+     "d": "Lỗi cũ: 4 động tác này bị dòng ghi chú nuốt mất trong mã nên chưa bao giờ chạy."
     }
    ]
   },

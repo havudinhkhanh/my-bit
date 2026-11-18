@@ -23,18 +23,24 @@
   //  giữa 2 khung kề theo đúng thời điểm → chuyển động liên tục, không giật bậc; (3) bước nào bảng gốc đổi hình nhiều (w lớn) thì chiếu lâu hơn → tốc độ đều.
   //  fps: khung / giây (danh định) · upf: bước chân đi được mỗi khung (đơn vị hình) → tốc độ đi khớp chân, không trượt
   //  Tải sau (mascot-seq-*.json, gắn phiên bản theo băm) → mascot.js nhẹ, mở trang không chậm; tải hỏng thì dùng dáng cũ
-  const SHEET = {}, SHV = { walk: "__JSV_SEQ_walk__", sit: "__JSV_SEQ_sit__", roll: "__JSV_SEQ_roll__" }, SHL = {};
+  const SHEET = {}, SHV = { walk: "__JSV_SEQ_walk__", sit: "__JSV_SEQ_sit__", roll: "__JSV_SEQ_roll__",
+    // 🎬 bộ chuyển động từ VIDEO thật (Google Flow, 11/2026): đi · chạy · ngồi yên · ngồi→đứng · đứng→ngồi · quay đầu – đồ lại viền từng khung 24 hình/giây
+    vwalk: "__JSV_SEQ_vwalk__", vrun: "__JSV_SEQ_vrun__", vsit: "__JSV_SEQ_vsit__", vs2st: "__JSV_SEQ_vs2st__", vst2s: "__JSV_SEQ_vst2s__", vturn: "__JSV_SEQ_vturn__" }, SHL = {};
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       const F = d.f.map((v, i) => { addPose(nm + i, v); return POSE[nm + i]; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
-      F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); SHEET[nm] = F; if (nm === "sit") CLIP.sit = CLIP.sitIdle;
+      F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
+      for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
+      if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit;
       // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
       let k = 0; const n = F.length, warm = () => { const t0 = performance.now(); while (k < n && performance.now() - t0 < 6) { const j = (k + 1) % n; if (j || d.loop) mapOf(F[k], F[j], !(F.hard.has(k) || j < k)); k++; } if (k < n) (window.requestIdleCallback || setTimeout)(warm); };
       (window.requestIdleCallback || setTimeout)(warm); return F;
     }).catch(() => { delete SHL[nm]; }));
   }
-  const loadSheets = () => loadSheet("walk").finally(() => loadSheet("sit")).finally(() => loadSheet("roll"));
+  // ưu tiên bộ video (đi, ngồi, chuyển dáng) → rồi bảng cũ cho liếm lông / lăn lộn; bảng đi cũ chỉ tải khi bộ video hỏng
+  const loadSheets = () => loadSheet("vsit").finally(() => loadSheet("vwalk")).then((F) => F || loadSheet("walk")).finally(() => loadSheet("vs2st")).finally(() => loadSheet("vst2s"))
+    .finally(() => loadSheet("vturn")).finally(() => loadSheet("vrun")).finally(() => loadSheet("sit")).finally(() => loadSheet("roll"));
   let HZ = 60; const DTS = [];      // tần số màn hình đo được
   function mk(t, p) { let cx = 0, cy = 0, ar = 0; const n = p.length / 2; for (let i = 0; i < n; i++) { cx += p[2 * i]; cy += p[2 * i + 1]; const j = (i + 1) % n; ar += p[2 * i] * p[2 * j + 1] - p[2 * j] * p[2 * i + 1]; } return { t, p, n, cx: cx / n, cy: cy / n, ar: Math.abs(ar / 2) }; }
   // ================================================================ biến hình: ghép đa giác cùng loại gần nhau, dàn đều số điểm, chọn điểm đầu khớp nhất; đa giác lẻ thì thu / nở từ tâm
@@ -124,6 +130,7 @@
       g.beginPath(); [[-8, -4], [14, -6], [13, 4], [2, 6], [-7, 2]].forEach(([x, y], i) => g[i ? "lineTo" : "moveTo"](x, y)); g.closePath(); g.fillStyle = "#232731"; g.fill(); g.lineWidth = 1.1; g.stroke();
       g.globalAlpha *= 0.5; g.strokeStyle = "#fff"; g.lineWidth = 1; g.beginPath(); g.moveTo(-2, 3); g.lineTo(2, -4); g.moveTo(4, 4); g.lineTo(8, -4); g.stroke(); },
   };
+  const CVW = 620;      // khung canvas rộng 620 đơn vị (−310…310): mèo thật từ video dài hơn mèo vẽ cũ (đuôi duỗi khi đi ~440)
   const cvBind = (cv) => ({ cv, g: cv.getContext("2d", { alpha: true }), w: 0, h: 0, k: 0 });
   function cvPath(sh, types) { const P = new Path2D(); for (const q of sh.polys) { if (!types.includes(q.t)) continue; const p = q.p, n = p.length / 2; P.moveTo(p[0], p[1]); for (let i = 1; i < n; i++) P.lineTo(p[2 * i], p[2 * i + 1]); P.closePath(); } return P; }
   // ops: biến đổi cả thân như transform SVG cũ: ["t", x, y] dời · ["r", độ, cx, cy] xoay quanh điểm · ["s", sx, sy] co giãn quanh gốc (mặt đất)
@@ -140,15 +147,16 @@
     const gd = sh.polys.some((q) => q.t === 2), pk = sh.polys.some((q) => q.t === 3);
     if (gd) { g.fillStyle = "#C8A064"; g.fill(cvPath(sh, [2])); }
     if (pk) { g.fillStyle = "#E8687F"; g.fill(cvPath(sh, [3])); }
-    if (ACCD[skin] && e && !gd && k > 0.01) { g.save(); g.globalAlpha = alpha * k; g.translate(e[0] - (skin === "fedora" ? 8 : 0), e[1] - (skin === "fedora" ? 16 : 0)); ACCD[skin](g, "#C8A064"); g.restore(); }
+    const hat = gd && e && sh.polys.some((q) => q.t === 2 && q.cy < e[1] - 6);      // vàng NẰM TRÊN mắt = băng mũ (hình vẽ cũ); vàng dưới mắt = vòng cổ (mèo từ video) → vẫn đeo kính / mũ
+    if (ACCD[skin] && e && !hat && k > 0.01) { g.save(); g.globalAlpha = alpha * k; g.translate(e[0] - (skin === "fedora" ? 8 : 0), e[1] - (skin === "fedora" ? 16 : 0)); ACCD[skin](g, "#C8A064"); g.restore(); }
     g.globalAlpha = 1;
   }
   function cvDraw(R, sh, ops, skin, gh, ga, gb, blink) {
-    const w = 400 * (S.s || 0.2) * 1.17, h = 272 * (S.s || 0.2) * 1.17, dpr = Math.min(3, devicePixelRatio || 1), W = Math.round(w * dpr), H = Math.round(h * dpr);
+    const w = CVW * (S.s || 0.2) * 1.17, h = 272 * (S.s || 0.2) * 1.17, dpr = Math.min(3, devicePixelRatio || 1), W = Math.round(w * dpr), H = Math.round(h * dpr);
     if (R.w !== W || R.h !== H) { R.cv.width = W; R.cv.height = H; R.w = W; R.h = H; }      // đổi cỡ khung → đặt lại (hiếm), không đọc bố cục trang mỗi khung
-    const g = R.g, k = W / 400; R.k = k / dpr;
+    const g = R.g, k = W / CVW; R.k = k / dpr;
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
-    g.setTransform(k, 0, 0, k, 200 * k, 262 * k);
+    g.setTransform(k, 0, 0, k, CVW / 2 * k, 262 * k);
     const ops0 = () => { for (const o of ops || []) { if (o[0] === "t") g.translate(o[1], o[2]); else if (o[0] === "r") { g.translate(o[2], o[3]); g.rotate(o[1] * Math.PI / 180); g.translate(-o[2], -o[3]); } else if (o[0] === "s") g.scale(o[1], o[2]); } };
     const dark = document.documentElement.dataset.theme === "dark";
     // 🌑 bóng mềm dưới chân: rộng theo thân mèo, nhảy lên thì nhỏ & nhạt đi → mèo "đứng trên đất", không lơ lửng
@@ -227,14 +235,19 @@
     sit: { p: "sit", br: 1 }, lookup: { p: "lookup", br: 1 }, loaf: { p: "loaf", br: 1 }, lie: { p: "lie", br: 1 }, curl: { p: "curl", br: 2 },
     groom: { p: "groom", osc: ["sit", 0.28, 0.7] }, lickbody: { p: "lickbody", osc: ["loaf", 0.16, 0.65] }, licklip: { p: "licklip", osc: ["lookup", 0.4, 0.5] },
     stretch: { p: "stretch", osc: ["crouch", 0.1, 2.2] }, crouch: { p: "crouch", osc: ["stalk", 0.12, 0.26] },
-    walk: { sheet: "walk", loop: 1, fps: 120, upf: 1.45, fb: { loop: Array.from({ length: 8 }, (_, i) => "wk" + String(i * 4).padStart(2, "0")), stride: 130 } },      // 🚶 bảng đi bộ 100 khung · 120 khung/giây · khung cuối → khung đầu được nắn hình (bảng không khép vòng) stalk: { loop: ["st0", "st1", "st2", "st3", "st4"], stride: 210 }, run: { loop: ["rn0", "rn1", "rn2", "rn3", "rn4", "rn5"], stride: 520 },
+    walk0: { sheet: "walk", loop: 1, fps: 120, upf: 1.45, fb: { loop: Array.from({ length: 8 }, (_, i) => "wk" + String(i * 4).padStart(2, "0")), stride: 130 } },      // 🚶 bảng đi bộ 100 khung · 120 khung/giây · khung cuối → khung đầu được nắn hình (bảng không khép vòng)
+    stalk: { loop: ["st0", "st1", "st2", "st3", "st4"], stride: 210 }, run: { loop: ["rn0", "rn1", "rn2", "rn3", "rn4", "rn5"], stride: 520 },
     chase: { p: "chase" }, jump: { p: "jump" },
     // 🙃 nằm ngửa lăn lộn & vặn mình: 61 khung liền (bảng Jason gửi) – khom → nằm → ngửa → vặn → cuộn tròn → bật dậy vờn → đi vài bước → ngồi; mv: khoảng khung có bước đi thì dời mèo tới trước
     rollplay: { sheet: "roll", fps: 30, mv: [47, 56, 150] },
     // 👅 bảng 120 khung: ngồi yên → giơ chân → liếm → rửa mặt → hạ chân → nhổm dậy chỉnh tư thế → ngồi lại
     groomplay: { sheet: "sit", fps: 60 },
-    sitIdle: { sheet: "sit", a: 96, b: 119, loop: 1, fps: 20 },      // ngồi yên vẫy đuôi = 24 khung cuối bảng (khép vòng sẵn) – thay dáng ngồi tĩnh khi đã tải xong roll: { p: "roll", rock: 10 }, yarn: { loop: ["yarnsit", "yarnlie"], per: 1.5 }, scratch: { p: "scratch", scr: 1 },
+    sitIdle: { sheet: "sit", a: 96, b: 119, loop: 1, fps: 20 },
+    // 🎬 từ video: vòng lặp đã cắt khớp đầu–cuối; chuyển dáng cắt đúng đoạn có động tác (b), dx = mèo dời bao nhiêu trong clip → cuối clip dời cả khung cho chân không trượt
+    vsit: { sheet: "vsit", loop: 1, fps: 24 }, s2st: { sheet: "vs2st", fps: 24, b: 84 }, st2s: { sheet: "vst2s", fps: 24, b: 62 }, turn: { sheet: "vturn", fps: 24, b: 100 },      // ngồi yên vẫy đuôi = 24 khung cuối bảng (khép vòng sẵn) – thay dáng ngồi tĩnh khi đã tải xong
+    roll: { p: "roll", rock: 10 }, yarn: { loop: ["yarnsit", "yarnlie"], per: 1.5 }, scratch: { p: "scratch", scr: 1 },
   };
+  CLIP.walk = { sheet: "vwalk", loop: 1, fps: 24, upf: 0, fb: CLIP.walk0 }; CLIP.run0 = CLIP.run; CLIP.run = { sheet: "vrun", loop: 1, fps: 24, upf: 0, fb: CLIP.run0 };
   const A = { sh: POSE.sit, snap: null, map: null, t0: 0, dur: 1, clip: CLIP.sit, name: "sit", ct: 0, ph: 0, v: 0, ty: 0, rot: 0, last: 0, on: false, R: null };
   const easeIO = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
   const clipStart = (c) => (c.sheet ? (SHEET[c.sheet] ? SHEET[c.sheet][c.a || 0] : clipStart(c.fb || CLIP.sit)) : POSE[c.p || (c.seq || c.loop)[0]]);
@@ -279,11 +292,12 @@
     if (c.osc) { const w = c.osc[1] * (0.5 - 0.5 * Math.cos((2 * Math.PI * A.ct) / c.osc[2])); return morph(POSE[c.p], POSE[c.osc[0]], w, true); }
     return POSE[c.p];
   }
-  function play(name, dur) {
+  function play(name, dur, soft) {      // soft: nối clip video → nắn hình (không hoà tan 2 con mèo chồng nhau) trừ khi 2 dáng khác hẳn
     const c = CLIP[name]; if (!c || !S.el) return; if (A.clip === c && !A.snap) return;
     S.pose = name; S.el.dataset.pose = name;
-    const tg = clipStart(c); A.snap = A.sh; A.map = mapOf(A.sh, tg); A.t0 = performance.now(); A.clip = c; A.name = name; A.ct = 0; A.ph = 0;
-    A.dis = A.map.cost > 0.4;      // 2 dáng khác hẳn → hoà tan (dáng cũ nhích nhẹ + mờ, dáng mới hiện lên) thay vì nắn hình → không lổn nhổn giữa chừng
+    const F0 = c.sheet && SHEET[c.sheet], st = soft && c.loop && F0 && F0.st ? F0.st : 0;      // vào vòng đi / chạy từ khung giống dáng đứng nhất (đo sẵn từ video)
+    const tg = st ? F0[st] : clipStart(c); A.snap = A.sh; A.map = mapOf(A.sh, tg); A.t0 = performance.now(); A.clip = c; A.name = name; A.ct = 0; A.ph = st ? (F0.W ? F0.T[st] - F0.T[c.a || 0] : st - (c.a || 0)) : 0;
+    A.dis = !soft && A.map.cost > 0.4;      // 2 dáng khác hẳn → hoà tan (dáng cũ nhích nhẹ + mờ, dáng mới hiện lên) thay vì nắn hình → không lổn nhổn giữa chừng
     if (A.dis) A.rmap = mapOf(tg, A.snap);
     A.dur = RM.matches ? 1 : dur || (A.dis ? 380 : ["curl", "lie", "roll", "stretch"].includes(name) ? 620 : 420); A.dur *= MUN_ART.slow || 1;
   }
@@ -362,7 +376,32 @@
     requestAnimationFrame(f);
   }
   function pose(p) { if (!S.el) return; if (!["walk", "run", "stalk"].includes(p)) halt(); play(p); }
-  function sitDown(p = "sit", then) { if (!S.el) return; halt(); S.el.classList.remove("run"); pose(p); if (then) setTimeout(then, 420); }
+  // 🎬 nối clip video: cuối clip chuyển dáng mèo đã dời dx đơn vị (đứng dậy bước lên, quay đầu xoay người) → dời cả khung mèo đúng chừng đó
+  //    và dịch hình đang vẽ ngược lại (hình trên màn hình đứng yên, chân không trượt); quay đầu: lật hướng ngay, không hiệu ứng lật
+  function rebase(dx, flip) {
+    if (!S.el) return; const u = U2P(), f = S.face;
+    S.x += f * dx * u; S.el.style.transform = `translate3d(${S.x.toFixed(1)}px,0,0)`;
+    const sh = A.sh, X = (x) => (flip ? dx - x : x - dx);
+    // lật: đảo luôn thứ tự điểm → giữ chiều vẽ của viền (lật gương đổi chiều; không đảo thì lúc nắn sang dáng đi viền tự cắt nhau → thủng lỗ, lộ bóng xám)
+    if (sh) A.sh = { id: null, eye: sh.eye ? [X(sh.eye[0]), sh.eye[1]] : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
+    A.snap = null; A.gx = null;
+    if (flip) { S.el.classList.add("nof"); face(-f); void S.el.offsetWidth; requestAnimationFrame(() => requestAnimationFrame(() => S.el?.classList.remove("nof"))); }
+    if (A.R && A.sh) cvDraw(A.R, A.sh, [], S.cfg.skin);      // vẽ lại NGAY cùng lượt với lật / dời khung – không có khung hình nào mèo nhìn sai hướng
+  }
+  // chạy lần lượt các clip chuyển dáng (ngồi→đứng, quay đầu…) rồi gọi done; tk: huỷ giữa chừng khi mèo được giao việc khác
+  function runSeq(L, done, tk) {
+    const k = L.shift(); if (!k) return done();
+    const c = CLIP[k], F = c && SHEET[c.sheet]; if (!F || RM.matches) return runSeq(L, done, tk);
+    play(k, 220, true); const ms = ((c.b ?? F.length - 1) - (c.a || 0)) / c.fps * 1000;
+    setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; const b = Math.min(c.b ?? F.length - 1, F.length - 1), dx = F.tx ? F.tx[b] || 0 : F.dx || 0; rebase(dx, k === "turn"); runSeq(L, done, tk); }, ms);
+  }
+  const SITS = new Set(["sit"]), STANDS = new Set(["walk", "run", "s2st", "turn", "stalk"]);
+  function sitDown(p = "sit", then) {
+    if (!S.el) return; halt(); S.el.classList.remove("run");
+    // đang đi / chạy mà ngồi xuống → clip đứng→ngồi thật (thay vì nắn hình thẳng sang dáng ngồi)
+    if (p === "sit" && STANDS.has(S.pose) && SHEET.vst2s && !RM.matches) { const tk = (S.walkTk = (S.walkTk || 0) + 1); return runSeq(["st2s"], () => { play("sit", 520, true); then?.(); }, tk); }
+    pose(p); if (then) setTimeout(then, 420);
+  }
   function face(d) { S.face = d; S.el.dataset.face = d > 0 ? "r" : "l"; }
   const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("lvw-mf") || document.body.classList.contains("typing")
     || (mob() && document.activeElement?.matches?.("input, textarea, select, [contenteditable]")));
@@ -371,9 +410,15 @@
     const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); const dx = x - S.x;
     if (RM.matches || Math.abs(dx) < 24) { place(x); then?.(); return; }
     if (!CLIP[opt.clip]) opt = { ...opt, clip: "walk" };      // dáng đi không có bảng riêng (vd "stalk" rình chuột) → đi bộ thường (trước: lỗi, na na đứng đơ)
-    face(dx > 0 ? 1 : -1); const cw = CLIP[opt.clip], v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1); S.el.classList.remove("run");
+    const need = dx > 0 ? 1 : -1, cw = CLIP[opt.clip]; S.el.classList.remove("run");
     clearTimeout(S.walkTm); const tk = (S.walkTk = (S.walkTk || 0) + 1);
-    play(opt.clip || "walk"); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, 260);
+    // 🎬 trước khi đi: đang ngồi → clip đứng dậy; đi ngược hướng đang nhìn → clip quay đầu (khi có bộ video) – không còn nắn / lật hình đột ngột
+    const pre = []; if (SITS.has(S.pose) && SHEET.vs2st) pre.push("s2st");
+    if (need !== S.face && SHEET.vturn && (pre.length || STANDS.has(S.pose))) pre.push("turn");
+    runSeq(pre, () => {
+      face(need); const v = cw.sheet && SHEET[cw.sheet] && cw.upf ? cw.upf * Math.min(cw.fps, HZ) * U2P() * Math.min(opt.v || 1, 1) : (mob() ? 30 : 40) * (S.s / 0.235) * (opt.v || 1);
+      play(opt.clip || "walk", pre.length ? 240 : undefined, !!pre.length); setTimeout(() => { if (tk !== S.walkTk || !S.el || S.chasing) return; moveTo(x, v, () => sitDown(opt.end || "sit", then), opt.slip ? { slip: 1, at: Math.abs(dx) * rnd(0.3, 0.6) } : {}); }, pre.length ? 60 : 260);
+    }, tk);
   }
   // 🫠 trượt té: đang đi thì trượt chân, lăn ra, vươn vai đứng dậy, chối
   function slip() {
@@ -725,7 +770,7 @@
   }
   function stop() { clearTimeout(S.tm); halt(); if (S.el) { const el = S.el; S.el = null; NT.q = []; NT.cur = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
   window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); } }, say: (t, ms) => say(t, ms, 2), meow: (n) => { unlock(); meow(n || 2); }, chase: () => chase(true), stairs: () => stairs(true), notify,
-    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, SKINS };
+    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
@@ -743,7 +788,8 @@
 .mun-cat{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(-10px*var(--s,.2)*1.17);width:calc(400px*var(--s,.2)*1.17);height:calc(272px*var(--s,.2)*1.17);overflow:visible;
   --f:#0a0a0b;--gold:#C8A064;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
 :root[data-theme=dark] .mun-cat{--f:#060708;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.5))}
-canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block}
+canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;width:calc(620px*var(--s,.2)*1.17)}
+.mun.nof .mun-f{transition:none!important}
 .mun-cat .b{fill:var(--f)}.mun-cat .gd{fill:var(--gold)}.mun-cat .pk{fill:#E8687F}.mun-cat .eyeb{fill:transparent}
 :root[data-theme=dark] .mun-cat .eyeb{fill:#ECE6D6}
 .mun-cat .gl{fill:#232731;stroke:#d5d9e0;stroke-width:1.1;stroke-linejoin:round}.mun-cat .gh{stroke:#fff;stroke-width:1;opacity:.5}.mun-cat .gr{stroke:#d5d9e0;stroke-width:1.2}
