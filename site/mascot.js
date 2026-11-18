@@ -218,57 +218,65 @@
 
   // ================================================================ lời thoại – ngắn, kiêu, đanh đá; KHÔNG nói mua / bán / coin nào
   const L = (vi, en) => (typeof EN !== "undefined" && EN ? en : vi);
+  // 🗯 giọng na na: đanh đá, coi thường anh một chút, nói nối bằng dấu phẩy, hay kéo dài chữ cuối (drag) – "ít lệnh, coi cũng tạm đấyyy"
   const T = {
-    gen: [["Bình tĩnh. Giá không chạy mất.", "Calm. Price won't run away."], ["na na chờ. Anh cũng chờ đi.", "na na waits. So should you."], ["Kế hoạch trước. Bấm sau.", "Plan first. Click later."], ["Phá luật là tự trả học phí.", "Break rules, pay tuition."],
-      ["Ngồi yên cũng là vị thế.", "Sitting still is a position."], ["Nhìn nữa giá cũng không lên.", "Staring won't move it."], ["FOMO à? na na ngửi thấy.", "FOMO? na na can smell it."], ["Thị trường không nợ anh.", "The market owes you nothing."],
-      ["Lệnh không cắt lỗ = cầu nguyện.", "No stop = a prayer."], ["Gồng lỗ không phải kiên nhẫn.", "Holding losers isn't patience."], ["Chín mạng là của na na. Anh có một.", "Nine lives are mine. You get one."], ["Đòn bẩy cao? Oai lắm. Tới lúc thanh lý.", "High leverage? Cute. Until liquidation."],
-      ["Lại 'lệnh cuối' à?", "'Last trade' again?"], ["Ít lệnh. Lệnh đẹp.", "Fewer trades. Better trades."], ["Ghi nhật ký đi. Trí nhớ hay nói dối.", "Journal it. Memory lies."], ["Nhồi lệnh gỡ? Kinh điển cháy.", "Revenge sizing? Classic blow-up."],
-      ["Ai cũng giỏi lúc thị trường lên.", "Everyone's a genius in a bull run."], ["Lệnh tốt thường nhàm.", "Good trades are boring."], ["Cảm xúc là phí ẩn.", "Emotion is a hidden fee."], ["na na thấy anh phá luật rồi.", "na na saw you break a rule."],
-      ["Giữ tiền mặt không xấu hổ.", "Holding cash isn't shameful."], ["Mắt đỏ rồi. Không phải do nến.", "Red eyes. Not the candles."], ["Đừng trả thù thị trường.", "Don't take revenge on the market."], ["Chốt bớt đi. Tham thì thâm.", "Take some off. Greed bites."]],
-    aris: [["na na không vội. Anh vội gì?", "na na never hurries. Why do you?"], ["Người sang không đuổi giá.", "Class doesn't chase price."], ["Thua cũng phải thua cho đẹp.", "Lose, but lose gracefully."], ["Đừng nhìn na na bằng mắt FOMO.", "Don't give na na FOMO eyes."],
-      ["na na không phán xét. na na nhìn. Lâu.", "na na doesn't judge. na na stares. Long."], ["Kỷ luật đâu phải đồ trang sức.", "Discipline isn't jewellery."], ["Ồn ào quá. Kể cả danh mục.", "Too loud. Your portfolio too."], ["na na kén ăn. Anh kén lệnh đi.", "na na is picky. Be picky with trades."],
-      ["Thanh lịch lên. Đừng bấm như mèo hoang.", "Elegance. Don't click like a stray."], ["Lại 'chắc ăn'? Lần thứ một trăm.", "Another 'sure thing'? Hundredth time."], ["na na liếm lông mỗi ngày. Anh xem rủi ro chưa?", "na na grooms daily. Risk reviewed?"], ["Cằm cao. Có cắt lỗ. Thế mới sang.", "Chin up. Stop set. That's class."]],
-    bot: [["Để bot yên.", "Leave the bot alone."], ["Bot làm chăm hơn anh.", "The bot works harder than you."], ["Luật đặt rồi. Để luật chạy.", "Rules set. Let them run."], ["Thò tay vào bot? Bảng so sánh ghi hết.", "Meddling? The comparison remembers."]],
-    night: [["Khuya rồi. Mèo còn biết ngủ.", "Late. Even cats sleep."], ["2 giờ sáng toàn quyết định dở.", "2 a.m. decisions are bad ones."]],
-    long: [["Ngồi lâu rồi. Duỗi lưng đi.", "Been sitting. Stretch."], ["Uống nước. na na không nhắc lần hai.", "Drink water. Won't repeat."]],
-    back: [["Về rồi à.", "Oh. You're back."], ["Tưởng anh bỏ nghề.", "Thought you quit."]],
-    morn: [["Cà phê trước. Lệnh sau.", "Coffee first. Orders later."], ["Rửa mặt rồi hẵng xem chart.", "Wash your face. Then charts."]],
-    weekend: [["Cuối tuần. Nghỉ đi.", "Weekend. Rest."], ["Thanh khoản mỏng. Đừng tưởng cơ hội.", "Thin liquidity. Not opportunity."]],
-    monday: [["Thứ hai. Đọc nhật ký trước.", "Monday. Read your journal first."]],
-    poke: [["Gì?", "What?"], ["Bỏ tay ra.", "Hands off."], ["Lại nữa.", "Again."], ["na na cào đấy.", "na na scratches."], ["Rảnh quá nhỉ.", "So idle."], ["Muốn cưng nựng thì nuôi chó.", "Want cuddles? Get a dog."], ["Lần nữa là tính phí.", "Next one's billable."], ["Hừ.", "Hmph."], ["Đang bận. Bận nhìn anh sai.", "Busy. Watching you err."], ["na na. Nhớ tên chưa?", "na na. Remember it."]],
-    wake: [["…Gì?", "…What?"], ["Ai cho đánh thức?", "Who said wake me?"], ["Năm phút nữa.", "Five more minutes."], ["na na không ngủ. na na nghĩ.", "Not asleep. Thinking."]],
-    enough: [["Đủ rồi.", "Enough."], ["na na đi.", "na na's leaving."]],
-    hi: [["na na. Trông kỷ luật cho anh.", "na na. Your discipline's keeper."]],
-    hi2: [["Giữ lâu nếu cần gì. Đừng chọc.", "Hold if you need me. Don't poke."]],
-    chase: [["Chuột!", "Mouse!"], ["Đứng lại!", "Stop!"], ["Của na na!", "Mine!"]],
-    catch: [["Bắt được. Như mọi khi.", "Caught. As usual."], ["Bữa phụ.", "Snack."], ["Kiên nhẫn rồi vồ.", "Patience, then strike."]],
-    miss: [["na na tha đấy.", "na na let it go."], ["Không đáng. Như lệnh FOMO của anh.", "Not worth it. Like your FOMO."], ["Hôm nay ăn chay.", "Vegetarian today."]],
-    stalk: [["Thấy con trỏ rồi nhé.", "I see your cursor."], ["Rê nữa đi. na na vồ.", "Keep moving. I'll pounce."]],
-    pounce: [["Bắt được!", "Got it!"], ["Chậm quá.", "Too slow."]],
-    bored: [["Chán.", "Bored."], ["Trò trẻ con.", "Child's play."]],
-    climb: [["Lên cao cho thoáng.", "Up for air."], ["Tránh đường.", "Make way."]],
-    top: [["Từ đây chart chỉ là đường gấp khúc.", "From here charts are just zigzags."], ["Khung lớn trước. Nhớ chưa?", "Big timeframe first. Got it?"], ["FOMO không với tới đây.", "FOMO can't reach up here."]],
-    p_market: [["Lại xem thị trường? Nó vẫn thế.", "Market again? Same as before."], ["Đèn xanh không phải lệnh xông lên.", "Green light isn't 'charge'."]],
-    p_opp: [["Cơ hội như chuột. Không phải con nào cũng vồ.", "Opportunities are mice. Don't pounce on all."], ["Danh sách dài. Đừng vào hết.", "Long list. Don't take them all."]],
-    p_trade: [["Cắt lỗ trước. Mơ sau.", "Stop first. Dream later."], ["Khối lượng vừa thôi.", "Size it sanely."]],
-    p_pf: [["Nhìn mười lần nó cũng không xanh.", "Ten looks won't turn it green."], ["Đa dạng hoá, đừng sưu tầm.", "Diversify. Don't collect."]],
-    p_journal: [["Đọc lệnh thua. Đau nhưng bổ.", "Read the losses. Painful, healthy."], ["Sổ lệnh không nói dối.", "The journal doesn't lie."]],
-    p_bot: [["Bot đang làm. Đứng xa ra.", "Bot's working. Step back."], ["Đừng tắt bot vì một lệnh thua.", "Don't kill it over one loss."]],
-    p_tax: [["Thuế à? Mèo được miễn.", "Taxes? Cats are exempt."]],
-    p_acc: [["Chọn đồ cho na na đẹp vào.", "Dress na na well."]],
-    scroll: [["Cuộn gì mà vội.", "Why the frantic scroll?"], ["Từ từ.", "Slow down."]],
-    scratch: [["Cảnh cáo rồi.", "Warned you."], ["Cào cho nhớ.", "A scratch to remember."], ["Lần sau cắn.", "Next time I bite."]],
-    against: [["Ngược lông!", "Wrong way!"], ["Vuốt ngược như vào lệnh ngược xu hướng.", "Against the fur, like against the trend."]],
-    purr: [["Prrr… đúng chiều.", "Prrr… right way."], ["Ừm. Tiếp.", "Mm. Continue."], ["Đừng để ai thấy.", "Tell no one."]],
-    yarn: [["Đừng nhìn. na na đang làm việc.", "Don't look. na na is working."], ["Cuộn len này là chiến lược.", "This yarn is strategy."]],
-    post: [["Mài vuốt. Phòng khi anh FOMO.", "Sharpening. For your FOMO days."], ["Kỷ luật cũng phải mài.", "Discipline needs sharpening too."]],
-    fly: [["Bướm. Cũng như tin đồn.", "Butterflies. Like rumours."], ["Nhảy đúng lúc. Như vào lệnh.", "Jump on time. Like entries."]],
-    roll: [["Không ai thấy gì hết.", "Nobody saw that."], ["na na đang… thư giãn chiến lược.", "na na is… strategically relaxing."]],
-    slip: [["Cố ý đấy.", "On purpose."], ["Thị trường còn trượt, huống gì na na.", "Markets slip too."], ["Không ai thấy gì hết.", "Nobody saw that."]],
-    stretch: [["Vươn vai. Rồi làm việc.", "Stretch. Then work."], ["Ngủ đủ rồi.", "Enough sleep."]],
+    gen: [["Bình tĩnh đi, giá có chạy mất đâu", "Relax, price isn't running off"], ["Ít lệnh, coi cũng tạm đấy", "Fewer trades, almost decent"], ["Kế hoạch trước rồi hẵng bấm, nói mãi", "Plan first, then click, how many times"], ["Phá luật thì tự đóng học phí, na na không trả hộ đâu", "Break rules, pay the tuition, not on me"],
+      ["Ngồi yên cũng là vị thế, mà chắc anh không làm nổi", "Sitting still is a position, probably too hard for you"], ["Nhìn nữa giá cũng không lên đâu", "Staring won't pump it"], ["FOMO hả, na na ngửi thấy từ xa", "FOMO again, I can smell it from here"], ["Thị trường có nợ gì anh đâu", "The market owes you nothing, sweetie"],
+      ["Lệnh không cắt lỗ thì gọi là cầu nguyện", "No stop loss is just praying"], ["Gồng lỗ mà tưởng kiên nhẫn, dễ thương ghê", "Holding losers and calling it patience, cute"], ["Chín mạng là của na na, anh có một thôi", "Nine lives are mine, you get one"], ["Đòn bẩy cao trông oai lắm, tới lúc thanh lý", "High leverage looks cool, until liquidation"],
+      ["Lại 'lệnh cuối' nữa à, lần thứ mấy rồi", "'Last trade' again, which number is this"], ["Ghi nhật ký đi, trí nhớ anh không đáng tin đâu", "Journal it, your memory isn't trustworthy"], ["Nhồi lệnh gỡ hả, cháy kinh điển", "Revenge sizing, classic blow-up"], ["Thị trường lên thì ai chả giỏi", "Everyone's a genius when it pumps"],
+      ["Lệnh tốt thì nhàm, anh lại thích kịch tính", "Good trades are boring, you like drama"], ["Cảm xúc là phí ẩn, anh trả hơi nhiều đấy", "Emotion's a hidden fee, you pay a lot"], ["na na thấy anh phá luật rồi nha", "Saw you break a rule, just so you know"], ["Giữ tiền mặt có gì xấu hổ đâu", "Holding cash isn't embarrassing"],
+      ["Mắt đỏ rồi kìa, đâu phải tại nến", "Red eyes, and not from the candles"], ["Đừng đi trả thù thị trường, nó có biết anh là ai đâu", "Don't take revenge on the market, it doesn't know you"], ["Chốt bớt đi, tham thì thâm", "Take some off, greed bites"], ["Hôm nay chưa làm gì dại, cũng lạ", "No dumb moves today yet, weird"]],
+    aris: [["na na không vội, anh vội gì", "I never hurry, why do you"], ["Người sang không đuổi giá, nhớ chưa", "Classy people don't chase price, remember"], ["Thua cũng phải thua cho có duyên chứ", "Even losing should have some grace"], ["Đừng nhìn na na bằng ánh mắt FOMO", "Don't give me FOMO eyes"],
+      ["na na không phán xét, na na chỉ nhìn, lâu", "I don't judge, I just stare, long"], ["Kỷ luật đâu phải đồ trang sức mà đeo cho vui", "Discipline isn't jewellery you wear for fun"], ["Ồn ào quá, cả cái danh mục nữa", "So noisy, your portfolio too"], ["na na kén ăn, anh kén lệnh giùm cái", "I'm picky with food, be picky with trades"],
+      ["Bấm từ tốn thôi, đừng như mèo hoang", "Click gently, don't be a stray"], ["Lại 'chắc ăn' à, lần thứ một trăm rồi đó", "Another 'sure thing', that's the hundredth"], ["na na ngày nào cũng liếm lông, anh xem rủi ro chưa", "I groom daily, did you check your risk"], ["Ngẩng cằm lên, có cắt lỗ, thế mới sang", "Chin up, stop set, that's class"]],
+    bot: [["Để bot yên đi, nó làm giỏi hơn anh", "Leave the bot alone, it's better than you"], ["Bot chăm hơn anh nhiều", "The bot works way harder than you"], ["Luật đặt rồi thì để luật chạy, đừng táy máy", "Rules are set, let them run, hands off"], ["Thò tay vào bot hả, bảng so sánh ghi hết đó", "Meddling again, the comparison remembers"]],
+    night: [["Khuya rồi, mèo còn biết đi ngủ", "It's late, even cats know to sleep"], ["Hai giờ sáng toàn ra quyết định dở", "2 a.m. decisions are always bad"]],
+    long: [["Ngồi lâu rồi đó, duỗi lưng đi", "You've been sitting forever, stretch"], ["Uống nước đi, na na không nhắc lần hai đâu", "Drink water, I won't say it twice"]],
+    back: [["Về rồi hả", "Oh, you're back"], ["Tưởng anh bỏ nghề rồi chứ", "Thought you'd quit"]],
+    morn: [["Cà phê trước, lệnh sau", "Coffee first, orders later"], ["Rửa mặt đi rồi hẵng xem chart", "Wash your face, then charts"]],
+    weekend: [["Cuối tuần, nghỉ đi cho", "Weekend, go rest"], ["Thanh khoản mỏng, đừng tưởng là cơ hội", "Thin liquidity, not an opportunity"]],
+    monday: [["Thứ hai, đọc nhật ký trước đi", "Monday, read your journal first"]],
+    poke: [["Gì", "What"], ["Bỏ tay ra", "Hands off"], ["Lại nữa hả", "Again"], ["na na cào đấy", "I scratch, you know"], ["Rảnh ghê ha", "So much free time"], ["Muốn cưng nựng thì đi nuôi chó", "Want cuddles, get a dog"], ["Chọc nữa là tính phí", "Next poke is billable"], ["Hừ", "Hmph"], ["Bận lắm, bận nhìn anh làm sai", "Busy, busy watching you mess up"], ["na na, nhớ tên chưa", "na na, remember it"]],
+    wake: [["Gì", "What"], ["Ai cho đánh thức", "Who said you could wake me"], ["Năm phút nữa", "Five more minutes"], ["na na không ngủ, na na suy nghĩ", "Not asleep, thinking"]],
+    enough: [["Đủ rồi đó", "That's enough"], ["na na đi đây", "I'm leaving"]],
+    hi: [["na na đây, trông kỷ luật giùm anh", "na na here, babysitting your discipline"]],
+    hi2: [["Cần gì thì giữ lâu, đừng có chọc", "Need me, long-press, don't poke"]],
+    chase: [["Chuột", "Mouse"], ["Đứng lại", "Stop right there"], ["Của na na", "Mine"]],
+    catch: [["Bắt được, như mọi khi", "Caught, as always"], ["Bữa phụ", "Snack"], ["Kiên nhẫn rồi vồ, học đi", "Patience, then strike, take notes"]],
+    miss: [["na na tha cho đó", "I let it go"], ["Không đáng, như lệnh FOMO của anh", "Not worth it, like your FOMO trades"], ["Hôm nay ăn chay", "Vegetarian today"]],
+    stalk: [["Thấy con trỏ rồi nha", "I see your cursor"], ["Rê nữa đi, na na vồ", "Keep moving, I'll pounce"]],
+    pounce: [["Bắt được", "Got it"], ["Chậm quá", "Too slow"]],
+    bored: [["Chán", "Boring"], ["Trò con nít", "Kid stuff"]],
+    climb: [["Lên cao cho thoáng", "Up for some air"], ["Tránh đường", "Make way"]],
+    top: [["Từ đây nhìn chart chỉ là đường gấp khúc", "From up here charts are just zigzags"], ["Khung lớn trước, nhớ chưa", "Big timeframe first, remember"], ["FOMO không với tới đây đâu", "FOMO can't reach up here"]],
+    p_market: [["Lại xem thị trường, nó vẫn vậy thôi", "Market again, still the same"], ["Đèn xanh đâu phải lệnh xông lên", "Green light doesn't mean charge"]],
+    p_opp: [["Cơ hội như chuột, đâu phải con nào cũng vồ", "Opportunities are mice, don't pounce on all"], ["Danh sách dài, đừng có vào hết", "Long list, don't take them all"]],
+    p_trade: [["Cắt lỗ trước, mơ sau", "Stop first, dream later"], ["Khối lượng vừa thôi, đừng làm màu", "Size it sanely, no showing off"]],
+    p_pf: [["Nhìn mười lần nó cũng không xanh đâu", "Ten looks won't turn it green"], ["Đa dạng hoá chứ đâu phải sưu tầm", "Diversify, don't collect"]],
+    p_journal: [["Đọc lệnh thua đi, đau mà bổ", "Read the losses, painful but healthy"], ["Sổ lệnh không biết nói dối, anh thì có", "The journal doesn't lie, you do"]],
+    p_bot: [["Bot đang làm, đứng xa ra", "Bot's working, step back"], ["Đừng tắt bot chỉ vì một lệnh thua", "Don't kill it over one loss"]],
+    p_tax: [["Thuế hả, mèo được miễn", "Taxes, cats are exempt"]],
+    p_acc: [["Chọn đồ cho na na đẹp vào", "Dress me nicely"]],
+    scroll: [["Cuộn gì mà vội", "Why the frantic scrolling"], ["Từ từ thôi", "Slow down"]],
+    scratch: [["Cảnh cáo rồi nha", "You were warned"], ["Cào cho nhớ", "A scratch to remember"], ["Lần sau cắn", "Next time I bite"]],
+    against: [["Ngược lông", "Wrong way"], ["Vuốt ngược y như vào lệnh ngược xu hướng", "Against the fur, like trading against the trend"]],
+    purr: [["Prrr, đúng chiều rồi", "Prrr, right way"], ["Ừm, tiếp đi", "Mm, keep going"], ["Đừng kể với ai", "Tell no one"]],
+    yarn: [["Đừng nhìn, na na đang làm việc", "Don't look, I'm working"], ["Cuộn len này là chiến lược đó", "This yarn is strategy"]],
+    post: [["Mài vuốt, phòng khi anh FOMO", "Sharpening, for your FOMO days"], ["Kỷ luật cũng phải mài", "Discipline needs sharpening too"]],
+    fly: [["Bướm, y như tin đồn", "Butterflies, just like rumours"], ["Nhảy đúng lúc, như vào lệnh", "Jump on time, like entries"]],
+    roll: [["Không ai thấy gì hết", "Nobody saw that"], ["na na đang thư giãn chiến lược", "Strategically relaxing"]],
+    slip: [["Cố ý đó", "On purpose"], ["Thị trường còn trượt nữa là", "Markets slip too"], ["Không ai thấy gì hết", "Nobody saw that"]],
+    stretch: [["Vươn vai rồi làm việc", "Stretch, then work"], ["Ngủ đủ rồi", "Enough sleep"]],
   };
+  // kéo dài chữ cuối câu kiểu đanh đá: "đấy" → "đấyyy", "Gì" → "Gììì" (bỏ qua mã coin viết hoa, số); luôn kéo từ cuối, thêm 1 chỗ khác ~30%
+  function drag(t) {
+    t = String(t).normalize("NFC"); const M = [...t.matchAll(/(\p{L}+)(?=\s*[.!?…,]*\s*$|[.!?…,]\s)/gu)].filter((m) => !/^\p{Lu}{2,}$/u.test(m[1]) && m[1].toLowerCase() !== "na");
+    if (!M.length) return t; const pickM = [M[M.length - 1], ...M.slice(0, -1).filter(() => Math.random() < 0.3).slice(0, 1)];
+    let out = t; pickM.sort((a, b) => b.index - a.index).forEach((m) => { const w = m[1], c = w[w.length - 1], n = 2 + (Math.random() < 0.5 ? 1 : 0); out = out.slice(0, m.index) + w + c.repeat(n) + out.slice(m.index + w.length); });
+    return out;
+  }
   const recent = [];
-  const pick = (k) => { const A = T[k] || T.gen, fresh = A.filter((x) => !recent.includes(x[0])), x = (fresh.length ? fresh : A)[Math.floor(Math.random() * (fresh.length || A.length))]; recent.push(x[0]); if (recent.length > 16) recent.shift(); return L(x[0], x[1]); };
+  const pick = (k) => { const A = T[k] || T.gen, fresh = A.filter((x) => !recent.includes(x[0])), x = (fresh.length ? fresh : A)[Math.floor(Math.random() * (fresh.length || A.length))]; recent.push(x[0]); if (recent.length > 16) recent.shift(); return drag(L(x[0], x[1])); };
   const pickGen = () => pick(Math.random() < 0.4 ? "aris" : "gen");
   const RM = matchMedia("(prefers-reduced-motion: reduce)");
   const now = () => Date.now(), rnd = (a, b) => a + Math.random() * (b - a), K = 1.17;      // K: bộ hình mới nhỏ hơn bản cũ ~17% → giữ nguyên cỡ hiển thị
@@ -663,49 +671,49 @@
   const fM = (v) => (v < 0 ? "-" : "") + "$" + fNum(Math.abs(v), Math.abs(v) >= 1000 ? 0 : 2), fP = (v, d = 1) => (v >= 0 ? "+" : "") + fNum(v, d) + "%";
   const oneOf = (A) => A[Math.floor(Math.random() * A.length)];
   // giọng: KHÔNG phải việc của na na – chỉ hóng hớt, chõ mỏ vào 1 câu ngắn (1 chi tiết, thỉnh thoảng 2) rồi quay đi
-  const SKO = [["Hóng tí:", "Peeked:"], ["Liếc trộm:", "Snooped:"], ["Chả phải việc của na na, nhưng", "Not my job, but"], ["Nhìn ké:", "Glanced:"], ["Ồ.", "Oh."], ["Tò mò thôi:", "Just nosy:"]];
-  const SKE = [["Thôi kệ.", "Whatever."], ["Nói vậy thôi.", "Just saying."], ["Không liên quan.", "Not my business."], ["Ngủ tiếp.", "Back to sleep."], ["Hết hóng.", "Done snooping."], ["Kệ anh.", "Your call."]];
+  const SKO = [["Hóng tí:", "Peeked:"], ["Liếc trộm:", "Snooped:"], ["Chả phải việc của na na, nhưng", "Not my job, but"], ["Ồ,", "Oh,"], ["Tò mò thôi nha:", "Just nosy:"]];
+  const SKE = [["Thôi kệ", "Whatever"], ["Nói vậy thôi", "Just saying"], ["Không liên quan", "Not my business"], ["Ngủ tiếp", "Back to sleep"], ["Hết hóng", "Done snooping"], ["Kệ anh", "Your call"]];
   function skimText(F) {
     if (!F || F.err || (F.empty && !["portfolio", "bot", "paper", "c"].includes(F.r)) || (F.r === "c" && !F.k)) return null;
     const C = [], must = [], add = (vi, en, m) => (m ? must : C).push(L(vi, en));
     if (F.r === "portfolio") {
-      if (F.empty) return L("Danh mục trống. Nhẹ đầu.", "Empty portfolio. Light.");
-      add(`${fM(F.eq)} cả thảy.`, `${fM(F.eq)} all in.`);
-      if (F.pnlPct != null) F.pnlPct >= 0 ? add(`Lời ${fP(F.pnlPct)}.`, `Up ${fP(F.pnlPct)}.`) : add(`Lỗ ${fP(F.pnlPct)}. Khỏi nói.`, `Down ${fP(F.pnlPct)}. No comment.`);
-      if (F.top && F.top.w >= 35) add(`${F.top.k} ôm ${fNum(F.top.w, 0)}%.`, `${F.top.k} is ${fNum(F.top.w, 0)}% of it.`);
-      if (F.best && F.best.g > 0) add(`${F.best.k} ${fP(F.best.g, 0)}, con cưng.`, `${F.best.k} ${fP(F.best.g, 0)}, the favorite.`);
-      if (F.worst && F.worst.g < 0) add(`${F.worst.k} ${fP(F.worst.g, 0)}. Ờ.`, `${F.worst.k} ${fP(F.worst.g, 0)}. Hm.`);
-      if (F.lev > F.cap) add(`Đòn bẩy x${fNum(F.lev, 1)}, quá mức rồi đó.`, `Leverage x${fNum(F.lev, 1)}. Over the cap.`, 1);
+      if (F.empty) return drag(L("Danh mục trống trơn, nhẹ đầu ghê", "Empty portfolio, how relaxing"));
+      add(`${fM(F.eq)} cả thảy, tưởng nhiều`, `${fM(F.eq)} total, thought it'd be more`);
+      if (F.pnlPct != null) F.pnlPct >= 0 ? add(`lời ${fP(F.pnlPct)}, chắc ăn may`, `up ${fP(F.pnlPct)}, probably luck`) : add(`lỗ ${fP(F.pnlPct)}, đoán trước rồi`, `down ${fP(F.pnlPct)}, saw that coming`);
+      if (F.top && F.top.w >= 35) add(`${F.top.k} ôm ${fNum(F.top.w, 0)}%, liều ghê`, `${F.top.k} is ${fNum(F.top.w, 0)}%, bold`);
+      if (F.best && F.best.g > 0) add(`${F.best.k} ${fP(F.best.g, 0)}, chọn trúng một con cũng giỏi`, `${F.best.k} ${fP(F.best.g, 0)}, you got one right, wow`);
+      if (F.worst && F.worst.g < 0) add(`${F.worst.k} ${fP(F.worst.g, 0)}, ờ`, `${F.worst.k} ${fP(F.worst.g, 0)}, yeah`);
+      if (F.lev > F.cap) add(`đòn bẩy x${fNum(F.lev, 1)}, quá mức rồi đó, biết chưa`, `leverage x${fNum(F.lev, 1)}, over the cap, hello`, 1);
     } else if (F.r === "bot") {
-      if (F.empty) return L("Bot nghỉ hết. Giống na na.", "Bots all off. Like me.");
-      if (F.pause) add("Bot đang nghỉ. Giống na na.", "Bot's paused. Relatable.", 1);
-      if (F.day != null) add(`Bot ${fP(F.day, 2)} hôm nay.`, `Bot ${fP(F.day, 2)} today.`);
-      if (F.ret != null) add(`Từ đầu ${fP(F.ret)}.`, `${fP(F.ret)} since start.`);
-      add(F.open ? `${F.open} lệnh đang treo.` : "Không lệnh nào. Bot cũng lười.", F.open ? `${F.open} trades hanging.` : "No trades. Bot's lazy too.");
-      if (F.live && F.live.pnl != null) add(`Tiền thật ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))} hôm nay.`, `Real money ${F.live.pnl >= 0 ? "+" : "-"}${fM(Math.abs(F.live.pnl))} today.`);
+      if (F.empty) return drag(L("Bot nghỉ hết rồi, giống na na", "All bots off, like me"));
+      if (F.pause) add("bot đang nghỉ, giống na na", "bot's paused, relatable", 1);
+      if (F.day != null) add(`bot ${fP(F.day, 2)} hôm nay, giỏi hơn anh`, `bot ${fP(F.day, 2)} today, better than you`);
+      if (F.ret != null) add(`từ đầu ${fP(F.ret)}, nhờ bot cả đấy`, `${fP(F.ret)} since start, all the bot's work`);
+      add(F.open ? `${F.open} lệnh đang treo` : "không lệnh nào, bot cũng lười giống anh", F.open ? `${F.open} trades hanging` : "nothing open, bot's lazy like you");
+      if (F.live && F.live.pnl != null) add(F.live.pnl >= 0 ? `tiền thật +${fM(F.live.pnl)} hôm nay, đủ mua pate cho na na` : `tiền thật -${fM(-F.live.pnl)} hôm nay, quen rồi`, F.live.pnl >= 0 ? `real money +${fM(F.live.pnl)} today, enough for my treats` : `real money -${fM(-F.live.pnl)} today, used to it`);
     } else if (F.r === "paper") {
-      if (F.empty) return L("Sàn thử trống. Chơi thử cũng ngại.", "Paper's empty. Too lazy to pretend.");
-      add(`Sàn thử ${fP(F.pnlPct, 1)}.`, `Paper ${fP(F.pnlPct, 1)}.`); add(F.open ? `${F.open} lệnh mở.` : "Chưa lệnh nào.", F.open ? `${F.open} open.` : "Nothing open.");
+      if (F.empty) return drag(L("Sàn thử trống, chơi thử cũng ngại à", "Paper's empty, too scared even to pretend"));
+      add(`sàn thử ${fP(F.pnlPct, 1)}, tiền ảo mà cũng run`, `paper ${fP(F.pnlPct, 1)}, nervous with fake money`); add(F.open ? `${F.open} lệnh mở` : "chưa lệnh nào, sợ à", F.open ? `${F.open} open` : "nothing open, scared");
     } else if (F.r === "c") {
-      if (F.empty) return L(`${F.k}? Không quen.`, `${F.k}? Never heard.`);
-      if (F.r1 != null) add(`${F.k} ${fP(F.r1)} hôm nay.`, `${F.k} ${fP(F.r1)} today.`);
-      if (F.r30 != null) add(`Một tháng ${fP(F.r30, 0)}.`, `${fP(F.r30, 0)} this month.`);
-      if (F.tsc != null) add(`Điểm kỹ thuật ${fNum(F.tsc, 0)}${F.trend === 1 ? ", đang lên" : F.trend === -1 ? ", đang xuống" : ""}.`, `Tech score ${fNum(F.tsc, 0)}${F.trend === 1 ? ", trending up" : F.trend === -1 ? ", trending down" : ""}.`);
+      if (F.empty) return drag(L(`${F.k} hả, không quen`, `${F.k}, never heard of it`));
+      if (F.r1 != null) add(`${F.k} ${fP(F.r1)} hôm nay, đừng có mừng`, `${F.k} ${fP(F.r1)} today, don't get excited`);
+      if (F.r30 != null) add(`một tháng ${fP(F.r30, 0)}, tạm`, `${fP(F.r30, 0)} this month, meh`);
+      if (F.tsc != null) add(`điểm kỹ thuật ${fNum(F.tsc, 0)}${F.trend === 1 ? ", đang lên" : F.trend === -1 ? ", đang xuống" : ""}, kệ nó`, `tech score ${fNum(F.tsc, 0)}${F.trend === 1 ? ", trending up" : F.trend === -1 ? ", trending down" : ""}, whatever`);
     } else if (F.r === "ideas") {
-      F.n ? add(`${F.n} kèo có lợi thế. Không chọn hộ đâu.`, `${F.n} setups with an edge. Not picking.`) : add("Chẳng có kèo nào. Ngồi im.", "No setups. Sit still.");
+      F.n ? add(`${F.n} kèo có lợi thế, chọn đi rồi na na cười`, `${F.n} setups with an edge, pick one and I'll laugh`) : add("chẳng có kèo nào, ngồi im giùm", "no setups, sit still for once");
     } else if (F.lightTxt) {
-      add(`Đèn ${F.lightTxt}.`, `Light's ${F.light}.`);
-      if (F.fng != null) add(`Tâm lý ${fNum(F.fng, 0)}${F.fngZone ? `, ${F.fngZone.toLowerCase()}` : ""}.`, `Sentiment ${fNum(F.fng, 0)}.`);
-      if (F.btc != null) add(`BTC ${fP(F.btc)}.`, `BTC ${fP(F.btc)}.`);
-    } else if (F.title) return L("Toàn chữ. Bỏ qua.", "All words. Skipping.");
+      add(`đèn ${F.lightTxt}, đừng vội xông lên`, `light's ${F.light}, don't charge in`);
+      if (F.fng != null) add(`tâm lý ${fNum(F.fng, 0)}${F.fngZone ? `, ${F.fngZone.toLowerCase()}` : ""}, như anh`, `sentiment ${fNum(F.fng, 0)}, just like you`);
+      if (F.btc != null) add(`BTC ${fP(F.btc)}, vậy thôi`, `BTC ${fP(F.btc)}, that's it`);
+    } else if (F.title) return drag(L("Toàn chữ, na na không đọc đâu", "All words, not reading that"));
     else return null;
     const pk = must.slice(0, 1); const rest = C.slice().sort(() => Math.random() - 0.5);
     while (pk.length < (Math.random() < 0.3 ? 2 : 1) && rest.length) pk.push(rest.shift());
     if (!pk.length) return null;
-    const o = Math.random() < 0.55 ? L(...oneOf(SKO)) + " " : "", e = Math.random() < 0.5 ? " " + L(...oneOf(SKE)) : "";
-    let b = pk.join(" "); if (o && !/[:.]\s$/.test(o) && !/^[A-Z0-9$]{2,}\b/.test(b)) b = b[0].toLowerCase() + b.slice(1);      // "…, nhưng bot …" (giữ hoa mã coin)
-    if ((o + b + e).length > 72 && pk.length > 1) { pk.pop(); b = b.slice(0, b.lastIndexOf(" ", b.length - 1)); b = pk.length ? (o && !/[:.]\s$/.test(o) && !/^[A-Z0-9$]{2,}\b/.test(pk[0]) ? pk[0][0].toLowerCase() + pk[0].slice(1) : pk[0]) : b; }      // dài quá → bớt 1 ý
-    return o + b + e;
+    const o = Math.random() < 0.5 ? L(...oneOf(SKO)) + " " : "", e = Math.random() < 0.4 ? ". " + L(...oneOf(SKE)) : "";
+    let b = pk.join(", "); if (!o || /[:]\s$/.test(o)) b = /^[A-Z0-9$]{2,}\b/.test(b) ? b : b[0].toUpperCase() + b.slice(1);      // đầu câu viết hoa (trừ mã coin); sau "Ồ," / "nhưng" để thường
+    if ((o + b + e).length > 66 && pk.length > 1) b = /^[A-Z0-9$]{2,}\b/.test(pk[0]) || (o && !/[:]\s$/.test(o)) ? pk[0] : pk[0][0].toUpperCase() + pk[0].slice(1);      // dài quá → bớt 1 ý
+    return drag(o + b + e);
   }
   async function skimTalk(force) {
     if (!S.el || (!force && S.cfg.talk === "q") || typeof window.pageSkim !== "function") return false;
