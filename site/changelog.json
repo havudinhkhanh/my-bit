@@ -6,8 +6,8 @@
    "d": "2026-11-18",
    "t": "Mèo na na chuyển động như mèo thật",
    "te": "Na na moves like a real cat",
-   "s": "Đi, chạy, ngồi, đứng dậy, ngồi xuống, quay đầu, liếm lông, vươn vai, nằm, ngủ, thức dậy lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
-   "se": "Walk, trot, sit, stand up, sit down, turn, groom, stretch, lie down, sleep and wake taken from real cat video; 3× lighter, blinking, ground shadow.",
+   "s": "Đi, chạy, ngồi, đứng dậy, quay đầu, liếm lông, vươn vai, nằm, ngủ, thức dậy, lăn ngửa, rình, vồ, kêu meo, cáu lấy từ video mèo thật; nhẹ máy hơn 3 lần, chớp mắt, bóng dưới chân.",
+   "se": "Walk, trot, sit, stand up, turn, groom, stretch, lie down, sleep, wake, roll, stalk, pounce, meow and tail-lash taken from real cat video; 3× lighter, blinking, ground shadow.",
    "it": [
     {
      "c": "new",
@@ -24,6 +24,14 @@
      "te": "😴 Grooming, stretching, lying down, sleeping and waking – from real cat video",
      "d": "na na giờ liếm chân rửa mặt, cúi liếm ngực, vươn vai, nằm duỗi nghỉ, cuộn tròn hay nằm gục đầu ngủ (thở đều, có chữ z), rồi thức dậy ngáp, vươn mình đứng lên. Mọi động tác nối nhau liền mạch, không nhảy hình. Chạm hoặc vuốt khi mèo đang ngủ là mèo dậy; vuốt xuôi lông thì mèo nằm xuống khoan khoái.",
      "de": "na na now licks a paw and washes her face, grooms her chest, stretches, lies down to rest, curls up or sleeps with her head down (breathing, with z's), then wakes with a yawn and a stretch. Every move flows into the next without jumps. Tap or scroll to wake her; pet along the fur and she lies down contentedly."
+    },
+    {
+     "c": "new",
+     "a": "mascot",
+     "t": "🐾 Lăn ngửa, rình, vồ, kêu meo, cáu quất đuôi – từ video mèo thật",
+     "te": "🐾 Rolling, stalking, pouncing, meowing and tail-lashing – from real cat video",
+     "d": "na na lăn ngửa vờn chân rồi ngồi dậy; rê chuột sát đáy trang là na na khom người rình theo, đứng yên là vồ; bướm bay xuống thì đứng dậy khom ngoáy mông rồi vồ đúng lúc chân vươn cao nhất; đuổi chuột bắt được thì vồ chứ không còn nhảy hình. Thỉnh thoảng na na đứng lên kêu meo (tiếng khớp lúc há miệng). Vuốt ngược lông hay chọc nhiều quá thì na na đứng dậy quất đuôi rồi bỏ đi.",
+     "de": "na na rolls on her back pawing the air, then sits up; move the mouse along the bottom of the page and she stalks it low, and pounces when it stops; when a butterfly drifts down she stands, wiggles and pounces right at the top of her leap; catching the mouse is a real pounce, no more jumping frames. Now and then she stands up to meow (the sound matches her open mouth). Pet her the wrong way or poke too much and she lashes her tail and walks off."
     },
     {
      "c": "imp",

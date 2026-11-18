@@ -27,15 +27,17 @@
     // 🎬 bộ chuyển động từ VIDEO thật (Google Flow, 11/2026): đi · chạy · ngồi yên · ngồi→đứng · đứng→ngồi · quay đầu – đồ lại viền từng khung 24 hình/giây
     vwalk: "__JSV_SEQ_vwalk__", vrun: "__JSV_SEQ_vrun__", vsit: "__JSV_SEQ_vsit__", vs2st: "__JSV_SEQ_vs2st__", vst2s: "__JSV_SEQ_vst2s__", vturn: "__JSV_SEQ_vturn__",
     // 🎬 nhóm 2: liếm chân · cúi liếm ngực · vươn vai · đứng→nằm · đứng→cuộn tròn · ngủ (vòng lặp) · thức dậy (ngáp, vươn, đứng lên) – tải sau, lúc rảnh
-    vgpaw: "__JSV_SEQ_vgpaw__", vgbody: "__JSV_SEQ_vgbody__", vstr: "__JSV_SEQ_vstr__", vs2l: "__JSV_SEQ_vs2l__", vl2c: "__JSV_SEQ_vl2c__", vsleep: "__JSV_SEQ_vsleep__", vwake: "__JSV_SEQ_vwake__" }, SHL = {};
-  const G2 = ["vgpaw", "vgbody", "vstr", "vs2l", "vl2c", "vsleep", "vwake"], hasV = (...k) => k.every((n) => SHEET[CLIP[n]?.sheet]);
+    vgpaw: "__JSV_SEQ_vgpaw__", vgbody: "__JSV_SEQ_vgbody__", vstr: "__JSV_SEQ_vstr__", vs2l: "__JSV_SEQ_vs2l__", vl2c: "__JSV_SEQ_vl2c__", vsleep: "__JSV_SEQ_vsleep__", vwake: "__JSV_SEQ_vwake__",
+    // 🎬 nhóm 3: lăn ngửa · rình (đi khom) · kêu meo · cáu (quất đuôi) · vồ
+    vroll: "__JSV_SEQ_vroll__", vstalk: "__JSV_SEQ_vstalk__", vmeow: "__JSV_SEQ_vmeow__", vannoy: "__JSV_SEQ_vannoy__", vpounce: "__JSV_SEQ_vpounce__" }, SHL = {};
+  const G2 = ["vgpaw", "vgbody", "vstr", "vs2l", "vl2c", "vsleep", "vwake", "vroll", "vstalk", "vmeow", "vannoy", "vpounce"], hasV = (...k) => k.every((n) => SHEET[CLIP[n]?.sheet]);
   function loadSheet(nm) {
     if (SHL[nm]) return SHL[nm];
     return (SHL[nm] = fetch(`mascot-seq-${nm}.json?v=${SHV[nm]}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))).then((d) => {
       const F = d.f.map((v, i) => { addPose(nm + i, v); const P = POSE[nm + i]; if (d.pe) P.pe = d.es || [10, 12]; return P; }), T = [0]; (d.w || []).forEach((w, i) => T.push(T[i] + w));
       F.T = T; F.W = d.w; F.hard = new Set(d.hard || []); F.dx = d.dx || 0; F.tx = d.tx || null; F.st = d.st || 0; SHEET[nm] = F;
       for (const c of Object.values(CLIP)) if (c.sheet === nm && d.upf && c.upf === 0) c.upf = d.upf;      // tốc độ chân đo từ video (đơn vị / khung)
-      if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit;
+      if (nm === "sit" && !SHEET.vsit) CLIP.sit = CLIP.sitIdle; if (nm === "vsit") CLIP.sit = CLIP.vsit; if (nm === "vstalk") CLIP.stalk = CLIP.vstalk;
       // tính sẵn cách khớp điểm của mọi cặp khung kề (rảnh lúc nào làm lúc đó, mỗi lần 1 ít) → lúc chạy không khựng
       let k = 0; const n = F.length, warm = () => { const t0 = performance.now(); while (k < n && performance.now() - t0 < 6) { const j = (k + 1) % n; if (j || d.loop) mapOf(F[k], F[j], !(F.hard.has(k) || j < k)); k++; } if (k < n) (window.requestIdleCallback || setTimeout)(warm); };
       (window.requestIdleCallback || setTimeout)(warm); return F;
@@ -85,7 +87,7 @@
       if (a.t === 0 && a.n >= 100 && !fast) { const [pa, pb] = dtw(a, bb); pairs.push({ a: pa, b: pb, t: 0 }); } else pairs.push({ a: a.p, b: bb, t: a.t }); }
     A.polys.forEach((a, i) => { if (!usedA.has(i)) pairs.push({ a: a.p, cx: a.cx, cy: a.cy, t: a.t, out: 1 }); });
     B.polys.forEach((b, j) => { if (!usedB.has(j)) pairs.push({ b: b.p, cx: b.cx, cy: b.cy, t: b.t, in: 1 }); });
-    let big = null; for (const q of pairs) if (q.t === 0 && q.b && (!big || q.a.length > big.a.length)) big = q;      // độ khác nhau của 2 dáng: lệch trung bình của viền chính / cỡ hình
+    let big = null; for (const q of pairs) if (q.t === 0 && q.a && q.b && (!big || q.a.length > big.a.length)) big = q;      // độ khác nhau của 2 dáng: lệch trung bình của viền chính / cỡ hình
     let cost = 9; if (big) { let d = 0; const n = big.a.length / 2; for (let i = 0; i < n; i++) d += Math.hypot(big.a[2 * i] - big.b[2 * i], big.a[2 * i + 1] - big.b[2 * i + 1]); cost = d / n / 100; }
     const m = { pairs, eA: A.eye, eB: B.eye, pA: A.pe, pB: B.pe, cost }; if (key) MC.set(key, m); return m;
   }
@@ -275,6 +277,7 @@
     vsit: { sheet: "vsit", loop: 1, fps: 24 }, s2st: { sheet: "vs2st", fps: 24, b: 84 }, st2s: { sheet: "vst2s", fps: 24, b: 62 }, turn: { sheet: "vturn", fps: 24, b: 100 },      // ngồi yên vẫy đuôi = 24 khung cuối bảng (khép vòng sẵn) – thay dáng ngồi tĩnh khi đã tải xong
     roll: { p: "roll", rock: 10 }, yarn: { loop: ["yarnsit", "yarnlie"], per: 1.5 }, scratch: { p: "scratch", scr: 1 },
   };
+  // na: không dời khung theo tâm thân (dáng chờ dùng khi đuổi chuột – vị trí do vòng đuổi tự đặt)
   // lo: nằm / ngủ thở chậm → vẽ 15 hình/giây là đủ (đỡ máy)
   // ae: vào clip thì khớp theo MẮT (đầu) thay vì tâm thân – 2 clip nằm quay khác nhau đo tâm thân lệch (đuôi duỗi / cuộn) → đầu nhảy
   // yo: phát tới–lui êm (đường cos) đoạn nằm yên thở → giữ dáng nằm / cuộn bao lâu cũng được · rev: phát ngược · ms: thời lượng riêng trong chuỗi · md: thời gian nắn hình lúc vào
@@ -284,6 +287,10 @@
     l2c: { sheet: "vl2c", fps: 24, b: 104 }, vcurl: { sheet: "vl2c", a: 104, yo: 1, fps: 8, lo: 1 },
     sleep: { sheet: "vsleep", loop: 1, fps: 24, lo: 1 }, sleepIn: { sheet: "vsleep", loop: 1, fps: 24, md: 900, ms: 950 },
     wake: { sheet: "vwake", fps: 24 }, l2st: { sheet: "vwake", a: 80, fps: 24, ae: 1 },
+    // nhóm 3 · ready: dáng khom chờ vồ (đoạn đầu clip vồ, phát tới–lui = ngoáy mông) · pounceF: vồ ngay từ lúc khom (bỏ đoạn rình lâu) · on: [khung, việc] làm đúng lúc (tiếng meo khi há miệng)
+    vroll: { sheet: "vroll", fps: 24 }, vstalk: { sheet: "vstalk", loop: 1, fps: 24, upf: 0 },
+    vmeow: { sheet: "vmeow", fps: 24, on: [62, () => meow(1)] }, vannoy: { sheet: "vannoy", fps: 24 },
+    pounce: { sheet: "vpounce", fps: 24 }, pounceF: { sheet: "vpounce", a: 44, fps: 24 }, ready: { sheet: "vpounce", a: 22, b: 54, yo: 1, fps: 14, na: 1 },
   });
   CLIP.walk = { sheet: "vwalk", loop: 1, fps: 24, upf: 0, fb: CLIP.walk0 }; CLIP.run0 = CLIP.run; CLIP.run = { sheet: "vrun", loop: 1, fps: 24, upf: 0, fb: CLIP.run0 };
   const A = { sh: POSE.sit, snap: null, map: null, t0: 0, dur: 1, clip: CLIP.sit, name: "sit", ct: 0, ph: 0, v: 0, ty: 0, rot: 0, last: 0, on: false, R: null };
@@ -337,7 +344,7 @@
     S.pose = name; S.el.dataset.pose = name; leave();
     const F0 = c.sheet && SHEET[c.sheet], st = soft && c.loop && F0 && F0.st ? F0.st : 0;      // vào vòng đi / chạy từ khung giống dáng đứng nhất (đo sẵn từ video)
     const tg = st ? F0[st] : clipStart(c); A.snap = A.sh; A.map = mapOf(A.sh, tg); A.t0 = performance.now(); A.clip = c; A.name = name; A.ct = 0; A.ph = st ? (F0.W ? F0.T[st] - F0.T[c.a || 0] : st - (c.a || 0)) : 0;
-    if (F0 && F0.tx && !c.loop) { const [i, j, u] = sheetAt(c, phq(c, A.ph, sheetSpan(c))), t0 = (F0.tx[i] || 0) * (1 - u) + (F0.tx[j] || 0) * u; A.fi = [i, j, u];
+    if (F0 && F0.tx && !c.loop && !c.na) { const [i, j, u] = sheetAt(c, phq(c, A.ph, sheetSpan(c))), t0 = (F0.tx[i] || 0) * (1 - u) + (F0.tx[j] || 0) * u; A.fi = [i, j, u];
       const al = c.ae && A.sh?.eye && tg.eye ? A.sh.eye[0] - tg.eye[0] : -t0;
       if (al) { const sn = A.snap; rebase(al); A.snap = sn ? A.sh : null; A.map = mapOf(A.sh, tg); } A.anch = 1; }      // clip máy quay đứng yên: vào giữa chừng (nằm → dậy, phát ngược) thì dời khung cho thân mèo ở đúng chỗ cũ
     A.dis = !soft && A.map.cost > 0.4;      // 2 dáng khác hẳn → hoà tan (dáng cũ nhích nhẹ + mờ, dáng mới hiện lên) thay vì nắn hình → không lổn nhổn giữa chừng
@@ -442,10 +449,11 @@
   function runSeq(L, done, tk) {
     const k = L.shift(); if (!k) return done();
     const c = CLIP[k], F = c && SHEET[c.sheet]; if (!F || RM.matches) return runSeq(L, done, tk);
-    const md = RM.matches ? 1 : (c.md || 360) * (MUN_ART.slow || 1); play(k, c.md || 360, true); const ms = c.ms || md + (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;      // nắn 360 ms (clip chờ ở khung đầu trong lúc nắn) rồi mới chạy
+    const md = RM.matches ? 1 : (c.md || 360) * (MUN_ART.slow || 1); play(k, c.md || 360, true); if (c.on) setTimeout(() => { if (A.clip === c && tk === S.walkTk) c.on[1](); }, md + (c.on[0] - (c.a || 0)) / c.fps * 1000);
+    const ms = c.ms || md + (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;      // nắn 360 ms (clip chờ ở khung đầu trong lúc nắn) rồi mới chạy
     setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; leave(k === "turn"); runSeq(L, done, tk); }, ms);
   }
-  const SITS = new Set(["sit", "gpaw", "gbody"]), STANDS = new Set(["walk", "run", "s2st", "turn", "stalk", "vstretch", "l2st", "wake"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);
+  const SITS = new Set(["sit", "gpaw", "gbody", "vroll"]), STANDS = new Set(["walk", "run", "s2st", "turn", "stalk", "vstretch", "l2st", "wake", "ready", "pounce", "pounceF", "vmeow", "vannoy"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);
   const napping = () => NAPS.has(S.pose) || S.pose === "curl";
   // các clip để ĐỨNG lên từ dáng hiện tại (ngồi → đứng dậy · nằm → chống chân đứng lên · cuộn / ngủ → [duỗi ra] thức dậy, ngáp, vươn vai)
   const upSeq = () => { const p = S.pose; if (SITS.has(p)) return SHEET.vs2st ? ["s2st"] : []; if (LIES.has(p)) return hasV("l2st") ? ["l2st"] : [];
@@ -466,12 +474,16 @@
     const ok = act(LIES.has(S.pose) ? [] : [...upSeq(), curl ? "l2c" : "s2l"], curl ? "vcurl" : "vlie", () => { const tk = tk0(); setTimeout(() => { if (tk === S.walkTk && S.el && (S.pose === "vcurl" || S.pose === "vlie")) play("sleep", curl ? 1500 : 1300, true); }, curl ? rnd(15e3, 30e3) : rnd(5e3, 9e3)); }, 300);
     return ok;
   }
+  const rollV = () => act([...toSit(), "vroll"], "sit", () => sched(idle, rnd(4e3, 7e3)), 420);
+  const meowV = () => act([...upSeq(), "vmeow", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 300);
+  // 😾 cáu: đứng lên quất đuôi rồi bỏ đi (then: đi đâu) – đang đứng thì quất luôn
+  const annoyV = (then) => act([...upSeq(), "vannoy"], null, then || (() => sitDown("sit", () => sched(idle, rnd(5e3, 8e3)))));
   const wakeV = (then) => act([...upSeq(), "st2s"], "sit", then || (() => sched(idle, rnd(4e3, 6e3))), 300);
   function sitDown(p = "sit", then) {
     if (!S.el) return; halt(); S.el.classList.remove("run");
     // đang đi / chạy mà ngồi xuống → clip đứng→ngồi thật (thay vì nắn hình thẳng sang dáng ngồi)
     if (p === "sit" && STANDS.has(S.pose) && SHEET.vst2s && !RM.matches) { const tk = (S.walkTk = (S.walkTk || 0) + 1); return runSeq(["st2s"], () => { play("sit", 520, true); then?.(); }, tk); }
-    pose(p); if (then) setTimeout(then, 420);
+    if (CLIP[p]?.sheet && SHEET[CLIP[p].sheet]) play(p, 420, true); else pose(p); if (then) setTimeout(then, 420);
   }
   function face(d) { S.face = d; S.el.dataset.face = d > 0 ? "r" : "l"; }
   const hiddenNow = () => !!(document.hidden || document.getElementById("iosSheet") || (document.getElementById("iosMenu") && !document.getElementById("munMenu")) || document.querySelector(".cz-full, .cv-fs, #ocChart, .lb-on") || document.body.classList.contains("cmdk-on") || document.body.classList.contains("lvw-mf") || document.body.classList.contains("typing")
@@ -520,6 +532,20 @@
       requestAnimationFrame(() => { el.style.transition = "transform .45s cubic-bezier(.2,.8,.2,1)"; el.style.transform = `translate3d(${(catCX() + d * 72 * u - w / 2).toFixed(1)}px,0,0) scaleY(1)`; });
       setTimeout(() => { play("scratch"); say(pick("post"), 2800, 1); navigator.vibrate?.([4, 30, 4, 30, 4]); }, 420);
       setTimeout(() => { el.style.transform += " scaleY(0)"; setTimeout(() => el.remove(), 500); S.busy = false; play("stretch"); setTimeout(() => play("sit"), 1600); sched(idle, rnd(5e3, 8e3)); }, rnd(4200, 5600));
+    } else if (kind === "fly" && hasV("pounceF", "ready", "s2st") && !LIES.has(S.pose) && !NAPS.has(S.pose)) {      // 🦋 bướm: đứng dậy (nếu đang ngồi) → khom ngoáy mông → vồ, bướm bay tới đúng chỗ chân vươn cao nhất
+      const sz = 62 * u, el = prop("fly", sz, sz), caught = Math.random() < 0.5, t0 = performance.now(); let done = false; S.busy = false;
+      const prep = SITS.has(S.pose) ? 360 + (84 / 24) * 1000 : 0, wait = rnd(900, 1500), peak = prep + wait + 360 + ((86 - 44) / 24) * 1000;
+      act(SITS.has(S.pose) ? ["s2st"] : [], "ready", () => { const tk = S.walkTk; setTimeout(() => { if (tk === S.walkTk) act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 360); }, wait); }, 420);
+      say(pick("fly"), 2600, 1); el.style.bottom = "0px";
+      const tx = () => catCX() + d * 185 * u, ty0 = tr.b + 255 * u;      // chỗ 2 chân trước vươn tới lúc vồ cao nhất (đo từ video)
+      const path = (k) => [tx() + d * (240 - 240 * k) * u + Math.sin(k * 9) * 18 * u * (1 - k), ty0 + (1 - k) * 160 * u + Math.cos(k * 7) * 14 * u * (1 - k)];
+      const f = (t) => { if (done) return; const k = Math.min(1, (t - t0) / peak), [x, y] = path(k); el.style.transform = `translate3d(${(x - sz / 2).toFixed(1)}px,${(-y).toFixed(1)}px,0)`;
+        if (k >= 1) { done = true;
+          if (caught) { el.classList.add("poof"); say(pick("catch"), 2600, 2); meow(1); setTimeout(() => el.remove(), 400); }
+          else { el.style.transition = "transform 1.6s ease-in, opacity 1.6s"; el.style.transform = `translate3d(${(x - sz / 2 + d * 220 * u).toFixed(1)}px,${(-(y + 260 * u)).toFixed(1)}px,0)`; el.style.opacity = "0"; say(pick("miss"), 2600, 2); setTimeout(() => el.remove(), 1700); }
+          return; }
+        if (!S.el) { el.remove(); return; } requestAnimationFrame(f); };
+      requestAnimationFrame(f);
     } else if (kind === "fly") {
       const sz = 62 * u, el = prop("fly", sz, sz), tx = catCX() + d * 30 * u, ty0 = tr.b + 230 * u; let t0 = performance.now(), caught = Math.random() < 0.5, done = false;
       el.style.bottom = "0px"; play("lookup"); say(pick("fly"), 2600, 1);
@@ -542,13 +568,13 @@
     if (S.nextMouse && now() > S.nextMouse && now() - S.act < 60e3 && !(typeof userBusy === "function" && userBusy(3000))) { S.nextMouse = now() + rnd(8, 18) * 60e3; if (chase()) return; }
     if (S.nextToy && now() > S.nextToy && now() - S.act < 90e3) { S.nextToy = now() + rnd(4, 9) * 60e3; if (toy(["yarn", "post", "fly"][Math.floor(Math.random() * 3)])) return; }
     if (now() - S.act > 80e3) { if (!napping() && !napV()) play("curl"); sched(idle, 4000); return; }
-    talkMaybe(); meowMaybe();
+    talkMaybe(); if (meowMaybe()) return;
     const r = Math.random(), tr = track();
     const still = [["sit", 5, 10], ["lookup", 3, 6], ["loaf", 5, 9], ["groom", 3, 6], ["lickbody", 3, 5], ["licklip", 2, 3.5], ["lie", 5, 10], ["stretch", 2, 3]];
     if (r < 0.55 && G2.every((n) => SHEET[n])) {      // 🎬 có bộ video nhóm 2: ngồi yên · liếm chân · cúi liếm ngực · nằm nghỉ · vươn vai (dáng vẽ cũ chỉ còn dự phòng)
       const q = Math.random();
       if (q < 0.3) { if (!SITS.has(S.pose)) groomV("gbody"); else { play("sit"); sched(idle, rnd(5e3, 10e3)); } }
-      else if (q < 0.5) groomV("gpaw"); else if (q < 0.62) groomV("gbody"); else if (q < 0.85) lieV(); else stretchV();
+      else if (q < 0.5) groomV("gpaw"); else if (q < 0.62) groomV("gbody"); else if (q < 0.82) lieV(); else if (q < 0.94) stretchV(); else if (!meowV()) stretchV();
       if (q >= 0.85 && Math.random() < 0.5) say(pick("stretch"), 2400, 0);
     }
     else if (r < 0.55) { const [p, a, b] = still[Math.floor(Math.random() * still.length)]; if (p === "groom" && groomPlay()) return; play(p); if (p === "stretch" && Math.random() < 0.5) say(pick("stretch"), 2400, 0); sched(idle, rnd(a, b) * 1000); }
@@ -564,6 +590,7 @@
   }
   function rollPlay() {      // 🙃 lăn lộn trọn bài (tới gần mép thì quay vào trong trước, vì cuối bài có mấy bước đi)
     if (!S.el || S.busy || S.chasing) return false;
+    if (hasV("vroll")) { if (!rollV()) return false; const tk = S.walkTk; setTimeout(() => { if (tk === S.walkTk && S.pose === "vroll") say(pick("roll"), 2600, 0); }, 4200); return true; }
     const tr = track(); if (S.x + 160 * U2P() > tr.r) face(-1); else if (S.x - 160 * U2P() < tr.l) face(1);
     return seqPlay("rollplay", "roll", 2600);
   }
@@ -585,7 +612,7 @@
       [o, o2, lfo].forEach((x) => { x.start(t); x.stop(t + d + 0.05); });
     }
   }
-  function meowMaybe() { if (S.cfg.snd && now() > (S.nextMeow || 0)) { S.nextMeow = now() + rnd(5, 11) * 60e3; meow(Math.random() < 0.4 ? 2 : 1); } }
+  function meowMaybe() { if (S.cfg.snd && now() > (S.nextMeow || 0)) { S.nextMeow = now() + rnd(5, 11) * 60e3; if (hasV("vmeow") && Math.random() < 0.6 && meowV()) return true; meow(Math.random() < 0.4 ? 2 : 1); } return false; }      // có video: đứng lên kêu (tiếng khớp lúc há miệng)
   // ---------------------------------------------------------------- nói (bóng thoại bám theo na na, không lòi ra mép)
   function bubble(html, ms, prio, cls = "") {
     if (!S.el || S.away || hiddenNow()) return false;
@@ -654,7 +681,7 @@
     S.pokes = S.pokes.filter((t) => now() - t < 6000); S.pokes.push(now()); navigator.vibrate?.(6);
     S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop");
     if (S.pokes.length === 3) { say(pick("scratch"), 3000, 2); swipe(S.lastPx, S.lastPy); meow(1); sched(idle, 7000); return; }
-    if (S.pokes.length >= 5) { S.pokes = []; say(pick("enough"), 2600, 2); const tr = track(); walkTo(S.x - tr.l > tr.r - S.x ? tr.l : tr.r, () => { if (!groomV("gpaw")) { pose("groom"); sched(idle, 6000); } }); return; }
+    if (S.pokes.length >= 5) { S.pokes = []; say(pick("enough"), 2600, 2); const tr = track(); const away = () => walkTo(S.x - tr.l > tr.r - S.x ? tr.l : tr.r, () => { if (!groomV("gpaw")) { pose("groom"); sched(idle, 6000); } }); if (!annoyV(away)) away(); return; }
     if (!(Math.random() < 0.5 && (SITS.has(S.pose) ? groomV() : false))) { if (G2.every((n) => SHEET[n])) { if (!SITS.has(S.pose) && !STANDS.has(S.pose)) play("sit"); } else pose(["sit", "groom", "licklip", "lookup"][Math.floor(Math.random() * 4)]); }
     say(pick("poke"), 3000, 2); if (Math.random() < 0.3) meow(1); sched(idle, 7000);
   }
@@ -673,7 +700,7 @@
   function stroke(dir, px, py) {
     if (S.chasing || !S.el) return; S.act = now(); clearTimeout(S.tm);
     if (S.busy) return;
-    if (dir === S.face) { say(pick("against"), 3200, 2); if (Math.random() < 0.6) swipe(px, py); else { S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); } }
+    if (dir === S.face) { say(pick("against"), 3200, 2); if (hasV("vannoy") && (STANDS.has(S.pose) || Math.random() < 0.35)) { annoyV(); return; } if (Math.random() < 0.6) swipe(px, py); else { S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); } }
     else { if (LIES.has(S.pose) || !lieV(12e3)) { if (!LIES.has(S.pose)) pose("loaf"); } say(pick("purr"), 3200, 2); navigator.vibrate?.([6, 40, 6, 40, 6]); }
     if (!LIES.has(S.pose)) sched(idle, 7000);
   }
@@ -722,9 +749,11 @@
     if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
     const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = Math.random() < 0.45;
     const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
-    S.chasing = true; clearTimeout(S.tm); halt(); play("crouch");      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na na "dịch chuyển")
+    S.chasing = true; clearTimeout(S.tm); halt(); if (hasV("ready")) play("ready", 500, true); else play("crouch");      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na na "dịch chuyển")
     let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false; face(mx + mw / 2 > S.x + cw / 2 ? 1 : -1);
     const end = (caught) => { if (done) return; done = true; S.chasing = false; S.el?.classList.remove("run");
+      if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
+        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (88 - 44) / 24 * 1000); return; }
       if (caught) { m.classList.add("poof"); sitDown("licklip"); setTimeout(() => { say(pick("catch"), 3600, 2); meow(1); }, 200); setTimeout(() => { if (S.pose === "licklip") play("sit"); }, 2600); }
       else { sitDown("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
@@ -744,7 +773,7 @@
         v += Math.max(-1000 * dt, Math.min(1000 * dt, tv - v));
         const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (nx === cx) v = 0; cx = nx;
         A.v = Math.abs(v); if (Math.abs(v) > 35) { face(v > 0 ? 1 : -1); const want = Math.abs(v) > 110 ? "run" : "walk"; if (S.pose !== want) play(want, 260); }
-        else if ((S.pose === "walk" || S.pose === "run") && Math.abs(v) < 12) play("crouch", 260);
+        else if ((S.pose === "walk" || S.pose === "run") && Math.abs(v) < 12) play(hasV("ready") ? "ready" : "crouch", 300, true);
         place(cx);
       }
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
@@ -801,10 +830,12 @@
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > 25e3) return stalkEnd(true);
-    if (now() - ST.last > 650) { ST.last = now(); const cw = 345 * S.s, tx = e.clientX - cw / 2; if (Math.abs(tx - S.x) > 30) walkTo(tx, null, { clip: "stalk", v: 0.8, end: "crouch" }); }
+    if (now() - ST.last > 650) { ST.last = now(); const cw = 345 * S.s, tx = e.clientX - cw / 2; if (Math.abs(tx - S.x) > 30) walkTo(tx, null, { clip: "stalk", v: 0.8, end: hasV("ready") ? "ready" : "crouch" }); }
   }
   function stalkTick() {
     if (!ST.on || !S.el) return; const cw = 345 * S.s;
+    if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk" && hasV("pounceF")) {      // 🎬 vồ con trỏ thật
+      ST.on = false; ST.cool = now() + 90e3; say(pick("pounce"), 2200, 2); act([...(STANDS.has(S.pose) ? [] : upSeq()), "pounceF", "st2s"], "sit", () => sched(idle, rnd(3e3, 5e3)), 420); return; }
     if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk") { play("chase", 120); S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); setTimeout(() => play("crouch"), 260); say(pick("pounce"), 2200, 2); ST.cool = now() + 90e3; stalkEnd(false); }
   }  // ---------------------------------------------------------------- dựng / bật / tắt
   function build() {
@@ -849,7 +880,7 @@
   }
   function stop() { clearTimeout(S.tm); halt(); if (S.el) { const el = S.el; S.el = null; NT.q = []; NT.cur = null; el.classList.add("away"); setTimeout(() => el.remove(), 300); } }
   window.MUN = { start, stop, apply: () => { const c = cfgOf(); if (!c.on) stop(); else if (!S.el || c.skin !== S.cfg.skin || c.talk !== S.cfg.talk) { S.cfg = c; start(); } S.cfg = c; if (S.el) { S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); } }, say: (t, ms) => say(t, ms, 2), meow: (n) => { unlock(); meow(n || 2); }, chase: () => chase(true), stairs: () => stairs(true), notify,
-    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true) }[k]?.(); }, _g2: () => loadG2(), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
+    toy: (k) => toy(k, true), roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `

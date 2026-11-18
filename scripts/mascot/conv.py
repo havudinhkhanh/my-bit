@@ -3,9 +3,10 @@
 import cv2, numpy as np, json, sys, os
 SRC = sys.argv[1]; OUT = sys.argv[2]; os.makedirs(OUT, exist_ok=True)
 CLIPS = ["walk", "run", "sit_idle", "sit_to_stand", "stand_to_sit", "turn",
-         "groom_paw", "groom_body", "stretch", "sit_to_loaf", "loaf_to_curl", "sleep", "wake"]      # nhóm 2 (liếm, vươn vai, nằm, cuộn, ngủ, dậy)
+         "groom_paw", "groom_body", "stretch", "sit_to_loaf", "loaf_to_curl", "sleep", "wake",      # nhóm 2 (liếm, vươn vai, nằm, cuộn, ngủ, dậy)
+         "roll", "stalk", "meow", "annoyed", "pounce"]      # nhóm 3 (lăn ngửa, rình, kêu, cáu vẫy đuôi, vồ)
 ONLY = [c for c in os.environ.get("ONLY", "").split(",") if c] or CLIPS      # chỉ ghi lại các clip này (cỡ vẫn tính theo cả bộ)
-LOOPS = ("walk", "run", "sit_idle", "sleep")
+LOOPS = ("walk", "run", "sit_idle", "sleep", "stalk")
 KEEP_TAIL = ("sit_to_loaf", "loaf_to_curl")      # giữ đoạn cuối nằm yên thở → làm dáng nằm / cuộn tròn (phát tới lui)
 SIT_H = 231.0          # chiều cao dáng ngồi trong hệ đơn vị hiện tại của mèo
 
@@ -40,7 +41,7 @@ def frames_masks(clip):
     ims = load(clip); S = [soft(im) for im in ims]; G0 = [goldmask(im) for im in ims]; del ims
     n = len(S); M = []
     # làm mềm theo thời gian: clip đứng yên 5 khung (1-4-6-4-1) → mép lông, khe chân, vòng cổ không lóe lên / tắt đi từng khung; đi / chạy giữ 3 khung (chân nhanh)
-    W5 = [1, 4, 6, 4, 1] if clip not in ("walk", "run") else [0, 1, 3, 1, 0]
+    W5 = [1, 4, 6, 4, 1] if clip not in ("walk", "run", "stalk", "pounce") else [0, 1, 3, 1, 0]
     def tav(L, i): ws = [(w, L[min(n - 1, max(0, i + d))]) for d, w in zip(range(-2, 3), W5) if w]; return sum(w * x.astype(np.float32) for w, x in ws) / sum(w for w, _ in ws)
     G = [((tav(G0, i) >= 0.5).astype(np.uint8)) for i in range(n)]      # vòng cổ: đa số phiếu trong 5 khung
     for i in range(n):
@@ -168,6 +169,8 @@ K = {"sit_idle": SIT_H / hs_idle, "sit_to_stand": (ka + ks(np.median(ta[-12:])))
 # ngủ (không có khung đứng → so diện tích với khung đầu của clip dậy, cùng dáng ngủ)
 for c in ("groom_paw", "groom_body"): K[c] = SIT_H / np.median(Hh[c][:12])
 for c in ("stretch", "sit_to_loaf", "loaf_to_curl"): K[c] = ks(np.median(TA[c][:12]))
+K["roll"] = SIT_H / np.median(Hh["roll"][:12]); K["stalk"] = ks(np.median(TA["stalk"]))
+for c in ("meow", "annoyed", "pounce"): K[c] = ks(np.median(TA[c][:12]))
 K["wake"] = ks(np.median(TA["wake"][-12:])); K["sleep"] = K["wake"] * float(np.sqrt(np.median(TA["wake"][:12]) / np.median(TA["sleep"])))
 print("stand units", round(ust, 1), {k: round(v, 4) for k, v in K.items()})
 
@@ -252,7 +255,7 @@ for clip in ONLY:
     dx = float((tor[last][0] - ax[last]) * k) if not loop else 0.0
     # tốc độ chân (đơn vị / khung): chân chạm đất trôi ngược chiều đi với đúng tốc độ mèo (máy quay bám theo mèo)
     upf = None
-    if clip in ("walk", "run"):
+    if clip in ("walk", "run", "stalk"):
         v = []
         for i in range(a0 + 1, a1 + 1):
             def paws(j):
