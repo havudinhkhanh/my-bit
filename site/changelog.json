@@ -102,9 +102,9 @@
      "c": "imp",
      "a": "mascot",
      "t": "Chuột bị vồ trúng thì bẹp dí",
-     "d": "Thay vì thu nhỏ rồi biến mất, chuột bị chân na đè bẹp dí xuống đất (toè ra, nảy nhẹ), nằm bẹp khoảng 1 giây rồi mới mờ đi.",
+     "d": "Thay vì thu nhỏ rồi biến mất, chuột bị chân na đè bẹp dí xuống đất (toè ra, nảy nhẹ), nằm bẹp khoảng 1 giây rồi mới mờ đi. Chuột bẹp xuống theo đúng nhịp chân na đè (chân chạm lưng chuột → chạm đất ~0,12 giây), không xẹp trước khi bị dẫm.",
      "te": "A caught mouse gets squashed flat",
-     "de": "Instead of shrinking away, the mouse is squashed flat under na's paws (splats out with a small bounce), stays flat for about a second, then fades."
+     "de": "Instead of shrinking away, the mouse is squashed flat under na's paws (splats out with a small bounce), stays flat for about a second, then fades. The mouse flattens in step with na's paw pressing down (paw on its back → on the ground in ~0.12 s), never before it's stepped on."
     },
     {
      "c": "fix",

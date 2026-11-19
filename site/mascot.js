@@ -1470,8 +1470,8 @@ canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;p
 .mun-mouse{filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}.mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;will-change:transform}      /* nhún: chỉ transform, bóng đổ ở khung ngoài → trình duyệt chạy nhún ở lớp đồ hoạ, không tính lại kiểu dáng mỗi khung */
 .mun-mouse .ms{fill:#7e838d}.mun-mouse .mi{fill:#c9a7a7}.mun-mouse .me{fill:#111}.mun-mouse .mt,.mun-mouse .ml{fill:none;stroke:#7e838d;stroke-width:2.2;stroke-linecap:round}
 :root[data-theme=dark] .mun-mouse .ms{fill:#a3a9b4}:root[data-theme=dark] .mun-mouse .mt,:root[data-theme=dark] .mun-mouse .ml{stroke:#a3a9b4}
-.mun-mouse.squash svg{animation:none}.mun-mouse.squash>i{animation:mmSquash .5s cubic-bezier(.2,.9,.3,1) forwards}.mun-mouse.gone{opacity:0;transition:opacity .35s}
-@keyframes mmSquash{0%{scale:1 1}14%{scale:1.55 .22}30%{scale:1.32 .4}48%{scale:1.45 .3}100%{scale:1.42 .32}}
+.mun-mouse.squash svg{animation:none}.mun-mouse.squash>i{animation:mmSquash .5s linear forwards}.mun-mouse.gone{opacity:0;transition:opacity .35s}
+@keyframes mmSquash{0%{scale:1 1}10%{scale:1.1 .64}17%{scale:1.26 .4}24%{scale:1.46 .24}34%{scale:1.36 .34}48%{scale:1.44 .28}100%{scale:1.42 .3}}      /* bẹp theo ĐÚNG nhịp chân na đè xuống (đo: chân chạm lưng chuột → chạm đất mất ~120 ms) – trước bẹp trong 70 ms, nhanh hơn chân → chuột xẹp trước khi bị dẫm */
 .mun-mouse.poof>i{transform:scale(0) rotate(40deg);opacity:0;transition:transform .3s cubic-bezier(.5,0,.8,.4),opacity .3s}
 @keyframes mmBob{50%{transform:translateY(-1.5px)}}
 .mun-z{position:absolute;left:calc(50% + 70px*var(--s));bottom:calc(150px*var(--s));font:italic 700 11px/1 system-ui;color:var(--ink-3);display:none;pointer-events:none}
