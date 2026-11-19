@@ -1189,19 +1189,19 @@
   }
   // ---------------------------------------------------------------- 🐭 rượt chuột: thỉnh thoảng 1 con chuột chạy ngang mép dưới, na rượt theo (bắt được hoặc để sổng)
   const MOUSE = `<svg ${NS} viewBox="-8 0 66 30" aria-hidden="true"><path class="mt" d="M7 24 C1 24 -2 19 -7 17"/><path class="ms" d="M5 26 C8 15 20 8 33 9 C44 10 52 15 57 22 C58 25 56 27 52 27 Z"/><circle class="ms" cx="38" cy="8.5" r="5.5"/><circle class="mi" cx="38.5" cy="8.8" r="2.6"/><circle class="me" cx="49.5" cy="16.5" r="1.5"/><path class="ml" d="M20 26 L17 29 M40 26 L43 29"/></svg>`;
-  function chase(force) {
+  function chase(force, wf) {
     if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
-    const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = Math.random() < 0.45;
+    const tr = track(), cw = 345 * S.s, mw = 115 * S.s, fromL = Math.random() < 0.5, dir = fromL ? 1 : -1, win = wf ?? Math.random() < 0.45;
     const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
     S.chasing = true; clearTimeout(S.tm); halt(); let turning = false; zoomSet(true);
     // chuột tới từ PHÍA SAU → quay đầu thật (clip quay người) rồi mới thủ thế; trước: lật hình cái rụp
     const d0 = (fromL ? -mw : VW) + mw / 2 > S.x + cw / 2 ? 1 : -1;
     if (d0 !== S.face && hasV("turnQ")) { turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([...(STANDS.has(S.pose) ? [] : ["s2stQ"]), hasV("turnF") ? "turnF" : "turnQ"], () => { turning = false; cx = S.x; if (S.pose !== "walk" && S.pose !== "run") play(hasV("ready") ? "ready" : "crouch", 300, true); }, tk); }
     else { if (d0 !== S.face) face(d0); if (hasV("ready")) play("ready", 500, true); else play("crouch"); }      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na "dịch chuyển")
-    let mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
+    let LG = null, mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
     const end = (caught) => { if (done) return; done = true; S.chasing = false; zoomSet(false, caught ? 3600 : 2200); S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
-        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (84 - 46) / 24 * 1000); return; }
+        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (76 - 46) / 24 * 1000); return; }      // khung 76 = chân trước chạm đất (đo từ video)
       if (caught) { m.classList.add("poof"); sitDown("licklip"); setTimeout(() => { say(pick("catch"), 3600, 2); meow(1); }, 200); setTimeout(() => { if (S.pose === "licklip") play("sit"); }, 2600); }
       else { sitDown("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
@@ -1209,6 +1209,8 @@
     const step = (t) => {
       if (done) return; if (!S.el || S.away) { m.remove(); S.chasing = false; S.el?.classList.remove("run"); sched(idle, 2000); return; }
       const dt = Math.min(0.05, (t - last) / 1000); last = t; const el = t - t0;
+      // 🎯 đang VỒ (lần bắt trúng): chuột cứ chạy đều tới, na đáp đất đúng lúc chuột chạy tới dưới chân → chuột "poof"
+      if (LG) { mx += dir * LG.v * dt; m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`; if (t - LG.t0 >= LG.T) { done = true; S.chasing = false; zoomSet(false, 3600); m.classList.add("poof"); if (LG.tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); return; } requestAnimationFrame(step); return; }
       const mc = mx + mw / 2, cc = cx + cw / 2, gap = Math.abs(mc - cc);
       // chuột: chạy đều; giữa đường dừng ngó 1 lần nếu na còn xa; na đuổi sát thì tăng tốc (hoặc hoảng chạy chậm lại nếu lần này bị bắt)
       if (!sniffed && el > 1100 && mc > VW * 0.3 && mc < VW * 0.7 && gap > 150) { sniffed = true; pauseTill = t + rnd(380, 620); }
@@ -1217,7 +1219,15 @@
       if (!shout && mx > -mw * 0.3 && mx < VW - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // na: ngó 0,45 giây rồi phóng theo
       // 🎯 nhắm tới chỗ ĐỨNG VỒ (cách chuột 1 tầm vồ, phía mèo đang đứng) chứ không phải đứng đè lên chuột – vồ là chân chạm đúng con chuột
-      const reach = 185 * U2P(), aimC = mc - (mc >= cc ? 1 : -1) * reach * 0.85;
+      // lần BẮT TRÚNG + chuột chạy thẳng về phía mặt na → na nằm phục tại chỗ (không lao ra đón), tính trước để vồ sớm: vồ mất TL giây, chân trước đáp xa PL
+      //   (đo từ khung video: đáp đất ở khung 76, mũi chân trước cách tâm ~132 đơn vị) → vồ khi chuột còn cách PL + quãng chuột chạy trong TL giây
+      const PL = 132 * U2P(), TL = (360 * (MUN_ART.slow || 1) + (76 - 46) / 24 * 1000) / 1000, ahC = (mc - cc) * S.face, amb = win && hasV("pounceF") && !turning && dir * S.face < 0 && ahC > PL;
+      if (amb && el > 900 && ["ready", "crouch", "walk", "run"].includes(S.pose) && !A.snap && ahC - Math.max(vm, 60) * TL <= PL) {
+        cx = S.x; const ah = (mx + mw / 2 - (cx + cw / 2)) * S.face, lv = (ah - PL) / TL;
+        if (lv > 30) { S.el?.classList.remove("run"); A.v = 0; S.chasing = false; const ok = act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); S.chasing = true;
+          if (ok) { LG = { t0: t, T: TL * 1000, v: lv, tk: S.walkTk }; requestAnimationFrame(step); return; } }
+      }
+      const reach = 185 * U2P(), aimC = amb ? cc : mc - (mc >= cc ? 1 : -1) * reach * 0.85;      // nằm phục: đích = chỗ đang đứng (tv = 0)
       if (el > 700 && !turning) {
         const d = aimC - cw / 2 - cx, tv = Math.abs(d) < 8 ? 0 : Math.sign(d) * Math.min(260, Math.abs(d) * 4), moving = S.pose === "walk" || S.pose === "run", QT = hasV("turnQ"), AC = 1500;
         // chuột chạy ra SAU lưng → phanh lại, đứng quay đầu bằng clip thật rồi mới đuổi tiếp (trước: lật hình giữa lúc chạy)
@@ -1238,7 +1248,7 @@
         if (!turning) { A.v = Math.abs(v); if (S.pose === "walk" || S.pose === "run") place(cx); else cx = S.x; }      // đứng khom / ngồi: giữ chỗ do clip tự canh (không ép vị trí → không trượt người khi đổi dáng)
       }
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
-      { const ah = (mc - (cx + cw / 2)) * S.face; if (win && el > 900 && !turning && ah > reach * 0.55 && ah < reach * 1.3 && hasV("pounceF")) return end(true); }      // chuột trong tầm vồ, ngay trước mặt → chuột đứng hình, na vồ trúng
+      { const ah = (mc - (cx + cw / 2)) * S.face; if (win && !amb && el > 900 && !turning && ah > reach * 0.55 && ah < reach * 1.3 && hasV("pounceF")) return end(true); }      // chuột trong tầm vồ, ngay trước mặt → chuột đứng hình, na vồ trúng
       if (win && gap < 22 && el > 600 && !hasV("pounceF")) return end(true);
       if (mx > VW + 30 || mx < -mw - 30 || el > 16e3) return end(false);
       requestAnimationFrame(step);
@@ -1399,7 +1409,7 @@
     // 🔔 có thông báo mới của bot (khớp / đóng lệnh) → na chạy tới vồ cái chuông (≥ 90 giây / lần; đang bận thì chỉ lắc chuông)
     onBell: (L) => { const b = document.getElementById("bell"); if (!S.el || !b || !b.getClientRects().length || !(L || []).some((n) => /^(scalp|bot)/.test(n.kind || "") || /khớp|vào lệnh|đóng lệnh|chốt|cắt lỗ/i.test(n.title || ""))) return;
       const wig = () => { b.classList.remove("mun-bat"); void b.offsetWidth; b.classList.add("mun-bat"); setTimeout(() => b.classList.remove("mun-bat"), 700); };
-      if (now() - (S.bellAt || 0) < 90e3 || !batObj(true, b, "bell")) { wig(); return; } S.bellAt = now(); }, _stairs: () => { S.chasing = false; S.busy = false; return stairs(true); }, _chase: () => { S.chasing = false; S.busy = false; return chase(true); }, _bat: () => batObj(true), _hd: () => S.hide && { ...S.hide, res: 0 }, roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _skim: () => skimTalk(true), _skimText: (F) => skimText(F), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ sw: Math.round((A.sw || 0) * 10) / 10, dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
+      if (now() - (S.bellAt || 0) < 90e3 || !batObj(true, b, "bell")) { wig(); return; } S.bellAt = now(); }, _stairs: () => { S.chasing = false; S.busy = false; return stairs(true); }, _chase: (w) => { S.chasing = false; S.busy = false; return chase(true, w); }, _bat: () => batObj(true), _hd: () => S.hide && { ...S.hide, res: 0 }, roll: () => { clearTimeout(S.tm); return rollPlay(); }, lick: () => { clearTimeout(S.tm); return groomPlay(); }, _pose: (p) => { S.chasing = true; clearTimeout(S.tm); halt(); play(p); }, _tread: (clip, v) => { clearTimeout(S.tm); halt(); S.chasing = true; play(clip); A.v = v; }, _act: (k, o) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; return { gpaw: () => groomV("gpaw"), gbody: () => groomV("gbody"), stretch: stretchV, lie: () => lieV(o || 6e3), nap: () => napV(o), wake: () => wakeV(() => {}), sleep: () => play("sleep", 1300, true), roll: rollV, meow: meowV, annoy: () => annoyV(() => sitDown("sit")), pounce: () => act([...upSeq(), "pounceF", "st2s"], "sit"), mouse: () => chase(true) }[k]?.(); }, _g2: () => loadG2(), _skim: () => skimTalk(true), _skimText: (F) => skimText(F), _walk: (dx) => { clearTimeout(S.tm); S.chasing = false; S.busy = false; walkTo(S.x + dx); }, _st: () => ({ sw: Math.round((A.sw || 0) * 10) / 10, dc: A.dc, mv: [A.snap ? 1 : 0, A.v, A.ty, A.rot, A.skipN, HZ], pose: S.pose, x: S.x, face: S.face, clip: A.name, sheets: Object.keys(SHEET) }), SKINS };
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `

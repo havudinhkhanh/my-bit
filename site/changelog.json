@@ -46,9 +46,9 @@
      "c": "fix",
      "a": "mascot",
      "t": "Đuổi chuột: hết trượt khi khom, vồ trúng chuột, quay đầu là bứt tốc",
-     "d": "(1) Khom người chờ (hạ 2 chân trước) trước đây không được canh thân nên hình mèo trượt tới dù không bước – giờ thân đứng yên đúng chỗ. (2) Trước na chạy tới đứng ĐÈ lên chuột rồi mới vồ nên nhảy vượt qua chuột; giờ na dừng cách chuột đúng một tầm vồ, chuột đứng hình, na vồ và chân chạm đúng con chuột. (3) Chuột chạy ngang qua: na phanh, quay người nhanh (~0,7 giây thay vì ~1,6 giây) rồi bật chạy ngay với đà sẵn, tăng tốc mạnh hơn.",
+     "d": "(1) Khom người chờ (hạ 2 chân trước) trước đây không được canh thân nên hình mèo trượt tới dù không bước – giờ thân đứng yên đúng chỗ. (2) Trước na chạy tới đứng ĐÈ lên chuột rồi mới vồ nên nhảy vượt qua chuột; giờ chân na chạm đúng con chuột. (3) Chuột chạy ngang qua: na phanh, quay người nhanh (~0,7 giây thay vì ~1,6 giây) rồi bật chạy ngay với đà sẵn, tăng tốc mạnh hơn.",
      "te": "Mouse chase: no sliding while crouched, pounces land on the mouse, sharp turn-and-sprint",
-     "de": "(1) The crouch (front legs lowered) wasn't anchored, so the cat slid forward without stepping – now her body stays put. (2) She used to run right on top of the mouse and then pounce, leaping past it; now she stops one pounce-length away, the mouse freezes, and her paws land right on it. (3) When the mouse runs past: she brakes, turns quickly (~0.7 s instead of ~1.6 s) and bursts off with momentum, accelerating harder."
+     "de": "(1) The crouch (front legs lowered) wasn't anchored, so the cat slid forward without stepping – now her body stays put. (2) She used to run right on top of the mouse and then pounce, leaping past it; now her paws land right on it. (3) When the mouse runs past: she brakes, turns quickly (~0.7 s instead of ~1.6 s) and bursts off with momentum, accelerating harder."
     },
     {
      "c": "fix",
@@ -73,6 +73,14 @@
      "d": "Rà toàn bộ chỗ gây khựng của na: (1) mỗi lần đổi dáng (ngồi → đi, đi → chạy, khom chờ…) tính khớp hình nhanh gấp ~2 lần, hết khựng nhẹ lúc chuyển dáng; (2) na nói không còn bắt trình duyệt tính lại bố cục cả trang; bóng nói đi theo na bằng lớp hiển thị; (3) lúc đuổi chuột trên điện thoại không còn tính lại bố cục mỗi khung; (4) cú bấm đầu tiên trên trang không còn khựng vì dựng âm thanh (Chrome dựng lúc máy rảnh); (5) máy yếu: lúc ngồi yên na chỉ vẽ 24 hình/giây; (6) rê chuột khắp trang không còn quét cả trang mỗi lần.",
      "te": "na runs smoother and lighter",
      "de": "A full pass over na's stutter points: (1) each pose change (sit → walk, walk → run, crouch…) matches shapes ~2× faster, removing the small hitch at transitions; (2) when na talks the browser no longer re-lays out the whole page; the bubble follows her on the compositor; (3) chasing the mouse on phones no longer re-lays out every frame; (4) the first click on a page no longer stutters while sound starts up (Chrome sets it up when idle); (5) on slower machines na draws 24 fps while sitting still; (6) moving the mouse around the page no longer scans the whole page each time."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Đuổi chuột: na nằm phục, vồ đón đầu – vừa đáp đất là chuột vừa chạy tới",
+     "d": "Trước đây ở lần bắt trúng, chuột chạy tới gần chân na thì đứng khựng lại chờ, rồi na mới nhảy lên. Giờ na nằm phục tại chỗ, tính trước quãng chuột chạy trong lúc vồ (~1,6 giây) để bật nhảy sớm; chuột cứ chạy đều tới và chân trước na chạm đất đúng lúc chuột chạy tới dưới chân (đo lệch ~4 px). Lần vồ trượt giữ nguyên.",
+     "te": "Mouse chase: na lies in ambush and leads the pounce – she lands just as the mouse arrives",
+     "de": "On a successful catch the mouse used to run up near na's paws and freeze there while she got ready to jump. Now na waits in ambush and accounts for how far the mouse runs during her pounce (~1.6 s), leaping early; the mouse keeps running and her front paws touch down exactly as it arrives (measured within ~4 px). Misses are unchanged."
     }
    ]
   },
