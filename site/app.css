@@ -4317,13 +4317,14 @@ body.pn-sheet .pn-in{position:relative}
 .tx-drop{position:relative;border:1.5px dashed var(--line);border-radius:12px;padding:18px;text-align:center;background:var(--sunk);transition:border-color .15s,background-color .15s}
 .tx-drop.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--sunk))}
 .tx-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}.tx-drop p{margin:0;line-height:1.5}.tx-drop small{color:var(--ink-3)}
+.tx-yrt tbody tr{cursor:pointer}.tx-yrt tbody tr.on td{background:color-mix(in srgb,var(--brand) 7%,transparent)}.tx-yrt td small{font-size:var(--fs-xs)}
 /* 📥 tiến độ nhập file (Sổ thuế) */
 .tx-prog:empty{display:none}.tx-prog{margin-top:10px}
-.txp{border:1px solid var(--bd-2);border-radius:12px;background:var(--surface);padding:12px 14px;display:grid;gap:8px}
+.txpg{border:1px solid var(--bd-2);border-radius:12px;background:var(--surface);padding:12px 14px;display:grid;gap:8px}
 .txp-h{display:flex;align-items:baseline;gap:8px}.txp-h small{color:var(--ink-3)}.txp-pc{margin-left:auto;font-variant-numeric:tabular-nums}
 .txp-x{border:0;background:var(--fill);color:var(--ink-2);width:24px;height:24px;border-radius:7px;cursor:pointer;align-self:center}
 .txp-bar{height:8px;border-radius:999px;background:var(--fill);overflow:hidden}.txp-bar>i{display:block;height:100%;border-radius:inherit;background:var(--brand);transition:width .35s ease}
-.txp.done .txp-bar>i{background:var(--up)}.txp.bad .txp-bar>i{background:var(--down)}
+.txpg.done .txp-bar>i{background:var(--up)}.txpg.bad .txp-bar>i{background:var(--down)}
 .txp-bar.ind>i{width:35%!important;animation:txpInd 1.2s ease-in-out infinite}@keyframes txpInd{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
 .txp-st{font-size:var(--fs-sm);color:var(--ink-2);font-variant-numeric:tabular-nums}
 .txp-f{list-style:none;margin:0;padding:0;display:grid;gap:5px}

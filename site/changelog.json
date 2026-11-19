@@ -175,6 +175,25 @@
      "d": "File Binance mới ghi giờ theo múi giờ anh chọn khi xuất (tên file có \"UTC7\") – sổ trước đây hiểu là giờ UTC nên lệch 7 tiếng; giờ đọc múi giờ từ tên file / tên cột. File lớn (vd 53 nghìn dòng phí, lời/lỗ, funding futures) được tự chia thành từng phần ~5.000 dòng, đọc lần lượt có tiến độ, giữ ĐỦ từng dòng không gộp; sổ lưu thành nhiều phần (gói Pro tới ~24 MB, ~150 nghìn dòng; miễn phí ~2 MB), chỉ gửi lại phần nào thay đổi. Hai dòng giống hệt nhau (vd funding 2 vị thế cùng giờ cùng số) vẫn giữ đủ; nhập lại file vẫn không đếm 2 lần. File đã nhập bằng bản cũ: nhập lại đúng file đó, sổ tự đọc lại và thay dòng cũ.",
      "te": "Tax ledger reads new Binance files correctly: VN time, very large files (every row kept)",
      "de": "New Binance exports use the time zone you picked (file name contains \"UTC7\") – the ledger used to read them as UTC, shifting trades by 7 hours; it now reads the zone from the file / column name. Large files (e.g. 53k futures fee, P/L and funding rows) are split automatically into ~5,000-row parts and read one by one with progress, keeping EVERY row; the ledger is stored in many parts (Pro up to ~24 MB, ~150k rows; free ~2 MB) and only changed parts are re-sent. Two identical rows (e.g. funding on 2 positions at the same time and amount) are both kept; re-importing never double-counts. Files imported with the old reader: import the same file again and the ledger re-reads it, replacing the old rows."
+    },
+    {
+     "c": "new",
+     "a": "port",
+     "go": "#/tax",
+     "hi": 1,
+     "t": "Sổ thuế: khối lượng & thuế theo năm, lọc theo năm",
+     "d": "Bảng mới đầu trang: chọn Tất cả / từng năm → khối lượng Spot · Convert · P2P (bán / mua), giá trị khớp futures (số đã biết + ƯỚC TÍNH từ phí cho lệnh chỉ có trong lịch sử tổng), lời/lỗ futures ròng (chốt, phí, funding, thanh lý), thuế theo luật và thuế tham khảo nếu 0,1% áp cho cả kỳ; bấm một năm là bảng tháng và sổ chi tiết cùng lọc theo năm đó. Có giải thích vì sao nhập file cũ mà thuế không đổi (thuế chỉ áp cho giao dịch từ 27/3/2026). Ước tính cao nhất nay gồm cả thuế futures ước tính từ phí.",
+     "te": "Tax ledger: volume & tax by year, year filter",
+     "de": "New top table: pick All / a year → Spot · Convert · P2P volume (sold / bought), futures traded value (known + ESTIMATED from fees for fills only in the transaction history), futures net P/L (realized, fees, funding, liquidation), tax by law and a reference figure if 0.1% applied to the whole period; picking a year filters the monthly table and detailed ledger too. Explains why importing older files doesn't change the tax (the tax only applies to trades from 27/03/2026). The highest estimate now includes futures tax estimated from fees."
+    },
+    {
+     "c": "imp",
+     "a": "port",
+     "go": "#/tax",
+     "t": "Sổ thuế: báo đã nhận file và thanh tiến độ khi nhập",
+     "d": "Thả / chọn file là báo ngay \"Đã nhận N file\"; thanh tiến độ hiện % tổng, từng file (chờ / đang xử lý / xong / lỗi, phần mấy, đang lấy giá hay tỷ giá) và thời gian còn lại; thả thêm file khi đang chạy thì xếp hàng xử lý tiếp; rời trang khi đang ghi sổ sẽ được hỏi lại.",
+     "te": "Tax ledger: file-received notice and progress bar on import",
+     "de": "Dropping / choosing files shows \"Received N file(s)\" right away; a progress bar shows overall %, each file (waiting / processing / done / error, which part, fetching prices or FX) and time left; files dropped while busy are queued; leaving the page while saving asks first."
     }
    ]
   },
