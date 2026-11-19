@@ -981,6 +981,12 @@
     if (!LF.on) return; LF.on = false; const tr = track(), mh = liftMax(tr), fresh = now() - LF.lt < 100, G = 2600, fl = S.fly;
     let h = LF.h, vh = fresh ? Math.max(0, Math.min(2800, -LF.vy * 1000)) : 0, vx = fresh ? Math.max(-1600, Math.min(1600, LF.vx * 1000)) : 0, x = S.x, last = performance.now(), peak = h;
     const thrown = vh > 450 || Math.abs(vx) > 650, T = (vh + Math.sqrt(vh * vh + 2 * G * h)) / G, flip = vh > 1500 && T > 0.7 ? (vx < 0 ? -1 : 1) : 0;
+    // thời gian còn lại tới đất – có tính cú chạm trần (dội xuống với 25% vận tốc), để dự tính vòng lộn đúng ngay từ đầu
+    const tLand = (h, vh) => { if (h <= 0 && vh <= 0) return 0; const top = vh > 0 ? h + vh * vh / (2 * G) : h;
+      if (vh > 0 && top > mh) { const v1 = Math.sqrt(Math.max(0, vh * vh - 2 * G * (mh - h))), vd = -0.25 * v1; return (vh - v1) / G + (vd + Math.sqrt(vd * vd + 2 * G * mh)) / G; }
+      return (vh + Math.sqrt(Math.max(0, vh * vh + 2 * G * Math.max(0, h)))) / G; };
+    const T0 = tLand(h, vh), flp = T0 > 0.55 ? flip : 0;      // chạm trần quá sớm (bay quá ngắn) → không lộn, chỉ nghiêng
+    let rotA = A.rot || 0, rotT = null;      // góc xoay cộng dồn khi lộn nhào · đích (bội số 360° = chân xuống)
     // 👃 thả nhẹ (không thảy) ngay trên 1 dòng coin / biểu đồ / đường cắt lỗ → rơi xuống đậu lên đó thay vì xuống đất
     const gy = VH - tr.b, cxp = S.x + 345 * S.s / 2, dt0 = !thrown && h > 30 ? dropTarget(cxp, gy - h) : null, dtr = dt0?.rect(), floor = dtr && dtr.top >= gy - h - 30 && gy - dtr.top > 30 ? gy - dtr.top : 0;
     const f = (t) => {
@@ -990,7 +996,20 @@
       if (x < tr.l) { x = tr.l; vx = Math.abs(vx) * 0.45; } else if (x > tr.r) { x = tr.r; vx = -Math.abs(vx) * 0.45; }      // dội vách 2 bên
       if (h > mh) { h = mh; vh = -Math.abs(vh) * 0.25; }      // chạm trần (mép trên màn hình) → rơi
       peak = Math.max(peak, h);
-      if (flip) A.rot = (A.rot + flip * 360 / T * dt) % 360; else A.rot += (Math.max(-25, Math.min(25, vx * 0.015)) - A.rot) * Math.min(1, dt * 8);
+      if (flp) {
+        // 🐈 phản xạ lật mình: tính lại mỗi khung thời gian còn lại tới đất (chạm trần / dội vách làm lệch dự tính ban đầu) rồi chỉnh tốc độ xoay
+        //   để góc xoay về ĐÚNG 1 vòng tròn (chân xuống) ngay lúc chạm đất – không bao giờ đáp bằng lưng
+        const tRem = tLand(h, vh), w0 = 360 / T0;
+        if (rotT == null || (Math.abs(rotT - rotA) < 1 && tRem > dt * 1.5)) {      // chọn đích: vòng tròn kế tiếp theo chiều lộn; còn dư thời gian thì lộn thêm vòng
+          const nx = flp > 0 ? Math.floor(rotA / 360 + 1e-6) * 360 + 360 : Math.ceil(rotA / 360 - 1e-6) * 360 - 360;
+          rotT = nx; while (tRem * w0 * 1.15 >= Math.abs(rotT + flp * 360 - rotA)) rotT += flp * 360;
+          if (Math.abs(rotT - rotA) < 1) rotT = Math.round(rotA / 360) * 360;
+        }
+        if (tRem > 0 && Math.abs(rotT - rotA) / tRem > w0 * 3) rotT = Math.round(rotA / 360) * 360;      // chạm trần làm rơi sớm, không kịp hết vòng → quay ngược về tư thế đứng gần nhất
+        rotA = tRem <= dt * 1.5 ? rotT : rotA + (rotT - rotA) * Math.min(1, dt / tRem);
+        if (tRem <= dt * 1.5) rotA = Math.round(rotA / 360) * 360;
+        A.rot = rotA % 360;
+      } else A.rot += (Math.max(-25, Math.min(25, vx * 0.015)) - A.rot) * Math.min(1, dt * 8);
       S.x = x; S.el.style.transform = `translate3d(${snap(x)}px,${-Math.round(Math.max(0, h))}px,0)`;
       if (floor && h <= floor && vh <= 0) return landOn(dt0, x);
       if (h > 0 || vh > 0) return requestAnimationFrame(f);

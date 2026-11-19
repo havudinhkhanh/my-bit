@@ -247,6 +247,14 @@
      "te": "Warm light (iPhone): na's speech bubble no longer turns white near the top edge",
      "d": "Trên iPhone lớp ánh sáng ấm chừa dải thanh trên cùng để màu vùng giờ/pin đúng; khi thảy na lên cao, phần bóng nói lọt vào dải đó không được phủ ấm nên trắng hẳn. Giờ bóng nói tự phủ ấm đúng phần nằm trong dải, cả bóng một màu.",
      "de": "On iPhone the warm-light layer skips the top bar strip so the status-bar colour stays right; when na was tossed high, the part of her speech bubble inside that strip stayed un-warmed and looked white. The bubble now warms exactly that part, so it's one even colour."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Thảy na lộn nhào: luôn đáp bằng 4 chân, không bao giờ bằng lưng",
+     "te": "Tossing na into a flip: she always lands on her feet, never on her back",
+     "d": "Trước đây tốc độ lộn tính 1 lần lúc thả tay, nên khi na chạm trần hay bay khác dự tính thì có lúc đáp xuống đúng lúc đang ngửa bụng. Giờ na có \"phản xạ lật mình\" như mèo thật: mỗi khung hình tính lại thời gian còn lại tới đất (kể cả cú chạm trần) và chỉnh vòng xoay để chân luôn hướng xuống đúng lúc chạm đất; bay quá ngắn thì chỉ nghiêng chứ không lộn.",
+     "de": "The flip speed used to be set once at release, so after hitting the ceiling or flying differently than predicted na could land mid-flip on her back. She now has a real cat's righting reflex: every frame she re-estimates the time to the ground (including a ceiling bounce) and adjusts the spin so her feet point down exactly at touchdown; flights too short for a full flip just tilt."
     }
    ]
   },
