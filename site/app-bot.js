@@ -2797,6 +2797,7 @@ async function ahPanel() {
   box.innerHTML = `<div class="ph"><h2>${T}</h2><span class="meta">${meta}</span></div>${typeof skChart === "function" ? skChart(220) : ""}`;
   let H = null; try { await lazyJs("app-tax.js"); H = await txHistQuick(); } catch (e) { H = null; }
   if (!$("#ahBx")) return;
+  if (H?.locked) { box.innerHTML = `<div class="ph"><h2>${T}</h2></div><p class="muted">🔒 ${bi("Sổ thuế đang khoá bằng mật khẩu riêng – mở sổ ở", "The tax ledger is locked with your password – unlock it in")} <a href="#/tax">${bi("Sổ thuế", "the tax ledger")} →</a> ${bi("để xem lịch sử trong tab này.", "to see the history in this tab.")}</p>`; return; }
   if (!H || H.empty) { box.innerHTML = `<div class="ph"><h2>${T}</h2></div><p class="muted">${bi("Xem tài sản, vốn nạp, lời/lỗ futures <b>từ ngày mở tài khoản</b>: tải file <i>Transaction History</i> trên Binance rồi nhập ở", "See assets, net deposits and futures P/L <b>since the account opened</b>: download <i>Transaction History</i> from Binance and import it in")} <a href="#/tax">${bi("Sổ thuế", "the tax ledger")} →</a></p>`; return; }
   const full = typeof can !== "function" || can("acct_history"), RG = [["90", bi("3 tháng", "3M")], ["365", bi("1 năm", "1Y")], ["all", bi("Từ đầu", "All")]];
   let rg = window.__ahR || "all"; if (!full && rg !== "90") rg = "90";

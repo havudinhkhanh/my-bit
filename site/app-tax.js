@@ -35,14 +35,34 @@ const txHs = (H) => { const r = (v, d = 2) => (isNum(v) ? +v.toFixed(d) : v), F 
 // lịch sử tài khoản cho trang khác: có sẵn trong bộ nhớ → dùng; chưa tải sổ → đọc khoá đầu (tóm tắt đã lưu, khớp chữ ký) → khỏi tải ~vài MB dòng sổ; lệch / chưa có → tải sổ, tính lại, lưu tóm tắt
 async function txHistQuick() {
   if (TAX.hist) return TAX.hist; if (TAX.book) return txHist();
-  try { const m = (await Store.get(TAX.KEYS[0])).data || {}; if (m.hs && m.files && isNum(m.nrows) && m.hs.sig === txSig({ files: m.files }, m.nrows)) { const H = m.hs, D = []; for (let t = Date.parse(H.from + "T00:00:00Z"), i = 0; i < H.eq.length; t += 864e5, i++) D.push(new Date(t).toISOString().slice(0, 10)); H.days = D; return (TAX.hist = H); } } catch (e) { /* tải đủ sổ */ }
+  try { const m = (await Store.get(TAX.KEYS[0])).data || {}; if (m.enc) { try { await txLoad(); } catch (e) { if (e.lock) return { locked: true }; throw e; } return txHist(); } if (m.hs && m.files && isNum(m.nrows) && m.hs.sig === txSig({ files: m.files }, m.nrows)) { const H = m.hs, D = []; for (let t = Date.parse(H.from + "T00:00:00Z"), i = 0; i < H.eq.length; t += 864e5, i++) D.push(new Date(t).toISOString().slice(0, 10)); H.days = D; return (TAX.hist = H); } } catch (e) { /* tải đủ sổ */ }
   const H = await txHist(); if (H && !H.empty) txSave(); return H;
 }
 window.txHistQuick = txHistQuick;
 const txKMax = () => (typeof can !== "function" || can("acct_history") ? TAX.KEYS.length : 6);
 const txPack = (r) => { const a = r.slice(); while (a.length && a[a.length - 1] == null) a.pop(); return a; };      // bỏ các ô rỗng cuối dòng → sổ nhỏ hơn ~25%
+// 🔒 KHOÁ SỔ BẰNG MẬT KHẨU RIÊNG (tuỳ chọn): cả sổ (dòng + cài đặt + tóm tắt lịch sử) → nén gzip → mã hoá AES-GCM 256 (khoá dẫn từ mật khẩu bằng PBKDF2-SHA256 310.000 vòng)
+//    NGAY TRÊN TRÌNH DUYỆT rồi mới gửi lên → máy chủ chỉ giữ chuỗi mã hoá, không ai đọc được nếu không có mật khẩu. Mật khẩu không lưu ở đâu; khoá đã dẫn chỉ giữ trong tab đang mở (sessionStorage).
+const TXENC_IT = 310000, b64e = (u8) => { let s = ""; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }, b64d = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function txKeyFrom(pass, salt, it = TXENC_IT) { const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]); return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations: it, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt"]); }
+async function txKeyKeep(k) { TAX.key = k; try { sessionStorage.setItem("mybit_txk", b64e(new Uint8Array(await crypto.subtle.exportKey("raw", k)))); } catch (e) { /* chỉ giữ trong bộ nhớ */ } }
+async function txKeyGet() { if (TAX.key) return TAX.key; try { const r = sessionStorage.getItem("mybit_txk"); if (r) return (TAX.key = await crypto.subtle.importKey("raw", b64d(r), "AES-GCM", true, ["encrypt", "decrypt"])); } catch (e) { /* không có */ } return null; }
+const txZ = async (u8, dir) => { if (typeof CompressionStream === "undefined") return u8; const st = new Blob([u8]).stream().pipeThrough(dir ? new CompressionStream("gzip") : new DecompressionStream("gzip")); return new Uint8Array(await new Response(st).arrayBuffer()); };
+async function txSeal(obj, key, salt, it) { const iv = crypto.getRandomValues(new Uint8Array(12)), z = typeof CompressionStream !== "undefined", pt = z ? await txZ(new TextEncoder().encode(JSON.stringify(obj)), true) : new TextEncoder().encode(JSON.stringify(obj));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, pt)); return { hdr: { alg: "AES-GCM-256", kdf: "PBKDF2-SHA256", it, salt: b64e(salt), iv: b64e(iv), z: z ? 1 : 0 }, body: b64e(ct) }; }
+async function txOpen(hdr, body, key) { const pt = new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(hdr.iv) }, key, b64d(body))); return JSON.parse(new TextDecoder().decode(hdr.z ? await txZ(pt, false) : pt)); }
 async function txLoad() {
-  const r0 = await Store.get(TAX.KEYS[0]).catch(() => ({ data: null })), m = r0.data || {}, nk = Math.min(TAX.KEYS.length, m.nk || 6);      // nk: số khoá đang dùng (sổ cũ chưa ghi → 6)
+  const r0 = await Store.get(TAX.KEYS[0]).catch(() => ({ data: null }));
+  if (r0.data?.enc) {      // 🔒 sổ đã khoá: tải đủ các phần mã hoá → giải mã bằng khoá trong tab (chưa có → TXLOCK, trang hiện ô nhập mật khẩu)
+    const E = r0.data, nk = Math.min(TAX.KEYS.length, E.nk || 1), R = [r0]; for (let i = 1; i < nk; i += 8) R.push(...(await Promise.all(TAX.KEYS.slice(i, Math.min(nk, i + 8)).map((k) => Store.get(k).catch(() => ({ data: null }))))));
+    const body = R.map((r) => r.data?.blob || "").join(""), key = await txKeyGet(); TAX.lockd = { E, body, nk };
+    if (!key) { const e = new Error("TXLOCK"); e.lock = 1; throw e; }
+    let o; try { o = await txOpen(E.enc, body, key); } catch (er) { TAX.key = null; try { sessionStorage.removeItem("mybit_txk"); } catch (e) { /* bỏ qua */ } const e = new Error("TXLOCK"); e.lock = 1; e.bad = 1; throw e; }
+    const m = o.meta || {}; TAX.lockd = null;
+    TAX.book = { v: 1, fx: m.fx || {}, px: m.px || {}, files: m.files || [], set: { lev: 2, fxMode: "mkt", fxFix: null, note: "", ...(m.set || {}) }, fxo: m.fxo || {}, rows: o.rows || [], nk, sv: [], enc: { salt: E.enc.salt, it: E.enc.it }, hs: m.hs };
+    return TAX.book;
+  }
+  const m = r0.data || {}, nk = Math.min(TAX.KEYS.length, m.nk || 6);      // nk: số khoá đang dùng (sổ cũ chưa ghi → 6)
   const R = [r0]; for (let i = 1; i < nk; i += 8) R.push(...(await Promise.all(TAX.KEYS.slice(i, Math.min(nk, i + 8)).map((k) => Store.get(k).catch(() => ({ data: null }))))));
   const rows = R.flatMap((r) => r.data?.rows || []);
   TAX.book = { v: 1, fx: m.fx || {}, px: m.px || {}, files: m.files || [], set: { lev: 2, fxMode: "mkt", fxFix: null, note: "", ...(m.set || {}) }, fxo: m.fxo || {}, rows, nk, sv: R.map((r) => (r.data?.rows ? txH(JSON.stringify(r.data.rows)) : "")) };
@@ -50,6 +70,7 @@ async function txLoad() {
 }
 // lưu: chia dòng thành nhiều phần ≤ ~380 KB, chỉ gửi phần nào ĐỔI (nhập thêm file nhỏ không phải gửi lại cả sổ); prog(i, n) để hiện tiến độ
 async function txSave(prog) {
+  if (TAX.book?.enc) return txSaveEnc(prog);
   const B = TAX.book, kmax = txKMax(), lim = 380000, parts = [[]]; let n = 0;
   const hs = TAX.hist && !TAX.hist.empty && TAX.hist.sig === txSig(B) ? txHs(TAX.hist) : null;      // tóm tắt lịch sử tài khoản (vài chục KB) → trang Tài khoản Binance / Kết quả mở nhanh, khỏi tải cả sổ
   const meta = { v: 1, fx: B.fx, px: B.px, files: B.files, set: B.set, fxo: B.fxo, nrows: B.rows.length, hs, at: new Date().toISOString() }, mlen = JSON.stringify(meta).length + 80; n = mlen;
@@ -356,6 +377,21 @@ async function txImport(files, log, pg) {      // pg: thanh tiến độ (file t
   return rep;
 }
 
+// lưu sổ đã khoá: cả sổ thành 1 chuỗi mã hoá → cắt thành nhiều khoá ≤ 380 nghìn ký tự; ghi đè MỌI khoá cũ (kể cả phần dạng thường trước khi khoá) → máy chủ không còn bản đọc được
+async function txSaveEnc(prog) {
+  const B = TAX.book, key = await txKeyGet(); if (!key) { toast(bi("🔒 Sổ đang khoá – nhập mật khẩu trước khi lưu", "🔒 Ledger locked – enter the password before saving")); return false; }
+  const hs = TAX.hist && !TAX.hist.empty && TAX.hist.sig === txSig(B) ? txHs(TAX.hist) : null;
+  const sealed = await txSeal({ meta: { v: 1, fx: B.fx, px: B.px, files: B.files, set: B.set, fxo: B.fxo, nrows: B.rows.length, hs }, rows: B.rows.map(txPack) }, key, b64d(B.enc.salt), B.enc.it);
+  const L = 380000, chunks = []; for (let i = 0; i < sealed.body.length; i += L) chunks.push(sealed.body.slice(i, i + L)); if (!chunks.length) chunks.push("");
+  if (chunks.length > txKMax()) { toast(bi("⚠️ Sổ quá lớn để lưu – xuất JSON để giữ bản đầy đủ", "⚠️ Ledger too large to save – export JSON")); return false; }
+  const old = Math.max(B.nk || 6, 6), nk = chunks.length; let ok = true, k = 0, N = Math.max(nk, old);
+  for (let i = 0; i < N; i++) { const v = i === 0 ? { enc: sealed.hdr, nk, at: new Date().toISOString(), blob: chunks[0] } : i < nk ? { blob: chunks[i] } : { rows: [] }; ok = (await Store.put(TAX.KEYS[i], v)) && ok; prog?.(++k, N); }
+  B.nk = nk; B.sv = []; return ok;
+}
+// bật / tắt khoá: bật = dẫn khoá từ mật khẩu mới (muối ngẫu nhiên) rồi lưu lại toàn bộ ở dạng mã hoá; tắt = lưu lại dạng thường
+async function txLockOn(pass) { const salt = crypto.getRandomValues(new Uint8Array(16)), k = await txKeyFrom(pass, salt); await txKeyKeep(k); TAX.book.enc = { salt: b64e(salt), it: TXENC_IT }; return txSave(); }
+async function txLockOff() { TAX.book.enc = null; TAX.book.sv = []; const ok = await txSave(); if (ok) { TAX.key = null; try { sessionStorage.removeItem("mybit_txk"); } catch (e) { /* bỏ qua */ } } return ok; }
+async function txUnlock(pass) { const L = TAX.lockd; if (!L) return false; const k = await txKeyFrom(pass, b64d(L.E.enc.salt), L.E.enc.it); try { await txOpen(L.E.enc, L.body, k); } catch (e) { return false; } await txKeyKeep(k); return true; }
 // ---------------------------------------------------------------- 📜 LỊCH SỬ TÀI KHOẢN dựng lại từ sổ (file Binance) – dùng cho Tài khoản Binance, Kết quả & sổ lệnh, Danh mục
 //  Mỗi dòng sổ (đã bỏ dòng trùng) → thay đổi số dư từng coin theo ngày (giờ VN) → số dư cộng dồn × giá đóng cửa ngày = tài sản (USD) mỗi ngày.
 //  Vốn nạp ròng = P2P mua − P2P bán + nạp − rút (kể cả mua bằng thẻ); lời/lỗ tích luỹ = tài sản − vốn nạp ròng. Futures: lời/lỗ đã chốt, phí, funding, phí thanh lý theo ngày.
@@ -391,6 +427,7 @@ async function txHist(force) {
   if (!TAX.book) await txLoad();
   const B = TAX.book, sig = txSig(B);
   if (!force && TAX.hist && TAX.hist.sig === sig) return TAX.hist;
+  if (!force && B.hs && B.hs.sig === sig && B.hs.eq) { const H = B.hs, D = []; for (let t = Date.parse(H.from + "T00:00:00Z"), i = 0; i < H.eq.length; t += 864e5, i++) D.push(new Date(t).toISOString().slice(0, 10)); H.days = D; return (TAX.hist = H); }      // sổ khoá: tóm tắt nằm trong phần đã giải mã
   const R = txRows().filter((r) => !r.dup && r.src !== "bot").sort((a, b) => a.t - b.t);
   if (!R.length) return (TAX.hist = { sig, empty: true });
   const DD = {}, FL = {}, FU = {}, cost = {}, TP = {};      // TP: giá khớp spot / convert theo ngày – dự phòng khi không lấy được giá ngày (coin đã huỷ niêm yết…)
@@ -449,10 +486,32 @@ function txProg(files) {
 }
 async function viewTax() {
   if (!ME || ME.legacy) { app().innerHTML = `<div class="ph"><h1>${bi("Sổ thuế TNCN", "PIT tax journal")}</h1></div><div class="panel"><p class="muted">${bi("Cần đăng nhập để lưu sổ riêng trong tài khoản.", "Sign in to keep a private journal in your account.")}</p></div>`; return; }
-  await txLoad(); TAX.bot = await txBotRows();
+  try { await txLoad(); } catch (e) { if (!e.lock) throw e; return txLockScreen(e.bad); }
+  TAX.bot = await txBotRows();
   const nd = [...new Set(TAX.bot.map((r) => txDay(r.t)))].filter((d) => !isNum(TAX.book.fx[d]));      // tỷ giá cho các ngày bot có lệnh
   txDraw();
   if (nd.length) { await txPool(nd, 6, (d) => txFx(d)); if (nd.some((d) => isNum(TAX.book.fx[d]))) { await txSave(); if (location.hash.startsWith("#/tax")) { const y = scrollY; txDraw(); scrollTo(0, y); } } }
+}
+// 🔒 QUYỀN RIÊNG TƯ: dữ liệu lưu ở đâu, ai đọc được, bật / tắt khoá bằng mật khẩu riêng
+function txPrivPanel() {
+  const B = TAX.book, kb = Math.round(JSON.stringify(B.rows).length / 1024), on = !!B.enc;
+  const facts = `<ul class="tx-priv">
+    <li>📄 ${bi("<b>File gốc không rời máy anh</b> – trình duyệt tự đọc file; chỉ các dòng giao dịch đã chuẩn hoá được lưu.", "<b>Original files never leave your device</b> – the browser reads them; only normalized rows are stored.")}</li>
+    <li>🗄️ ${bi(`Lưu trong cơ sở dữ liệu của trang, gắn với tài khoản của anh (${txV(B.rows.length)} dòng · ~${txV(kb)} KB) – phải đăng nhập đúng tài khoản mới đọc được, không có đường dẫn công khai, không chia sẻ cho ai.`, `Stored in the site's database under your account (${txV(B.rows.length)} rows · ~${txV(kb)} KB) – readable only when signed in to your account; no public link, never shared.`)}</li>
+    <li>${on ? "🔒 " + bi("<b>Đang khoá bằng mật khẩu riêng</b> (AES-256, mã hoá ngay trên trình duyệt): máy chủ chỉ giữ chuỗi mã hoá – kể cả quản trị viên hay ai lấy được cơ sở dữ liệu cũng không đọc được.", "<b>Locked with your own password</b> (AES-256, encrypted in the browser): the server only holds ciphertext – not even admins or anyone with database access can read it.") : "🔓 " + bi("<b>Chưa khoá</b>: trên máy chủ dữ liệu ở dạng đọc được với người có quyền vào cơ sở dữ liệu. Muốn chắc chắn không ai xem được: khoá bằng mật khẩu riêng bên dưới.", "<b>Not locked</b>: on the server the data is readable by whoever has database access. To be sure nobody else can read it: lock it with your own password below.")}</li></ul>`;
+  const ctl = on ? `<div class="tx-set"><button type="button" class="btn" id="txLkForget">🔐 ${bi("Khoá lại ngay (quên mật khẩu trên tab này)", "Lock now (forget the key in this tab)")}</button><button type="button" class="btn" id="txLkOff">🔓 ${bi("Bỏ khoá – lưu dạng thường", "Remove lock – store as plain")}</button></div>`
+    : `<form class="tx-set tx-lk" id="txLkF"><label>${bi("Mật khẩu sổ (≥ 10 ký tự)", "Ledger password (≥ 10 chars)")}<input id="txLkP" type="password" autocomplete="new-password" minlength="10" required></label><label>${bi("Nhập lại", "Repeat")}<input id="txLkP2" type="password" autocomplete="new-password" minlength="10" required></label><button class="btn primary" type="submit">🔒 ${bi("Khoá sổ bằng mật khẩu này", "Lock the ledger with this password")}</button></form>
+      <p class="tx-note">⚠️ ${bi("Mật khẩu không lưu ở đâu cả: <b>quên là không ai mở được</b> (kể cả quản trị viên) – chỉ còn cách xoá sổ và nhập lại file Binance. Mỗi tab mở sổ cần nhập mật khẩu 1 lần; trang Tài khoản Binance / Kết quả dùng lịch sử từ sổ cũng cần sổ đã mở.", "The password isn't stored anywhere: <b>forget it and nobody can open the ledger</b> (not even admins) – the only way out is deleting it and re-importing your Binance files. Each tab asks for it once; the Binance account / Results pages also need the ledger unlocked.")}</p>`;
+  return panel(bi("🔒 Quyền riêng tư & nơi lưu", "🔒 Privacy & storage"), facts + ctl + `<p class="tx-note" id="txLkM"></p>`, on ? "🔒 " + bi("đã mã hoá", "encrypted") : "🔓 " + bi("chưa mã hoá", "not encrypted"));
+}
+function txLockScreen(bad) {
+  app().innerHTML = `<div class="ph"><h1>🧾 ${bi("Sổ thuế TNCN · tài sản mã hoá", "PIT journal · crypto assets")}</h1></div>${panel("🔒 " + bi("Sổ đang khoá", "Ledger locked"), `<p class="muted">${bi("Sổ được mã hoá bằng mật khẩu riêng của anh – máy chủ chỉ giữ dữ liệu đã mã hoá. Nhập mật khẩu để mở trong tab này.", "The ledger is encrypted with your own password – the server only holds encrypted data. Enter the password to open it in this tab.")}</p>
+    <form class="tx-set tx-lk" id="txUnF"><label>${bi("Mật khẩu sổ", "Ledger password")}<input id="txUnP" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">🔓 ${bi("Mở sổ", "Unlock")}</button></form>
+    <p class="tx-note" id="txUnM">${bad ? `⚠️ ${bi("Mật khẩu không đúng.", "Wrong password.")}` : ""}</p>
+    <details class="tx-how"><summary>${bi("Quên mật khẩu?", "Forgot the password?")}</summary><p class="tx-note">${bi("Không ai khôi phục được (kể cả quản trị viên) – đó chính là điều bảo vệ dữ liệu của anh. Cách duy nhất: xoá sổ đang khoá rồi nhập lại file Binance.", "Nobody can recover it (not even admins) – that's what protects your data. The only way: delete the locked ledger and re-import the Binance files.")}</p><button type="button" class="btn sm" id="txUnWipe">🗑️ ${bi("Xoá sổ đang khoá", "Delete the locked ledger")}</button></details>`)}`;
+  $("#txUnP")?.focus();
+  $("#txUnF").onsubmit = async (e) => { e.preventDefault(); const m = $("#txUnM"); m.textContent = bi("Đang mở…", "Unlocking…"); if (await txUnlock($("#txUnP").value)) { TAX.hist = null; viewTax(); } else m.textContent = "⚠️ " + bi("Mật khẩu không đúng.", "Wrong password."); };
+  $("#txUnWipe").onclick = async () => { if (prompt(bi("Xoá TOÀN BỘ sổ đang khoá (không lấy lại được)? Gõ XOA để xác nhận", "Delete the WHOLE locked ledger? Type XOA to confirm")) !== "XOA") return; const nk = Math.max(6, TAX.lockd?.nk || 6); for (let i = 0; i < nk; i++) await Store.put(TAX.KEYS[i], i ? { rows: [] } : { rows: [], nk: 1 }); TAX.lockd = null; TAX.book = null; TAX.hist = null; viewTax(); };
 }
 // 📊 KHỐI LƯỢNG (exposure) & THUẾ THEO NĂM: spot · convert · P2P (giá trị bán / mua), futures (giá trị khớp thật từ bot / file futures + ƯỚC TÍNH từ phí cho phần chỉ có
 //    trong lịch sử tổng – lịch sử tổng không ghi giá trị lệnh, phí TB ~0,04% giá trị khớp), lời/lỗ futures ròng, thuế theo luật (chỉ từ 27/3/2026) và thuế THAM KHẢO nếu 0,1% áp cho cả kỳ
@@ -563,6 +622,7 @@ function txDraw() {
     ${panel(bi("Ước tính thuế theo kịch bản", "Tax estimate by scenario"), kpi + matrix, `<button type="button" class="btn sm" id="txXls">⬇️ Excel</button> <button type="button" class="btn sm" id="txPrint">🖨️ PDF</button> <button type="button" class="btn sm" id="txJson">💾 JSON</button>`)}
     ${panel(bi("Nhập dữ liệu", "Import data"), `<div class="tx-drop" id="txDrop"><input type="file" id="txFile" multiple accept=".csv,.xlsx,.xls,.zip,.txt"><p>📂 <b>${bi("Chọn hoặc kéo thả file xuất từ Binance", "Choose or drop files exported from Binance")}</b><br><small>${bi("CSV · XLSX · ZIP – lịch sử tổng, P2P, futures, spot, convert", "CSV · XLSX · ZIP – transaction history, P2P, futures, spot, convert")}</small></p></div><div id="txProg" class="tx-prog" aria-live="polite">${TAX.progHtml || ""}</div><div id="txLog" class="tx-log" aria-live="polite"></div>${how}${add}
       <p class="tx-note">🤖 ${bi(`Lệnh bot trên Binance thật tự vào sổ: ${TAX.bot.length} lần khớp futures (mở & đóng).`, `Bot trades on live Binance are added automatically: ${TAX.bot.length} futures fills (open & close).`)}</p>`)}
+    ${txPrivPanel()}
     ${panel(bi("Tổng hợp theo tháng", "Monthly summary"), mon)}
     ${panel(bi("Sổ chi tiết từng giao dịch", "Detailed ledger"), filt + tbl, `${txV(F.length)} ${bi("dòng", "rows")}`)}
     ${panel(bi("Nguồn dữ liệu, tỷ giá & đối chiếu", "Sources, rates & reconciliation"), files + fxSet + recon + `<h3 class="tx-h3">${bi("Ghi chú của anh", "Your notes")}</h3><textarea id="txNote" rows="3" style="width:100%" placeholder="${bi("vd: đã hỏi tư vấn thuế ngày…, số tiền đã để riêng…", "e.g. asked a tax adviser on…, amount set aside…")}">${esc(B.set.note || "")}</textarea><div class="bsave"><button type="button" class="btn" id="txNoteSave">💾 ${bi("Lưu ghi chú", "Save note")}</button>${B.rows.length ? ` <button type="button" class="btn sm danger" id="txWipe">${bi("Xoá toàn bộ sổ", "Delete the whole journal")}</button>` : ""}</div>`)}
@@ -588,6 +648,11 @@ function txWire() {
   $("#txProg").onclick = (e) => { if (e.target.closest("[data-txpx]")) { TAX.progHtml = ""; $("#txProg").innerHTML = ""; } };
   const dz = $("#txDrop"); dz.ondragover = (e) => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove("on"); go(e.dataTransfer.files); };
   $$("[data-txmon]").forEach((b) => (b.onclick = () => { U.mon = b.dataset.txmon; txDraw(); }));
+  $("#txLkF") && ($("#txLkF").onsubmit = async (e) => { e.preventDefault(); const p1 = $("#txLkP").value, p2 = $("#txLkP2").value, m = $("#txLkM"); if (p1 !== p2) { m.textContent = "⚠️ " + bi("Hai lần nhập không khớp.", "The passwords don't match."); return; } if (p1.length < 10) { m.textContent = "⚠️ " + bi("Mật khẩu cần ≥ 10 ký tự.", "Use at least 10 characters."); return; }
+    if (!confirm(bi("Quên mật khẩu này là KHÔNG mở lại được sổ. Đã ghi nhớ / lưu mật khẩu ở nơi an toàn?", "If you forget this password the ledger CANNOT be opened again. Saved it somewhere safe?"))) return;
+    m.textContent = bi("Đang mã hoá & lưu…", "Encrypting & saving…"); const ok = await txLockOn(p1); m.textContent = ""; toast(ok ? bi("🔒 Đã khoá sổ – máy chủ chỉ giữ dữ liệu mã hoá", "🔒 Ledger locked – the server only holds encrypted data") : bi("⚠️ Chưa lưu được – thử lại", "⚠️ Couldn't save – try again")); const y = scrollY; txDraw(); scrollTo(0, y); });
+  $("#txLkForget") && ($("#txLkForget").onclick = () => { TAX.key = null; TAX.book = null; TAX.hist = null; try { sessionStorage.removeItem("mybit_txk"); } catch (e) { /* bỏ qua */ } viewTax(); });
+  $("#txLkOff") && ($("#txLkOff").onclick = async () => { if (!confirm(bi("Bỏ khoá: sổ sẽ lưu lại ở dạng đọc được trên máy chủ. Tiếp tục?", "Remove lock: the ledger will be stored readable on the server. Continue?"))) return; const ok = await txLockOff(); toast(ok ? bi("🔓 Đã bỏ khoá", "🔓 Lock removed") : bi("⚠️ Chưa lưu được – thử lại", "⚠️ Couldn't save – try again")); const y = scrollY; txDraw(); scrollTo(0, y); });
   $$("[data-txyr]").forEach((b) => (b.onclick = () => { U.yr = b.dataset.txyr; if (U.yr !== "all") { U.mon = U.yr; U.y = U.yr; } const y = scrollY; txDraw(); scrollTo(0, y); }));      // chọn năm → thẻ tổng, bảng tháng và sổ chi tiết cùng lọc theo năm đó
   const keep = (fn) => { const y = scrollY; fn(); txDraw(); scrollTo(0, y); };
   $("#txY").onchange = (e) => keep(() => { U.y = e.target.value; U.lim = TAX.lim; });

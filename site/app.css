@@ -4318,6 +4318,8 @@ body.pn-sheet .pn-in{position:relative}
 .tx-drop.on{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 8%,var(--sunk))}
 .tx-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}.tx-drop p{margin:0;line-height:1.5}.tx-drop small{color:var(--ink-3)}
 .tx-yrt tbody tr{cursor:pointer}.tx-yrt tbody tr.on td{background:color-mix(in srgb,var(--brand) 7%,transparent)}.tx-yrt td small{font-size:var(--fs-xs)}
+.tx-priv{margin:0 0 10px;padding-left:0;list-style:none;display:grid;gap:6px;font-size:var(--fs-sm);line-height:1.5;color:var(--ink-2)}.tx-priv b{color:var(--ink)}
+.tx-lk{align-items:end}.tx-lk input[type=password]{min-width:220px}
 /* 📥 tiến độ nhập file (Sổ thuế) */
 .tx-prog:empty{display:none}.tx-prog{margin-top:10px}
 .txpg{border:1px solid var(--bd-2);border-radius:12px;background:var(--surface);padding:12px 14px;display:grid;gap:8px}
