@@ -49,6 +49,14 @@
      "d": "(1) Khom người chờ (hạ 2 chân trước) trước đây không được canh thân nên hình mèo trượt tới dù không bước – giờ thân đứng yên đúng chỗ. (2) Trước na chạy tới đứng ĐÈ lên chuột rồi mới vồ nên nhảy vượt qua chuột; giờ na dừng cách chuột đúng một tầm vồ, chuột đứng hình, na vồ và chân chạm đúng con chuột. (3) Chuột chạy ngang qua: na phanh, quay người nhanh (~0,7 giây thay vì ~1,6 giây) rồi bật chạy ngay với đà sẵn, tăng tốc mạnh hơn.",
      "te": "Mouse chase: no sliding while crouched, pounces land on the mouse, sharp turn-and-sprint",
      "de": "(1) The crouch (front legs lowered) wasn't anchored, so the cat slid forward without stepping – now her body stays put. (2) She used to run right on top of the mouse and then pounce, leaping past it; now she stops one pounce-length away, the mouse freezes, and her paws land right on it. (3) When the mouse runs past: she brakes, turns quickly (~0.7 s instead of ~1.6 s) and bursts off with momentum, accelerating harder."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Rê chuột lên mèo: na không còn khom vồ tại chỗ",
+     "d": "Trước đây để con trỏ nằm trên đầu na khoảng 1 giây thì na tưởng là con mồi: đứng dậy, khom người rồi vồ ngay tại chỗ – trông như cúi xuống rồi trượt tới. Giờ con trỏ nằm trên mèo hoặc trên bong bóng chữ không còn bị coi là con mồi; để con trỏ ngay trước mũi na thì na vẫn vồ như cũ. Kèm theo: vùng trống hai bên mèo không còn chặn bấm vào nội dung trang phía dưới.",
+     "te": "Hovering over the cat: na no longer crouches and pounces in place",
+     "de": "Resting the cursor on na's head for about a second used to make her treat it as prey: she'd stand, crouch and pounce on the spot – looking like she ducked and slid forward. The cursor on the cat or on her speech bubble is no longer prey; rest it just in front of her nose and she still pounces. Also: the empty area on either side of the cat no longer blocks clicks on the page underneath."
     }
    ]
   },

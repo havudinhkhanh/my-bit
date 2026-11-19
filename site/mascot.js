@@ -1272,17 +1272,21 @@
   // 🖱️ máy tính: rê chuột xuống gần mép dưới → na rình theo con trỏ; để con trỏ đứng yên sát na → vồ. Rình lâu quá thì chán, nghỉ vài phút
   const ST = { on: false, t0: 0, last: 0, mv: 0, px: 0, cool: 0 };
   function stalkEnd(bored) { ST.on = false; if (!LZ.on) zoomSet(false, 1500); if (bored) { if (S.cfg.talk !== "q") say(pick("bored"), 2600, 1); ST.cool = now() + 3 * 60e3; } sched(idle, rnd(2e3, 4e3)); }
+  // con trỏ nằm TRÊN thân mèo / bong bóng chữ – đo theo khung mèo thật (canvas vẽ rộng gấp đôi thân → không dùng e.target, kẻo con trỏ ngay trước mũi cũng bị coi là "trên mèo")
+  const overCat = (e) => { if (!S.el?.contains(e.target)) return false; const x = e.clientX, y = e.clientY, inR = (q) => q && x >= q.left && x <= q.right && y >= q.top && y <= q.bottom;
+    const say = S.el.querySelector(".mun-say:not([hidden])"); return inR(S.el.querySelector(".mun-c")?.getBoundingClientRect()) || inR(say?.getBoundingClientRect()); };
   function stalkMove(e) {
     if (e.pointerType !== "mouse" || !S.el || S.away || S.chasing || S.napTill > now() || mob() || RM.matches) return;
     const tr = track(), near = LZ.on || e.clientY > innerHeight - tr.b - (ST.on ? Math.max(260, innerHeight * 0.45) : 150 * (S.s / 0.28) + 40);      // tia laser: chấm đỏ ở đâu cũng rình · đang rình thì con trỏ lên cao hơn vẫn đuổi tiếp
     if (!near) { if (ST.on) stalkEnd(false); return; }
-    if (!ST.on && e.target?.closest?.("#mun")) return;      // rê chuột lên chính con mèo (đọc chữ, định vuốt) → không coi là con mồi, mèo đứng yên
+    if (!ST.on && overCat(e)) return;      // rê chuột lên chính con mèo (đọc chữ, định vuốt) → không coi là con mồi, mèo đứng yên
     if (now() < ST.cool) return;
     if (!ST.on && !LZ.on && Math.abs(e.clientX - (S.x + 345 * S.s / 2)) > 7 * 345 * S.s) return;      // chuột ở xa hẳn (đang dùng trang) → không rình
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && !LZ.on && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
+    ST.over = !LZ.on && overCat(e);      // con trỏ đang nằm TRÊN mèo (đọc chữ / định vuốt) → không phải con mồi: không vồ (trước: rê lên đầu mèo 1 giây → mèo đứng dậy khom vồ tại chỗ, trông như trượt tới)
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > (LZ.on ? 65e3 : 25e3)) return stalkEnd(true);
-    if (e.target?.closest?.("#mun")) return;      // chuột đang ở TRÊN mèo (rê qua / định vuốt) → không coi là con mồi
+    if (ST.over) return;      // chuột đang ở TRÊN mèo (rê qua / định vuốt) → không coi là con mồi
     if (now() - ST.last > 650) { ST.last = now(); stalkGo(e.clientX); }
   }
   // đi khom tới TRƯỚC con trỏ (đầu sát con mồi), không đứng đè lên; đang đứng dậy / quay đầu thì để xong đã
@@ -1299,7 +1303,7 @@
     walkTo(px - cw / 2 - dir * 0.7 * cw, null, { clip: dash ? "dash" : "stalk", v: dash ? 1 : 0.8, fast: LZ.on || dash, end: hasV("ready") ? "ready" : "crouch" });      // dừng TRƯỚC con trỏ, đầu sát con mồi
   }
   function stalkTick() {
-    if (!ST.on || !S.el) return; const cw = 345 * S.s;
+    if (!ST.on || !S.el || ST.over) return; const cw = 345 * S.s;
     const ahead = (ST.px - (S.x + cw / 2)) * S.face;      // con trỏ ở phía trước mặt mèo bao xa
     if (hasV("pounceF") && now() - ST.last > 900 && !(ahead > (LZ.on ? -0.2 : 0.3) * cw && ahead < (LZ.on ? 1.6 : 1.1) * cw) && ["ready", "sit", "stalk"].includes(S.pose) && !A.v) { ST.last = now(); stalkGo(ST.px); }      // chuột dừng mà mèo chưa tới chỗ → đi tiếp
     if (hasV("pounceF")) { if (now() - ST.mv > (LZ.on ? 800 : 1100) && ahead > (LZ.on ? -0.2 : 0.3) * cw && ahead < (LZ.on ? 1.6 : 1.1) * cw && (S.pose === "ready" || SITS.has(S.pose))) {      // tia laser: vồ dễ hơn (đằng nào cũng trượt)      // 🎬 vồ con trỏ thật – chỉ khi đã đứng chờ / ngồi yên, không cắt ngang lúc đang đứng dậy, quay đầu
@@ -1398,7 +1402,7 @@
 .mun-cat{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(-10px*var(--s,.2)*1.17);width:calc(400px*var(--s,.2)*1.17);height:calc(272px*var(--s,.2)*1.17);overflow:visible;
   --f:#0a0a0b;--gold:#C8A064;filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.16))}
 :root[data-theme=dark] .mun-cat{--f:#060708;filter:drop-shadow(0 0 .7px rgba(255,255,255,.6)) drop-shadow(0 2px 4px rgba(0,0,0,.5))}
-canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;width:calc(620px*var(--s,.2)*1.17)}
+canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;pointer-events:none;width:calc(620px*var(--s,.2)*1.17)}
 .mun.nof .mun-f{transition:none!important}
 .mun-cat .b{fill:var(--f)}.mun-cat .gd{fill:var(--gold)}.mun-cat .pk{fill:#E8687F}.mun-cat .eyeb{fill:transparent}
 :root[data-theme=dark] .mun-cat .eyeb{fill:#ECE6D6}
