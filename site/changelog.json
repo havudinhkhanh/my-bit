@@ -16,6 +16,14 @@
      "d": "Trước: để app chạy nền qua đêm, sáng mở lại thì na tưởng anh vừa đi đâu về. Giờ lần đầu thấy anh trong ngày na chào theo buổi: sáng sớm (\"Gà chưa gáy đã mở app\"), buổi sáng (\"Dậy rồi hả\", \"Đánh răng chưa mà đòi xem lệnh\"), dậy muộn (\"Giờ này mới dậy à\"), trưa, chiều, tối, khuya (\"Giờ này còn chưa ngủ? Nến không chạy mất đâu\"). Trong ngày đi đâu lâu rồi quay lại mới là \"Về rồi hả\".",
      "te": "Morning: na asks \"Oh, you're up\" instead of \"Oh, you're back\"",
      "de": "Before: if the app sat in the background overnight, na greeted you in the morning as if you'd just stepped out. Now the first time she sees you each day she greets by the time of day: dawn (\"The rooster's not even up and you're here\"), morning (\"Oh, you're up\", \"Brushed your teeth before checking trades?\"), late start, noon, afternoon, evening, late night (\"Still up? The candles won't run off\"). \"Oh, you're back\" is only for coming back later the same day."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Bot Phản Xạ: Tổng quan Sàn thử cùng bố cục với Binance thật",
+     "d": "Sàn thử giờ có đủ các thẻ như Binance thật, cùng thứ tự: Tài sản · Hôm nay tổng (lời/lỗ $ kèm %, số lệnh, thắng, mức dừng trong ngày) · Hôm nay theo phương pháp (🪝 Bắt râu sập, ⚡ Lướt giây – chỗ của bot / lệnh tay bên Binance) · 7 ngày · Tỉ lệ thắng (số lệnh · ròng · phí) · 💸 Funding 7 ngày · thẻ Binance. Trước Sàn thử chỉ có 4–5 thẻ và \"Hôm nay\" hiện %, khác hẳn bên Binance.",
+     "te": "Reflex Bot: Paper overview now uses the same layout as Binance live",
+     "de": "Paper now shows the same cards as Binance live, in the same order: Equity · Today total ($ P/L with %, trades, wins, daily stop) · Today by method (🪝 Wick Catcher, ⚡ Scalp – where Binance shows bot / manual) · 7 days · Win rate (trades · net · fees) · 💸 Funding 7 days · Binance card. Before, Paper had only 4–5 cards and \"Today\" showed a %, unlike Binance."
     }
    ]
   },
