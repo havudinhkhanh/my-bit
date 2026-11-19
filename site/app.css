@@ -4651,7 +4651,7 @@ h1 small,.ph h1 small{font-size:15px!important}
    Thứ tự nhường chỗ khi chật: nhãn Futures/Spot ẩn → bỏ chữ "chờ" (thẻ đã có dòng "còn chờ khớp") → giá xuống dòng 2 canh phải. Không cắt chữ nào */
 .sc-oc .r1{display:flex!important;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:2px}
 .sc-oc .r1>span{flex:1 1 auto;min-width:0;max-width:100%}
-.sc-oc .r1>b{margin-left:auto}
+.sc-oc .r1>b{margin-left:auto;min-width:10ch;text-align:right;box-sizing:content-box}      /* giá giữ bề rộng cố định 10 ký tự số: giá chạy (0,0009990 → 0,001000), "—" lúc mới tải → không làm thẻ đổi 1 dòng ↔ 2 dòng */
 .sc-oc .r1>span>b{flex:none;overflow:visible}
 .sc-oc .r1 .pw{font-style:normal}
 @container (max-width:320px){.sc-oc .r1 .pw{display:none}}

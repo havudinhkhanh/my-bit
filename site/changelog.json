@@ -62,9 +62,9 @@
      "c": "fix",
      "a": "bot",
      "t": "Thẻ lệnh đang mở / chờ khớp: tên coin luôn hiện đủ",
-     "d": "Trước đây thẻ hẹp làm tên coin bị co mất, chỉ còn 1 chữ (vd \"T\") hoặc mất hẳn, không biết là mã nào. Giờ tên coin không bao giờ bị cắt; khi chật thì ẩn nhãn Futures/Spot, bỏ chữ \"chờ\" (thẻ đã có dòng \"còn chờ khớp\"), và nếu vẫn chật thì giá xuống dòng thứ hai.",
+     "d": "Trước đây thẻ hẹp làm tên coin bị co mất, chỉ còn 1 chữ (vd \"T\") hoặc mất hẳn, không biết là mã nào. Giờ tên coin không bao giờ bị cắt; khi chật thì ẩn nhãn Futures/Spot, bỏ chữ \"chờ\" (thẻ đã có dòng \"còn chờ khớp\"), và nếu vẫn chật thì giá xuống dòng thứ hai. Ô giá giữ bề rộng cố định nên giá nhảy (vd 0,0009990 → 0,001000) hay lúc mới tải chưa có giá cũng không làm thẻ đổi qua lại 1 dòng ↔ 2 dòng.",
      "te": "Open / pending order cards: the coin name always shows in full",
-     "de": "On narrow cards the coin name used to shrink to a single letter (e.g. \"T\") or vanish, so you couldn't tell which coin it was. The name is never cut now; when space is tight the Futures/Spot tag hides, the word \"pending\" is dropped (the card already says it's waiting to fill), and if it's still tight the price moves to a second line."
+     "de": "On narrow cards the coin name used to shrink to a single letter (e.g. \"T\") or vanish, so you couldn't tell which coin it was. The name is never cut now; when space is tight the Futures/Spot tag hides, the word \"pending\" is dropped (the card already says it's waiting to fill), and if it's still tight the price moves to a second line. The price slot keeps a fixed width, so ticking prices (e.g. 0.0009990 → 0.001000) or the blank before the first price never flip the card between one and two lines."
     }
    ]
   },
