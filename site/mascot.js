@@ -24,6 +24,8 @@
   //  fps: khung / giây (danh định) · upf: bước chân đi được mỗi khung (đơn vị hình) → tốc độ đi khớp chân, không trượt
   //  Tải sau (mascot-seq-*.json, gắn phiên bản theo băm) → mascot.js nhẹ, mở trang không chậm; tải hỏng thì dùng dáng cũ
   const MOB = matchMedia("(max-width:979px)");
+  // 📐 cỡ khung nhìn ghi sẵn (cập nhật khi đổi cỡ): đọc innerWidth / innerHeight trong vòng vẽ, rê chuột bắt trình duyệt tính lại bố cục cả trang nếu trang vừa đổi → giật
+  let VW = innerWidth, VH = innerHeight; const vwUp = () => { VW = innerWidth; VH = innerHeight; }; addEventListener("resize", vwUp, { passive: true }); window.visualViewport?.addEventListener("resize", vwUp, { passive: true }); addEventListener("orientationchange", () => setTimeout(vwUp, 300), { passive: true });
   const SHEET = {}, SHV = { walk: "__JSV_SEQ_walk__", sit: "__JSV_SEQ_sit__", roll: "__JSV_SEQ_roll__",
     // 🎬 bộ chuyển động từ VIDEO thật (Google Flow, 11/2026): đi · chạy · ngồi yên · ngồi→đứng · đứng→ngồi · quay đầu – đồ lại viền từng khung 24 hình/giây
     vwalk: "__JSV_SEQ_vwalk__", vrun: "__JSV_SEQ_vrun__", vsit: "__JSV_SEQ_vsit__", vs2st: "__JSV_SEQ_vs2st__", vst2s: "__JSV_SEQ_vst2s__", vturn: "__JSV_SEQ_vturn__",
@@ -75,13 +77,17 @@
     const o = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const j = ((i + best) % n) * 2; o[2 * i] = b[j]; o[2 * i + 1] = b[j + 1]; } return o;
   }
   // ghép điểm theo DTW (dời điểm tự do dọc 2 viền, giữ thứ tự) → đuôi khớp đuôi, chân khớp chân; không bị "vò nhàu" khi 2 dáng lệch pha
+  const DTW_BAND = 0.3; let DTB = null;      // DTB: bảng tính DTW dùng lại (khỏi cấp phát 200 KB mỗi lần đổi dáng)
   function dtw(a, b) {
     const n = a.n, A = a.p; let bx = 0, by = 0; for (let i = 0; i < n; i++) { bx += b[2 * i]; by += b[2 * i + 1]; } bx = bx / n - a.cx; by = by / n - a.cy;
     let bestT = Infinity, bestP = null;
     for (const off of [0, -6, 6]) {
       const B = new Float32Array(n * 2); for (let i = 0; i < n; i++) { const j = (((i + off) % n) + n) % n; B[2 * i] = b[2 * j] - bx; B[2 * i + 1] = b[2 * j + 1] - by; }
-      const D = new Float32Array(n * n), d = (i, j) => { const dx = A[2 * i] - B[2 * j], dy = A[2 * i + 1] - B[2 * j + 1]; return dx * dx + dy * dy; };
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const c = d(i, j); D[i * n + j] = i === 0 && j === 0 ? c : c + Math.min(i && j ? D[(i - 1) * n + j - 1] : Infinity, i ? D[(i - 1) * n + j] + c : Infinity, j ? D[i * n + j - 1] + c : Infinity); }
+      // ⚡ chỉ tính trong DẢI quanh đường chéo (±BW điểm): 2 viền đã xoay khớp điểm đầu (align) nên đường ghép không lệch xa đường chéo
+      //    → nhanh gấp ~2,2 lần, khớp gần như y hệt (đo 306 cặp dáng: lệch TB 0,16%) (trước: tính đủ n×n ô × 3 lần mỗi lần đổi dáng → máy yếu khựng). Ô ngoài dải = ∞ (lính gác 2 bên mỗi hàng)
+      if (!DTB || DTB.length < n * n) DTB = new Float32Array(n * n); const D = DTB, BW = Math.max(12, Math.ceil(n * DTW_BAND)), d = (i, j) => { const dx = A[2 * i] - B[2 * j], dy = A[2 * i + 1] - B[2 * j + 1]; return dx * dx + dy * dy; };
+      for (let i = 0; i < n; i++) { const j0 = Math.max(0, i - BW), j1 = Math.min(n - 1, i + BW), r = i * n; if (j0 > 0) D[r + j0 - 1] = Infinity; if (j1 < n - 1) D[r + j1 + 1] = Infinity;
+        for (let j = j0; j <= j1; j++) { const c = d(i, j); D[r + j] = i === 0 && j === 0 ? c : c + Math.min(i && j ? D[r - n + j - 1] : Infinity, i ? D[r - n + j] + c : Infinity, j ? D[r + j - 1] + c : Infinity); } }
       const T = D[n * n - 1]; if (T >= bestT) continue; bestT = T;
       const P = []; let i = n - 1, j = n - 1; P.push(i, j);
       while (i || j) { if (!i) j--; else if (!j) i--; else { const x = D[(i - 1) * n + j - 1], y = D[(i - 1) * n + j], z = D[i * n + j - 1]; if (x <= y && x <= z) { i--; j--; } else if (y <= z) i--; else j--; } P.push(i, j); }
@@ -213,8 +219,9 @@
     // 🌑 bóng mềm dưới chân: rộng theo thân mèo, nhảy lên thì nhỏ & nhạt đi → mèo "đứng trên đất", không lơ lửng
     { let x0 = 1e9, x1 = -1e9; const bb = sh && (sh._bb ||= (() => { for (const q of sh.polys) if (q.t === 0) { const p = q.p; for (let i = 0; i < p.length; i += 2) { if (p[i] < x0) x0 = p[i]; if (p[i] > x1) x1 = p[i]; } } return x1 > x0 ? [x0, x1] : null; })());
       if (bb && !S.noSh) { const up = Math.max(0, -(ops?.find((o) => o[0] === "t")?.[2] || 0)), f = Math.max(0.35, 1 - up / 90), cx = (bb[0] + bb[1]) / 2, rx = (bb[1] - bb[0]) * 0.46 * f;
-        g.save(); g.translate(cx, 1); g.scale(1, 0.13); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, dark ? `rgba(0,0,0,${0.55 * f})` : `rgba(0,0,0,${0.2 * f})`); gr.addColorStop(1, "rgba(0,0,0,0)");
-        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, 6.2832); g.fill(); g.restore(); } }
+        g.save(); g.translate(cx, 1); g.scale(1, 0.13); const gk = Math.round(rx) + "|" + Math.round(f * 50) + "|" + dark, gr = R.grK === gk ? R.gr : (R.grK = gk, R.gr = g.createRadialGradient(0, 0, 0, 0, 0, Math.round(rx)));      // bóng chân: giữ lại gradient khi cỡ không đổi (khỏi dựng mỗi khung)
+        if (R.gr === gr && !gr._ok) { gr._ok = 1; const ff = Math.round(f * 50) / 50; gr.addColorStop(0, dark ? `rgba(0,0,0,${0.55 * ff})` : `rgba(0,0,0,${0.2 * ff})`); gr.addColorStop(1, "rgba(0,0,0,0)"); }
+        g.fillStyle = gr; g.beginPath(); g.arc(0, 0, Math.round(rx), 0, 6.2832); g.fill(); g.restore(); } }
     ops0();
     if (gh) cvShape(R, gh, ga, skin, dark, 0);
     cvShape(R, sh, gh ? gb : 1, skin, dark, blink);
@@ -437,7 +444,7 @@
       //    nên điểm khớp đúng chỗ – trước khớp lệch làm tai, chân co lại giữa 2 khung (chu vi hụt 5–10%) → phập phồng; giờ hụt < 1%
       A.fi = [i, j, u];
       // có khung giữa dựng sẵn từ video (48 hình/giây): hiện khung chính / khung giữa gần nhất – không nắn viền ở trình duyệt (nắn viền làm chân dính cục, tai méo)
-      if (F.mid) { const mi = (j === i + 1 || (j < i && c.loop && i === F.length - 1 && !c.a)) && !(performance.now() - (S.scrT || 0) < 450) && !(c === CLIP.vsit && MOB.matches) ? F.mid[i] : null;      // đang cuộn / chạm trang → chỉ khung chính (24/giây), nhường máy cho trang
+      if (F.mid) { const mi = (j === i + 1 || (j < i && c.loop && i === F.length - 1 && !c.a)) && !(performance.now() - (S.scrT || 0) < 450) && !(c === CLIP.vsit && (MOB.matches || A.slow)) ? F.mid[i] : null;      // đang cuộn / chạm trang → chỉ khung chính (24/giây), nhường máy cho trang
         return !mi ? (u < 0.5 ? F[i] : F[j]) : u < 0.25 ? F[i] : u < 0.75 ? mi : F[j]; }
       if (F.pe) { const k = u < 0.5 ? i : j; A.fi = [k, k, 0]; return F[k]; }      // bảng video cũ chưa có khung giữa: hiện khung gần nhất
       if (i === j || u < 0.004) return F[i];
@@ -509,7 +516,7 @@
     if (A.v > 120 || !sh?.eye) bl = 0;      // đang chạy / nhắm mắt ngủ (khung không có mắt) → không chớp
     // chỉ vẽ lại khi hình đổi (khung video mới, đang nắn, chớp mắt, dời / xoay) – khung video giữ nguyên thì bỏ qua → đỡ máy, nhịp hiện khung đều
     const dk = S.cfg.skin + (document.documentElement.dataset.theme || "") + S.s, same = !gh && !ops.length && !A.snap && sh === A.dSh && bl === A.dBl && dk === A.dSk;
-    if (A.R && !same) { cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }
+    if (A.R && !same) { const t0 = performance.now(); cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); const dd = performance.now() - t0; A.dms = A.dms == null ? dd : A.dms * 0.97 + Math.min(dd, 30) * 0.03; A.slow = A.dms > (A.slow ? 2.5 : 4); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }      // 🐢 máy yếu (vẽ 1 hình > 4 ms) → ngồi yên chỉ vẽ khung chính 24/giây như điện thoại
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || A.sw || c.scr;
     nx(mv || bl > 0 || t + 70 >= A.blT || (A.slowBl && t + 70 >= A.slowBl) || (c.sheet && SHEET[c.sheet]?.pe) ? 0 : c.loop || c.seq || c.sheet ? 26 : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
   }
@@ -537,16 +544,16 @@
   let TRC = null; addEventListener("resize", () => (TRC = null), { passive: true });
   function track() { const t = performance.now(); if (TRC && t - TRC.t < 400) return TRC.v; const v = track0(); TRC = { t, v }; return v; }      // nhớ 0,4 giây: rê chuột / rình gọi liên tục → trước mỗi lần rê là bắt trình duyệt tính lại bố cục (giật)
   function track0() {
-    // W: bề ngang KHÔNG tính thanh cuộn (trước dùng innerWidth → mèo đè lên thanh cuộn bên phải); pad: thân / đuôi mèo vẽ lấn ra ngoài khung ~60 đơn vị mỗi bên
-    const tb = document.getElementById("tabs"), r = tb?.getBoundingClientRect(), W = document.documentElement.clientWidth || innerWidth, cw = 345 * S.s, pad = Math.round(70 * S.s * 1.17);
+    // W: bề ngang KHÔNG tính thanh cuộn (trước dùng VW → mèo đè lên thanh cuộn bên phải); pad: thân / đuôi mèo vẽ lấn ra ngoài khung ~60 đơn vị mỗi bên
+    const tb = document.getElementById("tabs"), r = tb?.getBoundingClientRect(), W = document.documentElement.clientWidth || VW, cw = 345 * S.s, pad = Math.round(70 * S.s * 1.17);
     const fab = document.querySelector(".pnfab"), fr0 = fab?.getBoundingClientRect(), fr = fr0 && fr0.width > 0 ? fr0 : null;
-    if (S.perch) { const q = S.perch.isConnected && S.perch.getBoundingClientRect(); if (q && q.width > 0) return { b: Math.round(innerHeight - q.top - 1), l: q.left + 8 + pad, r: q.right - 8 - cw - pad }; S.perch = null; }      // đang đứng trên mép menu
-    if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > innerHeight - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > innerWidth / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(innerHeight - r.top - 2), l: r.left + 14, r: rr }; }
-    let l = (r && r.width < 400 && r.height > innerHeight * 0.6 ? r.right + 12 : 12) + pad; if (fr && fr.bottom > innerHeight - 80 && fr.left < innerWidth / 2) l = Math.max(l, fr.right + 12 + pad);
-    let rr = W - 16 - cw - pad; if (fr && fr.bottom > innerHeight - 80 && fr.left >= innerWidth / 2) rr = Math.min(rr, fr.left - 8 - cw - pad * 0.3);      // nút nổi Bảng phụ góc phải dưới → không đứng đè lên nút
+    if (S.perch) { const q = S.perch.isConnected && S.perch.getBoundingClientRect(); if (q && q.width > 0) return { b: Math.round(VH - q.top - 1), l: q.left + 8 + pad, r: q.right - 8 - cw - pad }; S.perch = null; }      // đang đứng trên mép menu
+    if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > VH - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > VW / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(VH - r.top - 2), l: r.left + 14, r: rr }; }
+    let l = (r && r.width < 400 && r.height > VH * 0.6 ? r.right + 12 : 12) + pad; if (fr && fr.bottom > VH - 80 && fr.left < VW / 2) l = Math.max(l, fr.right + 12 + pad);
+    let rr = W - 16 - cw - pad; if (fr && fr.bottom > VH - 80 && fr.left >= VW / 2) rr = Math.min(rr, fr.left - 8 - cw - pad * 0.3);      // nút nổi Bảng phụ góc phải dưới → không đứng đè lên nút
     return { b: 0, l, r: rr };
   }
-  function place(x) { const tr = track(); x = Math.max(tr.l, Math.min(tr.r, x)); S.x = x; S.yo = 0; S.el.style.bottom = Math.round(tr.b) + "px"; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x)}px,0,0)`; }
+  function place(x) { const tr = track(), st = S.el.style, bt = Math.round(tr.b) + "px", tf = `translate3d(${snap((x = Math.max(tr.l, Math.min(tr.r, x))))}px,0,0)`; S.x = x; S.yo = 0; if (st.bottom !== bt) st.bottom = bt; if (st.transition !== "none") st.transition = "none"; st.transform = tf; }      // chỉ ghi khi giá trị đổi (đuổi chuột gọi mỗi khung)
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
   // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
   //    mỗi khung hình na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
@@ -705,7 +712,7 @@
   function jumpAt(el, caught) {
     const t0 = performance.now(), u = U2P(); play("jump", 180);
     const f = (t) => { const k = (t - t0) / 700; A.ty = -Math.sin(Math.min(1, k) * Math.PI) * 70; if (k < 1) requestAnimationFrame(f); else { A.ty = 0; play("sit"); S.busy = false; sched(idle, rnd(4e3, 7e3)); } }; requestAnimationFrame(f);
-    setTimeout(() => { if (caught) { el.classList.add("poof"); say(pick("catch"), 2600, 2); meow(1); setTimeout(() => el.remove(), 400); } else { const r = el.getBoundingClientRect(); el.style.transition = "transform 1.6s ease-in, opacity 1.6s"; el.style.transform = `translate3d(${r.left + S.face * 160}px,${-(innerHeight - r.top + 120)}px,0)`; el.style.opacity = "0"; say(pick("miss"), 2600, 2); setTimeout(() => el.remove(), 1700); } }, 330);
+    setTimeout(() => { if (caught) { el.classList.add("poof"); say(pick("catch"), 2600, 2); meow(1); setTimeout(() => el.remove(), 400); } else { const r = el.getBoundingClientRect(); el.style.transition = "transform 1.6s ease-in, opacity 1.6s"; el.style.transform = `translate3d(${r.left + S.face * 160}px,${-(VH - r.top + 120)}px,0)`; el.style.opacity = "0"; say(pick("miss"), 2600, 2); setTimeout(() => el.remove(), 1700); } }, 330);
   }
   function idle() {
     if (!S.el) return;
@@ -746,6 +753,9 @@
   // ---------------------------------------------------------------- 🔊 tiếng "meo" (tổng hợp bằng Web Audio – không tải file); iPhone gạt im lặng thì tự im
   let AC = null;
   const unlock = () => { try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume(); } catch (e) { /* bỏ qua */ } };
+  // chạm / bấm đầu tiên: chỉ dựng bộ âm thanh khi BẬT tiếng kêu (dựng mất 10–30 ms → trước làm khựng cú bấm đầu tiên dù tắt tiếng); đã chạy thì thôi nghe
+  //   Chrome / Edge: trang đã được bấm 1 lần là được phát tiếng mãi về sau → dựng lúc máy rảnh, cú bấm không phải chờ; Safari cần dựng ngay trong cú bấm
+  const unlockG = () => { if (!S.cfg.snd || !S.el) return; if (AC && AC.state === "running") return; if (!AC && navigator.userAgentData && navigator.userActivation) { if (!S.auQ) { S.auQ = 1; (window.requestIdleCallback || setTimeout)(() => { S.auQ = 0; unlock(); }, { timeout: 1500 }); } return; } unlock(); };
   function meow(n = 1) {
     if (!S.cfg.snd || !AC || AC.state !== "running" || document.hidden) return;
     for (let k = 0; k < n; k++) {
@@ -779,11 +789,17 @@
     if (!S.el || S.away || hiddenNow()) return false;
     const b = S.el.querySelector(".mun-say"); if (!b.hidden && prio < (b._p || 0)) return false;
     b._p = prio; b.className = "mun-say " + cls; b.querySelector(".tx").innerHTML = html; b.hidden = false; b.classList.remove("out");
-    b._bw = b.offsetWidth; b._lx = null; b._tx = null;
+    b._lx = null; b._tx = null;
+    // đo bề rộng bóng nói bằng ResizeObserver (báo ngay sau lượt tính bố cục bình thường, trước khi vẽ) – trước: đọc offsetWidth ngay sau khi gán chữ
+    //   = bắt trình duyệt tính lại bố cục CẢ TRANG giữa chừng (trang danh mục / bot nặng: 20–70 ms trên máy yếu) mỗi lần na nói
+    if (!b._ro && window.ResizeObserver) { b._ro = new ResizeObserver((en) => { const e = en[en.length - 1], w = e.borderBoxSize?.[0]?.inlineSize ?? e.target.getBoundingClientRect().width; if (w && w !== b._bw) { b._bw = w; b._lx = b._tx = null; b._ap?.(); } }); b._ro.observe(b); }
+    else if (!b._ro) b._bw = b.offsetWidth;
     // bóng nói là con của mèo → tự đi theo mèo (transform); chỉ cần chỉnh lề khi sát mép màn hình. Đọc S.x (không getComputedStyle mỗi khung = tính lại kiểu dáng cả trang),
     //   chỉ ghi style khi giá trị thật sự đổi (trước: ghi left + --tx mỗi khung khi mèo dời → bóng nói tính lại bố cục liên tục = giật lúc rê chuột lên mèo đang nói)
-    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } const bw = b._bw, x = S.x, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw / 2));
-      const L = Math.round(left - x), T = Math.round(Math.max(12, Math.min(bw - 12, cx - left))); if (b._lx !== L) { b._lx = L; b.style.left = L + "px"; } if (b._tx !== T) { b._tx = T; b.style.setProperty("--tx", T + "px"); } requestAnimationFrame(fol); };
+    // dời ngang bằng translate (lớp hiển thị, không tính lại bố cục) thay vì left
+    b._ap = () => { if (b.hidden || !S.el || !b._bw) return; const bw = b._bw, x = S.x, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(VW - bw - 8, cx - bw / 2));
+      const L = Math.round(left - x), T = Math.round(Math.max(12, Math.min(bw - 12, cx - left))); if (b._lx !== L) { b._lx = L; b.style.translate = L + "px 0"; } if (b._tx !== T) { b._tx = T; b.style.setProperty("--tx", T + "px"); } };
+    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } b._ap(); requestAnimationFrame(fol); };
     if (!b._run) { b._run = 1; fol(); }
     clearTimeout(S.sayTm); if (ms) S.sayTm = setTimeout(() => sayOut(), ms);
     return true;
@@ -939,7 +955,7 @@
     if (hasV("dangle")) play("dangle", 260, true); S.el.classList.add("mlift"); S.noSh = true; navigator.vibrate?.(8); return true;      // đang bị nhấc: bóng dưới chân không đi theo
   }
   // trần bay: tới sát mép trên màn hình (trước chỉ 60% chiều cao → kéo cao hơn thì mèo đứng lại, ngón tay rời khỏi mèo)
-  const liftMax = (tr) => Math.max(40, innerHeight - tr.b - 290 * S.s - 8);
+  const liftMax = (tr) => Math.max(40, VH - tr.b - 290 * S.s - 8);
   function liftMove(px, py) {
     if (!LF.on) return; const t = now(), dt = Math.max(8, t - LF.lt), tr = track();
     LF.vx = LF.vx * 0.55 + ((px - LF.lx) / dt) * 0.45; LF.vy = LF.vy * 0.55 + ((py - LF.ly) / dt) * 0.45; LF.lx = px; LF.ly = py; LF.lt = t;      // vận tốc tay (px/ms) → thả ra lúc đang vung = thảy
@@ -954,7 +970,7 @@
     let h = LF.h, vh = fresh ? Math.max(0, Math.min(2800, -LF.vy * 1000)) : 0, vx = fresh ? Math.max(-1600, Math.min(1600, LF.vx * 1000)) : 0, x = S.x, last = performance.now(), peak = h;
     const thrown = vh > 450 || Math.abs(vx) > 650, T = (vh + Math.sqrt(vh * vh + 2 * G * h)) / G, flip = vh > 1500 && T > 0.7 ? (vx < 0 ? -1 : 1) : 0;
     // 👃 thả nhẹ (không thảy) ngay trên 1 dòng coin / biểu đồ / đường cắt lỗ → rơi xuống đậu lên đó thay vì xuống đất
-    const gy = innerHeight - tr.b, cxp = S.x + 345 * S.s / 2, dt0 = !thrown && h > 30 ? dropTarget(cxp, gy - h) : null, dtr = dt0?.rect(), floor = dtr && dtr.top >= gy - h - 30 && gy - dtr.top > 30 ? gy - dtr.top : 0;
+    const gy = VH - tr.b, cxp = S.x + 345 * S.s / 2, dt0 = !thrown && h > 30 ? dropTarget(cxp, gy - h) : null, dtr = dt0?.rect(), floor = dtr && dtr.top >= gy - h - 30 && gy - dtr.top > 30 ? gy - dtr.top : 0;
     const f = (t) => {
       if (fl !== S.fly || !S.el) return;
       const dt = Math.min(0.04, (t - last) / 1000); last = t;
@@ -997,7 +1013,7 @@
     if (hasV("ready") && !RM.matches) { play("ready", 200, true); setTimeout(go, 230); } else go();
   }
   function perchCheck() {
-    if (!S.el) return; const p = document.querySelector(PERCH), r = p?.getBoundingClientRect(), ok = !!(mob() && r && r.width > 220 && r.top > 90 && r.top < innerHeight - 150);
+    if (!S.el) return; const p = document.querySelector(PERCH), r = p?.getBoundingClientRect(), ok = !!(mob() && r && r.width > 220 && r.top > 90 && r.top < VH - 150);
     if (ok && (!S.perch || S.perch.kind) && !S.perchT) S.perchT = setTimeout(() => { S.perchT = 0; if (document.querySelector(PERCH) === p) perchOn(p); }, 60);
     else if (!ok && ((S.perch && !S.perch.kind) || S.perchT)) { clearTimeout(S.perchT); S.perchT = 0; if (S.perch && !S.perch.kind) perchOff(); }      // chỉ chỗ đứng = menu (đậu trên đồ vật thì không đụng)
   }
@@ -1029,7 +1045,7 @@
         const n = 3 + Math.floor(Math.random() * 3);
         for (let i = 0; i < n && !hd.found; i++) {
           await wait(rnd(800, 1800)); if (dead()) return;
-          S.x = rnd(tr.l, tr.r); face(S.x + H * 0.6 < innerWidth / 2 ? 1 : S.x > innerWidth / 2 ? -1 : Math.random() < 0.5 ? 1 : -1);
+          S.x = rnd(tr.l, tr.r); face(S.x + H * 0.6 < VW / 2 ? 1 : S.x > VW / 2 ? -1 : Math.random() < 0.5 ? 1 : -1);
           el.style.transition = "none"; el.style.transform = `translate3d(${snap(S.x)}px,${OUT}px,0)`; await wait(40);
           await sink(H * rnd(0.58, 0.68), 280); if (dead()) return;      // ló tai + mắt lên khỏi mép thanh
           hd.peek = true; await Promise.race([wait(rnd(1400, 2300)), new Promise((r) => (hd.res = r))]); hd.peek = false; if (dead()) return;
@@ -1046,7 +1062,7 @@
   // tgt: đồ vật chỉ định (vd. cái chuông trên đầu trang – ở cao: đứng gần như ngay dưới rồi vồ lên); pool: câu nói sau khi vồ
   function batObj(force, tgt, pool = "bat") {
     if (!S.el || S.busy || S.chasing || S.perch || S.away || LF.on || S.hide || !hasV("pounceF", "st2s", "ready")) return false;
-    const tr = track(), cw = 345 * S.s, reach = 185 * U2P() * (tgt ? 0.35 : 1), gy = innerHeight - tr.b, cl = (v) => Math.max(tr.l, Math.min(tr.r, v));
+    const tr = track(), cw = 345 * S.s, reach = 185 * U2P() * (tgt ? 0.35 : 1), gy = VH - tr.b, cl = (v) => Math.max(tr.l, Math.min(tr.r, v));
     const T = (tgt ? [tgt] : [...document.querySelectorAll("#tabs > a, #lvw.m-mini .lvw-pill, #lvw.m-dot .lvw-pill, .pnfab")]).map((e) => [e, e.getBoundingClientRect()])
       .filter(([e, r]) => r.width > 0 && r.width < 260 && getComputedStyle(e).visibility !== "hidden" && (tgt || Math.abs((r.top + r.bottom) / 2 - gy) < 80))      // sát mặt đất na đang đứng (trên / dưới mép ~80 px)
       .map(([e, r]) => { const c = (r.left + r.right) / 2, A0 = c - reach - cw / 2, B0 = c + reach - cw / 2; const o = { e, A: A0 >= tr.l && A0 <= tr.r ? A0 : null, B: B0 >= tr.l && B0 <= tr.r ? B0 : null };
@@ -1074,7 +1090,7 @@
   const lzKey = (e) => { if (e.key === "Escape") laserOff(); };
   function laserOn() {
     if (LZ.on || !S.el || !matchMedia("(hover:hover) and (pointer:fine)").matches) return false;
-    LZ.on = true; const d = document.createElement("i"); d.className = "mun-laser"; d.setAttribute("aria-hidden", "true"); d.style.transform = `translate3d(${innerWidth / 2}px,${innerHeight - 140}px,0)`; document.body.appendChild(d); LZ.el = d;
+    LZ.on = true; const d = document.createElement("i"); d.className = "mun-laser"; d.setAttribute("aria-hidden", "true"); d.style.transform = `translate3d(${VW / 2}px,${VH - 140}px,0)`; document.body.appendChild(d); LZ.el = d;
     document.body.classList.add("mun-lz"); zoomSet(true); ST.cool = 0; S.napTill = 0; S.busy = false; clearTimeout(S.tm); if (SITS.has(S.pose) && S.pose !== "sit") { S.walkTk = (S.walkTk || 0) + 1; play("sit", 300, true); }      // đang liếm lông → bỏ dở, ngó chấm đỏ
     addEventListener("pointermove", lzMove, { passive: true, capture: true }); addEventListener("keydown", lzKey, true);
     setTimeout(() => LZ.on && addEventListener("pointerdown", laserOff, { capture: true, once: true }), 400);
@@ -1090,7 +1106,7 @@
   // ================================================================ 👃 THẢ na LÊN ĐỒ VẬT: dòng coin / thẻ lệnh (ngửi, buông 1 câu bâng quơ), biểu đồ (ngồi xem), ĐƯỜNG CẮT LỖ (ngồi lì canh)
   //  S.perch = "chỗ đứng" bất kỳ có getBoundingClientRect (menu, dòng bảng, đường giá ảo); cuộn trang → na nhảy xuống
   function dropTarget(px, py) {
-    const els = document.elementsFromPoint(px, Math.min(innerHeight - 2, py + 6)).filter((e) => !e.closest("#mun"));
+    const els = document.elementsFromPoint(px, Math.min(VH - 2, py + 6)).filter((e) => !e.closest("#mun"));
     for (const e of els) {
       const ch = e.closest(".tv-lightweight-charts")?.parentElement || e.closest(".lwbox, .cv-chart .chart");
       if (ch) {      // đường cắt lỗ: nhãn "cắt lỗ" của biểu đồ nằm sát chỗ thả (±28px)
@@ -1130,7 +1146,7 @@
     const R = S.el.querySelector(".mun-c").getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(260, vw - 16), left = Math.max(8, Math.min(vw - W - 8, R.left + R.width / 2 - W / 2));
     const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu";
     const it = (k, ic, t, sub) => `<button type="button" data-mun="${k}"><span class="ios-t">${t}${sub ? `<small>${sub}</small>` : ""}</span><span class="ios-ic">${ic}</span></button>`;
-    m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="munMenu" role="menu" aria-label="${NAME}" style="left:${left}px;width:${W}px;bottom:${Math.round(innerHeight - R.top + 8)}px;transform-origin:${Math.round(R.left + R.width / 2 - left)}px calc(100% + 8px)">
+    m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" id="munMenu" role="menu" aria-label="${NAME}" style="left:${left}px;width:${W}px;bottom:${Math.round(VH - R.top + 8)}px;transform-origin:${Math.round(R.left + R.width / 2 - left)}px calc(100% + 8px)">
       <div class="ios-menu-h">🐈‍⬛ ${NAME}</div>
       ${it("skim", "👀", L("Đọc lướt trang này", "Skim this page"), L("lười thôi, đừng mong chi tiết", "lazily – don't expect details"))}
       ${it("mouse", "🐭", L("Thả chuột cho na", "Release a mouse"), L("xem na rượt", "watch na hunt"))}
@@ -1179,10 +1195,10 @@
     const m = document.createElement("div"); m.className = "mun-mouse" + (fromL ? "" : " l"); m.innerHTML = `<i>${MOUSE}</i>`; m.style.bottom = tr.b + "px"; m.style.setProperty("--s", S.s); document.body.appendChild(m);
     S.chasing = true; clearTimeout(S.tm); halt(); let turning = false; zoomSet(true);
     // chuột tới từ PHÍA SAU → quay đầu thật (clip quay người) rồi mới thủ thế; trước: lật hình cái rụp
-    const d0 = (fromL ? -mw : innerWidth) + mw / 2 > S.x + cw / 2 ? 1 : -1;
+    const d0 = (fromL ? -mw : VW) + mw / 2 > S.x + cw / 2 ? 1 : -1;
     if (d0 !== S.face && hasV("turnQ")) { turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([...(STANDS.has(S.pose) ? [] : ["s2stQ"]), hasV("turnF") ? "turnF" : "turnQ"], () => { turning = false; cx = S.x; if (S.pose !== "walk" && S.pose !== "run") play(hasV("ready") ? "ready" : "crouch", 300, true); }, tk); }
     else { if (d0 !== S.face) face(d0); if (hasV("ready")) play("ready", 500, true); else play("crouch"); }      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na "dịch chuyển")
-    let mx = fromL ? -mw - 10 : innerWidth + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
+    let mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
     const end = (caught) => { if (done) return; done = true; S.chasing = false; zoomSet(false, caught ? 3600 : 2200); S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
         setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (84 - 46) / 24 * 1000); return; }
@@ -1195,10 +1211,10 @@
       const dt = Math.min(0.05, (t - last) / 1000); last = t; const el = t - t0;
       const mc = mx + mw / 2, cc = cx + cw / 2, gap = Math.abs(mc - cc);
       // chuột: chạy đều; giữa đường dừng ngó 1 lần nếu na còn xa; na đuổi sát thì tăng tốc (hoặc hoảng chạy chậm lại nếu lần này bị bắt)
-      if (!sniffed && el > 1100 && mc > innerWidth * 0.3 && mc < innerWidth * 0.7 && gap > 150) { sniffed = true; pauseTill = t + rnd(380, 620); }
+      if (!sniffed && el > 1100 && mc > VW * 0.3 && mc < VW * 0.7 && gap > 150) { sniffed = true; pauseTill = t + rnd(380, 620); }
       const want = t < pauseTill ? 0 : gap < 130 ? (win ? 150 : 300) : 165;
       vm += (want - vm) * Math.min(1, dt * 7); mx += dir * vm * dt;
-      if (!shout && mx > -mw * 0.3 && mx < innerWidth - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
+      if (!shout && mx > -mw * 0.3 && mx < VW - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // na: ngó 0,45 giây rồi phóng theo
       // 🎯 nhắm tới chỗ ĐỨNG VỒ (cách chuột 1 tầm vồ, phía mèo đang đứng) chứ không phải đứng đè lên chuột – vồ là chân chạm đúng con chuột
       const reach = 185 * U2P(), aimC = mc - (mc >= cc ? 1 : -1) * reach * 0.85;
@@ -1224,7 +1240,7 @@
       m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`;
       { const ah = (mc - (cx + cw / 2)) * S.face; if (win && el > 900 && !turning && ah > reach * 0.55 && ah < reach * 1.3 && hasV("pounceF")) return end(true); }      // chuột trong tầm vồ, ngay trước mặt → chuột đứng hình, na vồ trúng
       if (win && gap < 22 && el > 600 && !hasV("pounceF")) return end(true);
-      if (mx > innerWidth + 30 || mx < -mw - 30 || el > 16e3) return end(false);
+      if (mx > VW + 30 || mx < -mw - 30 || el > 16e3) return end(false);
       requestAnimationFrame(step);
     };
     requestAnimationFrame(step); return true;
@@ -1234,7 +1250,7 @@
     if (!S.el || S.chasing || S.away || S.napTill > now() || (RM.matches && !force)) return false;
     S.chasing = true; clearTimeout(S.tm); halt(); play("sit");
     const tr = track(), cw = 345 * S.s, k = S.s / 0.235, n = 5, w = Math.round(30 * k), h = Math.round(15 * k), land = Math.round(cw * 0.55), Wd = n * w + land, Ht = n * h;
-    const cc = S.x + cw / 2, room = (d) => (d > 0 ? innerWidth - 8 - cc : cc - 8);
+    const cc = S.x + cw / 2, room = (d) => (d > 0 ? VW - 8 - cc : cc - 8);
     const okR = room(1) >= Wd + 10, okL = room(-1) >= Wd + 10, dir = (S.face > 0 ? okR : okL) ? S.face : okR ? 1 : okL ? -1 : 0;      // ưu tiên phía na đang nhìn – khỏi phải quay đầu
     if (!dir) { S.chasing = false; sched(idle, 2000); return false; }
     const x0 = cc + dir * cw * 0.3;      // chân bậc đầu, ngay trước mũi na
@@ -1277,7 +1293,7 @@
     const say = S.el.querySelector(".mun-say:not([hidden])"); return inR(S.el.querySelector(".mun-c")?.getBoundingClientRect()) || inR(say?.getBoundingClientRect()); };
   function stalkMove(e) {
     if (e.pointerType !== "mouse" || !S.el || S.away || S.chasing || S.napTill > now() || mob() || RM.matches) return;
-    const tr = track(), near = LZ.on || e.clientY > innerHeight - tr.b - (ST.on ? Math.max(260, innerHeight * 0.45) : 150 * (S.s / 0.28) + 40);      // tia laser: chấm đỏ ở đâu cũng rình · đang rình thì con trỏ lên cao hơn vẫn đuổi tiếp
+    const tr = track(), near = LZ.on || e.clientY > VH - tr.b - (ST.on ? Math.max(260, VH * 0.45) : 150 * (S.s / 0.28) + 40);      // tia laser: chấm đỏ ở đâu cũng rình · đang rình thì con trỏ lên cao hơn vẫn đuổi tiếp
     if (!near) { if (ST.on) stalkEnd(false); return; }
     if (!ST.on && overCat(e)) return;      // rê chuột lên chính con mèo (đọc chữ, định vuốt) → không coi là con mồi, mèo đứng yên
     if (now() < ST.cool) return;
@@ -1356,7 +1372,7 @@
         if (Math.abs(v) > 1.6) { S.swT = t; S.swTgt = Math.max(-15, Math.min(15, -v * 4.5)); if (Math.abs(v) > 3.2) big = 1; }
         clearTimeout(st); st = setTimeout(() => { if (big && S.el && !S.busy && S.cfg.talk !== "q" && now() - (S.swSaid || 0) > 3 * 60e3) { S.swSaid = now(); say(pick("sway"), 2600, 1); } big = 0; }, 700); }, { passive: true }); }
     { const mo = new MutationObserver(() => { perchCheck(); clearTimeout(S.pcT); S.pcT = setTimeout(perchCheck, 520); }); mo.observe(document.body, { attributes: true, attributeFilter: ["class"] }); const ms = document.getElementById("msheet"); if (ms) mo.observe(ms, { attributes: true, attributeFilter: ["class", "hidden"] }); }      // menu bật / tắt → na nhảy lên / xuống
-    ["pointerdown", "keydown", "touchend"].forEach((ev) => addEventListener(ev, unlock, { passive: true, capture: true }));
+    ["pointerdown", "keydown", "touchend"].forEach((ev) => addEventListener(ev, unlockG, { passive: true, capture: true }));
     ["pointerdown", "keydown", "wheel", "touchstart", "scroll"].forEach((ev) => addEventListener(ev, () => { S.act = now(); if (S.el && napping() && !(S.napTill > now()) && !S.busy) { if (wakeV()) { if (S.cfg.talk !== "q" && Math.random() < 0.6) setTimeout(() => say(pick("wake"), 3200, 1), 1800); return; } play("stretch"); setTimeout(() => S.pose === "stretch" && play("sit"), 1500); sched(idle, 3500); } }, { passive: true, capture: true }));
     // đổi trang → bình luận theo trang (≈ 60% số lần, cách nhau ≥ 35 giây)
     addEventListener("hashchange", () => { if (!S.el || S.cfg.talk === "q" || S.chasing || NT.cur || now() - (S.navAt || 0) < 3 * 60e3 || Math.random() > 0.2) return; S.navAt = now();      // đổi trang: lâu lâu mới nói (≥ 3 phút, 20%) – không phải trang nào cũng bình luận
@@ -1387,7 +1403,7 @@
   // ---------------------------------------------------------------- giao diện
   const st = document.createElement("style"); st.id = "munCss";
   st.textContent = `
-.mun{position:fixed;left:0;bottom:0;z-index:40;width:calc(345px*var(--s,.2));height:calc(290px*var(--s,.2));pointer-events:none;will-change:transform;transition:opacity .25s}
+.mun{position:fixed;left:0;bottom:0;z-index:40;contain:layout style;width:calc(345px*var(--s,.2));height:calc(290px*var(--s,.2));pointer-events:none;will-change:transform;transition:opacity .25s}
 .mun.away{opacity:0!important;visibility:hidden;transition:opacity .2s,visibility 0s .2s}
 .mun-c{position:absolute;inset:0;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none;outline:none}
 .mun-c:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
@@ -1427,7 +1443,7 @@ canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;p
 .mun-st.out path{stroke-dashoffset:-1;transition-delay:calc((var(--n) - var(--i))*70ms)}
 .mun-mouse{position:fixed;left:0;z-index:40;width:calc(115px*var(--s,.25));height:calc(52px*var(--s,.25));pointer-events:none;will-change:transform}
 .mun-mouse>i{display:block;width:100%;height:100%}.mun-mouse.l>i{transform:scaleX(-1)}
-.mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}
+.mun-mouse{filter:drop-shadow(0 1px 1px rgba(0,0,0,.18))}.mun-mouse svg{display:block;width:100%;height:100%;overflow:visible;animation:mmBob .13s linear infinite;will-change:transform}      /* nhún: chỉ transform, bóng đổ ở khung ngoài → trình duyệt chạy nhún ở lớp đồ hoạ, không tính lại kiểu dáng mỗi khung */
 .mun-mouse .ms{fill:#7e838d}.mun-mouse .mi{fill:#c9a7a7}.mun-mouse .me{fill:#111}.mun-mouse .mt,.mun-mouse .ml{fill:none;stroke:#7e838d;stroke-width:2.2;stroke-linecap:round}
 :root[data-theme=dark] .mun-mouse .ms{fill:#a3a9b4}:root[data-theme=dark] .mun-mouse .mt,:root[data-theme=dark] .mun-mouse .ml{stroke:#a3a9b4}
 .mun-mouse.poof>i{transform:scale(0) rotate(40deg);opacity:0;transition:transform .3s cubic-bezier(.5,0,.8,.4),opacity .3s}

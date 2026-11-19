@@ -1623,7 +1623,8 @@ function hkSvg(K, t, ts, tf, tx, W0) {
 }
 // rê chuột / chạm trên biểu đồ nến quanh lệnh: đường dọc + ô giá của nến đó
 document.addEventListener("pointermove", (e) => {
-  const hit = e.target.closest?.(".hk2w .hk-hit"); const all = document.querySelectorAll(".hk2w .hk-cur"); if (!hit) { all.forEach((g) => (g.style.display = "none")); document.querySelectorAll(".hk2w .hk-tip").forEach((x) => (x.hidden = true)); return; }
+  const hit = e.target.closest?.(".hk2w .hk-hit"); if (!hit) { if (!window.__hkOn) return; window.__hkOn = 0; document.querySelectorAll(".hk2w .hk-cur").forEach((g) => (g.style.display = "none")); document.querySelectorAll(".hk2w .hk-tip").forEach((x) => (x.hidden = true)); return; }      // chưa hiện gì → thôi (trước: MỖI lần rê chuột ở bất kỳ đâu cũng quét cả trang + ghi kiểu dáng)
+  window.__hkOn = 1;
   const w = hit.closest(".hk2w"), D = window.__hkK?.[w.dataset.hk]; if (!D) return; const svg = hit.ownerSVGElement, r = svg.getBoundingClientRect(), sx = (e.clientX - r.left) * (svg.viewBox.baseVal.width / r.width);
   const i = Math.max(0, Math.min(D.n - 1, Math.floor((sx - D.X0) / D.cw * D.n))), k = D.K[i], x = D.X0 + (i + 0.5) / D.n * D.cw, g = w.querySelector(".hk-cur"), tip = w.querySelector(".hk-tip");
   g.style.display = ""; g.querySelector("line").setAttribute("x1", x); g.querySelector("line").setAttribute("x2", x);

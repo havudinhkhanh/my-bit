@@ -65,6 +65,14 @@
      "d": "Trước đây thẻ hẹp làm tên coin bị co mất, chỉ còn 1 chữ (vd \"T\") hoặc mất hẳn, không biết là mã nào. Giờ tên coin không bao giờ bị cắt; khi chật thì ẩn nhãn Futures/Spot, bỏ chữ \"chờ\" (thẻ đã có dòng \"còn chờ khớp\"), và nếu vẫn chật thì giá xuống dòng thứ hai. Ô giá giữ bề rộng cố định nên giá nhảy (vd 0,0009990 → 0,001000) hay lúc mới tải chưa có giá cũng không làm thẻ đổi qua lại 1 dòng ↔ 2 dòng.",
      "te": "Open / pending order cards: the coin name always shows in full",
      "de": "On narrow cards the coin name used to shrink to a single letter (e.g. \"T\") or vanish, so you couldn't tell which coin it was. The name is never cut now; when space is tight the Futures/Spot tag hides, the word \"pending\" is dropped (the card already says it's waiting to fill), and if it's still tight the price moves to a second line. The price slot keeps a fixed width, so ticking prices (e.g. 0.0009990 → 0.001000) or the blank before the first price never flip the card between one and two lines."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "na mượt hơn, đỡ tốn máy",
+     "d": "Rà toàn bộ chỗ gây khựng của na: (1) mỗi lần đổi dáng (ngồi → đi, đi → chạy, khom chờ…) tính khớp hình nhanh gấp ~2 lần, hết khựng nhẹ lúc chuyển dáng; (2) na nói không còn bắt trình duyệt tính lại bố cục cả trang; bóng nói đi theo na bằng lớp hiển thị; (3) lúc đuổi chuột trên điện thoại không còn tính lại bố cục mỗi khung; (4) cú bấm đầu tiên trên trang không còn khựng vì dựng âm thanh (Chrome dựng lúc máy rảnh); (5) máy yếu: lúc ngồi yên na chỉ vẽ 24 hình/giây; (6) rê chuột khắp trang không còn quét cả trang mỗi lần.",
+     "te": "na runs smoother and lighter",
+     "de": "A full pass over na's stutter points: (1) each pose change (sit → walk, walk → run, crouch…) matches shapes ~2× faster, removing the small hitch at transitions; (2) when na talks the browser no longer re-lays out the whole page; the bubble follows her on the compositor; (3) chasing the mouse on phones no longer re-lays out every frame; (4) the first click on a page no longer stutters while sound starts up (Chrome sets it up when idle); (5) on slower machines na draws 24 fps while sitting still; (6) moving the mouse around the page no longer scans the whole page each time."
     }
    ]
   },
