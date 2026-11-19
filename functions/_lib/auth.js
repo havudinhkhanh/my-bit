@@ -1,7 +1,7 @@
 // /api/auth/*: đăng ký (mã mời / chờ duyệt), đăng nhập mật khẩu + Google, quên / đặt lại mật khẩu, đăng xuất, thông tin tài khoản.
 import {
   audit, clearAttempts, clearCookie, err, failAttempt, getConfig, getSession, getUser, hashPassword, json, LEGACY_KEYS, makeCookie,
-  meOf, notifyAdmins, nowIso, ownerList, PLANS, randHex, sendMail, sha256Hex, tooMany, validEmail, verifyGoogle, verifyPassword, withCookie,
+  meOf, newSession, notifyAdmins, nowIso, ownerList, PLANS, randHex, sendMail, sha256Hex, tooMany, validEmail, verifyGoogle, verifyPassword, withCookie,
 } from "./core.js";
 
 async function body(request) { try { return await request.json(); } catch (e) { return {}; } }
@@ -58,7 +58,14 @@ async function createUser(env, { email, name, pw, google_sub }, adm) {
 async function loginOk(env, request, u, how) {
   await env.DB.prepare("UPDATE users SET last_login = ?, last_seen = ? WHERE id = ?").bind(nowIso(), nowIso(), u.id).run();
   await audit(env, u.id, "login", how);
-  return json({ ok: true, me: meOf(u) }, 200, { "set-cookie": await makeCookie(env, u, request.url) });
+  const sid = await newSession(env, request, u.id);
+  return json({ ok: true, me: meOf(u) }, 200, { "set-cookie": await makeCookie(env, u, request.url, sid) });
+}
+/** Đăng xuất các phiên khác của người dùng (giữ phiên keep), trả cookie mới cho phiên hiện tại. */
+async function dropOthers(env, request, uid, keep) {
+  const sid = keep || await newSession(env, request, uid);
+  const r = await env.DB.prepare("UPDATE sessions SET revoked = 1 WHERE user_id = ? AND id != ? AND revoked = 0").bind(uid, sid).run();
+  return { sid, n: (r.meta && r.meta.changes) || 0 };
 }
 const blocked = (u) => (u.status === "pending" ? err("Tài khoản đang chờ duyệt – anh/chị sẽ được báo khi được kích hoạt", 403, { pending: true })
   : err("Tài khoản đã bị khoá", 403));
@@ -79,7 +86,19 @@ export async function auth(ctx, action) {
     if (!u || u.status !== "active") return err("Chưa đăng nhập", 401, {}, );
     return withCookie(json({ me: meOf(u) }), s.setCookie);
   }
-  if (action === "logout" && m === "POST") return json({ ok: true }, 200, { "set-cookie": clearCookie() });
+  if (action === "sessions" && m === "GET") {      // các thiết bị đang đăng nhập
+    const s = await getSession(request, env);
+    if (!s) return err("Chưa đăng nhập", 401);
+    const cur = s.ses.d || null;
+    const rows = (await env.DB.prepare(`SELECT id, created_at, last_seen, ua, ip, place FROM sessions WHERE user_id = ? AND revoked = 0 AND last_seen > ?
+                                       ORDER BY last_seen DESC LIMIT 40`).bind(s.ses.u, new Date(Date.now() - 30 * 86400000).toISOString()).all()).results || [];
+    return withCookie(json({ current: cur, sessions: rows.map((r) => ({ ...r, current: r.id === cur })) }), s.setCookie);
+  }
+  if (action === "logout" && m === "POST") {
+    const s = await getSession(request, env);
+    if (s && s.ses.d) await env.DB.prepare("UPDATE sessions SET revoked = 1 WHERE id = ? AND user_id = ?").bind(s.ses.d, s.ses.u).run();
+    return json({ ok: true }, 200, { "set-cookie": clearCookie() });
+  }
   if (m !== "POST") return err("Phương thức không hỗ trợ", 405);
   const b = await body(request);
 
@@ -149,6 +168,7 @@ export async function auth(ctx, action) {
     if (!r || r.used || r.expires_at < nowIso()) return err("Liên kết đã hết hạn hoặc đã dùng");
     await env.DB.prepare("UPDATE resets SET used = 1 WHERE token_hash = ?").bind(r.token_hash).run();
     await env.DB.prepare("UPDATE users SET pw = ?, sv = sv + 1 WHERE id = ?").bind(await hashPassword(pw), r.user_id).run();
+    await env.DB.prepare("UPDATE sessions SET revoked = 1 WHERE user_id = ?").bind(r.user_id).run();
     const u = await getUser(env, r.user_id);
     await audit(env, u.id, "reset", "");
     if (u.status !== "active") return blocked(u);
@@ -165,7 +185,8 @@ export async function auth(ctx, action) {
     await env.DB.prepare("UPDATE users SET pw = ?, sv = sv + 1 WHERE id = ?").bind(await hashPassword(np), u.id).run();
     const u2 = await getUser(env, u.id);
     await audit(env, u.id, "password", "");
-    return json({ ok: true }, 200, { "set-cookie": await makeCookie(env, u2, request.url) });
+    const { sid, n } = await dropOthers(env, request, u.id, s.ses.d);
+    return json({ ok: true }, 200, { "set-cookie": await makeCookie(env, u2, request.url, sid) });
   }
   if (action === "profile") {
     await env.DB.prepare("UPDATE users SET name = ? WHERE id = ?").bind(String(b.name || "").trim().slice(0, 80) || null, u.id).run();
@@ -183,11 +204,30 @@ export async function auth(ctx, action) {
     const u2 = await getUser(env, u.id);
     await audit(env, u.id, "email", `${u.email} → ${ne}`);
     try { await sendMail(env, u.email, "Email đăng nhập MyBit đã đổi", `<p>Email đăng nhập tài khoản MyBit của anh/chị vừa đổi sang <b>${ne}</b>.</p><p>Nếu không phải anh/chị đổi, hãy liên hệ quản trị viên ngay.</p>`); } catch (e) { /* bỏ qua */ }
-    return json({ ok: true, me: meOf(u2) }, 200, { "set-cookie": await makeCookie(env, u2, request.url) });
+    const { sid, n } = await dropOthers(env, request, u.id, s.ses.d);
+    return json({ ok: true, me: meOf(u2) }, 200, { "set-cookie": await makeCookie(env, u2, request.url, sid) });
   }
   if (action === "logout_all") {
     await env.DB.prepare("UPDATE users SET sv = sv + 1 WHERE id = ?").bind(u.id).run();
+    await env.DB.prepare("UPDATE sessions SET revoked = 1 WHERE user_id = ?").bind(u.id).run();
+    await audit(env, u.id, "logout_all", "");
     return json({ ok: true }, 200, { "set-cookie": clearCookie() });
+  }
+  if (action === "logout_others") {      // đăng xuất mọi thiết bị khác, giữ thiết bị này
+    // đổi sv để cả cookie cũ (chưa gắn mã phiên) cũng hết hiệu lực; phiên hiện tại nhận cookie mới
+    await env.DB.prepare("UPDATE users SET sv = sv + 1 WHERE id = ?").bind(u.id).run();
+    const u2 = await getUser(env, u.id);
+    const { sid, n } = await dropOthers(env, request, u.id, s.ses.d);
+    await audit(env, u.id, "logout_others", "");
+    return json({ ok: true, n }, 200, { "set-cookie": await makeCookie(env, u2, request.url, sid) });
+  }
+  if (action === "revoke") {      // đăng xuất 1 thiết bị
+    const id = String(b.id || "");
+    if (!/^[0-9a-f]{32}$/.test(id)) return err("Thiết bị không hợp lệ");
+    const r = await env.DB.prepare("UPDATE sessions SET revoked = 1 WHERE id = ? AND user_id = ? AND revoked = 0").bind(id, u.id).run();
+    if (!r.meta.changes) return err("Thiết bị này đã đăng xuất", 404);
+    await audit(env, u.id, "revoke", id.slice(0, 8));
+    return json({ ok: true, self: id === s.ses.d }, 200, id === s.ses.d ? { "set-cookie": clearCookie() } : {});
   }
   return err("Không có API này", 404);
 }

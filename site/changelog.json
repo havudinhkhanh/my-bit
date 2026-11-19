@@ -204,6 +204,16 @@
      "d": "Mục mới \"Quyền riêng tư & nơi lưu\" ở Sổ thuế: nói rõ file gốc không rời máy anh, sổ lưu ở đâu, ai đọc được. Bật khoá: cả sổ (dòng giao dịch, cài đặt, tóm tắt lịch sử) được nén rồi mã hoá AES-256 ngay trên trình duyệt (khoá dẫn từ mật khẩu, PBKDF2 310.000 vòng) trước khi gửi lên – máy chủ chỉ giữ chuỗi mã hoá, ghi đè luôn bản dạng thường cũ; quản trị viên hay ai lấy được cơ sở dữ liệu cũng không đọc được. Mỗi tab nhập mật khẩu 1 lần; tab chưa mở thì trang Tài khoản Binance báo sổ đang khoá. Quên mật khẩu là không ai khôi phục được – chỉ còn cách xoá sổ và nhập lại file. Kèm theo: sổ khoá được nén nên nhỏ hơn ~6 lần.",
      "te": "🔒 Lock the tax ledger with your own password (encrypted in the browser)",
      "de": "New \"Privacy & storage\" section in the tax ledger: explains that original files never leave your device, where the ledger is stored and who can read it. Turning the lock on compresses and encrypts the whole ledger (rows, settings, history summary) with AES-256 in the browser (key derived from your password, PBKDF2 310,000 rounds) before upload – the server only holds ciphertext and the old plain copy is overwritten; not even admins or anyone with database access can read it. Each tab asks for the password once; tabs that haven't unlocked show the ledger as locked on the Binance account page. A forgotten password cannot be recovered – the only option is deleting the ledger and re-importing. Bonus: the locked ledger is compressed, ~6× smaller."
+    },
+    {
+     "c": "new",
+     "a": "acct",
+     "go": "#/account",
+     "hi": 1,
+     "t": "📱 Quản lý thiết bị đăng nhập",
+     "te": "📱 Manage signed-in devices",
+     "d": "Trang Tài khoản → Bảo mật giờ liệt kê từng thiết bị đang đăng nhập (trình duyệt, hệ điều hành, nơi đăng nhập, lần hoạt động gần nhất), đánh dấu \"Thiết bị này\". Đăng xuất riêng từng thiết bị, hoặc đăng xuất mọi thiết bị khác mà vẫn giữ thiết bị đang dùng. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức; đổi mật khẩu cũng tự đăng xuất các thiết bị khác.",
+     "de": "Account → Security now lists every signed-in device (browser, OS, location, last active) with \"This device\" marked. Log out a single device, or log out all other devices while keeping the one you're on. A logged-out device can no longer change data immediately; changing your password also logs out the other devices."
     }
    ]
   },

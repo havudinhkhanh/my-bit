@@ -2822,6 +2822,21 @@ body.cmdk-on{overflow:hidden}
 .acp-sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
 .acp-sw:checked{background:var(--up)}.acp-sw:checked::after{transform:translateX(18px)}
 .acp-foot{display:flex;align-items:center;gap:14px;padding:14px 0 12px;border-top:1px solid var(--bd-2);flex-wrap:wrap}
+/* thiết bị đang đăng nhập */
+.acp-dev{display:flex;flex-direction:column;gap:2px;margin:2px 0 6px}
+.acp-dv{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--bd-2);transition:opacity .25s,transform .25s}
+.acp-dv:first-child{border-top:0}
+.acp-dv.gone{opacity:0;transform:translateX(12px)}
+.acp-di{flex:0 0 36px;height:36px;border-radius:10px;display:grid;place-items:center;background:var(--sunk);color:var(--ink-2);border:1px solid var(--bd)}
+.acp-dv.cur .acp-di{background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--ink);border-color:color-mix(in srgb,var(--brand) 45%,transparent)}
+.acp-dt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.acp-dt b{font-size:.9375rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.acp-dt small{font-size:.75rem;color:var(--ink-3);line-height:1.4;overflow-wrap:anywhere}
+.acp-dt small .on{color:var(--up);font-weight:600}
+.acp-dme{font-style:normal;font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}
+.acp-dv .btn.sm{flex:0 0 auto;min-height:32px;padding:0 12px}
+.acp-dv.sk b{color:var(--ink-3);font-weight:500}
+.acp-devf{gap:8px 10px}.acp-foot.acp-devf small{flex:1 1 100%}
 .acp-foot small{flex:1 1 260px;font-size:.75rem;color:var(--ink-3);line-height:1.45}
 /* bảng gói */
 .acp-pt-w{margin:8px -4px 0;overflow-x:auto}

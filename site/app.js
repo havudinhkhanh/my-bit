@@ -7087,7 +7087,10 @@ function acPage(o) {
   <section class="acp-card"><h2>Bảo mật</h2>
     ${ME.has_pw ? acRow("Mật khẩu hiện tại", "", `<input id="pwOld" type="password" autocomplete="current-password" placeholder="••••••••">`) : ""}
     ${acRow(ME.has_pw ? "Mật khẩu mới" : "Đặt mật khẩu", "Ít nhất 8 ký tự", `<input id="pwNew" type="password" autocomplete="new-password" placeholder="••••••••"><button class="btn" id="pwSave">${ME.has_pw ? "Đổi" : "Đặt"}</button>`)}
-    ${acRow("Phiên đăng nhập", "Đăng xuất mọi thiết bị nếu nghi bị lộ mật khẩu", `<button class="btn" id="acOut">Đăng xuất</button><button class="btn danger" id="acOutAll">Mọi thiết bị</button>`)}
+    <h3 class="acp-sub">Thiết bị đang đăng nhập</h3>
+    <div class="acp-dev" id="acDev" aria-live="polite"><div class="acp-dv sk"><span class="acp-di"></span><span class="acp-dt"><b>Đang tải…</b></span></div></div>
+    <div class="acp-foot acp-devf"><button class="btn" id="acOut">Đăng xuất thiết bị này</button><button class="btn" id="acOutOth" hidden>Đăng xuất mọi thiết bị khác</button><button class="btn danger" id="acOutAll">Đăng xuất tất cả</button>
+      <small>Nghi bị lộ mật khẩu: đổi mật khẩu (tự đăng xuất các thiết bị khác) hoặc bấm “Đăng xuất mọi thiết bị khác”. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức và mất quyền xem trong tối đa 10 phút.</small></div>
   </section>
   </div>
   ${o.extra || ""}
@@ -7132,7 +7135,8 @@ async function viewAccount() {
   $("#pwSave").onclick = async () => { try { await api("auth/password", "POST", { old: $("#pwOld")?.value || "", new: $("#pwNew").value }); toast("Đã đổi mật khẩu"); viewAccount(); } catch (e) { toast(e.message); } };
   acTradeBind();
   $("#acOut").onclick = logout;
-  $("#acOutAll").onclick = async () => { await api("auth/logout_all", "POST").catch(() => {}); clearLocal(); await clearCaches(); location.href = "/login"; };
+  $("#acOutAll").onclick = async () => { if (!confirmIn($("#acOutAll"), bi("Bấm lần nữa để đăng xuất TẤT CẢ", "Click again to log out EVERYWHERE"))) return; await api("auth/logout_all", "POST").catch(() => {}); clearLocal(); await clearCaches(); location.href = "/login"; };
+  acDevLoad();
   if ($("#puOn")) $("#puOn").onclick = async () => { try { await pushEnable(); toast("Đã bật thông báo đẩy"); viewAccount(); } catch (e) { toast(e.message); } };
   if ($("#puOff")) $("#puOff").onclick = async () => { await pushDisable(); toast("Đã tắt trên thiết bị này"); viewAccount(); };
   if ($("#puTest")) $("#puTest").onclick = async () => { const reg = await navigator.serviceWorker.getRegistration("/"); reg?.showNotification("MyBit", { body: "Thông báo đẩy hoạt động trên thiết bị này.", icon: "/icon.svg" }); };
@@ -7140,6 +7144,53 @@ async function viewAccount() {
     const kinds = Object.fromEntries($$("[data-nk]").map((x) => [x.dataset.nk, x.checked]));
     try { await api("notify", "PUT", { push: $("#nPush").value, email: $("#nEmail").value, email_to: $("#nTo").value.trim(), kinds, updated: new Date().toISOString() }); toast("Đã lưu cài đặt thông báo"); } catch (e) { toast(e.message); }
   };
+}
+// ---- thiết bị đang đăng nhập (mỗi lần đăng nhập = 1 phiên): xem, đăng xuất từng thiết bị, hoặc mọi thiết bị khác ngoài thiết bị này
+function uaInfo(ua) {
+  ua = String(ua || "");
+  const os = /iPad/.test(ua) ? "iPad" : /iPhone/.test(ua) ? "iPhone" : /Android/.test(ua) ? "Android" : /Windows/.test(ua) ? "Windows" : /Mac OS X|Macintosh/.test(ua) ? "macOS"
+    : /CrOS/.test(ua) ? "ChromeOS" : /Linux/.test(ua) ? "Linux" : "";
+  const br = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /SamsungBrowser/.test(ua) ? "Samsung Internet" : /CriOS|Chrome\//.test(ua) ? "Chrome"
+    : /FxiOS|Firefox\//.test(ua) ? "Firefox" : /Safari\//.test(ua) ? "Safari" : "";
+  const mob = /iPhone|Android.*Mobile|Mobile Safari/.test(ua), tab = /iPad|Android(?!.*Mobile)/.test(ua);
+  return { name: [br || bi("Trình duyệt", "Browser"), os].filter(Boolean).join(" · "), kind: mob ? "phone" : tab ? "tablet" : "desktop" };
+}
+const DEV_IC = {
+  phone: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  tablet: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  desktop: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20h7M12 16.5V20"/></svg>',
+};
+// bấm lần 1 đổi chữ nút thành lời xác nhận (3 giây), bấm lần 2 mới làm – thay hộp thoại confirm() của trình duyệt
+function confirmIn(btn, msg) {
+  if (btn.dataset.cf === "1") { btn.dataset.cf = ""; btn.textContent = btn.dataset.t0; return true; }
+  btn.dataset.t0 = btn.dataset.t0 || btn.textContent; btn.dataset.cf = "1"; btn.textContent = msg;
+  clearTimeout(btn._cf); btn._cf = setTimeout(() => { btn.dataset.cf = ""; btn.textContent = btn.dataset.t0; }, 3000);
+  return false;
+}
+async function acDevLoad() {
+  const box = $("#acDev"); if (!box) return;
+  let j;
+  try { j = await api("auth/sessions"); } catch (e) { box.innerHTML = `<p class="acp-d">${bi("Chưa tải được danh sách thiết bị", "Couldn't load the device list")}${e && e.message ? " – " + esc(e.message) : ""}</p>`; return; }
+  const L = j.sessions || [], oth = L.filter((x) => !x.current), now = Date.now();
+  const ago = (iso) => { const m = Math.max(0, (now - new Date(iso)) / 60000), h = m / 60, d = h / 24;
+    return m < 2 ? bi("vừa xong", "just now") : m < 60 ? bi(`${Math.round(m)} phút trước`, `${Math.round(m)} min ago`) : h < 24 ? bi(`${Math.round(h)} giờ trước`, `${Math.round(h)} h ago`)
+      : d < 30 ? bi(`${Math.round(d)} ngày trước`, `${Math.round(d)} day${Math.round(d) > 1 ? "s" : ""} ago`) : new Date(iso).toLocaleDateString(NLOC); };
+  const live = (x) => x.current || now - new Date(x.last_seen) < 11 * 60000;
+  box.innerHTML = !L.length ? `<p class="acp-d">${bi("Chưa có thiết bị nào được ghi nhận – danh sách bắt đầu từ lần đăng nhập tới.", "No devices recorded yet – the list starts from your next sign-in.")}</p>`
+    : L.map((x) => { const u = uaInfo(x.ua), meta = [x.place, x.ip].filter(Boolean).map(esc).join(" · ");
+      const st = x.current ? bi("đang dùng", "in use") : live(x) ? bi("đang hoạt động", "active now") : bi("hoạt động ", "active ") + ago(x.last_seen);
+      return `<div class="acp-dv ${x.current ? "cur" : ""}"><span class="acp-di" aria-hidden="true">${DEV_IC[u.kind]}</span>
+        <span class="acp-dt"><b>${esc(u.name)}${x.current ? `<i class="acp-dme">${bi("Thiết bị này", "This device")}</i>` : ""}</b><small>${meta ? meta + " · " : ""}<span class="${live(x) ? "on" : ""}">${st}</span> · ${bi("đăng nhập ", "signed in ") + ago(x.created_at)}</small></span>
+        ${x.current ? "" : `<button class="btn sm" data-rv="${esc(x.id)}">${bi("Đăng xuất", "Log out")}</button>`}</div>`; }).join("")
+      + (j.current ? "" : `<p class="acp-d">${bi("Thiết bị này đăng nhập trước khi có danh sách thiết bị – sẽ hiện ở đây sau ít phút.", "This device signed in before the device list existed – it will show up here within a few minutes.")}</p>`);
+  const bo = $("#acOutOth");
+  if (bo) { bo.hidden = !oth.length; bo.textContent = bo.dataset.t0 = bi(`Đăng xuất ${oth.length} thiết bị khác`, `Log out ${oth.length} other device${oth.length > 1 ? "s" : ""}`); bo.dataset.cf = "";
+    bo.onclick = async () => { if (!confirmIn(bo, bi("Bấm lần nữa để xác nhận", "Click again to confirm"))) return; bo.disabled = true;
+      try { const r = await api("auth/logout_others", "POST"); toast(r.n ? bi(`Đã đăng xuất ${r.n} thiết bị khác`, `Logged out ${r.n} other device${r.n > 1 ? "s" : ""}`) : bi("Không còn thiết bị nào khác", "No other devices")); } catch (e) { toast(e.message); }
+      bo.disabled = false; acDevLoad(); }; }
+  $$("[data-rv]", box).forEach((b) => { b.onclick = async () => { if (!confirmIn(b, bi("Chắc chắn?", "Sure?"))) return; b.disabled = true;
+    try { await api("auth/revoke", "POST", { id: b.dataset.rv }); b.closest(".acp-dv").classList.add("gone"); toast(bi("Đã đăng xuất thiết bị", "Device logged out")); setTimeout(acDevLoad, 260); }
+    catch (e) { b.disabled = false; toast(e.message); } }; });
 }
 // đăng xuất → xoá đệm ngoại tuyến (dữ liệu theo gói của tài khoản) trước khi chuyển trang
 async function clearCaches() { try { navigator.serviceWorker?.controller?.postMessage({ t: "clear" }); const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); } catch (e) { /* bỏ qua */ } }

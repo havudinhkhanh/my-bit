@@ -60,6 +60,10 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS config(key TEXT PRIMARY KEY, value TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS attempts(k TEXT PRIMARY KEY, n INTEGER NOT NULL, first_at TEXT NOT NULL, until TEXT)`,
   `CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, action TEXT, detail TEXT, at TEXT)`,
+  // 11/2026: mỗi lần đăng nhập = 1 phiên (1 thiết bị) để người dùng xem & đăng xuất từng thiết bị ở trang Tài khoản.
+  `CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at TEXT, last_seen TEXT, ua TEXT, ip TEXT, place TEXT,
+     revoked INTEGER NOT NULL DEFAULT 0)`,
+  `CREATE INDEX IF NOT EXISTS ix_ses_user ON sessions(user_id, revoked)`,
 ];
 let schemaOk = false;
 export async function ensureSchema(env) {
@@ -118,12 +122,38 @@ async function hmac(env, data) {
   const key = await crypto.subtle.importKey("raw", enc.encode(await secret(env)), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return b64u(await crypto.subtle.sign("HMAC", key, enc.encode(data)));
 }
-export async function makeCookie(env, u, url) {
+/** sid = mã phiên (bảng sessions) – gắn vào cookie để đăng xuất từng thiết bị. e = hạn của phiên (giữ nguyên khi làm mới). */
+export async function makeCookie(env, u, url, sid, e) {
   const t = Math.floor(Date.now() / 1000);
-  const payload = b64u(enc.encode(JSON.stringify({ u: u.id, r: u.role, p: effPlan(u), s: u.sv, t, e: t + SESSION_DAYS * 86400 })));
+  const o = { u: u.id, r: u.role, p: effPlan(u), s: u.sv, t, e: e || t + SESSION_DAYS * 86400 };
+  if (sid) o.d = sid;
+  const payload = b64u(enc.encode(JSON.stringify(o)));
   const v = `${payload}.${await hmac(env, payload)}`;
   const secure = !url || new URL(url).protocol === "https:" ? "; Secure" : "";
-  return `${COOKIE}=${v}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_DAYS * 86400}${secure}`;
+  return `${COOKIE}=${v}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.max(60, o.e - t)}${secure}`;
+}
+/** Thông tin thiết bị lưu cho phiên: trình duyệt (cắt ngắn), IP che bớt, thành phố / quốc gia do Cloudflare đoán. */
+function devOf(request) {
+  const ua = String(request.headers.get("user-agent") || "").slice(0, 300);
+  const ip = String(request.headers.get("cf-connecting-ip") || "");
+  const mip = ip.includes(":") ? ip.split(":").slice(0, 3).join(":") + ":…" : ip.replace(/\.\d+$/, ".…");
+  const cf = request.cf || {};
+  const place = [cf.city, cf.country].filter(Boolean).join(", ").slice(0, 80);
+  return { ua, ip: mip, place };
+}
+export async function newSession(env, request, uid) {
+  const id = randHex(16), d = devOf(request), n = nowIso();
+  await env.DB.prepare("INSERT INTO sessions(id, user_id, created_at, last_seen, ua, ip, place) VALUES(?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, uid, n, n, d.ua, d.ip, d.place).run();
+  // dọn phiên đã đăng xuất / quá hạn của người này
+  await env.DB.prepare("DELETE FROM sessions WHERE user_id = ? AND (revoked = 1 OR last_seen < ?)")
+    .bind(uid, new Date(Date.now() - SESSION_DAYS * 86400000).toISOString()).run();
+  return id;
+}
+/** Phiên còn hiệu lực? (chưa bị đăng xuất từ thiết bị khác) */
+async function sesAlive(env, sid) {
+  const r = await env.DB.prepare("SELECT revoked FROM sessions WHERE id = ?").bind(sid).first();
+  return !!r && !r.revoked;
 }
 export function clearCookie() { return `${COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`; }
 export async function getUser(env, id) {
@@ -139,12 +169,27 @@ export async function getSession(request, env) {
   try { ses = JSON.parse(new TextDecoder().decode(unb64u(payload))); } catch (e) { return null; }
   const now = Math.floor(Date.now() / 1000);
   if (!ses.e || ses.e < now) return null;
-  if (now - ses.t < REFRESH_SEC) return { ses };
+  if (now - ses.t < REFRESH_SEC) {
+    // Đọc thì tin cookie tới 10 phút; GHI (POST/PUT/DELETE) thì luôn kiểm phiên – thiết bị đã bị đăng xuất không sửa được dữ liệu.
+    if (request.method === "GET" || !ses.d) return { ses };
+    await ensureSchema(env);
+    return (await sesAlive(env, ses.d)) ? { ses } : null;
+  }
   await ensureSchema(env);
   const u = await getUser(env, ses.u);
   if (!u || u.status !== "active" || u.sv !== ses.s) return null;
+  let sid = ses.d;
+  if (sid) {
+    if (!(await sesAlive(env, sid))) return null;
+    await env.DB.prepare("UPDATE sessions SET last_seen = ? WHERE id = ?").bind(nowIso(), sid).run();
+  } else {      // cookie cũ (trước 11/2026) → tạo phiên để hiện trong danh sách thiết bị (nhiều yêu cầu cùng lúc → dùng chung 1 phiên)
+    const d = devOf(request);
+    const r = await env.DB.prepare("SELECT id FROM sessions WHERE user_id = ? AND revoked = 0 AND ua = ? AND ip = ? AND created_at > ? LIMIT 1")
+      .bind(u.id, d.ua, d.ip, new Date(Date.now() - 120000).toISOString()).first();
+    sid = r ? r.id : await newSession(env, request, u.id);
+  }
   await env.DB.prepare("UPDATE users SET last_seen = ? WHERE id = ?").bind(nowIso(), u.id).run();
-  return { ses: { u: u.id, r: u.role, p: effPlan(u), s: u.sv, t: now, e: ses.e }, user: u, setCookie: await makeCookie(env, u, request.url) };
+  return { ses: { u: u.id, r: u.role, p: effPlan(u), s: u.sv, t: now, e: ses.e, d: sid }, user: u, setCookie: await makeCookie(env, u, request.url, sid) };
 }
 export function withCookie(res, cookie) {
   if (!cookie) return res;
