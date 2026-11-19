@@ -797,6 +797,15 @@
     //   = bắt trình duyệt tính lại bố cục CẢ TRANG giữa chừng (trang danh mục / bot nặng: 20–70 ms trên máy yếu) mỗi lần na nói
     if (!b._ro && window.ResizeObserver) { b._ro = new ResizeObserver((en) => { const e = en[en.length - 1], w = e.borderBoxSize?.[0]?.inlineSize ?? e.target.getBoundingClientRect().width; if (w && w !== b._bw) { b._bw = w; b._lx = b._tx = null; b._ap?.(); } }); b._ro.observe(b); }
     else if (!b._ro) b._bw = b.offsetWidth;
+    // 🌙 ánh sáng ấm trên iPhone: lớp ấm chừa dải thanh trên cùng (để Safari tô đúng màu vùng giờ/pin) → bóng nói bị thảy lên dải đó trông trắng bệch.
+    //   Theo dõi phần bóng nói lọt vào dải (IntersectionObserver – không đọc bố cục mỗi khung) rồi tự phủ ấm đúng phần đó (--nlc)
+    const H = document.documentElement, th = parseFloat(H.style.getPropertyValue("--top-h")) || 0;
+    if (window.IntersectionObserver && H.classList.contains("nl-ios") && th > 0 && th < VH && (b._ioH !== th || b._ioV !== VH)) {
+      b._io?.disconnect(); b._ioH = th; b._ioV = VH;
+      b._io = new IntersectionObserver((en) => { const e = en[en.length - 1], c = e.isIntersecting ? Math.max(0, Math.round((b._ioH - e.boundingClientRect.top) * 2) / 2) : 0;      // đúng tới nửa điểm ảnh – không chồng 2 lớp ấm thành vạch ở ranh giới
+        if (c !== b._nlc) { b._nlc = c; b.style.setProperty("--nlc", c + "px"); } }, { rootMargin: `0px 0px ${-(VH - th)}px 0px`, threshold: Array.from({ length: 41 }, (_, i) => i / 40) });
+      b._io.observe(b);
+    }
     // bóng nói là con của mèo → tự đi theo mèo (transform); chỉ cần chỉnh lề khi sát mép màn hình. Đọc S.x (không getComputedStyle mỗi khung = tính lại kiểu dáng cả trang),
     //   chỉ ghi style khi giá trị thật sự đổi (trước: ghi left + --tx mỗi khung khi mèo dời → bóng nói tính lại bố cục liên tục = giật lúc rê chuột lên mèo đang nói)
     // dời ngang bằng translate (lớp hiển thị, không tính lại bố cục) thay vì left
@@ -1484,6 +1493,7 @@ canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;p
 .mun-say{position:absolute;bottom:calc(100% * var(--vz,1) + 8px);transition:bottom .6s cubic-bezier(.3,.7,.2,1);left:0;width:max-content;max-width:min(250px,calc(100vw - 16px));padding:7px 11px 8px;border-radius:var(--mn-r,10px);
   background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%),var(--surface);box-shadow:var(--mn-sh,0 6px 24px rgba(0,0,0,.18));
   font:500 .78125rem/1.4 "Be Vietnam Pro",system-ui,sans-serif;color:var(--ink);pointer-events:auto;animation:munIn .22s cubic-bezier(.2,.8,.2,1);transform-origin:var(--tx,50%) 100%}
+html.nl-ios[data-nl]:not(.ovl-on) .mun-say::before{content:"";position:absolute;left:0;right:0;top:0;height:min(var(--nlc,0px),100%);z-index:9;pointer-events:none;border-top-left-radius:inherit;border-top-right-radius:inherit;background:rgb(255,186,112);mix-blend-mode:multiply;opacity:var(--nl,.26)}
 :root:not([data-theme=light]) .mun-say{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 55%),var(--surface)}
 /* bóng nói nền ĐẶC (không kính mờ backdrop-filter): nằm ngay trên mèo đang vẽ 48 hình/giây → kính mờ phải làm mờ lại mỗi khung = giật khi rê chuột / mèo dời */
 .mun-say>b{display:block;font-size:.6875rem;font-weight:700;letter-spacing:.02em;color:#a8874a;margin-bottom:1px}

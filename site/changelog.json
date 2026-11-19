@@ -239,6 +239,14 @@
      "te": "iPhone: edge swipe no longer drags two pages at once",
      "d": "Từ iOS 26, ứng dụng MyBit thêm ra màn hình chính đã có sẵn cử chỉ vuốt lùi/tiến của iPhone; cử chỉ riêng của web chạy song song nên kéo 2 trang một lúc. Trên iPhone giờ chỉ dùng cử chỉ của iOS (mượt như ứng dụng gốc), không trượt thêm hiệu ứng lần 2; mép phải nhường cho vuốt tiến khi còn trang phía trước (Bảng phụ mở bằng nút ☰).",
      "de": "Since iOS 26, MyBit added to the Home Screen gets iPhone's built-in back/forward swipe; the site's own gesture ran alongside it and dragged two pages at once. On iPhone only the iOS gesture is used now (native feel, no second slide animation); the right edge yields to the forward swipe when there's a page ahead (open the side panel with ☰)."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Ánh sáng ấm (iPhone): bóng nói của na sát mép trên không còn trắng bệch",
+     "te": "Warm light (iPhone): na's speech bubble no longer turns white near the top edge",
+     "d": "Trên iPhone lớp ánh sáng ấm chừa dải thanh trên cùng để màu vùng giờ/pin đúng; khi thảy na lên cao, phần bóng nói lọt vào dải đó không được phủ ấm nên trắng hẳn. Giờ bóng nói tự phủ ấm đúng phần nằm trong dải, cả bóng một màu.",
+     "de": "On iPhone the warm-light layer skips the top bar strip so the status-bar colour stays right; when na was tossed high, the part of her speech bubble inside that strip stayed un-warmed and looked white. The bubble now warms exactly that part, so it's one even colour."
     }
    ]
   },
