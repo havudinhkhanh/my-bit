@@ -97,6 +97,22 @@
      "d": "Vồ chuột, vồ con trỏ, vồ chuông / bướm: vào thế nhanh hơn và bật nhảy nhanh hơn – chân chạm đất sau ~1,2 giây thay vì ~1,6 giây; mọi chỗ canh giờ (chuột tới đúng lúc chạm đất, đồ vật lắc, bướm bay tới) tính lại theo tốc độ mới.",
      "te": "na's pounce is ~25% quicker",
      "de": "Pouncing on the mouse, the cursor, the bell or a butterfly: she sets and springs faster – paws touch down after ~1.2 s instead of ~1.6 s; every timing (mouse arriving at touchdown, objects wobbling, the butterfly arriving) is recalculated for the new speed."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Chuột bị vồ trúng thì bẹp dí",
+     "d": "Thay vì thu nhỏ rồi biến mất, chuột bị chân na đè bẹp dí xuống đất (toè ra, nảy nhẹ), nằm bẹp khoảng 1 giây rồi mới mờ đi.",
+     "te": "A caught mouse gets squashed flat",
+     "de": "Instead of shrinking away, the mouse is squashed flat under na's paws (splats out with a small bounce), stays flat for about a second, then fades."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Đuổi chuột luôn chạy bằng dáng chạy mới (chân đan chéo)",
+     "d": "Bảng dáng chạy mới trước nằm cuối hàng chờ tải, nên 10–40 giây đầu sau khi mở trang na đuổi chuột bằng dáng chạy vẽ cũ (chân không đan chéo, giật). Giờ dáng chạy và dáng vồ được tải sớm ngay sau dáng đi; nếu chưa kịp tải thì na đi nhanh bằng dáng đi mới chứ không dùng dáng cũ. Rình con trỏ cũng vậy.",
+     "te": "Mouse chases always use the new run (crossing legs)",
+     "de": "The new run sheet used to sit at the end of the loading queue, so for the first 10–40 seconds after opening a page na chased with the old drawn run (no leg crossing, choppy). The run and pounce sheets now load right after the walk; if they're not ready yet she walks fast with the new walk instead of the old run. Same for stalking the cursor."
     }
    ]
   },
