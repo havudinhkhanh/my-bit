@@ -146,6 +146,15 @@
      "d": "Binance đã đổi menu Ví (Wallet) thành Tài sản (Assets). Hướng dẫn nay đi theo đường mới: Tài sản → Lịch sử tài sản → biểu tượng tải xuống → Xuất bản ghi giao dịch (kèm đường thay thế qua biểu tượng người → Lệnh, và link mở thẳng trang). Cập nhật luôn đường lấy P2P, Futures (lệnh cũ hơn 3 tháng), Spot, Convert, và các lưu ý: tối đa 12 tháng mỗi lần, có giới hạn lượt mỗi tháng, link hết hạn sau 7 ngày, đừng mở file bằng Excel rồi lưu lại.",
      "te": "Tax ledger: Binance export guide matches the new interface",
      "de": "Binance renamed Wallet to Assets. The guide now follows the new path: Assets → Asset History → download icon → Export Transaction Records (plus an alternative via the person icon → Orders, and a direct link to the page). Also updated the P2P, Futures (orders older than 3 months), Spot and Convert paths, and notes: up to 12 months per request, a monthly quota, links expire after 7 days, don't open and re-save the file in Excel."
+    },
+    {
+     "c": "new",
+     "a": "port",
+     "go": "#/tax",
+     "t": "Sổ thuế nhận file Lịch sử nạp / rút của Binance",
+     "d": "Nhập thêm file Deposit History / Withdraw History: mỗi dòng nạp / rút có mạng, địa chỉ ví (rút gọn), TXID, phí rút – bằng chứng tiền chỉ chuyển giữa các ví của anh, không phải bán. Sổ tự khớp với dòng nạp / rút trong lịch sử tổng (cùng coin, lệch ≤ 30 phút, số lượng khớp kể cả phí) để không đếm 2 lần, bỏ lệnh rút bị huỷ, đọc đúng múi giờ ghi trên tên cột (vd UTC+7).",
+     "te": "Tax ledger reads Binance Deposit / Withdraw History files",
+     "de": "Import Deposit History / Withdraw History files too: each deposit / withdrawal gets its network, wallet address (shortened), TXID and withdrawal fee – evidence that funds only moved between your own wallets, not sold. The journal matches them to the transaction-history rows (same coin, within 30 minutes, amount incl. fee) so nothing is counted twice, skips cancelled withdrawals, and reads the time zone stated in the column name (e.g. UTC+7)."
     }
    ]
   },

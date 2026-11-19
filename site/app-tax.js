@@ -18,7 +18,7 @@ const TAX = {
 };
 const TXC = { spot: ["🔁", bi("Mua/bán spot", "Spot trade")], conv: ["⚡", "Convert"], p2p: ["🇻🇳", bi("P2P (VND)", "P2P (VND)")], fut: ["📈", "Futures"], fpl: ["🧾", bi("Lời/lỗ, phí, funding futures", "Futures P/L, fees, funding")], dep: ["⬇️", bi("Nạp", "Deposit")], wd: ["⬆️", bi("Rút", "Withdraw")], earn: ["🎁", bi("Thu nhập khác (lãi, airdrop, hoa hồng)", "Other income (interest, airdrop, referral)")], xfer: ["↔️", bi("Chuyển ví nội bộ", "Internal transfer")], other: ["•", bi("Khác", "Other")] };
 const TXS = { buy: bi("Mua", "Buy"), sell: bi("Bán", "Sell"), swap: bi("Đổi", "Swap"), in: bi("Vào", "In"), out: bi("Ra", "Out") };
-const TXSRC = { ledger: bi("Lịch sử giao dịch tổng", "Transaction history"), spot: bi("Khớp lệnh spot", "Spot trade history"), p2p: "P2P", fut: bi("Khớp lệnh futures", "Futures trade history"), conv: bi("Lịch sử convert", "Convert history"), bot: bi("Bot (tự động)", "Bot (auto)"), man: bi("Nhập tay", "Manual") };
+const TXSRC = { ledger: bi("Lịch sử giao dịch tổng", "Transaction history"), dw: bi("Lịch sử nạp / rút", "Deposit / withdraw history"), spot: bi("Khớp lệnh spot", "Spot trade history"), p2p: "P2P", fut: bi("Khớp lệnh futures", "Futures trade history"), conv: bi("Lịch sử convert", "Convert history"), bot: bi("Bot (tự động)", "Bot (auto)"), man: bi("Nhập tay", "Manual") };
 const txDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
 const txTime = (t) => { const d = new Date(t + 7 * 3600e3).toISOString(); return `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)} ${d.slice(11, 19)}`; };
 const txV = (v, d = 0) => (isNum(v) ? new Intl.NumberFormat(LOC, { maximumFractionDigits: d, minimumFractionDigits: d }).format(v) : "—");
@@ -113,6 +113,7 @@ function txKind(h) {
   if (has("operation", "change") && any("utc_time", "time")) return "ledger";
   if (any("order number", "order no") && any("fiat type", "fiat") && any("total price", "total")) return "p2p";
   if (has("wallet", "sell", "buy") && any("pair")) return "conv";
+  if (any("txid", "transaction id", "tx hash") && any("address") && has("coin") && any("amount") && !any("operation")) return "dw";      // lịch sử nạp / rút coin (Deposit / Withdraw History)
   if (any("realized profit", "realized pnl") && any("symbol", "contract") && has("price")) return "fut";
   if (any("pair", "market", "symbol") && any("side", "type") && has("price") && any("executed", "amount", "quantity", "filled")) return "spot";
   return H.length ? "?" : "";
@@ -199,7 +200,22 @@ function txFromConv(rows) {
   }
   return { rows: out };
 }
-const TXPARSE = { ledger: txFromLedger, spot: txFromSpot, fut: txFromFut, p2p: txFromP2p, conv: txFromConv };
+// lịch sử NẠP / RÚT coin: thêm mạng, địa chỉ ví, TXID, phí rút, trạng thái cho các dòng nạp / rút (lịch sử tổng chỉ có số lượng).
+//   Nạp hay rút: theo tên file ("Deposit" / "Withdraw"); không rõ thì dòng có phí rút > 0 là rút. Giờ: theo múi giờ ghi ở tên cột (vd "Date(UTC+7)"), không ghi = UTC
+function txFromDw(rows, name = "") {
+  const { H, f } = txCols(rows[0]), iT = f("date", "time"), iC = f("coin"), iN = f("network"), iA = f("amount"), iF = f("transactionfee", "transaction fee", "fee"), iAd = f("address"), iTx = f("txid", "transaction id", "tx hash"), iSt = f("status"), out = [];
+  const tz = (H[iT] || "").match(/utc\s*([+-])\s*(\d{1,2})/), off = tz ? (tz[1] === "-" ? -1 : 1) * +tz[2] * 3600e3 : 0, nm = String(name).toLowerCase(), kind = /withdraw|rút/.test(nm) ? "wd" : /deposit|nạp/.test(nm) ? "dep" : null;
+  const sh = (x) => { x = String(x || "").trim(); return x.length > 14 ? `${x.slice(0, 6)}…${x.slice(-4)}` : x; };
+  for (const r of rows.slice(1)) {
+    const st = String(r[iSt] || "").toLowerCase(); if (st && !/complet|success|thành|hoàn|credited|done/.test(st)) continue;      // bỏ lệnh rút huỷ / thất bại / đang chờ
+    const t = txT(r[iT]) - off, c = String(r[iC] || "").toUpperCase().trim(), q = txN(r[iA]).v, fe = iF >= 0 ? txN(r[iF]).v : NaN; if (!isNum(t) || !c || !isNum(q)) continue;
+    const cat = kind || (isNum(fe) && fe > 0 ? "wd" : "dep"), net = String(r[iN] || "").trim(), ad = String(r[iAd] || "").trim(), tx = String(r[iTx] || "").trim();
+    out.push({ t, src: "dw", cat, side: cat === "wd" ? "out" : "in", base: c, qty: Math.abs(q), usd: txIsSt(c) ? Math.abs(q) : null, fee: cat === "wd" && isNum(fe) && fe > 0 ? fe : null, feeC: c,
+      ref: [cat === "wd" ? bi("Rút", "Withdraw") : bi("Nạp", "Deposit"), net, ad && (cat === "wd" ? bi("tới ", "to ") : bi("từ ", "from ")) + sh(ad), tx && "TXID " + sh(tx)].filter(Boolean).join(" · "), note: [ad && `${bi("Địa chỉ", "Address")}: ${ad}`, tx && `TXID: ${tx}`].filter(Boolean).join(" · ") || null });
+  }
+  return { rows: out };
+}
+const TXPARSE = { ledger: txFromLedger, spot: txFromSpot, fut: txFromFut, p2p: txFromP2p, conv: txFromConv, dw: txFromDw };
 
 // ---------------------------------------------------------------- giá (Binance, công khai) & tỷ giá USD/VND theo ngày
 async function txPool(items, n, fn, prog) { let i = 0, done = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < items.length) { const x = items[i++]; try { await fn(x); } catch (e) { /* bỏ qua */ } done++; prog?.(done, items.length); } })); }
@@ -251,10 +267,14 @@ function txCalc(r) {
 // dòng dùng để tính: bỏ dòng trùng (file chuyên biệt được ưu tiên hơn lịch sử tổng; lệnh bot bị bỏ khi đã có file futures cùng khoảng)
 function txRows() {
   const B = TAX.book, all = B.rows.map(txO), rng = {};
-  for (const r of all) if (r.src !== "ledger" && r.src !== "bot" && r.src !== "man") { const g = (rng[r.cat] ||= [Infinity, -Infinity]); g[0] = Math.min(g[0], r.t); g[1] = Math.max(g[1], r.t); }
+  for (const r of all) if (r.src !== "ledger" && r.src !== "bot" && r.src !== "man" && r.src !== "dw") { const g = (rng[r.cat] ||= [Infinity, -Infinity]); g[0] = Math.min(g[0], r.t); g[1] = Math.max(g[1], r.t); }
   const inR = (r) => { const g = rng[r.cat]; return g && r.t >= g[0] - 60e3 && r.t <= g[1] + 60e3; };
   const bot = (TAX.bot || []).filter((r) => !inR(r));
-  const rows = [...all.map((r) => ({ ...r, dup: r.src === "ledger" && ["spot", "conv", "p2p"].includes(r.cat) && inR(r) })), ...bot];
+  const DW = all.filter((r) => r.src === "dw"), used = new Set();
+  const dwDup = (r) => { if (r.src !== "ledger" || (r.cat !== "dep" && r.cat !== "wd") || !DW.length) return false;
+    const m = DW.find((d) => !used.has(d.id) && d.cat === r.cat && d.base === r.base && Math.abs(d.t - r.t) < 30 * 60e3 && Math.min(Math.abs(d.qty - r.qty), Math.abs(d.qty + (d.fee || 0) - r.qty)) <= Math.max(1e-8, r.qty * 2e-3));
+    if (m) used.add(m.id); return !!m; };
+  const rows = [...all.map((r) => ({ ...r, dup: (r.src === "ledger" && ["spot", "conv", "p2p"].includes(r.cat) && inR(r)) || dwDup(r) })), ...bot];
   TAX.p2pFx = {}; const pg = {};
   for (const r of rows) if (r.cat === "p2p" && isNum(r.vnd) && r.qty > 0 && !r.dup) { const d = txDay(r.t), g = (pg[d] ||= [0, 0]); g[0] += r.vnd; g[1] += r.qty; }
   for (const [d, [v, q]] of Object.entries(pg)) TAX.p2pFx[d] = Math.round(v / q);
@@ -287,7 +307,7 @@ async function txImport(files, log) {
       if (B.files.some((f) => f.h === fh)) { rep.push({ name: s.name, kind: B.files.find((f) => f.h === fh).kind, n: 0, dup: 0, same: 1 }); continue; }      // đúng file đã nhập → bỏ qua cả file
       const hi = s.rows.findIndex((r) => txKind(r) && txKind(r) !== "?"), kind = hi >= 0 ? txKind(s.rows[hi]) : "?";
       if (kind === "?") { rep.push({ name: s.name, err: bi("Không nhận ra loại file", "Unrecognized file"), cols: (s.rows[0] || []).slice(0, 12).join(", ") }); continue; }
-      const P = TXPARSE[kind](s.rows.slice(hi)), add = [];
+      const P = TXPARSE[kind](s.rows.slice(hi), s.name), add = [];
       log(`${s.name}: ${P.rows.length} ${bi("dòng", "rows")}…`);
       await txFill(P.rows, log);
       let dup = 0;
@@ -352,11 +372,12 @@ function txDraw() {
     <p class="tx-note">${bi("P2P luôn dùng đúng số VND anh đã nhận/trả. Giao dịch khác quy USDT/USDC… = USD rồi nhân tỷ giá ngày (giờ VN). Tỷ giá thị trường lấy từ bộ tỷ giá công khai theo ngày (fawazahmed0 currency-api); trước 02/3/2024 dùng tỷ giá ngày gần nhất có dữ liệu. Nếu cơ quan thuế yêu cầu tỷ giá Vietcombank/Ngân hàng Nhà nước, chọn tỷ giá cố định hoặc sửa từng ngày trong file Excel xuất ra.", "P2P always uses the exact VND you received/paid. Other rows convert stablecoins = USD at the daily rate (VN time). Market rates come from a public daily dataset (fawazahmed0 currency-api); before 02/03/2024 the nearest available day is used. If the tax office requires Vietcombank/SBV rates, use a fixed rate or adjust per day in the exported Excel.")}</p>`;
   const how = `<details class="tx-how"><summary>${bi("📥 Cách lấy file từ Binance (làm 1 lần cho toàn bộ lịch sử)", "📥 How to get files from Binance (once for the full history)")}</summary><ol>
     <li><b>${bi("Lịch sử giao dịch tổng – quan trọng nhất", "Transaction history – most important")}</b>: ${bi(`binance.com trên máy tính → menu <b>Tài sản</b> (Assets – trước đây tên là Ví / Wallet) → <i>Lịch sử tài sản</i> (Asset History). Không thấy menu này: bấm biểu tượng người góc trên phải → <i>Lệnh</i> (Orders) → cột trái mục <i>Tài khoản</i> → <i>Lịch sử tài sản</i>, hoặc mở thẳng <a href="https://www.binance.com/vi/my/wallet/history/overview" target="_blank" rel="noopener">trang Lịch sử tài sản</a>.
-      Rê vào biểu tượng tải xuống góc trên phải → <i>Xuất bản ghi giao dịch</i> (Export Transaction Records) → Thời gian: <i>Tuỳ chỉnh</i>, tối đa 12 tháng mỗi lần → Tài khoản: Tất cả · Coin: Tất cả → <i>Tạo</i> (Generate) → chờ vài phút (Binance báo qua email / SMS) → <i>Tải xuống</i>. Lặp lại cho từng năm từ ngày mở tài khoản. File này có đủ spot, convert, P2P (số USDT), nạp/rút, Earn, futures (lời lỗ, phí, funding).`, `binance.com on desktop → <b>Assets</b> menu (formerly Wallet) → <i>Asset History</i>. Can't find it: click the person icon top right → <i>Orders</i> → left column under <i>Account</i> → <i>Asset History</i>, or open the <a href="https://www.binance.com/en/my/wallet/history/overview" target="_blank" rel="noopener">Asset History page</a> directly.
-      Hover the download icon top right → <i>Export Transaction Records</i> → Time: <i>Customize</i>, up to 12 months per request → Account: All · Coin: All → <i>Generate</i> → wait a few minutes (Binance emails / texts you) → <i>Download</i>. Repeat per year since account opening. It covers spot, convert, P2P (USDT), deposits/withdrawals, Earn and futures P/L, fees, funding.`)}</li>
+      Rê vào biểu tượng tải xuống góc trên phải → <i>Xuất bản ghi giao dịch</i> (Export Transaction Records) → Loại dữ liệu: <i>Transaction History</i> · Thời gian: <i>Tuỳ chỉnh</i>, từ ngày mở tài khoản tới hôm nay (Binance không cho chọn dài thì chia mỗi lần 12 tháng) → Tài khoản: Tất cả · Coin: Tất cả → <i>Tạo</i> (Generate) → chờ vài phút (Binance báo qua email) → <i>Tải xuống</i> trong mục Export Details. File này có đủ spot, convert, P2P (số USDT), nạp/rút, Earn, futures (lời lỗ, phí, funding).`, `binance.com on desktop → <b>Assets</b> menu (formerly Wallet) → <i>Asset History</i>. Can't find it: click the person icon top right → <i>Orders</i> → left column under <i>Account</i> → <i>Asset History</i>, or open the <a href="https://www.binance.com/en/my/wallet/history/overview" target="_blank" rel="noopener">Asset History page</a> directly.
+      Hover the download icon top right → <i>Export Transaction Records</i> → Data type: <i>Transaction History</i> · Time: <i>Customize</i>, from account opening to today (if Binance won't allow a long range, split into 12-month requests) → Account: All · Coin: All → <i>Generate</i> → wait a few minutes (Binance emails you) → <i>Download</i> under Export Details. It covers spot, convert, P2P (USDT), deposits/withdrawals, Earn and futures P/L, fees, funding.`)}</li>
     <li><b>P2P (${bi("để có đúng số VND", "for exact VND")})</b>: ${bi("Lệnh (Orders) → <i>Lệnh P2P</i> → Lịch sử lệnh → chọn mọi coin, Mua &amp; Bán, mọi trạng thái, khoảng thời gian → biểu tượng tải xuống / Xuất. Không thấy nút xuất: trong <i>Lịch sử tài sản</i> → <i>Xuất bản ghi giao dịch</i> → loại dữ liệu <i>P2P (C2C)</i>.", "Orders → <i>P2P Orders</i> → order history → all coins, Buy &amp; Sell, all statuses, date range → download / Export. No export button: <i>Asset History</i> → <i>Export Transaction Records</i> → data type <i>P2P (C2C)</i>.")}</li>
     <li><b>Futures (${bi("để có giá trị từng lệnh", "for each fill's value")})</b>: ${bi("Lệnh (Orders) → <i>Lệnh Futures</i> → USDⓈ-M → <i>Lịch sử giao dịch</i> (Trade History) → Xuất; giao dịch cũ hơn 3 tháng: chọn <i>Hơn 3 tháng – Tuỳ chỉnh</i>. Lệnh của bot trên Binance thật đã tự có trong sổ; file này bổ sung lệnh anh tự vào.", "Orders → <i>Futures Orders</i> → USDⓈ-M → <i>Trade History</i> → Export; older than 3 months: pick <i>Beyond 3 months – Custom</i>. Bot trades on live Binance are already included; this adds your manual trades.")}</li>
-    <li>${bi("Tuỳ chọn – Khớp lệnh spot (Lệnh → <i>Lệnh Spot</i> → <i>Lịch sử giao dịch</i> → Xuất; trang này chỉ hiện 6 tháng gần nhất, cũ hơn thì đã có trong lịch sử tổng ở bước 1) và Lịch sử Convert (Lệnh → <i>Lịch sử chuyển đổi</i> → Xuất): chính xác hơn lịch sử tổng; có thì sổ tự ưu tiên và bỏ dòng trùng.", "Optional – Spot trade history (Orders → <i>Spot Orders</i> → <i>Trade History</i> → Export; shows the last 6 months only – older trades are in step 1's history) and Convert history (Orders → <i>Convert History</i> → Export): more precise than the transaction history; the journal prefers them and drops duplicates.")}</li></ol>
+    <li>${bi("Tuỳ chọn – Khớp lệnh spot (Lệnh → <i>Lệnh Spot</i> → <i>Lịch sử giao dịch</i> → Xuất; trang này chỉ hiện 6 tháng gần nhất, cũ hơn thì đã có trong lịch sử tổng ở bước 1) và Lịch sử Convert (Lệnh → <i>Lịch sử chuyển đổi</i> → Xuất): chính xác hơn lịch sử tổng; có thì sổ tự ưu tiên và bỏ dòng trùng.", "Optional – Spot trade history (Orders → <i>Spot Orders</i> → <i>Trade History</i> → Export; shows the last 6 months only – older trades are in step 1's history) and Convert history (Orders → <i>Convert History</i> → Export): more precise than the transaction history; the journal prefers them and drops duplicates.")}</li>
+    <li>${bi("Tuỳ chọn – <b>Lịch sử nạp</b> và <b>Lịch sử rút</b> (cùng chỗ <i>Xuất bản ghi giao dịch</i> → loại dữ liệu <i>Deposit History</i> / <i>Withdraw History</i>): thêm mạng, địa chỉ ví, TXID, phí rút cho từng lần nạp / rút – để chứng minh tiền chỉ chuyển giữa các ví của anh (không phải bán). Sổ tự gộp với dòng nạp / rút trong lịch sử tổng, bỏ lệnh rút bị huỷ; nộp kèm không bị đếm 2 lần.", "Optional – <b>Deposit History</b> and <b>Withdraw History</b> (same <i>Export Transaction Records</i> → data type): adds network, wallet address, TXID and withdrawal fee to each deposit / withdrawal – evidence that funds only moved between your own wallets (not sold). The journal merges them with the transaction-history rows and skips cancelled withdrawals; never double-counted.")}</li></ol>
     <p class="tx-note">${bi("Lưu ý từ Binance: mỗi tháng chỉ được tạo một số lượt báo cáo, link tải hết hạn sau 7 ngày, báo cáo quá lớn (hơn ~50.000 dòng) có thể lỗi – chia nhỏ khoảng thời gian. Tải về rồi nhập thẳng, <b>đừng mở bằng Excel rồi lưu lại</b> (Excel đổi ngày giờ / số). Trên điện thoại: tạo báo cáo trên máy tính dễ hơn.", "Binance notes: monthly report quota is limited, download links expire after 7 days, very large reports (over ~50,000 rows) may fail – split the period. Import the downloaded file as-is, <b>don't open and re-save it in Excel</b> (Excel alters dates / numbers). On a phone: generating reports on a computer is easier.")}</p>
     <p class="tx-note">${bi("Chọn được nhiều file một lúc (CSV, XLSX hoặc ZIP). Sổ tự nhận ra loại file, nhập lại file cũ không bị đếm 2 lần. Tên mục trên Binance có thể khác một chút theo phiên bản (hướng dẫn cập nhật theo giao diện 11/2026) – file nào không nhận ra, sổ sẽ báo tên các cột để em bổ sung.", "Pick several files at once (CSV, XLSX or ZIP). The journal detects each file type; re-importing never double-counts. Binance menu names may differ slightly by version (guide matches the Nov 2026 interface) – unrecognized files show their columns so support can be added.")}</p></details>`;
   const add = `<details class="tx-how" id="txAddD"><summary>✍️ ${bi("Nhập tay một giao dịch", "Add a transaction manually")}</summary><div class="tx-add">
