@@ -78,9 +78,17 @@
      "c": "imp",
      "a": "mascot",
      "t": "Đuổi chuột: na nằm phục, vồ đón đầu – vừa đáp đất là chuột vừa chạy tới",
-     "d": "Trước đây ở lần bắt trúng, chuột chạy tới gần chân na thì đứng khựng lại chờ, rồi na mới nhảy lên. Giờ na nằm phục tại chỗ, tính trước quãng chuột chạy trong lúc vồ (~1,6 giây) để bật nhảy sớm; chuột cứ chạy đều tới và chân trước na chạm đất đúng lúc chuột chạy tới dưới chân (đo lệch ~4 px). Lần vồ trượt giữ nguyên.",
+     "d": "Trước đây ở lần bắt trúng, chuột chạy tới gần chân na thì đứng khựng lại chờ, rồi na mới nhảy lên. Giờ na nằm phục tại chỗ, tính trước quãng chuột chạy trong lúc vồ (~1,6 giây) để bật nhảy sớm; chuột cứ chạy đều tới và chân trước na chạm đất đúng lúc chuột chạy tới dưới chân (đo lệch ~4 px). Lần vồ trượt giữ nguyên. Trên điện thoại: màn hẹp nên trước đây chuột hay chạy lướt qua khi na còn đang quay đầu – giờ chuột dừng đánh hơi chờ na thủ thế xong; vị trí chuột bám theo đúng khung hình na đang hiện nên máy bận / tụt khung vẫn khớp.",
      "te": "Mouse chase: na lies in ambush and leads the pounce – she lands just as the mouse arrives",
-     "de": "On a successful catch the mouse used to run up near na's paws and freeze there while she got ready to jump. Now na waits in ambush and accounts for how far the mouse runs during her pounce (~1.6 s), leaping early; the mouse keeps running and her front paws touch down exactly as it arrives (measured within ~4 px). Misses are unchanged."
+     "de": "On a successful catch the mouse used to run up near na's paws and freeze there while she got ready to jump. Now na waits in ambush and accounts for how far the mouse runs during her pounce (~1.6 s), leaping early; the mouse keeps running and her front paws touch down exactly as it arrives (measured within ~4 px). Misses are unchanged. On phones the narrow screen often let the mouse run past while na was still turning – now it pauses to sniff until she's set; the mouse's position follows the frame na is actually showing, so it still lines up when the phone is busy or drops frames."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Gặp nút Bảng phụ / mép sân: na dừng hẳn, không chạy tại chỗ",
+     "d": "Trước đây lúc đuổi chuột, na chạy tới nút Bảng phụ (hoặc mép sân) bị chặn lại nhưng vẫn cứ đổi dáng chạy – đứng – chạy liên tục tại chỗ. Giờ na đo lại sân chạy mỗi lúc, chạm nút / mép là đứng nhìn theo; đang đi mà nút hiện ra thì dừng trước nút, không bước tại chỗ.",
+     "te": "Hitting the Side panel button / edge: na stops instead of running in place",
+     "de": "While chasing the mouse, na could run up to the Side panel button (or the edge of her area), get blocked, and keep cycling run – stand – run in place. She now re-measures her area as she goes; at the button or edge she stands and watches, and if the button appears mid-walk she stops in front of it without stepping in place."
     }
    ]
   },
