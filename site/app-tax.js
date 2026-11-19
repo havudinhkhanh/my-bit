@@ -318,14 +318,17 @@ async function txBotRows() {
 }
 
 // ---------------------------------------------------------------- nhập file
-async function txImport(files, log) {
+async function txImport(files, log, pg) {      // pg: thanh tiến độ (file thứ fi: trạng thái, phần trăm, dòng chữ)
   const B = TAX.book, have = new Set(B.rows.map((a) => a[0])), rep = [];
-  for (const file of files) {
-    let sheets; try { sheets = await txSheets(file); } catch (e) { rep.push({ name: file.name, err: e.message }); continue; }
-    for (const s of sheets) {
+  for (const [fi, file] of [...files].entries()) {
+    pg?.file(fi, "run", 0, bi("Đang mở file…", "Opening file…")); await new Promise((ok) => setTimeout(ok, 0));
+    let sheets; try { sheets = await txSheets(file); } catch (e) { rep.push({ name: file.name, err: e.message }); pg?.file(fi, "err", 1, e.message); continue; }
+    const r0 = rep.length;
+    for (const [si, s] of sheets.entries()) {
+      const sf = (x) => (si + x) / sheets.length;
       const fh = txH(s.rows.map((r) => r.join("\u0001")).join("\n"));
       const old = B.files.find((f) => f.h === fh);
-      if (old && (old.pv || 1) >= TXPV) { rep.push({ name: s.name, kind: old.kind, n: 0, dup: 0, same: 1 }); continue; }      // đúng file đã nhập → bỏ qua cả file
+      if (old && (old.pv || 1) >= TXPV) { rep.push({ name: s.name, kind: old.kind, n: 0, dup: 0, same: 1 }); pg?.file(fi, "run", sf(1), bi("đã nhập trước đây – bỏ qua", "already imported – skipped")); continue; }      // đúng file đã nhập → bỏ qua cả file
       if (old) { const SRC = { ledger: "ledger", dw: "dw", spot: "spot", p2p: "p2p", fut: "fut", conv: "conv" }[old.kind], a = (old.from ?? -Infinity) - 864e5, z = (old.to ?? Infinity) + 864e5;      // file nhập bằng bản đọc cũ (sai múi giờ / chưa gộp dòng) → xoá dòng cũ của file đó rồi đọc lại
         B.rows = B.rows.filter((x) => { const o = txO(x); return !(o.src === SRC && o.t >= a && o.t <= z); }); B.files = B.files.filter((f) => f !== old); have.clear(); B.rows.forEach((x) => have.add(x[0])); }
       const hi = s.rows.findIndex((r) => txKind(r) && txKind(r) !== "?"), kind = hi >= 0 ? txKind(s.rows[hi]) : "?";
@@ -335,9 +338,9 @@ async function txImport(files, log) {
       const add = [], occ = new Map(), net = {}; let dup = 0, a = 0, part = 0, t0 = Infinity, t1 = -Infinity;
       do {
         let z = Math.min(body.length, a + CH); if (iT >= 0) while (z < body.length && body[z][iT] === body[z - 1][iT]) z++;
-        part++; log(`${s.name}: ${bi("phần", "part")} ${part}/${NP} · ${bi("dòng", "rows")} ${a + 1}–${z} / ${body.length}`);
+        part++; const pm = `${bi("phần", "part")} ${part}/${NP} · ${bi("dòng", "rows")} ${txV(a + 1)}–${txV(z)} / ${txV(body.length)}`; log(`${s.name}: ${pm}`); pg?.file(fi, "run", sf((part - 1) / NP), pm);
         TXOFF = off; let P; try { P = TXPARSE[kind]([hdr, ...body.slice(a, z)], s.name); } finally { TXOFF = 0; }
-        await txFill(P.rows, (m) => log(`${s.name}: ${bi("phần", "part")} ${part}/${NP} · ${m}`));
+        await txFill(P.rows, (m) => { log(`${s.name}: ${bi("phần", "part")} ${part}/${NP} · ${m}`); const mm = String(m).match(/(\d+)\s*\/\s*(\d+)\s*$/), ff = mm ? +mm[1] / Math.max(1, +mm[2]) : 0, fxs = /USD\/VND/.test(m); pg?.file(fi, "run", sf((part - 1 + 0.1 + 0.9 * (fxs ? 0.5 + 0.5 * ff : 0.5 * ff)) / NP), `${bi("phần", "part")} ${part}/${NP} · ${m}`); });      // tiến độ trong từng phần: lấy giá (nửa đầu) → lấy tỷ giá (nửa sau)
         for (const r of P.rows) {
           if (!r.id) { const k0 = `${r.src}|${r.cat}|${r.t}|${r.side}|${r.base}|${r.quote}|${(+r.qty).toPrecision(10)}|${r.ref || ""}`, o = (occ.get(k0) || 0) + 1; occ.set(k0, o); r.id = txH(o > 1 ? `${k0}#${o}` : k0); }      // 2 dòng giống hệt (vd funding 2 vị thế cùng giờ, cùng số) vẫn giữ đủ; nhập lại file vẫn ra cùng mã → không đếm 2 lần
           if (have.has(r.id)) { dup++; continue; } have.add(r.id); add.push(txA(r)); if (isNum(r.t)) { if (r.t < t0) t0 = r.t; if (r.t > t1) t1 = r.t; } }
@@ -348,6 +351,7 @@ async function txImport(files, log) {
       B.files.push({ h: fh, pv: TXPV, name: s.name, kind, n: add.length, dup, parts: NP, at: new Date().toISOString(), from: isFinite(t0) ? t0 : null, to: isFinite(t1) ? t1 : null, net: Object.keys(net).length ? net : null });
       rep.push({ name: s.name, kind, n: add.length, dup });
     }
+    const R = rep.slice(r0); pg?.file(fi, R.some((x) => x.err) && !R.some((x) => x.n) ? "err" : R.every((x) => x.same) ? "same" : "ok", 1, R.map((x) => (x.err ? "⚠️ " + x.err : x.same ? bi("đã nhập trước đây – bỏ qua", "already imported – skipped") : `${txV(x.n)} ${bi("dòng mới", "new rows")}${x.dup ? ` · ${txV(x.dup)} ${bi("trùng", "dup")}` : ""}`)).join(" · ") || bi("không có dữ liệu", "no data"));
   }
   return rep;
 }
@@ -420,6 +424,29 @@ async function txHist(force) {
 window.txHist = txHist;
 
 // ---------------------------------------------------------------- giao diện
+const txSize = (b) => (b >= 1048576 ? `${nf(b / 1048576, 1)} MB` : `${nf(Math.max(1, b / 1024), 0)} KB`);
+// 📊 THANH TIẾN ĐỘ nhập file: báo đã nhận file ngay, % tổng (đọc 85% · dựng lịch sử 5% · lưu 10%, file lớn nặng hơn), từng file: chờ / đang xử lý / xong / lỗi, ước tính thời gian còn lại.
+//    Vẽ trong #txProg (trang tự vẽ lại khi xong vẫn giữ bảng kết quả – TAX.progHtml), chặn rời trang khi đang ghi sổ
+function txProg(files) {
+  const F = files.map((f) => ({ name: f.name, size: f.size || 1, st: "wait", f: 0, msg: "" })), tot = F.reduce((a, x) => a + x.size, 0), t0 = performance.now(), S = { hist: 0, save: 0, k: "imp", msg: "" };
+  let raf = 0, fin = null; const guard = (e) => { e.preventDefault(); e.returnValue = ""; }; addEventListener("beforeunload", guard);
+  const pc = () => { const imp = F.reduce((a, x) => a + x.size * (x.st === "wait" ? 0 : x.f), 0) / tot; return Math.min(1, imp * 0.85 + S.hist * 0.05 + S.save * 0.1); };
+  const IC = { wait: "⏳", run: "🔄", ok: "✅", same: "↩️", err: "⚠️" };
+  const html = () => { const p = fin ? 1 : pc(), el = (performance.now() - t0) / 1000, eta = !fin && p > 0.06 ? el / p * (1 - p) : null, cur = F.find((x) => x.st === "run");
+    const st = fin ? (fin.ok ? bi(`Xong · ${nf(el, 0)} giây`, `Done · ${nf(el, 0)} s`) : `⚠️ ${esc(fin.msg || bi("Chưa lưu được – thử lại", "Couldn't save – try again"))}`) : S.k !== "imp" ? esc(S.msg) : cur ? `${esc(cur.name)} · ${esc(cur.msg)}` : bi("Chuẩn bị…", "Preparing…");
+    return `<div class="txp ${fin ? (fin.ok ? "done" : "bad") : "run"}"><div class="txp-h"><b>📥 ${bi(`Đã nhận ${F.length} file`, `Received ${F.length} file(s)`)}</b><small>${txSize(tot)}</small><b class="txp-pc">${nf(p * 100, 0)}%</b>${fin ? `<button type="button" class="txp-x" data-txpx aria-label="${bi("Đóng", "Close")}">✕</button>` : ""}</div>
+      <div class="txp-bar${!fin && p < 0.02 ? " ind" : ""}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(p * 100)}"><i style="width:${(p * 100).toFixed(1)}%"></i></div>
+      <div class="txp-st">${st}${eta != null ? ` <span class="faint">· ${bi("còn khoảng", "about")} ${eta >= 90 ? nf(eta / 60, 0) + bi(" phút", " min") : nf(Math.max(1, eta), 0) + bi(" giây", " s")}${bi("", " left")}</span>` : ""}${!fin ? ` <span class="faint">· ${bi("cứ để trang mở", "keep this page open")}</span>` : ""}</div>
+      <ul class="txp-f">${F.map((x) => `<li class="${x.st}"><span class="ic" aria-hidden="true">${IC[x.st]}</span><span class="nm" title="${esc(x.name)}">${esc(x.name)}</span><small class="sz">${txSize(x.size)}</small><i class="txp-mini"><i style="width:${((x.st === "wait" ? 0 : x.f) * 100).toFixed(0)}%"></i></i><small class="msg">${esc(x.st === "wait" ? bi("chờ", "waiting") : x.msg)}</small></li>`).join("")}</ul></div>`; };
+  const paint = () => { raf = 0; TAX.progHtml = html(); const el = $("#txProg"); if (el) el.innerHTML = TAX.progHtml; };
+  const req = () => { if (!raf) raf = requestAnimationFrame(paint); };
+  const tick = setInterval(req, 1000);      // thời gian còn lại tự cập nhật kể cả khi một bước chạy lâu
+  paint(); $("#txProg")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  const end = (o) => { fin = o; clearInterval(tick); removeEventListener("beforeunload", guard); paint(); };
+  return { file: (i, st, f, msg) => { const x = F[i]; if (!x) return; x.st = st; x.f = Math.max(x.f, Math.min(1, f)); if (msg != null) x.msg = msg; req(); },
+    stage: (k, f, msg) => { S.k = k; if (k === "hist") S.hist = f; if (k === "save") { S.hist = 1; S.save = f; } S.msg = msg; req(); },
+    done: (ok) => end({ ok }), fail: (msg) => end({ ok: false, msg }) };
+}
 async function viewTax() {
   if (!ME || ME.legacy) { app().innerHTML = `<div class="ph"><h1>${bi("Sổ thuế TNCN", "PIT tax journal")}</h1></div><div class="panel"><p class="muted">${bi("Cần đăng nhập để lưu sổ riêng trong tài khoản.", "Sign in to keep a private journal in your account.")}</p></div>`; return; }
   await txLoad(); TAX.bot = await txBotRows();
@@ -495,7 +522,7 @@ function txDraw() {
   app().innerHTML = `<div class="ph"><h1>🧾 ${bi("Sổ thuế TNCN · tài sản mã hoá", "PIT journal · crypto assets")}</h1><span class="meta">${bi("0,1% giá chuyển nhượng từng lần · lưu riêng trong tài khoản · chuẩn bị hồ sơ khi cơ quan thuế yêu cầu", "0.1% of each transfer price · private to your account · documents ready if the tax office asks")}</span></div>
     <div class="txp">
     ${panel(bi("Ước tính thuế theo kịch bản", "Tax estimate by scenario"), kpi + matrix, `<button type="button" class="btn sm" id="txXls">⬇️ Excel</button> <button type="button" class="btn sm" id="txPrint">🖨️ PDF</button> <button type="button" class="btn sm" id="txJson">💾 JSON</button>`)}
-    ${panel(bi("Nhập dữ liệu", "Import data"), `<div class="tx-drop" id="txDrop"><input type="file" id="txFile" multiple accept=".csv,.xlsx,.xls,.zip,.txt"><p>📂 <b>${bi("Chọn hoặc kéo thả file xuất từ Binance", "Choose or drop files exported from Binance")}</b><br><small>${bi("CSV · XLSX · ZIP – lịch sử tổng, P2P, futures, spot, convert", "CSV · XLSX · ZIP – transaction history, P2P, futures, spot, convert")}</small></p></div><div id="txLog" class="tx-log" aria-live="polite"></div>${how}${add}
+    ${panel(bi("Nhập dữ liệu", "Import data"), `<div class="tx-drop" id="txDrop"><input type="file" id="txFile" multiple accept=".csv,.xlsx,.xls,.zip,.txt"><p>📂 <b>${bi("Chọn hoặc kéo thả file xuất từ Binance", "Choose or drop files exported from Binance")}</b><br><small>${bi("CSV · XLSX · ZIP – lịch sử tổng, P2P, futures, spot, convert", "CSV · XLSX · ZIP – transaction history, P2P, futures, spot, convert")}</small></p></div><div id="txProg" class="tx-prog" aria-live="polite">${TAX.progHtml || ""}</div><div id="txLog" class="tx-log" aria-live="polite"></div>${how}${add}
       <p class="tx-note">🤖 ${bi(`Lệnh bot trên Binance thật tự vào sổ: ${TAX.bot.length} lần khớp futures (mở & đóng).`, `Bot trades on live Binance are added automatically: ${TAX.bot.length} futures fills (open & close).`)}</p>`)}
     ${panel(bi("Tổng hợp theo tháng", "Monthly summary"), mon)}
     ${panel(bi("Sổ chi tiết từng giao dịch", "Detailed ledger"), filt + tbl, `${txV(F.length)} ${bi("dòng", "rows")}`)}
@@ -507,15 +534,19 @@ function txDraw() {
 function txWire() {
   const U = window.__TX, B = TAX.book, log = (m) => { const el = $("#txLog"); if (el) el.textContent = m; };
   const go = async (files) => {
-    if (!files?.length || TAX.busy) return; TAX.busy = true; log(bi("Đang đọc file…", "Reading files…"));
+    files = [...(files || [])]; if (!files.length) return;
+    if (TAX.busy) { (TAX.queue ||= []).push(...files); toast(`📥 ${bi(`Đã nhận thêm ${files.length} file – xử lý ngay sau file đang chạy`, `Got ${files.length} more file(s) – queued after the current one`)}`); return; }      // đang xử lý → xếp hàng, không bỏ file
+    TAX.busy = true; const pg = txProg(files); toast(`📥 ${bi(`Đã nhận ${files.length} file (${txSize(files.reduce((a, f) => a + f.size, 0))}) – đang xử lý, xem tiến độ ở mục Nhập dữ liệu`, `Received ${files.length} file(s) (${txSize(files.reduce((a, f) => a + f.size, 0))}) – processing, see progress under Import data`)}`);
     try {
-      const rep = await txImport([...files], log); TAX.hist = null; log(bi("Dựng lịch sử tài khoản…", "Rebuilding account history…")); try { await txHist(true); } catch (e) { /* lịch sử chỉ là phần phụ */ } const ok = await txSave((a, b) => log(`${bi("Đang lưu sổ", "Saving")} ${a}/${b}…`));
-      const el = $("#txLog"); txDraw(); const el2 = $("#txLog");
+      const rep = await txImport(files, log, pg); TAX.hist = null; pg.stage("hist", 0, bi("Dựng lịch sử tài khoản…", "Rebuilding account history…")); log(bi("Dựng lịch sử tài khoản…", "Rebuilding account history…")); try { await txHist(true); } catch (e) { /* lịch sử chỉ là phần phụ */ }
+      pg.stage("save", 0, bi("Đang lưu sổ…", "Saving…")); const ok = await txSave((a, b) => { log(`${bi("Đang lưu sổ", "Saving")} ${a}/${b}…`); pg.stage("save", a / b, `${bi("Đang lưu sổ", "Saving")} ${a}/${b}`); });
+      pg.done(ok); txDraw(); const el2 = $("#txLog");
       if (el2) el2.innerHTML = rep.map((r) => r.err ? `⚠️ <b>${esc(r.name)}</b>: ${esc(r.err)}${r.cols ? `<br><small>${bi("Các cột", "Columns")}: ${esc(r.cols)}</small>` : ""}` : `✅ <b>${esc(r.name)}</b> – ${TXSRC[r.kind] || r.kind}: ${r.same ? bi("file này đã nhập rồi – bỏ qua", "already imported – skipped") : `${r.n} ${bi("dòng mới", "new rows")}`}${r.dup ? `, ${r.dup} ${bi("dòng trùng bỏ qua", "duplicates skipped")}` : ""}`).join("<br>") + (ok ? "" : `<br>⚠️ ${bi("Chưa lưu được lên tài khoản – thử lại", "Couldn't save to your account – try again")}`);
-      void el;
-    } catch (e) { log("⚠️ " + e.message); } finally { TAX.busy = false; }
+      toast(ok ? `✅ ${bi(`Xong ${files.length} file – sổ đã cập nhật`, `Done – ${files.length} file(s) imported`)}` : `⚠️ ${bi("Đã đọc file nhưng chưa lưu được – thử lại", "Read the files but couldn't save – try again")}`);
+    } catch (e) { log("⚠️ " + e.message); pg.fail(e.message); } finally { TAX.busy = false; if (TAX.queue?.length) { const q = TAX.queue; TAX.queue = []; setTimeout(() => go(q), 300); } }
   };
-  $("#txFile").onchange = (e) => go(e.target.files);
+  $("#txFile").onchange = (e) => { go(e.target.files); e.target.value = ""; };      // xoá chọn → chọn lại đúng file đó vẫn nhận
+  $("#txProg").onclick = (e) => { if (e.target.closest("[data-txpx]")) { TAX.progHtml = ""; $("#txProg").innerHTML = ""; } };
   const dz = $("#txDrop"); dz.ondragover = (e) => { e.preventDefault(); dz.classList.add("on"); }; dz.ondragleave = () => dz.classList.remove("on"); dz.ondrop = (e) => { e.preventDefault(); dz.classList.remove("on"); go(e.dataTransfer.files); };
   $$("[data-txmon]").forEach((b) => (b.onclick = () => { U.mon = b.dataset.txmon; txDraw(); }));
   const keep = (fn) => { const y = scrollY; fn(); txDraw(); scrollTo(0, y); };
