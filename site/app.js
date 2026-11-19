@@ -1284,7 +1284,9 @@ function navRoute() {
   const prev = VT_PREV, next = location.hash; VT_PREV = next;
   const kind = navTrack();
   if (window.__swNav) { const dir = window.__swNav; window.__swNav = null; window.__vt = true; return Promise.resolve(route()).finally(() => { window.__vt = false; swIn(dir); navTitle(); }); }
-  if (!document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return Promise.resolve(route()).finally(navTitle);
+  // vừa vuốt mép bằng cử chỉ sẵn của iOS → iOS đã trượt trang rồi, không trượt thêm lần nữa
+  const nat = NATIVE_SWIPE && kind !== "new" && Date.now() - (window.__edgeT || 0) < 2500;
+  if (nat || !document.startViewTransition || document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return Promise.resolve(route()).finally(navTitle);
   const bi = (h) => BOTSEG.findIndex(([k]) => k === botCur(h)), a = bi(prev), b = bi(next), d = document.documentElement;
   d.dataset.vt = a >= 0 && b >= 0 && a !== b ? (b > a ? "fwd" : "back") : "fade"; window.__vt = true;
   // chờ trang mới tối đa 0,45 giây (thường dữ liệu đã có sẵn) – lâu hơn thì chuyển luôn, nội dung hiện tiếp khi tải xong
@@ -1326,10 +1328,16 @@ function swIn(dir) {
   try { a.animate([{ transform: `translateX(${dir === "back" ? -28 : 28}%)`, opacity: 0.6 }, { transform: "none", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }
   document.getElementById("swNav")?.classList.remove("on", "go");
 }
-(function swipeNav() {
+// Safari đã có vuốt lùi/tiến sẵn; từ iOS 26 ứng dụng ngoài màn hình chính (PWA) cũng có → cử chỉ riêng chạy song song làm kéo 2 trang cùng lúc.
+// iOS 26 = Safari 26 (nhận biết qua CSS Anchor Positioning, có từ Safari 26 – không dùng số phiên bản trong user agent vì iOS 26 vẫn báo 18_x)
+const NATIVE_SWIPE = (() => {
   const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const STANDALONE = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-  if (IOS && !STANDALONE) return;
+  return IOS && (!STANDALONE || !!(window.CSS && CSS.supports("anchor-name: --a")));
+})();
+if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]?.clientX; if (x != null && (x <= 30 || x >= innerWidth - 30)) window.__edgeT = Date.now(); }, { passive: true });
+(function swipeNav() {
+  if (NATIVE_SWIPE) return;
   const EDGE = 24;
   const blocked = () => !MOB.matches || document.body.classList.contains("pn-sheet") || document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
   let st = null;
@@ -1416,7 +1424,8 @@ function swIn(dir) {
   addEventListener("touchstart", (e) => {
     st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || !b.classList.contains("pn-has") || e.target.closest?.("#mun,[data-noswipe]")) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
-    if (!open && x >= innerWidth - EDGE && !busy()) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
+    // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
+    if (!open && x >= innerWidth - EDGE && !busy() && !(NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
   }, { passive: true });
   addEventListener("touchmove", (e) => {

@@ -231,6 +231,14 @@
      "te": "Edge-swipe back: removed the duplicate arrow, shows the real page name",
      "d": "Khi vuốt từ mép trái, chỉ còn 1 mũi tên ở nút tròn; nhãn bên cạnh ghi tên trang sẽ quay về (cả trang không có tiêu đề như Tài khoản, Thông báo) thay vì \"‹ Trang trước\".",
      "de": "Swiping in from the left edge now shows a single arrow in the round button, and the label names the page you'll go back to (including pages without a title such as Account or Notifications) instead of \"‹ Back\"."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "iPhone: vuốt mép không còn kéo 2 trang cùng lúc",
+     "te": "iPhone: edge swipe no longer drags two pages at once",
+     "d": "Từ iOS 26, ứng dụng MyBit thêm ra màn hình chính đã có sẵn cử chỉ vuốt lùi/tiến của iPhone; cử chỉ riêng của web chạy song song nên kéo 2 trang một lúc. Trên iPhone giờ chỉ dùng cử chỉ của iOS (mượt như ứng dụng gốc), không trượt thêm hiệu ứng lần 2; mép phải nhường cho vuốt tiến khi còn trang phía trước (Bảng phụ mở bằng nút ☰).",
+     "de": "Since iOS 26, MyBit added to the Home Screen gets iPhone's built-in back/forward swipe; the site's own gesture ran alongside it and dragged two pages at once. On iPhone only the iOS gesture is used now (native feel, no second slide animation); the right edge yields to the forward swipe when there's a page ahead (open the side panel with ☰)."
     }
    ]
   },
