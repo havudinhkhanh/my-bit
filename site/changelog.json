@@ -24,6 +24,14 @@
      "d": "Sàn thử giờ có đủ các thẻ như Binance thật, cùng thứ tự: Tài sản · Hôm nay tổng (lời/lỗ $ kèm %, số lệnh, thắng, mức dừng trong ngày) · Hôm nay theo phương pháp (🪝 Bắt râu sập, ⚡ Lướt giây – chỗ của bot / lệnh tay bên Binance) · 7 ngày · Tỉ lệ thắng (số lệnh · ròng · phí) · 💸 Funding 7 ngày · thẻ Binance. Trước Sàn thử chỉ có 4–5 thẻ và \"Hôm nay\" hiện %, khác hẳn bên Binance.",
      "te": "Reflex Bot: Paper overview now uses the same layout as Binance live",
      "de": "Paper now shows the same cards as Binance live, in the same order: Equity · Today total ($ P/L with %, trades, wins, daily stop) · Today by method (🪝 Wick Catcher, ⚡ Scalp – where Binance shows bot / manual) · 7 days · Win rate (trades · net · fees) · 💸 Funding 7 days · Binance card. Before, Paper had only 4–5 cards and \"Today\" showed a %, unlike Binance."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Rê chuột lên mèo đang nói không còn giật",
+     "d": "Ba nguyên nhân cộng lại: bóng nói dùng nền kính mờ nằm ngay trên con mèo đang chuyển động nên trình duyệt phải làm mờ lại mỗi khung hình; bóng nói tự đo lại vị trí mỗi khung; và rê chuột lên mèo làm mèo tưởng con trỏ là con mồi nên bắt đầu rình, dời người. Giờ bóng nói nền đặc (vẫn cùng kiểu), chỉ chỉnh khi sát mép màn hình, và chuột nằm trên chính con mèo thì mèo đứng yên.",
+     "te": "Hovering the cat while she talks no longer stutters",
+     "de": "Three causes together: the speech bubble used a frosted-glass background right over the moving cat, so the browser re-blurred it every frame; the bubble re-measured its position every frame; and hovering the cat made her treat the cursor as prey and start stalking. Now the bubble has a solid background (same style), only adjusts near screen edges, and the cat stays still when the pointer is on her."
     }
    ]
   },

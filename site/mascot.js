@@ -773,9 +773,11 @@
     if (!S.el || S.away || hiddenNow()) return false;
     const b = S.el.querySelector(".mun-say"); if (!b.hidden && prio < (b._p || 0)) return false;
     b._p = prio; b.className = "mun-say " + cls; b.querySelector(".tx").innerHTML = html; b.hidden = false; b.classList.remove("out");
-    b._bw = b.offsetWidth; b._lx = null;
-    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } const bw = b._bw, x = new DOMMatrix(getComputedStyle(S.el).transform).m41, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw / 2));
-      if (b._lx !== Math.round(x)) { b._lx = Math.round(x); b.style.left = (left - x) + "px"; b.style.setProperty("--tx", Math.max(12, Math.min(bw - 12, cx - left)) + "px"); } requestAnimationFrame(fol); };
+    b._bw = b.offsetWidth; b._lx = null; b._tx = null;
+    // bóng nói là con của mèo → tự đi theo mèo (transform); chỉ cần chỉnh lề khi sát mép màn hình. Đọc S.x (không getComputedStyle mỗi khung = tính lại kiểu dáng cả trang),
+    //   chỉ ghi style khi giá trị thật sự đổi (trước: ghi left + --tx mỗi khung khi mèo dời → bóng nói tính lại bố cục liên tục = giật lúc rê chuột lên mèo đang nói)
+    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } const bw = b._bw, x = S.x, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(innerWidth - bw - 8, cx - bw / 2));
+      const L = Math.round(left - x), T = Math.round(Math.max(12, Math.min(bw - 12, cx - left))); if (b._lx !== L) { b._lx = L; b.style.left = L + "px"; } if (b._tx !== T) { b._tx = T; b.style.setProperty("--tx", T + "px"); } requestAnimationFrame(fol); };
     if (!b._run) { b._run = 1; fol(); }
     clearTimeout(S.sayTm); if (ms) S.sayTm = setTimeout(() => sayOut(), ms);
     return true;
@@ -1264,6 +1266,7 @@
     if (e.pointerType !== "mouse" || !S.el || S.away || S.chasing || S.napTill > now() || mob() || RM.matches) return;
     const tr = track(), near = LZ.on || e.clientY > innerHeight - tr.b - 150 * (S.s / 0.28) - 40;      // tia laser: chấm đỏ ở đâu cũng rình
     if (!near) { if (ST.on) stalkEnd(false); return; }
+    if (!ST.on && e.target?.closest?.("#mun")) return;      // rê chuột lên chính con mèo (đọc chữ, định vuốt) → không coi là con mồi, mèo đứng yên
     if (now() < ST.cool) return;
     if (!ST.on && !LZ.on && Math.abs(e.clientX - (S.x + 345 * S.s / 2)) > 4.5 * 345 * S.s) return;      // chuột ở xa hẳn (đang dùng trang) → không rình
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && !LZ.on && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
@@ -1421,10 +1424,12 @@ canvas.mun-cat,:root[data-theme=dark] canvas.mun-cat{filter:none;display:block;w
 @keyframes munZ{0%{opacity:0;transform:translate(0,4px) scale(.7)}30%{opacity:.9}100%{opacity:0;transform:translate(8px,-14px) scale(1.15)}}
 /* bóng thoại – kính mờ như menu; thông báo = thẻ bấm được trong bóng thoại */
 .mun-say{position:absolute;bottom:calc(100% + 8px);left:0;width:max-content;max-width:min(250px,calc(100vw - 16px));padding:7px 11px 8px;border-radius:var(--mn-r,10px);
-  background:var(--mn-bg,var(--surface));box-shadow:var(--mn-sh,0 6px 24px rgba(0,0,0,.18));-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%),var(--surface);box-shadow:var(--mn-sh,0 6px 24px rgba(0,0,0,.18));
   font:500 .78125rem/1.4 "Be Vietnam Pro",system-ui,sans-serif;color:var(--ink);pointer-events:auto;animation:munIn .22s cubic-bezier(.2,.8,.2,1);transform-origin:var(--tx,50%) 100%}
+:root:not([data-theme=light]) .mun-say{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0) 55%),var(--surface)}
+/* bóng nói nền ĐẶC (không kính mờ backdrop-filter): nằm ngay trên mèo đang vẽ 48 hình/giây → kính mờ phải làm mờ lại mỗi khung = giật khi rê chuột / mèo dời */
 .mun-say>b{display:block;font-size:.6875rem;font-weight:700;letter-spacing:.02em;color:#a8874a;margin-bottom:1px}
-.mun-say::after{content:"";position:absolute;top:100%;left:var(--tx,50%);margin-left:-6px;border:6px solid transparent;border-top-color:var(--mn-bg,var(--surface));filter:drop-shadow(0 1px 0 rgba(0,0,0,.05))}
+.mun-say::after{content:"";position:absolute;top:100%;left:var(--tx,50%);margin-left:-6px;border:6px solid transparent;border-top-color:var(--surface);filter:drop-shadow(0 1px 0 rgba(0,0,0,.05))}
 .mun-say.out{opacity:0;transform:translateY(4px) scale(.96);transition:opacity .2s,transform .2s}
 .mun-say.nt{max-width:min(300px,calc(100vw - 16px));width:min(300px,calc(100vw - 16px));padding:9px 11px 10px;overflow:hidden}
 .mun-say .q{display:block;font-style:italic;color:var(--ink-2);margin-bottom:6px}
