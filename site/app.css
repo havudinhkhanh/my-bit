@@ -4647,6 +4647,14 @@ h1 small,.ph h1 small{font-size:15px!important}
 .sc-oc .r1>span>b>b{flex:none}.sc-oc .r1>span>b>.sc-t{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @container (max-width:360px){.sc-oc .r1>span>.jtag{display:none}}
 @container (max-width:310px){.sc-oc .r1>span>.sc-t{display:none}}
+/* mã coin KHÔNG BAO GIỜ bị cắt (trước: khối tên coin có overflow:hidden nên tự co về 0 → thẻ ~250–300 px chỉ còn "T", hẹp hơn thì mất hẳn).
+   Thứ tự nhường chỗ khi chật: nhãn Futures/Spot ẩn → bỏ chữ "chờ" (thẻ đã có dòng "còn chờ khớp") → giá xuống dòng 2 canh phải. Không cắt chữ nào */
+.sc-oc .r1{display:flex!important;flex-wrap:wrap;align-items:center;column-gap:8px;row-gap:2px}
+.sc-oc .r1>span{flex:1 1 auto;min-width:0;max-width:100%}
+.sc-oc .r1>b{margin-left:auto}
+.sc-oc .r1>span>b{flex:none;overflow:visible}
+.sc-oc .r1 .pw{font-style:normal}
+@container (max-width:320px){.sc-oc .r1 .pw{display:none}}
 /* hàng tab Bot Phản Xạ: nút đang chọn cách đều 4 mép khung (trái = trên = dưới = phải = 5px), bo góc đồng tâm */
 .sc-tabs{padding:5px!important;border-width:0!important}
 .sc-tabs>button{border-radius:9px}

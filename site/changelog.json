@@ -57,6 +57,14 @@
      "d": "Trước đây để con trỏ nằm trên đầu na khoảng 1 giây thì na tưởng là con mồi: đứng dậy, khom người rồi vồ ngay tại chỗ – trông như cúi xuống rồi trượt tới. Giờ con trỏ nằm trên mèo hoặc trên bong bóng chữ không còn bị coi là con mồi; để con trỏ ngay trước mũi na thì na vẫn vồ như cũ. Kèm theo: vùng trống hai bên mèo không còn chặn bấm vào nội dung trang phía dưới.",
      "te": "Hovering over the cat: na no longer crouches and pounces in place",
      "de": "Resting the cursor on na's head for about a second used to make her treat it as prey: she'd stand, crouch and pounce on the spot – looking like she ducked and slid forward. The cursor on the cat or on her speech bubble is no longer prey; rest it just in front of her nose and she still pounces. Also: the empty area on either side of the cat no longer blocks clicks on the page underneath."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh đang mở / chờ khớp: tên coin luôn hiện đủ",
+     "d": "Trước đây thẻ hẹp làm tên coin bị co mất, chỉ còn 1 chữ (vd \"T\") hoặc mất hẳn, không biết là mã nào. Giờ tên coin không bao giờ bị cắt; khi chật thì ẩn nhãn Futures/Spot, bỏ chữ \"chờ\" (thẻ đã có dòng \"còn chờ khớp\"), và nếu vẫn chật thì giá xuống dòng thứ hai.",
+     "te": "Open / pending order cards: the coin name always shows in full",
+     "de": "On narrow cards the coin name used to shrink to a single letter (e.g. \"T\") or vanish, so you couldn't tell which coin it was. The name is never cut now; when space is tight the Futures/Spot tag hides, the word \"pending\" is dropped (the card already says it's waiting to fill), and if it's still tight the price moves to a second line."
     }
    ]
   },
