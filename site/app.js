@@ -1328,7 +1328,7 @@ function swIn(dir) {
   let st = null;
   const ui = () => { let u = document.getElementById("swNav"); if (!u) { u = document.createElement("div"); u.id = "swNav"; u.setAttribute("aria-hidden", "true"); u.innerHTML = '<div class="sw-under"><span class="sw-t"></span></div><i class="sw-ar"></i>'; document.body.appendChild(u); } return u; };
   addEventListener("touchstart", (e) => {
-    st = null; if (e.touches.length !== 1 || blocked()) return;
+    st = null; if (e.touches.length !== 1 || blocked() || e.target.closest?.("#mun,[data-noswipe]")) return;      // vuốt trên mèo (vuốt lông) không chuyển trang
     const x = e.touches[0].clientX, y = e.touches[0].clientY, W = innerWidth, i = navI();
     const dir = x <= EDGE && i > 1 ? "back" : x >= W - EDGE && i < NAVH.max && !document.body.classList.contains("pn-has") ? "fwd" : null;      // trang có Bảng phụ: mép phải dành để kéo Bảng phụ ra (swipePanel)
     if (dir) st = { dir, x, y, t: Date.now(), dx: 0, lock: false };
@@ -1407,7 +1407,7 @@ function swIn(dir) {
   const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
   let st = null;
   addEventListener("touchstart", (e) => {
-    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || !b.classList.contains("pn-has")) return;
+    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || !b.classList.contains("pn-has") || e.target.closest?.("#mun,[data-noswipe]")) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
     if (!open && x >= innerWidth - EDGE && !busy()) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
@@ -7598,7 +7598,7 @@ function lvsDraw() {
     });
     // 👆 vuốt ngang trên thẻ đang mở (điện thoại) = đổi Binance thật ↔ Sàn thử (vuốt trái → tab bên phải, như lật trang)
     let sw = null;
-    el.addEventListener("touchstart", (e) => { if (!el.classList.contains("lvw-mfull") || e.touches.length !== 1 || !e.target.closest(".lvw-body,.lvw-segw")) { sw = null; return; } const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY, at: Date.now() }; }, { passive: true });
+    el.addEventListener("touchstart", (e) => { if (!el.classList.contains("lvw-mfull") || e.touches.length !== 1 || !e.target.closest(".lvw-body,.lvw-segw") || e.target.closest(".lvw-garden,[data-noswipe]")) { sw = null; return; } const t = e.touches[0]; sw = { x: t.clientX, y: t.clientY, at: Date.now() }; }, { passive: true });
     el.addEventListener("touchend", (e) => { if (!sw) return; const t = e.changedTouches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y; const ok = Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6 && Date.now() - sw.at < 700; sw = null; if (!ok) return;
       const btn = [...el.querySelectorAll("[data-lvw-tab]")], cur = btn.findIndex((b) => b.classList.contains("on")), nx = cur + (dx < 0 ? 1 : -1); if (!btn[nx]) { el.querySelector(".lvw-body")?.animate([{ transform: "translateX(0)" }, { transform: `translateX(${dx < 0 ? -14 : 14}px)` }, { transform: "translateX(0)" }], { duration: 260, easing: "ease-out" }); return; }
       LVW.swd = dx < 0 ? 1 : -1; btn[nx].click(); try { navigator.vibrate?.(6); } catch (_) {} }, { passive: true });
@@ -7634,6 +7634,7 @@ const LG_POKE = [["Chạm nữa là cào đấy.", "Touch again and I scratch."]
 const LG_ACT = [["gpaw", [["Đang bận liếm chân. Hẹn sau.", "Busy with my paw. Later."], ["Chân na, na tự lo.", "My paw, my business."]]],
   ["gbody", [["Chải lông. Việc quan trọng hơn cái bảng kia.", "Grooming. More important than that table."], ["Đừng nhìn, đang chỉnh trang.", "Don't look. I'm tidying up."]]],
   ["roll", [["Lăn vì thích, không phải vì anh chạm.", "I roll because I want to. Not because you poked."], ["Không ai thấy gì hết nhé.", "Nobody saw that."]]]];
+const LG_STROKE = [["Ừ, đúng chiều lông. Được.", "Right way of the fur. Fine."], ["Vuốt thì vuốt, đừng có lôi bảng ra nữa.", "Pet if you must. Don't drag the table out again."], ["Thêm chút nữa. Không phải na thích đâu.", "A bit more. Not that I like it."], ["Rừ… không, na không rừ rừ.", "Prr… no, I'm not purring."]];
 const LG_BUSY = [["Đang dở việc. Chờ.", "Busy. Wait."], ["Một việc một lúc thôi.", "One thing at a time."]];
 const LG_POSE = ["lookup", "crouch", "jump", "yarnsit", "stretch", "roll", "scratch", "loaf", "sit"];
 function lvwGarden(el, P) {
@@ -7652,6 +7653,12 @@ function lvwGarden(el, P) {
     // mèo vườn = CÙNG mèo video với mèo chính (canvas, khung dựng từ video); hỏng tải bảng khung → hình vẽ cũ
     const pose = (k) => { if (!cat || !window.MUN_ART) return; cat.innerHTML = window.MUN_ART.poseSvg(k, skin); cat.dataset.p = k; cat.classList.remove("lgpop"); void cat.offsetWidth; cat.classList.add("lgpop"); };
     LVW.gd.talk = talk; LVW.gd.pose = pose;
+    // ✋ vuốt ngang trên mèo vườn = vuốt lông (trước: vuốt bị hiểu là vuốt đổi tab Binance ↔ Sàn thử → lướt sang trang khác)
+    if (cat) { let sx = null, sy = 0, did = false; cat.setAttribute("data-noswipe", "");
+      cat.addEventListener("pointerdown", (e) => { sx = e.clientX; sy = e.clientY; did = false; });
+      cat.addEventListener("pointermove", (e) => { if (sx == null || did) return; const dx = e.clientX - sx, dy = e.clientY - sy; if (Math.abs(dx) > 22 && Math.abs(dx) > Math.abs(dy)) { did = true; try { navigator.vibrate?.(6); } catch (_) {} cat.classList.remove("lgpop"); void cat.offsetWidth; cat.classList.add("lgpop"); talk(LG_STROKE); } });
+      ["pointerup", "pointercancel", "pointerleave"].forEach((k) => cat.addEventListener(k, () => { sx = null; }));
+      cat.addEventListener("click", (e) => { if (did) { did = false; e.stopPropagation(); e.stopImmediatePropagation(); } }, true); }
     cat?.addEventListener("click", (e) => { e.stopPropagation(); const g2 = LVW.gd; try { navigator.vibrate?.(5); } catch (_) {}
       if (g2.mini) { if (g2.mini.busy()) return talk(LG_BUSY); g2.k = (g2.k + 1) % LG_ACT.length; const a = LG_ACT[g2.k]; g2.mini.act(a[0]); talk(a[1]); return; }
       g2.k = (g2.k + 1) % LG_POSE.length; pose(LG_POSE[g2.k]); talk(LG_POKE); });

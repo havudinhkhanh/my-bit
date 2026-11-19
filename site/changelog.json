@@ -129,6 +129,14 @@
      "d": "Chuột: bỏ cú dừng ngó giữa đường; lần trượt chạy đều, bị na áp sát thì hoảng chạy nước rút luôn tới hết màn (trước: nhanh rồi chậm lại rồi nhanh); lần bắt trúng mà na chưa thủ thế xong thì chuột chờ ngoài màn hình rồi mới chạy vào, đều một tốc độ tới lúc bị vồ. Na: mục tiêu xa thì bật chạy luôn, đã chạy thì giữ dáng chạy tới khi gần dừng hẳn, không đi bộ vài bước giữa chừng.",
      "te": "Mouse chase: steady rhythm, no run – slow – stop – walk alternation",
      "de": "Mouse: no more mid-run sniff stop; on a miss it runs steadily and, once na closes in, panics into a sprint all the way off screen (before: fast, then slow, then fast); on a catch, if na isn't set yet the mouse waits off screen and then runs in at one steady speed until the pounce. na: starts running straight away when the target is far and keeps the run until she's nearly stopped – no walking a few steps in between."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Vuốt na trong vườn (thẻ Live mở rộng) không còn lướt sang tab khác",
+     "d": "Trên điện thoại, mở rộng viên Live rồi vuốt ngang lên na ở vườn cỏ bị hiểu là vuốt đổi tab (Binance thật ↔ Sàn thử) nên lướt sang trang khác. Giờ vuốt trên na là vuốt lông – na buông một câu đanh đá; vuốt chỗ khác trong thẻ vẫn đổi tab như cũ. Vuốt trên mèo chính cũng không còn kích hoạt vuốt chuyển trang / kéo Bảng phụ ở mép màn hình.",
+     "te": "Petting na in the garden (expanded Live card) no longer flips to another tab",
+     "de": "On phones, after expanding the Live pill, a horizontal swipe on na in the garden was read as a tab swipe (Binance live ↔ Paper) and slid to the other page. A swipe on na now pets her – she answers with a sassy line; swiping elsewhere in the card still switches tabs. Swiping on the main cat also no longer triggers the edge swipe for page navigation or the Side panel."
     }
    ]
   },
