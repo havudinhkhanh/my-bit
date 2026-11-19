@@ -1203,7 +1203,7 @@
     const d0 = (fromL ? -mw : VW) + mw / 2 > S.x + cw / 2 ? 1 : -1;
     if (d0 !== S.face && hasV("turnQ")) { turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([...(STANDS.has(S.pose) ? [] : ["s2stQ"]), hasV("turnF") ? "turnF" : "turnQ"], () => { turning = false; cx = S.x; if (S.pose !== "walk" && S.pose !== "run") play(hasV("ready") ? "ready" : "crouch", 300, true); }, tk); }
     else { if (d0 !== S.face) face(d0); if (hasV("ready")) play("ready", 500, true); else play("crouch"); }      // thấy chuột: thủ thế ngoáy mông · dừng hẳn lượt đi dở trước, rồi mới lấy vị trí hiện tại (không thì na "dịch chuyển")
-    let LG = null, mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
+    let LG = null, mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, fled = false, cruise = null, vm = 160, v = 0, shout = false, done = false;
     const end = (caught) => { if (done) return; done = true; S.chasing = false; zoomSet(false, caught ? 3600 : 2200); S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
         setTimeout(() => { squash(m); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } }, PFT(76)); return; }      // khung 76 = chân trước chạm đất (đo từ video)
@@ -1219,12 +1219,15 @@
       if (LG) { const sp = A.clip === CLIP.pounceF ? (A.snap ? Math.min(1, (performance.now() - A.t0) / A.dur) * LG.md : LG.md + ((A.fi ? (A.fi[1] === A.fi[0] + 1 ? A.fi[0] + A.fi[2] : A.fi[0]) : 46) - 46) / CLIP.pounceF.fps) : LG.T / 1000, s2 = Math.min(sp, LG.T / 1000);
         mx = LG.x0 + dir * LG.v * s2; m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`; if (sp >= LG.T / 1000 || t - LG.t0 >= LG.T + 900) { done = true; S.chasing = false; zoomSet(false, 3600); squash(m); if (LG.tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } return; } requestAnimationFrame(step); return; }
       const mc = mx + mw / 2, cc = cx + cw / 2, gap = Math.abs(mc - cc);
-      // chuột: chạy đều; giữa đường dừng ngó 1 lần nếu na còn xa; na đuổi sát thì tăng tốc (hoặc hoảng chạy chậm lại nếu lần này bị bắt)
-      if (!sniffed && el > 1100 && mc > VW * 0.3 && mc < VW * 0.7 && gap > 150) { sniffed = true; pauseTill = t + rnd(380, 620); }
-      // lần bắt trúng: na chưa thủ thế xong (đang quay đầu) mà chuột đã tới gần → chuột dừng đánh hơi, chờ (màn hẹp điện thoại: trước chuột chạy lướt qua luôn)
-      const wait = win && hasV("pounceF") && (turning || A.snap || !(S.pose === "ready" || S.pose === "crouch")) && (cc - mc) * dir > 0 && (cc - mc) * dir < 132 * U2P() + 70 * 1.61 + mw;
-      const want = t < pauseTill || wait ? 0 : gap < 130 ? (win ? 150 : 300) : 165;
-      vm += (want - vm) * Math.min(1, dt * 7); mx += dir * vm * dt;
+      // 🐭 nhịp chuột ĐỀU (trước: lúc nhanh lúc chậm lúc dừng xen kẽ):
+      //   lần trượt: chạy đều 165; bị na áp sát (< 130 px) là hoảng chạy nước rút 300 tới hết màn – không chậm lại nữa
+      //   lần bắt trúng: na chưa thủ thế xong (đang đứng dậy / quay đầu) → chuột CHỜ NGOÀI MÀN HÌNH, không dừng giữa sân; na sẵn sàng mới chạy vào,
+      //   tốc độ tính 1 lần cho vừa tới đúng lúc na đáp đất (màn hẹp điện thoại: chạy chậm hơn chút nhưng đều từ đầu tới cuối)
+      const rdyM = !turning && !A.snap && (S.pose === "ready" || S.pose === "crouch"), off = mx < -mw * 0.5 || mx > VW - mw * 0.5;
+      if (!win && gap < 130) fled = true;
+      if (win && cruise == null && rdyM) { const dd = (cc - mc) * dir - 132 * U2P(); cruise = Math.max(90, Math.min(165, dd > 0 ? dd / (PFT(76) / 1000) : 165)); if (off) vm = cruise; }
+      const hold = win && hasV("pounceF") && cruise == null && off, want = win && hasV("pounceF") ? cruise ?? 165 : fled ? 300 : 165;
+      if (!hold) { vm += (want - vm) * Math.min(1, dt * 7); mx += dir * vm * dt; }      // chờ ngoài màn hình: đứng im, giữ nguyên đà để lúc chạy vào là chạy đều
       if (!shout && mx > -mw * 0.3 && mx < VW - mw * 0.7) { shout = true; say(pick("chase"), 1500, 1); }
       // na: ngó 0,45 giây rồi phóng theo
       // 🎯 nhắm tới chỗ ĐỨNG VỒ (cách chuột 1 tầm vồ, phía mèo đang đứng) chứ không phải đứng đè lên chuột – vồ là chân chạm đúng con chuột
@@ -1247,11 +1250,11 @@
           else { v = 0; A.v = 0; place(cx); turning = true; const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([hasV("turnF") ? "turnF" : "turnQ"], () => { turning = false; cx = S.x; v = S.face * 150; S.el?.classList.add("run"); play("run", 150, true); }, tk); }
         }
         // chỉ dời mèo khi đang ĐI / CHẠY (chân bước theo tốc độ) – trước: đang khom chờ mà vẫn dời chậm → mèo cúi người trượt tới, chân không bước
-        else if (!moving && Math.abs(tv) > 35) { if (!((tv < 0 && cx <= tr.l + Math.max(8, cw * 0.15)) || (tv > 0 && cx >= tr.r - Math.max(8, cw * 0.15)))) { if (!QT) face(tv > 0 ? 1 : -1); play("walk", 260, true); } }      // chạm mép sân → đứng nhìn theo, không bước tại chỗ
+        else if (!moving && Math.abs(tv) > 35) { if (!((tv < 0 && cx <= tr.l + Math.max(8, cw * 0.15)) || (tv > 0 && cx >= tr.r - Math.max(8, cw * 0.15)))) { if (!QT) face(tv > 0 ? 1 : -1); play(SHEET.vrun && Math.abs(tv) > 120 ? "run" : "walk", 260, true); } }      // mục tiêu xa → bật chạy luôn (trước: luôn đi bộ vài bước rồi mới chạy)      // chạm mép sân → đứng nhìn theo, không bước tại chỗ
         else if (moving) {
           const vv0 = v; v += Math.max(-AC * dt, Math.min(AC * dt, tv - v)); if (dt > 0) { S.swT = performance.now(); S.swTgt = Math.max(-7, Math.min(7, (v - vv0) / dt / AC * 6 * S.face)); }      // ⚖️ tăng tốc chúi tới · phanh ngả ra sau
-          if (Math.abs(v) < 12 && Math.abs(tv) < 12) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); }
-          else { if (!QT && Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = !SHEET.vrun ? "walk" : S.pose === "run" ? (Math.abs(v) < 85 ? "walk" : "run") : Math.abs(v) > 135 ? "run" : "walk";      // bảng chạy video chưa tải xong → đi nhanh bằng bảng đi video (chân đan chéo), không dùng dáng chạy vẽ cũ if (S.pose !== want) play(want, 260, true);      // đi ↔ chạy có khoảng đệm, không đổi qua lại liên tục
+          if (Math.abs(v) < (S.pose === "run" ? 30 : 12) && Math.abs(tv) < 12) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); }      // chạy chậm lại gần dừng → vào thế luôn, không đi bộ vài bước
+          else { if (!QT && Math.abs(v) > 35) face(v > 0 ? 1 : -1); const want = !SHEET.vrun ? "walk" : S.pose === "run" ? (Math.abs(v) < 45 && Math.abs(tv) < 60 ? "walk" : "run") : Math.abs(v) > 110 ? "run" : "walk";      // đã chạy thì giữ chạy tới khi gần dừng hẳn      // bảng chạy video chưa tải xong → đi nhanh bằng bảng đi video (chân đan chéo), không dùng dáng chạy vẽ cũ if (S.pose !== want) play(want, 260, true);      // đi ↔ chạy có khoảng đệm, không đổi qua lại liên tục
             // đang nắn sang dáng mới (chân chưa bước) → đứng chờ nhưng GIỮ đà; trước: đà về 0 mỗi lần nắn → chạy→đi→chạy liên tục, mèo khựng khựng gần như đứng yên
             if (!A.snap) { const nx = Math.max(tr.l, Math.min(tr.r, cx + v * dt)); if (Math.abs(nx - cx) < 0.01 && v) { v = 0; play(hasV("ready") ? "ready" : "crouch", 300, true); } cx = nx; } }      // đang nắn sang dáng đi (chân chưa bước) → dời chậm lại
         }

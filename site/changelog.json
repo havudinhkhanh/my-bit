@@ -121,6 +121,14 @@
      "d": "Trước đây na đang chạy nước rút theo con trỏ, tới gần thì đổi sang đi khom vài bước rồi lại chạy tiếp khi con trỏ ra xa. Giờ đã chạy thì chạy luôn tới nơi; con trỏ đang vụt ra xa thì na phóng ngay từ đầu, không đi vài bước rồi mới chạy.",
      "te": "Chasing the cursor / laser: one continuous run, no run – walk – run",
      "de": "na used to sprint after the cursor, switch to a crouched walk for a few steps as she got close, then sprint again when it moved away. Once running she now runs all the way; if the cursor is shooting away she sprints right from the start instead of walking a few steps first."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Đuổi chuột: nhịp đều, hết chạy – chậm – dừng – đi xen kẽ",
+     "d": "Chuột: bỏ cú dừng ngó giữa đường; lần trượt chạy đều, bị na áp sát thì hoảng chạy nước rút luôn tới hết màn (trước: nhanh rồi chậm lại rồi nhanh); lần bắt trúng mà na chưa thủ thế xong thì chuột chờ ngoài màn hình rồi mới chạy vào, đều một tốc độ tới lúc bị vồ. Na: mục tiêu xa thì bật chạy luôn, đã chạy thì giữ dáng chạy tới khi gần dừng hẳn, không đi bộ vài bước giữa chừng.",
+     "te": "Mouse chase: steady rhythm, no run – slow – stop – walk alternation",
+     "de": "Mouse: no more mid-run sniff stop; on a miss it runs steadily and, once na closes in, panics into a sprint all the way off screen (before: fast, then slow, then fast); on a catch, if na isn't set yet the mouse waits off screen and then runs in at one steady speed until the pounce. na: starts running straight away when the target is far and keeps the run until she's nearly stopped – no walking a few steps in between."
     }
    ]
   },
