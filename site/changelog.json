@@ -41,6 +41,14 @@
      "d": "Lúc na rình con trỏ, đuổi tia laser hay đuổi chuột, khung hình như lùi ra xa: na thu nhỏ còn khoảng 80% (êm trong 0,6 giây), sân chạy rộng ra tương đối nên rượt được xa hơn; sải chân ngắn lại theo cỡ mới nên chân không trượt. Con trỏ ở xa thì na chạy nước rút tới, đang rình thì con trỏ lên cao hơn một chút na vẫn đuổi. Có quán tính: tăng tốc thì chúi người tới, phanh gấp thì ngả ra sau rồi lắc nhẹ về thăng bằng. Xong trò thì zoom vào lại.",
      "te": "Chases with a \"camera pulls back\" zoom and real momentum",
      "de": "When na stalks the cursor, chases the laser or the mouse, the view pulls back: she shrinks to about 80% (smoothly, 0.6 s) so her running area feels wider and she chases farther; her stride shrinks with her, so her feet don't slide. A far-off cursor gets a sprint, and once stalking she keeps chasing even if the pointer rises a bit. With momentum: she leans forward when speeding up and leans back when braking hard, then settles. When the game ends the view zooms back in."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Đuổi chuột: hết trượt khi khom, vồ trúng chuột, quay đầu là bứt tốc",
+     "d": "(1) Khom người chờ (hạ 2 chân trước) trước đây không được canh thân nên hình mèo trượt tới dù không bước – giờ thân đứng yên đúng chỗ. (2) Trước na chạy tới đứng ĐÈ lên chuột rồi mới vồ nên nhảy vượt qua chuột; giờ na dừng cách chuột đúng một tầm vồ, chuột đứng hình, na vồ và chân chạm đúng con chuột. (3) Chuột chạy ngang qua: na phanh, quay người nhanh (~0,7 giây thay vì ~1,6 giây) rồi bật chạy ngay với đà sẵn, tăng tốc mạnh hơn.",
+     "te": "Mouse chase: no sliding while crouched, pounces land on the mouse, sharp turn-and-sprint",
+     "de": "(1) The crouch (front legs lowered) wasn't anchored, so the cat slid forward without stepping – now her body stays put. (2) She used to run right on top of the mouse and then pounce, leaping past it; now she stops one pounce-length away, the mouse freezes, and her paws land right on it. (3) When the mouse runs past: she brakes, turns quickly (~0.7 s instead of ~1.6 s) and bursts off with momentum, accelerating harder."
     }
    ]
   },
