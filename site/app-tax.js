@@ -80,9 +80,16 @@ async function txXlsx(buf, name) {
   return wb.SheetNames.map((s) => ({ name: `${name} · ${s}`, rows: window.XLSX.utils.sheet_to_json(wb.Sheets[s], { header: 1, raw: false, dateNF: "yyyy-mm-dd hh:mm:ss", defval: "" }).map((r) => r.map((x) => String(x ?? ""))) }));
 }
 // thời gian trong file Binance: UTC ("2026-03-27 10:11:12", "26-03-27 10:11:12", số ms…)
+const TXPV = 2;      // phiên bản bộ đọc file: tăng khi đổi cách đọc → nhập lại đúng file cũ sẽ đọc lại thay vì bỏ qua
+let TXOFF = 0;      // lệch múi giờ (ms) của file đang nhập: cột giờ ghi theo giờ VN (tên file "…UTC7…" / tên cột "(UTC+7)") → trừ ra để về UTC
+function txTzOff(h, name) { const H = (h || []).map((x) => String(x).toLowerCase()), tc = H.find((x) => /time|date|thời gian|ngày/.test(x)) || "";
+  const m = tc.match(/utc\s*([+-])\s*(\d{1,2})/); if (m) return (m[1] === "-" ? -1 : 1) * +m[2] * 3600e3; if (/utc/.test(tc)) return 0;
+  const n = String(name || "").match(/utc\s*([+-]?)\s*(\d{1,2})(?!\d)/i); return n ? (n[1] === "-" ? -1 : 1) * +n[2] * 3600e3 : 0; }
 function txT(s, utc = true) {
+  const v = txT0(s, utc); return isNum(v) && utc ? v - TXOFF : v; }
+function txT0(s, utc = true) {
   s = String(s || "").trim(); if (!s) return NaN;
-  if (/^\d{12,13}$/.test(s)) return +s;
+  if (/^\d{12,13}$/.test(s)) return +s + TXOFF;
   let m = s.match(/(\d{2,4})[-/.](\d{1,2})[-/.](\d{1,2})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
   if (m) { let y = +m[1]; if (y < 100) y += 2000; return Date.UTC(y, m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) - (utc ? 0 : 7 * 3600e3); }
   m = s.match(/(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})[ T]+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
@@ -122,7 +129,7 @@ function txKind(h) {
 // ---------------------------------------------------------------- chuẩn hoá từng loại file → dòng sổ
 function txFromLedger(rows) {
   const { f } = txCols(rows[0]), iT = f("utc_time", "time"), iA = f("account"), iO = f("operation"), iC = f("coin"), iX = f("change"), iR = f("remark");
-  const G = new Map(), out = [], net = {};
+  const G = new Map(), FP = new Map(), out = [], net = {};      // FP: phí / lời lỗ / funding futures GỘP THEO NGÀY (file thật: ~50 nghìn dòng phí từng lần khớp → vượt dung lượng sổ; thuế không tính trên các dòng này)
   for (const r of rows.slice(1)) {
     const t = txT(r[iT]), op = String(r[iO] || "").trim(), c = String(r[iC] || "").toUpperCase().trim(), x = txN(r[iX]).v, acc = String(r[iA] || "").trim();
     if (!isNum(t) || !c || !isNum(x)) continue; net[c] = (net[c] || 0) + x;
@@ -133,8 +140,8 @@ function txFromLedger(rows) {
     }
     if (/convert/.test(o)) { const k = `C|${t}|${acc}`, g = G.get(k) || { t, acc, c: {}, fee: {}, ops: new Set(), conv: 1 }; g.ops.add(op); g.c[c] = (g.c[c] || 0) + x; G.set(k, g); continue; }
     if (/p2p|c2c/.test(o)) { out.push({ ...base, cat: "p2p", side: x < 0 ? "sell" : "buy", base: c, quote: "VND", qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
-    if (/futures|coin-m|usd.?-?m/i.test(acc) || /realized profit|funding fee|insurance|liquidation/.test(o)) { if (/transfer/.test(o)) { out.push({ ...base, cat: "xfer", side: x < 0 ? "out" : "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; } out.push({ ...base, cat: "fpl", side: x < 0 ? "out" : "in", base: c, qty: x, pnl: txIsSt(c) ? x : null, usd: null }); continue; }
-    if (/^(deposit|fiat deposit|crypto deposit)/.test(o)) { out.push({ ...base, cat: "dep", side: "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
+    if (/futures|coin-m|usd.?-?m/i.test(acc) || /realized profit|funding fee|insurance|liquidation/.test(o)) { if (/transfer/.test(o)) { out.push({ ...base, cat: "xfer", side: x < 0 ? "out" : "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; } { const k = /realized/.test(o) ? "pnl" : /funding/.test(o) ? "fund" : /insurance|liquidation/.test(o) ? "liq" : /^fee$|commission|transaction fee/.test(o) ? "fee" : "oth", d = txDay(t), key = `${d}|${k}|${c}|${acc}`, g = FP.get(key) || { t, d, k, c, acc, x: 0, n: 0, ops: new Set() }; g.x += x; g.n++; if (x > 0) g.w = (g.w || 0) + 1; g.t = Math.max(g.t, t); g.ops.add(op); FP.set(key, g); } continue; }
+    if (/^(deposit|fiat deposit|crypto deposit|buy crypto with fiat)/.test(o)) { out.push({ ...base, cat: "dep", side: "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
     if (/withdraw/.test(o)) { out.push({ ...base, cat: "wd", side: "out", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
     if (/interest|reward|airdrop|distribution|commission|referral|cashback|rebate|bonus|mission|launchpool|megadrop|hodler|staking reward|voucher|gift/.test(o) && x > 0) { out.push({ ...base, cat: "earn", side: "in", base: c, qty: x, usd: txIsSt(c) ? x : null, px: null }); continue; }
     if (/transfer|subscription|redemption|staking|savings|earn|wallet/.test(o)) { out.push({ ...base, cat: "xfer", side: x < 0 ? "out" : "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
@@ -155,6 +162,8 @@ function txFromLedger(rows) {
       for (const [c, v] of E) { if (txIsSt(c) && E.length > 1) continue; out.push({ t: g.t, src: "ledger", cat, side: v > 0 ? "buy" : "sell", base: c, quote: st ? st[0] : "", qty: Math.abs(v), usd: null, fee: null, ref, note: bi("nhiều lệnh khớp cùng giây – giá trị theo giá thị trường lúc đó", "several fills in the same second – valued at market price") }); }
     }
   }
+  const FPL = { pnl: bi("Lời/lỗ đã chốt", "Realized P/L"), fee: bi("Phí giao dịch", "Trading fee"), fund: "Funding", liq: bi("Phí thanh lý (quỹ bảo hiểm)", "Liquidation fee (insurance fund)"), oth: bi("Khác", "Other") };
+  for (const g of FP.values()) out.push({ t: g.t, src: "ledger", cat: "fpl", side: g.x < 0 ? "out" : "in", base: g.c, qty: g.x, pnl: txIsSt(g.c) ? g.x : null, usd: null, px: g.k === "pnl" ? g.w || 0 : null, quote: g.k,      /* fpl gộp ngày: quote = loại (pnl / fee / fund / liq / oth), px = số lần lời (chỉ dòng pnl) */ ref: `${g.acc} · ${FPL[g.k]} · ${g.n} ${bi("lần (gộp ngày)", "entries (daily total)")}`, note: [...g.ops].join(" + ") });
   return { rows: out, net };
 }
 function txFromSpot(rows) {
@@ -201,14 +210,14 @@ function txFromConv(rows) {
   return { rows: out };
 }
 // lịch sử NẠP / RÚT coin: thêm mạng, địa chỉ ví, TXID, phí rút, trạng thái cho các dòng nạp / rút (lịch sử tổng chỉ có số lượng).
-//   Nạp hay rút: theo tên file ("Deposit" / "Withdraw"); không rõ thì dòng có phí rút > 0 là rút. Giờ: theo múi giờ ghi ở tên cột (vd "Date(UTC+7)"), không ghi = UTC
+//   Nạp hay rút: theo tên file ("Deposit" / "Withdraw"); không rõ thì dòng có phí rút > 0 là rút. Giờ: theo múi giờ ghi ở tên cột / tên file (TXOFF)
 function txFromDw(rows, name = "") {
-  const { H, f } = txCols(rows[0]), iT = f("date", "time"), iC = f("coin"), iN = f("network"), iA = f("amount"), iF = f("transactionfee", "transaction fee", "fee"), iAd = f("address"), iTx = f("txid", "transaction id", "tx hash"), iSt = f("status"), out = [];
-  const tz = (H[iT] || "").match(/utc\s*([+-])\s*(\d{1,2})/), off = tz ? (tz[1] === "-" ? -1 : 1) * +tz[2] * 3600e3 : 0, nm = String(name).toLowerCase(), kind = /withdraw|rút/.test(nm) ? "wd" : /deposit|nạp/.test(nm) ? "dep" : null;
+  const { f } = txCols(rows[0]), iT = f("date", "time"), iC = f("coin"), iN = f("network"), iA = f("amount"), iF = f("transactionfee", "transaction fee", "fee"), iAd = f("address"), iTx = f("txid", "transaction id", "tx hash"), iSt = f("status"), out = [];
+  const nm = String(name).toLowerCase(), kind = /withdraw|rút/.test(nm) ? "wd" : /deposit|nạp/.test(nm) ? "dep" : null;
   const sh = (x) => { x = String(x || "").trim(); return x.length > 14 ? `${x.slice(0, 6)}…${x.slice(-4)}` : x; };
   for (const r of rows.slice(1)) {
     const st = String(r[iSt] || "").toLowerCase(); if (st && !/complet|success|thành|hoàn|credited|done/.test(st)) continue;      // bỏ lệnh rút huỷ / thất bại / đang chờ
-    const t = txT(r[iT]) - off, c = String(r[iC] || "").toUpperCase().trim(), q = txN(r[iA]).v, fe = iF >= 0 ? txN(r[iF]).v : NaN; if (!isNum(t) || !c || !isNum(q)) continue;
+    const t = txT(r[iT]), c = String(r[iC] || "").toUpperCase().trim(), q = txN(r[iA]).v, fe = iF >= 0 ? txN(r[iF]).v : NaN; if (!isNum(t) || !c || !isNum(q)) continue;
     const cat = kind || (isNum(fe) && fe > 0 ? "wd" : "dep"), net = String(r[iN] || "").trim(), ad = String(r[iAd] || "").trim(), tx = String(r[iTx] || "").trim();
     out.push({ t, src: "dw", cat, side: cat === "wd" ? "out" : "in", base: c, qty: Math.abs(q), usd: txIsSt(c) ? Math.abs(q) : null, fee: cat === "wd" && isNum(fe) && fe > 0 ? fe : null, feeC: c,
       ref: [cat === "wd" ? bi("Rút", "Withdraw") : bi("Nạp", "Deposit"), net, ad && (cat === "wd" ? bi("tới ", "to ") : bi("từ ", "from ")) + sh(ad), tx && "TXID " + sh(tx)].filter(Boolean).join(" · "), note: [ad && `${bi("Địa chỉ", "Address")}: ${ad}`, tx && `TXID: ${tx}`].filter(Boolean).join(" · ") || null });
@@ -304,22 +313,93 @@ async function txImport(files, log) {
     let sheets; try { sheets = await txSheets(file); } catch (e) { rep.push({ name: file.name, err: e.message }); continue; }
     for (const s of sheets) {
       const fh = txH(s.rows.map((r) => r.join("\u0001")).join("\n"));
-      if (B.files.some((f) => f.h === fh)) { rep.push({ name: s.name, kind: B.files.find((f) => f.h === fh).kind, n: 0, dup: 0, same: 1 }); continue; }      // đúng file đã nhập → bỏ qua cả file
+      const old = B.files.find((f) => f.h === fh);
+      if (old && (old.pv || 1) >= TXPV) { rep.push({ name: s.name, kind: old.kind, n: 0, dup: 0, same: 1 }); continue; }      // đúng file đã nhập → bỏ qua cả file
+      if (old) { const SRC = { ledger: "ledger", dw: "dw", spot: "spot", p2p: "p2p", fut: "fut", conv: "conv" }[old.kind], a = (old.from ?? -Infinity) - 864e5, z = (old.to ?? Infinity) + 864e5;      // file nhập bằng bản đọc cũ (sai múi giờ / chưa gộp dòng) → xoá dòng cũ của file đó rồi đọc lại
+        B.rows = B.rows.filter((x) => { const o = txO(x); return !(o.src === SRC && o.t >= a && o.t <= z); }); B.files = B.files.filter((f) => f !== old); have.clear(); B.rows.forEach((x) => have.add(x[0])); }
       const hi = s.rows.findIndex((r) => txKind(r) && txKind(r) !== "?"), kind = hi >= 0 ? txKind(s.rows[hi]) : "?";
       if (kind === "?") { rep.push({ name: s.name, err: bi("Không nhận ra loại file", "Unrecognized file"), cols: (s.rows[0] || []).slice(0, 12).join(", ") }); continue; }
-      const P = TXPARSE[kind](s.rows.slice(hi), s.name), add = [];
+      TXOFF = txTzOff(s.rows[hi], s.name); let P; try { P = TXPARSE[kind](s.rows.slice(hi), s.name); } finally { TXOFF = 0; }
+      const add = [];
       log(`${s.name}: ${P.rows.length} ${bi("dòng", "rows")}…`);
       await txFill(P.rows, log);
       let dup = 0;
       for (const r of P.rows) { r.id = r.id || txH(`${r.src}|${r.cat}|${r.t}|${r.side}|${r.base}|${r.quote}|${(+r.qty).toPrecision(10)}|${r.ref || ""}`); if (have.has(r.id)) { dup++; continue; } have.add(r.id); add.push(txA(r)); }
       B.rows.push(...add);
       const ts = P.rows.map((r) => r.t).filter(isNum);
-      B.files.push({ h: fh, name: s.name, kind, n: add.length, dup, at: new Date().toISOString(), from: ts.length ? Math.min(...ts) : null, to: ts.length ? Math.max(...ts) : null, net: P.net || null });
+      B.files.push({ h: fh, pv: TXPV, name: s.name, kind, n: add.length, dup, at: new Date().toISOString(), from: ts.length ? Math.min(...ts) : null, to: ts.length ? Math.max(...ts) : null, net: P.net || null });
       rep.push({ name: s.name, kind, n: add.length, dup });
     }
   }
   return rep;
 }
+
+// ---------------------------------------------------------------- 📜 LỊCH SỬ TÀI KHOẢN dựng lại từ sổ (file Binance) – dùng cho Tài khoản Binance, Kết quả & sổ lệnh, Danh mục
+//  Mỗi dòng sổ (đã bỏ dòng trùng) → thay đổi số dư từng coin theo ngày (giờ VN) → số dư cộng dồn × giá đóng cửa ngày = tài sản (USD) mỗi ngày.
+//  Vốn nạp ròng = P2P mua − P2P bán + nạp − rút (kể cả mua bằng thẻ); lời/lỗ tích luỹ = tài sản − vốn nạp ròng. Futures: lời/lỗ đã chốt, phí, funding, phí thanh lý theo ngày.
+//  Chưa tính lời/lỗ CHƯA chốt của lệnh futures đang mở (file lịch sử không có).
+function txDelta(r) {
+  const D = {}, add = (c, v) => { if (c && isNum(v) && v) D[c] = (D[c] || 0) + v; }, q = Math.abs(+r.qty || 0), sg = r.side === "sell" || r.side === "out" || r.side === "swap" ? -1 : 1;
+  if (r.cat === "fut" || r.src === "bot" || r.src === "man") return D;      // khớp futures không đổi số dư trực tiếp (đã có ở dòng lời/lỗ, phí)
+  if (r.cat === "spot" || r.cat === "conv") { add(r.base, sg * q); if (r.quote && isNum(r.px)) add(r.quote, -sg * q * r.px); else if (r.quote && txIsSt(r.quote) && isNum(r.usd)) add(r.quote, -sg * r.usd); }
+  else if (r.cat === "fpl" || r.cat === "other") add(r.base, +r.qty);
+  else if (r.cat === "wd") add(r.base, -(q + (r.src === "dw" ? +r.fee || 0 : 0)));
+  else add(r.base, sg * q);
+  if (r.fee && r.feeC && (r.cat === "spot" || r.cat === "conv" || r.cat === "p2p")) add(r.feeC, -Math.abs(r.fee));
+  return D;
+}
+const TXDP = { m: null };      // giá đóng cửa NGÀY theo coin (bộ nhớ + lưu trên máy) – không lưu vào sổ (sổ có hạn dung lượng)
+async function txDayPx(coin, d0, d1) {
+  if (!TXDP.m) { TXDP.m = {}; try { TXDP.m = JSON.parse(localStorage.getItem("mybit_txdpx") || "{}"); } catch (e) { /* bỏ qua */ } }
+  const M = (TXDP.m[coin] ||= {}), need = (d) => !(d in M) && d < txDay(Date.now());
+  const days = []; for (let t = Date.parse(d0 + "T00:00:00Z"); t <= Date.parse(d1 + "T00:00:00Z"); t += 864e5) days.push(new Date(t).toISOString().slice(0, 10));
+  if (!days.some(need) && !days.includes(txDay(Date.now()))) return M;
+  const pairs = coin === "TRY" ? [["USDTTRY", true]] : ["USDT", "BUSD", "FDUSD", "USDC"].map((qq) => [coin + qq, false]);
+  for (const [sym, inv] of pairs) {
+    let st = Date.parse(d0 + "T00:00:00Z") - 864e5, ok = false;
+    try { while (st <= Date.parse(d1 + "T00:00:00Z")) { const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=1d&startTime=${st}&limit=1000`); if (!r.ok) break; const j = await r.json(); if (!j.length) break; ok = true;
+        for (const k of j) { const d = new Date(k[0]).toISOString().slice(0, 10), c = +k[4]; if (c > 0) M[d] = inv ? 1 / c : c; } st = j[j.length - 1][0] + 864e5; if (j.length < 1000) break; } } catch (e) { /* thử cặp khác */ }
+    if (ok) break;
+  }
+  for (const d of days) if (!(d in M) && d < txDay(Date.now())) M[d] = null;      // không có giá (coin đã huỷ niêm yết…) → nhớ để khỏi hỏi lại
+  try { localStorage.setItem("mybit_txdpx", JSON.stringify(TXDP.m)); } catch (e) { /* đầy bộ nhớ: chỉ giữ trong phiên */ }
+  return M;
+}
+async function txHist(force) {
+  if (!TAX.book) await txLoad();
+  const B = TAX.book, sig = `${B.rows.length}|${B.files.length}|${B.files.map((f) => f.h).join("")}`;
+  if (!force && TAX.hist && TAX.hist.sig === sig) return TAX.hist;
+  const R = txRows().filter((r) => !r.dup && r.src !== "bot").sort((a, b) => a.t - b.t);
+  if (!R.length) return (TAX.hist = { sig, empty: true });
+  const DD = {}, FL = {}, FU = {}, cost = {}, TP = {};      // TP: giá khớp spot / convert theo ngày – dự phòng khi không lấy được giá ngày (coin đã huỷ niêm yết…)
+  for (const r of R) {
+    const d = txDay(r.t), x = txDelta(r); for (const [c, v] of Object.entries(x)) { const g = (DD[d] ||= {}); g[c] = (g[c] || 0) + v; }
+    const u = isNum(r.usd) ? Math.abs(r.usd) : null;
+    if ((r.cat === "spot" || r.cat === "conv") && r.base && !txIsSt(r.base) && isNum(r.qty) && r.qty > 0 && isNum(r.usd)) (TP[r.base] ||= {})[d] = Math.abs(r.usd) / r.qty;
+    if (r.cat === "p2p" && u != null) FL[d] = (FL[d] || 0) + (r.side === "sell" ? -u : u);
+    if ((r.cat === "dep" || r.cat === "wd") && u != null) FL[d] = (FL[d] || 0) + (r.cat === "wd" ? -u : u);
+    if (r.cat === "fpl") { const k = r.quote || (/realized|lời\/lỗ/i.test(r.ref || "") ? "pnl" : /funding/i.test(r.ref || "") ? "fund" : /insurance|thanh lý/i.test(r.ref || "") ? "liq" : /fee|phí/i.test(r.ref || "") ? "fee" : "oth"), g = (FU[d] ||= { pnl: 0, fee: 0, fund: 0, liq: 0, oth: 0, n: 0, w: 0 }), v = isNum(r.pnl) ? r.pnl : +r.qty || 0;
+      g[k] = (g[k] || 0) + v; if (k === "pnl") { const m = String(r.ref || "").match(/· (\d+) /); g.n += m ? +m[1] : 1; g.w += +r.px || 0; } }
+    if ((r.cat === "spot" || r.cat === "conv") && r.base && !txIsSt(r.base) && isNum(r.qty) && isNum(r.usd)) {      // giá vốn bình quân từng coin (mua cộng, bán trừ theo tỷ lệ)
+      const c = (cost[r.base] ||= { q: 0, u: 0 }); if (r.side === "buy") { c.q += r.qty; c.u += r.usd; } else if (c.q > 0) { const k = Math.min(1, r.qty / c.q); c.u -= c.u * k; c.q = Math.max(0, c.q - r.qty); } }
+  }
+  const d0 = txDay(R[0].t), d1 = txDay(Date.now()), days = []; for (let t = Date.parse(d0 + "T00:00:00Z"); t <= Date.parse(d1 + "T00:00:00Z"); t += 864e5) days.push(new Date(t).toISOString().slice(0, 10));
+  // số dư cộng dồn từng coin + khoảng ngày cần giá
+  const bal = {}, BAL = [], span = {};
+  for (const d of days) { for (const [c, v] of Object.entries(DD[d] || {})) bal[c] = (bal[c] || 0) + v; const snap = {}; for (const [c, v] of Object.entries(bal)) if (Math.abs(v) > 1e-9) { snap[c] = v; if (!txIsSt(c) && v > 1e-9) { const s2 = (span[c] ||= [d, d]); s2[1] = d; } } BAL.push(snap); }
+  const PX = {}, miss = [];
+  await txPool(Object.keys(span), 4, async (c) => { PX[c] = await txDayPx(c, span[c][0], span[c][1]); });
+  const eq = [], cap = []; let capS = 0; const lastPx = {};
+  days.forEach((d, i) => { capS += FL[d] || 0; let v = 0;
+    for (const [c, q] of Object.entries(BAL[i])) { if (q <= 0) continue; if (txIsSt(c)) { v += q; continue; } const p = PX[c]?.[d] ?? TP[c]?.[d] ?? lastPx[c] ?? null; if (isNum(p)) { lastPx[c] = p; v += q * p; } if (!isNum(PX[c]?.[d]) && !miss.includes(c)) miss.push(c); }
+    eq.push(v); cap.push(capS); });
+  const mon = {}; for (const [d, g] of Object.entries(FU)) { const m = mon[d.slice(0, 7)] ||= { pnl: 0, fee: 0, fund: 0, liq: 0, oth: 0, n: 0, w: 0, days: 0 }; for (const k of ["pnl", "fee", "fund", "liq", "oth", "n", "w"]) m[k] += g[k] || 0; m.days++; }
+  for (const [d, v] of Object.entries(FL)) { const m = mon[d.slice(0, 7)] ||= { pnl: 0, fee: 0, fund: 0, liq: 0, oth: 0, n: 0, w: 0, days: 0 }; m.flow = (m.flow || 0) + v; }
+  const S = { pnl: 0, fee: 0, fund: 0, liq: 0, oth: 0, n: 0, w: 0 }; for (const g of Object.values(FU)) for (const k of Object.keys(S)) S[k] += g[k] || 0;
+  const cin = Object.values(FL).filter((v) => v > 0).reduce((a, v) => a + v, 0), cout = -Object.values(FL).filter((v) => v < 0).reduce((a, v) => a + v, 0);
+  return (TAX.hist = { sig, days, eq, cap, fut: FU, mon, flows: FL, sum: { ...S, net: S.pnl + S.fee + S.fund + S.liq + S.oth, cin, cout, eq: eq[eq.length - 1], cap: cap[cap.length - 1] }, bal: BAL[BAL.length - 1], cost, miss, from: d0, files: B.files.length });
+}
+window.txHist = txHist;
 
 // ---------------------------------------------------------------- giao diện
 async function viewTax() {

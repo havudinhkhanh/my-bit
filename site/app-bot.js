@@ -1361,13 +1361,14 @@ async function viewScalp() {
   if (window.__scMode === "acct") {      // 💵 TRANG BINANCE (#/bot/binance): số dư, ví, trạng thái tài khoản bot, kết nối khoá API trên trình duyệt (lệnh tay)
     // 11/2026: trang này = TIỀN (tài sản, ví, an toàn, khoá); hiệu quả & lệnh của bot nằm ở Bot Phản Xạ – không lặp lại thẻ lời/lỗ ở đây
     app().innerHTML = `<div class="ph"><h1>Tài khoản Binance</h1><span class="meta">${bi("Tài sản · ví · giới hạn an toàn · trạng thái khoá", "Assets · wallets · safety limits · key status")} · <a href="#/bot/scalp" data-scenvgo="1">${bi("Lời/lỗ & lệnh của bot → Bot Phản Xạ", "Bot P/L & trades → Reflex Bot")}</a></span></div>
-      ${PG(bi("Tài khoản Binance", "Binance account"))}${lvOff ? lvOffP : ""}${walPanel || (lvOff ? "" : lvCards)}${lvRisk}${lvPanel || ""}<section class="panel" id="pvBx"></section>`;
+      ${PG(bi("Tài khoản Binance", "Binance account"))}${lvOff ? lvOffP : ""}${walPanel || (lvOff ? "" : lvCards)}${lvRisk}${lvPanel || ""}<section class="panel" id="ahBx"></section><section class="panel" id="pvBx"></section>`;
     $$("[data-sctab-go]").forEach((a) => (a.onclick = () => { window.__scEnv = "live"; lsSet("scenv", "live"); window.__scTab = a.dataset.sctabGo; lsSet("sctab", a.dataset.sctabGo); }));
     $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
     $$("[data-scenvgo]").forEach((a) => (a.onclick = () => { window.__scEnv = "live"; lsSet("scenv", "live"); window.__scTab = "ov"; lsSet("sctab", "ov"); }));
     $$("[data-sctab]").forEach((b) => (b.onclick = () => { window.__scTab = scNormTab(b.dataset.sctab); lsSet("sctab", window.__scTab); location.hash = "#/bot/scalp"; }));
     if ($("#lvRes")) $("#lvRes").onclick = async () => { C.lv_resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Tài khoản thật chạy lại trong ≤ 5 phút"); viewScalp(); };
     if (typeof bxPanel === "function") bxPanel();
+    ahPanel();
     return;
   }
   app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
@@ -2269,7 +2270,7 @@ function calPanel(days, keys, PF, env, sel, TD) {
     <p class="faint cal-note">Ô: lời/lỗ ngày · % ngày · dưới vạch = lũy kế từ đầu. Nạp/rút (số nhỏ góc ô) không tính là lời/lỗ.</p>`, L?.end ? `tài sản ${usd2(L.end)}` : "");
 }
 // 🧩 tên phương pháp theo mã lưu trong số liệu ngày (by / dtr): hook · sec · man · pump · q_<k>; short = 1 → tên ngắn cho nút lọc
-const ST_NM = { hook: ["🪝 Bắt râu sập", "🪝 Liquidation wick", "🪝 Râu sập", "🪝 Wick"], sec: ["⚡ Lướt giây", "⚡ Seconds scalp", "⚡ Lướt giây", "⚡ Scalp"], man: ["✋ Lệnh tay", "✋ Manual", "✋ Tay", "✋ Manual"], pump: ["📉 Short coin vừa bơm", "📉 Short the pump", "📉 Short bơm", "📉 Pump short"], list: ["📉 Short coin mới niêm yết", "📉 Short new listings", "📉 Short niêm yết", "📉 Listing short"] };
+const ST_NM = { hook: ["🪝 Bắt râu sập", "🪝 Liquidation wick", "🪝 Râu sập", "🪝 Wick"], sec: ["⚡ Lướt giây", "⚡ Seconds scalp", "⚡ Lướt giây", "⚡ Scalp"], man: ["✋ Lệnh tay", "✋ Manual", "✋ Tay", "✋ Manual"], hist: ["📜 Lịch sử Binance", "📜 Binance history", "📜 Lịch sử", "📜 History"], pump: ["📉 Short coin vừa bơm", "📉 Short the pump", "📉 Short bơm", "📉 Pump short"], list: ["📉 Short coin mới niêm yết", "📉 Short new listings", "📉 Short niêm yết", "📉 Listing short"] };
 const ST_Q = { ou: "Cặp O-U", rsi2: "RSI(2)", fund: "Funding âm", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý" };
 function stName(k, short) { const k2 = String(k).replace(/^q_/, ""); const N = ST_NM[k] || ST_NM[k2]; if (N) return short ? bi(N[2], N[3]) : bi(N[0], N[1]); return "📐 " + (ST_Q[k2] || k2); }
 try { if (!window.__dSt) window.__dSt = localStorage.getItem("dSt") || "all"; } catch (e) { /* bỏ qua */ }
@@ -2292,6 +2293,12 @@ async function viewDays(envArg, dateArg, part) {
       const by = {}; for (const x of h) { const st = x.strat === "man" ? "man" : x.strat || "hook", b = (by[st] ||= { n: 0, usd: 0, win: 0 }); b.n++; b.usd += x.pnl || 0; if (x.pnl > 0) b.win++; } D.by = { ...(D.by || {}), ...by }; }      // hôm nay: tách theo phương pháp từ lệnh thật
     else D.usd = X.live.day?.d === TD ? X.live.day.pnl : D.usd;
   }
+  // 📜 các ngày TRƯỚC khi có bot / ngoài sổ bot: futures theo ngày dựng lại từ file Binance (Sổ thuế) – lời/lỗ chốt + phí + funding + thanh lý; ngày đã có số liệu bot thì giữ số bot
+  let nHist = 0;
+  if (env === "live") { try { await lazyJs("app-tax.js"); const HH = await txHist(); if (HH && !HH.empty) { const full = typeof can !== "function" || can("acct_history"), cut = full ? "" : new Date(Date.now() - 90 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10);
+    const IX = new Map(HH.days.map((d, i) => [d, i]));
+    for (const [d, g] of Object.entries(HH.fut)) { if (days[d]?.n || d < cut) continue; const u = g.pnl + g.fee + g.fund + g.liq + g.oth; if (!g.n && Math.abs(u) < 0.01) continue; const i = IX.get(d), e0 = i > 0 ? HH.eq[i - 1] : null, e1 = i != null ? HH.eq[i] : null;
+      days[d] = { n: g.n, usd: u, win: g.w, by: { hist: { n: g.n || 1, usd: u, win: g.w } }, hist: 1, hf: g, ...(e0 > 1 ? { eq0: e0, eq1: e1 } : {}) }; nHist++; } } } catch (e) { /* chưa nhập file lịch sử */ } }      // eq0/eq1: tài sản ví dựng lại → % ngày
   const keys = Object.keys(days).sort(), cnt = Object.fromEntries(DENV.map(([e]) => [e, Object.values(ALL[e]?.days || {}).filter((d) => d.n).length]));
   const R = window.__dRange || 30, ks = R === "all" ? keys : keys.slice(-R);
   const sel = dateArg && days[dateArg] ? dateArg : keys.includes(TD) ? TD : keys[keys.length - 1];
@@ -2323,7 +2330,7 @@ async function viewDays(envArg, dateArg, part) {
   const summ = panel(`${DENV.find((x) => x[0] === env)[1]} – tổng quan`, `${rangeSeg}${stg([["Lãi/lỗ", `${tot >= 0 ? "+" : ""}${usd2(tot)}`, cls(tot), act.length ? `TB ${tot / V.length >= 0 ? "+" : ""}${usd2(tot / V.length)}/ngày` : ""], ["Ngày lời", act.length ? `${wd}/${act.length}` : "—", "", "ngày có lệnh"], ["Số lệnh", nf(nT, 0), "", nT ? `thắng ${nf(nW / nT * 100, 0)}%` : ""],
     ["Ngày tốt nhất", bestD ? `${bestD.usd >= 0 ? "+" : ""}${usd2(bestD.usd)}` : "—", bestD ? cls(bestD.usd) : "up", bestD ? ddmm(bestD.d) : ""], ["Ngày tệ nhất", worstD ? `${worstD.usd >= 0 ? "+" : ""}${usd2(worstD.usd)}` : "—", worstD ? cls(worstD.usd) : "", worstD ? ddmm(worstD.d) : ""], ["Sụt tối đa", usd2(mdd), mdd < 0 ? "down" : "", "từ đỉnh lãi"]], "st3")}`, `${V.length} ngày · hôm nay trực tiếp`);
   const rows = keys.slice().reverse().map((d) => { const x = days[d], H = keys.filter((k) => k < d).map((k) => days[k]), r = dayLessons(x, dtr[d] || [], H, C, env); const p = isNum(PF[d]?.r) ? PF[d].r * 100 : null;
-    return `<tr class="${d === sel ? "on" : ""}" data-dd="${d}"><td class="l"><a href="#/bot/days/${env}/${d}"><b>${ddmm(d)}</b></a>${d === TD ? ' <small class="pill brand">hôm nay</small>' : ""}</td><td class="${cls(x.usd)}"><b>${x.n ? `${x.usd >= 0 ? "+" : ""}${usd2(x.usd)}` : "—"}</b></td><td class="${cls(p)}">${isNum(p) ? pct(p, 2) : "—"}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td>${isNum(x.mdd) ? nf(x.mdd, 1) + "%" : "—"}</td><td class="l"><small>${esc((r.L.find((l) => l[0] === "down") || r.L[0] || ["", ""])[1].slice(0, 110))}</small></td></tr>`; }).join("");
+    return `<tr class="${d === sel ? "on" : ""}" data-dd="${d}"><td class="l"><a href="#/bot/days/${env}/${d}"><b>${ddmm(d)}</b></a>${d === TD ? ' <small class="pill brand">hôm nay</small>' : ""}</td><td class="${cls(x.usd)}"><b>${x.n || x.hist ? `${x.usd >= 0 ? "+" : ""}${usd2(x.usd)}` : "—"}</b>${x.hist ? ' <small class="faint" title="Lịch sử Binance (Sổ thuế)">📜</small>' : ""}</td><td class="${cls(p)}">${isNum(p) ? pct(p, 2) : "—"}</td><td>${nf(x.n || 0, 0)}</td><td>${x.n ? nf(x.win / x.n * 100, 0) + "%" : "—"}</td><td>${isNum(x.mdd) ? nf(x.mdd, 1) + "%" : "—"}</td><td class="l"><small>${esc((r.L.find((l) => l[0] === "down") || r.L[0] || ["", ""])[1].slice(0, 110))}</small></td></tr>`; }).join("");
   const list = panel("Từng ngày", `<div class="tw" style="max-height:420px"><table class="dtab"><thead><tr><th class="l">Ngày</th><th>Lãi/lỗ</th><th>%</th><th>Lệnh</th><th>Thắng</th><th title="Sụt từ đỉnh trong ngày">Sụt</th><th class="l">Điểm chính</th></tr></thead><tbody>${rows}</tbody></table></div>`, "bấm ngày để xem chi tiết");
   // chi tiết ngày đang chọn
   const D = days[sel], T = (dtr[sel] || []).slice().sort((a, b) => (a[0] >= "17:00" ? "0" : "1").concat(a[0]).localeCompare((b[0] >= "17:00" ? "0" : "1").concat(b[0])))      /* giờ lưu theo UTC: 17:00–23:59 UTC là đầu ngày giờ VN */, H = keys.filter((k) => k < sel).map((k) => days[k]), LS_ = dayLessons(D, T, H, C, env);
@@ -2331,7 +2338,7 @@ async function viewDays(envArg, dateArg, part) {
   const coins = Object.entries(D.coins || {}).map(([k, v]) => [k, v[0], v[1]]).sort((a, b) => b[2] - a[2]), mx = Math.max(1e-9, ...coins.map((c) => Math.abs(c[2])));
   const coinBars = coins.length ? `<div class="dbars">${coins.map(([k, nn, u]) => `<div><span><b>${esc(k)}</b> <small class="faint">${nn} lệnh</small></span><i><i class="${u >= 0 ? "up" : "down"}" style="width:${(Math.abs(u) / mx * 100).toFixed(0)}%"></i></i><b class="${cls(u)}">${u >= 0 ? "+" : ""}${usd2(u)}</b></div>`).join("")}</div>` : `<p class="muted">Không có lệnh.</p>`;
   const trT = T.length ? `<div class="dtl">${T.map((t) => `<div class="dtl-r"><span class="dtl-a"><small class="faint">${vnHM(t[0])}</small> ${t[3] === "hook" ? "🪝" : t[3] === "man" ? "✋" : t[3] === "pump" ? "📉" : String(t[3]).startsWith("q_") ? "📐" : "⚡"} <b>${scK(t[1])}</b> <span class="${t[2] > 0 ? "up" : "down"}">${t[2] > 0 ? "Long" : "Short"}</span>${t[7] === 2 ? ' <small class="faint">2 mức</small>' : ""}</span><b class="dtl-v ${cls(t[4])}">${t[4] >= 0 ? "+" : ""}${usd2(t[4])}</b>
-      <small class="dtl-b"><span class="${cls(t[5])}">${pctB(t[5])}</span>${isNum(t[8]) ? ` · ${bi("giữ", "held")} ${t[8] >= 600 ? nf(t[8] / 60, 0) + "p" : nf(t[8], 0) + "s"}` : ""} · ${esc(WHYD[t[6]] || JWHY[t[6]] || t[6] || "")}</small></div>`).join("")}</div>` : "";
+      <small class="dtl-b"><span class="${cls(t[5])}">${pctB(t[5])}</span>${isNum(t[8]) ? ` · ${bi("giữ", "held")} ${t[8] >= 600 ? nf(t[8] / 60, 0) + "p" : nf(t[8], 0) + "s"}` : ""} · ${esc(WHYD[t[6]] || JWHY[t[6]] || t[6] || "")}</small></div>`).join("")}</div>` : D?.hist ? `<p class="tx-note">📜 ${bi(`Ngày từ lịch sử Binance (file nhập ở Sổ thuế): chỉ có tổng ngày – lời/lỗ chốt ${usd2(D.hf.pnl)} · phí ${usd2(D.hf.fee)} · funding ${usd2(D.hf.fund)}${D.hf.liq ? ` · thanh lý ${usd2(D.hf.liq)}` : ""} · ${D.hf.n} lần khớp đóng. Nhập file Futures Trade History để có từng lệnh.`, `Day from Binance history (tax-ledger import): daily totals only – realized ${usd2(D.hf.pnl)} · fees ${usd2(D.hf.fee)} · funding ${usd2(D.hf.fund)}${D.hf.liq ? ` · liquidation ${usd2(D.hf.liq)}` : ""} · ${D.hf.n} closing fills. Import Futures Trade History for individual trades.`)}</p>` : "";
   const nk = `${env}|${sel}`;
   // tiêu đề ngày kiểu người đọc: "Thứ Tư, 5 tháng 11" + "7 ngày trước" (năm chỉ hiện khi khác năm nay)
   const dT = (() => { const t = new Date(sel + "T00:00:00Z"), w = t.getUTCDay(), d = t.getUTCDate(), m = t.getUTCMonth(), y = t.getUTCFullYear(), y0 = +TD.slice(0, 4), age = Math.round((Date.parse(TD) - Date.parse(sel)) / 864e5);
@@ -2779,4 +2786,37 @@ async function ntDoRun(D) {
   if (D.do === "close") q("data-mclose")?.click();
   else if (D.do === "ext") { const kb = q("data-mkeep"); if (kb) kb.click(); else toast(bi("Lệnh này không có tuỳ chọn gia hạn.", "This trade can't be extended.")); }
   else if (D.do === "snz") { await scCmd("close", `kz:${k}:60`, new Date().toISOString()); toast(bi("🔕 Đã hoãn nhắc 1 giờ", "🔕 Reminders snoozed for 1 hour")); }
+}
+
+// 📜 LỊCH SỬ TÀI KHOẢN từ ngày mở tài khoản (dựng lại từ file Binance nhập ở Sổ thuế) – trang Tài khoản Binance
+//    tài sản ví theo ngày · vốn nạp ròng (P2P / nạp / rút) · lời/lỗ tích luỹ · futures theo tháng (lời/lỗ chốt, phí, funding, thanh lý)
+//    Gói: xem 90 ngày gần nhất miễn phí; toàn bộ lịch sử cần tính năng "acct_history" (Pro)
+async function ahPanel() {
+  const box = $("#ahBx"); if (!box) return;
+  const T = bi("📜 Lịch sử tài khoản", "📜 Account history"), meta = bi("dựng lại từ file Binance anh nhập ở Sổ thuế", "rebuilt from the Binance files imported in the tax ledger");
+  box.innerHTML = `<div class="ph"><h2>${T}</h2><span class="meta">${meta}</span></div>${typeof skChart === "function" ? skChart(220) : ""}`;
+  let H = null; try { await lazyJs("app-tax.js"); H = await txHist(); } catch (e) { H = null; }
+  if (!$("#ahBx")) return;
+  if (!H || H.empty) { box.innerHTML = `<div class="ph"><h2>${T}</h2></div><p class="muted">${bi("Xem tài sản, vốn nạp, lời/lỗ futures <b>từ ngày mở tài khoản</b>: tải file <i>Transaction History</i> trên Binance rồi nhập ở", "See assets, net deposits and futures P/L <b>since the account opened</b>: download <i>Transaction History</i> from Binance and import it in")} <a href="#/tax">${bi("Sổ thuế", "the tax ledger")} →</a></p>`; return; }
+  const full = typeof can !== "function" || can("acct_history"), RG = [["90", bi("3 tháng", "3M")], ["365", bi("1 năm", "1Y")], ["all", bi("Từ đầu", "All")]];
+  let rg = window.__ahR || "all"; if (!full && rg !== "90") rg = "90";
+  const n = H.days.length, k0 = rg === "all" ? 0 : Math.max(0, n - +rg), D = H.days.slice(k0), EQ = H.eq.slice(k0), CP = H.cap.slice(k0);
+  const lbl = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(2, 4)}`, S = H.sum, pl = S.eq - S.cap, plp = S.cap > 0 ? pl / S.cap * 100 : null, cls2 = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+  const kpi = `<div class="tx-kpi ah-kpi">
+    <div><i>${bi("Tài sản ví", "Wallet assets")}</i><b>${usd2(S.eq)}</b><small>${bi("theo file tới", "per files up to")} ${lbl(H.days[n - 1])} · ${bi("chưa tính lời/lỗ chưa chốt", "excl. unrealized P/L")}</small></div>
+    <div><i>${bi("Vốn nạp ròng", "Net deposits")}</i><b>${usd2(S.cap)}</b><small>${bi("vào", "in")} ${usd2(S.cin)} · ${bi("ra", "out")} ${usd2(S.cout)} (P2P, ${bi("nạp / rút, mua bằng thẻ", "deposits / withdrawals, card buys")})</small></div>
+    <div><i>${bi("Lời / lỗ tích luỹ", "Cumulative P/L")}</i><b class="${cls2(pl)}">${usd2(pl)}</b><small>${plp != null ? pct(plp, 1) + " " + bi("so với vốn nạp", "of net deposits") : ""} · ${bi("từ", "since")} ${lbl(H.from)}</small></div>
+    <div><i>${bi("Futures từ đầu", "Futures since start")}</i><b class="${cls2(S.net)}">${usd2(S.net)}</b><small>${bi("chốt", "realized")} ${usd2(S.pnl)} · ${bi("phí", "fees")} ${usd2(S.fee)} · funding ${usd2(S.fund)}${S.liq ? ` · ${bi("thanh lý", "liquidation")} ${usd2(S.liq)}` : ""}</small></div></div>`;
+  const chips = `<div class="tx-yr ah-rg">${RG.map(([k, t]) => `<button type="button" class="chip ${k === rg ? "on" : ""}" data-ahr="${k}" ${!full && k !== "90" ? 'disabled title="Gói Pro"' : ""}>${!full && k !== "90" ? "🔒 " : ""}${t}</button>`).join("")}</div>`;
+  const step = D.length > 500 ? Math.ceil(D.length / 500) : 1, idx = D.map((_, i) => i).filter((i) => i % step === 0 || i === D.length - 1);      // > 500 ngày: lấy mẫu đều (đường vẫn đúng hình, SVG nhẹ)
+  const chart = lineSvg([{ name: bi("Tài sản ví", "Wallet assets"), color: css("--brand"), width: 2, pts: idx.map((i) => ({ x: lbl(D[i]), y: +EQ[i].toFixed(2) })) },
+    { name: bi("Vốn nạp ròng", "Net deposits"), color: css("--ink-3"), width: 1.5, pts: idx.map((i) => ({ x: lbl(D[i]), y: +CP[i].toFixed(2) })) },
+    { name: bi("Lời / lỗ tích luỹ", "Cumulative P/L"), color: css("--brass") || css("--down"), width: 1.5, pts: idx.map((i) => ({ x: lbl(D[i]), y: +(EQ[i] - CP[i]).toFixed(2) })) }], { h: 240, dec: 2, zero: true, legKey: "ah3", legVal: { label: bi("Ngày cuối", "Latest"), fmt: usd2 } });
+  const M = Object.entries(H.mon).filter(([m]) => rg === "all" || m >= D[0].slice(0, 7)).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+  const mrow = ([m, g]) => { const net = g.pnl + g.fee + g.fund + g.liq + g.oth; return `<tr><td>${m.slice(5, 7)}/${m.slice(0, 4)}</td><td class="${cls2(g.pnl)}">${g.n ? usd2(g.pnl) : "—"}</td><td>${g.fee ? usd2(g.fee) : "—"}</td><td class="${cls2(g.fund)}">${g.fund ? usd2(g.fund) : "—"}</td><td class="${g.liq ? "down" : ""}">${g.liq ? usd2(g.liq) : "—"}</td><td class="${cls2(net)}"><b>${g.n || g.fee ? usd2(net) : "—"}</b></td><td>${g.n ? nf(g.n, 0) : "—"}</td><td>${g.n ? nf(g.w / g.n * 100, 0) + "%" : "—"}</td><td class="${cls2(g.flow || 0)}">${g.flow ? usd2(g.flow) : "—"}</td></tr>`; };
+  const tbl = M.length ? `<div class="tx-tw"><table class="tx-t ah-t"><thead><tr><th>${bi("Tháng", "Month")}</th><th>${bi("Lời/lỗ chốt", "Realized")}</th><th>${bi("Phí", "Fees")}</th><th>Funding</th><th>${bi("Thanh lý", "Liquidation")}</th><th>${bi("Futures ròng", "Futures net")}</th><th title="${bi("số lần khớp đóng có lời/lỗ", "closing fills with P/L")}">${bi("Lần chốt", "Closes")}</th><th>${bi("Lần lời", "Wins")}</th><th>${bi("Nạp ròng", "Net deposits")}</th></tr></thead><tbody>${M.map(mrow).join("")}</tbody></table></div>` : "";
+  const notes = [H.miss.length ? bi(`Không lấy được giá ngày của ${H.miss.join(", ")} → tạm tính theo giá khớp gần nhất / bỏ qua.`, `No daily price for ${H.miss.join(", ")} → valued at last trade price / skipped.`) : "",
+    bi(`Nguồn: ${H.files} file trong Sổ thuế. Tài sản = số dư ví dựng lại × giá đóng cửa ngày; chưa gồm lời/lỗ chưa chốt của lệnh futures đang mở. Nhập thêm file P2P / Futures / Spot để số chính xác hơn.`, `Source: ${H.files} files in the tax ledger. Assets = rebuilt balances × daily close; excludes unrealized P/L of open futures. Import P2P / Futures / Spot files for more precision.`)].filter(Boolean);
+  box.innerHTML = `<div class="ph"><h2>${T}</h2><span class="meta">${meta} · <a href="#/tax">${bi("Sổ thuế", "Tax ledger")} →</a></span></div>${kpi}${chips}${chart}${!full ? `<p class="faint sc-cap">🔒 ${bi("Gói miễn phí xem 3 tháng gần nhất – toàn bộ lịch sử từ ngày mở tài khoản có ở gói Pro.", "Free plan shows the last 3 months – the full history since account opening is in Pro.")}</p>` : ""}${tbl}${notes.map((x) => `<p class="tx-note">${x}</p>`).join("")}`;
+  box.querySelectorAll("[data-ahr]").forEach((b) => (b.onclick = () => { window.__ahR = b.dataset.ahr; ahPanel(); }));
 }

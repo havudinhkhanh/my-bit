@@ -155,6 +155,26 @@
      "d": "Nhập thêm file Deposit History / Withdraw History: mỗi dòng nạp / rút có mạng, địa chỉ ví (rút gọn), TXID, phí rút – bằng chứng tiền chỉ chuyển giữa các ví của anh, không phải bán. Sổ tự khớp với dòng nạp / rút trong lịch sử tổng (cùng coin, lệch ≤ 30 phút, số lượng khớp kể cả phí) để không đếm 2 lần, bỏ lệnh rút bị huỷ, đọc đúng múi giờ ghi trên tên cột (vd UTC+7).",
      "te": "Tax ledger reads Binance Deposit / Withdraw History files",
      "de": "Import Deposit History / Withdraw History files too: each deposit / withdrawal gets its network, wallet address (shortened), TXID and withdrawal fee – evidence that funds only moved between your own wallets, not sold. The journal matches them to the transaction-history rows (same coin, within 30 minutes, amount incl. fee) so nothing is counted twice, skips cancelled withdrawals, and reads the time zone stated in the column name (e.g. UTC+7)."
+    },
+    {
+     "c": "new",
+     "a": "acct",
+     "hi": 1,
+     "f": "acct_history",
+     "go": "#/bot/binance",
+     "t": "📜 Lịch sử tài khoản từ ngày mở tài khoản",
+     "d": "Nhập file Transaction History (và nạp / rút, P2P, futures…) ở Sổ thuế là dựng lại toàn bộ lịch sử: trang Tài khoản Binance có biểu đồ tài sản ví theo ngày, vốn nạp ròng, lời/lỗ tích luỹ, thẻ futures từ đầu (lời/lỗ chốt, phí, funding, phí thanh lý) và bảng từng tháng; Kết quả & sổ lệnh (Binance thật) hiện cả các ngày cũ trên lịch, biểu đồ, thống kê (đánh dấu 📜); Danh mục gợi ý giá vốn theo lịch sử mua bán, bấm để dùng. Gói miễn phí xem 3 tháng gần nhất, toàn bộ lịch sử ở gói Pro.",
+     "te": "📜 Account history since the account opened",
+     "de": "Import Transaction History (plus deposits / withdrawals, P2P, futures…) in the tax ledger and the whole history is rebuilt: the Binance account page shows wallet assets by day, net deposits, cumulative P/L, futures since start (realized P/L, fees, funding, liquidation fees) and a monthly table; Results & journal (live Binance) includes the old days in the calendar, charts and stats (marked 📜); Portfolio suggests a cost basis from your trade history, one tap to apply. Free plan shows the last 3 months; full history is Pro."
+    },
+    {
+     "c": "fix",
+     "a": "port",
+     "go": "#/tax",
+     "t": "Sổ thuế đọc đúng file Binance mới: giờ VN, file rất lớn",
+     "d": "File Binance mới ghi giờ theo múi giờ anh chọn khi xuất (tên file có \"UTC7\") – sổ trước đây hiểu là giờ UTC nên lệch 7 tiếng (giao dịch có thể nhảy sang ngày khác); giờ đọc múi giờ từ tên file / tên cột. Hàng chục nghìn dòng phí, lời/lỗ, funding futures nay được gộp theo ngày nên sổ không còn vượt dung lượng lưu. File đã nhập bằng bản cũ: nhập lại đúng file đó, sổ tự đọc lại và thay dòng cũ.",
+     "te": "Tax ledger reads new Binance files correctly: VN time, very large files",
+     "de": "New Binance exports use the time zone you picked (file name contains \"UTC7\") – the ledger used to read them as UTC, shifting trades by 7 hours (sometimes into another day); it now reads the zone from the file / column name. Tens of thousands of futures fee, P/L and funding rows are now summed per day, so the ledger no longer exceeds its storage. Files imported with the old reader: import the same file again and the ledger re-reads it, replacing the old rows."
     }
    ]
   },

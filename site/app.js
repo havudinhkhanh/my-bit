@@ -5985,6 +5985,18 @@ async function pfSyncAsk(P) {
   setTimeout(() => { const c = document.getElementById("pfDrop"); if (c) c.onchange = () => { drop = c.checked; }; }, 50);
   return (await go) ? { drop } : null;
 }
+// 📜 giá vốn từ LỊCH SỬ Binance (file nhập ở Sổ thuế): mua − bán theo bình quân, gồm convert – gợi ý cho coin đang giữ chưa có / lệch giá vốn; bấm để dùng
+async function pfHistCost() {
+  const el = $("#pfHist"); if (!el || !PF.holdings.length) return;
+  let H = null; try { await lazyJs("app-tax.js"); H = await txHist(); } catch (e) { return; }
+  if (!$("#pfHist") || !H || H.empty) return;
+  const L = PF.holdings.map((h, i) => { const k = String(h.symbol || "").toUpperCase().replace(/USDT$/, ""), c = H.cost?.[k]; if (!c || !(c.q > 0) || !(c.u > 0)) return null; const avg = c.u / c.q;
+    if (c.q < h.qty * 0.5 || (h.cost && Math.abs(h.cost / avg - 1) < 0.005)) return null; return { i, k, avg, q: c.q }; }).filter(Boolean);
+  if (!L.length) return;
+  const lock = typeof can === "function" && !can("acct_history");
+  el.innerHTML = `<p class="tx-note pf-hc">📜 ${bi("Giá vốn theo lịch sử Binance (Sổ thuế)", "Cost basis from Binance history (tax ledger)")}: ${L.map((x) => `<b>${esc(x.k)}</b> ${px(x.avg)} <small class="faint">(${qty(x.q)})</small>`).join(" · ")} ${lock ? `<span class="acp-lock">🔒 ${bi("Gói Pro", "Pro")}</span>` : `<button type="button" class="btn sm" id="pfHcGo">${bi("Dùng giá vốn này", "Use this cost")}</button>`}</p>`;
+  $("#pfHcGo")?.addEventListener("click", async () => { for (const x of L) { const h = PF.holdings[x.i]; h.cost = x.avg; h.usdt = x.avg * h.qty; h.how = bi("giá vốn theo lịch sử Binance", "cost from Binance history"); } await pfSave(); toast(bi("Đã cập nhật giá vốn từ lịch sử Binance", "Cost basis updated from Binance history")); viewPortfolio(); });
+}
 async function viewPortfolio() {
   const C = await coins(); await pfLoad(); await WL.load();
   let BW = await pfWal(false);
@@ -6055,7 +6067,7 @@ async function viewPortfolio() {
         <label class="pf-auto" title="Mỗi lần mở Danh mục, tự lấy số dư mới nhất (máy chủ đọc 5 phút/lần) – giữ giá vốn đã nhập, xoá coin không còn trên Binance"><input type="checkbox" id="pfAuto"${PF.autoSync ? " checked" : ""}> Tự cập nhật</label><button class="btn sm" id="pfSync">🔄 Cập nhật từ Binance</button></div>` : ""}</section>
     ${govBox}
     ${flags.length ? panel("⚠️ Cần chú ý", `<ul class="alerts">${flags.map(([k, t]) => `<li>${k ? coinLink(k) : ""} ${esc(t)}</li>`).join("")}</ul>`) : ""}
-    ${PG("Vị thế đang giữ")}${panel("Spot", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div>
+    ${PG("Vị thế đang giữ")}${panel("Spot", `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Số lượng</th><th>Giá vốn TB</th><th>Đã bỏ ra</th><th>Giá</th><th>Giá trị</th><th>Lãi/lỗ</th><th>Xu hướng</th><th>Định giá</th><th></th></tr></thead><tbody>${sp || '<tr><td colspan="10" class="muted">Chưa có coin nào.</td></tr>'}</tbody></table></div><div id="pfHist"></div>
       <div class="pf-add" id="pfAdd"><h4>➕ Thêm coin – nhập theo cách anh nhớ</h4>
         <div class="seg pf-modes" id="hM">${HM.map(([k, t]) => `<button type="button" data-m="${k}" class="${k === lsGet("hmode", "usdt") ? "on" : ""}">${t}</button>`).join("")}</div>
         <div class="filters pf-f"><div class="field"><label>Coin</label><input id="hS" list="coinlist" placeholder="BTC" autocomplete="off"></div>
@@ -6174,6 +6186,7 @@ async function viewPortfolio() {
     PF.cash = Number(PF.cash || 0) + h.qty * (h.cost || x) + pnl;
     PF.holdings.splice(Number(b.dataset.ch), 1); await pfSave(); toast(`Đã bán ${h.symbol}: ${pnl >= 0 ? "lãi" : "lỗ"} ${usd(Math.abs(pnl))}`); viewPortfolio();
   });
+  pfHistCost();
 }
 
 // ================================================================ CÔNG CỤ
