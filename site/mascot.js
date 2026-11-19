@@ -413,7 +413,7 @@
     // nhóm 3 · ready: dáng khom chờ vồ (đoạn đầu clip vồ, phát tới–lui = ngoáy mông) · pounceF: vồ ngay từ lúc khom (bỏ đoạn rình lâu) · on: [khung, việc] làm đúng lúc (tiếng meo khi há miệng)
     vroll: { sheet: "vroll", fps: 24 }, vstalk: { sheet: "vstalk", loop: 1, fps: 24, upf: 0 },
     vmeow: { sheet: "vmeow", fps: 24, on: [62, () => meow(1)] }, vannoy: { sheet: "vannoy", fps: 24 },
-    pounce: { sheet: "vpounce", fps: 24 }, pounceF: { sheet: "vpounce", a: 46, fps: 24 }, ready: { sheet: "vpounce", a: 38, b: 47, yo: 1, fps: 7 }, dangle: { sheet: "vpounce", a: 70, b: 78, yo: 1, fps: 5, na: 1 },      // dangle: bị nhấc lên (khung lơ lửng giữa cú vồ)      // bảng cắt ở khung 92 (vừa đáp đất) – sau đó máy quay lia theo, chân sẽ trượt
+    pounce: { sheet: "vpounce", fps: 24 }, pounceF: { sheet: "vpounce", a: 46, fps: 32, md: 280 },      /* vồ nhanh hơn video gốc ~25% (32 khung/giây, vào thế 0,28 giây) – chân chạm đất sau ~1,2 giây */ ready: { sheet: "vpounce", a: 38, b: 47, yo: 1, fps: 7 }, dangle: { sheet: "vpounce", a: 70, b: 78, yo: 1, fps: 5, na: 1 },      // dangle: bị nhấc lên (khung lơ lửng giữa cú vồ)      // bảng cắt ở khung 92 (vừa đáp đất) – sau đó máy quay lia theo, chân sẽ trượt
   });
   CLIP.walk = { sheet: "vwalk", loop: 1, fps: 24, upf: 0, fb: CLIP.walk0 }; CLIP.run0 = CLIP.run; CLIP.run = { sheet: "vrun", loop: 1, fps: 24, upf: 0, fb: CLIP.run0 }; CLIP.dash = { sheet: "vrun", loop: 1, fps: 54, upf: 0, fb: CLIP.run0 };      // dash: chạy nước rút (đuổi tia laser) – cùng clip chạy, chân nhanh gấp đôi, đi nhanh gấp đôi (không trượt chân)
   const A = { sh: POSE.sit, snap: null, map: null, t0: 0, dur: 1, clip: CLIP.sit, name: "sit", ct: 0, ph: 0, v: 0, ty: 0, rot: 0, last: 0, on: false, R: null };
@@ -602,6 +602,7 @@
     const ms = c.ms || md + (Math.min(c.b ?? F.length - 1, F.length - 1) - (c.a || 0)) / c.fps * 1000;      // nắn 360 ms (clip chờ ở khung đầu trong lúc nắn) rồi mới chạy
     setTimeout(() => { if (tk !== S.walkTk || !S.el || A.clip !== c) return; leave(k === "turn" || k === "turnQ" || k === "turnF"); runSeq(L, done, tk); }, ms);
   }
+  const PFT = (f) => ((CLIP.pounceF.md || 360) + (f - 46) / CLIP.pounceF.fps * 1000);      // ms từ lúc bắt đầu vồ (pounceF đứng đầu chuỗi) tới khung f của bảng vồ · 76 = chân trước chạm đất
   const SITS = new Set(["sit", "gpaw", "gbody", "vroll"]), STANDS = new Set(["enter", "walk", "run", "dash", "s2st", "s2stQ", "turn", "turnQ", "turnF", "stalk", "vstretch", "l2st", "wake", "ready", "pounce", "pounceF", "vmeow", "vannoy"]), LIES = new Set(["s2l", "vlie"]), NAPS = new Set(["l2c", "vcurl", "sleep"]);
   const napping = () => NAPS.has(S.pose) || S.pose === "curl";
   // các clip để ĐỨNG lên từ dáng hiện tại (ngồi → đứng dậy · nằm → chống chân đứng lên · cuộn / ngủ → [duỗi ra] thức dậy, ngáp, vươn vai)
@@ -689,7 +690,7 @@
       setTimeout(() => { el.style.transform += " scaleY(0)"; setTimeout(() => el.remove(), 500); S.busy = false; play("stretch"); setTimeout(() => play("sit"), 1600); sched(idle, rnd(5e3, 8e3)); }, rnd(4200, 5600));
     } else if (kind === "fly" && hasV("pounceF", "ready", "s2st") && !LIES.has(S.pose) && !NAPS.has(S.pose)) {      // 🦋 bướm: đứng dậy (nếu đang ngồi) → khom ngoáy mông → vồ, bướm bay tới đúng chỗ chân vươn cao nhất
       const sz = 62 * u, el = prop("fly", sz, sz), caught = Math.random() < 0.5, t0 = performance.now(); let done = false; S.busy = false;
-      const prep = SITS.has(S.pose) ? 360 + (84 / 24) * 1000 : 0, wait = rnd(900, 1500), peak = prep + wait + 360 + ((68 - 46) / 24) * 1000;
+      const prep = SITS.has(S.pose) ? 360 + (84 / 24) * 1000 : 0, wait = rnd(900, 1500), peak = prep + wait + PFT(68);
       act(SITS.has(S.pose) ? ["s2st"] : [], "ready", () => { const tk = S.walkTk; setTimeout(() => { if (tk === S.walkTk) act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 360); }, wait); }, 420);
       say(pick("fly"), 2600, 1); el.style.bottom = "0px";
       const tx = () => catCX() + d * 185 * u, ty0 = tr.b + 255 * u;      // chỗ 2 chân trước vươn tới lúc vồ cao nhất (đo từ video)
@@ -1077,7 +1078,7 @@
     const strike = () => { S.bat = 0; if (!S.el || S.busy) return sched(idle, 2000);
       const up = [...(STANDS.has(S.pose) ? [] : upSeq()), ...(S.face !== dir ? ["turnQ"] : [])]; if (!act([...up, "pounceF", "st2s"], "sit", () => sched(idle, rnd(4e3, 7e3)), 420)) return sched(idle, 2000);
       const tk = S.walkTk; setTimeout(() => { if (tk !== S.walkTk || !o.e.isConnected) return; o.e.classList.remove("mun-bat"); void o.e.offsetWidth; o.e.classList.add("mun-bat"); setTimeout(() => o.e.classList.remove("mun-bat"), 700);
-        if (tgt) meow(1); if (S.cfg.talk !== "q" && (tgt || Math.random() < 0.7)) setTimeout(() => say(pick(pool), 2400, 1), 500); }, 360 + (76 - 46) / 24 * 1000 + up.reduce((m, k) => m + sheetMs(CLIP[k]), 0)); };
+        if (tgt) meow(1); if (S.cfg.talk !== "q" && (tgt || Math.random() < 0.7)) setTimeout(() => say(pick(pool), 2400, 1), 500); }, PFT(76) + up.reduce((m, k) => m + sheetMs(CLIP[k]), 0)); };
     // đi tới chỗ đứng sao cho lúc tới nơi mặt đã hướng về đồ vật (đi ngược hướng thì vòng ra xa rồi đi lại)
     const ok = (x - S.x) * dir > 24 || Math.abs(x - S.x) < 24 && S.face === dir;
     const wo = tgt ? { end: "ready", clip: SHEET.vrun ? "dash" : undefined, fast: true } : { end: "ready" };      // có tin (chuông) → chạy nước rút tới
@@ -1203,7 +1204,7 @@
     let LG = null, mx = fromL ? -mw - 10 : VW + 10, cx = S.x, t0 = performance.now(), last = t0, pauseTill = 0, sniffed = false, vm = 160, v = 0, shout = false, done = false;
     const end = (caught) => { if (done) return; done = true; S.chasing = false; zoomSet(false, caught ? 3600 : 2200); S.el?.classList.remove("run");
       if (caught && hasV("pounceF")) { S.chasing = false; act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); const tk = S.walkTk;      // 🐭 chuột đứng hình → na khom rồi vồ, chạm chuột đúng lúc vươn chân cao nhất
-        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, 360 + (76 - 46) / 24 * 1000); return; }      // khung 76 = chân trước chạm đất (đo từ video)
+        setTimeout(() => { m.classList.add("poof"); if (tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); }, PFT(76)); return; }      // khung 76 = chân trước chạm đất (đo từ video)
       if (caught) { m.classList.add("poof"); sitDown("licklip"); setTimeout(() => { say(pick("catch"), 3600, 2); meow(1); }, 200); setTimeout(() => { if (S.pose === "licklip") play("sit"); }, 2600); }
       else { sitDown("sit"); setTimeout(() => say(pick("miss"), 3600, 2), 300); }
       setTimeout(() => m.remove(), 400); sched(idle, rnd(6e3, 9e3)); };
@@ -1213,7 +1214,7 @@
       const dt = Math.min(0.05, (t - last) / 1000); last = t; const el = t - t0, tr = track();      // sân chạy đo LẠI mỗi lúc (nhớ 0,4 giây): nút / bảng phụ hiện – ẩn giữa chừng → trước dùng sân lúc bắt đầu, mèo bị chặn mà vẫn chạy tại chỗ
       // 🎯 đang VỒ (lần bắt trúng): chuột cứ chạy đều tới, na đáp đất đúng lúc chuột chạy tới dưới chân → chuột "poof"
       //   vị trí chuột tính theo ĐÚNG khung hình na đang hiện (không theo đồng hồ): điện thoại bận / tụt khung thì chuột chậm theo → vẫn tới đúng lúc chân chạm đất
-      if (LG) { const sp = A.clip === CLIP.pounceF ? (A.snap ? Math.min(1, (performance.now() - A.t0) / A.dur) * LG.md : LG.md + ((A.fi ? (A.fi[1] === A.fi[0] + 1 ? A.fi[0] + A.fi[2] : A.fi[0]) : 46) - 46) / 24) : LG.T / 1000, s2 = Math.min(sp, LG.T / 1000);
+      if (LG) { const sp = A.clip === CLIP.pounceF ? (A.snap ? Math.min(1, (performance.now() - A.t0) / A.dur) * LG.md : LG.md + ((A.fi ? (A.fi[1] === A.fi[0] + 1 ? A.fi[0] + A.fi[2] : A.fi[0]) : 46) - 46) / CLIP.pounceF.fps) : LG.T / 1000, s2 = Math.min(sp, LG.T / 1000);
         mx = LG.x0 + dir * LG.v * s2; m.style.transform = `translate3d(${Math.round(mx)}px,0,0)`; if (sp >= LG.T / 1000 || t - LG.t0 >= LG.T + 900) { done = true; S.chasing = false; zoomSet(false, 3600); m.classList.add("poof"); if (LG.tk === S.walkTk) { say(pick("catch"), 3600, 2); meow(1); } setTimeout(() => m.remove(), 400); return; } requestAnimationFrame(step); return; }
       const mc = mx + mw / 2, cc = cx + cw / 2, gap = Math.abs(mc - cc);
       // chuột: chạy đều; giữa đường dừng ngó 1 lần nếu na còn xa; na đuổi sát thì tăng tốc (hoặc hoảng chạy chậm lại nếu lần này bị bắt)
@@ -1227,12 +1228,12 @@
       // 🎯 nhắm tới chỗ ĐỨNG VỒ (cách chuột 1 tầm vồ, phía mèo đang đứng) chứ không phải đứng đè lên chuột – vồ là chân chạm đúng con chuột
       // lần BẮT TRÚNG + chuột chạy thẳng về phía mặt na → na nằm phục tại chỗ (không lao ra đón), tính trước để vồ sớm: vồ mất TL giây, chân trước đáp xa PL
       //   (đo từ khung video: đáp đất ở khung 76, mũi chân trước cách tâm ~132 đơn vị) → vồ khi chuột còn cách PL + quãng chuột chạy trong TL giây
-      const PL = 132 * U2P(), TL = (360 * (MUN_ART.slow || 1) + (76 - 46) / 24 * 1000) / 1000, ahC = (mc - cc) * S.face, amb = win && hasV("pounceF") && !turning && dir * S.face < 0 && ahC > PL;
+      const PL = 132 * U2P(), TL = PFT(76) / 1000, ahC = (mc - cc) * S.face, amb = win && hasV("pounceF") && !turning && dir * S.face < 0 && ahC > PL;
       const rdy = !turning && !A.snap && (S.pose === "ready" || S.pose === "crouch");      // na đã thủ thế xong (không đang quay đầu / đổi dáng)
       if (amb && rdy && el > 300 && ahC - Math.max(vm, 60) * TL <= PL) {
         cx = S.x; const ah = (mx + mw / 2 - (cx + cw / 2)) * S.face, lv = Math.min(240, (ah - PL) / TL);
         if (lv > 25) { S.el?.classList.remove("run"); A.v = 0; S.chasing = false; const ok = act(["pounceF", "st2s"], "sit", () => sched(idle, rnd(6e3, 9e3)), 420); S.chasing = true;
-          if (ok) { LG = { t0: t, T: (A.dur / 1000 + 30 / 24) * 1000, md: A.dur / 1000, x0: mx, v: (ah - PL) / (A.dur / 1000 + 30 / 24), tk: S.walkTk }; requestAnimationFrame(step); return; } }
+          if (ok) { LG = { t0: t, T: (A.dur / 1000 + 30 / CLIP.pounceF.fps) * 1000, md: A.dur / 1000, x0: mx, v: (ah - PL) / (A.dur / 1000 + 30 / CLIP.pounceF.fps), tk: S.walkTk }; requestAnimationFrame(step); return; } }
       }
       const reach = 185 * U2P(), aimC = amb ? cc : mc - (mc >= cc ? 1 : -1) * reach * 0.85;      // nằm phục: đích = chỗ đang đứng (tv = 0)
       if (el > 700 && !turning) {
@@ -1340,7 +1341,7 @@
     const ahead = (ST.px - (S.x + cw / 2)) * S.face;      // con trỏ ở phía trước mặt mèo bao xa
     if (hasV("pounceF") && now() - ST.last > 900 && !(ahead > (LZ.on ? -0.2 : 0.3) * cw && ahead < (LZ.on ? 1.6 : 1.1) * cw) && ["ready", "sit", "stalk"].includes(S.pose) && !A.v) { ST.last = now(); stalkGo(ST.px); }      // chuột dừng mà mèo chưa tới chỗ → đi tiếp
     if (hasV("pounceF")) { if (now() - ST.mv > (LZ.on ? 800 : 1100) && ahead > (LZ.on ? -0.2 : 0.3) * cw && ahead < (LZ.on ? 1.6 : 1.1) * cw && (S.pose === "ready" || SITS.has(S.pose))) {      // tia laser: vồ dễ hơn (đằng nào cũng trượt)      // 🎬 vồ con trỏ thật – chỉ khi đã đứng chờ / ngồi yên, không cắt ngang lúc đang đứng dậy, quay đầu
-      ST.on = false; ST.cool = now() + (LZ.on ? 2200 : 90e3); if (!LZ.on) zoomSet(false, 3200); if (LZ.on) { setTimeout(() => { LZ.el?.classList.remove("zip"); void LZ.el?.offsetWidth; LZ.el?.classList.add("zip"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("laserMiss"), 2200, 1); }, 360 + (82 - 46) / 24 * 1000); } else say(pick("pounce"), 2200, 2); act([...(STANDS.has(S.pose) ? [] : upSeq()), "pounceF", "st2s"], "sit", () => sched(idle, rnd(3e3, 5e3)), 420); } return; }
+      ST.on = false; ST.cool = now() + (LZ.on ? 2200 : 90e3); if (!LZ.on) zoomSet(false, 3200); if (LZ.on) { setTimeout(() => { LZ.el?.classList.remove("zip"); void LZ.el?.offsetWidth; LZ.el?.classList.add("zip"); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("laserMiss"), 2200, 1); }, PFT(76)); } else say(pick("pounce"), 2200, 2); act([...(STANDS.has(S.pose) ? [] : upSeq()), "pounceF", "st2s"], "sit", () => sched(idle, rnd(3e3, 5e3)), 420); } return; }
     if (now() - ST.mv > 1100 && Math.abs(ST.px - (S.x + cw / 2)) < 60 && S.pose !== "walk") { play("chase", 120); S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); setTimeout(() => play("crouch"), 260); say(pick("pounce"), 2200, 2); ST.cool = now() + 90e3; stalkEnd(false); }
   }  // ---------------------------------------------------------------- dựng / bật / tắt
   function build() {
