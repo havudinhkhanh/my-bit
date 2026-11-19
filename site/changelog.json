@@ -38,9 +38,9 @@
      "a": "mascot",
      "hi": 1,
      "t": "Rượt đuổi kiểu \"máy quay lùi ra xa\" và có quán tính",
-     "d": "Lúc na rình con trỏ, đuổi tia laser hay đuổi chuột, khung hình như lùi ra xa: na thu nhỏ còn khoảng 80% (êm trong 0,6 giây), sân chạy rộng ra tương đối nên rượt được xa hơn; sải chân ngắn lại theo cỡ mới nên chân không trượt. Con trỏ ở xa thì na chạy nước rút tới, đang rình thì con trỏ lên cao hơn một chút na vẫn đuổi. Có quán tính: tăng tốc thì chúi người tới, phanh gấp thì ngả ra sau rồi lắc nhẹ về thăng bằng. Xong trò thì zoom vào lại.",
+     "d": "Chỉ lúc na thật sự rượt (chạy nước rút theo con trỏ, đuổi tia laser hay đuổi chuột) khung hình mới lùi ra xa – mới ngó con trỏ / nói chuyện thì không zoom: na thu nhỏ còn khoảng 80% (êm trong 0,6 giây), sân chạy rộng ra tương đối nên rượt được xa hơn; sải chân ngắn lại theo cỡ mới nên chân không trượt. Con trỏ ở xa thì na chạy nước rút tới, đang rình thì con trỏ lên cao hơn một chút na vẫn đuổi. Có quán tính: tăng tốc thì chúi người tới, phanh gấp thì ngả ra sau rồi lắc nhẹ về thăng bằng. Xong trò thì zoom vào lại.",
      "te": "Chases with a \"camera pulls back\" zoom and real momentum",
-     "de": "When na stalks the cursor, chases the laser or the mouse, the view pulls back: she shrinks to about 80% (smoothly, 0.6 s) so her running area feels wider and she chases farther; her stride shrinks with her, so her feet don't slide. A far-off cursor gets a sprint, and once stalking she keeps chasing even if the pointer rises a bit. With momentum: she leans forward when speeding up and leans back when braking hard, then settles. When the game ends the view zooms back in."
+     "de": "Only when na actually chases (sprinting after the cursor, the laser or the mouse) does the view pull back – merely noticing the cursor or talking doesn't zoom: she shrinks to about 80% (smoothly, 0.6 s) so her running area feels wider and she chases farther; her stride shrinks with her, so her feet don't slide. A far-off cursor gets a sprint, and once stalking she keeps chasing even if the pointer rises a bit. With momentum: she leans forward when speeding up and leans back when braking hard, then settles. When the game ends the view zooms back in."
     },
     {
      "c": "fix",

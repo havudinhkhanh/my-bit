@@ -1279,7 +1279,7 @@
     if (!ST.on && e.target?.closest?.("#mun")) return;      // rê chuột lên chính con mèo (đọc chữ, định vuốt) → không coi là con mồi, mèo đứng yên
     if (now() < ST.cool) return;
     if (!ST.on && !LZ.on && Math.abs(e.clientX - (S.x + 345 * S.s / 2)) > 7 * 345 * S.s) return;      // chuột ở xa hẳn (đang dùng trang) → không rình
-    if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); zoomSet(true); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && !LZ.on && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
+    if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && !LZ.on && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > (LZ.on ? 65e3 : 25e3)) return stalkEnd(true);
     if (e.target?.closest?.("#mun")) return;      // chuột đang ở TRÊN mèo (rê qua / định vuốt) → không coi là con mồi
@@ -1295,6 +1295,7 @@
     if (["s2st", "s2stQ", "turn", "turnQ", "l2st", "wake", "pounceF", "st2s"].includes(S.pose)) return;      // đang đứng dậy / quay đầu / vồ → để xong đã
     if (dir !== S.face) { if (!ST.side || ST.side.d !== dir) { ST.side = { d: dir, t: now() }; return; } if (now() - ST.side.t < 1200) return; }      // chuột sang phía sau: chờ 1,2 giây chắc chắn mới quay đầu (quay đầu mất 4 giây)
     ST.side = null; const dash = Math.abs(rel) > 2.4 * cw && SHEET.vrun;      // con mồi (con trỏ / tia laser) ở xa → phóng tới (chạy nước rút), gần mới khom rình
+    if (dash) zoomSet(true);      // 🎥 chỉ "lùi máy quay" khi thật sự RƯỢT (chạy nước rút theo con trỏ / laser), không phải lúc mới ngó con trỏ
     walkTo(px - cw / 2 - dir * 0.7 * cw, null, { clip: dash ? "dash" : "stalk", v: dash ? 1 : 0.8, fast: LZ.on || dash, end: hasV("ready") ? "ready" : "crouch" });      // dừng TRƯỚC con trỏ, đầu sát con mồi
   }
   function stalkTick() {
