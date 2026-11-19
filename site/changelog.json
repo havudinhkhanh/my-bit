@@ -214,6 +214,15 @@
      "te": "📱 Manage signed-in devices",
      "d": "Trang Tài khoản → Bảo mật giờ liệt kê từng thiết bị đang đăng nhập (trình duyệt, hệ điều hành, nơi đăng nhập, lần hoạt động gần nhất), đánh dấu \"Thiết bị này\". Đăng xuất riêng từng thiết bị, hoặc đăng xuất mọi thiết bị khác mà vẫn giữ thiết bị đang dùng. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức; đổi mật khẩu cũng tự đăng xuất các thiết bị khác.",
      "de": "Account → Security now lists every signed-in device (browser, OS, location, last active) with \"This device\" marked. Log out a single device, or log out all other devices while keeping the one you're on. A logged-out device can no longer change data immediately; changing your password also logs out the other devices."
+    },
+    {
+     "c": "fix",
+     "a": "acct",
+     "go": "#/account",
+     "t": "Danh sách thiết bị: báo rõ máy đăng nhập từ trước chưa hiện",
+     "te": "Device list: clearly flags devices signed in before the list existed",
+     "d": "Máy đăng nhập trước khi có danh sách (vd. máy tính ở công ty đang tắt) chỉ hiện tên sau khi mở lại web. Giờ danh sách có dòng nhắc cho các máy này và nút \"Đăng xuất mọi thiết bị khác\" luôn bấm được để chặn cả những máy chưa hiện. Sửa thêm: mở web cùng lúc nhiều tab không còn tạo dòng thiết bị trùng.",
+     "de": "Devices signed in before the list existed (e.g. a work laptop that's switched off) only appear by name after they open the site again. The list now shows a note for them and \"Log out all other devices\" is always available to cut them off too. Also fixed: opening several tabs at once no longer creates duplicate device rows."
     }
    ]
   },

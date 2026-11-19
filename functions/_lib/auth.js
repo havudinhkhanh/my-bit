@@ -4,6 +4,8 @@ import {
   meOf, newSession, notifyAdmins, nowIso, ownerList, PLANS, randHex, sendMail, sha256Hex, tooMany, validEmail, verifyGoogle, verifyPassword, withCookie,
 } from "./core.js";
 
+// lúc bật danh sách thiết bị: cookie cấp trước mốc này chưa gắn mã phiên (máy chưa mở lại web thì chưa hiện trong danh sách)
+const SES_SINCE = "2026-11-19T12:13:00Z";
 async function body(request) { try { return await request.json(); } catch (e) { return {}; } }
 const ip = (request) => request.headers.get("cf-connecting-ip") || "local";
 
@@ -92,7 +94,15 @@ export async function auth(ctx, action) {
     const cur = s.ses.d || null;
     const rows = (await env.DB.prepare(`SELECT id, created_at, last_seen, ua, ip, place FROM sessions WHERE user_id = ? AND revoked = 0 AND last_seen > ?
                                        ORDER BY last_seen DESC LIMIT 40`).bind(s.ses.u, new Date(Date.now() - 30 * 86400000).toISOString()).all()).results || [];
-    return withCookie(json({ current: cur, sessions: rows.map((r) => ({ ...r, current: r.id === cur })) }), s.setCookie);
+    // còn thể có máy đăng nhập từ trước mốc mà chưa mở lại web? (chưa đổi mật khẩu / đăng xuất các máy khác kể từ mốc đó)
+    let legacy = false;
+    const u0 = s.user || await getUser(env, s.ses.u);
+    if (u0 && (u0.created_at || "") < SES_SINCE && Date.now() - Date.parse(SES_SINCE) < 30 * 86400000) {
+      const cut = await env.DB.prepare("SELECT 1 AS k FROM audit WHERE user_id = ? AND at > ? AND action IN ('logout_others', 'logout_all', 'password', 'email', 'reset') LIMIT 1")
+        .bind(u0.id, SES_SINCE).first();
+      legacy = !cut;
+    }
+    return withCookie(json({ current: cur, legacy, sessions: rows.map((r) => ({ ...r, current: r.id === cur })) }), s.setCookie);
   }
   if (action === "logout" && m === "POST") {
     const s = await getSession(request, env);

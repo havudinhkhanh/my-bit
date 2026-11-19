@@ -64,6 +64,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS sessions(id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at TEXT, last_seen TEXT, ua TEXT, ip TEXT, place TEXT,
      revoked INTEGER NOT NULL DEFAULT 0)`,
   `CREATE INDEX IF NOT EXISTS ix_ses_user ON sessions(user_id, revoked)`,
+  `CREATE INDEX IF NOT EXISTS ix_audit_user ON audit(user_id, at)`,
 ];
 let schemaOk = false;
 export async function ensureSchema(env) {
@@ -182,11 +183,14 @@ export async function getSession(request, env) {
   if (sid) {
     if (!(await sesAlive(env, sid))) return null;
     await env.DB.prepare("UPDATE sessions SET last_seen = ? WHERE id = ?").bind(nowIso(), sid).run();
-  } else {      // cookie cũ (trước 11/2026) → tạo phiên để hiện trong danh sách thiết bị (nhiều yêu cầu cùng lúc → dùng chung 1 phiên)
-    const d = devOf(request);
-    const r = await env.DB.prepare("SELECT id FROM sessions WHERE user_id = ? AND revoked = 0 AND ua = ? AND ip = ? AND created_at > ? LIMIT 1")
-      .bind(u.id, d.ua, d.ip, new Date(Date.now() - 120000).toISOString()).first();
-    sid = r ? r.id : await newSession(env, request, u.id);
+  } else {
+    // cookie cũ (trước 11/2026) chưa gắn mã phiên → mã phiên suy ra từ chữ ký cookie: các yêu cầu song song của cùng 1 máy
+    // ra CÙNG 1 mã (không tạo dòng trùng); máy đó hiện trong danh sách thiết bị từ lần mở web kế tiếp
+    sid = (await sha256Hex("legacy:" + sig)).slice(0, 32);
+    const d = devOf(request), n = nowIso();
+    await env.DB.prepare("INSERT OR IGNORE INTO sessions(id, user_id, created_at, last_seen, ua, ip, place) VALUES(?, ?, ?, ?, ?, ?, ?)")
+      .bind(sid, u.id, n, n, d.ua, d.ip, d.place).run();
+    if (!(await sesAlive(env, sid))) return null;
   }
   await env.DB.prepare("UPDATE users SET last_seen = ? WHERE id = ?").bind(nowIso(), u.id).run();
   return { ses: { u: u.id, r: u.role, p: effPlan(u), s: u.sv, t: now, e: ses.e, d: sid }, user: u, setCookie: await makeCookie(env, u, request.url, sid) };

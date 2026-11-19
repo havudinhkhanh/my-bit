@@ -2835,6 +2835,7 @@ body.cmdk-on{overflow:hidden}
 .acp-dt small .on{color:var(--up);font-weight:600}
 .acp-dme{font-style:normal;font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}
 .acp-dv .btn.sm{flex:0 0 auto;min-height:32px;padding:0 12px}
+.acp-dv.ghost .acp-di{border:1.5px dashed var(--ink-3);background:transparent;color:var(--ink-3);font-weight:700}
 .acp-dv.sk b{color:var(--ink-3);font-weight:500}
 .acp-devf{gap:8px 10px}.acp-foot.acp-devf small{flex:1 1 100%}
 .acp-foot small{flex:1 1 260px;font-size:.75rem;color:var(--ink-3);line-height:1.45}
