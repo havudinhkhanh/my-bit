@@ -6414,7 +6414,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .lg-fly .lg-w{transform-origin:10px 8px;animation:lgFlap .22s ease-in-out infinite alternate}
 @keyframes lgFlap{to{transform:scaleX(.35)}}
 @keyframes lgFly{0%{transform:translate(0,0)}20%{transform:translate(-60px,14px)}40%{transform:translate(-110px,-6px)}60%{transform:translate(-40px,-18px)}80%{transform:translate(30px,8px)}100%{transform:translate(0,0)}}
-.lg-cat{position:absolute;left:4%;bottom:6px;width:180px;height:104px;padding:0;touch-action:pan-y;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:lgIn .9s cubic-bezier(.2,.8,.2,1) both}
+.lg-cat{position:absolute;left:4%;bottom:6px;width:180px;height:104px;padding:0;touch-action:none;border:0;background:none;cursor:pointer;-webkit-tap-highlight-color:transparent;animation:lgIn .9s cubic-bezier(.2,.8,.2,1) both}
 .lg-cat .mun-cat{position:static!important;transform:none!important;width:100%!important;height:100%!important;display:block}
 .lg-cat.lgpop{animation:lgPop .42s cubic-bezier(.3,1.6,.5,1)}
 .lg-cat[data-p=jump].lgpop{animation:lgHop .6s cubic-bezier(.3,.9,.4,1)}

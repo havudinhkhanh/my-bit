@@ -134,9 +134,9 @@
      "c": "fix",
      "a": "mascot",
      "t": "Vuốt na trong vườn (thẻ Live mở rộng) không còn lướt sang tab khác",
-     "d": "Trên điện thoại, mở rộng viên Live rồi vuốt ngang lên na ở vườn cỏ bị hiểu là vuốt đổi tab (Binance thật ↔ Sàn thử) nên lướt sang trang khác. Giờ vuốt trên na là vuốt lông – na buông một câu đanh đá; vuốt chỗ khác trong thẻ vẫn đổi tab như cũ. Vuốt trên mèo chính cũng không còn kích hoạt vuốt chuyển trang / kéo Bảng phụ ở mép màn hình.",
+     "d": "Trên điện thoại, mở rộng viên Live rồi vuốt ngang lên na ở vườn cỏ bị hiểu là vuốt đổi tab (Binance thật ↔ Sàn thử) nên lướt sang trang khác. Giờ vuốt trên na là vuốt lông – na buông một câu đanh đá; vuốt chỗ khác trong thẻ vẫn đổi tab như cũ. Vuốt trên mèo chính cũng không còn kích hoạt vuốt chuyển trang / kéo Bảng phụ ở mép màn hình. Kèm theo: khi thẻ Live đang mở trên điện thoại, kéo / vuốt bất kỳ đâu trong thẻ (vuốt lông na, bãi cỏ, nền mờ) không còn cuộn trang phía dưới; danh sách lệnh dài vẫn cuộn bình thường.",
      "te": "Petting na in the garden (expanded Live card) no longer flips to another tab",
-     "de": "On phones, after expanding the Live pill, a horizontal swipe on na in the garden was read as a tab swipe (Binance live ↔ Paper) and slid to the other page. A swipe on na now pets her – she answers with a sassy line; swiping elsewhere in the card still switches tabs. Swiping on the main cat also no longer triggers the edge swipe for page navigation or the Side panel."
+     "de": "On phones, after expanding the Live pill, a horizontal swipe on na in the garden was read as a tab swipe (Binance live ↔ Paper) and slid to the other page. A swipe on na now pets her – she answers with a sassy line; swiping elsewhere in the card still switches tabs. Swiping on the main cat also no longer triggers the edge swipe for page navigation or the Side panel. Also: while the Live card is open on a phone, dragging anywhere in it (petting na, the grass, the dimmed backdrop) no longer scrolls the page underneath; a long trade list still scrolls normally."
     }
    ]
   },

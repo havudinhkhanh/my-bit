@@ -7604,6 +7604,14 @@ function lvsDraw() {
       LVW.swd = dx < 0 ? 1 : -1; btn[nx].click(); try { navigator.vibrate?.(6); } catch (_) {} }, { passive: true });
     // bấm / chạm RA NGOÀI thẻ đang mở (hoặc Esc) → thu về; điện thoại: nền mờ phía sau thẻ, chạm nền = đóng (không bấm nhầm vào trang)
     const bd = document.createElement("div"); bd.id = "lvwBd"; bd.className = "lvw-bd"; document.body.appendChild(bd);
+    // thẻ đang mở trên điện thoại: kéo / vuốt trong thẻ (vườn, vuốt lông na, hàng tab…) KHÔNG được cuộn trang phía sau.
+    //   Danh sách lệnh chỉ cuộn khi còn chỗ cuộn theo đúng chiều kéo; hết chỗ / không cuộn được → chặn (iOS bỏ qua overscroll-behavior khi khối không cuộn được)
+    bd.addEventListener("touchmove", (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    { let y0 = 0, x0 = 0; el.addEventListener("touchstart", (e) => { y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; }, { passive: true });
+      el.addEventListener("touchmove", (e) => { if (!el.classList.contains("lvw-mfull") || !e.cancelable || e.touches.length !== 1) return; const dy = e.touches[0].clientY - y0, dx = e.touches[0].clientX - x0;
+        if (Math.abs(dx) > Math.abs(dy)) { for (let n = e.target; n && n !== el; n = n.parentElement) if (n.scrollWidth > n.clientWidth + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowX)) return; }      // hàng chip cuộn ngang → để trình duyệt cuộn
+        for (let n = e.target; n && n !== el; n = n.parentElement) { if (n.scrollHeight > n.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(n).overflowY) && !n.closest(".lg-cat")) { if ((dy > 0 && n.scrollTop > 0) || (dy < 0 && n.scrollTop + n.clientHeight < n.scrollHeight - 1)) return; break; } }
+        e.preventDefault(); }, { passive: false }); }
     document.addEventListener("pointerdown", (e) => { if (LVW.mode !== "full") return; const x = document.getElementById("lvw"); if (!x || x.contains(e.target) || e.target.closest?.("#iosSheet,.ios-sheet,.ios-menu,#ocChart,.occ")) return;
       lvwMode(LVW.rest); if (e.target === bd) { e.preventDefault(); e.stopPropagation(); } }, true);
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
