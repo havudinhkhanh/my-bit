@@ -1267,7 +1267,14 @@ function navTrack() {      // gọi mỗi lần đổi trang: trả "back" / "fw
   else kind = i < NAV_LAST ? "back" : i > NAV_LAST ? "fwd" : "new";
   NAV_LAST = i; navSave(); return kind;
 }
-function navTitle() { const h = document.querySelector("#app > .ph h1"); if (h) { NAVH.t[navI()] = (h.childNodes[0]?.textContent || h.textContent || "").trim().slice(0, 40); navSave(); } }
+// tên trang để hiện khi vuốt mép: tiêu đề trang → tên trang trên đường dẫn (crumb) – trang không có tiêu đề cũng có tên
+function navTitle() {
+  const h = document.querySelector("#app > .ph h1") || document.querySelector("#app h1"), c = document.querySelector("#app .cr-cur") || [...document.querySelectorAll("a[href] .nav-t")].find((x) => x.parentElement.closest("a").getAttribute("href") === location.hash) || document.querySelector("#tabs a.on");
+  const t = ((h && (h.childNodes[0]?.textContent || h.textContent)) || (c && c.textContent) || "").replace(/[▾⌄]/g, "").trim().slice(0, 40);
+  const ex = { account: bi("Tài khoản", "Account"), admin: bi("Quản trị", "Admin"), notifications: bi("Thông báo", "Notifications"), changes: bi("Có gì mới", "What's new") }[location.hash.replace(/^#\/?/, "").split(/[/?]/)[0]];      // trang ngoài menu
+  const tt = t || ex;
+  if (tt) { NAVH.t[navI()] = tt; navSave(); }
+}
 // phản hồi NGAY khi chạm thanh điều hướng (trước khi trang mới tải xong): sáng nút, trang cũ mờ đi → không còn cảm giác "đơ"
 document.addEventListener("pointerdown", (e) => {
   const a = e.target.closest?.("#tabs a[href], #msheetB a[href]"); if (!a || a.getAttribute("href") === location.hash) return;
@@ -1339,7 +1346,7 @@ function swIn(dir) {
     if (!st.lock) {
       if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
       if (Math.abs(dx) < 8 || (st.dir === "back" ? dx < 0 : dx > 0)) return;
-      st.lock = true; const u = ui(); u.dataset.dir = st.dir; u.querySelector(".sw-t").textContent = (st.dir === "back" ? "‹ " : "") + (NAVH.t[navI() + (st.dir === "back" ? -1 : 1)] || (st.dir === "back" ? "Trang trước" : "Trang sau")) + (st.dir === "fwd" ? " ›" : "");
+      st.lock = true; const u = ui(); u.dataset.dir = st.dir; u.querySelector(".sw-t").textContent = NAVH.t[navI() + (st.dir === "back" ? -1 : 1)] || (st.dir === "back" ? bi("Trang trước", "Back") : bi("Trang sau", "Forward"));      // mũi tên đã có ở nút tròn – nhãn chỉ ghi tên trang
       u.classList.add("on"); document.documentElement.classList.add("sw-drag");
     }
     e.preventDefault();

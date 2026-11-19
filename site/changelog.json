@@ -223,6 +223,14 @@
      "te": "Device list: clearly flags devices signed in before the list existed",
      "d": "Máy đăng nhập trước khi có danh sách (vd. máy tính ở công ty đang tắt) chỉ hiện tên sau khi mở lại web. Giờ danh sách có dòng nhắc cho các máy này và nút \"Đăng xuất mọi thiết bị khác\" luôn bấm được để chặn cả những máy chưa hiện. Sửa thêm: mở web cùng lúc nhiều tab không còn tạo dòng thiết bị trùng.",
      "de": "Devices signed in before the list existed (e.g. a work laptop that's switched off) only appear by name after they open the site again. The list now shows a note for them and \"Log out all other devices\" is always available to cut them off too. Also fixed: opening several tabs at once no longer creates duplicate device rows."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Vuốt mép để lùi trang: bỏ mũi tên thừa, hiện đúng tên trang",
+     "te": "Edge-swipe back: removed the duplicate arrow, shows the real page name",
+     "d": "Khi vuốt từ mép trái, chỉ còn 1 mũi tên ở nút tròn; nhãn bên cạnh ghi tên trang sẽ quay về (cả trang không có tiêu đề như Tài khoản, Thông báo) thay vì \"‹ Trang trước\".",
+     "de": "Swiping in from the left edge now shows a single arrow in the round button, and the label names the page you'll go back to (including pages without a title such as Account or Notifications) instead of \"‹ Back\"."
     }
    ]
   },
