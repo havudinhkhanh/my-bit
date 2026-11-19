@@ -278,7 +278,15 @@
     bot: [["Để bot yên đi, nó làm giỏi hơn anh", "Leave the bot alone, it's better than you"], ["Đóng lệnh bot bằng tay là phá luật đấy", "Closing bot trades by hand breaks the rules"], ["Sửa thông số giữa chừng, có ngày thua đấy", "Tweaking settings mid-run, you'll lose one day"], ["Bot chăm hơn anh nhiều", "The bot works way harder than you"], ["Luật đặt rồi thì để luật chạy, đừng táy máy", "Rules are set, let them run, hands off"], ["Thò tay vào bot hả, bảng so sánh ghi hết đó", "Meddling again, the comparison remembers"]],
     night: [["Khuya rồi, mèo còn biết đi ngủ", "It's late, even cats know to sleep"], ["Hai giờ sáng toàn ra quyết định dở", "2 a.m. decisions are always bad"]],
     long: [["Ngồi lâu rồi đó, duỗi lưng đi", "You've been sitting forever, stretch"], ["Uống nước đi, na không nhắc lần hai đâu", "Drink water, I won't say it twice"]],
-    back: [["Về rồi hả", "Oh, you're back"], ["Tưởng anh bỏ nghề rồi chứ", "Thought you'd quit"]],
+    back: [["Về rồi hả", "Oh, you're back"], ["Tưởng anh bỏ nghề rồi chứ", "Thought you'd quit"], ["Đi đâu mà lâu thế", "Where've you been"], ["Bot làm cả buổi, anh đi chơi", "Bot worked all along, you went out"]],
+    // 🌅 lần đầu mở app trong ngày – chào theo giờ, đanh đá (thay cho "về rồi hả" lúc sáng sớm)
+    dawn: [["Dậy sớm thế. Định canh nến à", "Up this early? Watching candles?"], ["Gà chưa gáy đã mở app", "The rooster's not even up and you're here"], ["Mới mở mắt đã xem giá. Ghiền rồi", "Eyes barely open and checking prices. Hooked"]],
+    morning: [["Dậy rồi hả", "Oh, you're up"], ["Dậy rồi đấy à. Bot chạy cả đêm, anh ngủ ngon nhỉ", "Up, are we? Bot worked all night, you slept fine"], ["Đánh răng chưa mà đòi xem lệnh", "Brushed your teeth before checking trades?"], ["Sáng ra đã mở app. Cà phê trước đi", "Straight to the app? Coffee first"], ["Dậy rồi thì ngồi yên, đừng vào lệnh vội", "You're up. Sit still, no rushing in"]],
+    lateMorning: [["Giờ này mới dậy à", "Only up now?"], ["Dậy muộn thế. Bot xong ca sáng rồi", "Late start. Bot finished the morning shift"]],
+    noon: [["Trưa rồi mới ghé. Ăn cơm chưa", "Noon already. Eaten yet?"], ["Nghỉ trưa thì nghỉ, đừng xem nến", "Lunch break means break, not candles"]],
+    afternoon: [["Chiều rồi mới nhớ tới na à", "Only remembering me this afternoon?"], ["Cả buổi giờ mới mở. Cũng được, ít táy máy", "First look all day. Fine, less meddling"]],
+    evening: [["Tối rồi. Đừng ngồi canh nến cả đêm", "Evening. Don't sit up all night watching candles"], ["Làm xong việc rồi hả. Bot thì chưa nghỉ", "Done for the day? The bot isn't"]],
+    nightHi: [["Giờ này còn chưa ngủ? Nến không chạy mất đâu", "Still up? The candles won't run off"], ["Khuya rồi. Bot thức thay, anh đi ngủ đi", "It's late. Bot's on watch, go to bed"], ["Mất ngủ thì đếm cừu, đừng đếm nến", "Can't sleep? Count sheep, not candles"]],
     morn: [["Cà phê trước, lệnh sau", "Coffee first, orders later"], ["Rửa mặt đi rồi hẵng xem chart", "Wash your face, then charts"]],
     weekend: [["Cuối tuần, nghỉ đi cho", "Weekend, go rest"], ["Thanh khoản mỏng, đừng tưởng là cơ hội", "Thin liquidity, not an opportunity"]],
     monday: [["Thứ hai, đọc nhật ký trước đi", "Monday, read your journal first"]],
@@ -1304,12 +1312,21 @@
     cvDraw(A.R, A.sh, [], S.cfg.skin); if (!A.on) { A.on = true; A.last = 0; requestAnimationFrame(loop); }
   }
   let started = false;
+  // 🌅 chào theo giờ: lần ĐẦU thấy anh trong ngày → câu theo buổi (sáng: "Dậy rồi hả"…); quay lại sau ≥ 10 phút trong ngày → "Về rồi hả"
+  function greetKey() {
+    const d = new Date(), day = d.toDateString(), h = d.getHours(), first = lsGet("na_day", "") !== day; lsSet("na_day", day);
+    if (h >= 23 || h < 4) S.said.night = 1; else if (h < 11) lsSet("mun_morn", day);      // đã chào buổi → khỏi nhắc lại câu buổi sáng / khuya ngay sau đó
+    if (!first) return h >= 23 || h < 4 ? (Math.random() < 0.5 ? "nightHi" : "back") : "back";
+    return h < 4 ? "nightHi" : h < 6 ? "dawn" : h < 9 ? "morning" : h < 11 ? (Math.random() < 0.5 ? "morning" : "lateMorning") : h < 14 ? "noon" : h < 18 ? "afternoon" : h < 23 ? "evening" : "nightHi";
+  }
   function start() {
     S.cfg = cfgOf(); if (!S.cfg.on) return stop();
     if (S.el) { if (A.R) cvDraw(A.R, A.sh, [], S.cfg.skin); return; }      // đổi bộ đồ: canvas vẽ bộ đồ mới ngay khung sau (S.cfg.skin)
     build(); S.nextTalk = now() + 45e3; const ld = loadSheets(); const tr = track(); const fromL = Math.random() < 0.5;
     place(fromL ? tr.l - 140 : tr.r + 140); S.el.style.opacity = "0"; face(fromL ? 1 : -1); S.pose = "enter";      // vào sân: đang ĐỨNG, quay mặt vào trang → bước vào luôn (trước: ngồi ngoài mép, đứng dậy, quay đầu mất ~7 giây)
-    Promise.race([new Promise((r) => { const iv = setInterval(() => { if (SHEET.vwalk || SHEET.walk) { clearInterval(iv); r(); } }, 80); }), ld.then(() => 0), new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = ""; walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
+    Promise.race([new Promise((r) => { const iv = setInterval(() => { if (SHEET.vwalk || SHEET.walk) { clearInterval(iv); r(); } }, 80); }), ld.then(() => 0), new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = "";
+      // 🌅 lần đầu mở app trong ngày → chào theo buổi ngay lúc bước vào ("Dậy rồi hả"…), không đợi đi xong
+      if (lsGet("nana_hi", 0) && lsGet("na_day", "") !== new Date().toDateString() && S.cfg.talk !== "q") { const k = greetKey(); setTimeout(() => { if (S.el && say(pick(k), 4500, 1) && Math.random() < 0.5) meow(1); }, 1200); } walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("nana_hi", 0)) { lsSet("nana_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 3 * 60e3; }
       else S.nextTalk = now() + rnd(1, 2) * 60e3;
       S.nextMouse = now() + rnd(3, 6) * 60e3; S.nextStairs = now() + rnd(6, 12) * 60e3; S.nextMeow = now() + rnd(1, 3) * 60e3; S.nextToy = now() + rnd(1.5, 3.5) * 60e3; S.nextHide = now() + rnd(4, 8) * 60e3; S.nextBat = now() + rnd(2.5, 5) * 60e3;
@@ -1329,7 +1346,7 @@
       if (SKIMR.test(h) && Math.random() < 0.25) setTimeout(() => skimTalk(), 1700); else setTimeout(() => say(pick(k), 4200, 1), 1100); });      // vào trang có số liệu → hay liếc qua tóm tắt
     ["scroll", "touchmove", "wheel"].forEach((ev) => addEventListener(ev, () => (S.scrT = performance.now()), { passive: true, capture: true }));
     { let sc = 0, st = 0; addEventListener("scroll", () => { const t = now(); if (t - st > 1500) { st = t; sc = 0; } sc++; if (sc > 40 && S.el && S.cfg.talk !== "q" && t - (S.scAt || 0) > 4 * 60e3) { S.scAt = t; say(pick("scroll"), 3200, 1); } }, { passive: true, capture: true }); }
-    document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 10 * 60e3 && S.cfg.talk !== "q") setTimeout(() => { say(pick("back"), 4000, 1); meow(1); }, 900); });
+    document.addEventListener("visibilitychange", () => { if (document.hidden) { S.hidAt = now(); return; } if (S.el && S.hidAt && now() - S.hidAt > 10 * 60e3 && S.cfg.talk !== "q") { const k = greetKey(); setTimeout(() => { say(pick(k), 4000, 1); meow(1); }, 900); } else if (S.el) lsSet("na_day", new Date().toDateString()); });      // để app chạy nền qua đêm, sáng mở lại → "Dậy rồi hả" chứ không phải "Về rồi hả"
     setInterval(() => { if (!S.el) return; const h = hiddenNow(); if (h !== S.away) { S.away = h; S.el.classList.toggle("away", h); } if (!S.away && !S.chasing && !S.hide && !LF.on && !ST.on && !napping() && !NT.cur && now() >= (S.nextTalk || 0)) talkMaybe();      // nói theo giờ, không chờ tới lượt nghĩ việc kế tiếp (động tác video dài → trước ít khi tới lượt nói)
       if (S.napTill && S.napTill < now()) { S.napTill = 0; if (!wakeV()) { play("stretch"); sched(idle, 3000); } } stalkTick(); }, 400);
     addEventListener("pointermove", stalkMove, { passive: true });

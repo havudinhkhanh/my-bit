@@ -2,6 +2,24 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.19",
+   "d": "2026-11-19",
+   "t": "na chào theo giờ",
+   "te": "na greets by the time of day",
+   "s": "Lần đầu mở app trong ngày na chào đúng buổi, đanh đá như cũ.",
+   "se": "The first time you open the app each day, na greets you for the time of day – as sassy as ever.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Sáng ra mở app: na hỏi \"Dậy rồi hả\" chứ không phải \"Về rồi hả\"",
+     "d": "Trước: để app chạy nền qua đêm, sáng mở lại thì na tưởng anh vừa đi đâu về. Giờ lần đầu thấy anh trong ngày na chào theo buổi: sáng sớm (\"Gà chưa gáy đã mở app\"), buổi sáng (\"Dậy rồi hả\", \"Đánh răng chưa mà đòi xem lệnh\"), dậy muộn (\"Giờ này mới dậy à\"), trưa, chiều, tối, khuya (\"Giờ này còn chưa ngủ? Nến không chạy mất đâu\"). Trong ngày đi đâu lâu rồi quay lại mới là \"Về rồi hả\".",
+     "te": "Morning: na asks \"Oh, you're up\" instead of \"Oh, you're back\"",
+     "de": "Before: if the app sat in the background overnight, na greeted you in the morning as if you'd just stepped out. Now the first time she sees you each day she greets by the time of day: dawn (\"The rooster's not even up and you're here\"), morning (\"Oh, you're up\", \"Brushed your teeth before checking trades?\"), late start, noon, afternoon, evening, late night (\"Still up? The candles won't run off\"). \"Oh, you're back\" is only for coming back later the same day."
+    }
+   ]
+  },
+  {
    "v": "2026.11.18",
    "d": "2026-11-18",
    "t": "Mèo na chuyển động như mèo thật",
