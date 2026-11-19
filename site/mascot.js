@@ -1320,6 +1320,7 @@
     if (!ST.on && !LZ.on && Math.abs(e.clientX - (S.x + 345 * S.s / 2)) > 7 * 345 * S.s) return;      // chuột ở xa hẳn (đang dùng trang) → không rình
     if (!ST.on) { ST.on = true; ST.t0 = now(); clearTimeout(S.tm); if (S.busy) return; if (napping() && !wakeV(() => {})) play("sit"); if (S.cfg.talk !== "q" && !LZ.on && Math.random() < 0.5) say(pick("stalk"), 2600, 1); }
     ST.over = !LZ.on && overCat(e);      // con trỏ đang nằm TRÊN mèo (đọc chữ / định vuốt) → không phải con mồi: không vồ (trước: rê lên đầu mèo 1 giây → mèo đứng dậy khom vồ tại chỗ, trông như trượt tới)
+    { const tn = performance.now(), dtm = tn - (ST.pt || tn); if (dtm > 0 && dtm < 200) ST.vx = (ST.vx || 0) * 0.7 + ((e.clientX - ST.px) / dtm * 1000) * 0.3; else if (dtm >= 200) ST.vx = 0; ST.pt = tn; }      // tốc độ con trỏ (px/giây, êm)
     ST.px = e.clientX; ST.mv = now();
     if (now() - ST.t0 > (LZ.on ? 65e3 : 25e3)) return stalkEnd(true);
     if (ST.over) return;      // chuột đang ở TRÊN mèo (rê qua / định vuốt) → không coi là con mồi
@@ -1334,7 +1335,7 @@
     if (Math.abs(rel) < 0.95 * cw) return;      // đã sát con mồi → đứng yên chờ vồ (trước: tính đích lùi lại → mèo quay đầu bỏ đi như né chuột)
     if (["s2st", "s2stQ", "turn", "turnQ", "l2st", "wake", "pounceF", "st2s"].includes(S.pose)) return;      // đang đứng dậy / quay đầu / vồ → để xong đã
     if (dir !== S.face) { if (!ST.side || ST.side.d !== dir) { ST.side = { d: dir, t: now() }; return; } if (now() - ST.side.t < 1200) return; }      // chuột sang phía sau: chờ 1,2 giây chắc chắn mới quay đầu (quay đầu mất 4 giây)
-    ST.side = null; const dash = Math.abs(rel) > 2.4 * cw && SHEET.vrun;      // con mồi (con trỏ / tia laser) ở xa → phóng tới (chạy nước rút), gần mới khom rình
+    ST.side = null; const dash = SHEET.vrun && (Math.abs(rel) > 2.4 * cw || ((now() - (ST.dashT || 0) < 1600 || (Math.abs(ST.vx || 0) > 180 && Math.sign(ST.vx) === dir)) && Math.abs(rel) > 1.1 * cw));      // con trỏ đang chạy vụt ra xa → phóng luôn, không đi khom vài bước rồi mới chạy if (dash) ST.dashT = now();      // đang rượt (vừa chạy nước rút) thì chạy tiếp tới nơi – trước: tới gần là đổi sang đi khom vài bước rồi lại chạy → chạy / đi / chạy      // con mồi (con trỏ / tia laser) ở xa → phóng tới (chạy nước rút), gần mới khom rình
     if (dash) zoomSet(true);      // 🎥 chỉ "lùi máy quay" khi thật sự RƯỢT (chạy nước rút theo con trỏ / laser), không phải lúc mới ngó con trỏ
     walkTo(px - cw / 2 - dir * 0.7 * cw, null, { clip: dash ? "dash" : SHEET.vstalk ? "stalk" : "walk", v: dash ? 1 : 0.8, fast: LZ.on || dash, end: hasV("ready") ? "ready" : "crouch" });      // dừng TRƯỚC con trỏ, đầu sát con mồi
   }

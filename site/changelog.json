@@ -113,6 +113,14 @@
      "d": "Bảng dáng chạy mới trước nằm cuối hàng chờ tải, nên 10–40 giây đầu sau khi mở trang na đuổi chuột bằng dáng chạy vẽ cũ (chân không đan chéo, giật). Giờ dáng chạy và dáng vồ được tải sớm ngay sau dáng đi; nếu chưa kịp tải thì na đi nhanh bằng dáng đi mới chứ không dùng dáng cũ. Rình con trỏ cũng vậy.",
      "te": "Mouse chases always use the new run (crossing legs)",
      "de": "The new run sheet used to sit at the end of the loading queue, so for the first 10–40 seconds after opening a page na chased with the old drawn run (no leg crossing, choppy). The run and pounce sheets now load right after the walk; if they're not ready yet she walks fast with the new walk instead of the old run. Same for stalking the cursor."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Rượt con trỏ / tia laser: chạy một mạch, không chạy – đi – chạy",
+     "d": "Trước đây na đang chạy nước rút theo con trỏ, tới gần thì đổi sang đi khom vài bước rồi lại chạy tiếp khi con trỏ ra xa. Giờ đã chạy thì chạy luôn tới nơi; con trỏ đang vụt ra xa thì na phóng ngay từ đầu, không đi vài bước rồi mới chạy.",
+     "te": "Chasing the cursor / laser: one continuous run, no run – walk – run",
+     "de": "na used to sprint after the cursor, switch to a crouched walk for a few steps as she got close, then sprint again when it moved away. Once running she now runs all the way; if the cursor is shooting away she sprints right from the start instead of walking a few steps first."
     }
    ]
   },
