@@ -279,7 +279,9 @@ export async function onRequest(ctx) {
           })(),
           last: [...(L.hist || []).filter((h) => (h.env || "demo") === E), ...(L.mh || []).filter((h) => (h.env || "live") === E)].sort((a, b) => (String(a.t2) < String(b.t2) ? -1 : 1)).slice(-5).reverse().map((h) => ({ sym: h.sym, side: h.side, pnl: h.pnl, net: h.net, t2: h.t2, why: h.why, strat: h.strat || "hook" })) } : null });
     }
-    if (!USER_KEYS.has(key)) return err("Không có API này", 404);
+    const tbx = /^taxbook([1-9]|[1-5]\d|6[0-3])$/.exec(key);      // sổ thuế lớn: thêm khoá taxbook6…63 (~24 MB) cho gói có "acct_history" (lịch sử tài khoản đầy đủ); 0…5 cho mọi gói
+    if (!USER_KEYS.has(key) && !tbx) return err("Không có API này", 404);
+    if (tbx && +tbx[1] >= 6 && m === "PUT" && !can(ses, "acct_history")) return err("Gói hiện tại lưu sổ tối đa ~2 MB – lịch sử đầy đủ có ở gói Pro", 402, { limit: true, feature: "acct_history" });
     if (m === "GET") {
       const v = await getData(env, uid, key);
       return json(v ?? (key === "portfolio" ? { holdings: [], cash: 0, capital: null } : {}));

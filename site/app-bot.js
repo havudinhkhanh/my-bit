@@ -2295,7 +2295,7 @@ async function viewDays(envArg, dateArg, part) {
   }
   // 📜 các ngày TRƯỚC khi có bot / ngoài sổ bot: futures theo ngày dựng lại từ file Binance (Sổ thuế) – lời/lỗ chốt + phí + funding + thanh lý; ngày đã có số liệu bot thì giữ số bot
   let nHist = 0;
-  if (env === "live") { try { await lazyJs("app-tax.js"); const HH = await txHist(); if (HH && !HH.empty) { const full = typeof can !== "function" || can("acct_history"), cut = full ? "" : new Date(Date.now() - 90 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10);
+  if (env === "live") { try { await lazyJs("app-tax.js"); const HH = await txHistQuick(); if (HH && !HH.empty) { const full = typeof can !== "function" || can("acct_history"), cut = full ? "" : new Date(Date.now() - 90 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10);
     const IX = new Map(HH.days.map((d, i) => [d, i]));
     for (const [d, g] of Object.entries(HH.fut)) { if (days[d]?.n || d < cut) continue; const u = g.pnl + g.fee + g.fund + g.liq + g.oth; if (!g.n && Math.abs(u) < 0.01) continue; const i = IX.get(d), e0 = i > 0 ? HH.eq[i - 1] : null, e1 = i != null ? HH.eq[i] : null;
       days[d] = { n: g.n, usd: u, win: g.w, by: { hist: { n: g.n || 1, usd: u, win: g.w } }, hist: 1, hf: g, ...(e0 > 1 ? { eq0: e0, eq1: e1 } : {}) }; nHist++; } } } catch (e) { /* chưa nhập file lịch sử */ } }      // eq0/eq1: tài sản ví dựng lại → % ngày
@@ -2795,7 +2795,7 @@ async function ahPanel() {
   const box = $("#ahBx"); if (!box) return;
   const T = bi("📜 Lịch sử tài khoản", "📜 Account history"), meta = bi("dựng lại từ file Binance anh nhập ở Sổ thuế", "rebuilt from the Binance files imported in the tax ledger");
   box.innerHTML = `<div class="ph"><h2>${T}</h2><span class="meta">${meta}</span></div>${typeof skChart === "function" ? skChart(220) : ""}`;
-  let H = null; try { await lazyJs("app-tax.js"); H = await txHist(); } catch (e) { H = null; }
+  let H = null; try { await lazyJs("app-tax.js"); H = await txHistQuick(); } catch (e) { H = null; }
   if (!$("#ahBx")) return;
   if (!H || H.empty) { box.innerHTML = `<div class="ph"><h2>${T}</h2></div><p class="muted">${bi("Xem tài sản, vốn nạp, lời/lỗ futures <b>từ ngày mở tài khoản</b>: tải file <i>Transaction History</i> trên Binance rồi nhập ở", "See assets, net deposits and futures P/L <b>since the account opened</b>: download <i>Transaction History</i> from Binance and import it in")} <a href="#/tax">${bi("Sổ thuế", "the tax ledger")} →</a></p>`; return; }
   const full = typeof can !== "function" || can("acct_history"), RG = [["90", bi("3 tháng", "3M")], ["365", bi("1 năm", "1Y")], ["all", bi("Từ đầu", "All")]];

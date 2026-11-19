@@ -5988,7 +5988,7 @@ async function pfSyncAsk(P) {
 // 📜 giá vốn từ LỊCH SỬ Binance (file nhập ở Sổ thuế): mua − bán theo bình quân, gồm convert – gợi ý cho coin đang giữ chưa có / lệch giá vốn; bấm để dùng
 async function pfHistCost() {
   const el = $("#pfHist"); if (!el || !PF.holdings.length) return;
-  let H = null; try { await lazyJs("app-tax.js"); H = await txHist(); } catch (e) { return; }
+  let H = null; try { await lazyJs("app-tax.js"); H = await txHistQuick(); } catch (e) { return; }
   if (!$("#pfHist") || !H || H.empty) return;
   const L = PF.holdings.map((h, i) => { const k = String(h.symbol || "").toUpperCase().replace(/USDT$/, ""), c = H.cost?.[k]; if (!c || !(c.q > 0) || !(c.u > 0)) return null; const avg = c.u / c.q;
     if (c.q < h.qty * 0.5 || (h.cost && Math.abs(h.cost / avg - 1) < 0.005)) return null; return { i, k, avg, q: c.q }; }).filter(Boolean);
@@ -8022,7 +8022,7 @@ function ksHTML(compact) {
 // Chưa xem → chấm trên menu "Có gì mới" + nhãn Mới trên phiên bản; vừa tự tải bản app mới → toast mời xem.
 const CHG_C = { new: ["✨", "Tính năng mới", "New"], imp: ["⚡", "Cải tiến", "Improved"], fix: ["🔧", "Sửa lỗi", "Fixed"], res: ["🔬", "Nghiên cứu", "Research"] };
 const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na", "Na"], res: ["Nghiên cứu", "Research"] };
-const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
+const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email", "acct_history"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
 let CHG_P = null;
 const chgLoad = () => (CHG_P ||= fetch("changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.rel || []).catch(() => { CHG_P = null; return []; }));
 const chgVis = (x) => x.aud !== "admin" || isAdmin();

@@ -10,7 +10,7 @@
 // Dữ liệu: file xuất từ Binance (lịch sử giao dịch tổng, khớp lệnh spot, P2P, futures, convert – tự nhận dạng) + lệnh bot trên Binance thật (tự động) + nhập tay.
 // Lưu riêng trong tài khoản (taxbook…taxbook5), không công khai.
 const TAX = {
-  KEYS: ["taxbook", "taxbook1", "taxbook2", "taxbook3", "taxbook4", "taxbook5"], A: "2026-03-27", B: "2026-07-01", RATE: 0.001,
+  KEYS: ["taxbook", ...Array.from({ length: 63 }, (_, i) => "taxbook" + (i + 1))],      /* sổ lưu thành nhiều khoá ≤ ~380 KB: gói miễn phí 6 khoá (~2 MB), Pro 64 khoá (~24 MB – đủ ~150 nghìn dòng) */ A: "2026-03-27", B: "2026-07-01", RATE: 0.001,
   STB: new Set(["USDT", "USDC", "FDUSD", "BUSD", "TUSD", "DAI", "USDP", "USD1", "USDE", "PYUSD", "XUSD"]),
   QUOTES: ["FDUSD", "USDT", "USDC", "BUSD", "TUSD", "DAI", "BTC", "ETH", "BNB", "TRY", "EUR", "BRL", "JPY", "TRX", "XRP", "DOGE", "SOL", "USD1"],
   F: ["id", "t", "src", "cat", "side", "base", "quote", "qty", "px", "usd", "vnd", "fee", "feeC", "pnl", "ref", "note"],
@@ -19,37 +19,50 @@ const TAX = {
 const TXC = { spot: ["🔁", bi("Mua/bán spot", "Spot trade")], conv: ["⚡", "Convert"], p2p: ["🇻🇳", bi("P2P (VND)", "P2P (VND)")], fut: ["📈", "Futures"], fpl: ["🧾", bi("Lời/lỗ, phí, funding futures", "Futures P/L, fees, funding")], dep: ["⬇️", bi("Nạp", "Deposit")], wd: ["⬆️", bi("Rút", "Withdraw")], earn: ["🎁", bi("Thu nhập khác (lãi, airdrop, hoa hồng)", "Other income (interest, airdrop, referral)")], xfer: ["↔️", bi("Chuyển ví nội bộ", "Internal transfer")], other: ["•", bi("Khác", "Other")] };
 const TXS = { buy: bi("Mua", "Buy"), sell: bi("Bán", "Sell"), swap: bi("Đổi", "Swap"), in: bi("Vào", "In"), out: bi("Ra", "Out") };
 const TXSRC = { ledger: bi("Lịch sử giao dịch tổng", "Transaction history"), dw: bi("Lịch sử nạp / rút", "Deposit / withdraw history"), spot: bi("Khớp lệnh spot", "Spot trade history"), p2p: "P2P", fut: bi("Khớp lệnh futures", "Futures trade history"), conv: bi("Lịch sử convert", "Convert history"), bot: bi("Bot (tự động)", "Bot (auto)"), man: bi("Nhập tay", "Manual") };
-const txDay = (t) => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
+const TXDC = new Map(), txDay = (t) => { const k = Math.floor((t + 252e5) / 864e5); let d = TXDC.get(k); if (d === undefined) { d = new Date(k * 864e5).toISOString().slice(0, 10); TXDC.set(k, d); } return d; };      // ngày giờ VN – nhớ theo số ngày (sổ 50 nghìn dòng: khỏi dựng chuỗi ngày 50 nghìn lần)
 const txTime = (t) => { const d = new Date(t + 7 * 3600e3).toISOString(); return `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)} ${d.slice(11, 19)}`; };
 const txV = (v, d = 0) => (isNum(v) ? new Intl.NumberFormat(LOC, { maximumFractionDigits: d, minimumFractionDigits: d }).format(v) : "—");
 const txQ = (v) => (isNum(v) ? new Intl.NumberFormat(LOC, { maximumSignificantDigits: 8 }).format(v) : "—");
 const txH = (s) => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + s.length.toString(36); };
-const txO = (a) => Object.fromEntries(TAX.F.map((k, i) => [k, a[i] ?? null]));
+const txO = (a) => { const F = TAX.F, o = {}; for (let i = 0; i < F.length; i++) o[F[i]] = a[i] ?? null; return o; };
 const txA = (o) => TAX.F.map((k) => (o[k] === undefined ? null : o[k]));
 const txIsSt = (c) => TAX.STB.has(String(c || "").toUpperCase());
 
 // ---------------------------------------------------------------- lưu / tải (chia nhiều khoá vì mỗi khoá ≤ 400 KB)
+const txSig = (B, n) => `${n ?? B.rows.length}|${B.files.length}|${B.files.map((f) => f.h).join("")}`;
+const txHs = (H) => { const r = (v, d = 2) => (isNum(v) ? +v.toFixed(d) : v), F = {}; for (const [d, g] of Object.entries(H.fut)) F[d] = Object.fromEntries(Object.entries(g).map(([k, v]) => [k, r(v, 4)]));
+  return { ...H, days: undefined, eq: H.eq.map((v) => r(v)), cap: H.cap.map((v) => r(v)), fut: F, flows: Object.fromEntries(Object.entries(H.flows).map(([k, v]) => [k, r(v)])) }; };
+// lịch sử tài khoản cho trang khác: có sẵn trong bộ nhớ → dùng; chưa tải sổ → đọc khoá đầu (tóm tắt đã lưu, khớp chữ ký) → khỏi tải ~vài MB dòng sổ; lệch / chưa có → tải sổ, tính lại, lưu tóm tắt
+async function txHistQuick() {
+  if (TAX.hist) return TAX.hist; if (TAX.book) return txHist();
+  try { const m = (await Store.get(TAX.KEYS[0])).data || {}; if (m.hs && m.files && isNum(m.nrows) && m.hs.sig === txSig({ files: m.files }, m.nrows)) { const H = m.hs, D = []; for (let t = Date.parse(H.from + "T00:00:00Z"), i = 0; i < H.eq.length; t += 864e5, i++) D.push(new Date(t).toISOString().slice(0, 10)); H.days = D; return (TAX.hist = H); } } catch (e) { /* tải đủ sổ */ }
+  const H = await txHist(); if (H && !H.empty) txSave(); return H;
+}
+window.txHistQuick = txHistQuick;
+const txKMax = () => (typeof can !== "function" || can("acct_history") ? TAX.KEYS.length : 6);
+const txPack = (r) => { const a = r.slice(); while (a.length && a[a.length - 1] == null) a.pop(); return a; };      // bỏ các ô rỗng cuối dòng → sổ nhỏ hơn ~25%
 async function txLoad() {
-  const R = await Promise.all(TAX.KEYS.map((k) => Store.get(k).catch(() => ({ data: null }))));
-  const m = R[0].data || {}, rows = R.flatMap((r) => r.data?.rows || []);
-  TAX.book = { v: 1, fx: m.fx || {}, px: m.px || {}, files: m.files || [], set: { lev: 2, fxMode: "mkt", fxFix: null, note: "", ...(m.set || {}) }, fxo: m.fxo || {}, rows, used: R.map((r) => (r.data?.rows || []).length) };
+  const r0 = await Store.get(TAX.KEYS[0]).catch(() => ({ data: null })), m = r0.data || {}, nk = Math.min(TAX.KEYS.length, m.nk || 6);      // nk: số khoá đang dùng (sổ cũ chưa ghi → 6)
+  const R = [r0]; for (let i = 1; i < nk; i += 8) R.push(...(await Promise.all(TAX.KEYS.slice(i, Math.min(nk, i + 8)).map((k) => Store.get(k).catch(() => ({ data: null }))))));
+  const rows = R.flatMap((r) => r.data?.rows || []);
+  TAX.book = { v: 1, fx: m.fx || {}, px: m.px || {}, files: m.files || [], set: { lev: 2, fxMode: "mkt", fxFix: null, note: "", ...(m.set || {}) }, fxo: m.fxo || {}, rows, nk, sv: R.map((r) => (r.data?.rows ? txH(JSON.stringify(r.data.rows)) : "")) };
   return TAX.book;
 }
-async function txSave() {
-  const B = TAX.book, meta = { v: 1, fx: B.fx, px: B.px, files: B.files, set: B.set, fxo: B.fxo, at: new Date().toISOString() };
-  const lim = 330000, parts = [[]]; let n = JSON.stringify(meta).length + 50;
-  for (const r of B.rows) { const s = JSON.stringify(r).length + 1; if (n + s > lim) { parts.push([]); n = 50; } parts[parts.length - 1].push(r); n += s; }
-  if (parts.length > TAX.KEYS.length) { toast(bi("⚠️ Sổ quá lớn để lưu hết – xuất Excel/JSON để giữ bản đầy đủ", "⚠️ Book too large to save fully – export Excel/JSON")); parts.length = TAX.KEYS.length; }
-  let ok = true;
-  for (let i = 0; i < TAX.KEYS.length; i++) {
-    const rows = parts[i] || [];
-    if (!rows.length && i > 0 && !(B.used?.[i] > 0)) continue;
-    ok = (await Store.put(TAX.KEYS[i], i === 0 ? { ...meta, rows } : { rows })) && ok;
-  }
-  B.used = TAX.KEYS.map((_, i) => (parts[i] || []).length);
+// lưu: chia dòng thành nhiều phần ≤ ~380 KB, chỉ gửi phần nào ĐỔI (nhập thêm file nhỏ không phải gửi lại cả sổ); prog(i, n) để hiện tiến độ
+async function txSave(prog) {
+  const B = TAX.book, kmax = txKMax(), lim = 380000, parts = [[]]; let n = 0;
+  const hs = TAX.hist && !TAX.hist.empty && TAX.hist.sig === txSig(B) ? txHs(TAX.hist) : null;      // tóm tắt lịch sử tài khoản (vài chục KB) → trang Tài khoản Binance / Kết quả mở nhanh, khỏi tải cả sổ
+  const meta = { v: 1, fx: B.fx, px: B.px, files: B.files, set: B.set, fxo: B.fxo, nrows: B.rows.length, hs, at: new Date().toISOString() }, mlen = JSON.stringify(meta).length + 80; n = mlen;
+  for (const r of B.rows) { const a = txPack(r), sz = JSON.stringify(a).length + 1; if (n + sz > lim) { parts.push([]); n = 30; } parts[parts.length - 1].push(a); n += sz; }
+  let cut = false; if (parts.length > kmax) { cut = true; parts.length = kmax; }
+  const nk = parts.length, old = B.nk || 6, sv = B.sv || [], todo = [];
+  for (let i = 0; i < Math.max(nk, old); i++) { const rows = parts[i] || [], h = txH(JSON.stringify(rows)); if (i === 0 || h !== sv[i]) todo.push([i, rows, h]); }
+  let ok = true, k = 0;
+  for (const [i, rows, h] of todo) { const good = await Store.put(TAX.KEYS[i], i === 0 ? { ...meta, nk, rows } : { rows }); ok = good && ok; if (good) sv[i] = h; prog?.(++k, todo.length); }
+  B.nk = nk; B.sv = sv;
+  if (cut) toast(kmax < TAX.KEYS.length ? bi("⚠️ Gói miễn phí lưu sổ tối đa ~2 MB – phần cũ nhất chưa lưu. Gói Pro lưu đủ toàn bộ lịch sử; hoặc xuất Excel/JSON để giữ bản đầy đủ.", "⚠️ Free plan stores up to ~2 MB – the oldest part wasn't saved. Pro stores the full history; or export Excel/JSON.") : bi("⚠️ Sổ quá lớn để lưu hết – xuất Excel/JSON để giữ bản đầy đủ", "⚠️ Book too large to save fully – export Excel/JSON"));
   return ok;
 }
-
 // ---------------------------------------------------------------- đọc file: CSV / XLSX / ZIP
 const txCdn = (src, test) => (test() ? Promise.resolve() : new Promise((ok, no) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => no(new Error(bi("Không tải được thư viện đọc file – kiểm tra mạng", "Couldn't load the file reader library – check your connection"))); document.head.appendChild(s); }));
 function txCsv(text) {
@@ -80,7 +93,7 @@ async function txXlsx(buf, name) {
   return wb.SheetNames.map((s) => ({ name: `${name} · ${s}`, rows: window.XLSX.utils.sheet_to_json(wb.Sheets[s], { header: 1, raw: false, dateNF: "yyyy-mm-dd hh:mm:ss", defval: "" }).map((r) => r.map((x) => String(x ?? ""))) }));
 }
 // thời gian trong file Binance: UTC ("2026-03-27 10:11:12", "26-03-27 10:11:12", số ms…)
-const TXPV = 2;      // phiên bản bộ đọc file: tăng khi đổi cách đọc → nhập lại đúng file cũ sẽ đọc lại thay vì bỏ qua
+const TXPV = 3;      // phiên bản bộ đọc file: tăng khi đổi cách đọc → nhập lại đúng file cũ sẽ đọc lại thay vì bỏ qua
 let TXOFF = 0;      // lệch múi giờ (ms) của file đang nhập: cột giờ ghi theo giờ VN (tên file "…UTC7…" / tên cột "(UTC+7)") → trừ ra để về UTC
 function txTzOff(h, name) { const H = (h || []).map((x) => String(x).toLowerCase()), tc = H.find((x) => /time|date|thời gian|ngày/.test(x)) || "";
   const m = tc.match(/utc\s*([+-])\s*(\d{1,2})/); if (m) return (m[1] === "-" ? -1 : 1) * +m[2] * 3600e3; if (/utc/.test(tc)) return 0;
@@ -129,7 +142,7 @@ function txKind(h) {
 // ---------------------------------------------------------------- chuẩn hoá từng loại file → dòng sổ
 function txFromLedger(rows) {
   const { f } = txCols(rows[0]), iT = f("utc_time", "time"), iA = f("account"), iO = f("operation"), iC = f("coin"), iX = f("change"), iR = f("remark");
-  const G = new Map(), FP = new Map(), out = [], net = {};      // FP: phí / lời lỗ / funding futures GỘP THEO NGÀY (file thật: ~50 nghìn dòng phí từng lần khớp → vượt dung lượng sổ; thuế không tính trên các dòng này)
+  const G = new Map(), out = [], net = {};
   for (const r of rows.slice(1)) {
     const t = txT(r[iT]), op = String(r[iO] || "").trim(), c = String(r[iC] || "").toUpperCase().trim(), x = txN(r[iX]).v, acc = String(r[iA] || "").trim();
     if (!isNum(t) || !c || !isNum(x)) continue; net[c] = (net[c] || 0) + x;
@@ -140,7 +153,7 @@ function txFromLedger(rows) {
     }
     if (/convert/.test(o)) { const k = `C|${t}|${acc}`, g = G.get(k) || { t, acc, c: {}, fee: {}, ops: new Set(), conv: 1 }; g.ops.add(op); g.c[c] = (g.c[c] || 0) + x; G.set(k, g); continue; }
     if (/p2p|c2c/.test(o)) { out.push({ ...base, cat: "p2p", side: x < 0 ? "sell" : "buy", base: c, quote: "VND", qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
-    if (/futures|coin-m|usd.?-?m/i.test(acc) || /realized profit|funding fee|insurance|liquidation/.test(o)) { if (/transfer/.test(o)) { out.push({ ...base, cat: "xfer", side: x < 0 ? "out" : "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; } { const k = /realized/.test(o) ? "pnl" : /funding/.test(o) ? "fund" : /insurance|liquidation/.test(o) ? "liq" : /^fee$|commission|transaction fee/.test(o) ? "fee" : "oth", d = txDay(t), key = `${d}|${k}|${c}|${acc}`, g = FP.get(key) || { t, d, k, c, acc, x: 0, n: 0, ops: new Set() }; g.x += x; g.n++; if (x > 0) g.w = (g.w || 0) + 1; g.t = Math.max(g.t, t); g.ops.add(op); FP.set(key, g); } continue; }
+    if (/futures|coin-m|usd.?-?m/i.test(acc) || /realized profit|funding fee|insurance|liquidation/.test(o)) { if (/transfer/.test(o)) { out.push({ ...base, cat: "xfer", side: x < 0 ? "out" : "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; } { const k = /realized/.test(o) ? "pnl" : /funding/.test(o) ? "fund" : /insurance|liquidation/.test(o) ? "liq" : /^fee$|commission|transaction fee/.test(o) ? "fee" : "oth"; out.push({ ...base, cat: "fpl", side: x < 0 ? "out" : "in", base: c, quote: k, qty: x, pnl: txIsSt(c) ? x : null, usd: null }); } continue; }      // giữ TỪNG dòng (quote = loại: pnl / fee / fund / liq / oth)
     if (/^(deposit|fiat deposit|crypto deposit|buy crypto with fiat)/.test(o)) { out.push({ ...base, cat: "dep", side: "in", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
     if (/withdraw/.test(o)) { out.push({ ...base, cat: "wd", side: "out", base: c, qty: Math.abs(x), usd: txIsSt(c) ? Math.abs(x) : null }); continue; }
     if (/interest|reward|airdrop|distribution|commission|referral|cashback|rebate|bonus|mission|launchpool|megadrop|hodler|staking reward|voucher|gift/.test(o) && x > 0) { out.push({ ...base, cat: "earn", side: "in", base: c, qty: x, usd: txIsSt(c) ? x : null, px: null }); continue; }
@@ -162,8 +175,6 @@ function txFromLedger(rows) {
       for (const [c, v] of E) { if (txIsSt(c) && E.length > 1) continue; out.push({ t: g.t, src: "ledger", cat, side: v > 0 ? "buy" : "sell", base: c, quote: st ? st[0] : "", qty: Math.abs(v), usd: null, fee: null, ref, note: bi("nhiều lệnh khớp cùng giây – giá trị theo giá thị trường lúc đó", "several fills in the same second – valued at market price") }); }
     }
   }
-  const FPL = { pnl: bi("Lời/lỗ đã chốt", "Realized P/L"), fee: bi("Phí giao dịch", "Trading fee"), fund: "Funding", liq: bi("Phí thanh lý (quỹ bảo hiểm)", "Liquidation fee (insurance fund)"), oth: bi("Khác", "Other") };
-  for (const g of FP.values()) out.push({ t: g.t, src: "ledger", cat: "fpl", side: g.x < 0 ? "out" : "in", base: g.c, qty: g.x, pnl: txIsSt(g.c) ? g.x : null, usd: null, px: g.k === "pnl" ? g.w || 0 : null, quote: g.k,      /* fpl gộp ngày: quote = loại (pnl / fee / fund / liq / oth), px = số lần lời (chỉ dòng pnl) */ ref: `${g.acc} · ${FPL[g.k]} · ${g.n} ${bi("lần (gộp ngày)", "entries (daily total)")}`, note: [...g.ops].join(" + ") });
   return { rows: out, net };
 }
 function txFromSpot(rows) {
@@ -319,15 +330,22 @@ async function txImport(files, log) {
         B.rows = B.rows.filter((x) => { const o = txO(x); return !(o.src === SRC && o.t >= a && o.t <= z); }); B.files = B.files.filter((f) => f !== old); have.clear(); B.rows.forEach((x) => have.add(x[0])); }
       const hi = s.rows.findIndex((r) => txKind(r) && txKind(r) !== "?"), kind = hi >= 0 ? txKind(s.rows[hi]) : "?";
       if (kind === "?") { rep.push({ name: s.name, err: bi("Không nhận ra loại file", "Unrecognized file"), cols: (s.rows[0] || []).slice(0, 12).join(", ") }); continue; }
-      TXOFF = txTzOff(s.rows[hi], s.name); let P; try { P = TXPARSE[kind](s.rows.slice(hi), s.name); } finally { TXOFF = 0; }
-      const add = [];
-      log(`${s.name}: ${P.rows.length} ${bi("dòng", "rows")}…`);
-      await txFill(P.rows, log);
-      let dup = 0;
-      for (const r of P.rows) { r.id = r.id || txH(`${r.src}|${r.cat}|${r.t}|${r.side}|${r.base}|${r.quote}|${(+r.qty).toPrecision(10)}|${r.ref || ""}`); if (have.has(r.id)) { dup++; continue; } have.add(r.id); add.push(txA(r)); }
-      B.rows.push(...add);
-      const ts = P.rows.map((r) => r.t).filter(isNum);
-      B.files.push({ h: fh, pv: TXPV, name: s.name, kind, n: add.length, dup, at: new Date().toISOString(), from: ts.length ? Math.min(...ts) : null, to: ts.length ? Math.max(...ts) : null, net: P.net || null });
+      // ✂️ FILE LỚN: tự chia thành từng phần ~5.000 dòng, đọc lần lượt (trang không đơ, có tiến độ) – không cắt giữa các dòng cùng giây (1 lệnh khớp ghi nhiều dòng)
+      const off = txTzOff(s.rows[hi], s.name), hdr = s.rows[hi], body = s.rows.slice(hi + 1), CH = 5000, NP = Math.max(1, Math.ceil(body.length / CH)), iT = txCols(hdr).f("utc_time", "time", "date", "created time");
+      const add = [], occ = new Map(), net = {}; let dup = 0, a = 0, part = 0, t0 = Infinity, t1 = -Infinity;
+      do {
+        let z = Math.min(body.length, a + CH); if (iT >= 0) while (z < body.length && body[z][iT] === body[z - 1][iT]) z++;
+        part++; log(`${s.name}: ${bi("phần", "part")} ${part}/${NP} · ${bi("dòng", "rows")} ${a + 1}–${z} / ${body.length}`);
+        TXOFF = off; let P; try { P = TXPARSE[kind]([hdr, ...body.slice(a, z)], s.name); } finally { TXOFF = 0; }
+        await txFill(P.rows, (m) => log(`${s.name}: ${bi("phần", "part")} ${part}/${NP} · ${m}`));
+        for (const r of P.rows) {
+          if (!r.id) { const k0 = `${r.src}|${r.cat}|${r.t}|${r.side}|${r.base}|${r.quote}|${(+r.qty).toPrecision(10)}|${r.ref || ""}`, o = (occ.get(k0) || 0) + 1; occ.set(k0, o); r.id = txH(o > 1 ? `${k0}#${o}` : k0); }      // 2 dòng giống hệt (vd funding 2 vị thế cùng giờ, cùng số) vẫn giữ đủ; nhập lại file vẫn ra cùng mã → không đếm 2 lần
+          if (have.has(r.id)) { dup++; continue; } have.add(r.id); add.push(txA(r)); if (isNum(r.t)) { if (r.t < t0) t0 = r.t; if (r.t > t1) t1 = r.t; } }
+        for (const [c, v] of Object.entries(P.net || {})) net[c] = (net[c] || 0) + v;
+        a = z; await new Promise((ok) => setTimeout(ok, 0));
+      } while (a < body.length);
+      for (const x of add) B.rows.push(x);
+      B.files.push({ h: fh, pv: TXPV, name: s.name, kind, n: add.length, dup, parts: NP, at: new Date().toISOString(), from: isFinite(t0) ? t0 : null, to: isFinite(t1) ? t1 : null, net: Object.keys(net).length ? net : null });
       rep.push({ name: s.name, kind, n: add.length, dup });
     }
   }
@@ -367,7 +385,7 @@ async function txDayPx(coin, d0, d1) {
 }
 async function txHist(force) {
   if (!TAX.book) await txLoad();
-  const B = TAX.book, sig = `${B.rows.length}|${B.files.length}|${B.files.map((f) => f.h).join("")}`;
+  const B = TAX.book, sig = txSig(B);
   if (!force && TAX.hist && TAX.hist.sig === sig) return TAX.hist;
   const R = txRows().filter((r) => !r.dup && r.src !== "bot").sort((a, b) => a.t - b.t);
   if (!R.length) return (TAX.hist = { sig, empty: true });
@@ -379,7 +397,7 @@ async function txHist(force) {
     if (r.cat === "p2p" && u != null) FL[d] = (FL[d] || 0) + (r.side === "sell" ? -u : u);
     if ((r.cat === "dep" || r.cat === "wd") && u != null) FL[d] = (FL[d] || 0) + (r.cat === "wd" ? -u : u);
     if (r.cat === "fpl") { const k = r.quote || (/realized|lời\/lỗ/i.test(r.ref || "") ? "pnl" : /funding/i.test(r.ref || "") ? "fund" : /insurance|thanh lý/i.test(r.ref || "") ? "liq" : /fee|phí/i.test(r.ref || "") ? "fee" : "oth"), g = (FU[d] ||= { pnl: 0, fee: 0, fund: 0, liq: 0, oth: 0, n: 0, w: 0 }), v = isNum(r.pnl) ? r.pnl : +r.qty || 0;
-      g[k] = (g[k] || 0) + v; if (k === "pnl") { const m = String(r.ref || "").match(/· (\d+) /); g.n += m ? +m[1] : 1; g.w += +r.px || 0; } }
+      g[k] = (g[k] || 0) + v; if (k === "pnl") { const m = /gộp ngày|daily total/.test(r.ref || "") && String(r.ref).match(/· (\d+) /); if (m) { g.n += +m[1]; g.w += +r.px || 0; } else { g.n++; if (v > 0) g.w++; } } }
     if ((r.cat === "spot" || r.cat === "conv") && r.base && !txIsSt(r.base) && isNum(r.qty) && isNum(r.usd)) {      // giá vốn bình quân từng coin (mua cộng, bán trừ theo tỷ lệ)
       const c = (cost[r.base] ||= { q: 0, u: 0 }); if (r.side === "buy") { c.q += r.qty; c.u += r.usd; } else if (c.q > 0) { const k = Math.min(1, r.qty / c.q); c.u -= c.u * k; c.q = Math.max(0, c.q - r.qty); } }
   }
@@ -419,7 +437,7 @@ function txDraw() {
     <div><i>${bi("Ước tính thấp nhất", "Lowest estimate")}</i><b>${vnd(lo)}</b><small>${bi("hẹp · không tính futures · từ 01/7/2026", "narrow · no futures · from 01/07/2026")}</small></div>
     <div class="hi"><i>${bi("Ước tính cao nhất", "Highest estimate")}</i><b>${vnd(hi)}</b><small>${bi("rộng · futures theo toàn bộ giá trị · từ 27/3/2026", "broad · futures on full value · from 27/03/2026")}</small></div>
     <div><i>${bi("Nên để riêng", "Set aside")}</i><b>${vnd(Math.ceil(hi / 1000) * 1000)}</b><small>${bi("theo mức cao nhất, phòng khi bị truy thu", "at the highest level, in case of back-tax")}</small></div>
-    <div><i>${bi("Giao dịch trong sổ", "Rows in the journal")}</i><b>${txV(live.length)}</b><small>${live.length ? `${txTime(Math.min(...live.map((x) => x.r.t))).slice(0, 10)} → ${txTime(Math.max(...live.map((x) => x.r.t))).slice(0, 10)}` : bi("chưa có – nhập file ở dưới", "none yet – import files below")}</small></div></div>`;
+    <div><i>${bi("Giao dịch trong sổ", "Rows in the journal")}</i><b>${txV(live.length)}</b><small>${live.length ? `${txTime(live.reduce((m, x) => Math.min(m, x.r.t), Infinity)).slice(0, 10)} → ${txTime(live.reduce((m, x) => Math.max(m, x.r.t), -Infinity)).slice(0, 10)}` : bi("chưa có – nhập file ở dưới", "none yet – import files below")}</small></div></div>`;
   const mx = (S) => `<td>${vnd(S.n)}</td><td>${vnd(S.b)}</td><td>0 ₫</td><td>${vnd(S.f1)}</td><td>${vnd(S.f2)}</td>`;
   const matrix = `<div class="tx-tw"><table class="tx-t tx-mx"><thead><tr><th rowspan="2">${bi("Tính từ", "From")}</th><th colspan="2">${bi("Spot · Convert · P2P", "Spot · Convert · P2P")}</th><th colspan="3">Futures</th></tr><tr><th>${bi("Hẹp", "Narrow")}</th><th>${bi("Rộng", "Broad")}</th><th>F0</th><th>${bi("F1 · ký quỹ", "F1 · margin")}</th><th>${bi("F2 · toàn bộ", "F2 · full")}</th></tr></thead>
     <tbody><tr><td><b>27/3/2026</b><small>TT 32/2026</small></td>${mx(SA)}</tr><tr><td><b>01/7/2026</b><small>${bi("Luật Thuế TNCN", "PIT Law")}</small></td>${mx(SB)}</tr></tbody></table></div>
@@ -491,7 +509,7 @@ function txWire() {
   const go = async (files) => {
     if (!files?.length || TAX.busy) return; TAX.busy = true; log(bi("Đang đọc file…", "Reading files…"));
     try {
-      const rep = await txImport([...files], log), ok = await txSave();
+      const rep = await txImport([...files], log); TAX.hist = null; log(bi("Dựng lịch sử tài khoản…", "Rebuilding account history…")); try { await txHist(true); } catch (e) { /* lịch sử chỉ là phần phụ */ } const ok = await txSave((a, b) => log(`${bi("Đang lưu sổ", "Saving")} ${a}/${b}…`));
       const el = $("#txLog"); txDraw(); const el2 = $("#txLog");
       if (el2) el2.innerHTML = rep.map((r) => r.err ? `⚠️ <b>${esc(r.name)}</b>: ${esc(r.err)}${r.cols ? `<br><small>${bi("Các cột", "Columns")}: ${esc(r.cols)}</small>` : ""}` : `✅ <b>${esc(r.name)}</b> – ${TXSRC[r.kind] || r.kind}: ${r.same ? bi("file này đã nhập rồi – bỏ qua", "already imported – skipped") : `${r.n} ${bi("dòng mới", "new rows")}`}${r.dup ? `, ${r.dup} ${bi("dòng trùng bỏ qua", "duplicates skipped")}` : ""}`).join("<br>") + (ok ? "" : `<br>⚠️ ${bi("Chưa lưu được lên tài khoản – thử lại", "Couldn't save to your account – try again")}`);
       void el;
