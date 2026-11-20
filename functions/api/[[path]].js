@@ -83,6 +83,44 @@ function checkLimits(key, body, lim) {
 // Xác thực bằng khoá riêng anh tạo trên trang (chỉ lưu mã băm SHA-256 trong D1 – khoá thật chỉ nằm trên VPS).
 // GET  → thiết lập bot Phản Xạ của chủ khoá;  POST → ghi trạng thái bot (scalpstate). Không đọc / ghi được gì khác.
 const RUNNER_AUTH = new Map();
+// 🔔 BÁO ĐỘNG LỆNH TAY: mỗi lần máy chủ bot gửi trạng thái lên (~10 giây), xem các lệnh tay đang mở trên Binance:
+//   • giá còn cách thanh lý dưới X% (cài, mặc định 20%) – báo, và báo lần nữa khi dưới X/2
+//   • lỗ tạm tính vượt mỗi mốc Y% tài khoản futures (mặc định 5% → 5%, 10%, 15%…)
+//   Mỗi mốc chỉ báo 1 lần cho mỗi lệnh (khoá thông báo gắn lúc mở lệnh). Cài đặt ở khoá manalert (trang đọc / ghi), đọc lại tối đa mỗi phút.
+const MA_CFG = new Map(), MA_SENT = new Map();
+const vnN = (v, d) => (Math.round(v * 10 ** d) / 10 ** d).toFixed(d).replace(".", ",");
+async function manAlerts(env, u, plan, st) {
+  const L = st && st.live, man = L && L.man;
+  if (!man || !Array.isArray(man.pos) || !man.pos.length || (L.env && man.env && L.env !== man.env)) return;
+  let c = MA_CFG.get(u.id);
+  if (!c || Date.now() - c.at > 60e3) { c = { at: Date.now(), v: (await getData(env, u.id, "manalert")) || {} }; MA_CFG.set(u.id, c); }
+  const v = c.v || {}, A = { on: v.on !== false, liq: Math.min(50, Math.max(2, +v.liq || 20)), loss: Math.min(50, Math.max(1, +v.loss || 5)), off: v.off || {} };
+  if (!A.on) return;
+  const ev = man.env || L.env || "live", eq = +((L.wal && L.wal[ev] && L.wal[ev].fut && L.wal[ev].fut.margin) ?? (L.st && L.st.bal)) || 0, items = [];
+  const sent = MA_SENT.get(u.id) || new Set(); MA_SENT.set(u.id, sent);
+  for (const p of man.pos) {
+    if (!p || p.bot || A.off[p.sym] || !(Math.abs(p.amt) > 0)) continue;
+    const id = String(p.t1 || p.ep), coin = String(p.sym).replace(/USDT$/, ""), side = p.amt > 0 ? "Long" : "Short", tag = ev === "live" ? "" : " (Demo)";
+    if (p.liq > 0 && p.mk > 0) {
+      const d = Math.abs(p.liq / p.mk - 1) * 100;
+      const b = d < A.liq / 2 ? A.liq / 2 : d < A.liq ? A.liq : 0;      // chỉ báo mốc nặng nhất vừa chạm (nhảy qua cả 2 mốc thì 1 thông báo)
+      if (b && b < A.liq) sent.add(`sc:mal:${p.sym}:${id}:liq${A.liq}`);
+      if (b) items.push({ key: `sc:mal:${p.sym}:${id}:liq${b}`, sev: b < A.liq ? 3 : 2, sym: coin, url: "#/bot/scalp",
+        title: `⚠ ${coin} ${side} còn cách thanh lý ${vnN(d, 1)}%${tag}`,
+        body: `Giá ${p.mk} · thanh lý ${p.liq} · ${p.mt === "iso" ? `ký quỹ cô lập x${p.lev || 1}: chạm là mất ký quỹ của lệnh (~$${vnN(Math.abs(p.amt) * p.ep / Math.max(1, p.lev || 1), 2)})` : "ký quỹ chéo: chạm là mất gần hết số dư futures"}.` });
+    }
+    if (eq > 0 && p.up < 0) {
+      const lp = -p.up / eq * 100, k = Math.floor(lp / A.loss);
+      for (let j = 1; j < k; j++) sent.add(`sc:mal:${p.sym}:${id}:loss${A.loss}x${j}`);      // lỗ giảm bớt rồi tăng lại không báo lại mốc thấp hơn mốc đã báo
+      if (k >= 1) items.push({ key: `sc:mal:${p.sym}:${id}:loss${A.loss}x${k}`, sev: 2, sym: coin, url: "#/bot/scalp",
+        title: `📉 ${coin} ${side} đang lỗ ${vnN(lp, 1)}% tài khoản${tag}`, body: `Lỗ tạm tính $${vnN(-p.up, 2)} trên tài sản futures $${vnN(eq, 2)} · báo ở mỗi mốc ${A.loss}%.` });
+    }
+  }
+  const fresh = items.filter((x) => !sent.has(x.key)); if (!fresh.length) return;
+  fresh.forEach((x) => sent.add(x.key)); if (sent.size > 500) sent.clear();
+  const out = can({ r: u.role, p: plan }, "notify_push") ? fresh : fresh.map((x) => ({ ...x, sev: Math.min(x.sev, 0) }));      // gói không có báo đẩy: chỉ ghi chuông
+  await notifyNow(env, u.id, "scalp", out);
+}
 async function scalpRunner({ request, env }, sub) {
   const key = (request.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[0-9a-f]{64}$/.test(key)) return err("Thiếu hoặc sai khoá máy chủ riêng", 401);
@@ -144,6 +182,7 @@ async function scalpRunner({ request, env }, sub) {
     if (text.length > 1500000) return err("Dữ liệu quá lớn", 413);
     let st; try { st = JSON.parse(text); } catch (e) { return err("Dữ liệu không hợp lệ"); }
     await putData(env, u.id, "scalpstate", text);
+    try { await manAlerts(env, u, p, st); } catch (e) { console.log("manAlerts", e.message); }
     // bản tóm tắt nhỏ số lệnh đang chờ / đang mở – chuông đọc mỗi phút để cập nhật số trên biểu tượng app (chỉ ghi khi số đổi)
     if (st && st.act && typeof st.act === "object") {
       const a = JSON.stringify({ n: +st.act.n || 0, paper: +st.act.paper || 0, lw: +st.act.lw || 0, lo: +st.act.lo || 0, src: String(st.act.src || "").slice(0, 8) });

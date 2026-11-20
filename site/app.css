@@ -6617,3 +6617,40 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 /* khung chờ (skeleton) lấp lánh tối đa ~10 giây rồi đứng yên – trước lấp lánh mãi (khung nằm khuất / dữ liệu chậm) = vẽ lại liên tục */
 .oc-sk,.skel i,.ntpk-ld i,.sk::after{animation-iteration-count:7!important}
 @media (prefers-reduced-motion:reduce){.dot-live::after,.upd i.live::after,.live-dot::after,.lvs-dot.hot::after,.cx-live::after{animation:none}}
+
+/* ================================================================ ✋ thẻ lệnh tay (Binance): tóm tắt rủi ro · thang giá · đặt cắt lỗ nhanh · thời gian giữ & funding · báo động · giữ tiếp */
+.sc-risk{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin:0 0 10px;padding:9px 12px;border-radius:12px;background:var(--sunk);border:1px solid var(--line);font-size:.78125rem;color:var(--ink-2);line-height:1.45}
+.sc-risk b{color:var(--ink);font-weight:650}.sc-risk b.down{color:var(--down)}
+.sc-risk.warn{border-left:3px solid var(--warn,#d89614)}.sc-risk.bad{border-left:3px solid var(--down);background:color-mix(in srgb,var(--down) 7%,var(--sunk))}
+.sc-lad{position:relative;height:18px;margin:8px 6px 2px}
+.sc-lad .tr{position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--line-2,var(--line))}
+.sc-lad .fill{position:absolute;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--down);opacity:.75;transition:left .3s,width .3s}
+.sc-lad.win .fill{background:var(--up)}
+.sc-lad .lm{position:absolute;top:50%;width:3px;height:14px;transform:translate(-50%,-50%);border-radius:2px;background:var(--ink-3)}
+.sc-lad .lm.en{height:10px;width:2px;background:var(--ink-2)}
+.sc-lad .lm.sl{background:var(--down)}.sc-lad .lm.tp{background:var(--up)}
+.sc-lad .lm.lq{background:repeating-linear-gradient(180deg,var(--down) 0 3px,transparent 3px 5px);width:4px}
+.sc-lad .lm.far{width:auto;height:auto;background:none;font:700 .8125rem/1 system-ui;color:var(--down);transform:translateY(-50%)}
+.sc-lad .lm.far.r{left:auto!important;right:-8px}.sc-lad .lm.far.l{left:-8px!important}
+.sc-lad .cur{position:absolute;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:var(--ink);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line),0 1px 4px rgba(0,0,0,.25);transition:left .3s cubic-bezier(.2,.8,.2,1);z-index:1}
+.sc-lad.out .cur{background:var(--down)}
+.sc-oc .sc-lvs small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:0;background:var(--ink-3)}
+.sc-oc .sc-lvs .k-sl::before{background:var(--down)}.sc-oc .sc-lvs .k-tp::before{background:var(--up)}
+.sc-oc .sc-lvs .k-lq::before{background:repeating-linear-gradient(180deg,var(--down) 0 2px,transparent 2px 3.5px)}
+.sc-slq{font:600 .75rem/1.3 inherit;font-family:inherit;padding:2px 9px;border-radius:999px;border:1px dashed var(--warn,#d89614);background:color-mix(in srgb,var(--warn,#d89614) 10%,transparent);color:var(--warn,#d89614);cursor:pointer}
+.sc-slq[aria-expanded="true"]{border-style:solid}
+.sc-slqr{margin:6px 0 2px;padding:8px 10px;border-radius:10px;background:var(--sunk);font-size:.75rem}
+.sc-slqc{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.sc-slqc .mchip{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 10px;border-radius:10px;line-height:1.3;text-align:left}
+.sc-slqc .mchip small{font-size:.6875rem;font-weight:600}
+.sc-slqc .mchip[data-cf="1"]{border-color:var(--down);color:var(--down);font-weight:650}
+.sc-oc .sc-meta{align-items:center;gap:4px 12px;margin-top:2px}
+.sc-fnd.warn{color:var(--warn,#d89614)}
+.sc-al{font:500 .6875rem/1.3 inherit;font-family:inherit;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-3);cursor:pointer;margin-left:auto}
+.sc-al.on{color:var(--ink-2);border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
+.sc-ext{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 2px;font-size:.75rem}
+.sc-oc .r4.sc-noexp .faint{margin-left:0}
+.sc-mcm[aria-expanded="true"]{background:color-mix(in srgb,var(--down) 18%,transparent)}
+@media (prefers-reduced-motion:reduce){.sc-lad .cur,.sc-lad .fill{transition:none}}
+.sc-oc .lw2{font-style:normal}
+@container (max-width:420px){.sc-oc.man .lw2{display:none}.sc-oc.man .sc-mxr{gap:6px}}

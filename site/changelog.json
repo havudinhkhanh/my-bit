@@ -4,10 +4,10 @@
   {
    "v": "2026.11.20",
    "d": "2026-11-20",
-   "t": "Rõ mức thanh lý",
-   "te": "Clearer liquidation level",
-   "s": "Thẻ lệnh tay ghi rõ thanh lý mất bao nhiêu.",
-   "se": "Manual trade cards say what liquidation would cost.",
+   "t": "Thẻ lệnh tay: rủi ro nhìn 1 cái là thấy",
+   "te": "Manual trade cards: risk at a glance",
+   "s": "Tóm tắt rủi ro, thang giá, đặt cắt lỗ nhanh, gia hạn 1 chạm, funding kế tiếp và báo động gần thanh lý.",
+   "se": "Risk summary, price ladder, quick stops, one-tap extend, next funding and near-liquidation alerts.",
    "it": [
     {
      "c": "imp",
@@ -35,6 +35,72 @@
      "te": "\"All trades\" splits open and pending counts",
      "d": "Trước đây lệnh chờ giá chưa khớp cũng bị đếm là \"đang mở\"; giờ ghi rõ ví dụ \"2 đang mở · 1 chờ khớp\".",
      "de": "Unfilled price orders used to be counted as \"open\"; it now reads e.g. \"2 open · 1 pending\"."
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "aud": "admin",
+     "hi": 1,
+     "go": "#/bot/scalp",
+     "t": "🛡 Tóm tắt rủi ro đầu khung \"Đang mở & chờ khớp\"",
+     "te": "🛡 Risk summary on top of \"Open & pending\"",
+     "d": "Một dòng: ký quỹ đang dùng (và % số dư), lỗ tối đa của các lệnh tay nếu cùng chạm cắt lỗ – lệnh chưa có cắt lỗ tính tới thanh lý (cô lập: mất ký quỹ lệnh; chéo: có thể mất cả số dư) – và bao nhiêu lệnh chưa có cắt lỗ.",
+     "de": "One line: margin in use (and % of balance), max loss of manual trades if they all hit their stops – trades without a stop count to liquidation – and how many have no stop."
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "aud": "admin",
+     "t": "📏 Thang giá trên thẻ lệnh tay",
+     "te": "📏 Price ladder on manual trade cards",
+     "d": "Vạch cắt lỗ · giá vào · chốt lời · thanh lý trên một thanh, chấm giá hiện tại chạy theo giá trực tiếp, vệt xanh/đỏ là phần đang lời/lỗ.",
+     "de": "Stop · entry · target · liquidation on one bar, with a live price dot and a green/red stretch for the current profit/loss."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "aud": "admin",
+     "t": "Lời/lỗ theo % tài khoản",
+     "te": "P/L as % of account",
+     "d": "Cạnh % của lệnh có thêm % tài khoản futures – tài khoản nhỏ thì con số này sát thực tế hơn.",
+     "de": "Next to the trade % you now see % of the futures account."
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "aud": "admin",
+     "t": "⚠ Đặt cắt lỗ nhanh ngay trên thẻ",
+     "te": "⚠ Quick stop right on the card",
+     "d": "\"Chưa đặt cắt lỗ\" bấm được: chọn mức cách giá hiện tại 2 / 5 / 10%, thấy trước số tiền mất (và % tài khoản) nếu chạm, bấm 2 lần để đặt trên Binance.",
+     "de": "\"No stop\" is now tappable: pick 2 / 5 / 10% from the current price, see the loss (and % of account) if hit, tap twice to place it on Binance."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "aud": "admin",
+     "t": "Nút gọn: \"Đóng ▾\" gộp đóng một nửa / đóng hết",
+     "te": "Tidier buttons: \"Close ▾\" holds close half / close all",
+     "d": "Các nút trên thẻ lệnh tay còn 1 hàng.",
+     "de": "Manual trade card buttons now fit on one row."
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "aud": "admin",
+     "t": "⏳ Thời gian giữ, funding kế tiếp, gia hạn 1 chạm",
+     "te": "⏳ Time held, next funding, one-tap extend",
+     "d": "Thẻ ghi đã giữ bao lâu và funding kỳ tới (nhận/trả ~bao nhiêu, còn bao lâu, mức %). Lệnh có hẹn đóng có nút Giữ tiếp: +6 giờ / +1 ngày / +3 ngày / Bỏ hẹn. Lệnh chờ ghi rõ \"không hết hạn\".",
+     "de": "Cards show time held and the next funding (receive/pay ~how much, when, rate). Trades with a timer get Keep longer: +6h / +1 day / +3 days / No timer. Price orders say \"no expiry\"."
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "aud": "admin",
+     "f": "notify_push",
+     "t": "🔔 Báo động lệnh tay: gần thanh lý, lỗ quá mức",
+     "te": "🔔 Manual trade alerts: near liquidation, too much loss",
+     "d": "Máy chủ báo về điện thoại khi lệnh tay còn cách thanh lý dưới 20% (lần nữa dưới 10%) và mỗi khi lỗ thêm 5% tài khoản; chỉnh mốc hoặc tắt riêng từng mã bằng chip 🔔 trên thẻ. Gói không có báo đẩy vẫn nhận trong chuông.",
+     "de": "The server alerts your phone when a manual trade is under 20% from liquidation (again under 10%) and for every 5% of account lost; adjust or mute per coin with the 🔔 chip. Plans without push still get it in the bell."
     }
    ]
   },

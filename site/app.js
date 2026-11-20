@@ -1537,10 +1537,20 @@ function sclApply() {
     if (!seen.has(el.dataset.lpnl)) { seen.add(el.dataset.lpnl); tot += usd; nn++; }
     const sl = +el.dataset.sl, tp = +el.dataset.tp, ok = (v) => v > 0 && v < 1e15, w = Math.max(0, Math.min(100, (sd > 0 ? (m - sl) / (tp - sl) : (sl - m) / (sl - tp)) * 100));
     setC(el, (el.classList.contains("r2") ? "r2 " : "") + cls(usd));
-    const rg = ok(sl) && ok(tp);
+    const rg = ok(sl) && ok(tp) && !el.dataset.norg;      // thẻ lệnh tay đã có thang giá riêng (sc-lad) – không vẽ thêm vạch cắt lỗ↔chốt
     if (!el._lp || !!el._lp.i !== rg) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
-    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
+    const bal = +el.dataset.bal;      // thẻ lệnh tay: thêm lời/lỗ theo % TÀI KHOẢN (tài khoản nhỏ thì con số này sát thực tế hơn % lệnh)
+    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "−"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
   });
+  // 📏 thang giá của lệnh tay: chấm giá hiện tại + vệt lời/lỗ từ giá vào
+  document.querySelectorAll("[data-lad]").forEach((el) => {
+    const m = SCL.px[el.dataset.lad]; if (!m) return; const lo = +el.dataset.lo, hi = +el.dataset.hi, e = +el.dataset.e, P = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100)), a = P(m), b = P(e);
+    const c = el.querySelector(".cur"), f = el.querySelector(".fill"), L = a.toFixed(1) + "%"; if (c && c.style.left !== L) c.style.left = L;
+    if (f) { f.style.left = Math.min(a, b).toFixed(1) + "%"; f.style.width = Math.abs(a - b).toFixed(1) + "%"; }
+    el.classList.toggle("win", +el.dataset.sd * (m - e) >= 0); el.classList.toggle("out", m < lo || m > hi);
+  });
+  document.querySelectorAll("[data-held]").forEach((el) => setT(el, durMs(now - +el.dataset.held)));
+  document.querySelectorAll("[data-fnt]").forEach((el) => setT(el, durMs(+el.dataset.fnt - now)));
   document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100; setT(el, EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`); });
   document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); setT(el, t); });
   const u = document.getElementById("scUpnl");
@@ -1552,6 +1562,11 @@ function sclApply() {
   });
   const lv = document.getElementById("scLive"), last = Math.max(0, ...Object.values(SCL.at));
   if (lv) { const ok = last && now - last < 5000; setC(lv, "sc-lv " + (ok ? "on" : "")); setT(lv, ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""); }
+}
+// khoảng thời gian dạng đọc nhanh: 3 ngày 4 giờ · 2 giờ 17 phút · 12 phút · 40 giây
+function durMs(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return s >= 86400 ? `${Math.floor(s / 86400)} ${bi("ngày", "d")} ${Math.floor(s % 86400 / 3600)} ${bi("giờ", "h")}` : s >= 3600 ? `${Math.floor(s / 3600)} ${bi("giờ", "h")} ${Math.floor(s % 3600 / 60)} ${bi("phút", "m")}` : s >= 60 ? `${Math.floor(s / 60)} ${bi("phút", "min")}` : `${s} ${bi("giây", "s")}`;
 }
 // bảng có class "rs": trên điện thoại mỗi dòng thành 1 thẻ (nhãn cột lấy từ tiêu đề) – không phải kéo ngang
 function rsTables(root) {
