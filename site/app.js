@@ -1141,7 +1141,7 @@ function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "
     document.body.appendChild(m);
     const okB = m.querySelector("[data-ok]"), bd = m.querySelector(".ios-sheet-b"); let done = false;
     if (wait) { const w = m.querySelector(".ios-sheet-wt"); w.style.animationDuration = wait + "ms"; setTimeout(() => { okB.disabled = !!okB.dataset.lock; w.remove(); }, wait); }      // data-lock: bảng tự khoá nút (vd số tiền chưa đủ 1 lệnh) → hết giờ chờ vẫn khoá
-    const iv = live ? setInterval(() => { if (!document.body.contains(m)) return clearInterval(iv); const y = bd.scrollTop; bd.innerHTML = B(); bd.scrollTop = y; const o = O(); okB.firstChild.innerHTML = o[0]; okB.classList.toggle("red", !!o[1]); okB.className = okB.className.replace(/\bt-\w+/, "t-" + tone(o)); }, 1000) : 0;
+    const iv = live ? setInterval(() => { if (!document.body.contains(m)) return clearInterval(iv); const h = B(); if (h !== bd.__h) { bd.__h = h; morphHtml(bd, h); } const o = O();      /* bảng xác nhận đang mở: chỉ vá số đổi (giữ cuộn, không nháy) – trước dựng lại cả thân bảng mỗi giây */ okB.firstChild.innerHTML = o[0]; okB.classList.toggle("red", !!o[1]); okB.className = okB.className.replace(/\bt-\w+/, "t-" + tone(o)); }, 1000) : 0;
     const fin = (v) => { if (done) return; done = true; clearInterval(iv); removeEventListener("keydown", kd); m.classList.add("out"); setTimeout(() => m.remove(), 200); res(v); };
     const kd = (e) => { if (e.key === "Escape") fin(false); else if (e.key === "Enter" && !okB.disabled && document.activeElement === okB) fin(true); };
     addEventListener("keydown", kd); addEventListener("hashchange", () => fin(false), { once: true });

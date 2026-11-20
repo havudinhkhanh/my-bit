@@ -224,6 +224,22 @@
      "te": "Smoother Bot page: only the changed parts update, no full redraw",
      "d": "Mỗi lần làm mới, trang so sánh với bản đang hiện và chỉ sửa đúng ô / thẻ có số mới. Thẻ lệnh giữ nguyên vị trí, ô đang gõ, khung đặt cắt lỗ đang mở và giá chạy trực tiếp không bị nháy hay mất. Tab Lệnh vẽ lại nhanh hơn khoảng 3 lần; khối phân tích và thanh dưới trên điện thoại không dựng lại khi số liệu không đổi.",
      "de": "On each refresh the page compares with what is on screen and only patches the cells / cards whose numbers changed. Order cards stay in place, inputs being typed, open stop-loss panels and live prices no longer flicker or reset. The Orders tab redraws about 3× faster; the analysis block and the phone bottom bar are not rebuilt when nothing changed."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Mèo nhẹ máy hơn khi đứng yên / đang nói",
+     "te": "Cat uses less CPU while idle or talking",
+     "d": "Mèo không còn ghi lại vị trí trùng giá trị mỗi khung (trước bắt trình duyệt dựng lại lớp hiển thị liên tục), bóng nói không còn chạy vòng lặp riêng mỗi khung, và khi anh không chạm / gõ / cuộn 1,5 phút thì động tác tại chỗ chỉ vẽ khung chính (khoảng nửa số lần vẽ). Chạm vào là mượt lại ngay.",
+     "de": "The cat no longer rewrites an unchanged position every frame (which forced the browser to rebuild layers), the speech bubble no longer runs its own per-frame loop, and after 1.5 minutes without taps / typing / scrolling in-place moves draw only the main frames (about half the draws). Touch the page and it is smooth again."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Bảng xác nhận đang đếm số: chỉ cập nhật số đổi",
+     "te": "Live confirm sheets only update changed numbers",
+     "d": "Bảng xác nhận có số chạy trực tiếp (giá, lời/lỗ) không còn dựng lại cả thân bảng mỗi giây – giữ cuộn, không nháy.",
+     "de": "Confirm sheets with live numbers (price, P&L) no longer rebuild the whole body every second – scroll kept, no flicker."
     }
    ]
   },

@@ -444,7 +444,7 @@
       //    nên điểm khớp đúng chỗ – trước khớp lệch làm tai, chân co lại giữa 2 khung (chu vi hụt 5–10%) → phập phồng; giờ hụt < 1%
       A.fi = [i, j, u];
       // có khung giữa dựng sẵn từ video (48 hình/giây): hiện khung chính / khung giữa gần nhất – không nắn viền ở trình duyệt (nắn viền làm chân dính cục, tai méo)
-      if (F.mid) { const mi = (j === i + 1 || (j < i && c.loop && i === F.length - 1 && !c.a)) && !(performance.now() - (S.scrT || 0) < 450) && !(c === CLIP.vsit && (MOB.matches || A.slow)) ? F.mid[i] : null;      // đang cuộn / chạm trang → chỉ khung chính (24/giây), nhường máy cho trang
+      if (F.mid) { const mi = (j === i + 1 || (j < i && c.loop && i === F.length - 1 && !c.a)) && !(performance.now() - (S.scrT || 0) < 450) && !(c === CLIP.vsit && (MOB.matches || A.slow)) && !(A.v < 1 && Date.now() - (S.act ||= Date.now()) > 90e3) ? F.mid[i] : null;      /* anh không chạm / gõ / cuộn 1,5 phút → động tác tại chỗ chỉ vẽ khung chính 24/giây (đúng nhịp video gốc): nửa số lần vẽ lúc treo máy xem; chạm vào là mượt lại ngay */      // đang cuộn / chạm trang → chỉ khung chính (24/giây), nhường máy cho trang
         return !mi ? (u < 0.5 ? F[i] : F[j]) : u < 0.25 ? F[i] : u < 0.75 ? mi : F[j]; }
       if (F.pe) { const k = u < 0.5 ? i : j; A.fi = [k, k, 0]; return F[k]; }      // bảng video cũ chưa có khung giữa: hiện khung gần nhất
       if (i === j || u < 0.004) return F[i];
@@ -553,7 +553,8 @@
     let rr = W - 16 - cw - pad; if (fr && fr.bottom > VH - 80 && fr.left >= VW / 2) rr = Math.min(rr, fr.left - 8 - cw - pad * 0.3);      // nút nổi Bảng phụ góc phải dưới → không đứng đè lên nút
     return { b: 0, l, r: rr };
   }
-  function place(x) { const tr = track(), st = S.el.style, bt = Math.round(tr.b) + "px", tf = `translate3d(${snap((x = Math.max(tr.l, Math.min(tr.r, x))))}px,0,0)`; S.x = x; S.yo = 0; if (st.bottom !== bt) st.bottom = bt; if (st.transition !== "none") st.transition = "none"; st.transform = tf; }      // chỉ ghi khi giá trị đổi (đuổi chuột gọi mỗi khung)
+  function setT(tf) { if (S.el && S.el.__tf !== tf) { S.el.__tf = tf; S.el.style.transform = tf; const b = S.el.__say || (S.el.__say = S.el.querySelector(".mun-say")); if (b && !b.hidden) b._ap?.(); } }      // ghi vị trí chỉ khi đổi: ghi lại cùng giá trị vẫn bắt trình duyệt dựng lại lớp hiển thị mỗi khung (đo: ~40 lần/giây lúc mèo đứng yên)
+  function place(x) { const tr = track(), st = S.el.style, bt = Math.round(tr.b) + "px", tf = `translate3d(${snap((x = Math.max(tr.l, Math.min(tr.r, x))))}px,0,0)`; S.x = x; S.yo = 0; if (st.bottom !== bt) st.bottom = bt; if (st.transition !== "none") st.transition = "none"; setT(tf); }      // chỉ ghi khi giá trị đổi (đuổi chuột gọi mỗi khung)
   function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
   // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
   //    mỗi khung hình na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
@@ -564,12 +565,12 @@
       if (tk !== S.mvTk || !S.el) return; if (still() || A.snap) { last = t; requestAnimationFrame(f); return; }      // đang nắn sang dáng đi (chân chưa bước) → đứng yên chờ, không trượt
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
       { const q = track(); x = Math.max(q.l, Math.min(q.r, G.x)); if (G.d0 == null) G.d0 = Math.sign(x - S.x); if ((x - S.x) * G.d0 < 0) x = S.x; }      // đích kẹp theo sân HIỆN TẠI (nút Bảng phụ hiện ra giữa chừng → dừng trước nút, không bước tiếp / không đi lùi)
-      if (Math.abs(x - S.x) < 0.6) { S.x = x; A.v = 0; S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`; G.done?.(); return; }      // tới nơi / bị chặn → dừng ngay, không bước tại chỗ chờ hết đà
+      if (Math.abs(x - S.x) < 0.6) { S.x = x; A.v = 0; setT(`translate3d(${snap(S.x)}px,0,0)`); G.done?.(); return; }      // tới nơi / bị chặn → dừng ngay, không bước tại chỗ chờ hết đà
       const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
       const v0 = v; v += Math.max(-Ac * dt, Math.min(Ac * dt, want - v)); S.x += Math.sign(d) * Math.min(Math.abs(d), v * dt); A.v = v;
       // ⚖️ quán tính: chạy nước rút / chạy thì tăng tốc chúi người tới, phanh thì ngả người ra sau (lò xo xoay quanh chân – dùng chung bộ lò xo chao người)
       if (dt > 0 && (S.pose === "dash" || S.pose === "run")) { S.swT = performance.now(); S.swTgt = Math.max(-6, Math.min(6, (v - v0) / dt / Ac * 5)) * (Math.sign(d) === S.face ? 1 : -1); }
-      S.el.style.transform = `translate3d(${snap(S.x)}px,0,0)`;
+      setT(`translate3d(${snap(S.x)}px,0,0)`);
       if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; return slip(); }
       if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; G.done?.(); return; }
       requestAnimationFrame(f);
@@ -581,7 +582,7 @@
   //    và dịch hình đang vẽ ngược lại (hình trên màn hình đứng yên, chân không trượt); quay đầu: lật hướng ngay, không hiệu ứng lật
   function rebase(dx, flip) {
     if (!S.el) return; const u = U2P(), f = S.face;
-    S.x += f * dx * u; S.el.style.transform = `translate3d(${snap(S.x)}px,${-Math.round(S.yo || 0)}px,0)`;      // S.yo: đang đứng trên cao (cầu thang) → giữ độ cao
+    S.x += f * dx * u; setT(`translate3d(${snap(S.x)}px,${-Math.round(S.yo || 0)}px,0)`);      // S.yo: đang đứng trên cao (cầu thang) → giữ độ cao
     const sh = A.sh, X = (x) => (flip ? dx - x : x - dx);
     // lật: đảo luôn thứ tự điểm → giữ chiều vẽ của viền (lật gương đổi chiều; không đảo thì lúc nắn sang dáng đi viền tự cắt nhau → thủng lỗ, lộ bóng xám)
     if (sh) A.sh = { id: null, pe: sh.pe, eye: sh.eye ? (sh.eye.length > 2 ? [X(sh.eye[0]), sh.eye[1], X(sh.eye[2]), sh.eye[3], sh.eye[4] ?? 1] : [X(sh.eye[0]), sh.eye[1]]) : null, eyeK: sh.eyeK, polys: sh.polys.map((q) => { const n = q.p.length / 2, o = new Float32Array(q.p.length); for (let i = 0; i < n; i++) { const j = flip ? n - 1 - i : i; o[2 * j] = X(q.p[2 * i]); o[2 * j + 1] = q.p[2 * i + 1]; } return mk(q.t, o); }) };
@@ -811,8 +812,7 @@
     // dời ngang bằng translate (lớp hiển thị, không tính lại bố cục) thay vì left
     b._ap = () => { if (b.hidden || !S.el || !b._bw) return; const bw = b._bw, x = S.x, cw = 345 * S.s, cx = x + cw / 2, left = Math.max(8, Math.min(VW - bw - 8, cx - bw / 2));
       const L = Math.round(left - x), T = Math.round(Math.max(12, Math.min(bw - 12, cx - left))); if (b._lx !== L) { b._lx = L; b.style.translate = L + "px 0"; } if (b._tx !== T) { b._tx = T; b.style.setProperty("--tx", T + "px"); } };
-    const fol = () => { if (b.hidden || !S.el) { b._run = 0; return; } b._ap(); requestAnimationFrame(fol); };
-    if (!b._run) { b._run = 1; fol(); }
+    b._ap();      // canh lề lại mỗi lần mèo dời (gọi từ setT) – trước: vòng lặp mỗi khung suốt lúc bóng nói hiện = thêm 60 lần dựng khung/giây dù mèo đứng yên
     clearTimeout(S.sayTm); if (ms) S.sayTm = setTimeout(() => sayOut(), ms);
     return true;
   }
@@ -973,7 +973,7 @@
     LF.vx = LF.vx * 0.55 + ((px - LF.lx) / dt) * 0.45; LF.vy = LF.vy * 0.55 + ((py - LF.ly) / dt) * 0.45; LF.lx = px; LF.ly = py; LF.lt = t;      // vận tốc tay (px/ms) → thả ra lúc đang vung = thảy
     S.x = Math.max(tr.l, Math.min(tr.r, px - LF.gx)); LF.h = Math.max(0, Math.min(liftMax(tr), LF.base + LF.gy - py + 14));
     A.rot = Math.max(-22, Math.min(22, -LF.vx * 9));      // đung đưa theo tay
-    S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(S.x)}px,${-Math.round(LF.h)}px,0)`;
+    S.el.style.transition = "none"; setT(`translate3d(${snap(S.x)}px,${-Math.round(LF.h)}px,0)`);
     if (!LF.said && LF.h > 40) { LF.said = true; if (S.cfg.talk !== "q") say(pick("liftAir"), 1600, 2); }
   }
   // 🪂 thả / thảy: bay tiếp theo đà tay (lên cao, dội vách 2 bên, chạm trần thì rơi), trọng lực kéo xuống, thảy mạnh thì lộn 1 vòng – đáp đất bằng 4 chân
@@ -1010,7 +1010,7 @@
         if (tRem <= dt * 1.5) rotA = Math.round(rotA / 360) * 360;
         A.rot = rotA % 360;
       } else A.rot += (Math.max(-25, Math.min(25, vx * 0.015)) - A.rot) * Math.min(1, dt * 8);
-      S.x = x; S.el.style.transform = `translate3d(${snap(x)}px,${-Math.round(Math.max(0, h))}px,0)`;
+      S.x = x; setT(`translate3d(${snap(x)}px,${-Math.round(Math.max(0, h))}px,0)`);
       if (floor && h <= floor && vh <= 0) return landOn(dt0, x);
       if (h > 0 || vh > 0) return requestAnimationFrame(f);
       A.rot = 0; S.noSh = false; S.el.classList.remove("mlift"); place(x); S.busy = false; S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop");
@@ -1037,7 +1037,7 @@
     if (!S.el) return; halt(); clearTimeout(S.tm); S.busy = true; const tk = (S.walkTk = (S.walkTk || 0) + 1), x0 = S.x, k = 36 + Math.abs(dh) * 0.3, D = RM.matches ? 1 : 460 + Math.min(260, Math.abs(dh));
     const go = () => { if (tk !== S.walkTk || !S.el) return; if (hasV("dangle")) play("dangle", 140, true); S.noSh = true; const t0 = performance.now();
       const f = (t) => { if (tk !== S.walkTk || !S.el) return; const u = Math.min(1, (t - t0) / D), y = dh * u + 4 * k * u * (1 - u);
-        S.el.style.transition = "none"; S.el.style.transform = `translate3d(${snap(x0 + (x1 - x0) * u)}px,${-Math.round(y)}px,0)`;
+        S.el.style.transition = "none"; setT(`translate3d(${snap(x0 + (x1 - x0) * u)}px,${-Math.round(y)}px,0)`);
         if (u < 1) return requestAnimationFrame(f);
         TRC = null; S.noSh = false; place(x1); S.busy = false; S.el.classList.remove("hop"); void S.el.offsetWidth; S.el.classList.add("hop"); play("sit", 320, true); then?.(); };
       requestAnimationFrame(f); };
@@ -1317,7 +1317,7 @@
       if (kq >= n) return [cc + dir * (n * w + ((kq - n) / 0.6) * land * 0.35) - cw / 2, n * h];      // đi ra giữa chiếu nghỉ
       const i = Math.floor(kq), f = kq - i, g = Math.min(1, f / 0.55), up = i * h + h * g, hop = Math.sin(g * Math.PI) * h * 0.35;
       return [cc + dir * kq * w - cw / 2, up + hop]; };
-    const setXY = (x, y) => { S.x = x; S.yo = y; S.el.style.transition = "none"; S.el.style.transform = `translate3d(${Math.round(x)}px,${-Math.round(y)}px,0)`; };
+    const setXY = (x, y) => { S.x = x; S.yo = y; S.el.style.transition = "none"; setT(`translate3d(${Math.round(x)}px,${-Math.round(y)}px,0)`); };
     let t0 = 0, phase = "draw", q = 0, last = 0, offX = 0, turned = false;
     // quay đầu bằng clip thật (không lật hình): lúc cầu thang đang hiện (phía sau lưng) và lúc trên chiếu nghỉ trước khi xuống
     const turnQ = (then) => { if (!hasV("turnQ") || RM.matches) { face(-S.face); return then(); } const tk = (S.walkTk = (S.walkTk || 0) + 1); runSeq([...(STANDS.has(S.pose) ? [] : ["s2st"]), "turnQ"], then, tk); };
@@ -1441,7 +1441,7 @@
     addEventListener("touchstart", orderNudge, { passive: true, capture: true });
     addEventListener("hashchange", () => { const t = now(); S.hops = (S.hops || []).filter((x) => t - x < 20e3).concat(t);      // lượn trang loạn xạ → kháy
       if (S.hops.length >= 5 && S.el && S.cfg.talk !== "q" && !NT.cur && t - (S.hopAt || 0) > 5 * 60e3) { S.hopAt = t; S.hops = []; setTimeout(() => say(pick("hop"), 3000, 1), 900); } });
-    addEventListener("resize", () => { if (!S.el) return; S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); });
+    addEventListener("resize", () => { if (!S.el) return; S.s = scale(); S.el.style.setProperty("--s", S.s); place(S.x); S.el.__say?._ap?.(); });
     // 📣 thông báo của app: khi na đang hiện → na nói (bóng thoại); không thì thẻ thông báo cũ
     if (typeof window.toast === "function" && !window.toast.__mun) { orig = window.toast; window.toast = function (msg, o) { try { if (canTalkNotify() && !(o && o.raw)) return notify(msg, o || {}); } catch (e) { /* bỏ qua */ } return orig.apply(this, arguments); }; window.toast.__mun = 1; }
   }
