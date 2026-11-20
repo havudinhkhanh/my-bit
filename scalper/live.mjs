@@ -64,7 +64,8 @@ export class LiveExec {
   async runCmd(it) {
     const k = typeof it === "string" ? it : it.k, at = typeof it === "string" ? "" : it.at || ""; this._cap = [];
     try { await this.doManual(k); } catch (e) { this.err("lệnh trên trang", e); }
-    const C = this._cap; this._cap = null; if (!at) return;
+    const C = this._cap; this._cap = null; this.onCmd?.();      // lệnh từ trang vừa làm xong → gửi trạng thái lên trang NGAY (không chờ nhịp 10 giây)
+    if (!at) return;
     // ok: 1 đã đặt / vào · 4 đã vào nhưng bước phụ lỗi (vd đặt cắt lỗ) · -1 sàn báo lỗi, không làm được · 0 máy chủ từ chối (có lý do) · 2 đã làm (thông báo thường) · 3 không còn lệnh / vị thế để làm
     const ks = C.map((x) => x.k), ok = ks.includes("win") ? (ks.includes("stop") ? 4 : 1) : ks.includes("stop") ? -1 : ks.includes("no") ? 0 : C.length ? 2 : 3;
     this.S.cres = [...(this.S.cres || []).filter((x) => Date.now() - Date.parse(x.t + "Z") < 3600e3).slice(-29), { at, k: k.slice(0, 80), t: iso(Date.now()), ok, m: C.slice(-5).map((x) => ({ k: x.k, m: String(x.m).slice(0, 400) })) }]; this.save();

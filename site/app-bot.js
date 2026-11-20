@@ -76,6 +76,7 @@ async function manFund() {
 async function scCmd(act, k, at) {
   const L = (window.__scCmdL || []).filter((x) => Date.now() - Date.parse(x.at) < 10 * 60e3); L.push({ act, k, at }); window.__scCmdL = L;
   try { await Store.put("scalpcmd", { list: L.slice(-20) }); } catch (e) { /* còn đường thiết lập dự phòng */ }
+  window.__scFast = Date.now() + 30e3;      // vừa bấm lệnh → 30 giây đọc trạng thái mỗi 1 giây, có thay đổi là vẽ ngay (không chờ nhịp thường 3–5 giây)
   if (act === "close") scCmdWatch(k, at);
 }
 // 🧾 PHẢN HỒI LỆNH: sau khi gửi 1 lệnh tiền thật / Demo (vào thêm, chép, lệnh chờ, đóng, cắt lỗ / chốt, hẹn đóng…), trang đọc lại trạng thái máy chủ riêng
@@ -2099,15 +2100,16 @@ async function viewScalp() {
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); document.body.classList.remove("sc-set-on"); return; }
     if (document.hidden || autoOff("scalp") || userBusy() || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
-    if (Date.now() - (window.__scLast || 0) < (innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần
+    const fast = Date.now() < (window.__scFast || 0);
+    if (Date.now() - (window.__scLast || 0) < (fast ? 900 : innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần · vừa bấm lệnh: 1 giây / lần
     try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) {
       // vẽ lại cả trang Bot tốn 0,1–0,8 giây (tab Lệnh nặng nhất) → chỉ vẽ khi CẤU TRÚC đổi; giá & lời/lỗ tạm tính đã chạy trực tiếp qua Binance,
       // các con số còn lại (tài sản, kết quả ngày…) cập nhật tối đa mỗi 20 giây (tab Lệnh 60 giây; điện thoại ×1,5)
       const sig = scSig(r.data, window.__scTab), age = Date.now() - (window.__scFull || 0), cap = (window.__scTab === "ord" ? 60e3 : 20e3) * (innerWidth < 980 ? 1.5 : 1);
       window.__scLast = Date.now();
-      if (sig === window.__scSigV && age < cap) return;
+      if (sig === window.__scSigV && age < cap && !fast) return;
       await softRender(() => viewScalp()); } } catch (e) { /* bỏ qua */ }
-  }, 3000);
+  }, 1000);
 }
 
 async function viewBot(sel) {

@@ -164,6 +164,14 @@
      "te": "Smoother Bot page: redraws only on real changes",
      "d": "Trước đây cứ mỗi lượt máy chủ gửi số liệu (vài giây/lần) trang Bot vẽ lại toàn bộ (0,1–0,8 giây, khựng). Giờ chỉ vẽ lại khi có lệnh mở / đóng / khớp, lệnh chờ, cắt lỗ – chốt, hẹn đóng hay sự kiện mới; giá và lời/lỗ tạm tính vẫn chạy trực tiếp, các số khác cập nhật tối đa 20 giây/lần (tab Lệnh 60 giây). Tab Lệnh nhẹ gần một nửa: Lệnh đã đóng mặc định 7 ngày gần nhất (nút Xem thêm), so sánh sàn thử ↔ Binance 50 cú sốc gần nhất (nút Xem thêm).",
      "de": "The Bot page used to redraw completely on every server update (every few seconds, 0.1–0.8 s freeze). It now redraws only on real changes – trades opened / closed / filled, pending orders, stops / targets, timers, new events; prices and unrealized P/L stay live and other numbers refresh at most every 20 s (Trades tab 60 s). The Trades tab is about half as heavy: Closed trades default to the last 7 days (Show more) and paper ↔ Binance comparison to the latest 50 shocks (Show more)."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Vừa bấm lệnh: trang thấy kết quả sau ~1–2 giây",
+     "te": "Right after you place an order: the page shows it in ~1–2 s",
+     "d": "Sau mỗi lần anh bấm lệnh (lệnh chờ từ biểu đồ, vào / đóng, cắt lỗ – chốt, hẹn đóng…), trang đọc trạng thái mỗi 1 giây trong 30 giây và vẽ ngay khi có thay đổi; máy chủ riêng gửi trạng thái lên NGAY khi làm xong lệnh thay vì chờ nhịp 10 giây (cần cập nhật máy chủ riêng).",
+     "de": "After every order you place (chart price orders, enter / close, stop – target, timers…), the page reads state every second for 30 s and redraws as soon as it changes; the private server pushes its state right after executing instead of waiting for its 10 s cycle (needs a private-server update)."
     }
    ]
   },

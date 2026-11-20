@@ -158,6 +158,7 @@ const sys = () => ({ lag50: Math.round(lagP(0.5)), lag90: Math.round(lagP(0.9)),
 // ---------------------------------------------------------------- chạy
 const core = new ScalpCore({ kv, where: "vps", ord: ORD_VPS, host: os.hostname(), openWS, readCfg, writeState, loadBrain, saveBrain, saveDays, notify, cap: (t) => CAP[t], sys });
 live = new LiveExec({ core, dir: DIR, log });
+{ let t = 0; live.onCmd = () => { clearTimeout(t); t = setTimeout(() => { if (core.here()) core.snapshot().catch(() => {}); }, 400); }; }      // lệnh tay / lệnh chờ / đóng từ trang → trang thấy sau ~1 giây thay vì tới 10 giây
 core.io.onHook = (h) => live.onHook(h);
 core.io.onSwing = (s) => live.onSwing(s);
 core.io.onQuant = (x) => live.onQuant(x);      // 📐 định lượng: sàn thử mở/đóng → lệnh thật theo công tắc từng phương pháp
