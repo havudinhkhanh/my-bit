@@ -1367,7 +1367,7 @@ function navRoute() {
   const isX = (el) => { if (!el || el === document.body || el === document.documentElement) return false; const cs = getComputedStyle(el); return /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2; };
   const findX = (t) => { for (let el = t; el && el !== document.body; el = el.parentElement) { if (isX(el)) return el; } return null; };
   const mark = (el) => { const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2; el.classList.toggle("ovx-l", l); el.classList.toggle("ovx-r", r); };
-  const SEL = ".sc-tabs, .bseg, .sc-evf, .sc-sub2, .tabs, .subtabs";
+  const SEL = ".sc-tabs, .bseg, .sc-evf, .sc-sub2, .tabs, .subtabs, .seg, .sc-om, .sc-snav, .botseg, .nt-cs";      // + thanh khung thời gian biểu đồ (.seg), hàng phương pháp… (trước thiếu → không mờ mép, không kéo được)
   const scan = () => document.querySelectorAll(SEL).forEach((el) => { if (isX(el)) { mark(el); if (!el.__ovx) { el.__ovx = 1; el.addEventListener("scroll", () => mark(el), { passive: true }); } } else el.classList.remove("ovx-l", "ovx-r"); });
   new MutationObserver(() => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); }).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener("resize", () => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); });
@@ -1378,6 +1378,23 @@ function navRoute() {
     const max = el.scrollWidth - el.clientWidth, x = el.scrollLeft; if ((e.deltaY < 0 && x <= 0) || (e.deltaY > 0 && x >= max - 1)) return;
     e.preventDefault(); el.scrollLeft = x + e.deltaY;
   }, { passive: false });
+  // 🖱 THANH CUỘN NỔI khi rê chuột (kiểu macOS): thanh ngang bị giấu thanh cuộn → rê vào hiện 1 thanh mảnh ở mép dưới, kéo được / bấm rãnh để nhảy;
+  //    nổi đè (position:fixed) nên không đẩy bố cục; rời chuột 0,6 giây thì mờ đi
+  { const bar = document.createElement("div"); bar.className = "hsb"; bar.innerHTML = '<i class="hsb-t"></i>'; bar.hidden = true; const th = bar.firstChild; let cur = null, hideT = 0, drag = null;
+    const hidSb = (el) => { const cs = getComputedStyle(el); return cs.scrollbarWidth === "none" || el.offsetHeight - el.clientHeight < 2; };
+    const put = () => { if (!cur || !cur.isConnected) return hide(true); const r = cur.getBoundingClientRect(), sw = cur.scrollWidth, cw = cur.clientWidth; if (sw <= cw + 2 || r.width < 40) return hide(true);
+      const tw = Math.max(32, (r.width * cw) / sw), x = ((r.width - tw) * cur.scrollLeft) / (sw - cw);
+      bar.style.cssText = `left:${r.left}px;top:${r.bottom - 7}px;width:${r.width}px`; th.style.width = tw + "px"; th.style.transform = `translateX(${x}px)`; };
+    const show = (el) => { clearTimeout(hideT); if (cur !== el) { cur?.removeEventListener("scroll", put); cur = el; el.addEventListener("scroll", put, { passive: true }); } if (!bar.isConnected) document.body.appendChild(bar); bar.hidden = false; put(); requestAnimationFrame(() => bar.classList.add("on")); };
+    function hide(now) { if (drag) return; clearTimeout(hideT); const go = () => { bar.classList.remove("on"); setTimeout(() => { if (!bar.classList.contains("on")) { bar.hidden = true; cur?.removeEventListener("scroll", put); cur = null; } }, 180); }; if (now === true) go(); else hideT = setTimeout(go, 600); }
+    if (matchMedia("(hover:hover) and (pointer:fine)").matches) {
+      addEventListener("pointerover", (e) => { if (e.pointerType !== "mouse" || drag) return; if (bar.contains(e.target)) { clearTimeout(hideT); return; } const el = findX(e.target); if (el && el.clientHeight < 120 && hidSb(el)) show(el); else if (cur) hide(); }, { passive: true });
+      addEventListener("scroll", () => cur && put(), { passive: true, capture: true }); addEventListener("resize", () => cur && put());
+      th.addEventListener("pointerdown", (e) => { if (!cur) return; e.preventDefault(); e.stopPropagation(); th.setPointerCapture(e.pointerId); const r = cur.getBoundingClientRect(), tw = th.offsetWidth; drag = { x: e.clientX, s: cur.scrollLeft, k: (cur.scrollWidth - cur.clientWidth) / Math.max(1, r.width - tw) }; bar.classList.add("drag"); });
+      th.addEventListener("pointermove", (e) => { if (drag && cur) cur.scrollLeft = drag.s + (e.clientX - drag.x) * drag.k; });
+      const end = () => { if (!drag) return; drag = null; bar.classList.remove("drag"); hide(); }; th.addEventListener("pointerup", end); th.addEventListener("pointercancel", end);
+      bar.addEventListener("pointerdown", (e) => { if (e.target !== bar || !cur) return; e.preventDefault(); const r = bar.getBoundingClientRect(), tr = th.getBoundingClientRect(); cur.scrollBy({ left: (e.clientX < tr.left ? -1 : 1) * cur.clientWidth * 0.8, behavior: "smooth" }); });      // bấm rãnh → nhảy 1 trang
+      bar.addEventListener("pointerleave", () => hide()); } }
   let D = null;
   addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse" || e.button !== 0) return; const el = e.target.closest?.(SEL); if (!el || !isX(el)) return; D = { el, x: e.clientX, s: el.scrollLeft, moved: false }; });
   addEventListener("pointermove", (e) => { if (!D) return; const dx = e.clientX - D.x; if (!D.moved && Math.abs(dx) < 6) return; D.moved = true; document.documentElement.classList.add("ovx-drag"); D.el.scrollLeft = D.s - dx; });

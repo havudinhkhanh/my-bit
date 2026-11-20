@@ -317,6 +317,14 @@
      "te": "Order chart: Analysis button separated from close",
      "d": "\"Phân tích →\" đứng sát nút ✕ nên trông như mũi tên chỉ vào nút đóng. Giờ là nút riêng có biểu tượng biểu đồ, cùng cỡ với nút đóng, có khoảng cách rõ.",
      "de": "\"Analysis →\" sat right next to ✕ so the arrow looked like it pointed at close. It is now its own button with a chart icon, the same size as close, with clear spacing."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Máy tính: rê chuột vào thanh bị che → hiện thanh cuộn để kéo",
+     "te": "Desktop: hovering a clipped bar shows a draggable scrollbar",
+     "d": "Thanh khung thời gian biểu đồ (1s … Năm), thanh tab, hàng nút lọc… khi dài hơn chỗ hiển thị: rê chuột vào là hiện 1 thanh cuộn mảnh ở mép dưới – kéo được, bấm vào rãnh để nhảy, rời chuột thì mờ đi; nổi đè nên không làm trang xê dịch. Thanh khung thời gian biểu đồ giờ cũng mờ mép báo còn nội dung và kéo bằng chuột được như các thanh khác.",
+     "de": "Chart timeframe bars (1s … 1y), tab bars, filter rows… when longer than the space: hovering shows a thin scrollbar at the bottom edge – drag it, click the track to jump, it fades when you leave; it floats so nothing shifts. Chart timeframe bars now also fade at the edges and can be mouse-dragged like the other bars."
     }
    ]
   },

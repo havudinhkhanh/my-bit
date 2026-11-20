@@ -6736,3 +6736,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .pane-t .pane-v{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}.pane-t .pane-v.up{color:var(--up)}.pane-t .pane-v.down{color:var(--down)}
 .occ-rl{position:absolute;left:8px;top:5px;z-index:4;pointer-events:none;font-size:.6875rem;font-weight:600;color:var(--ink-3);padding:1px 7px;border-radius:5px;background:color-mix(in srgb,var(--surface) 82%,transparent)}
 .occ-rl b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums;margin-left:2px}.occ-rl b.up{color:var(--up)}.occ-rl b.down{color:var(--down)}
+/* 🖱 thanh cuộn ngang nổi khi rê chuột (máy tính) */
+.hsb{position:fixed;z-index:1700;height:7px;opacity:0;transition:opacity .18s ease;cursor:pointer}.hsb.on{opacity:1}.hsb[hidden]{display:none}
+.hsb-t{position:absolute;left:0;top:1.5px;height:4px;border-radius:3px;background:color-mix(in srgb,var(--ink) 34%,transparent);transition:height .12s ease,top .12s ease,background .12s ease;cursor:grab}
+.hsb:hover .hsb-t,.hsb.drag .hsb-t{top:0;height:7px;background:color-mix(in srgb,var(--ink) 52%,transparent)}.hsb.drag .hsb-t{cursor:grabbing}
