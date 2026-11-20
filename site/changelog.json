@@ -148,6 +148,14 @@
      "te": "🔎 Closed trades: filter one coin, see its all-time P/L",
      "d": "Ô lọc (gõ mã hoặc chạm các mã hay giao dịch) ngay trên bảng Lệnh đã đóng, riêng Binance và Sàn thử: bảng chỉ còn lệnh của mã đó, kèm thẻ tổng kết xưa giờ – lời/lỗ ròng sau phí & funding, thắng/thua, phí, funding, tổng đã giao dịch, lệnh tốt nhất / tệ nhất, đường cộng dồn, tách lệnh tay / bot và Long / Short. Số liệu lấy từ sổ lệnh lưu mãi của máy chủ.",
      "de": "A filter box (type a coin or tap a frequent one) right on the Closed trades table, separately for Binance and Paper: the table shows only that coin plus an all-time summary – net P/L after fees & funding, wins, fees, funding, volume, best / worst trade, cumulative line, manual vs bot and Long vs Short. Figures come from the server's permanent trade ledger."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Lọc mã ở Lệnh đã đóng: tức thì, không giật trang",
+     "te": "Coin filter in Closed trades: instant, no page jolt",
+     "d": "Chọn / gõ mã chỉ dựng lại khung Lệnh đã đóng (~0,07 giây thay vì vẽ lại cả trang Bot ~0,5 giây), khung đứng yên trên màn hình, con trỏ vẫn ở ô gõ. Trang Bot cũng nhẹ hơn: bảng lệnh đã đóng chỉ dựng khi mở tab Lệnh, sổ lệnh đầy đủ chỉ đọc 1 lần mỗi lượt vẽ.",
+     "de": "Picking / typing a coin rebuilds only the Closed trades block (~0.07 s instead of redrawing the whole Bot page ~0.5 s); the block stays put and the cursor stays in the box. The Bot page is lighter too: closed-trade tables build only on the Trades tab and the full ledger is read once per draw."
     }
    ]
   },
