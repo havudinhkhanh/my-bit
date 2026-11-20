@@ -70,7 +70,9 @@ export class LiveExec {
     const ks = C.map((x) => x.k), ok = ks.includes("win") ? (ks.includes("stop") ? 4 : 1) : ks.includes("stop") ? -1 : ks.includes("no") ? 0 : C.length ? 2 : 3;
     this.S.cres = [...(this.S.cres || []).filter((x) => Date.now() - Date.parse(x.t + "Z") < 3600e3).slice(-29), { at, k: k.slice(0, 80), t: iso(Date.now()), ok, m: C.slice(-5).map((x) => ({ k: x.k, m: String(x.m).slice(0, 400) })) }]; this.save();
   }
-  note(key, sev, title, body, grp = null) { try { this.core.note(`lv:${key}`, sev, title, body, undefined, grp); } catch (e) { /* bỏ qua */ } }
+  // mỗi thông báo (khớp, đóng, cắt lỗ…) → gửi trạng thái lên trang ngay sau đó (onCmd gom các lần gọi sát nhau thành 1 lần gửi) – trước đây thông báo tới điện thoại
+  //   ngay mà thẻ lệnh trên trang chờ tới nhịp gửi 10 giây kế tiếp mới đổi (vd báo "Đã khớp AKE Short" mà thẻ vẫn ghi "chờ khớp")
+  note(key, sev, title, body, grp = null) { try { this.core.note(`lv:${key}`, sev, title, body, undefined, grp); } catch (e) { /* bỏ qua */ } this.onCmd?.(); }
   save() { try { const tmp = this.file + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(this.S)); fs.renameSync(tmp, this.file); } catch (e) { this.log("lưu live.json lỗi", e.message); } }
   // ---------------------------------------------------------------- gọi API Binance (ký HMAC-SHA256)
   async req(method, p, params = {}, signed = true, base = BASE[this.env()], env = this.env()) {
@@ -872,7 +874,7 @@ export class LiveExec {
       m.done = true; m.st = "fill"; m.t2 = Date.now(); this.save();
       this.say(`📍 ✅ Lệnh chờ ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"} @ ${m.px} đã KHỚP${fq ? ` ${fq}` : ""} (${LTAG(m.env)}) – giờ là ✋ lệnh tay`, "win");
       this.note(`mof:${m.id}`, 2, `${LTAG(m.env)} · 📍 Đã khớp ${coin(m.sym)} ${m.sd > 0 ? "Long" : "Short"}`, `giá ${m.px}${m.sl ? ` · cắt lỗ ${m.sl}` : ""}${m.tp ? ` · chốt ${m.tp}` : ""}`, `mo:${m.id}`);
-      this.mAt = 0; await this.mSync(true);
+      this.mAt = 0; await this.mSync(true); this.onCmd?.();
       if (m.sl > 0) await this.mCond(m.sym, "sl", m.sl).catch((e) => this.err(`📍 ${m.sym}: đặt cắt lỗ`, e));
       if (m.tp > 0) await this.mCond(m.sym, "tp", m.tp).catch((e) => this.err(`📍 ${m.sym}: đặt chốt lời`, e));
       if (m.eh > 0 && !this.S.mlk?.[m.sym]) { this.mLink(m.sym, m.sd, Date.now() + m.eh * 3600e3, ""); this.save(); }

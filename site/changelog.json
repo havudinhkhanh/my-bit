@@ -172,6 +172,15 @@
      "te": "Right after you place an order: the page shows it in ~1–2 s",
      "d": "Sau mỗi lần anh bấm lệnh (lệnh chờ từ biểu đồ, vào / đóng, cắt lỗ – chốt, hẹn đóng…), trang đọc trạng thái mỗi 1 giây trong 30 giây và vẽ ngay khi có thay đổi; máy chủ riêng gửi trạng thái lên NGAY khi làm xong lệnh thay vì chờ nhịp 10 giây (cần cập nhật máy chủ riêng).",
      "de": "After every order you place (chart price orders, enter / close, stop – target, timers…), the page reads state every second for 30 s and redraws as soon as it changes; the private server pushes its state right after executing instead of waiting for its 10 s cycle (needs a private-server update)."
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "aud": "admin",
+     "t": "Thông báo \"Đã khớp\" và thẻ lệnh đổi cùng lúc",
+     "te": "\"Filled\" alert and the trade card now update together",
+     "d": "Trước đây thông báo khớp tới ngay nhưng thẻ trên trang vẫn ghi \"chờ khớp\" thêm tới ~10 giây (máy chủ chỉ gửi trạng thái 10 giây/lần). Giờ mỗi lần có thông báo (khớp, đóng, cắt lỗ…) máy chủ riêng gửi trạng thái lên ngay sau đó (cần cập nhật máy chủ riêng).",
+     "de": "The fill alert used to arrive instantly while the card still said \"pending\" for up to ~10 s (the server pushed state every 10 s). Now every alert (fill, close, stop…) is followed by an immediate state push (needs a private-server update)."
     }
    ]
   },
