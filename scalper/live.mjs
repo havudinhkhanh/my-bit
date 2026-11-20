@@ -326,6 +326,7 @@ export class LiveExec {
       await this.mPend().catch((e) => { if (!this.mpErrAt || Date.now() - this.mpErrAt > 600e3) { this.mpErrAt = Date.now(); this.err("📍 lệnh chờ giá", e); } });
       await this.mHist().catch((e) => { if (!this.mhErrAt || Date.now() - this.mhErrAt > 900e3) { this.mhErrAt = Date.now(); this.err("đọc lệnh tay đã đóng", e); } });
       await this.mSync().catch((e) => { if (!this.mErrAt || Date.now() - this.mErrAt > 600e3) { this.mErrAt = Date.now(); this.err("đọc lệnh tay trên Binance", e); } });
+      await this.sweepOrphans().catch((e) => { if (!this.swErrAt || Date.now() - this.swErrAt > 1800e3) { this.swErrAt = Date.now(); this.err("dọn lệnh chờ sót", e); } });
       await this.bDay().catch((e) => { if (!this.bdErrAt || Date.now() - this.bdErrAt > 1800e3) { this.bdErrAt = Date.now(); this.err("đọc sổ thu chi trong ngày", e); } });
       await this.mFund().catch((e) => { if (!this.mfErrAt || Date.now() - this.mfErrAt > 900e3) { this.mfErrAt = Date.now(); this.err("đọc funding lệnh tay đang mở", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
@@ -346,7 +347,7 @@ export class LiveExec {
       }
     }
     // hết giờ chờ khớp → huỷ phần chưa khớp
-    if (now > ev.exp) for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = l.fq > 0 ? "filled" : "cxl"; }
+    if (now > ev.exp) for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = l.fq > 0 ? "filled" : "cxl"; }
     if (ev.pos.q > 0) {
       await this.ensureStop(ev);
       const m = this.mark(ev.k), sp = ev.stop?.px;
@@ -418,7 +419,7 @@ export class LiveExec {
   async trailClose(ev) {
     const qm = ev.lv.filter((l) => l.mk && l.fq > 0).reduce((a, l) => a + l.fq, 0);
     if (!(qm > 0)) return this.close(ev, "TRAIL");
-    for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = l.fq > 0 ? "filled" : "cxl"; }
+    for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = l.fq > 0 ? "filled" : "cxl"; }
     const F = await this.filters(ev.sym), p = await this.pos(ev.sym), have = Math.abs(p.amt), q = fl(Math.min(have, ev.pos.q - qm), F.step);
     ev.trDone = 1;
     if (!(q > 0) || q >= have) return this.close(ev, "TRAIL");
@@ -453,9 +454,35 @@ export class LiveExec {
     const L = await this.req("GET", "/fapi/v2/positionRisk", { symbol: sym }).catch(() => this.req("GET", "/fapi/v3/positionRisk", { symbol: sym }));
     const p = (L || []).find((x) => x.symbol === sym); return p ? { amt: +p.positionAmt, ep: +p.entryPrice } : { amt: 0, ep: 0 };
   }
+  // huỷ 1 lệnh chờ của lần bắt và KIỂM LẠI trên sàn. Trước 20/11/2026 lỗi huỷ bị bỏ qua im lặng (mạng chập chờn / sàn bận) → lệnh chờ nằm lại trên Binance,
+  //   khớp nhiều giờ sau thành một "lệnh tay" anh không hề đặt (JCT 20/11). Giờ: thử 3 lần, lỗi "không thấy lệnh" thì hỏi lại trạng thái; vẫn không được thì báo + nhờ dọn lệnh sót.
+  async cxlLv(ev, l) {
+    for (let k = 0; k < 3; k++) {
+      try { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }); return true; }
+      catch (e) {
+        const o = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => null);
+        if (o && !/^(NEW|PARTIALLY_FILLED)$/.test(o.status)) return true;      // đã huỷ / đã khớp hết
+        if (!o && (e.code === -2011 || e.code === -2013)) return true;      // sàn không còn lệnh này
+      }
+      await new Promise((r) => setTimeout(r, 500 * (k + 1)));
+    }
+    this.say(`⚠ Chưa huỷ được lệnh chờ ${ev.sym} ${l.qs || l.q || ""} @ ${l.pxs || l.px} – bot tự thử lại trong ≤ 2 phút (dọn lệnh chờ sót)`, "no");
+    return false;
+  }
+  // 🧹 DỌN LỆNH CHỜ SÓT (2 phút/lần): lệnh chờ vào lệnh của Bắt râu sập (mã mb<lần bắt>x<mức><sàn>) mà lần bắt đó đã xong / không còn → huỷ ngay, ghi nhật ký.
+  async sweepOrphans() {
+    const env = this.env(); if (!this.keys(env) || Date.now() - (this.swpAt || 0) < 120e3) return; this.swpAt = Date.now();
+    const O = await this.req("GET", "/fapi/v1/openOrders", {}), rx = /^mb(\d+)x\d+([a-z])$/;
+    for (const o of O || []) {
+      const m = rx.exec(o.clientOrderId || ""); if (!m || m[2] !== env[0]) continue;
+      const ev = this.S.ev[m[1]]; if (ev && !ev.done) continue;
+      try { await this.req("DELETE", "/fapi/v1/order", { symbol: o.symbol, orderId: o.orderId }); this.say(`🧹 Huỷ lệnh chờ sót của Bắt râu sập: ${o.symbol} ${o.side === "BUY" ? "mua" : "bán"} ${+o.origQty} @ ${+o.price} (lần bắt #${m[1]} đã đóng – lệnh này lẽ ra phải huỷ cùng lúc)`, "info"); }
+      catch (e) { this.err(`huỷ lệnh chờ sót ${o.symbol}`, e); }
+    }
+  }
   async close(ev, why) {
     { const m = this.mark(ev.k); ev.dxm = m || null; ev.dxt = Date.now(); ev.dxp = m && ev.pos.ap > 0 ? ev.side * (m / ev.pos.ap - 1) * 1e4 : null; }      // 🔬 giá giữa lúc quyết định đóng
-    for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = l.fq > 0 ? "filled" : "cxl"; }
+    for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = l.fq > 0 ? "filled" : "cxl"; }
     const p = await this.pos(ev.sym), q = Math.abs(p.amt), F = await this.filters(ev.sym);
     let px = this.mark(ev.k) || ev.pos.ap;
     if (q > 0) {
@@ -481,7 +508,7 @@ export class LiveExec {
     let rem = 0;
     for (const l of ev.lv) {
       if (l.st === "open") {
-        await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {});
+        await this.cxlLv(ev, l);
         const o = await this.req("GET", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => null);
         if (o) { const fq = +o.executedQty, ap = +o.avgPrice; if (fq > (l.fq || 0)) { this.addFill(ev, fq - (l.fq || 0), (ap * fq - (l.ap || 0) * (l.fq || 0)) / Math.max(1e-12, fq - (l.fq || 0)), l.mk); l.fq = fq; l.ap = ap; } }
       }
@@ -502,7 +529,7 @@ export class LiveExec {
     if (k.startsWith("lv:")) { const ev = this.S.ev[k.slice(3)]; if (ev && !ev.done) {
       const pr = await this.pos(ev.sym);
       if (!(ev.pos?.q > 0) && !Math.abs(pr.amt)) {      // chưa khớp mức nào → chỉ huỷ lệnh chờ, không tính là 1 lệnh
-        for (const l of ev.lv) if (l.st === "open") { await this.req("DELETE", "/fapi/v1/order", { symbol: ev.sym, origClientOrderId: l.cid }).catch(() => {}); l.st = "cxl"; } else if (l.st === "wait") l.st = "cxl";
+        for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = "cxl"; } else if (l.st === "wait") l.st = "cxl";
         ev.done = true; ev.why = "MANUAL"; ev.t2 = Date.now(); this.say(`✋ Anh huỷ lệnh chờ ${ev.sym} trên trang`, "info"); this.save(); return;
       }
       this.say(`✋ Anh bấm đóng ${ev.sym} trên trang – huỷ lệnh chờ & đóng vị thế`, "info"); await this.close(ev, "MANUAL");
