@@ -7704,8 +7704,30 @@ function initAccountUI() {
     if (isTxt(a) && !a.closest(".cmdk,.pal,.top")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* bỏ qua */ } }, 80); }
   };
   document.addEventListener("focusin", (e) => { if (isTxt(e.target)) { document.body.classList.add("kb-on"); setTimeout(fit, 350); } });
-  document.addEventListener("focusout", () => setTimeout(() => { if (!isTxt(document.activeElement)) document.body.classList.remove("kb-on"); }, 150));
-  vv?.addEventListener("resize", fit); vv?.addEventListener("scroll", () => root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px")); fit();
+  // 📱 thanh tab dưới treo GIỮA màn hình: iOS / trình duyệt trong app (Zalo, Messenger…) đóng bàn phím xong đôi khi giữ khung nhìn cũ → lớp cố định (position:fixed) nằm ở đáy khung CŨ tới khi cuộn.
+  //    → sau khi bàn phím đóng / quay lại app / xoay máy: ép tính lại vị trí lớp cố định (ẩn-hiện 1 nhịp + cuộn 1px rồi trả lại);
+  //      khung nhìn vẫn lệch (đáy vùng đang thấy ≠ đáy khung bố cục, không phóng to) → dời thanh tab / nút nổi theo đúng đáy vùng thấy (--vvd)
+  const tb = document.getElementById("tabs");
+  let lastMv = 0, nt = 0;
+  addEventListener("scroll", () => (lastMv = Date.now()), { passive: true }); addEventListener("touchmove", () => (lastMv = Date.now()), { passive: true });
+  const vvd = () => {
+    let d = 0;
+    if (vv && !document.body.classList.contains("kb-on") && Math.abs((vv.scale || 1) - 1) < 0.01) { d = Math.round(vv.offsetTop + vv.height - innerHeight); if (Math.abs(d) < 6 || Math.abs(d) > innerHeight * 0.75) d = 0; }
+    if (root.style.getPropertyValue("--vvd") !== d + "px") root.style.setProperty("--vvd", d + "px");
+  };
+  const reanchor = () => {
+    if (!tb || document.body.classList.contains("kb-on") || isTxt(document.activeElement)) return;
+    const d0 = tb.style.display; tb.style.display = "none"; void tb.offsetHeight; tb.style.display = d0;
+    const y = scrollY, max = root.scrollHeight - innerHeight;
+    if (max > 2 && Date.now() - lastMv > 350) { scrollTo(scrollX, y > 0 ? y - 1 : y + 1); requestAnimationFrame(() => { if (Date.now() - lastMv > 350 || Math.abs(scrollY - y) <= 1) scrollTo(scrollX, y); }); }
+    vvd();
+  };
+  const settle = () => { clearTimeout(nt); [60, 420, 950].forEach((ms, i) => (nt = setTimeout(reanchor, ms + i))); };
+  document.addEventListener("focusout", () => setTimeout(() => { if (!isTxt(document.activeElement)) { document.body.classList.remove("kb-on"); settle(); } }, 150));
+  addEventListener("pageshow", () => setTimeout(reanchor, 250)); addEventListener("orientationchange", () => setTimeout(reanchor, 450));
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(reanchor, 250); });
+  let vt = 0; const vvLater = () => { clearTimeout(vt); vt = setTimeout(vvd, 90); };
+  vv?.addEventListener("resize", () => { fit(); vvLater(); }); vv?.addEventListener("scroll", () => { root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px"); vvLater(); }); fit(); vvd();
 })();
 
 // ================================================================ MENU BẬT RA KHÔNG TRÀN MÀN HÌNH: mọi <details> mở ra một khung nổi (⋯, bộ lọc, chọn…) → đẩy khung vào trong màn hình

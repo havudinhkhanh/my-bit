@@ -6763,3 +6763,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .ios-menu .px2 .px-slp button.on:not(#_x):not(#_y){background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 1px 2px rgba(0,0,0,.15)!important}
 :root:not([data-theme=light]) .ios-menu .px2 .px-slp button.on:not(#_x):not(#_y){background:color-mix(in srgb,var(--ink) 16%,var(--surface))!important}
 .px2 .px-bp{font-weight:700;color:var(--ink)}
+/* 📱 thanh tab dưới + nút nổi bám đúng đáy vùng đang thấy khi trình duyệt (iOS / app nhúng như Zalo) giữ khung nhìn lệch sau khi đóng bàn phím – --vvd do JS đo, bình thường = 0 */
+@media (max-width:979px){.tabs:not(#_t),.pnfab,.sc-setfab{translate:0 var(--vvd,0px)}}
+/* 🌙 ánh sáng ấm: nền html đã ngả ấm sẵn (cho vùng kéo nảy trên cùng) mà lớp phủ ấm vẫn trùm lên → trang ngắn (ít lệnh, trang trống) lộ dải cam đậm phía dưới. body phủ kín màn hình → cả trang đều một màu */
+html[data-nl] body{min-height:100vh;min-height:100dvh}

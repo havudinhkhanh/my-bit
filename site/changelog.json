@@ -360,6 +360,29 @@
      "te": "Phone: picking an off-screen timeframe (Day, Week…) no longer squashes / misplaces the highlight",
      "d": "Thanh chọn cuộn ngang (khung giờ biểu đồ, thanh tab…): chọn nút nằm ngoài phần đang hiện thì viên sáng bị kẹp còn 4px và đè lên nút khác. Giờ viên sáng luôn nằm đúng nút đang chọn.",
      "de": "Horizontally scrolling pickers (chart timeframes, tab bars…): picking a button outside the visible part squashed the highlight to 4px over another button. It now always sits on the selected button."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: thanh tab dưới không còn treo giữa màn hình sau khi gõ phím (Safari, trình duyệt trong Zalo / Messenger)",
+     "te": "Phone: the bottom tab bar no longer gets stuck mid-screen after typing (Safari, in-app browsers like Zalo / Messenger)",
+     "d": "Bàn phím đóng xong, trình duyệt đôi khi giữ khung nhìn cũ nên thanh tab nằm lơ lửng tới khi cuộn. Giờ app tự đặt lại thanh về đúng đáy màn hình.",
+     "de": "After the keyboard closes the browser sometimes keeps the old viewport, leaving the tab bar floating until you scroll. The app now snaps it back to the bottom."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ánh sáng ấm: trang ngắn không còn dải cam đậm phía trên thanh tab",
+     "te": "Warm light: short pages no longer show a darker orange strip above the tab bar"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Tab Lệnh: sàn đang xem không có lệnh mà sàn kia có → hiện nút chuyển sang xem ngay",
+     "te": "Trades tab: when this venue is empty but the other has open trades, a button takes you there",
+     "d": "Số trên tab Lệnh là tổng của cả Binance và Sàn thử, nên trước đây dễ tưởng lệnh biến mất.",
+     "de": "The Trades tab count covers both Binance and Paper, which made trades look missing.",
+     "f": "bot"
     }
    ]
   },
