@@ -394,7 +394,7 @@ function gPlaceAll(list) {
     // vị trí cũ đo lúc thanh rộng khác (đổi sàn → đổi nhãn / số đếm) → đặt thẳng chỗ mới, không trượt từ chỗ sai
     let th = g.querySelector(":scope > .gthumb");
     if (!p) { if (th) th.style.opacity = "0"; continue; }
-    if (!th) { th = document.createElement("i"); th.className = "gthumb"; th.setAttribute("aria-hidden", "true"); g.prepend(th); g.classList.add("gseg"); }
+    if (!th) { th = document.createElement("i"); th.className = "gthumb"; th.setAttribute("aria-hidden", "true"); th.setAttribute("data-nd", ""); g.prepend(th); g.classList.add("gseg"); }
     const k = gKey(g), prev = GPOS.get(k), put = (q) => {
       // thanh 1 hàng: viên kính neo trên + dưới theo lề trong của thanh (luôn nằm gọn trong lòng thanh, kể cả khi thanh đổi cao sau đó), chỉ trượt ngang
       if (q.one) { g.dataset.one = 1; g.style.setProperty("--gpt", q.pt + "px"); g.style.setProperty("--gpb", q.pb + "px"); th.style.height = ""; th.style.transform = `translateX(${q.x}px)`; }
@@ -671,17 +671,26 @@ const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) ==
 //   Ô do giá trực tiếp cập nhật (giá, lời/lỗ, thang giá, đồng hồ…) chỉ thay khi thuộc tính của chính nó đổi – không trả về số cũ của lần vẽ rồi mới nhảy lại.
 const SR_MORPH = [/^#\/bot\/scalp/];
 const MO_LIVE = "[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
-const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded";
+const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
+const MO_KC = ["gseg", "ph-fd", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
+const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded" || MO_MARK.has(a)
+  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"));
 function moAttrs(l, n, live) {
   let ch = false; const NA = n.attributes;
-  for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; if (l.getAttribute(a.name) !== a.value && !moSkipA(l, a.name)) { l.setAttribute(a.name, a.value); ch = true; } }
+  for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; let v = a.value;
+    if (a.name === "class") { const k = MO_KC.filter((c) => l.classList.contains(c) && !n.classList.contains(c)); if (k.length) v = (v + " " + k.join(" ")).trim(); }
+    if (l.getAttribute(a.name) !== v && !moSkipA(l, a.name)) { l.setAttribute(a.name, v); ch = true; } }
   const LA = l.attributes;
-  if (!live) for (let i = LA.length - 1; i >= 0; i--) { const a = LA[i].name; if (!n.hasAttribute(a) && !moSkipA(l, a)) { l.removeAttribute(a); ch = true; } }      // ô giá trực tiếp: giữ thuộc tính do mã chạy giá gắn thêm (data-v…)
+  if (!live) for (let i = LA.length - 1; i >= 0; i--) { const a = LA[i].name; if (n.hasAttribute(a) || moSkipA(l, a)) continue;
+    if (a === "class") { const k = MO_KC.filter((c) => l.classList.contains(c)).join(" "); if (k) { if (l.className !== k) { l.className = k; ch = true; } continue; } }
+    l.removeAttribute(a); ch = true; }      // ô giá trực tiếp: giữ thuộc tính do mã chạy giá gắn thêm (data-v…)
   return ch;
 }
 function moNode(l, n) {      // true = đã vá tại chỗ · false = phải thay nút
   if (l.nodeType !== n.nodeType || l.nodeName !== n.nodeName) return false;
-  if (n.nodeType === 3 || n.nodeType === 8) { if (l.nodeValue !== n.nodeValue) l.nodeValue = n.nodeValue; return true; }
+  if (n.nodeType === 3 || n.nodeType === 8) { let v = n.nodeValue; const pa = l.parentNode;
+    if (n.nodeType === 3 && pa?.dataset?.ux && !UX_KEEP.test(v.trimStart())) { let f = pa.firstChild; while (f && f.nodeType === 3 && !f.textContent.trim()) f = f.nextSibling; const m = f === l && v.match(UX_EMO); if (m && m[0].length < v.length) v = v.slice(m[0].length); }      // tiêu đề đã bỏ emoji đầu dòng → giữ bản đã bỏ
+    if (l.nodeValue !== v) l.nodeValue = v; return true; }
   if (n.nodeType !== 1) return true;
   const sig = n.getAttribute("data-sig"); if (sig && l.getAttribute("data-sig") === sig) return true;
   if (l.dataset.m && l.classList.contains("cbox") && n.classList.contains("cbox") && moChart(l, n)) return true;
@@ -748,7 +757,7 @@ async function softRender(fn) {
   // gắn lại khối cũ: trình duyệt xoá vị trí cuộn khi khối bị gỡ khỏi trang → đặt lại ngay vị trí cuộn đã lưu của khối & các khung con
   const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const K = keepSig.get(el.dataset.sig); if (K && K.el !== el && !K.el.isConnected) { el.replaceWith(K.el); K.st.forEach(([x, t, l]) => { x.scrollTop = t; x.scrollLeft = l; }); keepSig.delete(el.dataset.sig); } }); };
   const mo = new MutationObserver(() => { reuse(); fixNow(); }); if (!useMo) mo.observe(root, { childList: true, subtree: true });
-  if (useMo) Object.defineProperty(root, "innerHTML", { configurable: true, get() { return IH.get.call(root); }, set(v) { if (location.hash === h0 && root.isConnected) morphHtml(root, v); else IH.set.call(root, v); } });
+  if (useMo) Object.defineProperty(root, "innerHTML", { configurable: true, get() { return IH.get.call(root); }, set(v) { if (location.hash === h0 && root.isConnected) { morphHtml(root, v); requestAnimationFrame(() => { try { gPlaceAll(root.querySelectorAll(GSEL)); } catch (e) { /* bỏ qua */ } }); } else IH.set.call(root, v); } });      // vá xong: viên kính thanh tab trượt theo nút đang chọn (nút không bị thay nên không tự kích hoạt)
   let done; SR_P = new Promise((r) => (done = r));
   try { await fn(); } finally { if (useMo) delete root.innerHTML; mo.disconnect(); SR_H = null; SR_DUMMY = null; SR_P = null; done(); }
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
@@ -2783,7 +2792,7 @@ function ocInfo0(card, n) { const g = (sel, a) => card.querySelector(sel)?.datas
 function ocDeco(root = document) {
   root.querySelectorAll?.(".sc-oc:not([data-occ])").forEach((c) => {
     c.dataset.occ = 1; const sp = c.querySelector(".r1 > span"); if (!sp) return;
-    sp.insertAdjacentHTML("beforeend", `<button type="button" class="oc-ch" data-occh title="${bi("Mở biểu đồ: xu hướng, khung 1 giây … năm, giá vào / cắt lỗ / chốt lời", "Open chart: trend, 1s … 1y, entry / stop / target")}" aria-label="${bi("Biểu đồ", "Chart")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></button>`);
+    sp.insertAdjacentHTML("beforeend", `<button type="button" class="oc-ch" data-nd data-occh title="${bi("Mở biểu đồ: xu hướng, khung 1 giây … năm, giá vào / cắt lỗ / chốt lời", "Open chart: trend, 1s … 1y, entry / stop / target")}" aria-label="${bi("Biểu đồ", "Chart")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></button>`);
   });
 }
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });

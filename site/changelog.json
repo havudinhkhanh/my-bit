@@ -248,6 +248,14 @@
      "te": "Switching pages while the Bot page refreshes now actually switches",
      "d": "Trước: đang ở Bot Phản Xạ mà bấm Có gì mới (hay trang khác) đúng lúc trang tự làm mới thì menu đã sáng trang mới nhưng màn hình vẫn là trang Bot. Giờ trang mới chờ lượt làm mới xong rồi hiện ngay.",
      "de": "Before: on the Bot page, tapping What's new (or any page) right while it auto-refreshed highlighted the new page in the menu but the screen stayed on the Bot page. Now the new page waits for that refresh to finish and then shows."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Nút biểu đồ trên thẻ lệnh không còn lúc hiện lúc mất",
+     "te": "Chart button on order cards no longer disappears",
+     "d": "Sau bản vá \"chỉ cập nhật phần thay đổi\", mỗi lần trang Bot tự làm mới lại gỡ mất nút biểu đồ trên thẻ lệnh (và viên kính trên thanh tab, viền báo cuộn ngang bị gắn lại liên tục). Giờ các phần này được giữ nguyên qua mọi lượt làm mới.",
+     "de": "After the \"only update what changed\" patch, each Bot page auto-refresh removed the chart button on order cards (and kept re-attaching the tab-bar highlight and scroll hints). These now stay put across refreshes."
     }
    ]
   },
