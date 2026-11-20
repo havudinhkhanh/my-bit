@@ -333,6 +333,15 @@
      "te": "Chart toolbar: matching corner radii, toggles with a dot",
      "d": "Dãy khung giờ và nhóm bật/tắt (EMA, Khối lượng, RSI, Tường lệnh, Thanh lý…; SMC, RSI·MACD·CVD… trên trang coin) giờ cùng bo góc (rãnh 10px, nút 7px). Nút bật/tắt không còn là viên trắng nổi rời rạc: chấm tròn đầy = đang bật, rỗng = tắt, nền nhạt. Ô tích ☑ trên trang coin đổi sang cùng kiểu.",
      "de": "The timeframe bar and the toggle group (EMA, Volume, RSI, Order walls, Liq…; SMC, RSI·MACD·CVD… on the coin page) now share corner radii (track 10px, buttons 7px). Toggles are no longer floating white chips: a filled dot = on, hollow = off, on a light tint. Checkboxes on the coin page use the same style."
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "aud": "admin",
+     "t": "Đặt chốt lời / cắt lỗ mới: mốc cũ biến mất ngay, không chờ máy chủ",
+     "te": "New target / stop: the old level disappears instantly, no waiting for the server",
+     "d": "Lệnh tay chỉ có 1 chốt lời và 1 cắt lỗ \"đóng cả vị thế\" – đặt cái mới thì máy chủ huỷ cái cũ. Trước đây trang vẫn hiện mốc cũ tới khi máy chủ báo về (vài giây – vài chục giây). Giờ gửi xong là thẻ lệnh, biểu đồ lệnh, biểu đồ trang coin và menu chuột phải đổi NGAY sang mốc mới (kèm ⏳ đang đặt); máy chủ xác nhận thì ⏳ mất; máy chủ báo không đặt được hoặc quá 90 giây thì trả về đúng như trên sàn.",
+     "de": "A manual trade has one \"close whole position\" target and one stop – setting a new one makes the server cancel the old. Before, the page kept showing the old level until the server reported back (seconds to tens of seconds). Now the order card, order chart, coin chart and right-click menu switch to the new level INSTANTLY (with ⏳ placing); the ⏳ goes away when the server confirms; if the server reports a failure or 90 s pass, it reverts to what is on the exchange."
     }
    ]
   },

@@ -77,7 +77,18 @@ async function scCmd(act, k, at) {
   const L = (window.__scCmdL || []).filter((x) => Date.now() - Date.parse(x.at) < 10 * 60e3); L.push({ act, k, at }); window.__scCmdL = L;
   try { await Store.put("scalpcmd", { list: L.slice(-20) }); } catch (e) { /* còn đường thiết lập dự phòng */ }
   window.__scFast = Date.now() + 30e3;      // vừa bấm lệnh → 30 giây đọc trạng thái mỗi 1 giây, có thay đổi là vẽ ngay (không chờ nhịp thường 3–5 giây)
+  if (act === "close" && mCondMark(k)) mCondRedraw(k);
   if (act === "close") scCmdWatch(k, at);
+}
+function mCondRedraw(k) {
+  const sym = k.split(":")[1];
+  if (location.hash.startsWith("#/bot/scalp") && window.__scCache) { window.__scUseCache = true; window.__scCache.t = Math.max(window.__scCache.t, Date.now() - 170e3); softRender(() => viewScalp()).then(() => ocRefresh(sym)).catch(() => {}); }
+  else ocRefresh(sym);
+}
+function ocRefresh(sym) {      // biểu đồ lệnh đang mở đúng mã này → lấy lại mốc từ thẻ vừa vẽ, giữ nguyên khung đang xem
+  try { if (typeof OCC === "undefined" || !OCC.info || OCC.info.base + "USDT" !== sym || !document.getElementById("ocChart")) return;
+    const MN = window.__scCache?.d?.[1]?.data?.live?.man, sd = OCC.info.side, O = MN?.ord?.[sym] || [], pk = (re) => O.filter((o) => re.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || 0;
+    OCC.info.sl = pk(/^STOP/); OCC.info.tp = pk(/^TAKE_PROFIT/); OCC.info.slP = mCondPend(sym, "sl"); OCC.info.tpP = mCondPend(sym, "tp"); ocDraw(true); } catch (e) { /* bỏ qua */ }
 }
 // 🧾 PHẢN HỒI LỆNH: sau khi gửi 1 lệnh tiền thật / Demo (vào thêm, chép, lệnh chờ, đóng, cắt lỗ / chốt, hẹn đóng…), trang đọc lại trạng thái máy chủ riêng
 // tới khi thấy phản hồi đúng lần bấm này (cres[].at) → báo NGAY: ✅ đã làm · ⚠️ máy chủ không làm + lý do (vd chưa đủ 1 lệnh của sàn) · ⛔ sàn báo lỗi.
@@ -93,6 +104,7 @@ function scCmdName(k) {
 }
 function scCmdShow(R, k) {
   if (R.seen) return; R.seen = 1;
+  if (R.ok !== 1 && /^(mst|mtp):/.test(k)) { mCondDrop(k); mCondRedraw(k); }      // máy chủ không đặt được → mốc trên trang trả về đúng như trên sàn
   const M = (R.m || []).filter((x) => x?.m), by = (kd) => M.filter((x) => x.k === kd).map((x) => x.m).pop() || "", last = M[M.length - 1]?.m || "";
   const cut = (x) => { const i = x.indexOf(": "); return i > 0 && i < 70 ? [x.slice(0, i).replace(/^⚠️\s*/u, ""), x.slice(i + 2)] : ["", x]; };
   const bnWhy = (x) => BN_ERR.find(([re]) => re.test(x))?.[1] || "", nm0 = scCmdName(k);
@@ -334,6 +346,26 @@ async function ivFill(LH, C, env, PT = []) {
       <p class="iv-key"><span><b>${bi("Kết quả thật", "Actual")}</b> ${bi("= tiền anh thật sự nhận khi can thiệp", "= what you actually got after stepping in")}</span><span><b>${bi("Nếu để bot", "If left to bot")}</b> ${bi("lấy từ", "comes from")} ${SRC_P} ${bi("kết quả thật trên sàn thử", "real paper result")}, ${bi("không có thì", "else")} ${SRC_S} ${bi("ước tính trên nến", "candle estimate")}</span><span><b>${bi("Chênh", "Diff")}</b> ${bi("= anh − bot · dương là anh làm tốt hơn", "= you − bot · positive means you did better")}</span></p>
       <div class="tw iv-lt"><table class="rs iv-lt-t"><thead><tr><th class="l">${bi("Lệnh", "Trade")}</th><th class="l iv-gs">✋ ${bi("Anh đã làm", "What you did")}</th><th>${bi("Kết quả thật", "Actual result")}</th><th class="l iv-gs">🤖 ${bi("Nếu để bot · thoát khi", "If left to bot · exit")}</th><th>${bi("Kết quả nếu để bot", "Bot result")}</th><th class="iv-gs">${bi("Chênh (anh − bot)", "Diff (you − bot)")}</th></tr></thead><tbody>${lst}</tbody></table></div></details>` : ""}`, bi("lệnh đã đóng", "closed trades"));
 }
+// ⚡ CẬP NHẬT TỨC THỜI cắt lỗ / chốt lời lệnh tay: gửi lệnh xong → gỡ NGAY mốc cũ, vẽ mốc mới (⏳ đang đặt) trên thẻ, biểu đồ lệnh, biểu đồ trang coin, menu chuột phải –
+//   không chờ máy chủ báo về (vài giây – vài chục giây). Máy chủ báo trạng thái khớp → thôi ghi đè; máy chủ báo không làm được / quá 90 giây → trả về đúng như trên sàn.
+//   (máy chủ luôn THAY mốc cũ cùng loại: huỷ hết chốt lời cũ rồi mới đặt cái mới – 1 vị thế chỉ có 1 chốt lời "đóng cả vị thế")
+function mCondMark(k) {
+  const m = /^(mst|mtp):([A-Z0-9]+):([\d.eE+-]+)/.exec(k); if (!m) return false;
+  (window.__mCondPend ||= {})[m[2] + ":" + (m[1] === "mst" ? "sl" : "tp")] = { px: +m[3] || 0, at: Date.now() };
+  mCondApply(window.__scCache?.d?.[1]?.data); return true;
+}
+function mCondDrop(k) { const m = /^(mst|mtp):([A-Z0-9]+):/.exec(k); if (m && window.__mCondPend) { delete window.__mCondPend[m[2] + ":" + (m[1] === "mst" ? "sl" : "tp")]; window.__scCache && (window.__scCache.t = 0); } }
+function mCondApply(X) {
+  const P = window.__mCondPend, MN = X?.live?.man; if (!P || !MN) return;
+  for (const [key, v] of Object.entries(P)) {
+    const [sym, kd] = key.split(":"), re = kd === "sl" ? /^STOP/ : /^TAKE_PROFIT/, real = (MN.ord?.[sym] || []).filter((o) => re.test(o.type || "") && !o.pend);
+    const done = Date.parse(String(MN.at || "").slice(0, 19) + "Z") > v.at + 1500 && (v.px > 0 ? real.length === 1 && Math.abs(real[0].px / v.px - 1) < 0.003 : real.length === 0);
+    if (done || Date.now() - v.at > 90e3) { delete P[key]; continue; }
+    const L = ((MN.ord ||= {})[sym] = (MN.ord[sym] || []).filter((o) => !re.test(o.type || "")));
+    if (v.px > 0) L.push({ sym, type: kd === "sl" ? "STOP_MARKET" : "TAKE_PROFIT_MARKET", px: v.px, cp: true, pend: 1 });
+  }
+}
+const mCondPend = (sym, kd) => !!window.__mCondPend?.[sym + ":" + kd];
 function scManual(LV) {
   if (!LV) return { L: [], at: null, ctl: false };
   const env = LV.env || "live", bot = new Set([...(LV.ev || []).map((e) => e.sym), ...(LV.qp?.open || []).flatMap((p) => p.legs.map((L) => L.sym)), ...(LV.swp?.open || []).map((p) => p.sym)]);
@@ -400,6 +432,7 @@ async function viewScalp() {
   if (useC && Date.now() - cc.t > 4000) window.__scLast = 0;
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
+  mCondApply(rv?.data);      // mốc cắt lỗ / chốt vừa gửi mà máy chủ chưa báo về → vẫn hiện mốc mới (⏳), không hiện lại mốc cũ
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần
   const KEYH = rk.data?.h ? rk.data : null;
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X0 = rv.data || {}, X = X0.v === 2 ? X0 : { at: X0.at };
@@ -910,7 +943,7 @@ async function viewScalp() {
       <div class="r2" data-lpnl="${esc(k)}" data-e="${p.ep}" data-q="${q}" data-sd="${sd}" data-f0="0" data-fr="${fr}" data-sl="${SL}" data-tp="${TP}" data-fund="${isNum(p.fund) ? p.fund : 0}" data-liq="${p.liq > 0 ? p.liq : ""}" data-bal="${EQ0 || ""}" data-norg="1"><b class="${cls(p.up)}">${sg$(p.up || 0)}</b></div>
       <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.ep)}</b> · ${qty(q)} · ${bi("giá trị", "size")} <b>${usd2(q * p.ep)}</b>${isNum(p.fund) && nz(p.fund, 3) ? ` · <span class="${cls(p.fund)}">${bi("funding đã tính", "funding so far")} ${sg$(p.fund)}</span>` : ""}</small></div>
       ${ladder(k, p, sd, SL, TP)}
-      <div class="r3 sc-lvs">${SL ? `<small class="k-sl down" data-lsd="${esc(k)}" data-sl="${SL}" data-sd="${sd}">${bi("cắt lỗ", "stop")} ${px(SL)}</small>` : MAN.ctl ? `<button type="button" class="sc-slq" data-slq="${esc(p.sym)}" aria-expanded="false">⚠ ${bi("chưa đặt cắt lỗ · đặt nhanh", "no stop · set one")}</button>` : `<small class="warn">${bi("chưa đặt cắt lỗ", "no stop set")}</small>`}${TP ? `<small class="k-tp up">${bi("chốt", "target")} ${px(TP)}</small>` : ""}${p.liq > 0 ? liqNote(p, q, sd) : ""}</div>
+      <div class="r3 sc-lvs">${SL ? `<small class="k-sl down" data-lsd="${esc(k)}" data-sl="${SL}" data-sd="${sd}">${bi("cắt lỗ", "stop")} ${px(SL)}${mCondPend(p.sym, "sl") ? ` <span class="pend" title="${bi("đang đặt trên Binance…", "placing on Binance…")}">⏳</span>` : ""}</small>` : MAN.ctl ? `<button type="button" class="sc-slq" data-slq="${esc(p.sym)}" aria-expanded="false">⚠ ${bi("chưa đặt cắt lỗ · đặt nhanh", "no stop · set one")}</button>` : `<small class="warn">${bi("chưa đặt cắt lỗ", "no stop set")}</small>`}${TP ? `<small class="k-tp up">${bi("chốt", "target")} ${px(TP)}${mCondPend(p.sym, "tp") ? ` <span class="pend" title="${bi("đang đặt trên Binance…", "placing on Binance…")}">⏳</span>` : ""}</small>` : ""}${p.liq > 0 ? liqNote(p, q, sd) : ""}</div>
       ${!SL && MAN.ctl ? slQuick(p, q, sd, fr) : ""}
       <div class="r3 sc-meta">${heldT(p)}<small class="faint" data-fnx="${esc(p.sym)}" data-sd="${sd}" data-q="${q}"></small>${alChip(p.sym)}</div>
       ${partRow(p)}${lkRow}${extRow}${MAN.ctl ? "" : `<div class="r4"><small class="faint">${bi("Chỉ xem – cần cập nhật máy chủ riêng để đóng / đặt cắt lỗ ngay trên trang", "View only – update the private server to close / set stops here")}${MAN.at ? ` · ${bi("đọc lúc", "read at")} ${hms(MAN.at)}` : ""}</small></div>`}${ctl}</div>`;

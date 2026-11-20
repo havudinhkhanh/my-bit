@@ -2820,6 +2820,7 @@ const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; const m = document.getElementById("ocChart");
   if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
 function ocOpen(I) {
+  if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }      // mốc vừa gửi, máy chủ chưa báo về → nhãn ⏳
   ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
   const sec = /s$/.test(OCC.tf); if (sec && !BYK?.[I.base]?.sp) OCC.tf = "1m";
   const m = document.createElement("div"); m.id = "ocChart"; m.className = "occ";
@@ -3218,8 +3219,8 @@ async function ocDraw(keep) {
   const raw = L.o, o = aggO(raw, ag), n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
   const lines = [];
   if (I.e) lines.push({ price: I.e, color: css("--brand"), title: bi("vào", "entry"), style: 0 });
-  if (I.sl) lines.push({ price: I.sl, color: css("--down"), title: bi("cắt lỗ", "stop") });
-  if (I.tp) lines.push({ price: I.tp, color: css("--up"), title: bi("chốt", "target") });
+  if (I.sl) lines.push({ price: I.sl, color: css("--down"), title: bi("cắt lỗ", "stop") + (I.slP ? " ⏳" : "") });
+  if (I.tp) lines.push({ price: I.tp, color: css("--up"), title: bi("chốt", "target") + (I.tpP ? " ⏳" : "") });
   const lvP = I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4);      // mức đã khớp trùng giá vào → không vẽ 2 lần
   lvP.forEach((v) => lines.push({ price: v, color: css("--ink-3"), title: bi("chờ", "limit"), style: 1 }));
   if (!I.e) (I.lf || []).forEach((v) => lines.push({ price: v, color: css("--brand"), title: bi("đã khớp", "filled"), style: 1 }));
