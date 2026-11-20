@@ -5640,7 +5640,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .occ-t{flex:1;min-width:0;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:1rem}
 .occ-t>b:first-child{font-size:1.25rem;letter-spacing:-.01em}
 .occ-px{font-variant-numeric:tabular-nums;font-size:1.0625rem}.occ-px small{font-size:.75rem;margin-left:4px}
-.occ-go{font-size:.8125rem;white-space:nowrap}
+.occ-go{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px 0 10px;margin-right:8px;border-radius:999px;font-size:.8125rem;font-weight:600;white-space:nowrap;color:var(--ink)!important;text-decoration:none!important;background:var(--fill)}.occ-go:hover{background:var(--fill-h)}.occ-go svg{color:var(--brand)}
 .occ-x{width:32px;height:32px;border:0;border-radius:50%;background:var(--fill);color:var(--ink-2);cursor:pointer;font-size:.875rem}.occ-x:hover{background:var(--fill-h);color:var(--ink)}
 .occ-bar{display:flex;margin-bottom:8px;min-width:0}
 .occ-tf{flex:1 1 auto;min-width:0;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;border:0!important;background:var(--fill)!important;border-radius:10px;padding:3px}
@@ -5701,9 +5701,9 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .gseg>.on .sc-bdg{background:var(--sel)!important;color:var(--sel-ink)!important}
 .bseg.gseg,.dseg.gseg,.sc-om.gseg,.seg.gseg,.sc-env.gseg,.sc-sub2.gseg{background:var(--g-track)!important;border:0!important}
 /* nút kính */
-.btn:not(.primary):not(.danger):not(.pri),.gib,.iconbtn,.ntp-set,.ntp-x,.cv-fsb,.oc-ch,.occ-x,.occ-tg button{background:var(--g-btn),var(--fill)!important;box-shadow:var(--g-btn-sh)!important;
+.btn:not(.primary):not(.danger):not(.pri),.gib,.iconbtn,.ntp-set,.ntp-x,.cv-fsb,.oc-ch,.occ-x,.occ-go,.occ-tg button{background:var(--g-btn),var(--fill)!important;box-shadow:var(--g-btn-sh)!important;
   transition:background-color .2s ease,transform .22s var(--g-spring),box-shadow .2s ease!important}
-.btn:not(.primary):not(.danger):not(.pri):hover,.gib:hover,.iconbtn:hover,.cv-fsb:hover,.oc-ch:hover,.occ-x:hover,.occ-tg button:hover{background:var(--g-btn),var(--fill-h)!important}
+.btn:not(.primary):not(.danger):not(.pri):hover,.gib:hover,.iconbtn:hover,.cv-fsb:hover,.oc-ch:hover,.occ-x:hover,.occ-go:hover,.occ-tg button:hover{background:var(--g-btn),var(--fill-h)!important}
 .btn:active,.gib:active,.iconbtn:active,.cv-fsb:active,.oc-ch:active,.occ-x:active,.occ-tg button:active{transform:scale(.94)}
 /* nhóm nút biểu tượng (vd. đầu bảng thông báo): 1 viên kính chứa nhiều nút tròn */
 .gbar{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--g-btn),var(--fill);box-shadow:var(--g-btn-sh)}

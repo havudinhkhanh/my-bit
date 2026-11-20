@@ -2809,7 +2809,7 @@ function ocOpen(I) {
   const lab = (t, v, c) => (v ? `<span class="occ-l ${c}"><i></i>${t} <b>${px(v)}</b></span>` : "");
   m.innerHTML = `<div class="occ-bg" data-occx></div><div class="occ-p" role="dialog" aria-modal="true" aria-label="${bi("Biểu đồ", "Chart")} ${esc(I.base)}">
     <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
-      <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}">${bi("Phân tích", "Analysis")} →</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
+      <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M7 15l4-4 3 3 5-6"/></svg>${bi("Phân tích", "Analysis")}</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
     ${I.what ? `<div class="occ-what faint">${esc(I.what)}</div>` : ""}
     <div class="occ-st" id="occSt"></div>
     ${(I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : ""}

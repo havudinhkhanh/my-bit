@@ -309,6 +309,14 @@
      "te": "RSI: shows the value at the hovered candle, RSI line aligned with candles",
      "d": "Biểu đồ lệnh: rê chuột trên biểu đồ chính → khung RSI có đường dọc, chấm và số RSI của đúng nến đó (trước chỉ có chấm, không có số). Sửa lỗi đường RSI bị lệch 14 nến so với nến giá; trục RSI gọn 1 số lẻ. Trang phân tích coin: khung RSI / MACD / CVD cũng hiện số tại nến đang rê và thẳng cột với biểu đồ chính.",
      "de": "Order chart: hovering the main chart now shows a vertical line, dot and the RSI value of that exact candle (before: a dot with no value). Fixed the RSI line being shifted 14 candles vs. price; RSI axis shows 1 decimal. Coin analysis page: RSI / MACD / CVD panes also show the value at the hovered candle and line up with the main chart."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Biểu đồ lệnh: nút Phân tích tách khỏi nút đóng",
+     "te": "Order chart: Analysis button separated from close",
+     "d": "\"Phân tích →\" đứng sát nút ✕ nên trông như mũi tên chỉ vào nút đóng. Giờ là nút riêng có biểu tượng biểu đồ, cùng cỡ với nút đóng, có khoảng cách rõ.",
+     "de": "\"Analysis →\" sat right next to ✕ so the arrow looked like it pointed at close. It is now its own button with a chart icon, the same size as close, with clear spacing."
     }
    ]
   },
