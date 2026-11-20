@@ -26,6 +26,15 @@
      "te": "Trade cards: leverage & margin type always visible",
      "d": "Nhãn \"x1 · cô lập\" / \"x5 · chéo\" chuyển xuống dòng thứ 2 cạnh \"Tiền thật\" nên không còn bị ẩn khi thẻ hẹp (bảng phụ, điện thoại). Áp dụng cho lệnh tay, lệnh chờ giá và lệnh bot trên tài khoản thật/Demo; ký quỹ chéo tô đỏ để dễ nhận ra.",
      "de": "The \"x1 · isolated\" / \"x5 · cross\" tag moved to the second line next to \"Real\", so narrow cards (side panel, phone) no longer hide it. Applies to manual trades, price orders and bot trades on live/Demo; cross margin is shown in red."
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "aud": "admin",
+     "t": "\"Xem tất cả lệnh\" tách số đang mở và chờ khớp",
+     "te": "\"All trades\" splits open and pending counts",
+     "d": "Trước đây lệnh chờ giá chưa khớp cũng bị đếm là \"đang mở\"; giờ ghi rõ ví dụ \"2 đang mở · 1 chờ khớp\".",
+     "de": "Unfilled price orders used to be counted as \"open\"; it now reads e.g. \"2 open · 1 pending\"."
     }
    ]
   },
