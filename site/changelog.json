@@ -120,6 +120,15 @@
      "te": "Paper & bot trades: price ladder, % of account, risk summary",
      "d": "Thẻ lệnh sàn thử (Bắt râu sập, Lướt giây, Short coin bơm / niêm yết, Định lượng) và lệnh bot trên Binance cũng có thang giá cắt lỗ · vào · chốt (· giá ×2 với lệnh Short x1), lời/lỗ theo % tài khoản; đầu khung \"Đang mở & đang chờ\" của sàn thử có tóm tắt giá trị lệnh đang mở, lỗ tối đa nếu cùng chạm cắt lỗ và số lệnh không cắt lỗ.",
      "de": "Paper trade cards (Wick Catcher, Scalp, pumped / new-listing shorts, Quant) and bot trades on Binance also get the stop · entry · target ladder (· price ×2 for x1 shorts) and P/L as % of account; the paper \"Open & pending\" panel gets a summary of open position value, max loss if every stop is hit and trades without a stop."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "aud": "admin",
+     "t": "Thẻ lệnh tay hẹp: chip báo động 1 dòng, % lời/lỗ không tràn",
+     "te": "Narrow manual trade cards: one-line alert chip, P/L % no longer overflows",
+     "d": "Trong bảng phụ / cột hẹp, chip báo động gọn thành \"🔔 Báo động 20% · 5%\" (chi tiết khi rê chuột hoặc mở menu), phần % lệnh · % tài khoản tự xuống dòng dưới số tiền thay vì tràn mép thẻ.",
+     "de": "In the side panel / narrow columns the alert chip shrinks to \"🔔 Alerts 20% · 5%\" (details on hover or in the menu), and the trade % · account % wraps under the amount instead of overflowing."
     }
    ]
   },

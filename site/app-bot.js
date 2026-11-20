@@ -31,7 +31,7 @@ async function scTabGo(k) {
 function maCfg() { const v = window.__MA || {}; return { on: v.on !== false, liq: +v.liq || 20, loss: +v.loss || 5, off: v.off || {} }; }
 function maChip(sym) {
   const A = maCfg(), on = A.on && !A.off?.[sym];
-  return `<button type="button" class="sc-al${on ? " on" : ""}" data-mal="${esc(sym)}" aria-haspopup="menu" title="${esc(bi("Báo về điện thoại khi lệnh này gần thanh lý hoặc lỗ quá mức – bấm để chỉnh", "Alert when this trade nears liquidation or loses too much – tap to adjust"))}">${on ? `🔔 ${bi(`báo: cách thanh lý <${A.liq}% · lỗ mỗi ${A.loss}% TK`, `alert: <${A.liq}% to liq. · every ${A.loss}% acct loss`)}` : `🔕 ${bi("báo động tắt", "alerts off")}`}</button>`;
+  return `<button type="button" class="sc-al${on ? " on" : ""}" data-mal="${esc(sym)}" aria-haspopup="menu" title="${esc(on ? bi(`Báo về điện thoại khi giá còn cách thanh lý dưới ${A.liq}% và mỗi khi lỗ thêm ${A.loss}% tài khoản – bấm để chỉnh`, `Alerts when under ${A.liq}% from liquidation and for every ${A.loss}% of account lost – tap to adjust`) : bi("Báo động đang tắt cho lệnh này – bấm để bật", "Alerts are off for this trade – tap to turn on"))}">${on ? `🔔 <span class="al-f">${bi(`Báo: thanh lý <${A.liq}% · lỗ mỗi ${A.loss}%`, `Alert: <${A.liq}% to liq. · every ${A.loss}% loss`)}</span><span class="al-s">${bi("Báo động", "Alerts")} <b>${A.liq}% · ${A.loss}%</b></span>` : `🔕 ${bi("Báo động tắt", "Alerts off")}`}</button>`;      // thẻ hẹp: chữ gọn 1 dòng, chi tiết ở menu
 }
 function maLoad() {
   if (window.__MA || window.__MAp) return; window.__MAp = 1;

@@ -6619,8 +6619,8 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (prefers-reduced-motion:reduce){.dot-live::after,.upd i.live::after,.live-dot::after,.lvs-dot.hot::after,.cx-live::after{animation:none}}
 
 /* ================================================================ ✋ thẻ lệnh tay (Binance): tóm tắt rủi ro · thang giá · đặt cắt lỗ nhanh · thời gian giữ & funding · báo động · giữ tiếp */
-.sc-risk{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;margin:0 0 10px;padding:9px 12px;border-radius:12px;background:var(--sunk);border:1px solid var(--line);font-size:.78125rem;color:var(--ink-2);line-height:1.45}
-.sc-risk b{color:var(--ink);font-weight:650}.sc-risk b.down{color:var(--down)}
+.sc-risk{display:flex;flex-wrap:wrap;gap:4px 16px;min-width:0;max-width:100%;box-sizing:border-box;align-items:center;margin:0 0 10px;padding:9px 12px;border-radius:12px;background:var(--sunk);border:1px solid var(--line);font-size:.78125rem;color:var(--ink-2);line-height:1.45}
+.sc-risk>span{min-width:0;overflow-wrap:anywhere}.sc-risk b{color:var(--ink);font-weight:650}.sc-risk b.down{color:var(--down)}
 .sc-risk.warn{border-left:3px solid var(--warn,#d89614)}.sc-risk.bad{border-left:3px solid var(--down);background:color-mix(in srgb,var(--down) 7%,var(--sunk))}
 .sc-lad{position:relative;height:18px;margin:8px 6px 2px}
 .sc-lad .tr{position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;border-radius:2px;background:var(--line-2,var(--line))}
@@ -6646,7 +6646,9 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .sc-slqc .mchip[data-cf="1"]{border-color:var(--down);color:var(--down);font-weight:650}
 .sc-oc .sc-meta{align-items:center;gap:4px 12px;margin-top:2px}
 .sc-fnd.warn{color:var(--warn,#d89614)}
-.sc-al{font:500 .6875rem/1.3 inherit;font-family:inherit;padding:2px 8px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-3);cursor:pointer;margin-left:auto}
+.sc-al{font:500 .6875rem/1.3 inherit;font-family:inherit;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-3);cursor:pointer;margin-left:auto;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+.sc-al .al-s{display:none}.sc-al b{font-weight:650}
+@container (max-width:420px){.sc-al .al-f{display:none}.sc-al .al-s{display:inline}}
 .sc-al.on{color:var(--ink-2);border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
 .sc-ext{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 2px;font-size:.75rem}
 .sc-oc .r4.sc-noexp .faint{margin-left:0}
@@ -6654,3 +6656,6 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (prefers-reduced-motion:reduce){.sc-lad .cur,.sc-lad .fill{transition:none}}
 .sc-oc .lw2{font-style:normal}
 @container (max-width:420px){.sc-oc.man .lw2{display:none}.sc-oc.man .sc-mxr{gap:6px}}
+/* lời/lỗ + % lệnh · % tài khoản: thẻ hẹp thì phần % xuống dòng gọn dưới số tiền, không tràn mép thẻ */
+.sc-oc .r2[data-bal]{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;row-gap:0}
+.sc-oc .r2[data-bal] small{min-width:0;overflow-wrap:anywhere;white-space:normal}
