@@ -292,6 +292,23 @@
      "te": "Order chart: order walls & estimated liquidation zones",
      "d": "Hai nút mới trên biểu đồ lệnh. Tường lệnh: thanh ngang ở mép phải cho thấy tiền đặt chờ trên sổ lệnh Binance (±12% quanh giá, làm mới 8 giây/lần); khối lớn bất thường có nhãn số tiền, kèm tổng mua / bán trong ±2%. Vùng thanh lý: dải màu nơi nhiều vị thế đòn bẩy có thể bị thanh lý (đỏ: Short ở trên, xanh: Long ở dưới) – là ƯỚC TÍNH từ khối lượng 3 ngày và các mức đòn bẩy phổ biến, đã bỏ những vị thế giá đã quét qua, không phải dữ liệu của sàn.",
      "de": "Two new toggles on the order chart. Order walls: bars on the right edge show resting orders on the Binance book (±12% of price, refreshed every 8 s); unusually large blocks get a dollar label, plus total bids / asks within ±2%. Liquidation zones: shaded bands where many leveraged positions could be liquidated (red: shorts above, green: longs below) – an ESTIMATE from 3-day volume and common leverage, excluding positions price has already swept, not exchange data."
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "f": "futures",
+     "t": "Vùng thanh lý tách Gần / Xa, bật tắt không tải lại biểu đồ, nhẹ hơn",
+     "te": "Liquidation zones split Near / Far, toggling no longer reloads the chart, lighter",
+     "d": "Nút Thanh lý gần (±8% quanh giá) và Thanh lý xa (8–30%) bật tắt riêng; vùng nằm ngoài khung đang xem hiện nhãn nhỏ ở mép trên / dưới kèm giá và %. Bật / tắt tường lệnh, vùng thanh lý chỉ gắn / gỡ lớp vẽ – giữ nguyên zoom và khung anh đang xem; bật / tắt EMA, khối lượng, RSI cũng giữ khung. Lớp vẽ chờ biểu đồ mở xong mới tải dữ liệu và chỉ vẽ lại khi trục giá thật sự đổi – bật hay tắt tốn máy như nhau.",
+     "de": "Liq. near (±8% of price) and Liq. far (8–30%) toggle separately; zones outside the current view show a small edge label with price and %. Toggling order walls / liquidation zones only adds or removes the overlay – your zoom and view stay put; toggling EMA, volume and RSI keeps the view too. The overlay loads after the chart has opened and only redraws when the price axis actually changes – on or off costs the same."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "RSI: hiện đúng số tại nến đang rê chuột, đường RSI thẳng cột với nến",
+     "te": "RSI: shows the value at the hovered candle, RSI line aligned with candles",
+     "d": "Biểu đồ lệnh: rê chuột trên biểu đồ chính → khung RSI có đường dọc, chấm và số RSI của đúng nến đó (trước chỉ có chấm, không có số). Sửa lỗi đường RSI bị lệch 14 nến so với nến giá; trục RSI gọn 1 số lẻ. Trang phân tích coin: khung RSI / MACD / CVD cũng hiện số tại nến đang rê và thẳng cột với biểu đồ chính.",
+     "de": "Order chart: hovering the main chart now shows a vertical line, dot and the RSI value of that exact candle (before: a dot with no value). Fixed the RSI line being shifted 14 candles vs. price; RSI axis shows 1 decimal. Coin analysis page: RSI / MACD / CVD panes also show the value at the hovered candle and line up with the main chart."
     }
    ]
   },
