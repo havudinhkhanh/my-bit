@@ -137,6 +137,17 @@
      "te": "Trade cards: the P/L % line no longer jumps between rows",
      "d": "\"% lệnh · % tài khoản\" luôn nằm 1 hàng riêng dưới số tiền; dòng thời gian giữ, funding và chip báo động mỗi mục 1 hàng cố định – giá chạy hay đồng hồ đếm phút không làm thẻ co giãn nữa.",
      "de": "\"trade % · account %\" always sits on its own row under the amount; time held, funding and the alert chip each keep a fixed row – live prices and ticking clocks no longer resize the card."
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "hi": 1,
+     "go": "#/bot/scalp",
+     "f": "bot",
+     "t": "🔎 Lệnh đã đóng: lọc 1 mã, xem xưa giờ lời/lỗ mã đó",
+     "te": "🔎 Closed trades: filter one coin, see its all-time P/L",
+     "d": "Ô lọc (gõ mã hoặc chạm các mã hay giao dịch) ngay trên bảng Lệnh đã đóng, riêng Binance và Sàn thử: bảng chỉ còn lệnh của mã đó, kèm thẻ tổng kết xưa giờ – lời/lỗ ròng sau phí & funding, thắng/thua, phí, funding, tổng đã giao dịch, lệnh tốt nhất / tệ nhất, đường cộng dồn, tách lệnh tay / bot và Long / Short. Số liệu lấy từ sổ lệnh lưu mãi của máy chủ.",
+     "de": "A filter box (type a coin or tap a frequent one) right on the Closed trades table, separately for Binance and Paper: the table shows only that coin plus an all-time summary – net P/L after fees & funding, wins, fees, funding, volume, best / worst trade, cumulative line, manual vs bot and Long vs Short. Figures come from the server's permanent trade ledger."
     }
    ]
   },

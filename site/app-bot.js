@@ -1213,14 +1213,49 @@ async function viewScalp() {
       const h = e.target.closest?.(".clg-h"); if (h && !e.target.closest("a,button")) tog(h); });
     document.addEventListener("keydown", (e) => { const h = e.target.closest?.(".clg-h"); if (h && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); tog(h); } });
   }
-  const lvTrades = clT(LHr.map((h, i) => ({ ...h, ch: ["lvc", i] })), LVE, tPct, bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time"), bi(`Chưa có lệnh nào đã đóng trên ${LVN}.`, `No closed trades on ${LVN} yet.`));
+  // 🔎 LỌC 1 MÃ trong "Lệnh đã đóng" (riêng Binance / Sàn thử): bảng chỉ còn lệnh của mã đó + thẻ tổng kết XƯA GIỜ
+  //    nguồn tổng kết: sổ lệnh lưu mãi của máy chủ (mọi lệnh đã đóng từ khi MyBit ghi sổ) + lệnh vừa đóng chưa kịp vào sổ; sổ chưa tải xong thì tạm dùng các lệnh đang có trong bảng
+  const CLF = (window.__clCoin ||= lsGet("clcoin", {}) || {});
+  const clFilt = (R, env, lab) => {
+    const cur = String(CLF[env] || "").toUpperCase(), led = !!window.__scLed?.data, coinOf = (k) => String(k || "").split(":")[0].replace(/USDT$/, "").toUpperCase();
+    const all = typeof jRows === "function" ? jRows(window.__scLed?.data || null, X).filter((r) => r.env === env) : [];
+    const cnt = {}; all.forEach((r) => { const c = coinOf(r.k); cnt[c] = (cnt[c] || 0) + 1; }); R.forEach((h) => { const c = clSym(h).toUpperCase(); if (!cnt[c]) cnt[c] = R.filter((x) => clSym(x).toUpperCase() === c).length; });
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
+    const bar = `<div class="cl-flt" role="search"><label class="cl-in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" list="clc-${env}" data-clf="${env}" value="${esc(cur)}" placeholder="${bi("Lọc 1 mã – xem xưa giờ lời / lỗ mã đó", "Filter one coin – its all-time P/L")}" autocomplete="off" spellcheck="false" aria-label="${bi("Lọc theo mã", "Filter by coin")}"></label><datalist id="clc-${env}">${top.map(([c, n]) => `<option value="${esc(c)}">${n} ${bi("lệnh", "trades")}</option>`).join("")}</datalist>
+      ${cur ? `<button type="button" class="mchip on" data-clfx="${env}">${esc(cur)} ✕</button>` : top.slice(0, 6).map(([c, n]) => `<button type="button" class="mchip" data-clpick="${env}" data-c="${esc(c)}">${esc(c)} <small class="faint">${n}</small></button>`).join("")}</div>`;
+    if (!cur) return { R, head: bar };
+    const R2 = R.filter((h) => clSym(h).toUpperCase() === cur), A = all.filter((r) => coinOf(r.k) === cur);
+    const fromLed = A.length >= R2.length && A.length > 0;
+    const S2 = (fromLed ? A.map((r) => ({ pnl: r.pnl, fee: r.fee, fund: r.fund, N: r.N, t1: r.t1, t2: r.t2, strat: r.strat, side: r.side }))
+      : R2.map((h) => ({ pnl: +h.pnl || 0, fee: +h.fee || 0, fund: +h.fund || 0, N: isNum(h.N) ? h.N : h.q > 0 && h.e > 0 ? h.q * h.e : 0, t1: h.t1 || h.ts, t2: h.t2, strat: h.strat, side: h.side })))
+      .sort((a, b) => (String(a.t2) < String(b.t2) ? -1 : 1));
+    if (!S2.length) return { R: R2, head: bar + `<div class="cl-sum"><p class="faint">${bi(`Chưa có lệnh ${esc(cur)} nào đã đóng trên ${lab}.`, `No closed ${esc(cur)} trades on ${lab}.`)}</p></div>` };
+    const n = S2.length, w = S2.filter((x) => x.pnl > 0).length, sum = (f, L = S2) => L.reduce((a, x) => a + (+f(x) || 0), 0);
+    const net = sum((x) => x.pnl), fee = sum((x) => Math.abs(x.fee)), fund = sum((x) => x.fund), vol = sum((x) => x.N);
+    const best = S2.reduce((a, x) => (x.pnl > a.pnl ? x : a)), worst = S2.reduce((a, x) => (x.pnl < a.pnl ? x : a));
+    const grp = (L, t) => (L.length ? `${t} <b class="${cls(sum((x) => x.pnl, L))}">${sg$(sum((x) => x.pnl, L))}</b> <span class="faint">(${L.length})</span>` : "");
+    const man = S2.filter((x) => x.strat === "man"), bot = S2.filter((x) => x.strat !== "man"), lg = S2.filter((x) => x.side > 0), sh = S2.filter((x) => x.side < 0);
+    let c0 = 0; const cum = [0, ...S2.map((x) => (c0 += x.pnl))];
+    const d0 = vnDayOf(String(S2[0].t1 || S2[0].t2).slice(0, 19));
+    const head = bar + `<div class="cl-sum"><div class="cl-sh"><b>${esc(cur)}</b> <span class="faint">· ${lab} · ${bi("xưa giờ", "all time")}: ${n} ${bi("lệnh từ", "trades since")} ${ddmm(d0)}/${d0.slice(2, 4)}${fromLed ? "" : ` · ${led ? bi("chỉ các lệnh đang có trong bảng", "only trades in the table") : bi("đang tải sổ lệnh đầy đủ…", "loading the full ledger…")}`}</span></div>
+      <div class="cl-kp"><div><i>${bi("Lời/lỗ ròng", "Net P/L")}</i><b class="${cls(net)}">${sg$(net)}</b><small>${bi("sau phí & funding", "after fees & funding")}</small></div>
+        <div><i>${bi("Thắng", "Won")}</i><b>${w}/${n}</b><small>${nf(w / n * 100, 0)}% · ${bi("TB", "avg")} ${sg$(net / n)}/${bi("lệnh", "trade")}</small></div>
+        <div><i>${bi("Phí · funding", "Fees · funding")}</i><b>${usd2(fee)}</b><small>funding <span class="${cls(fund)}">${sg$(fund)}</span> · ${bi("đã giao dịch", "traded")} ${usd2(vol)}</small></div>
+        <div><i>${bi("Tốt nhất · tệ nhất", "Best · worst")}</i><b class="${cls(best.pnl)}">${sg$(best.pnl)}</b><small class="${cls(worst.pnl)}">${sg$(worst.pnl)} · ${ddmm(vnDayOf(String(worst.t2).slice(0, 19)))}</small></div>
+        <div class="cl-cum"><i>${bi("Cộng dồn", "Cumulative")}</i>${spark(cum, { w: 180, h: 34 }) || `<small class="faint">${bi("cần ≥ 2 lệnh", "needs ≥ 2 trades")}</small>`}</div></div>
+      <div class="cl-sp"><small>${[grp(man, "✋ " + bi("tay", "manual")), grp(bot, "🤖 bot")].filter(Boolean).join(" · ")}</small><small>${[grp(lg, "Long"), grp(sh, "Short")].filter(Boolean).join(" · ")}</small></div></div>`;
+    return { R: R2, head };
+  };
+  const lvF = clFilt(LHr.map((h, i) => ({ ...h, ch: ["lvc", i] })), LVE, LVN);
+  const lvTrades = lvF.head + clT(lvF.R, LVE, tPct, bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time"), bi(`Chưa có lệnh nào đã đóng trên ${LVN}.`, `No closed trades on ${LVN} yet.`));
   // sàn thử: Bắt râu sập + Lướt giây (X.trades) + Thử nghiệm (định lượng / short bơm) → cùng dạng hàng với Binance
   const PWHY = { "TIME+": bi("hết giờ (giữ thêm)", "time (extended)"), REV: bi("đảo chiều – thoát sớm", "reversal – early exit"), BTC: bi("BTC sốc – thoát ngay", "BTC shock – exit"), STALE: bi("mất dữ liệu", "stale data") };
   const PCL = [...AT.map((t) => ({ t1: t.t0 || t.ts, t2: t.t1, k: t.k, side: t.side, e: t.e, x: t.x, N: isNum(t.usd) && isNum(t.net) && Math.abs(t.net) >= 1 ? Math.abs(t.usd / (t.net / 1e4)) : null, pnl: t.usd, net: t.net, why: t.why, whyL: PWHY[t.why], strat: t.strat === "hook" ? "hook" : "sec", nl: t.lv, how: t.strat === "hook" ? null : t.how, _h: t })),
     ...xHist.map((h) => { const L0 = (h.legs || [])[0] || {}; return { t1: h.t0, t2: h.t2, sym: L0.sym, side: L0.side, e: L0.e, x: L0.x, legs: (h.legs || []).length, N: h.N, pnl: h.net, net: isNum(h.pct) ? h.pct * 100 : null, why: h.why, whyL: `${esc(XNM[h.k] || h.k)} · ${XWHY[h.why] || esc(h.why || "")}`, strat: "lab:" + h.k }; })]
     .filter((h) => h.t2).sort((a, b) => (String(a.t2) < String(b.t2) ? 1 : -1));
   PCL.forEach((h) => { if (h.strat === "hook") { const i = HT.indexOf(h._h); if (i >= 0) h.ch = ["hkc", i]; } });
-  const pCap = X.start || C.capital, paperTrades = clT(PCL, "paper", (h) => (pCap > 0 && isNum(h.pnl) ? h.pnl / pCap * 100 : null), bi("so với vốn sàn thử", "vs paper capital"), bi("Chưa có lệnh nào đã đóng trên sàn thử.", "No closed paper trades yet."));
+  const pcF = clFilt(PCL, "paper", bi("sàn thử", "paper"));
+  const pCap = X.start || C.capital, paperTrades = pcF.head + clT(pcF.R, "paper", (h) => (pCap > 0 && isNum(h.pnl) ? h.pnl / pCap * 100 : null), bi("so với vốn sàn thử", "vs paper capital"), bi("Chưa có lệnh nào đã đóng trên sàn thử.", "No closed paper trades yet."));
   // ---------------------------------------------------------------- nội dung từng tab
   let body = "";
   const envSeg = TOP === "ov" || TOP === "ord" ? `<div class="sc-env" role="tablist" aria-label="${bi("Xem sàn", "Venue")}">${[["live", `<span class="ei">${LVI}</span> <span class="et">${LVN}</span>`, nLive], ["paper", `<span class="ei">🧪</span> <span class="et">${bi("Sàn thử", "Paper")}</span>`, nPaper]].map(([k, t, n]) => `<button type="button" role="tab" data-scenv="${k}" class="${ENV === k ? "on" : ""}" aria-selected="${ENV === k}">${t}${n ? ` <i class="sc-bdg">${n}</i>` : ""}</button>`).join("")}</div>` : "";
@@ -1907,6 +1942,14 @@ async function viewScalp() {
       all && { ic: "✕", t: bi("Đóng hết lệnh", "Close all"), sub: bi("giá thị trường, ngay", "at market, now"), c: "down", run: () => all.click() }].filter(Boolean));
   }));
   maLoad(); manFund();
+
+  // 🔎 lọc 1 mã trong Lệnh đã đóng
+  const clGo = (env, v) => { window.__clCoin[env] = String(v || "").trim().toUpperCase().replace(/USDT$/, "").replace(/[^A-Z0-9]/g, ""); lsSet("clcoin", window.__clCoin);
+    if (window.__clCoin[env] && !window.__scLed?.data) Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; viewScalp(); }).catch(() => {});
+    viewScalp(); };
+  $$("[data-clf]").forEach((i) => { i.addEventListener("change", () => clGo(i.dataset.clf, i.value)); i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clGo(i.dataset.clf, i.value); } }); i.addEventListener("search", () => { if (!i.value) clGo(i.dataset.clf, ""); }); });
+  $$("[data-clpick]").forEach((b) => (b.onclick = () => clGo(b.dataset.clpick, b.dataset.c)));
+  $$("[data-clfx]").forEach((b) => (b.onclick = () => clGo(b.dataset.clfx, "")));
   $$("[data-mkeep]").forEach((b) => (b.onclick = () => extSheet(b.dataset.mkeep, b.dataset.mreal === "1")));
   function extSheet(key, real) {
     const o = extOf(key); if (!o) return;
