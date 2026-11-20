@@ -189,6 +189,14 @@
      "te": "Coin filter: filters as you type, with a → button",
      "d": "Gõ đúng 1 mã đã có lệnh là tự lọc (không cần Enter); gõ dở vài chữ rồi bấm nút → (hoặc Enter) thì lọc mã duy nhất khớp đầu; xoá trống là bỏ lọc.",
      "de": "Typing a coin that has trades filters right away (no Enter needed); a partial entry plus the → button (or Enter) picks the only coin that starts with it; clearing removes the filter."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ô lọc mã: mũi tên → nằm đúng giữa nút tròn",
+     "te": "Coin filter: the → arrow sits centered in its button",
+     "d": "Kiểu của biểu tượng kính lúp lỡ áp cả cho mũi tên làm nó lệch sang phải.",
+     "de": "The magnifier icon's style also hit the arrow, pushing it off-center."
     }
    ]
   },

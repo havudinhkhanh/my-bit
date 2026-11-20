@@ -6666,7 +6666,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cl-flt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 10px}
 /* ô lọc dùng đúng kiểu ô nhập chung của cả web (nền --fill, viền trong suốt, khi gõ nền --surface + vòng sáng) – chỉ thêm biểu tượng kính lúp & bo tròn */
 .cl-in{position:relative;display:block;flex:1 1 220px;max-width:320px;color:var(--ink-3)}
-.cl-in svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none}
+.cl-in>svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);pointer-events:none}
 .cl-flt .cl-in input[type=search]:not(#_x){width:100%;height:36px;margin:0;padding:0 40px 0 34px;border-radius:999px;font:inherit;font-size:.875rem;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);-webkit-appearance:none;appearance:none}
 .cl-flt .cl-in input[type=search]:not(#_x)::placeholder{text-transform:none;font-weight:400;letter-spacing:0;color:var(--ink-3)}
 .cl-flt .cl-in input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
@@ -6684,3 +6684,6 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cl-more{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
 .cl-go{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:var(--brand);color:var(--brand-ink,#fff);transition:opacity .15s,transform .15s}
 .cl-in input:placeholder-shown~.cl-go{opacity:0;pointer-events:none;transform:translateY(-50%) scale(.8)}
+/* nút → trong ô lọc: bỏ đệm / lề chung của nút & biểu tượng (làm mũi tên lệch khỏi tâm vòng tròn), căn giữa tuyệt đối */
+.cl-flt .cl-go:not(#_x){padding:0!important;margin:0!important;min-width:0!important;min-height:0!important;width:28px!important;height:28px!important;line-height:0!important;gap:0!important;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center}
+.cl-flt .cl-go:not(#_x) svg{display:block;margin:0!important;flex:0 0 auto;width:15px;height:15px}
