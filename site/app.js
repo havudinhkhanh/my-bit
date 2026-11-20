@@ -712,7 +712,7 @@ function moKids(L, N) {
 }
 function morphHtml(root, html) { const t = document.createElement("template"); t.innerHTML = html; moKids(root, t.content); }
 const IH = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
-let SR_H = null, SR_DUMMY = null;
+let SR_H = null, SR_DUMMY = null, SR_P = null;
 async function softRender(fn) {
   const root = $("#app"); if (!root) return fn();
   if (SR_H) return;                                  // đang vẽ lại dở → bỏ lượt này
@@ -749,7 +749,8 @@ async function softRender(fn) {
   const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const K = keepSig.get(el.dataset.sig); if (K && K.el !== el && !K.el.isConnected) { el.replaceWith(K.el); K.st.forEach(([x, t, l]) => { x.scrollTop = t; x.scrollLeft = l; }); keepSig.delete(el.dataset.sig); } }); };
   const mo = new MutationObserver(() => { reuse(); fixNow(); }); if (!useMo) mo.observe(root, { childList: true, subtree: true });
   if (useMo) Object.defineProperty(root, "innerHTML", { configurable: true, get() { return IH.get.call(root); }, set(v) { if (location.hash === h0 && root.isConnected) morphHtml(root, v); else IH.set.call(root, v); } });
-  try { await fn(); } finally { if (useMo) delete root.innerHTML; mo.disconnect(); SR_H = null; SR_DUMMY = null; }
+  let done; SR_P = new Promise((r) => (done = r));
+  try { await fn(); } finally { if (useMo) delete root.innerHTML; mo.disconnect(); SR_H = null; SR_DUMMY = null; SR_P = null; done(); }
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
   if (CUR_TAB && root.querySelector(".ph") && !root.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB);
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
@@ -1784,6 +1785,10 @@ try { const a0 = document.getElementById("app"); if (a0?.firstElementChild?.clas
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
 const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
 async function route() {
+  // trang đang tự làm mới dở (vd Bot Phản Xạ) mà anh bấm sang trang khác → chờ lượt làm mới đó xong (nó vẽ vào chỗ trống) rồi mới vẽ trang mới
+  //   trước: trang mới cũng bị coi là "lượt cũ" → vẽ vào chỗ trống → menu đã sáng "Có gì mới" nhưng màn hình vẫn là trang Bot
+  if (SR_H && SR_P && location.hash !== SR_H) await Promise.race([SR_P, new Promise((r) => setTimeout(r, 4000))]);
+  if (SR_H && location.hash !== SR_H) { SR_H = null; SR_DUMMY = null; }      // lượt cũ treo quá lâu → trang mới vẫn được vẽ
   // đường dẫn từ thông báo: #/bot/scalp?do=close|ext|snz|show&k=<ref> → nhớ việc cần làm, bỏ phần ?… khỏi địa chỉ (bấm lùi / tải lại không làm lại lần nữa)
   if (location.hash.includes("?")) { const [h0, q] = location.hash.split("?"); const P = new URLSearchParams(q); if (P.get("do") && P.get("k")) window.__ntDo = { do: P.get("do"), k: P.get("k"), at: Date.now() }; history.replaceState(null, "", h0 || "#/"); }
   disposeCharts();

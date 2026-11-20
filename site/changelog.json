@@ -240,6 +240,14 @@
      "te": "Live confirm sheets only update changed numbers",
      "d": "Bảng xác nhận có số chạy trực tiếp (giá, lời/lỗ) không còn dựng lại cả thân bảng mỗi giây – giữ cuộn, không nháy.",
      "de": "Confirm sheets with live numbers (price, P&L) no longer rebuild the whole body every second – scroll kept, no flicker."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Bấm sang trang khác lúc trang Bot đang tự làm mới: giờ chuyển trang đúng",
+     "te": "Switching pages while the Bot page refreshes now actually switches",
+     "d": "Trước: đang ở Bot Phản Xạ mà bấm Có gì mới (hay trang khác) đúng lúc trang tự làm mới thì menu đã sáng trang mới nhưng màn hình vẫn là trang Bot. Giờ trang mới chờ lượt làm mới xong rồi hiện ngay.",
+     "de": "Before: on the Bot page, tapping What's new (or any page) right while it auto-refreshed highlighted the new page in the menu but the screen stayed on the Bot page. Now the new page waits for that refresh to finish and then shows."
     }
    ]
   },
