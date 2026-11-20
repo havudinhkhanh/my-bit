@@ -2,6 +2,25 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.20",
+   "d": "2026-11-20",
+   "t": "Rõ mức thanh lý",
+   "te": "Clearer liquidation level",
+   "s": "Thẻ lệnh tay ghi rõ thanh lý mất bao nhiêu.",
+   "se": "Manual trade cards say what liquidation would cost.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "live",
+     "aud": "admin",
+     "t": "Thẻ lệnh tay: mức thanh lý ghi rõ mất bao nhiêu",
+     "te": "Manual trade card: liquidation level says what you'd lose",
+     "d": "Cạnh mức thanh lý giờ có % khoảng cách từ giá hiện tại và loại ký quỹ: cô lập → \"mất tối đa $X ký quỹ lệnh\" (số dư còn lại không bị đụng), chéo → \"tính cả số dư futures\". Trước đây nhãn \"x1 cô lập\" bị ẩn khi thẻ hẹp (bảng phụ, điện thoại) nên không biết thanh lý là mất lệnh hay mất cả tài khoản.",
+     "de": "Next to the liquidation price you now see the % distance from the current price and the margin type: isolated → \"max loss $X margin\" (the rest of the balance is untouched), cross → \"whole futures balance\". The \"x1 isolated\" tag used to be hidden on narrow cards (side panel, phone)."
+    }
+   ]
+  },
+  {
    "v": "2026.11.19",
    "d": "2026-11-19",
    "t": "na chào theo giờ",
