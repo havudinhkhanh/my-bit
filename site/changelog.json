@@ -265,6 +265,14 @@
      "te": "Chart right-click: see the estimated P&L of taking profit / stopping / closing at that price",
      "d": "Menu chuột phải (điện thoại: giữ lâu) trên biểu đồ lệnh: các mục Đặt chốt lời, Đặt cắt lỗ, Đóng lệnh khi giá… ghi sẵn số tiền ≈ và % lệnh nếu đóng cả lệnh ở mức đó (đã trừ phí ra và tính funding). Rê chuột lên mục nào thì đường giá trên biểu đồ cũng hiện số đó, xanh lời / đỏ lỗ. Mức chốt chưa qua giá vào sẽ ghi rõ \"vẫn lỗ\".",
      "de": "In the chart's right-click menu (phone: long-press), Set target, Set stop and Close when price… now show the ≈ dollar amount and % of trade if the whole trade closes there (after exit fee, including funding). Hovering an item also shows it on the chart's price line, green for gain / red for loss. A target not yet past entry is flagged as \"still a loss\"."
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Menu chuột phải trên biểu đồ làm lại: chia nhóm, gọn, có lời/lỗ ước tính",
+     "te": "Chart right-click menu redesigned: grouped, cleaner, with estimated P&L",
+     "d": "Đầu menu: giá bấm thật to, % so với giá hiện tại và nút chép giá. Rồi chia nhóm theo việc: lệnh đang ở đúng mức đó (huỷ / bỏ) → lệnh đang mở của mã (chốt lời, cắt lỗ, đóng khi giá chạm – kèm ≈ lời/lỗ bên phải; vào thêm ngay) → đặt lệnh chờ Long / Short với nhãn Giới hạn / Dừng. Biểu tượng nét mảnh có nền màu thay emoji.",
+     "de": "Top: the clicked price large, % vs current and a copy button. Then grouped by task: an order sitting at that level (cancel / remove) → your open trade on the coin (take profit, stop loss, close when touched – with ≈ P&L on the right; add now) → place a Long / Short order labelled Limit / Stop. Clean line icons on tinted tiles replace emoji."
     }
    ]
   },
