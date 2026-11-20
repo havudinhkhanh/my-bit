@@ -383,6 +383,16 @@
      "d": "Số trên tab Lệnh là tổng của cả Binance và Sàn thử, nên trước đây dễ tưởng lệnh biến mất.",
      "de": "The Trades tab count covers both Binance and Paper, which made trades look missing.",
      "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Lời/lỗ cộng dồn (xem theo Ngày / Tuần / Tháng): thêm biểu đồ Số lệnh mỗi kỳ + đường trung bình lệnh / kỳ",
+     "te": "Cumulative P/L (Day / Week / Month view): new Trades-per-period chart with the average line",
+     "d": "Rê / chạm cột xem số lệnh thắng / thua và lời/lỗ của kỳ đó.",
+     "de": "Hover / tap a bar for wins and P/L of that period.",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },
