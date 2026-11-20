@@ -273,6 +273,14 @@
      "te": "Chart right-click menu redesigned: grouped, cleaner, with estimated P&L",
      "d": "Đầu menu: giá bấm thật to, % so với giá hiện tại và nút chép giá. Rồi chia nhóm theo việc: lệnh đang ở đúng mức đó (huỷ / bỏ) → lệnh đang mở của mã (chốt lời, cắt lỗ, đóng khi giá chạm – kèm ≈ lời/lỗ bên phải; vào thêm ngay) → đặt lệnh chờ Long / Short với nhãn Giới hạn / Dừng. Biểu tượng nét mảnh có nền màu thay emoji.",
      "de": "Top: the clicked price large, % vs current and a copy button. Then grouped by task: an order sitting at that level (cancel / remove) → your open trade on the coin (take profit, stop loss, close when touched – with ≈ P&L on the right; add now) → place a Long / Short order labelled Limit / Stop. Clean line icons on tinted tiles replace emoji."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Vệt sáng khi rê chuột trong menu: phẳng, êm như iOS",
+     "te": "Menu hover highlight: flat and smooth like iOS",
+     "d": "Mọi menu thả xuống / chuột phải: vệt sáng theo chuột giờ là 1 lớp tô phẳng mờ, bo góc khớp hàng, trượt êm không nảy – bỏ kiểu bong bóng chuyển màu, viền sáng, đổ bóng.",
+     "de": "All dropdown / right-click menus: the hover highlight is now a flat translucent fill with corners matching the row, sliding smoothly without overshoot – no more glossy bubble with gradient, rim light and shadow."
     }
    ]
   },
