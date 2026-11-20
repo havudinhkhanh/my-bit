@@ -342,6 +342,16 @@
      "te": "New target / stop: the old level disappears instantly, no waiting for the server",
      "d": "Lệnh tay chỉ có 1 chốt lời và 1 cắt lỗ \"đóng cả vị thế\" – đặt cái mới thì máy chủ huỷ cái cũ. Trước đây trang vẫn hiện mốc cũ tới khi máy chủ báo về (vài giây – vài chục giây). Giờ gửi xong là thẻ lệnh, biểu đồ lệnh, biểu đồ trang coin và menu chuột phải đổi NGAY sang mốc mới (kèm ⏳ đang đặt); máy chủ xác nhận thì ⏳ mất; máy chủ báo không đặt được hoặc quá 90 giây thì trả về đúng như trên sàn.",
      "de": "A manual trade has one \"close whole position\" target and one stop – setting a new one makes the server cancel the old. Before, the page kept showing the old level until the server reported back (seconds to tens of seconds). Now the order card, order chart, coin chart and right-click menu switch to the new level INSTANTLY (with ⏳ placing); the ⏳ goes away when the server confirms; if the server reports a failure or 90 s pass, it reverts to what is on the exchange."
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "hi": 1,
+     "aud": "admin",
+     "t": "Chuột phải biểu đồ: Đóng khi về hoà vốn / Dời cắt lỗ về hoà vốn + tính trượt giá",
+     "te": "Chart right-click: Close at breakeven / Stop to breakeven + slippage",
+     "d": "Mục mới trong nhóm lệnh đang mở: lệnh đang lỗ → \"Đóng khi về hoà vốn\" (đặt chốt lời trên sàn), đang lời → \"Dời cắt lỗ về hoà vốn\". Giá hoà vốn tính sẵn sao cho đóng ở đó lời/lỗ ròng ≈ $0: đã cộng phí vào, phí ra, funding và trượt giá. Cuối menu chọn trượt giá 0 / 0,05% / 0,1% / 0,3% (nhớ theo máy) – số lời/lỗ ước tính của chốt lời / cắt lỗ / đóng khi giá chạm và mức hoà vốn đều tính theo đó; bảng xác nhận ghi rõ lời/lỗ ròng khi chạm.",
+     "de": "New item in the open-trade group: a losing trade → \"Close at breakeven\" (target on the exchange), a winning one → \"Move stop to breakeven\". The breakeven price is pre-computed so closing there nets ≈ $0: entry fee, exit fee, funding and slippage included. Pick slippage 0 / 0.05% / 0.1% / 0.3% at the bottom of the menu (remembered per device) – estimated P&L of target / stop / close-at and the breakeven level all use it; the confirmation shows the net P&L when hit."
     }
    ]
   },

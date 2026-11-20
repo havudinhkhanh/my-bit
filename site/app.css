@@ -6755,3 +6755,11 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cv-chart .cops .chk:not(#_t):not(#_u) input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}      /* ô tích gốc ẩn đi (vẫn bấm được qua nhãn) – chấm tròn thay thế */
 .cv-chart .cops .chk:not(#_t):not(#_u):has(input:focus-visible){outline:2px solid var(--brand);outline-offset:1px}
 .occ-tg button.lk:not(#_t):not(#_u)::before{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brass,var(--brand)) 60%,transparent)}
+/* hàng chọn trượt giá ở cuối menu chuột phải biểu đồ: nhãn trái · nhóm 4 nút nhỏ phải (1 hàng) */
+.px2 .px-slp{display:flex;align-items:center;gap:8px;margin:6px 4px 2px;padding:8px 6px 2px;border-top:1px solid color-mix(in srgb,var(--ink) 8%,transparent)}
+.px2 .px-slp>span{font-size:.6875rem;font-weight:600;color:var(--ink-3);margin-right:auto;white-space:nowrap}
+.px2 .px-slp>i{display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:color-mix(in srgb,var(--ink) 6%,transparent);font-style:normal}
+.ios-menu .px2 .px-slp button:not(#_x):not(#_y){min-height:0!important;height:22px!important;padding:0 7px!important;margin:0!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;color:var(--ink-3)!important;font:600 .6875rem/1 inherit!important;font-family:inherit!important;cursor:pointer;display:inline-flex!important;align-items:center;font-variant-numeric:tabular-nums;width:auto!important}
+.ios-menu .px2 .px-slp button.on:not(#_x):not(#_y){background:var(--surface)!important;color:var(--ink)!important;box-shadow:0 1px 2px rgba(0,0,0,.15)!important}
+:root:not([data-theme=light]) .ios-menu .px2 .px-slp button.on:not(#_x):not(#_y){background:color-mix(in srgb,var(--ink) 16%,var(--surface))!important}
+.px2 .px-bp{font-weight:700;color:var(--ink)}
