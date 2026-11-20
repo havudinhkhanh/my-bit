@@ -574,6 +574,16 @@ export class LiveExec {
     const L = await this.req("GET", "/fapi/v2/positionRisk", {}).catch(() => this.req("GET", "/fapi/v3/positionRisk", {})), bot = this.botSyms();
     const pos = (L || []).filter((x) => +x.positionAmt !== 0).map((x) => ({ sym: x.symbol, amt: +x.positionAmt, ep: +x.entryPrice, mk: +x.markPrice, lev: +x.leverage || 1, up: +(+x.unRealizedProfit || 0).toFixed(4),
       liq: +x.liquidationPrice || 0, mt: x.marginType === "isolated" ? "iso" : "cross", im: +(+x.isolatedMargin || 0).toFixed(4), ps: x.positionSide || "BOTH", bot: bot.has(x.symbol) }));
+    // 💰 số dư futures đọc kèm mỗi lần đọc vị thế (20 giây / lần, ngay sau khi vào / đóng lệnh) – trước đây chỉ đọc 5 phút / lần
+    //   → đóng lệnh xong trang vẫn hiện "khả dụng < ví" và tài sản lệch ví thêm tới 5 phút, tưởng còn lệnh mở
+    try {
+      const B = await this.req("GET", "/fapi/v2/balance", {}), u = (B || []).find((b) => b.asset === "USDT");
+      if (u) {
+        const wal = +(+u.balance).toFixed(2), av = +(+u.availableBalance).toFixed(2), up = +(L || []).reduce((a, x) => a + (+x.unRealizedProfit || 0), 0).toFixed(2);
+        this.st.bal = wal; this.st.avail = av;
+        const W = ((this.S.wal ||= {})[env] ||= {}); W.fut = { ...(W.fut || {}), wallet: wal, upnl: up, margin: +(wal + up).toFixed(2), avail: av }; W.futAt = iso(Date.now());
+      }
+    } catch (e) { /* giữ số cũ – lần đọc 5 phút vẫn chạy */ }
     const MF = this.S.mof?.[env] || {};
     const fx = {}; for (const p of pos) { const F = await this.filters(p.sym).catch(() => null); if (F) fx[p.sym] = { n: F.minN, s: F.step, q: F.minQ }; }      // mức tối thiểu của sàn → trang kiểm tra số tiền vào thêm trước khi gửi
     for (const p of pos) { const f = MF[p.sym]; if (f && f.sd === Math.sign(p.amt) && f.t1) { p.t1 = iso(f.t1); if (Number.isFinite(f.fund)) p.fund = f.fund; if (f.part) p.part = f.part; } }      // 💸 funding đã trả của lệnh tay đang mở (mFund đọc)

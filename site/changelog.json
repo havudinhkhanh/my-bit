@@ -206,6 +206,15 @@
      "te": "Futures equity card: shows margin held & unrealized P/L",
      "d": "Dưới số tài sản giờ có thêm \"ký quỹ đang giữ $X\" (vì sao khả dụng thấp hơn ví: tiền đang nằm trong lệnh mở / lệnh chờ trên sàn) và \"tạm tính ±$Y\" (vì sao tài sản khác ví).",
      "de": "Under the equity figure you now see \"margin held $X\" (why available is below wallet: money tied up in open positions / orders) and \"unrealized ±$Y\" (why equity differs from wallet)."
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "aud": "admin",
+     "t": "Số dư futures cập nhật 20 giây/lần thay vì 5 phút",
+     "te": "Futures balance refreshes every 20 s instead of 5 min",
+     "d": "Ví, khả dụng, tài sản trên thẻ Tài sản futures trước đây chỉ đọc lại 5 phút/lần → đóng lệnh xong vẫn thấy khả dụng thấp hơn ví như còn lệnh mở. Giờ máy chủ riêng đọc số dư cùng lúc với vị thế (20 giây/lần, và ngay sau khi vào / đóng lệnh). Cần cập nhật máy chủ riêng.",
+     "de": "Wallet, available and equity on the Futures equity card used to be re-read only every 5 minutes, so after closing a trade available still looked lower than wallet as if a trade were open. The private server now reads the balance together with positions (every 20 s and right after entering / closing). Needs a private-server update."
     }
    ]
   },
