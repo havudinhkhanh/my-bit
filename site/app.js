@@ -390,7 +390,7 @@ function gPlaceAll(list) {
     R.push([g, on, one && inner > 8 ? { x: Math.max(on.offsetLeft, 3), y: 0, w: Math.min(on.offsetWidth - Math.max(0, 3 - on.offsetLeft), g.scrollWidth - 3 - Math.max(on.offsetLeft, 3)), h: 0, one: 1, pt, pb } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight }]);
   }
   for (const [g, on, p] of R) {
-    if (p) { const W = g.clientWidth; p.bw = W; if (W > 8) { p.x = Math.max(0, Math.min(p.x, W - 6)); p.w = Math.max(4, Math.min(p.w, W - 3 - p.x)); } }      // viên kính luôn nằm trong lòng thanh (không lòi ra ngoài mép)
+    if (p) { const W = g.clientWidth, SW = Math.max(W, g.scrollWidth); p.bw = W; if (W > 8) { p.x = Math.max(0, Math.min(p.x, SW - 6)); p.w = Math.max(4, Math.min(p.w, SW - 3 - p.x)); } }      // viên kính nằm trong lòng thanh – kẹp theo CẢ chiều dài cuộn (trước kẹp theo phần đang hiện → thanh cuộn ngang trên điện thoại: chọn "Ngày" nằm ngoài khung → viên kính co còn 4px, lệch sang nút khác)
     // vị trí cũ đo lúc thanh rộng khác (đổi sàn → đổi nhãn / số đếm) → đặt thẳng chỗ mới, không trượt từ chỗ sai
     let th = g.querySelector(":scope > .gthumb");
     if (!p) { if (th) th.style.opacity = "0"; continue; }

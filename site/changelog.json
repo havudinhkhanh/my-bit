@@ -352,6 +352,14 @@
      "te": "Chart right-click: Close at breakeven / Stop to breakeven + slippage",
      "d": "Mục mới trong nhóm lệnh đang mở: lệnh đang lỗ → \"Đóng khi về hoà vốn\" (đặt chốt lời trên sàn), đang lời → \"Dời cắt lỗ về hoà vốn\". Giá hoà vốn tính sẵn sao cho đóng ở đó lời/lỗ ròng ≈ $0: đã cộng phí vào, phí ra, funding và trượt giá. Cuối menu chọn trượt giá 0 / 0,05% / 0,1% / 0,3% (nhớ theo máy) – số lời/lỗ ước tính của chốt lời / cắt lỗ / đóng khi giá chạm và mức hoà vốn đều tính theo đó; bảng xác nhận ghi rõ lời/lỗ ròng khi chạm.",
      "de": "New item in the open-trade group: a losing trade → \"Close at breakeven\" (target on the exchange), a winning one → \"Move stop to breakeven\". The breakeven price is pre-computed so closing there nets ≈ $0: entry fee, exit fee, funding and slippage included. Pick slippage 0 / 0.05% / 0.1% / 0.3% at the bottom of the menu (remembered per device) – estimated P&L of target / stop / close-at and the breakeven level all use it; the confirmation shows the net P&L when hit."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: chọn khung giờ nằm ngoài màn hình (Ngày, Tuần…) – viên sáng không còn méo / lệch",
+     "te": "Phone: picking an off-screen timeframe (Day, Week…) no longer squashes / misplaces the highlight",
+     "d": "Thanh chọn cuộn ngang (khung giờ biểu đồ, thanh tab…): chọn nút nằm ngoài phần đang hiện thì viên sáng bị kẹp còn 4px và đè lên nút khác. Giờ viên sáng luôn nằm đúng nút đang chọn.",
+     "de": "Horizontally scrolling pickers (chart timeframes, tab bars…): picking a button outside the visible part squashed the highlight to 4px over another button. It now always sits on the selected button."
     }
    ]
   },
