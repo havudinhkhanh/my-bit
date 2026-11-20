@@ -281,6 +281,17 @@
      "te": "Menu hover highlight: flat and smooth like iOS",
      "d": "Mọi menu thả xuống / chuột phải: vệt sáng theo chuột giờ là 1 lớp tô phẳng mờ, bo góc khớp hàng, trượt êm không nảy – bỏ kiểu bong bóng chuyển màu, viền sáng, đổ bóng.",
      "de": "All dropdown / right-click menus: the hover highlight is now a flat translucent fill with corners matching the row, sliding smoothly without overshoot – no more glossy bubble with gradient, rim light and shadow."
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "hi": 1,
+     "f": "futures",
+     "go": "#/bot/scalp",
+     "t": "Biểu đồ lệnh: tường lệnh & vùng thanh lý ước tính",
+     "te": "Order chart: order walls & estimated liquidation zones",
+     "d": "Hai nút mới trên biểu đồ lệnh. Tường lệnh: thanh ngang ở mép phải cho thấy tiền đặt chờ trên sổ lệnh Binance (±12% quanh giá, làm mới 8 giây/lần); khối lớn bất thường có nhãn số tiền, kèm tổng mua / bán trong ±2%. Vùng thanh lý: dải màu nơi nhiều vị thế đòn bẩy có thể bị thanh lý (đỏ: Short ở trên, xanh: Long ở dưới) – là ƯỚC TÍNH từ khối lượng 3 ngày và các mức đòn bẩy phổ biến, đã bỏ những vị thế giá đã quét qua, không phải dữ liệu của sàn.",
+     "de": "Two new toggles on the order chart. Order walls: bars on the right edge show resting orders on the Binance book (±12% of price, refreshed every 8 s); unusually large blocks get a dollar label, plus total bids / asks within ±2%. Liquidation zones: shaded bands where many leveraged positions could be liquidated (red: shorts above, green: longs below) – an ESTIMATE from 3-day volume and common leverage, excluding positions price has already swept, not exchange data."
     }
    ]
   },

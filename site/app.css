@@ -6715,3 +6715,16 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .px2 .px-pl.up{color:var(--up);background:color-mix(in srgb,var(--up) 12%,transparent)}.px2 .px-pl.dn{color:var(--down);background:color-mix(in srgb,var(--down) 12%,transparent)}
 .px2 .px-chip{font-style:normal;font-size:.6875rem;font-weight:600;color:var(--ink-2);padding:3px 7px;border-radius:6px;background:color-mix(in srgb,var(--ink) 7%,transparent);white-space:nowrap}
 .px-menu .px2 .px-avg:not(#_x){display:flex;width:fit-content;margin-top:4px;padding:2px 7px;border-radius:6px;font-size:.6875rem;font-weight:600;color:var(--brass,var(--brand));background:color-mix(in srgb,var(--brass,var(--brand)) 14%,transparent)}
+/* 🧱🔥 lớp tường lệnh + vùng thanh lý ước tính trên biểu đồ lệnh */
+.obl{position:absolute;left:0;top:0;z-index:3;pointer-events:none;overflow:hidden}
+.obl>i{position:absolute;display:block;font-style:normal}
+.obz{left:0;right:0;--zc:var(--down);background:linear-gradient(90deg,color-mix(in srgb,var(--zc) calc(var(--k) * 100%),transparent),color-mix(in srgb,var(--zc) calc(var(--k) * 55%),transparent));border-top:1px dashed color-mix(in srgb,var(--zc) 45%,transparent);border-bottom:1px dashed color-mix(in srgb,var(--zc) 45%,transparent)}
+.obz.l{--zc:var(--up)}
+.obz>b{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:.625rem;font-weight:700;letter-spacing:.02em;white-space:nowrap;color:color-mix(in srgb,var(--zc) 85%,var(--ink));background:color-mix(in srgb,var(--surface) 78%,transparent);padding:1px 6px;border-radius:5px}
+.obw{right:0;height:3px;border-radius:2px 0 0 2px;opacity:.32}
+.obw.a{background:var(--down)}.obw.b{background:var(--up)}
+.obw.wl{opacity:.9;height:4px}
+.obw>b{position:absolute;right:calc(100% + 4px);top:50%;transform:translateY(-50%);font-size:.625rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--surface) 82%,transparent)}
+.obw.a>b{color:var(--down)}.obw.b>b{color:var(--up)}
+.occ-ob{font-size:.75rem;color:var(--ink-3);font-variant-numeric:tabular-nums;white-space:nowrap}.occ-ob b{font-weight:700}
+.occ-tg button.lk{opacity:.7}.occ-tg button.lk small{font-size:.625rem;color:var(--brass,var(--brand));font-weight:700}
