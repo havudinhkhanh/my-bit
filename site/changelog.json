@@ -129,6 +129,14 @@
      "te": "Narrow manual trade cards: one-line alert chip, P/L % no longer overflows",
      "d": "Trong bảng phụ / cột hẹp, chip báo động gọn thành \"🔔 Báo động 20% · 5%\" (chi tiết khi rê chuột hoặc mở menu), phần % lệnh · % tài khoản tự xuống dòng dưới số tiền thay vì tràn mép thẻ.",
      "de": "In the side panel / narrow columns the alert chip shrinks to \"🔔 Alerts 20% · 5%\" (details on hover or in the menu), and the trade % · account % wraps under the amount instead of overflowing."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Thẻ lệnh: dòng % lời/lỗ không còn nhảy lên/xuống hàng",
+     "te": "Trade cards: the P/L % line no longer jumps between rows",
+     "d": "\"% lệnh · % tài khoản\" luôn nằm 1 hàng riêng dưới số tiền; dòng thời gian giữ, funding và chip báo động mỗi mục 1 hàng cố định – giá chạy hay đồng hồ đếm phút không làm thẻ co giãn nữa.",
+     "de": "\"trade % · account %\" always sits on its own row under the amount; time held, funding and the alert chip each keep a fixed row – live prices and ticking clocks no longer resize the card."
     }
    ]
   },

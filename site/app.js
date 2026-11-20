@@ -1540,7 +1540,7 @@ function sclApply() {
     const rg = ok(sl) && ok(tp) && !el.dataset.norg;      // thẻ lệnh tay đã có thang giá riêng (sc-lad) – không vẽ thêm vạch cắt lỗ↔chốt
     if (!el._lp || !!el._lp.i !== rg) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
     const bal = +el.dataset.bal;      // thẻ lệnh tay: thêm lời/lỗ theo % TÀI KHOẢN (tài khoản nhỏ thì con số này sát thực tế hơn % lệnh)
-    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "−"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
+    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "-"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
   });
   // 📏 thang giá của lệnh tay: chấm giá hiện tại + vệt lời/lỗ từ giá vào
   document.querySelectorAll("[data-lad]").forEach((el) => {

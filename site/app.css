@@ -6656,6 +6656,9 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (prefers-reduced-motion:reduce){.sc-lad .cur,.sc-lad .fill{transition:none}}
 .sc-oc .lw2{font-style:normal}
 @container (max-width:420px){.sc-oc.man .lw2{display:none}.sc-oc.man .sc-mxr{gap:6px}}
-/* lời/lỗ + % lệnh · % tài khoản: thẻ hẹp thì phần % xuống dòng gọn dưới số tiền, không tràn mép thẻ */
-.sc-oc .r2[data-bal]{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:6px;row-gap:0}
-.sc-oc .r2[data-bal] small{min-width:0;overflow-wrap:anywhere;white-space:normal}
+/* lời/lỗ + % lệnh · % tài khoản: LUÔN nằm 1 dòng riêng dưới số tiền – không tự nhảy lên/xuống hàng khi giá chạy làm số dài/ngắn đi */
+.sc-oc .r2[data-bal]{display:block}
+.sc-oc .r2[data-bal] small{display:block;margin-top:1px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+/* dòng thời gian giữ · funding · báo động: mỗi mục 1 hàng cố định (đồng hồ đếm phút làm chữ dài/ngắn → trước đây chip báo động nhảy hàng) */
+.sc-oc .sc-meta>small{flex:1 1 100%}
+.sc-oc .sc-meta>.sc-al{margin-left:auto}
