@@ -2722,7 +2722,7 @@ function drawO(D, el, o, tf, src) {
     if (keep.length) ch.cs.applyOptions({ autoscaleInfoProvider: (orig) => { const r0 = orig(); if (!r0?.priceRange) return r0; return { ...r0, priceRange: { minValue: Math.min(r0.priceRange.minValue, ...keep), maxValue: Math.max(r0.priceRange.maxValue, ...keep) } }; } });
   }
   try { chartPxMenu(el, ch, () => { const b = D.row?.k || D.k, P = window.__scCache?.d?.[1]?.data?.live?.man?.pos?.find((x) => x.sym === b + "USDT" && x.amt);      // đang có lệnh tay mã này → menu có thêm "Vào thêm ngay", "Đặt cắt lỗ / chốt ở đây"
-    return P ? { base: b, man: P.sym, side: Math.sign(P.amt), e: P.ep, fut: true } : { base: b }; }); } catch (e) { /* bỏ qua */ }      // 📍 chuột phải / giữ lâu → đặt lệnh chờ tại giá đó
+    return P ? { base: b, man: P.sym, side: Math.sign(P.amt), e: P.ep, q: Math.abs(P.amt), fut: true } : { base: b }; }); } catch (e) { /* bỏ qua */ }      // 📍 chuột phải / giữ lâu → đặt lệnh chờ tại giá đó
   return ch;
 }
 async function priceChart(D, el, tf) {
@@ -2863,6 +2863,11 @@ function pxMenu(cx, cy, p0, C, ch) {
       : (sd > 0 ? bi("khi giá vượt lên – lệnh dừng", "on break above – stop") : bi("khi giá thủng xuống – lệnh dừng", "on break below – stop")); };
   const it = (a, ic, t, sub, c = "") => `<button type="button" role="menuitem" data-pxa="${a}"><span class="ios-ck">${ic}</span><span class="ios-t ${c}">${t}<small>${sub}</small></span></button>`;
   const manOK = C.man && C.side && cur;
+  // 💵 ước tính lời/lỗ CẢ lệnh nếu đóng ở giá này – cùng công thức với thẻ lệnh: chênh giá × khối lượng − phí vào − phí ra (taker) + funding đã nhận/trả
+  const est = (pp) => { const e = +C.e, q = +C.q, sd = +C.side; if (!(e > 0 && q > 0 && sd)) return null; const fr = isNum(+C.fr) && C.fr !== undefined ? +C.fr : 0.05, f0 = C.f0 != null ? +C.f0 : q * e * fr / 100;
+    const usd = sd * q * (pp - e) - f0 - q * pp * fr / 100 + (+C.fund || 0); return { usd, pct: usd / (q * e) * 100 }; };
+  const estT = (pp, a) => { const r = est(pp); if (!r) return ""; const h = a === "tp" && r.usd < 0 ? bi(" · vẫn lỗ: chưa qua giá vào", " · still a loss: not past entry") : a === "sl" && r.usd > 0 ? bi(" · vẫn lời: cắt lỗ đã qua giá vào", " · still a gain: stop past entry") : "";
+    return `<b class="px-est ${r.usd >= 0 ? "up" : "down"}">≈ ${r.usd >= 0 ? "+" : "-"}$${nf(Math.abs(r.usd), 2)} · ${r.pct >= 0 ? "+" : ""}${nf(r.pct, 2)}% ${bi("lệnh", "of trade")}${h}</b>`; };      // sau phí ra (taker) & funding đã có
   const avgT = (sd) => (C.man && C.side === sd ? `<em class="px-avg">${bi("➕ Bình quân vào lệnh tay đang có", "➕ Averages into your open trade")}</em>` : "");      // dòng riêng – không bị cắt "…"
   // bấm đúng vào đường lệnh thật (lệnh chờ / cắt lỗ / chốt lời) → thao tác với CHÍNH lệnh đó lên đầu menu
   const nearIt = (C.near || []).map((o) => o.k === "pend"
@@ -2871,9 +2876,9 @@ function pxMenu(cx, cy, p0, C, ch) {
       : o.k === "ux" ? it("uxoff", "✕", bi(`Bỏ hẹn đóng @ ${px(o.px)}`, `Remove close-at @ ${px(o.px)}`), bi("lệnh vẫn chạy theo luật cũ (cắt lỗ, hết giờ…)", "the trade keeps its normal rules"), "down")
       : it(`c${o.k}:${o.px}`, "✕", o.k === "sl" ? bi(`Bỏ cắt lỗ @ ${px(o.px)}`, `Remove stop @ ${px(o.px)}`) : bi(`Bỏ chốt lời @ ${px(o.px)}`, `Remove target @ ${px(o.px)}`), bi("lệnh điều kiện của lệnh tay trên Binance", "the manual trade's conditional order"), "down")).join("");
   const items = (nearIt ? nearIt + `<div class="px-sep" role="separator"></div>` : "") + [it("s", "🔻", bi(`Short khi giá về ${px(p)}`, `Short at ${px(p)}`), L(-1) + avgT(-1), "down"), it("l", "🔺", bi(`Long khi giá về ${px(p)}`, `Long at ${px(p)}`), L(1) + avgT(1), "up"),
-    manOK && (C.side > 0 ? p < cur : p > cur) ? it("sl", "🛑", bi("Đặt cắt lỗ lệnh tay ở đây", "Set the manual stop here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
-    manOK && (C.side > 0 ? p > cur : p < cur) ? it("tp", "🎯", bi("Đặt chốt lời lệnh tay ở đây", "Set the manual target here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange")) : "",
-    C.uxRef && cur ? it("ux", "🏁", bi(`Đóng lệnh khi giá ${p > cur ? "lên tới" : "xuống tới"} ${px(p)}`, `Close when price ${p > cur ? "rises" : "falls"} to ${px(p)}`), bi("bot đóng CẢ lệnh bằng lệnh thị trường khi giá chạm – thay hẹn cũ nếu có", "the bot closes the WHOLE trade at market when touched"), "brass") : "",
+    manOK && (C.side > 0 ? p < cur : p > cur) ? it("sl", "🛑", bi("Đặt cắt lỗ lệnh tay ở đây", "Set the manual stop here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange") + estT(p, "sl")) : "",
+    manOK && (C.side > 0 ? p > cur : p < cur) ? it("tp", "🎯", bi("Đặt chốt lời lệnh tay ở đây", "Set the manual target here"), bi("đóng cả vị thế khi chạm – đặt trên sàn", "closes the whole position – on the exchange") + estT(p, "tp")) : "",
+    C.uxRef && cur ? it("ux", "🏁", bi(`Đóng lệnh khi giá ${p > cur ? "lên tới" : "xuống tới"} ${px(p)}`, `Close when price ${p > cur ? "rises" : "falls"} to ${px(p)}`), bi("bot đóng CẢ lệnh bằng lệnh thị trường khi giá chạm – thay hẹn cũ nếu có", "the bot closes the WHOLE trade at market when touched") + estT(p), "brass") : "",
     C.man && C.side ? it("add", "➕", bi(`Vào thêm ngay ${C.side > 0 ? "Long" : "Short"} (giá thị trường)`, `Add now (${C.side > 0 ? "Long" : "Short"}, market)`), bi("gộp vào lệnh tay đang có · giữ cắt lỗ / chốt", "merges into your open trade · keeps stop/target"), C.side > 0 ? "up" : "down") : "",
     it("cp", "📋", bi("Chép giá", "Copy price"), px(p))].filter(Boolean).join("");
   const m = document.createElement("div"); m.id = "pxMenu"; m.className = "ios-menu px-menu";
@@ -2885,6 +2890,8 @@ function pxMenu(cx, cy, p0, C, ch) {
   const close = () => { try { if (pl) ch.cs.removePriceLine(pl); } catch (e) { /* bỏ qua */ } m.remove(); removeEventListener("keydown", esc_); };
   const esc_ = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); } }; addEventListener("keydown", esc_, true);
   m.querySelector("[data-x]").onclick = close; m.querySelector("[data-x]").oncontextmenu = (e) => { e.preventDefault(); close(); };
+  { const r = est(p), on = (b) => { if (!pl || !r) return; const a = b?.dataset.pxa; try { pl.applyOptions(["sl", "tp", "ux"].includes(a) ? { title: `${a === "sl" ? "🛑" : a === "tp" ? "🎯" : "🏁"} ≈ ${r.usd >= 0 ? "+" : "-"}$${nf(Math.abs(r.usd), 2)} (${r.pct >= 0 ? "+" : ""}${nf(r.pct, 1)}%)`, color: r.usd >= 0 ? css("--up") : css("--down") } : { title: "📍", color: css("--brass") || css("--brand") }); } catch (e) { /* bỏ qua */ } };
+    m.querySelectorAll("[data-pxa]").forEach((b) => { b.addEventListener("pointerenter", () => on(b)); b.addEventListener("focus", () => on(b)); b.addEventListener("pointerleave", () => on(null)); }); }      // rê chuột lên "Đặt chốt lời / cắt lỗ / Đóng khi giá…" → đường giá trên biểu đồ hiện luôn lời/lỗ ước tính
   m.querySelectorAll("[data-pxa]").forEach((b) => (b.onclick = async () => { const a = b.dataset.pxa; close();
     if (a === "cp") { try { await navigator.clipboard.writeText(String(p)); toast(bi(`Đã chép ${p}`, `Copied ${p}`)); } catch (e) { toast(String(p)); } return; }
     if (a === "sl" || a === "tp") return pxManCond(C.man, a, p, C);
@@ -3126,7 +3133,7 @@ async function ocDraw() {
     put("t", fT(S.t[i])); put("o", px(S.o[i])); put("h", px(S.h[i])); put("l", px(S.l[i])); put("c", px(S.c[i]), cls(d)); put("d", `${d >= 0 ? "+" : ""}${nf(d, 2)}%`, cls(d)); put("v", usd(S.v[i] || 0)); put("r", `${nf((S.h[i] / S.l[i] - 1) * 100, 2)}%`); };
   OCC.src = o; leg(n - 1);
   let legI = -1; ch.c.subscribeCrosshairMove((pm) => { const i0 = pm?.time != null ? idx.get(pm.time) : null, i = i0 != null ? i0 : (OCC.src || o).t.length - 1; if (i === legI) return; legI = i; leg(i); });      // cùng nến → không vẽ lại chữ
-  try { chartPxMenu(el, ch, () => ({ base: I.base, man: I.man ? I.base + "USDT" : null, side: I.side, e: I.e, fut: I.fut, uxRef: I.uxRef, ux: I.ux })); } catch (e) { /* bỏ qua */ }
+  try { chartPxMenu(el, ch, () => ({ base: I.base, man: I.man ? I.base + "USDT" : null, side: I.side, e: I.e, q: I.q, f0: I.f0, fr: I.fr, fund: I.fund, fut: I.fut, uxRef: I.uxRef, ux: I.ux })); } catch (e) { /* bỏ qua */ }
   // RSI 14 (tuỳ chọn) – khung nhỏ dưới, cùng trục thời gian
   const rEl = document.getElementById("occR"); OCC.rc = null;
   if (rEl) { rEl.innerHTML = ""; rEl.hidden = !ocOpt("rsi"); if (ocOpt("rsi")) { const rc = LightweightCharts.createChart(rEl, { ...themeOpts(), autoSize: true, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 } }); charts.push(rc);

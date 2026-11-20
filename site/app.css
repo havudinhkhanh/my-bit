@@ -6687,3 +6687,4 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 /* nút → trong ô lọc: bỏ đệm / lề chung của nút & biểu tượng (làm mũi tên lệch khỏi tâm vòng tròn), căn giữa tuyệt đối */
 .cl-flt .cl-go:not(#_x){padding:0!important;margin:0!important;min-width:0!important;min-height:0!important;width:28px!important;height:28px!important;line-height:0!important;gap:0!important;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center}
 .cl-flt .cl-go:not(#_x) svg{display:block;margin:0!important;flex:0 0 auto;width:15px;height:15px}
+.px-menu .ios-t small .px-est{display:block;margin-top:3px;font-weight:700;font-size:.75rem;font-variant-numeric:tabular-nums}.px-menu .px-est.up{color:var(--up)}.px-menu .px-est.down{color:var(--down)}

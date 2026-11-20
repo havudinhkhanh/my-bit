@@ -256,6 +256,15 @@
      "te": "Chart button on order cards no longer disappears",
      "d": "Sau bản vá \"chỉ cập nhật phần thay đổi\", mỗi lần trang Bot tự làm mới lại gỡ mất nút biểu đồ trên thẻ lệnh (và viên kính trên thanh tab, viền báo cuộn ngang bị gắn lại liên tục). Giờ các phần này được giữ nguyên qua mọi lượt làm mới.",
      "de": "After the \"only update what changed\" patch, each Bot page auto-refresh removed the chart button on order cards (and kept re-attaching the tab-bar highlight and scroll hints). These now stay put across refreshes."
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "hi": 1,
+     "t": "Chuột phải trên biểu đồ: thấy luôn lời/lỗ ước tính khi chốt / cắt lỗ / đóng ở giá đó",
+     "te": "Chart right-click: see the estimated P&L of taking profit / stopping / closing at that price",
+     "d": "Menu chuột phải (điện thoại: giữ lâu) trên biểu đồ lệnh: các mục Đặt chốt lời, Đặt cắt lỗ, Đóng lệnh khi giá… ghi sẵn số tiền ≈ và % lệnh nếu đóng cả lệnh ở mức đó (đã trừ phí ra và tính funding). Rê chuột lên mục nào thì đường giá trên biểu đồ cũng hiện số đó, xanh lời / đỏ lỗ. Mức chốt chưa qua giá vào sẽ ghi rõ \"vẫn lỗ\".",
+     "de": "In the chart's right-click menu (phone: long-press), Set target, Set stop and Close when price… now show the ≈ dollar amount and % of trade if the whole trade closes there (after exit fee, including funding). Hovering an item also shows it on the chart's price line, green for gain / red for loss. A target not yet past entry is flagged as \"still a loss\"."
     }
    ]
   },
