@@ -252,11 +252,14 @@ async function ivSim(r, C, env, from = 0) {
   const pnl = out / 1e4 * r.q * e - (+r.fee || 0) + (+r.fund || 0);
   return (IVS[key] = { bps: out, pnl, why, at: Math.round(at), h0: Math.round(h0) });
 }
-function ivPanel() { return `<div id="ivBox">${panel(bi("🤖 Bot tự động so với ✋ có can thiệp tay", "🤖 Bot on its own vs ✋ with your interventions"), skChart(200), bi("đang tính…", "computing…"))}</div>`; }
+// khoá nội dung của khung 🤖 vs ✋ (đổi khi có lệnh mới đóng / đổi sàn / đổi cắt lỗ): trang được VÁ thì khung đã tính xong giữ nguyên (data-sig trùng),
+//   không trả về "đang tính…" rồi tính lại – trước đây mỗi lần tự làm mới đều vẽ lại khung này (~700 phần tử + biểu đồ)
+const ivKey = (LH, C, env, PT = []) => `${env}|${LH.length}|${LH[LH.length - 1]?.t2 || ""}|${PT.length}|${C?.hk_stop || ""}|${EN ? 1 : 0}`;
+function ivPanel(k = "") { const done = $("#ivBox")?.dataset.done === k && k; return `<div id="ivBox"${done ? ` data-sig="iv:${esc(k)}" data-done="${esc(k)}"` : ""}>${panel(bi("🤖 Bot tự động so với ✋ có can thiệp tay", "🤖 Bot on its own vs ✋ with your interventions"), skChart(200), bi("đang tính…", "computing…"))}</div>`; }
 // So sánh ĐÚNG TỪNG LỆNH: lệnh bot anh đã đóng tay / gia hạn → "thực tế" (anh làm) đặt cạnh "nếu để bot" (cùng lệnh đó, chạy tiếp theo luật bot tới khi bot tự thoát).
 // Lệnh tay riêng KHÔNG phải can thiệp vào bot → tách riêng 1 phần. Tổng: Thực tế = Bot tự chạy + Can thiệp vào lệnh bot + Lệnh tay riêng.
 async function ivFill(LH, C, env, PT = []) {
-  const box = $("#ivBox"); if (!box) return;
+  const box = $("#ivBox"); if (!box) return; const key = ivKey(LH, C, env, PT); if (box.dataset.done === key) return;
   const stopB = (+C.hk_stop || 0) * 100, rows = LH.filter((h) => h.t2);
   // lệnh bot anh đóng THẲNG trên app Binance: bản máy chủ mới ghi xb; bản cũ ghi nhầm "SL" → nhận ra vì lỗ còn xa mức cắt lỗ thảm hoạ (cắt lỗ thật thì lỗ ≈ hk_stop%)
   const exB = (h) => h.xb || (h.why === "SL" && (!h.strat || h.strat === "hook") && stopB > 0 && isNum(h.net) && h.net > -0.6 * stopB);
@@ -325,6 +328,7 @@ async function ivFill(LH, C, env, PT = []) {
     const d = sim ? act - auto : null;
     return `<tr><td class="l"><small class="faint">${tm(h.t2)}</small> <b>${esc(String(h.sym || "").replace(/USDT$/, ""))}</b> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "L" : "S"}</span></td><td class="l"><i class="iv-who">${bi("Anh · thật", "You · real")}</i>${did}</td><td class="${cls(act)}">${iv$(act)}</td><td class="l"><i class="iv-who">${bi("Nếu để bot", "If left to bot")}</i><small class="faint">${sim ? `${sim.src === "paper" ? SRC_P : SRC_S} ${WHYS[sim.why] || esc(sim.why || "")} · ${bi("phút", "min")} ${sim.at}` : kind === "enter" ? bi("bot không vào", "bot wouldn't enter") : "—"}</small></td><td class="${sim ? cls(auto) : ""}">${sim ? iv$(auto) : na}</td><td class="${cls(d)}">${d == null ? na : `<i class="iv-who">${d > 0 ? bi("anh hơn bot", "you beat bot") : d < 0 ? bi("anh kém bot", "bot was better") : bi("bằng bot", "same")}</i><b>${iv$(d)}</b>`}</td></tr>`; }).join("");
   const cap = `<p class="faint sc-cap">${bi(`So từng lệnh: lệnh bot anh đóng tay / gia hạn được chạy tiếp (hoặc cắt về) theo đúng luật bot – giữ ${nf(C.hk_h || 60, 0)} phút từ lúc khớp, cắt lỗ đuổi khi lời ≥ ${nf((C.hk_tra || 0) / 100, 1)}%${+C.hk_trm ? " (chỉ xét giá đóng mỗi nến 1 phút, như bot thật)" : ""} và chỉ cho phần lệnh chờ – phần "mua ngay" giữ tới hết giờ, cắt lỗ thảm hoạ ${nf(C.hk_stop || 0, 0)}% – trên nến 1 phút Binance, cùng phí, rồi đặt cạnh kết quả anh thật sự nhận. Lệnh nào sàn thử cũng vào (cùng coin, cùng chiều, cách ≤ 5 phút) thì "nếu để bot" lấy luôn kết quả thật trên sàn thử 🧪 (quy theo bps ròng × giá trị lệnh thật). Lệnh anh đóng thẳng trên app Binance cũng được tính là can thiệp. Lệnh tay riêng không phải can thiệp vào bot nên tách riêng.`, `Trade by trade: each bot trade you closed / extended is re-run with the bot's own rules on Binance 1-minute candles (same fees) and set beside what you actually got. Your own trades aren't interventions, so they're shown separately.`)}</p>`;
+  if (!box.isConnected) return; box.dataset.done = key; box.setAttribute("data-sig", "iv:" + key);      // lần vá sau thấy khoá trùng → giữ nguyên khung đã tính
   box.innerHTML = panel(bi("🤖 Bot tự động so với ✋ có can thiệp tay", "🤖 Bot on its own vs ✋ with your interventions"), `${kp}<div class="iv-g"><div class="iv-gc">${chart}</div><div class="iv-gt">${tbl}${cap}</div></div>
     ${lst ? `<details class="iv-d" open><summary><b>${bi("Từng lệnh bot có can thiệp", "Each intervened bot trade")}</b> <span class="faint">· ${L.length} ${bi("lệnh · anh làm thật so với nếu để bot", "trades · what you did vs leaving it to the bot")}</span></summary>
       <p class="iv-key"><span><b>${bi("Kết quả thật", "Actual")}</b> ${bi("= tiền anh thật sự nhận khi can thiệp", "= what you actually got after stepping in")}</span><span><b>${bi("Nếu để bot", "If left to bot")}</b> ${bi("lấy từ", "comes from")} ${SRC_P} ${bi("kết quả thật trên sàn thử", "real paper result")}, ${bi("không có thì", "else")} ${SRC_S} ${bi("ước tính trên nến", "candle estimate")}</span><span><b>${bi("Chênh", "Diff")}</b> ${bi("= anh − bot · dương là anh làm tốt hơn", "= you − bot · positive means you did better")}</span></p>
@@ -1339,7 +1343,7 @@ async function viewScalp() {
       <div data-ol="miss">${missOf(LMSp, "paper")}</div><div data-ol="cmp">${cmpPanel}</div>
       <p class="sc-goord"><span>${bi("Sổ lệnh mọi ngày của mọi bot · lọc theo coin, nhóm, lời/lỗ", "Every bot's full trade book")}</span><a class="btn sm" href="#/bot/journal/paper">${bi("Sổ lệnh →", "Trade book →")}</a></p>`
     : lvOff ? lvOffP : `${halt}${olChips}<div data-ol="open">${openL}</div><div data-ol="closed">${exMon()}${panel(bi("Lệnh đã đóng", "Closed trades"), `${lvTrades()}<p class="faint sc-cap">${bi(`Lời/lỗ, phí và funding lấy từ sổ thu chi của sàn. Bấm 📈 để xem nến 1 phút${LVE === "demo" ? " của sàn Demo" : ""} quanh lệnh.`, `P/L, fees and funding come from the exchange's income history. Press 📈 for the 1-minute candles${LVE === "demo" ? " on Demo" : ""} around the trade.`)}</p>`, `${clBar[LVE] || ""}${LHr.length} ${bi("lệnh", "trades")}${MH.length ? ` · ✋ ${MH.length} ${bi("lệnh tay", "manual")}` : ""}`)}</div>
-      <div data-ol="miss">${missP}</div><div data-ol="cmp">${ivPanel()}${cmpPanel}</div>
+      <div data-ol="miss">${missP}</div><div data-ol="cmp">${ivPanel(ivKey(LH, C, LVE, HT))}${cmpPanel}</div>
       <p class="sc-goord"><span>${bi("Sổ lệnh đầy đủ mọi ngày · lọc theo coin, nhóm, lời/lỗ · lệnh hụt", "Full trade book · filter by coin, group, win/loss · missed orders")}</span><a class="btn sm" href="#/bot/journal/${LVE}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`;
   else if (TB === "hook") body = `${goOrd(nHook, "Bắt râu sập")}${hkPanel}${filterPanel}`;
   else if (TB === "sec") body = `${goOrd(posS.length, "Lướt giây")}
@@ -1844,7 +1848,7 @@ async function viewScalp() {
   if (window.__lbFx) { const [c, k] = window.__lbFx.split("|"); window.__lbFx = null; const el = document.querySelector(`#lb .lb-r[data-lbk="${k}"] .lb-seg.${c === "paper" ? "p" : "l"}`); if (el) { el.classList.add("lb-pop"); el.scrollIntoView({ block: "nearest", behavior: "smooth" }); } }
   // kéo-thả bằng con trỏ (chuột + cảm ứng): giữ ⠿ để kéo; gần mép màn hình thì tự cuộn
   const lbOk = (k, from, to) => { const m = LB?.MM[k]; if (!m || to === from) return null; if (to === "live") return !m.live.none && !!C.lv_on; if (to === "lib") return from !== "lib"; return true; };
-  $$("#lb [data-lbgrip]").forEach((g) => g.addEventListener("pointerdown", (e) => {
+  $$("#lb [data-lbgrip]").filter((g) => !g.__b && (g.__b = 1)).forEach((g) => g.addEventListener("pointerdown", (e) => {
     if (e.button !== 0) return;
     const card = g.closest(".lb-card"), k = card.dataset.lbk, from = card.dataset.lbsrc, r = card.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
     e.preventDefault(); try { g.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ }
@@ -1907,6 +1911,7 @@ async function viewScalp() {
   $$("[data-mf]").forEach((f) => {
     if (window.__mfOpen?.[f.dataset.mf]) f.hidden = false;
     const d = window.__mfDraft?.[f.dataset.mf]; if (d) { f.querySelector("[data-mfsl]").value = d.sl; f.querySelector("[data-mftp]").value = d.tp; f.querySelector("[data-mfpk]").value = d.pk; f.querySelector("[data-mfdd]").value = d.dd; f.querySelector("[data-mfhh]").value = d.hh; }
+    if (f.__b) return; f.__b = 1;      // trang được VÁ (không vẽ lại) → khung cũ còn nguyên, không gắn trình xử lý lần 2
     f.querySelectorAll("input").forEach((i) => i.addEventListener("input", () => mfSave(f)));
     f.querySelector("[data-mfpk]").addEventListener("change", (e) => {      // chọn lệnh sàn thử → chép giờ đóng còn lại, cắt lỗ / chốt lời (nếu cùng chiều)
       const o = e.target.selectedOptions[0], g = f.querySelector("[data-mfgo]");
@@ -1981,7 +1986,7 @@ async function viewScalp() {
     requestAnimationFrame(() => clRedo(env, focus)); };
   const clBind = (root = document) => {
     // gõ xong là lọc luôn: trùng đúng 1 mã đã có lệnh → lọc ngay (0,35 giây sau phím cuối); xoá trống → bỏ lọc. Vẫn có nút → và phím Enter
-    $$("[data-clf]", root).forEach((i) => { let tm = 0; i.addEventListener("input", () => { clearTimeout(tm); const env = i.dataset.clf, v = i.value.trim().toUpperCase();
+    $$("[data-clf]", root).filter((i) => !i.__b && (i.__b = 1)).forEach((i) => { let tm = 0; i.addEventListener("input", () => { clearTimeout(tm); const env = i.dataset.clf, v = i.value.trim().toUpperCase();
         tm = setTimeout(() => { if (!v) clGo(env, "", true); else if ([...(document.getElementById(`clc-${env}`)?.options || [])].some((o) => o.value.toUpperCase() === v)) clGo(env, v, true); }, 350); });
       i.addEventListener("change", () => clGo(i.dataset.clf, i.value)); i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clGo(i.dataset.clf, i.value, true); } }); i.addEventListener("search", () => { if (!i.value) clGo(i.dataset.clf, "", true); }); });
     $$("[data-clpick]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clpick, b.dataset.c)));
@@ -2998,16 +3003,26 @@ window.lvDock = function lvDock() {
   if (!lvDockOn()) { if (d) d.classList.remove("on"); return; }
   if (!d) { d = document.createElement("div"); d.id = "pnDock"; d.className = "pn-dock"; d.setAttribute("aria-label", bi("Biểu đồ bot đang theo dõi", "Pinned bot charts")); pulse.after(d);
     d.addEventListener("click", (e) => { if (e.target.closest("[data-pnd]")) lvDockGo(); }); }
+  // chỉ dựng khi khung bảng phụ đang hiện và số liệu đổi (trước: dựng lại 2 biểu đồ mỗi lần trang tự làm mới, kể cả khi khung đang ẩn)
+  let key = ""; try { key = JSON.stringify(window.__lvDk) + innerHeight + (EN ? 1 : 0); } catch (e) { key = String(Math.random()); }
+  if (d.__k === key && d.firstChild) { lvDockVis(); return; }
+  if (!lvDockShow()) { d.__k = ""; d.__stale = 1; lvDockVis(); return; }
+  d.__k = key; d.__stale = 0;
   const D = window.__lvDk, card = (c) => c ? `<div class="pnd-c"><button type="button" class="pnd-t" data-pnd><span>${c.t}</span><b class="${c.vc}">${c.v}</b></button><small class="pnd-s">${c.s}</small>${lineSvg(c.S, { ...c.o, h: innerHeight >= 940 ? 80 : innerHeight >= 820 ? 66 : 54, ny: innerHeight >= 940 ? 2 : 1 })}</div>` : "";
   d.innerHTML = `<div class="pnd-in"><button type="button" class="pnd-h" data-pnd title="${bi("Về biểu đồ lớn", "Back to full charts")}"><b>${D.env}</b><span>${D.rl} ↗</span></button>${card(D.eq)}${card(D.cum)}</div>`;
   try { cbMount(d); } catch (e) { /* bỏ qua */ }
   lvDockVis();
 };
-function lvDockVis() {
-  const d = $("#pnDock"); if (!d) return;
+function lvDockShow() {
   let show = lvDockOn();
   const b = $("#lvEqBox");
   if (show && b && b.isConnected && b.offsetParent !== null) { const r = b.getBoundingClientRect(); show = r.bottom < 90 || r.top > innerHeight - 40; }
+  return show;
+}
+function lvDockVis() {
+  const d = $("#pnDock"); if (!d) return;
+  const show = lvDockShow();
+  if (show && d.__stale) { d.__stale = 0; window.lvDock(); return; }      // số liệu đổi lúc khung đang ẩn → dựng khi cần hiện
   if (d.classList.contains("on") !== show) { d.classList.toggle("on", show); if (show) try { cbMount(d); } catch (e) { /* bỏ qua */ } }
 }
 async function lvDockGo() {

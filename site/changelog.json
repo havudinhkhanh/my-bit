@@ -215,6 +215,15 @@
      "te": "Futures balance refreshes every 20 s instead of 5 min",
      "d": "Ví, khả dụng, tài sản trên thẻ Tài sản futures trước đây chỉ đọc lại 5 phút/lần → đóng lệnh xong vẫn thấy khả dụng thấp hơn ví như còn lệnh mở. Giờ máy chủ riêng đọc số dư cùng lúc với vị thế (20 giây/lần, và ngay sau khi vào / đóng lệnh). Cần cập nhật máy chủ riêng.",
      "de": "Wallet, available and equity on the Futures equity card used to be re-read only every 5 minutes, so after closing a trade available still looked lower than wallet as if a trade were open. The private server now reads the balance together with positions (every 20 s and right after entering / closing). Needs a private-server update."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "hi": 1,
+     "t": "Trang Bot mượt hơn: chỉ cập nhật phần thay đổi, không vẽ lại cả trang",
+     "te": "Smoother Bot page: only the changed parts update, no full redraw",
+     "d": "Mỗi lần làm mới, trang so sánh với bản đang hiện và chỉ sửa đúng ô / thẻ có số mới. Thẻ lệnh giữ nguyên vị trí, ô đang gõ, khung đặt cắt lỗ đang mở và giá chạy trực tiếp không bị nháy hay mất. Tab Lệnh vẽ lại nhanh hơn khoảng 3 lần; khối phân tích và thanh dưới trên điện thoại không dựng lại khi số liệu không đổi.",
+     "de": "On each refresh the page compares with what is on screen and only patches the cells / cards whose numbers changed. Order cards stay in place, inputs being typed, open stop-loss panels and live prices no longer flicker or reset. The Orders tab redraws about 3× faster; the analysis block and the phone bottom bar are not rebuilt when nothing changed."
     }
    ]
   },

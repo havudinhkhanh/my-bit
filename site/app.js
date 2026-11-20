@@ -341,7 +341,7 @@ function cbMount(root) {
       if (!m || (m.W === r.W && m.H === r.H)) return;
       r.W = m.W; r.H = m.H; r.cx = { full: m.full || m.wide };
       if (!m.full) c.style.height = m.H + "px";
-      c.innerHTML = r.draw(m.W, m.H, r.cx) + `<i class="cbv" hidden></i><div class="cbtip" hidden></div>`;
+      r.svg = r.draw(m.W, m.H, r.cx); c.innerHTML = r.svg + `<i class="cbv" hidden></i><div class="cbtip" hidden></div>`;
     };
     const draw = () => paint(measure());
     r.redraw = () => { r.W = 0; draw(); };
@@ -574,7 +574,9 @@ function licAlign(root = document) {
   groups.forEach((L) => { if (!L.some(([, h]) => h)) return; L.forEach(([el, h]) => { if (!h && !el.firstElementChild?.classList.contains("lic")) { const i = document.createElement("i"); i.className = "lic lic-0"; i.setAttribute("aria-hidden", "true"); el.prepend(i); } }); });
 }
 let licRq = 0;
-new MutationObserver(() => { if (!licRq) licRq = requestAnimationFrame(() => { licRq = 0; licAlign(); }); }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+// trước: theo dõi cả đổi CHỮ ở mọi nơi → giá chạy / đồng hồ đếm làm hàm này quét cả trang mỗi khung hình. Giờ chỉ khi có menu / danh sách mới gắn vào
+const LIC_BOX = ".ios-menu-in,.sc-menu,.memenu,.pop";
+new MutationObserver((ms) => { if (licRq) return; for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1 && (n.matches(LIC_BOX) || n.closest?.(LIC_BOX) || n.querySelector?.(LIC_BOX))) { licRq = requestAnimationFrame(() => { licRq = 0; licAlign(); }); return; } }).observe(document.documentElement, { childList: true, subtree: true });
 new MutationObserver((ms) => { if (!cbRq && ms.some((m) => m.addedNodes.length && [...m.addedNodes].some((n) => n.nodeType === 1))) cbRq = requestAnimationFrame(() => { cbRq = 0; cbMount(); }); }).observe(document.documentElement, { childList: true, subtree: true });
 function niceTicks(mn, mx, n) {
   const span = mx - mn || 1, raw = span / Math.max(1, n), p = 10 ** Math.floor(Math.log10(raw)), f = raw / p, st = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * p;
@@ -661,11 +663,61 @@ const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) ==
 //  • chỉ vẽ khi vẫn đang ở đúng trang lúc bắt đầu (anh đã chuyển trang trong lúc tải dữ liệu → bỏ, không vẽ đè trang mới)
 //  • gắn lại "vị trí trong quy trình" / "bước tiếp theo" NGAY trong cùng khung hình (trước đây gắn sau 60 ms → nội dung tụt xuống rồi nhảy lại)
 //  • giữ chiều cao trang trong lúc vẽ để trình duyệt không kéo cuộn lên khi trang tạm ngắn lại
+// ================================================================ VÁ TRANG THAY VÌ VẼ LẠI (morph)
+// Tự làm mới trước đây = gán lại innerHTML của cả trang: trình duyệt dựng lại & tính bố cục MỌI ô (trang Bot 500–6.000 phần tử, 0,1–0,8 giây), mất trạng thái, nháy.
+// Giờ (trang đăng ký trong SR_MORPH): dựng HTML mới ở ngoài (không tính bố cục), rồi đi song song cây cũ – cây mới và CHỈ sửa chỗ khác:
+//   thuộc tính đổi → ghi thuộc tính · chữ đổi → ghi chữ · khác loại thẻ → thay đúng nút đó. Ô không đổi giữ nguyên (không bị gỡ ra / gắn lại) → không tính lại bố cục,
+//   giữ cuộn, con trỏ, biểu đồ đang mở. Khối có data-sig trùng → bỏ qua cả khối.
+//   Ô do giá trực tiếp cập nhật (giá, lời/lỗ, thang giá, đồng hồ…) chỉ thay khi thuộc tính của chính nó đổi – không trả về số cũ của lần vẽ rồi mới nhảy lại.
+const SR_MORPH = [/^#\/bot\/scalp/];
+const MO_LIVE = "[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
+const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded";
+function moAttrs(l, n, live) {
+  let ch = false; const NA = n.attributes;
+  for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; if (l.getAttribute(a.name) !== a.value && !moSkipA(l, a.name)) { l.setAttribute(a.name, a.value); ch = true; } }
+  const LA = l.attributes;
+  if (!live) for (let i = LA.length - 1; i >= 0; i--) { const a = LA[i].name; if (!n.hasAttribute(a) && !moSkipA(l, a)) { l.removeAttribute(a); ch = true; } }      // ô giá trực tiếp: giữ thuộc tính do mã chạy giá gắn thêm (data-v…)
+  return ch;
+}
+function moNode(l, n) {      // true = đã vá tại chỗ · false = phải thay nút
+  if (l.nodeType !== n.nodeType || l.nodeName !== n.nodeName) return false;
+  if (n.nodeType === 3 || n.nodeType === 8) { if (l.nodeValue !== n.nodeValue) l.nodeValue = n.nodeValue; return true; }
+  if (n.nodeType !== 1) return true;
+  const sig = n.getAttribute("data-sig"); if (sig && l.getAttribute("data-sig") === sig) return true;
+  if (l.dataset.m && l.classList.contains("cbox") && n.classList.contains("cbox") && moChart(l, n)) return true;
+  if ((l.id || n.id) && l.id !== n.id) return false;
+  const live = n.matches(MO_LIVE), ch = moAttrs(l, n, live);
+  if (live && !ch && l.childNodes.length) return true;      // ô giá trực tiếp: thuộc tính không đổi → giữ nội dung đang chạy
+  if (l === document.activeElement && (l.tagName === "INPUT" || l.tagName === "TEXTAREA")) return true;
+  if (l.tagName === "TEXTAREA") { if (l.value !== n.value && l !== document.activeElement) l.value = n.value; return true; }
+  moKids(l, n); return true;
+}
+// khung biểu đồ SVG đã vẽ (cbox[data-m]): giữ nguyên khung (kích thước, cỡ S/M/L, trình xử lý rê chuột), chỉ thay hình khi dữ liệu đổi
+function moChart(l, n) {
+  const ro = CB.get(+l.dataset.cb), nid = +n.dataset.cb, rn = CB.get(nid); if (!ro || !rn || ro.el !== l || !ro.W) return false;
+  ro.draw = rn.draw; ro.h = rn.h; ro.ar = rn.ar; CB.delete(nid);
+  const cx = { full: ro.cx?.full }, sv = ro.draw(ro.W, ro.H, cx); ro.cx = cx;
+  if (sv !== ro.svg) { ro.svg = sv; const c = l.querySelector(".cbc"); if (c) c.innerHTML = sv + `<i class="cbv" hidden></i><div class="cbtip" hidden></div>`; }
+  const nk = [...n.children].filter((x) => !x.classList.contains("cbc") && !x.classList.contains("cbt")), lk = [...l.children].filter((x) => !x.classList.contains("cbc") && !x.classList.contains("cbt"));
+  nk.forEach((x, i) => { if (!lk[i]) l.appendChild(x); else if (!moNode(lk[i], x)) l.replaceChild(x, lk[i]); });      // chú thích (số cuối, màu) dưới biểu đồ
+  return true;
+}
+// phần tử do mã gắn thêm SAU khi vẽ (đường dẫn trang, "bước tiếp theo"… có data-nd) không có trong HTML mới → bỏ qua khi so, giữ nguyên chỗ cũ
+//   (trước: chúng làm lệch thứ tự → mọi khối phía sau bị coi là khác → thay hết, mất tác dụng vá)
+const moInj = (x) => x && x.nodeType === 1 && x.hasAttribute("data-nd");
+function moKids(L, N) {
+  let l = L.firstChild, n = N.firstChild;
+  while (n) { while (moInj(l)) l = l.nextSibling; const nn = n.nextSibling; if (!l) { L.appendChild(n); n = nn; continue; } const ln = l.nextSibling; if (!moNode(l, n)) L.replaceChild(n, l); l = ln; n = nn; }
+  while (l) { const x = l.nextSibling; if (!moInj(l)) L.removeChild(l); l = x; }
+}
+function morphHtml(root, html) { const t = document.createElement("template"); t.innerHTML = html; moKids(root, t.content); }
+const IH = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
 let SR_H = null, SR_DUMMY = null;
 async function softRender(fn) {
   const root = $("#app"); if (!root) return fn();
   if (SR_H) return;                                  // đang vẽ lại dở → bỏ lượt này
   const h0 = location.hash, tab0 = CUR_TAB;
+  const useMo = SR_MORPH.some((rx) => rx.test(h0));      // trang đã đăng ký: gán innerHTML của #app = VÁ (morph) thay vì thay hết – nút cũ giữ nguyên nên tự giữ cuộn / mở-đóng
   const panels = [...root.querySelectorAll("section.panel, .panel")];
   let ai = -1, aoff = 0;
   const pKey = (pn, list) => { const h = pn.querySelector(".ph h2, h2")?.textContent?.trim() || ""; return h ? `${h}#${list.filter((x) => (x.querySelector(".ph h2, h2")?.textContent?.trim() || "") === h).indexOf(pn)}` : ""; };
@@ -680,8 +732,8 @@ async function softRender(fn) {
   const ancOf = (el, key) => { if (!key) return null; const [d, i] = key; return [...el.querySelectorAll(`[data-cdd="${CSS.escape(d)}"]`)][i] || null; };
   const anc = (el) => { const r0 = el.getBoundingClientRect().top, R = [...el.querySelectorAll("[data-cdd]")], a = R.find((x) => x.offsetParent && x.getBoundingClientRect().top > r0 + 44);
     if (!a) return null; const d = a.dataset.cdd, i = R.filter((x) => x.dataset.cdd === d).indexOf(a); return [[d, i], a.getBoundingClientRect().top - r0]; };
-  const sc = new Map([...root.querySelectorAll(SCSEL)].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [scKey(el), [el.scrollTop, el.scrollLeft, el.scrollTop > 0 ? anc(el) : null]]));
-  const open = [...root.querySelectorAll("details")].map((d) => d.open);
+  const sc = useMo ? new Map() : new Map([...root.querySelectorAll(SCSEL)].filter((el) => el.scrollTop || el.scrollLeft).map((el) => [scKey(el), [el.scrollTop, el.scrollLeft, el.scrollTop > 0 ? anc(el) : null]]));
+  const open = useMo ? [] : [...root.querySelectorAll("details")].map((d) => d.open);
   const y = scrollY;
   root.style.minHeight = root.offsetHeight + "px";
   SR_H = h0;
@@ -691,11 +743,13 @@ async function softRender(fn) {
       if (v[2]) { const a = ancOf(el, v[2][0]); if (a) { const d = a.getBoundingClientRect().top - el.getBoundingClientRect().top - v[2][1]; if (Math.abs(d) > 1) el.scrollTop += d; } } });
     if (akey) { const L = [...root.querySelectorAll("section.panel, .panel")], A = L.find((pn) => pKey(pn, L) === akey); if (A) { const d = A.getBoundingClientRect().top - aoff; if (Math.abs(d) > 1) scrollTo(0, Math.max(0, scrollY + d)); } } };
   // khối có chữ ký nội dung (data-sig) mà nội dung không đổi → gắn lại ĐÚNG khối cũ thay cho khối vừa vẽ (giữ cuộn, độ rộng cột, trạng thái; không nháy)
-  const keepSig = new Map([...root.querySelectorAll("[data-sig]")].map((el) => [el.dataset.sig, { el, st: [el, ...el.querySelectorAll("*")].filter((x) => x.scrollTop || x.scrollLeft).map((x) => [x, x.scrollTop, x.scrollLeft]) }]));
+  // vá tại chỗ: khối cũ không bị gỡ → không cần nhớ / gắn lại khối, không cần theo dõi thay đổi (trước: đọc vị trí cuộn của MỌI phần tử trong khối có data-sig = rất nặng)
+  const keepSig = useMo ? new Map() : new Map([...root.querySelectorAll("[data-sig]")].map((el) => [el.dataset.sig, { el, st: [el, ...el.querySelectorAll("*")].filter((x) => x.scrollTop || x.scrollLeft).map((x) => [x, x.scrollTop, x.scrollLeft]) }]));
   // gắn lại khối cũ: trình duyệt xoá vị trí cuộn khi khối bị gỡ khỏi trang → đặt lại ngay vị trí cuộn đã lưu của khối & các khung con
   const reuse = () => { if (!keepSig.size) return; root.querySelectorAll("[data-sig]").forEach((el) => { const K = keepSig.get(el.dataset.sig); if (K && K.el !== el && !K.el.isConnected) { el.replaceWith(K.el); K.st.forEach(([x, t, l]) => { x.scrollTop = t; x.scrollLeft = l; }); keepSig.delete(el.dataset.sig); } }); };
-  const mo = new MutationObserver(() => { reuse(); fixNow(); }); mo.observe(root, { childList: true, subtree: true });
-  try { await fn(); } finally { mo.disconnect(); SR_H = null; SR_DUMMY = null; }
+  const mo = new MutationObserver(() => { reuse(); fixNow(); }); if (!useMo) mo.observe(root, { childList: true, subtree: true });
+  if (useMo) Object.defineProperty(root, "innerHTML", { configurable: true, get() { return IH.get.call(root); }, set(v) { if (location.hash === h0 && root.isConnected) morphHtml(root, v); else IH.set.call(root, v); } });
+  try { await fn(); } finally { if (useMo) delete root.innerHTML; mo.disconnect(); SR_H = null; SR_DUMMY = null; }
   if (location.hash !== h0 || CUR_TAB !== tab0) { root.style.minHeight = ""; return; }
   if (CUR_TAB && root.querySelector(".ph") && !root.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB);
   const P2 = [...root.querySelectorAll("section.panel, .panel")];
