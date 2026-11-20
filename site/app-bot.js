@@ -1965,15 +1965,17 @@ async function viewScalp() {
   // 🔎 lọc 1 mã trong Lệnh đã đóng – chỉ dựng lại KHUNG đó (trước: vẽ lại cả trang Bot ~0,5 giây = khựng, giật), giữ con trỏ trong ô gõ
   const clRedo = (env, focus) => {
     const w = document.querySelector(`[data-clw="${env}"]`), f = window.__clRe?.[env]; if (!w || !f) { viewScalp(); return; }
+    if (!focus && document.activeElement && w.contains(document.activeElement)) focus = true;      // đang gõ trong khung → vẽ xong trả con trỏ về ô gõ
     const y = w.getBoundingClientRect().top; w.outerHTML = f();
     const w2 = document.querySelector(`[data-clw="${env}"]`); if (!w2) return;
     clBind(w2); window.__clBindCh?.(w2); rsTables(w2);
     const dy = w2.getBoundingClientRect().top - y; if (Math.abs(dy) > 1) scrollBy(0, dy);      // khung không xê dịch trên màn hình
     if (focus) { const i = w2.querySelector("[data-clf]"); if (i) { i.focus({ preventScroll: true }); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* bỏ qua */ } } }
   };
-  const clGo = (env, v, focus) => { const c = String(v || "").trim().toUpperCase().replace(/USDT$/, "").replace(/[^A-Z0-9一-鿿]/g, "");
+  const clGo = (env, v, focus) => { let c = String(v || "").trim().toUpperCase().replace(/USDT$/, "").replace(/[^A-Z0-9一-鿿]/g, "");
+    if (c) { const O = [...(document.getElementById(`clc-${env}`)?.options || [])].map((o) => o.value.toUpperCase()); if (!O.includes(c)) { const P = O.filter((x) => x.startsWith(c)); if (P.length === 1) c = P[0]; } }      // gõ dở "JC" + Enter / → : chỉ 1 mã khớp đầu → lọc mã đó
     if ((window.__clCoin[env] || "") === c) return; window.__clCoin[env] = c; lsSet("clcoin", window.__clCoin);
-    if (c && !window.__scLed?.data) Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; clRedo(env); }).catch(() => {});
+    if (c && !window.__scLed?.data && Date.now() - (window.__scLedTry || 0) > 60e3 && (window.__scLedTry = Date.now())) Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; clRedo(env); }).catch(() => {});
     requestAnimationFrame(() => clRedo(env, focus)); };
   const clBind = (root = document) => {
     // gõ xong là lọc luôn: trùng đúng 1 mã đã có lệnh → lọc ngay (0,35 giây sau phím cuối); xoá trống → bỏ lọc. Vẫn có nút → và phím Enter

@@ -181,6 +181,14 @@
      "te": "\"Filled\" alert and the trade card now update together",
      "d": "Trước đây thông báo khớp tới ngay nhưng thẻ trên trang vẫn ghi \"chờ khớp\" thêm tới ~10 giây (máy chủ chỉ gửi trạng thái 10 giây/lần). Giờ mỗi lần có thông báo (khớp, đóng, cắt lỗ…) máy chủ riêng gửi trạng thái lên ngay sau đó (cần cập nhật máy chủ riêng).",
      "de": "The fill alert used to arrive instantly while the card still said \"pending\" for up to ~10 s (the server pushed state every 10 s). Now every alert (fill, close, stop…) is followed by an immediate state push (needs a private-server update)."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Ô lọc mã: gõ xong tự lọc, có nút →",
+     "te": "Coin filter: filters as you type, with a → button",
+     "d": "Gõ đúng 1 mã đã có lệnh là tự lọc (không cần Enter); gõ dở vài chữ rồi bấm nút → (hoặc Enter) thì lọc mã duy nhất khớp đầu; xoá trống là bỏ lọc.",
+     "de": "Typing a coin that has trades filters right away (no Enter needed); a partial entry plus the → button (or Enter) picks the only coin that starts with it; clearing removes the filter."
     }
    ]
   },
