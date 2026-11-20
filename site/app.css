@@ -6681,3 +6681,4 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .cl-kp small{font-size:.75rem;color:var(--ink-3)}
 .cl-cum .spk{width:100%;max-width:220px;height:34px;margin-top:2px}
 .cl-sp{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line-2,var(--line));color:var(--ink-2)}
+.cl-more{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px}
