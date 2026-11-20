@@ -325,6 +325,14 @@
      "te": "Desktop: hovering a clipped bar shows a draggable scrollbar",
      "d": "Thanh khung thời gian biểu đồ (1s … Năm), thanh tab, hàng nút lọc… khi dài hơn chỗ hiển thị: rê chuột vào là hiện 1 thanh cuộn mảnh ở mép dưới – kéo được, bấm vào rãnh để nhảy, rời chuột thì mờ đi; nổi đè nên không làm trang xê dịch. Thanh khung thời gian biểu đồ giờ cũng mờ mép báo còn nội dung và kéo bằng chuột được như các thanh khác.",
      "de": "Chart timeframe bars (1s … 1y), tab bars, filter rows… when longer than the space: hovering shows a thin scrollbar at the bottom edge – drag it, click the track to jump, it fades when you leave; it floats so nothing shifts. Chart timeframe bars now also fade at the edges and can be mouse-dragged like the other bars."
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Thanh công cụ biểu đồ: bo góc đồng bộ, nút bật/tắt có chấm tròn",
+     "te": "Chart toolbar: matching corner radii, toggles with a dot",
+     "d": "Dãy khung giờ và nhóm bật/tắt (EMA, Khối lượng, RSI, Tường lệnh, Thanh lý…; SMC, RSI·MACD·CVD… trên trang coin) giờ cùng bo góc (rãnh 10px, nút 7px). Nút bật/tắt không còn là viên trắng nổi rời rạc: chấm tròn đầy = đang bật, rỗng = tắt, nền nhạt. Ô tích ☑ trên trang coin đổi sang cùng kiểu.",
+     "de": "The timeframe bar and the toggle group (EMA, Volume, RSI, Order walls, Liq…; SMC, RSI·MACD·CVD… on the coin page) now share corner radii (track 10px, buttons 7px). Toggles are no longer floating white chips: a filled dot = on, hollow = off, on a light tint. Checkboxes on the coin page use the same style."
     }
    ]
   },

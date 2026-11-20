@@ -6740,3 +6740,18 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .hsb{position:fixed;z-index:1700;height:7px;opacity:0;transition:opacity .18s ease;cursor:pointer}.hsb.on{opacity:1}.hsb[hidden]{display:none}
 .hsb-t{position:absolute;left:0;top:1.5px;height:4px;border-radius:3px;background:color-mix(in srgb,var(--ink) 34%,transparent);transition:height .12s ease,top .12s ease,background .12s ease;cursor:grab}
 .hsb:hover .hsb-t,.hsb.drag .hsb-t{top:0;height:7px;background:color-mix(in srgb,var(--ink) 52%,transparent)}.hsb.drag .hsb-t{cursor:grabbing}
+/* 🎛 nhóm khung giờ (chọn 1) & nhóm bật/tắt (chọn nhiều) đứng cạnh nhau: CÙNG bo góc đồng tâm (rãnh 10px · nút 7px = 10 − lề 3) –
+   trước rãnh 10/8px, nút 5/6px lệch nhau; nút đang bật là viên trắng nổi → cả dãy trông như nút rời đặt trên nền xám.
+   Bật/tắt giờ = chấm tròn đầu nút (đầy khi bật, rỗng khi tắt) + nền nhạt – khác kiểu "chọn 1" (viên trượt) mà vẫn cùng bộ */
+:is(.cv-chart .tfseg,.occ-tf):not(#_t):not(#_u){border-radius:10px!important;padding:3px!important}
+:is(.cv-chart .tfseg,.occ-tf):not(#_t):not(#_u)>:is(button,.gthumb){border-radius:7px!important}
+:is(.occ-tg,.cv-chart .cops):not(#_t):not(#_u){border-radius:10px!important;padding:3px!important;gap:2px!important}
+:is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u){position:relative;display:inline-flex;align-items:center;gap:6px;border-radius:7px!important;padding:0 10px 0 9px!important;background:transparent!important;box-shadow:none!important;color:var(--ink-3)}
+:is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u)::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ink) 30%,transparent);transition:background-color .15s,box-shadow .15s}
+:is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u):hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
+:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u){color:var(--ink);background:color-mix(in srgb,var(--brand) 11%,transparent)!important;box-shadow:none!important}
+:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u)::before{background:var(--brand);box-shadow:none}
+:root:not([data-theme=light]) :is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u){background:color-mix(in srgb,var(--brand) 16%,transparent)!important}
+.cv-chart .cops .chk:not(#_t):not(#_u) input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}      /* ô tích gốc ẩn đi (vẫn bấm được qua nhãn) – chấm tròn thay thế */
+.cv-chart .cops .chk:not(#_t):not(#_u):has(input:focus-visible){outline:2px solid var(--brand);outline-offset:1px}
+.occ-tg button.lk:not(#_t):not(#_u)::before{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brass,var(--brand)) 60%,transparent)}
