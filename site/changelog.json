@@ -110,6 +110,16 @@
      "te": "Wick Catcher: pending orders no longer left behind on Binance",
      "d": "Khi lần bắt đóng, bot huỷ các lệnh chờ còn lại – trước đây nếu sàn trả lỗi lúc huỷ thì bot bỏ qua im lặng, lệnh chờ nằm lại và khớp nhiều giờ sau thành một \"lệnh tay\" anh không đặt. Giờ bot kiểm lại từng lệnh sau khi huỷ, thử lại tới 3 lần, và cứ 2 phút dọn mọi lệnh chờ sót của các lần bắt đã đóng (ghi rõ trong Sự kiện). Cần cập nhật máy chủ riêng.",
      "de": "When a catch closes the bot cancels its leftover pending orders – a cancel error used to be ignored, leaving the order on Binance to fill hours later as a \"manual trade\" you never placed. The bot now verifies each cancel, retries up to 3 times, and every 2 minutes sweeps any leftover pending orders of closed catches (logged in Events). Requires a private-server update."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "go": "#/bot/scalp",
+     "f": "bot",
+     "t": "Sàn thử & lệnh bot: thang giá, % tài khoản, tóm tắt rủi ro",
+     "te": "Paper & bot trades: price ladder, % of account, risk summary",
+     "d": "Thẻ lệnh sàn thử (Bắt râu sập, Lướt giây, Short coin bơm / niêm yết, Định lượng) và lệnh bot trên Binance cũng có thang giá cắt lỗ · vào · chốt (· giá ×2 với lệnh Short x1), lời/lỗ theo % tài khoản; đầu khung \"Đang mở & đang chờ\" của sàn thử có tóm tắt giá trị lệnh đang mở, lỗ tối đa nếu cùng chạm cắt lỗ và số lệnh không cắt lỗ.",
+     "de": "Paper trade cards (Wick Catcher, Scalp, pumped / new-listing shorts, Quant) and bot trades on Binance also get the stop · entry · target ladder (· price ×2 for x1 shorts) and P/L as % of account; the paper \"Open & pending\" panel gets a summary of open position value, max loss if every stop is hit and trades without a stop."
     }
    ]
   },
