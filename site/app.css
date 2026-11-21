@@ -6838,3 +6838,11 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
   body{padding-bottom:calc(var(--tb-h) + 14px + var(--tb-b))!important}
   body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(var(--tb-h) + 12px + var(--tb-b))!important}
 }
+/* 📱 2 góc dưới thanh tab đồng tâm với góc màn hình iPhone (--dev-r do app.js nhận theo đời máy): bo = độ bo màn hình − khoảng cách tới mép (12px); máy khác giữ 16px */
+@media (max-width:979px){
+  .tabs:not(#_t){border-bottom-left-radius:max(16px,calc(var(--dev-r,28px) - 12px))!important;border-bottom-right-radius:max(16px,calc(var(--dev-r,28px) - 12px))!important}
+}
+@media (max-width:979px){
+  .tabs.gnav>.nthumb.mthumb.e-l{border-bottom-left-radius:max(10px,calc(var(--dev-r,30px) - 20px))!important}
+  .tabs.gnav>.nthumb.mthumb.e-r{border-bottom-right-radius:max(10px,calc(var(--dev-r,30px) - 20px))!important}
+}

@@ -236,6 +236,12 @@
      "a": "ui",
      "t": "Điện thoại: thanh tab dưới hạ thấp sát đáy hơn (chừa vừa thanh vuốt Home), trang có thêm chỗ hiển thị",
      "te": "Phone: the bottom tab bar sits lower, just above the Home indicator, giving the page more room"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "iPhone: 2 góc dưới thanh tab bo đồng tâm với góc màn hình theo từng đời máy (X → 17 Pro Max); máy khác giữ bo mặc định",
+     "te": "iPhone: the tab bar's bottom corners now follow the screen's corner radius for each model (X → 17 Pro Max); other phones keep the default"
     }
    ]
   },
