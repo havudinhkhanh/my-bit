@@ -296,6 +296,12 @@
      "a": "ui",
      "t": "Đang mở biểu đồ lệnh mà vuốt từ mép phải: Bảng phụ / bảng \"Thêm\" giờ hiện đè lên trên, không bị chìm phía dưới",
      "te": "Swiping from the right edge over the order chart now shows the side panel / More on top instead of underneath"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Vuốt từ mép phải để mở Bảng phụ khi đang xem biểu đồ lệnh: biểu đồ phía sau không còn bị kéo xuống giật giật theo",
+     "te": "Swiping the side panel open over the order chart no longer drags the chart behind it"
     }
    ]
   },

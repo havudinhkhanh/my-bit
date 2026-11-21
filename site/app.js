@@ -1313,7 +1313,7 @@ const SHEETS = [
       const top = sh.getBoundingClientRect().top, y = e.touches[0].clientY, sc = scroller(e.target, sh);
       const head = y - top < 56;
       if (!head && sc && sc.scrollTop > 0) return;
-      D = { sh, close, y0: y, t0: Date.now(), dy: 0, head, sc, on: false };
+      D = { sh, close, x0: e.touches[0].clientX, y0: y, t0: Date.now(), dy: 0, head, sc, on: false };
       return;
     }
   }, { passive: true });
@@ -1322,6 +1322,7 @@ const SHEETS = [
     const dy = e.touches[0].clientY - D.y0;
     if (!D.on) {
       if (dy < -4 && !D.head) { D = null; return; }            // vuốt lên trong nội dung = cuộn bình thường
+      if (Math.abs(e.touches[0].clientX - D.x0) > Math.abs(dy)) { D = null; return; }      // vuốt ngang (mở Bảng phụ, kéo nến…) ≠ kéo xuống để đóng
       if (dy < 8) return;
       D.on = true; D.sh.style.transition = "none";
     }
@@ -1548,9 +1549,13 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
     if (!open && x >= innerWidth - EDGE && !busy() && !(NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
-  }, { passive: true });
+    if (st && (st.m === "open" || st.m === "more")) e.stopPropagation();
+  }, { passive: true, capture: true });
+  // cú vuốt bắt đầu ở MÉP PHẢI thuộc về Bảng phụ / "Thêm": nuốt luôn sự kiện (pha bắt) → biểu đồ / bảng phía dưới không nhận
+  //   (trước đây biểu đồ lệnh phía sau vẫn bị kéo thang giá / bảng bị kéo xuống theo → giật giật)
+  const edgeOwn = () => st && (st.m === "open" || st.m === "more");
   addEventListener("touchmove", (e) => {
-    if (!st) return; const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
+    if (!st) return; if (edgeOwn()) e.stopPropagation(); const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
     // 👉 Bảng phụ đang mở mà vuốt sang TRÁI thêm 1 lần nữa → bảng "Thêm" trượt ra đè lên (mọi trang) · trang không có Bảng phụ: vuốt mép phải → "Thêm"
     if (st.m === "close" && !st.lock && dx < -10 && Math.abs(dx) > Math.abs(dy) * 1.3) st.m = "more2";
     if (st.m === "more" || st.m === "more2" || st.m === "mclose") {
@@ -1574,9 +1579,9 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     if (e.cancelable) e.preventDefault();
     st.off = st.m === "open" ? Math.max(0, Math.min(st.W, st.W + dx)) : Math.max(0, Math.min(st.W, dx));
     N.style.transform = `translateX(${st.off}px)`; S.style.opacity = String(1 - st.off / st.W);
-  }, { passive: false });
-  const end = () => {
-    if (!st) return; const s = st; st = null;
+  }, { passive: false, capture: true });
+  const end = (e) => {
+    if (!st) return; if (edgeOwn()) e?.stopPropagation?.(); const s = st; st = null;
     if (s.m === "more" || s.m === "more2" || s.m === "mclose") {
       if (!s.lock) return;
       const shown = 1 - s.off / s.W, v = (s.m === "mclose" ? s.off : s.W - s.off) / Math.max(1, Date.now() - s.t);
@@ -1591,7 +1596,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     if (open && s.m === "open") navigator.vibrate?.(6);
     pnSheet(open);
   };
-  addEventListener("touchend", end); addEventListener("touchcancel", end);
+  addEventListener("touchend", end, { capture: true }); addEventListener("touchcancel", end, { capture: true });
 })();
 function pageIn() {
   if (window.__vt) return;
