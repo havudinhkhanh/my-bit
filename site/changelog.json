@@ -308,6 +308,12 @@
      "a": "ui",
      "t": "Mép phải: quét nhanh → Bảng phụ · giữ ngón tay ở mép 1 chút → bảng \"Thêm\" hé ra, kéo tiếp hoặc thả tay là mở",
      "te": "Right edge: quick swipe → side panel · hold at the edge a moment → More peeks out; drag or release to open"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: giữ lâu ở bất kỳ đâu không còn bôi chọn chữ / hiện menu Sao chép – chỉ ô nhập liệu mới chọn được",
+     "te": "Phone: long-pressing anywhere no longer selects text or shows the Copy menu – only input fields do"
     }
    ]
   },

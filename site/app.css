@@ -6873,3 +6873,9 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 body:has(.occ) .pnshade{z-index:1305!important}
 body:has(.occ) .pnav{z-index:1310!important}
 body:has(.occ) .msheet{z-index:1320!important}
+/* điện thoại / máy tính bảng: cả app KHÔNG bôi chọn chữ / không hiện menu Sao chép khi giữ lâu (như ứng dụng thật) –
+   chỉ ô nhập liệu và vài chỗ cần chép (mã khoá, nội dung thông báo, .sel-ok) mới chọn được */
+@media (pointer:coarse){
+  html,body,body *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  :is(input,textarea,select,[contenteditable],.sc-kv code,.ntpk-card,.sel-ok),:is([contenteditable],.ntpk-card,.sel-ok) *{-webkit-user-select:text!important;user-select:text!important;-webkit-touch-callout:default!important}
+}
