@@ -206,6 +206,12 @@
      "d": "Thay cho giữ ngón tay trên điện thoại (vẫn dùng được). Trên máy tính: phím ↑ ↓ chỉnh, Enter chọn, Esc huỷ.",
      "de": "Replaces long-press on phones (still works). Desktop: ↑ ↓ to adjust, Enter to pick, Esc to cancel.",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: giữ lâu lên nút, thanh chọn, biểu đồ không còn bôi đen chữ và bật menu Cắt / Sao chép của iPhone",
+     "te": "Phone: long-pressing buttons, pickers and charts no longer selects text or pops the iPhone Cut / Copy menu"
     }
    ]
   },

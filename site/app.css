@@ -6817,3 +6817,9 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .pxp-bar{position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:flex-end;gap:6px}
 .pxp-bar button:not(#_x){height:38px;min-width:42px;min-height:0!important;padding:0 12px!important;margin:0!important;border:1px solid var(--bd)!important;border-radius:var(--r-in,8px)!important;background:color-mix(in srgb,var(--surface) 92%,transparent)!important;color:var(--ink)!important;font:600 .875rem/1 inherit;box-shadow:0 4px 12px -4px rgba(0,0,0,.25)!important;cursor:pointer;touch-action:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .pxp-bar button.ok:not(#_x){background:var(--brass,var(--brand))!important;border-color:transparent!important;color:#1b1408!important}
+/* ✋ đè (giữ lâu) lên nút / thanh chọn / biểu đồ trên điện thoại: KHÔNG bôi đen chữ, KHÔNG bật menu Cắt · Sao chép · Tra cứu của iOS
+   (ô nhập, vùng chữ đọc được – bảng, ghi chú, nhật ký – vẫn bôi đen & sao chép bình thường) */
+@media (pointer:coarse){
+  :is(button,[role=button],[role=tab],[role=menuitem],[role=option],a.btn,.btn,.mchip,.chip,.pill,summary,label,.seg,.bseg,.sc-tabs,.sc-om,.sc-env,.gseg,.tfseg,.occ-tf,.occ-tg,.cops,.botseg,.subtabs,.crumb,.ios-menu,.ios-sheet,.px2,.px-r,.pxp,.pxp *,.pxp-b,.cl-chips,.cl-dd,.occ-st,.sc-oc .r1,.sc-oc .sc-lad,.sc-oc .r4,.tv-lightweight-charts,.cv-chart,#occC,.occ-rsi,.lwbox,.cbox,.top,.mun,#mun):not(input):not(textarea){-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+  :is(button,[role=button],a.btn,.btn,.mchip,.chip) *{-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+}
