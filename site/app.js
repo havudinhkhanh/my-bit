@@ -1368,7 +1368,7 @@ function navRoute() {
   const isX = (el) => { if (!el || el === document.body || el === document.documentElement) return false; const cs = getComputedStyle(el); return /(auto|scroll)/.test(cs.overflowX) && el.scrollWidth > el.clientWidth + 2; };
   const findX = (t) => { for (let el = t; el && el !== document.body; el = el.parentElement) { if (isX(el)) return el; } return null; };
   const mark = (el) => { const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2; el.classList.toggle("ovx-l", l); el.classList.toggle("ovx-r", r); };
-  const SEL = ".sc-tabs, .bseg, .sc-evf, .sc-sub2, .tabs, .subtabs, .seg, .sc-om, .sc-snav, .botseg, .nt-cs";      // + thanh khung thời gian biểu đồ (.seg), hàng phương pháp… (trước thiếu → không mờ mép, không kéo được)
+  const SEL = ".sc-tabs, .bseg, .sc-evf, .sc-sub2, .tabs, .subtabs, .seg, .sc-om, .sc-snav, .botseg, .nt-cs, .cl-chips";      // + thanh khung thời gian biểu đồ (.seg), hàng phương pháp… (trước thiếu → không mờ mép, không kéo được)
   const scan = () => document.querySelectorAll(SEL).forEach((el) => { if (isX(el)) { mark(el); if (!el.__ovx) { el.__ovx = 1; el.addEventListener("scroll", () => mark(el), { passive: true }); } } else el.classList.remove("ovx-l", "ovx-r"); });
   new MutationObserver(() => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); }).observe(document.documentElement, { childList: true, subtree: true });
   addEventListener("resize", () => { clearTimeout(scan.t); scan.t = setTimeout(scan, 120); });

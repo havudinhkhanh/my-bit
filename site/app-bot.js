@@ -1286,8 +1286,12 @@ async function viewScalp() {
     const all = typeof jRows === "function" ? jRows(window.__scLed?.data || null, X).filter((r) => r.env === env) : [];
     const cnt = {}; all.forEach((r) => { const c = coinOf(r.k); cnt[c] = (cnt[c] || 0) + 1; }); R.forEach((h) => { const c = clSym(h).toUpperCase(); if (!cnt[c]) cnt[c] = R.filter((x) => clSym(x).toUpperCase() === c).length; });
     const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
-    const bar = `<div class="cl-flt" role="search"><label class="cl-in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" list="clc-${env}" data-clf="${env}" value="" placeholder="${cur ? bi("Đổi mã", "Change") : bi("Lọc mã", "Filter coin")}" title="${bi("Lọc 1 mã – xem xưa giờ lời / lỗ mã đó", "Filter one coin – its all-time P/L")}" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="${bi("Lọc theo mã", "Filter by coin")}"><button type="button" class="cl-go" data-clgo="${env}" aria-label="${bi("Lọc", "Filter")}" title="${bi("Lọc", "Filter")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></label><datalist id="clc-${env}">${top.map(([c, n]) => `<option value="${esc(c)}">${n} ${bi("lệnh", "trades")}</option>`).join("")}</datalist>
-      ${cur ? `<button type="button" class="mchip on" data-clfx="${env}">${esc(cur)} ✕</button>` : top.slice(0, 6).map(([c, n]) => `<button type="button" class="mchip" data-clpick="${env}" data-c="${esc(c)}">${esc(c)} <small class="faint">${n}</small></button>`).join("")}</div>`;
+    const pl = {}; all.forEach((r) => { const c = coinOf(r.k); pl[c] = (pl[c] || 0) + (+r.pnl || 0); });      // lời/lỗ xưa giờ từng mã → hiện trong danh sách chọn
+    const SV = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+    // hàng 1: ô tìm TRÀN HẾT hàng + nút ▾ mở danh sách mã (danh sách tự vẽ, gọn đẹp – thay gợi ý mặc định của trình duyệt) · hàng 2: mã đang lọc + mã hay giao dịch (cuộn ngang 1 dòng)
+    const bar = `<div class="cl-flt" role="search"><div class="cl-in">${SV} stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" data-clf="${env}" value="" placeholder="${cur ? bi(`Đổi mã – đang lọc ${cur}`, `Change – filtering ${cur}`) : bi("Lọc 1 mã – xem lời / lỗ xưa giờ", "Filter one coin – all-time P/L")}" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="search" role="combobox" aria-expanded="false" aria-controls="cldd-${env}" aria-label="${bi("Lọc theo mã", "Filter by coin")}"><button type="button" class="cl-go" data-clgo="${env}" aria-label="${bi("Lọc", "Filter")}" title="${bi("Lọc", "Filter")}">${SV} stroke-width="2.4"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button><button type="button" class="cl-ddb" data-cldd="${env}" aria-label="${bi("Chọn mã", "Pick a coin")}" title="${bi("Chọn mã", "Pick a coin")}">${SV} stroke-width="2.4"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="cl-dd" id="cldd-${env}" role="listbox" hidden>${top.map(([c, n]) => `<button type="button" role="option" class="cl-o${c === cur ? " on" : ""}" data-clpick="${env}" data-c="${esc(c)}"><b>${esc(c)}</b><small>${n} ${bi("lệnh", "trades")}</small>${isNum(pl[c]) ? `<em class="${cls(pl[c])}">${sg$(pl[c])}</em>` : "<em></em>"}</button>`).join("")}<p class="cl-dd0" hidden>${bi("Không có mã nào khớp", "No matching coin")}</p></div></div>
+      <div class="cl-chips">${cur ? `<button type="button" class="mchip on" data-clfx="${env}">${esc(cur)} ✕</button>` : ""}${top.filter(([c]) => c !== cur).slice(0, 8).map(([c, n]) => `<button type="button" class="mchip" data-clpick="${env}" data-c="${esc(c)}">${esc(c)} <small class="faint">${n}</small></button>`).join("")}</div></div>`;
     if (!cur) return { R, head: bar };
     const R2 = R.filter((h) => clSym(h).toUpperCase() === cur), A = all.filter((r) => coinOf(r.k) === cur);
     const fromLed = A.length >= R2.length && A.length > 0;
@@ -2023,21 +2027,33 @@ async function viewScalp() {
     const w2 = document.querySelector(`[data-clw="${env}"]`); if (!w2) return;
     clBind(w2); window.__clBindCh?.(w2); rsTables(w2);
     const dy = w2.getBoundingClientRect().top - y; if (Math.abs(dy) > 1) scrollBy(0, dy);      // khung không xê dịch trên màn hình
-    if (focus) { const i = w2.querySelector("[data-clf]"); if (i) { i.focus({ preventScroll: true }); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* bỏ qua */ } } }
+    if (focus) { const i = w2.querySelector("[data-clf]"); if (i) { i.focus({ preventScroll: true }); clDd(i, false); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* bỏ qua */ } } }
   };
+  // ▾ danh sách mã: mở khi chạm ô / nút ▾, lọc theo chữ đang gõ (khớp đầu xếp trước), chạm ra ngoài / Esc thì đóng
+  const clDd = (i, open, all) => { const w = i?.parentElement, dd = w?.querySelector(".cl-dd"); if (!dd) return;
+    if (!open) { dd.hidden = true; w.classList.remove("dd-on"); i.setAttribute("aria-expanded", "false"); return; }
+    const q = all ? "" : i.value.trim().toUpperCase(); let n = 0;
+    dd.querySelectorAll(".cl-o").forEach((o) => { const c = o.dataset.c.toUpperCase(), ok = !q || c.includes(q); o.hidden = !ok; o.classList.remove("kb"); o.style.order = ok && q && !c.startsWith(q) ? 1 : 0; if (ok) n++; });
+    dd.querySelector(".cl-dd0").hidden = n > 0; dd.hidden = false; w.classList.add("dd-on"); i.setAttribute("aria-expanded", "true");
+    if (!window.__clDdOut) { window.__clDdOut = 1; document.addEventListener("pointerdown", (e) => { document.querySelectorAll(".cl-in.dd-on").forEach((x) => { if (!x.contains(e.target)) clDd(x.querySelector("[data-clf]"), false); }); }, true); } };
   const clGo = (env, v, focus) => { let c = String(v || "").trim().toUpperCase().replace(/USDT$/, "").replace(/[^A-Z0-9一-鿿]/g, "");
-    if (c) { const O = [...(document.getElementById(`clc-${env}`)?.options || [])].map((o) => o.value.toUpperCase()); if (!O.includes(c)) { const P = O.filter((x) => x.startsWith(c)); if (P.length === 1) c = P[0]; } }      // gõ dở "JC" + Enter / → : chỉ 1 mã khớp đầu → lọc mã đó
+    if (c) { const O = [...document.querySelectorAll(`#cldd-${env} [data-c]`)].map((o) => o.dataset.c.toUpperCase()); if (!O.includes(c)) { const P = O.filter((x) => x.startsWith(c)); if (P.length === 1) c = P[0]; } }      // gõ dở "JC" + Enter / → : chỉ 1 mã khớp đầu → lọc mã đó
     if ((window.__clCoin[env] || "") === c) return; window.__clCoin[env] = c; lsSet("clcoin", window.__clCoin);
     if (c && !window.__scLed?.data && Date.now() - (window.__scLedTry || 0) > 60e3 && (window.__scLedTry = Date.now())) Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; clRedo(env); }).catch(() => {});
     requestAnimationFrame(() => clRedo(env, focus)); };
   const clBind = (root = document) => {
     // gõ xong là lọc luôn: trùng đúng 1 mã đã có lệnh → lọc ngay (0,35 giây sau phím cuối). Vẫn có nút → và phím Enter. Bỏ lọc = nút "MÃ ✕" (ô gõ luôn trống, gọn)
     $$("[data-clf]", root).filter((i) => !i.__b && (i.__b = 1)).forEach((i) => { let tm = 0; i.addEventListener("input", () => { clearTimeout(tm); const env = i.dataset.clf, v = i.value.trim().toUpperCase();
-        tm = setTimeout(() => { if (v && [...(document.getElementById(`clc-${env}`)?.options || [])].some((o) => o.value.toUpperCase() === v)) clGo(env, v, true); }, 350); });
-      i.addEventListener("change", () => { if (i.value.trim()) clGo(i.dataset.clf, i.value); }); i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (i.value.trim()) clGo(i.dataset.clf, i.value, true); } }); });
+        clDd(i, true); tm = setTimeout(() => { if (v && [...document.querySelectorAll(`#cldd-${env} [data-c]`)].some((o) => o.dataset.c.toUpperCase() === v)) clGo(env, v, true); }, 350); });
+      i.addEventListener("focus", () => clDd(i, true));
+      i.addEventListener("change", () => { if (i.value.trim()) clGo(i.dataset.clf, i.value); }); i.addEventListener("keydown", (e) => { const dd = i.parentElement.querySelector(".cl-dd"), O = dd ? [...dd.querySelectorAll(".cl-o:not([hidden])")] : [], k = O.findIndex((x) => x.classList.contains("kb"));
+        if ((e.key === "ArrowDown" || e.key === "ArrowUp") && O.length) { e.preventDefault(); clDd(i, true); const n = (k + (e.key === "ArrowDown" ? 1 : -1) + O.length) % O.length; O.forEach((x, j) => x.classList.toggle("kb", j === n)); O[n].scrollIntoView({ block: "nearest" }); return; }
+        if (e.key === "Escape") { clDd(i, false); return; }
+        if (e.key === "Enter") { e.preventDefault(); if (k >= 0) { clDd(i, false); clGo(i.dataset.clf, O[k].dataset.c); } else if (i.value.trim()) clGo(i.dataset.clf, i.value, true); } }); });
     $$("[data-clpick]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clpick, b.dataset.c)));
     $$("[data-clgo]", root).forEach((b) => (b.onclick = (e) => { e.preventDefault(); const i = b.parentElement.querySelector("[data-clf]"); if (i) clGo(b.dataset.clgo, i.value, true); }));
     $$("[data-clfx]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clfx, "")));
+    $$("[data-cldd]", root).forEach((b) => (b.onclick = (e) => { e.preventDefault(); const i = b.parentElement.querySelector("[data-clf]"), dd = b.parentElement.querySelector(".cl-dd"); clDd(i, !!dd?.hidden, true); }));
     $$("[data-clmore]", root).forEach((b) => (b.onclick = () => { const e2 = b.dataset.clmore; (window.__clDays ||= {})[e2] = ((window.__clDays[e2]) || 7) + 7; b.disabled = true; requestAnimationFrame(() => clRedo(e2)); }));
   };
   clBind();

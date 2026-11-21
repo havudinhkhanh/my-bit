@@ -33,8 +33,8 @@
     {
      "c": "imp",
      "a": "ui",
-     "t": "Lệnh đã đóng: ô lọc 1 mã gọn lại (\"Lọc mã\"), chạm vào mới nở ra; mã đang lọc chỉ hiện ở nút \"MÃ ✕\", không lặp trong ô",
-     "te": "Closed trades: the coin filter box is compact (\"Filter coin\") and widens when tapped; the active coin shows only on its \"COIN ✕\" chip",
+     "t": "Lệnh đã đóng: ô lọc mã tràn hết hàng, thấp gọn, có nút ▾ mở danh sách mã (số lệnh + lời/lỗ xưa giờ từng mã); các mã hay giao dịch nằm hàng dưới, vuốt ngang",
+     "te": "Closed trades: full-width, slimmer coin filter with a ▾ list of coins (trade count + all-time P/L); frequent coins sit on the row below, swipeable",
      "f": "bot",
      "go": "#/bot/scalp"
     }
