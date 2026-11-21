@@ -29,6 +29,14 @@
      "de": "The colour came from the server's earlier snapshot and didn't follow the live price.",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Lệnh đã đóng: ô lọc 1 mã gọn lại (\"Lọc mã\"), chạm vào mới nở ra; mã đang lọc chỉ hiện ở nút \"MÃ ✕\", không lặp trong ô",
+     "te": "Closed trades: the coin filter box is compact (\"Filter coin\") and widens when tapped; the active coin shows only on its \"COIN ✕\" chip",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },

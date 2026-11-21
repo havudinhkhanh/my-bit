@@ -6767,3 +6767,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 @media (max-width:979px){.tabs:not(#_t),.pnfab,.sc-setfab{translate:0 var(--vvd,0px)}}
 /* 🌙 ánh sáng ấm: nền html đã ngả ấm sẵn (cho vùng kéo nảy trên cùng) mà lớp phủ ấm vẫn trùm lên → trang ngắn (ít lệnh, trang trống) lộ dải cam đậm phía dưới. body phủ kín màn hình → cả trang đều một màu */
 html[data-nl] body{min-height:100vh;min-height:100dvh}
+/* 🔎 ô lọc 1 mã (Lệnh đã đóng): gọn vừa chữ "Lọc mã" (mã đang lọc hiện ở nút "MÃ ✕" bên cạnh) – chạm vào / đang gõ thì nở ra cho dễ gõ */
+.cl-flt .cl-in:not(#_x){flex:0 0 auto;width:118px;max-width:100%;transition:width .22s var(--ease-out,cubic-bezier(.2,.8,.2,1))}
+.cl-flt .cl-in:not(#_x):focus-within,.cl-flt .cl-in:not(#_x):has(input:not(:placeholder-shown)){width:min(220px,100%)}
+.cl-flt .cl-in input[type=search]:not(#_x):placeholder-shown{padding-right:12px}

@@ -1286,7 +1286,7 @@ async function viewScalp() {
     const all = typeof jRows === "function" ? jRows(window.__scLed?.data || null, X).filter((r) => r.env === env) : [];
     const cnt = {}; all.forEach((r) => { const c = coinOf(r.k); cnt[c] = (cnt[c] || 0) + 1; }); R.forEach((h) => { const c = clSym(h).toUpperCase(); if (!cnt[c]) cnt[c] = R.filter((x) => clSym(x).toUpperCase() === c).length; });
     const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]);
-    const bar = `<div class="cl-flt" role="search"><label class="cl-in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" list="clc-${env}" data-clf="${env}" value="${esc(cur)}" placeholder="${bi("Lọc 1 mã – xem xưa giờ lời / lỗ mã đó", "Filter one coin – its all-time P/L")}" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="${bi("Lọc theo mã", "Filter by coin")}"><button type="button" class="cl-go" data-clgo="${env}" aria-label="${bi("Lọc", "Filter")}" title="${bi("Lọc", "Filter")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></label><datalist id="clc-${env}">${top.map(([c, n]) => `<option value="${esc(c)}">${n} ${bi("lệnh", "trades")}</option>`).join("")}</datalist>
+    const bar = `<div class="cl-flt" role="search"><label class="cl-in"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" list="clc-${env}" data-clf="${env}" value="" placeholder="${cur ? bi("Đổi mã", "Change") : bi("Lọc mã", "Filter coin")}" title="${bi("Lọc 1 mã – xem xưa giờ lời / lỗ mã đó", "Filter one coin – its all-time P/L")}" autocomplete="off" spellcheck="false" enterkeyhint="search" aria-label="${bi("Lọc theo mã", "Filter by coin")}"><button type="button" class="cl-go" data-clgo="${env}" aria-label="${bi("Lọc", "Filter")}" title="${bi("Lọc", "Filter")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></label><datalist id="clc-${env}">${top.map(([c, n]) => `<option value="${esc(c)}">${n} ${bi("lệnh", "trades")}</option>`).join("")}</datalist>
       ${cur ? `<button type="button" class="mchip on" data-clfx="${env}">${esc(cur)} ✕</button>` : top.slice(0, 6).map(([c, n]) => `<button type="button" class="mchip" data-clpick="${env}" data-c="${esc(c)}">${esc(c)} <small class="faint">${n}</small></button>`).join("")}</div>`;
     if (!cur) return { R, head: bar };
     const R2 = R.filter((h) => clSym(h).toUpperCase() === cur), A = all.filter((r) => coinOf(r.k) === cur);
@@ -2018,7 +2018,7 @@ async function viewScalp() {
   // 🔎 lọc 1 mã trong Lệnh đã đóng – chỉ dựng lại KHUNG đó (trước: vẽ lại cả trang Bot ~0,5 giây = khựng, giật), giữ con trỏ trong ô gõ
   const clRedo = (env, focus) => {
     const w = document.querySelector(`[data-clw="${env}"]`), f = window.__clRe?.[env]; if (!w || !f) { viewScalp(); return; }
-    if (!focus && document.activeElement && w.contains(document.activeElement)) focus = true;      // đang gõ trong khung → vẽ xong trả con trỏ về ô gõ
+    if (!focus && document.activeElement?.matches?.("[data-clf]") && w.contains(document.activeElement)) focus = true;      // đang gõ trong khung → vẽ xong trả con trỏ về ô gõ
     const y = w.getBoundingClientRect().top; w.outerHTML = f();
     const w2 = document.querySelector(`[data-clw="${env}"]`); if (!w2) return;
     clBind(w2); window.__clBindCh?.(w2); rsTables(w2);
@@ -2031,10 +2031,10 @@ async function viewScalp() {
     if (c && !window.__scLed?.data && Date.now() - (window.__scLedTry || 0) > 60e3 && (window.__scLedTry = Date.now())) Store.get("scalpledger").then((r) => { window.__scLed = { t: Date.now(), data: r.data }; clRedo(env); }).catch(() => {});
     requestAnimationFrame(() => clRedo(env, focus)); };
   const clBind = (root = document) => {
-    // gõ xong là lọc luôn: trùng đúng 1 mã đã có lệnh → lọc ngay (0,35 giây sau phím cuối); xoá trống → bỏ lọc. Vẫn có nút → và phím Enter
+    // gõ xong là lọc luôn: trùng đúng 1 mã đã có lệnh → lọc ngay (0,35 giây sau phím cuối). Vẫn có nút → và phím Enter. Bỏ lọc = nút "MÃ ✕" (ô gõ luôn trống, gọn)
     $$("[data-clf]", root).filter((i) => !i.__b && (i.__b = 1)).forEach((i) => { let tm = 0; i.addEventListener("input", () => { clearTimeout(tm); const env = i.dataset.clf, v = i.value.trim().toUpperCase();
-        tm = setTimeout(() => { if (!v) clGo(env, "", true); else if ([...(document.getElementById(`clc-${env}`)?.options || [])].some((o) => o.value.toUpperCase() === v)) clGo(env, v, true); }, 350); });
-      i.addEventListener("change", () => clGo(i.dataset.clf, i.value)); i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clGo(i.dataset.clf, i.value, true); } }); i.addEventListener("search", () => { if (!i.value) clGo(i.dataset.clf, "", true); }); });
+        tm = setTimeout(() => { if (v && [...(document.getElementById(`clc-${env}`)?.options || [])].some((o) => o.value.toUpperCase() === v)) clGo(env, v, true); }, 350); });
+      i.addEventListener("change", () => { if (i.value.trim()) clGo(i.dataset.clf, i.value); }); i.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); if (i.value.trim()) clGo(i.dataset.clf, i.value, true); } }); });
     $$("[data-clpick]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clpick, b.dataset.c)));
     $$("[data-clgo]", root).forEach((b) => (b.onclick = (e) => { e.preventDefault(); const i = b.parentElement.querySelector("[data-clf]"); if (i) clGo(b.dataset.clgo, i.value, true); }));
     $$("[data-clfx]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clfx, "")));
