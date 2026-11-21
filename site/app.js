@@ -1505,21 +1505,28 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   T.addEventListener("touchend", end); T.addEventListener("touchcancel", () => { st = null; drop(); });
 })();
 // ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
-// Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng.
+// Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng, vuốt sang trái thêm lần nữa → bảng "Thêm".
 (function swipePanel() {
   const EDGE = 24, mq = matchMedia("(max-width:1179px)");
   const busy = () => document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
   const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
   let st = null;
   addEventListener("touchstart", (e) => {
-    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || !b.classList.contains("pn-has") || e.target.closest?.("#mun,[data-noswipe]")) return;
+    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || e.target.closest?.("#mun,[data-noswipe]")) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
+    // trang KHÔNG có Bảng phụ: vuốt từ mép phải (khi không còn trang phía trước để tiến tới) → mở bảng "Thêm"
+    if (!b.classList.contains("pn-has")) { if (x >= innerWidth - EDGE && !busy() && !(navI() < NAVH.max)) st = { m: "more", x, y, t: Date.now(), off: 0, lock: false }; return; }
     // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
     if (!open && x >= innerWidth - EDGE && !busy() && !(NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
   }, { passive: true });
   addEventListener("touchmove", (e) => {
     if (!st) return; const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
+    st.dx = dx;
+    if ((st.m === "more" || st.m === "more2") && Math.abs(dx) < 30 && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }   // cuộn dọc → bỏ
+    // 👉 Bảng phụ đang mở mà vuốt sang TRÁI thêm 1 lần nữa → chuyển sang bảng "Thêm" (mọi trang) · trang không có Bảng phụ: vuốt mép phải → "Thêm"
+    if (st.m === "more" || (st.m === "close" && !st.lock && dx < -12 && Math.abs(dx) > Math.abs(dy) * 1.4)) { if (st.m === "close") st.m = "more2"; if (e.cancelable && dx < -8) e.preventDefault(); return; }
+    if (st.m === "more2") { if (e.cancelable) e.preventDefault(); return; }
     if (!st.lock) {
       if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
       if (Math.abs(dx) < 8 || (st.m === "open" ? dx > 0 : dx < 0)) return;
@@ -1531,7 +1538,9 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     N.style.transform = `translateX(${st.off}px)`; S.style.opacity = String(1 - st.off / st.W);
   }, { passive: false });
   const end = () => {
-    if (!st) return; const s = st; st = null; if (!s.lock) return;
+    if (!st) return; const s = st; st = null;
+    if (s.m === "more" || s.m === "more2") { const dx = s.dx || 0, v = -dx / Math.max(1, Date.now() - s.t); if (dx < -50 || (dx < -24 && v > 0.4)) { navigator.vibrate?.(6); if (s.m === "more2") pnSheet(false); setTimeout(() => mSheet(true), s.m === "more2" ? 120 : 0); } return; }
+    if (!s.lock) return;
     const shown = 1 - s.off / s.W, v = (s.m === "open" ? s.W - s.off : s.off) / Math.max(1, Date.now() - s.t);
     const open = s.m === "open" ? shown > 0.33 || v > 0.5 : !(s.off / s.W > 0.33 || v > 0.5);
     if (open && s.m === "open") navigator.vibrate?.(6);
@@ -1944,7 +1953,7 @@ function pnCheck(force) {
   nav.hidden = !on;
   if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
   // màn cảm ứng: bỏ nút nổi "Bảng phụ" (vuốt từ mép phải để mở) → nhắc cách vuốt 1 lần duy nhất
-  if (matchMedia("(max-width:1179px) and (hover:none) and (pointer:coarse)").matches && !lsGet("pn_swipe_hint", 0)) { lsSet("pn_swipe_hint", 1); setTimeout(() => toast(T("Vuốt từ mép phải màn hình vào để mở Bảng phụ")), 1800); }
+  if (matchMedia("(max-width:1179px) and (hover:none) and (pointer:coarse)").matches && !lsGet("pn_swipe_hint", 0)) { lsSet("pn_swipe_hint", 1); setTimeout(() => toast(T("Vuốt từ mép phải vào để mở Bảng phụ · vuốt thêm lần nữa để mở bảng Thêm")), 1800); }
   pnTocBadge(named.length);
   const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
   const nr = its.reduce((n, p) => n + pnRows(p).length, 0);

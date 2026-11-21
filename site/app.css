@@ -6853,3 +6853,7 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .occ-mk>summary small{font-weight:400;color:var(--ink-3);font-size:.6875rem}.occ-mk>summary .lk{font-size:.6875rem;color:var(--brass,var(--brand))}
 #occMk{padding:0 11px 8px}.occ-mk-h{margin:8px 0 0;font-size:.75rem;font-weight:600}.occ-mk-h small{font-weight:400;color:var(--ink-3)}.occ-mk-n{margin:6px 0 0;font-size:.6875rem}
 .occ-mk>summary::marker{content:""}
+
+/* khoảng thời gian dạng nút phân đoạn (Sổ lệnh · Phân tích) – chiếm trọn 1 hàng trên điện thoại */
+.jf .jrg{margin:0;flex-wrap:nowrap}
+@media (max-width:640px){.jf .jrg{grid-column:1/-1}}

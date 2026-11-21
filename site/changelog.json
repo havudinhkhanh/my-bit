@@ -260,6 +260,18 @@
      "a": "chart",
      "t": "iPhone: chụm 2 ngón trên biểu đồ chỉ thu phóng biểu đồ, không phóng to cả trang nữa (trước có lúc trang phóng to, thanh tab trôi ra giữa màn hình); lỡ phóng thì buông tay tự về cỡ chuẩn",
      "te": "iPhone: pinching a chart zooms only the chart, not the whole page (which pushed the tab bar mid-screen); if the page does zoom it snaps back on release"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Vuốt từ mép phải 2 lần: lần 1 mở Bảng phụ, lần 2 mở bảng \"Thêm\"",
+     "te": "Swipe from the right edge twice: first opens the side panel, second opens More"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Chọn khoảng thời gian (7/30/90 ngày · Tất cả) ở Sổ lệnh và Phân tích bằng nút bấm, không còn menu bung đè lên nút lọc",
+     "te": "Range picker on Journal and Analysis is now a segmented control instead of a dropdown that covered the filter"
     }
    ]
   },

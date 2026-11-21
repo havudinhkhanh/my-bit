@@ -2773,7 +2773,7 @@ async function viewJournal(envArg, mode) {
   const env0 = JE.some((x) => x[0] === envArg) ? envArg : JE.some((x) => x[0] === J.env) ? J.env : cnt.live ? "live" : MISS ? (cnt.demo ? "demo" : "live") : "paper", env = env0; J.env = env;
   const TD = vnToday(), from = J.R === "all" ? "" : new Date(Date.parse(TD + "T00:00:00Z") - (J.R - 1) * 864e5).toISOString().slice(0, 10), qq = J.q.trim().toUpperCase();
   const base = `#/bot/${MISS ? "miss" : "journal"}/`;
-  const rangeSeg = `<select id="jRg" aria-label="Khoảng thời gian">${[[7, "7 ngày qua"], [30, "30 ngày qua"], [90, "90 ngày qua"], ["all", "Từ đầu"]].map(([v, t]) => `<option value="${v}" ${J.R === v ? "selected" : ""}>${t}</option>`).join("")}</select>`;
+  const rangeSeg = jRgSeg();
   const stOpts = ["all", ...Object.keys(JSTRAT).filter((s) => A.some((r) => r.strat === s && (env === "all" || r.env === env)))];
   const head = `<div class="ph"><h1>Kết quả & sổ lệnh</h1><span class="meta">Giờ Việt Nam · ${LG?.at ? `cập nhật ${jTm(LG.at.slice(0, 19))}` : "sổ đầy đủ có sau khi cập nhật máy chủ riêng"}</span></div>${djSeg(MISS ? "miss" : "journal", env === "all" || (MISS && env === "paper") ? "" : env)}
     <div class="bseg dseg">${JE.map(([e, t, ts]) => `<a href="${base}${e}" class="${e === env ? "on" : ""}"><span class="dl">${t}</span><span class="ds">${ts}</span>${cnt[e] ? `<small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
@@ -2781,7 +2781,7 @@ async function viewJournal(envArg, mode) {
       <div class="bseg">${[["all", "Tất cả"], ["win", "Lời"], ["loss", "Lỗ"]].map(([v, t]) => `<button type="button" data-jx="${v}" class="${J.res === v ? "on" : ""}">${t}</button>`).join("")}</div>`}
       <input id="jQ" type="search" placeholder="Lọc coin…" value="${esc(J.q)}" autocomplete="off" enterkeyhint="search"></div>`;
   const bindCommon = (re) => {
-    $("#jRg").onchange = (e) => { J.R = e.target.value === "all" ? "all" : +e.target.value; re(); };
+    jRgBind(re);
     let qt = 0; $("#jQ").oninput = (e) => { clearTimeout(qt); qt = setTimeout(() => { J.q = e.target.value; re(); setTimeout(() => { const i = $("#jQ"); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 0); }, 350); };
   };
   if (MISS) {      // ---------------------------------------------------------------- trang Lệnh hụt
@@ -3211,8 +3211,8 @@ async function viewStats(envArg) {
   const F = A.filter((r) => (env === "all" || r.env === env) && (!from || r.d >= from) && r.N > 0).sort((a, b) => jT(a.t2) - jT(b.t2));
   const head = `<div class="ph"><h1>Kết quả & sổ lệnh</h1><span class="meta">${bi("Giờ Việt Nam", "Vietnam time")} · ${F.length} ${bi("lệnh trong khoảng", "trades in range")}</span></div>${djSeg("stats", env === "all" ? "" : env)}
     <div class="bseg dseg">${JENV.map(([e, t, ts]) => `<a href="#/bot/stats/${e}" class="${e === env ? "on" : ""}"><span class="dl">${t}</span><span class="ds">${ts}</span>${cnt[e] ? `<small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
-    <div class="jf"><select id="stRg" aria-label="${bi("Khoảng thời gian", "Range")}">${[[7, bi("7 ngày qua", "Last 7 days")], [30, bi("30 ngày qua", "Last 30 days")], [90, bi("90 ngày qua", "Last 90 days")], ["all", bi("Từ đầu", "All time")]].map(([v, t]) => `<option value="${v}" ${J.R === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
-  const bind = () => { const s = $("#stRg"); if (s) s.onchange = (e) => { J.R = e.target.value === "all" ? "all" : +e.target.value; viewStats(env); }; };
+    <div class="jf">${jRgSeg()}</div>`;
+  const bind = () => jRgBind(() => viewStats(env));
   if (!F.length) { app().innerHTML = head + panel(bi("Phân tích", "Analysis"), `<p class="muted">${bi("Chưa có lệnh đã đóng trong khoảng này.", "No closed trades in this range.")}</p>`); bind(); return; }
   const sum = (a, f) => a.reduce((s2, x) => s2 + (f(x) || 0), 0), win = (a) => a.filter((r) => r.pnl > 0).length, pc = (v, d = 2) => `${v > 0 ? "+" : ""}${nf(v, d)}%`;
   const G = ["bot", "man", "ive"].filter((g) => F.some((r) => stGrp(r) === g));
@@ -3293,3 +3293,7 @@ async function viewStats(envArg) {
   { const ks = Object.keys(MFE_C); if (ks.length > 600) ks.slice(0, ks.length - 600).forEach((x) => delete MFE_C[x]); lsSet("mfe", MFE_C); }
   if (location.hash !== me) return; const box = $("#stMfe"); if (box) { box.innerHTML = panel(bi("🎯 Lời bỏ lỡ – đỉnh lời so với lúc đóng", "🎯 Missed profit – peak vs exit"), mfeHtml()); cbMount?.(box); }
 }
+
+// Khoảng thời gian (Sổ lệnh · Phân tích): nút phân đoạn thay cho <select> – menu gốc của iOS bung đè lên chính nút lọc
+function jRgSeg() { const J = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 }); return `<div class="bseg jrg" role="group" aria-label="${bi("Khoảng thời gian", "Range")}">${[[7, bi("7 ngày", "7D")], [30, bi("30 ngày", "30D")], [90, bi("90 ngày", "90D")], ["all", bi("Tất cả", "All")]].map(([v, t]) => `<button type="button" data-jrg="${v}" class="${J.R === v ? "on" : ""}" aria-pressed="${J.R === v}">${t}</button>`).join("")}</div>`; }
+function jRgBind(re) { const J = window.__J; $$("[data-jrg]").forEach((b) => (b.onclick = () => { const v = b.dataset.jrg === "all" ? "all" : +b.dataset.jrg; if (J.R === v) return; J.R = v; re(); })); }
