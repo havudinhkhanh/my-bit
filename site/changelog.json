@@ -284,6 +284,18 @@
      "a": "ui",
      "t": "Dùng 1 tay: kéo danh sách bảng \"Thêm\" xuống để các mục trên cùng (Tổng quan…) tụt xuống tầm ngón cái",
      "te": "One-handed: pull the More list down to bring the top items within thumb reach"
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: kéo xuống (ở tiêu đề, ô số, nút) để đóng, bám theo ngón tay – vùng nến vẫn kéo xem bình thường",
+     "te": "Order chart: drag down (header, figures, buttons) to close, following your finger – the candle area still pans as before"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Đang mở biểu đồ lệnh mà vuốt từ mép phải: Bảng phụ / bảng \"Thêm\" giờ hiện đè lên trên, không bị chìm phía dưới",
+     "te": "Swiping from the right edge over the order chart now shows the side panel / More on top instead of underneath"
     }
    ]
   },

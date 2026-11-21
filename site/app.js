@@ -1296,6 +1296,8 @@ const SHEETS = [
   [".msheet-in", () => mSheet(false)],
   [".menu", (el) => el.remove()],
   [".sc-set", () => { window.__scSetOpen = false; document.body.classList.remove("sc-set-on"); }],
+  // biểu đồ lệnh: kéo xuống ở tiêu đề / ô số / nút (KHÔNG ở vùng biểu đồ – vùng đó để kéo xem nến) → đóng; giữ nguyên vị trí đã kéo (không bật lại rồi mới mờ)
+  [".occ-p", () => { ocClose(); return "keep"; }],
 ];
 (() => {
   let D = null;
@@ -1305,6 +1307,8 @@ const SHEETS = [
     for (const [sel, close] of SHEETS) {
       const sh = e.target.closest?.(sel); if (!sh) continue;
       if (sel === ".sc-set" && !document.body.classList.contains("sc-set-on")) return;
+      if (sel === ".msheet-in" && sh.parentNode.classList.contains("side")) return;      // "Thêm" dạng ngăn kéo phải: đóng bằng kéo sang phải
+      if (sel === ".occ-p" && (e.target.closest(".occ-c,.occ-rsi,.occ-tf,.occ-tg,.occ-mk canvas,.occ-mk svg,.pxp,.pxp-b,.tv-lightweight-charts") || !sh.parentNode.classList.contains("on"))) return;
       if (e.target.closest("input, select, textarea, [data-nodrag]")) return;
       const top = sh.getBoundingClientRect().top, y = e.touches[0].clientY, sc = scroller(e.target, sh);
       const head = y - top < 56;
@@ -1323,6 +1327,7 @@ const SHEETS = [
     }
     D.dy = Math.max(0, dy);
     D.sh.style.transform = `translateY(${D.dy}px)`;
+    const bg = D.sh.previousElementSibling; if (bg?.classList.contains("occ-bg")) { bg.style.transition = "none"; bg.style.opacity = String(Math.max(0.15, 1 - D.dy / (D.sh.offsetHeight || 600))); }      // nền tối nhạt dần theo tay
     if (e.cancelable) e.preventDefault();
   }, { passive: false });
   addEventListener("touchend", () => {
@@ -1331,8 +1336,8 @@ const SHEETS = [
     d.sh.style.transition = SHEET_EASE;
     if (d.dy > Math.min(140, d.sh.offsetHeight * 0.3) || (v > 0.5 && d.dy > 40)) {
       d.sh.style.transform = "translateY(105%)";
-      setTimeout(() => { d.close(d.sh); d.sh.style.transform = ""; d.sh.style.transition = ""; }, 260);
-    } else { d.sh.style.transform = ""; setTimeout(() => (d.sh.style.transition = ""), 360); }
+      setTimeout(() => { if (d.close(d.sh) === "keep") return; d.sh.style.transform = ""; d.sh.style.transition = ""; }, 260);
+    } else { d.sh.style.transform = ""; const bg = d.sh.previousElementSibling; if (bg?.classList.contains("occ-bg")) { bg.style.transition = "opacity .3s"; bg.style.opacity = ""; } setTimeout(() => (d.sh.style.transition = ""), 360); }
   }, { passive: true });
 })();
 // đổi giao diện sáng/tối → màu thanh trạng thái điện thoại đi theo

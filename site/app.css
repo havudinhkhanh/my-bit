@@ -6868,3 +6868,8 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 /* 1 tay: khoảng trống phía trên danh sách "Thêm" – kéo xuống để mục trên cùng vào tầm ngón cái */
 .ms-reach{display:flex;align-items:flex-end;justify-content:center;padding:0 12px 10px;pointer-events:none}
 .ms-reach span{font-size:.75rem;color:var(--ink-3);text-align:center}
+
+/* đang mở biểu đồ lệnh (lớp phủ z 1300): Bảng phụ / bảng "Thêm" vuốt ra phải nằm TRÊN biểu đồ */
+body:has(.occ) .pnshade{z-index:1305!important}
+body:has(.occ) .pnav{z-index:1310!important}
+body:has(.occ) .msheet{z-index:1320!important}
