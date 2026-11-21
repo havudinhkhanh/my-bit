@@ -2859,18 +2859,21 @@ function ocOpen(I) {
 // ================================================================ 📍 CHUỘT PHẢI (máy tính) / GIỮ LÂU (điện thoại) TRÊN BIỂU ĐỒ → menu tại đúng mức giá đó:
 //   Long / Short khi giá về mức này (lệnh chờ đặt sẵn trên Binance qua máy chủ riêng) · với lệnh tay đang mở: đặt cắt lỗ / chốt lời ở mức này · chép giá
 function chartPxMenu(el, ch, ctx) {
-  if (!el || !ch?.cs || el.__pxm) return; el.__pxm = 1;
-  const priceAt = (cy) => { const r = el.getBoundingClientRect(), y = cy - r.top; if (y < 0 || y > r.height - 26) return null; const p = ch.cs.coordinateToPrice(y); return isNum(p) && p > 0 ? p : null; };
-  const cur = () => { try { const d = ch.cs.data?.(); const b = d?.[d.length - 1]; return b?.close ?? b?.value ?? null; } catch (e) { return null; } };
+  // 🎯 biểu đồ được DỰNG LẠI trong cùng khung (đổi khung giờ, bật/tắt lớp, mở mã khác trong cùng bảng) → luôn dùng biểu đồ MỚI NHẤT.
+  //    Trước: chỉ gắn 1 lần với biểu đồ đầu tiên → bấm giữ / chuột phải đọc giá theo trục giá của biểu đồ CŨ (đã gỡ) → giá chấm vào lệch, có lúc lệch cả trăm %
+  if (!el || !ch?.cs) return; el.__pxCh = ch; el.__pxCtx = ctx; if (el.__pxm) return; el.__pxm = 1;
+  const CS = () => el.__pxCh.cs;
+  const priceAt = (cy) => { const r = el.getBoundingClientRect(), y = cy - r.top; if (y < 0 || y > r.height - 26) return null; const p = CS().coordinateToPrice(y); return isNum(p) && p > 0 ? p : null; };
+  const cur = () => { try { const d = CS().data?.(); const b = d?.[d.length - 1]; return b?.close ?? b?.value ?? null; } catch (e) { return null; } };
   // lệnh THẬT đang nằm trên sàn sát chỗ bấm (≤ 10px): lệnh chờ giá, cắt lỗ / chốt lời của lệnh tay → menu có thêm Huỷ / Vào ngay / Bỏ
   const nearOrd = (cy, base) => { const MN = window.__scCache?.d?.[1]?.data?.live?.man; if (!MN || !base) return []; const sym = base + "USDT", y = cy - el.getBoundingClientRect().top, out = [];
-    const add = (o) => { let yy = null; try { yy = ch.cs.priceToCoordinate(o.px); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - y) <= 10) out.push({ ...o, dy: Math.abs(yy - y) }); };
+    const add = (o) => { let yy = null; try { yy = CS().priceToCoordinate(o.px); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - y) <= 10) out.push({ ...o, dy: Math.abs(yy - y) }); };
     for (const m of MN.pend || []) if (m.sym === sym) add({ k: "pend", id: m.id, px: +m.px, sd: m.sd, avg: !!m.avg });
     for (const o of MN.ord?.[sym] || []) add({ k: /^STOP/.test(o.type || "") ? "sl" : /^TAKE_PROFIT/.test(o.type || "") ? "tp" : "", px: +o.px, sym });
     return out.filter((o) => o.k && o.px > 0).sort((a, b) => a.dy - b.dy); };
-  const open = (cx, cy) => { const p = priceAt(cy); if (!p) return; const C = { ...(ctx?.() || {}) }; C.cur = C.cur || cur(); C.near = nearOrd(cy, C.base);
-    if (C.ux && C.uxRef) { let yy = null; try { yy = ch.cs.priceToCoordinate(C.ux); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - (cy - el.getBoundingClientRect().top)) <= 10) C.near.unshift({ k: "ux", px: C.ux }); }
-    pxMenu(cx, cy, p, C, ch); };
+  const open = (cx, cy) => { const p = priceAt(cy); if (!p) return; const C = { ...(el.__pxCtx?.() || {}) }; C.cur = C.cur || cur(); C.near = nearOrd(cy, C.base);
+    if (C.ux && C.uxRef) { let yy = null; try { yy = CS().priceToCoordinate(C.ux); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - (cy - el.getBoundingClientRect().top)) <= 10) C.near.unshift({ k: "ux", px: C.ux }); }
+    pxMenu(cx, cy, p, C, el.__pxCh); };
   el.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); open(e.clientX, e.clientY); });
   let lp = null;      // giữ lâu ~0,55 giây không di ngón → mở menu (điện thoại không có chuột phải)
   el.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; const t = e.touches[0], x = t.clientX, y = t.clientY; clearTimeout(lp?.t); lp = { x, y, t: setTimeout(() => { navigator.vibrate?.(8); open(x, y); lp = null; }, 550) }; }, { passive: true });

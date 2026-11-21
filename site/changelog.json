@@ -45,6 +45,15 @@
      "te": "Coin filter box, coin list and coin chips now use the app's standard corner radius (no more pill shapes)",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ: chuột phải / giữ lâu để đặt lệnh giờ lấy đúng giá chỗ chạm, kể cả sau khi đổi khung giờ hay bật/tắt EMA, khối lượng, RSI",
+     "te": "Charts: right-click / long-press now reads the exact price you touched, even after switching timeframe or toggling EMA, volume or RSI",
+     "d": "Trước đây sau khi đổi khung giờ, menu vẫn đọc giá theo trục của biểu đồ cũ nên giá đặt lệnh và % cách giá bị lệch, có lúc rất xa.",
+     "de": "After a timeframe switch the menu kept reading the old chart's price axis, so the order price and distance were off, sometimes far off.",
+     "hi": 1
     }
    ]
   },
