@@ -224,6 +224,12 @@
      "a": "ui",
      "t": "Chữ quá to ở hàng trượt giá, nút Chọn giá và vài nút nhỏ khác (khai báo cỡ chữ sai bị trình duyệt bỏ qua) – nay đúng cỡ gọn",
      "te": "Oversized text on the slippage row, the Pick price button and a few small buttons (an invalid font rule was ignored) – now the intended compact size"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: thanh tab dưới chỉ được tự dời XUỐNG khi bị kẹt cao, canh chừng mỗi 1,5 giây (trước có lúc chính bản sửa hôm qua đẩy thanh lên giữa màn hình)",
+     "te": "Phone: the bottom tab bar is only ever nudged DOWN when stuck high, checked every 1.5 s (yesterday's fix could push it up mid-screen)"
     }
    ]
   },

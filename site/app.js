@@ -7805,11 +7805,20 @@ function initAccountUI() {
   const tb = document.getElementById("tabs");
   let lastMv = 0, nt = [];
   addEventListener("scroll", () => (lastMv = Date.now()), { passive: true }); addEventListener("touchmove", () => (lastMv = Date.now()), { passive: true });
+  // CHỈ dời XUỐNG (thanh đang bị treo cao hơn đáy thật), không bao giờ đẩy lên – trước đây đo lệch kiểu "vùng thấy thấp hơn khung" (thanh công cụ trình duyệt nổi đè)
+  //   cũng dời nên có lúc chính mã này đẩy thanh tab lên giữa màn hình.
+  //   • app trên màn hình chính (PWA): vùng thấy = cả màn hình trừ thanh giờ/pin → khung trang ngắn hơn quá 100px mà không có bàn phím = khung kẹt → dời xuống đúng phần thiếu
+  //   • trình duyệt / app nhúng: đáy vùng đang thấy thấp hơn đáy khung bố cục → dời xuống
+  const SA = matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   const vvd = () => {
     let d = 0;
-    if (vv && !document.body.classList.contains("kb-on") && Math.abs((vv.scale || 1) - 1) < 0.01) { d = Math.round(vv.offsetTop + vv.height - innerHeight); if (Math.abs(d) < 6 || Math.abs(d) > innerHeight * 0.75) d = 0; }
+    if (!document.body.classList.contains("kb-on") && !isTxt(document.activeElement) && Math.abs((vv?.scale || 1) - 1) < 0.01) {
+      if (SA && screen?.height) { const sh = innerWidth < innerHeight ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height), g = Math.round(sh - innerHeight); if (g > 100 && g < sh * 0.6) d = g; }
+      if (!d && vv) { const g = Math.round(vv.offsetTop + vv.height - innerHeight); if (g > 6 && g < innerHeight * 0.6) d = g; }
+    }
     if (root.style.getPropertyValue("--vvd") !== d + "px") root.style.setProperty("--vvd", d + "px");
   };
+  setInterval(() => { if (!document.hidden) vvd(); }, 1500);      // canh chừng: thanh tab lệch (do trình duyệt) tự về chỗ trong ≤ 1,5 giây
   const reanchor = () => {
     if (!tb || document.body.classList.contains("kb-on") || isTxt(document.activeElement)) return;
     const d0 = tb.style.display; tb.style.display = "none"; void tb.offsetHeight; tb.style.display = d0;
