@@ -78,6 +78,13 @@
      "de": "Before, touching or scrolling right after reopening postponed the refresh, so stale data stayed on screen.",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Mèo na thêm ~180 câu mới cho mọi tình huống: chào theo giờ, bị chọc / vuốt / bế, trốn tìm, tia laser, đứng lên coin & biểu đồ, lúc anh sắp vào / đóng lệnh, từng trang…",
+     "te": "na the cat gets ~180 new lines across every situation: greetings, pokes / pets / lifts, hide-and-seek, laser, sniffing coins & charts, before you place / close trades, each page…",
+     "hi": 1
     }
    ]
   },
