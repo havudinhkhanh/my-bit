@@ -673,14 +673,17 @@ const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) ==
 //   Ô do giá trực tiếp cập nhật (giá, lời/lỗ, thang giá, đồng hồ…) chỉ thay khi thuộc tính của chính nó đổi – không trả về số cũ của lần vẽ rồi mới nhảy lại.
 const SR_MORPH = [/^#\/bot\/scalp/];
 const MO_LIVE = "[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
+const MO_LIVE_K = MO_LIVE.replace(/[[\]]/g, "").split(",");
 const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
 const MO_KC = ["gseg", "ph-fd", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
 const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded" || MO_MARK.has(a)
-  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"))
-  || (a === "class" && !!el._lp);      // ô lời/lỗ trực tiếp: màu xanh/đỏ do giá trực tiếp quyết định – bản vẽ lại từ máy chủ (giá cũ) không được ghi đè
+  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"));
 function moAttrs(l, n, live) {
   let ch = false; const NA = n.attributes;
-  for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; let v = a.value;
+  // ô lời/lỗ trực tiếp: màu xanh/đỏ do giá trực tiếp quyết định – bản vẽ lại từ máy chủ (giá cũ) không ghi đè. CHỈ khi nút mới vẫn là ô lời/lỗ
+  //   (thẻ đổi loại – lệnh đang mở → lệnh chờ – thì nút được VÁ thành phần tử khác: phải nhận đúng lớp mới, bỏ bộ nhớ của ô cũ)
+  const lpKeep = live && l._lp && n.hasAttribute("data-lpnl"); if (l._lp && !n.hasAttribute("data-lpnl")) delete l._lp;
+  for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; if (lpKeep && a.name === "class") continue; let v = a.value;
     if (a.name === "class") { const k = MO_KC.filter((c) => l.classList.contains(c) && !n.classList.contains(c)); if (k.length) v = (v + " " + k.join(" ")).trim(); }
     if (l.getAttribute(a.name) !== v && !moSkipA(l, a.name)) { l.setAttribute(a.name, v); ch = true; } }
   const LA = l.attributes;
@@ -698,7 +701,7 @@ function moNode(l, n) {      // true = đã vá tại chỗ · false = phải th
   const sig = n.getAttribute("data-sig"); if (sig && l.getAttribute("data-sig") === sig) return true;
   if (l.dataset.m && l.classList.contains("cbox") && n.classList.contains("cbox") && moChart(l, n)) return true;
   if ((l.id || n.id) && l.id !== n.id) return false;
-  const live = n.matches(MO_LIVE), ch = moAttrs(l, n, live);
+  const live = n.matches(MO_LIVE) && MO_LIVE_K.every((k) => l.hasAttribute(k) === n.hasAttribute(k)), ch = moAttrs(l, n, live);      // cùng LOẠI ô trực tiếp mới giữ nội dung đang chạy – khác loại (giá → lời/lỗ…) thì vá hẳn, không sót thuộc tính cũ
   if (live && !ch && l.childNodes.length) return true;      // ô giá trực tiếp: thuộc tính không đổi → giữ nội dung đang chạy
   if (l === document.activeElement && (l.tagName === "INPUT" || l.tagName === "TEXTAREA")) return true;
   if (l.tagName === "TEXTAREA") { if (l.value !== n.value && l !== document.activeElement) l.value = n.value; return true; }
