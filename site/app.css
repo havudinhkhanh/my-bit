@@ -6864,3 +6864,7 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .msheet.side .msheet-bg{animation:none!important}
 .msheet.side .msheet-b{flex:1;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .msheet.side .msheet-g{flex-wrap:wrap;row-gap:4px}.msheet.side .msheet-g em{white-space:nowrap}
+
+/* 1 tay: khoảng trống phía trên danh sách "Thêm" – kéo xuống để mục trên cùng vào tầm ngón cái */
+.ms-reach{display:flex;align-items:flex-end;justify-content:center;padding:0 12px 10px;pointer-events:none}
+.ms-reach span{font-size:.75rem;color:var(--ink-3);text-align:center}

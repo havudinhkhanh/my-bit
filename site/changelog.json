@@ -278,6 +278,12 @@
      "a": "ui",
      "t": "Bảng \"Thêm\" mở bằng vuốt giờ trượt ra từ bên phải như Bảng phụ, bám theo ngón tay; kéo sang phải để đóng",
      "te": "The More panel opened by swipe now slides in from the right like the side panel, following your finger; drag right to close"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Dùng 1 tay: kéo danh sách bảng \"Thêm\" xuống để các mục trên cùng (Tổng quan…) tụt xuống tầm ngón cái",
+     "te": "One-handed: pull the More list down to bring the top items within thumb reach"
     }
    ]
   },

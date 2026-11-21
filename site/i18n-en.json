@@ -6226,5 +6226,6 @@
 "Đăng xuất thiết bị này": "Log out this device",
 "Đăng xuất mọi thiết bị khác": "Log out all other devices",
 "Đăng xuất tất cả": "Log out everywhere",
-"Nghi bị lộ mật khẩu: đổi mật khẩu (tự đăng xuất các thiết bị khác) hoặc bấm “Đăng xuất mọi thiết bị khác”. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức và mất quyền xem trong tối đa 10 phút.": "Suspect a leaked password: change it (other devices are logged out automatically) or click “Log out all other devices”. A logged-out device can no longer change data right away and loses view access within 10 minutes."
+"Nghi bị lộ mật khẩu: đổi mật khẩu (tự đăng xuất các thiết bị khác) hoặc bấm “Đăng xuất mọi thiết bị khác”. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức và mất quyền xem trong tối đa 10 phút.": "Suspect a leaked password: change it (other devices are logged out automatically) or click “Log out all other devices”. A logged-out device can no longer change data right away and loses view access within 10 minutes.",
+"↓ Kéo xuống để đưa các mục trên cùng xuống tầm ngón cái": "↓ Pull down to bring the top items within thumb reach"
 }

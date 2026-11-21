@@ -939,7 +939,7 @@ function mSheet(open) {
         html += `<a href="${n.getAttribute("href")}" class="${n.classList.contains("on") ? "on" : ""}">${svg}<span class="ms-t"><b>${esc(t)}</b>${h ? `<small>${esc(h)}</small>` : ""}</span>${bd}</a>`;
       }
     }
-    $("#msheetB").innerHTML = html + (grp ? "</div>" : "");
+    $("#msheetB").innerHTML = (REACH.matches ? `<div class="ms-reach" aria-hidden="true"><span>${T("↓ Kéo xuống để đưa các mục trên cùng xuống tầm ngón cái")}</span></div>` : "") + html + (grp ? "</div>" : "");
   }
   if (!open && !el.hidden && el.classList.contains("side")) { msSideClose(); return; }
   if (!open && !el.hidden && MOB.matches) {        // điện thoại: trượt xuống rồi mới ẩn
@@ -950,10 +950,15 @@ function mSheet(open) {
   }
   if (open) el.classList.remove("side");
   el.hidden = !open; document.body.classList.toggle("msheet-on", !!open);
+  if (open) msReach();
 }
+// 👍 dùng 1 tay: phía trên danh sách có 1 khoảng trống ~45% chiều cao, mở ra đã cuộn qua khoảng đó (nhìn như bình thường);
+// kéo danh sách xuống là các mục trên cùng (Tổng quan…) tụt xuống ngay tầm ngón cái
+const REACH = matchMedia("(pointer:coarse)");
+function msReach() { const B = $("#msheetB"), R = B?.querySelector(".ms-reach"); if (!R) return; R.style.height = Math.round(B.clientHeight * 0.45) + "px"; B.scrollTop = R.offsetHeight; }
 // bảng "Thêm" dạng NGĂN KÉO BÊN PHẢI (mở bằng vuốt từ mép phải) – giống Bảng phụ, đi theo ngón tay
 const msSide = () => { const el = $("#msheet"); return { el, sh: el?.querySelector(".msheet-in"), bg: el?.querySelector(".msheet-bg") }; };
-function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); sh.style.transition = bg.style.transition = "none"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
+function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); msReach(); sh.style.transition = bg.style.transition = "none"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
 function msSideMove(off, W) { const { sh, bg } = msSide(); if (!sh) return; sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(Math.max(0, 1 - off / W)); }
 function msSideEnd(open) {
   const { el, sh, bg } = msSide(); if (!sh) return; const T = "transform .26s " + PN_EASE;
