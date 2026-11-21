@@ -6793,3 +6793,9 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .cl-chips::-webkit-scrollbar{display:none}
 .cl-chips:empty{display:none}
 .cl-chips .mchip{flex:none;white-space:nowrap}
+/* 🔎 ô lọc mã theo đúng hệ bo góc của app (v4 – bớt bo tròn): ô nhập = --r-in như ô tìm trên thanh MyBit, nút trong ô bo đồng tâm, danh sách = --rad như thẻ, nút mã = --r-ctl như các nút chọn cùng trang */
+.cl-flt .cl-in input[type=search]:not(#_x){border-radius:var(--r-in,8px)}
+.cl-flt .cl-go:not(#_x),.cl-flt .cl-ddb:not(#_x){border-radius:calc(var(--r-in,8px) - 3px)!important}
+.cl-dd:not(#_x){border-radius:var(--rad,10px)}
+.cl-dd .cl-o:not(#_x){border-radius:calc(var(--rad,10px) - 4px)!important}
+.cl-chips .mchip:not(#_x){border-radius:var(--r-ctl,6px);padding:4px 10px}

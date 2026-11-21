@@ -37,6 +37,14 @@
      "te": "Closed trades: full-width, slimmer coin filter with a ▾ list of coins (trade count + all-time P/L); frequent coins sit on the row below, swipeable",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ô lọc mã, danh sách mã và các nút mã bo góc theo đúng kiểu chung của app (không còn hình viên thuốc)",
+     "te": "Coin filter box, coin list and coin chips now use the app's standard corner radius (no more pill shapes)",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },
