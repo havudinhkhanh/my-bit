@@ -910,7 +910,9 @@
   }
   function sayOut() { const b = S.el?.querySelector(".mun-say"); if (!b || b.hidden) return; b.classList.add("out"); setTimeout(() => { if (b.classList.contains("out")) { b.hidden = true; b._p = 0; if (NT.cur) { NT.cur = null; setTimeout(ntNext, 250); } } }, 220); }
   const esc2 = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-  function say(text, ms = 5200, prio = 0) { if (NT.cur && prio < 9) return false; return bubble(`<span>${esc2(text)}</span>`, ms, prio); }
+  // 🐾 na gọi người dùng "anh" hay "hooman" tuỳ hứng (~1/3 số câu) – trong 1 câu chỉ dùng 1 kiểu; chỉ bản tiếng Việt ("nhanh", "xanh"… không bị đụng)
+  const hoo = (t) => (typeof EN !== "undefined" && EN) || Math.random() >= 0.33 ? t : String(t).replace(/(^|[^\p{L}])(anh|Anh)(?!\p{L})/gu, (m, a, w) => a + (w === "Anh" ? "Hooman" : "hooman"));
+  function say(text, ms = 5200, prio = 0) { if (NT.cur && prio < 9) return false; return bubble(`<span>${esc2(hoo(text))}</span>`, ms, prio); }
   // 👀 TRỢ LÝ LƯỜI: liếc trang đang mở (app.js pageSkim → vài con số), tóm 1–3 câu cho có rồi thôi – kênh kiệu, không quan tâm lắm.
   //    Chỉ nói số liệu của chính trang đó (danh mục chỉ nói ở trang danh mục); KHÔNG khuyên mua / bán.
   const isVi = () => !(typeof EN !== "undefined" && EN);
