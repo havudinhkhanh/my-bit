@@ -674,7 +674,8 @@ const MO_LIVE = "[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-
 const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
 const MO_KC = ["gseg", "ph-fd", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
 const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded" || MO_MARK.has(a)
-  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"));
+  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"))
+  || (a === "class" && !!el._lp);      // ô lời/lỗ trực tiếp: màu xanh/đỏ do giá trực tiếp quyết định – bản vẽ lại từ máy chủ (giá cũ) không được ghi đè
 function moAttrs(l, n, live) {
   let ch = false; const NA = n.attributes;
   for (let i = 0; i < NA.length; i++) { const a = NA[i]; if (live && a.name === "style") continue; let v = a.value;
@@ -1621,6 +1622,7 @@ function sclApply() {
     const rg = ok(sl) && ok(tp) && !el.dataset.norg;      // thẻ lệnh tay đã có thang giá riêng (sc-lad) – không vẽ thêm vạch cắt lỗ↔chốt
     if (!el._lp || !!el._lp.i !== rg) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
     const bal = +el.dataset.bal;      // thẻ lệnh tay: thêm lời/lỗ theo % TÀI KHOẢN (tài khoản nhỏ thì con số này sát thực tế hơn % lệnh)
+    if (el._lp.b.className) el._lp.b.className = "";      // màu chỉ đặt ở khung ngoài (theo giá trực tiếp) – chữ không giữ màu cũ của bản vẽ từ máy chủ
     setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "-"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
   });
   // 📏 thang giá của lệnh tay: chấm giá hiện tại + vệt lời/lỗ từ giá vào

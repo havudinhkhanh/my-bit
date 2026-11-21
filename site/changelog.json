@@ -19,6 +19,16 @@
      "f": "bot",
      "go": "#/bot/scalp",
      "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh tay đang mở: lời/lỗ chạy theo giá trực tiếp giờ luôn đúng màu (trước đôi khi đang lỗ mà số vẫn xanh)",
+     "te": "Open manual trade card: live P/L now always shows the right colour (a loss sometimes stayed green)",
+     "d": "Màu cũ lấy từ lần máy chủ gửi số liệu trước đó, không đổi theo giá trực tiếp.",
+     "de": "The colour came from the server's earlier snapshot and didn't follow the live price.",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },
