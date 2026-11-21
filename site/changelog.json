@@ -272,6 +272,12 @@
      "a": "ui",
      "t": "Chọn khoảng thời gian (7/30/90 ngày · Tất cả) ở Sổ lệnh và Phân tích bằng nút bấm, không còn menu bung đè lên nút lọc",
      "te": "Range picker on Journal and Analysis is now a segmented control instead of a dropdown that covered the filter"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Bảng \"Thêm\" mở bằng vuốt giờ trượt ra từ bên phải như Bảng phụ, bám theo ngón tay; kéo sang phải để đóng",
+     "te": "The More panel opened by swipe now slides in from the right like the side panel, following your finger; drag right to close"
     }
    ]
   },

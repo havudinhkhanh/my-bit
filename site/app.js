@@ -941,13 +941,30 @@ function mSheet(open) {
     }
     $("#msheetB").innerHTML = html + (grp ? "</div>" : "");
   }
+  if (!open && !el.hidden && el.classList.contains("side")) { msSideClose(); return; }
   if (!open && !el.hidden && MOB.matches) {        // điện thoại: trượt xuống rồi mới ẩn
     const sh = el.querySelector(".msheet-in"); el.classList.add("out");
     if (sh) { sh.style.transition = SHEET_EASE; sh.style.transform = "translateY(105%)"; }
     setTimeout(() => { el.hidden = true; el.classList.remove("out"); if (sh) { sh.style.transform = ""; sh.style.transition = ""; } document.body.classList.remove("msheet-on"); }, 280);
     return;
   }
+  if (open) el.classList.remove("side");
   el.hidden = !open; document.body.classList.toggle("msheet-on", !!open);
+}
+// bảng "Thêm" dạng NGĂN KÉO BÊN PHẢI (mở bằng vuốt từ mép phải) – giống Bảng phụ, đi theo ngón tay
+const msSide = () => { const el = $("#msheet"); return { el, sh: el?.querySelector(".msheet-in"), bg: el?.querySelector(".msheet-bg") }; };
+function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); sh.style.transition = bg.style.transition = "none"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
+function msSideMove(off, W) { const { sh, bg } = msSide(); if (!sh) return; sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(Math.max(0, 1 - off / W)); }
+function msSideEnd(open) {
+  const { el, sh, bg } = msSide(); if (!sh) return; const T = "transform .26s " + PN_EASE;
+  sh.style.transition = T; bg.style.transition = "opacity .26s";
+  if (open) { sh.style.transform = "translateX(0)"; bg.style.opacity = "1"; setTimeout(() => { sh.style.transition = bg.style.transition = ""; }, 280); return; }
+  msSideClose();
+}
+function msSideClose() {
+  const { el, sh, bg } = msSide(); if (!sh) return;
+  sh.style.transition = "transform .22s " + PN_EASE; bg.style.transition = "opacity .22s"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0";
+  setTimeout(() => { el.hidden = true; el.classList.remove("side"); sh.style.transform = sh.style.transition = bg.style.opacity = bg.style.transition = ""; document.body.classList.remove("msheet-on"); }, 240);
 }
 document.addEventListener("click", (e) => {
   if (e.target.closest("#navMore")) { mSheet($("#msheet")?.hidden); return; }
@@ -1514,6 +1531,8 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   addEventListener("touchstart", (e) => {
     st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || e.target.closest?.("#mun,[data-noswipe]")) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
+    // bảng "Thêm" đang mở dạng ngăn kéo phải → kéo sang phải để đóng (đi theo tay)
+    const M = $("#msheet"); if (M && !M.hidden && M.classList.contains("side")) { const I = M.querySelector(".msheet-in"); if ((I.contains(e.target) && !hx(e.target, I)) || e.target.classList.contains("msheet-bg")) st = { m: "mclose", x, y, t: Date.now(), off: 0, lock: false }; return; }
     // trang KHÔNG có Bảng phụ: vuốt từ mép phải (khi không còn trang phía trước để tiến tới) → mở bảng "Thêm"
     if (!b.classList.contains("pn-has")) { if (x >= innerWidth - EDGE && !busy() && !(navI() < NAVH.max)) st = { m: "more", x, y, t: Date.now(), off: 0, lock: false }; return; }
     // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
@@ -1522,11 +1541,20 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   }, { passive: true });
   addEventListener("touchmove", (e) => {
     if (!st) return; const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
-    st.dx = dx;
-    if ((st.m === "more" || st.m === "more2") && Math.abs(dx) < 30 && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }   // cuộn dọc → bỏ
-    // 👉 Bảng phụ đang mở mà vuốt sang TRÁI thêm 1 lần nữa → chuyển sang bảng "Thêm" (mọi trang) · trang không có Bảng phụ: vuốt mép phải → "Thêm"
-    if (st.m === "more" || (st.m === "close" && !st.lock && dx < -12 && Math.abs(dx) > Math.abs(dy) * 1.4)) { if (st.m === "close") st.m = "more2"; if (e.cancelable && dx < -8) e.preventDefault(); return; }
-    if (st.m === "more2") { if (e.cancelable) e.preventDefault(); return; }
+    // 👉 Bảng phụ đang mở mà vuốt sang TRÁI thêm 1 lần nữa → bảng "Thêm" trượt ra đè lên (mọi trang) · trang không có Bảng phụ: vuốt mép phải → "Thêm"
+    if (st.m === "close" && !st.lock && dx < -10 && Math.abs(dx) > Math.abs(dy) * 1.3) st.m = "more2";
+    if (st.m === "more" || st.m === "more2" || st.m === "mclose") {
+      if (!st.lock) {
+        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }      // cuộn dọc → bỏ
+        if (Math.abs(dx) < 8 || (st.m === "mclose" ? dx < 0 : dx > 0)) return;
+        st.lock = true; st.x0 = e.touches[0].clientX;
+        if (st.m === "mclose") st.W = ($("#msheet .msheet-in").offsetWidth || innerWidth * 0.88) + 12; else { st.W = msSideStart(); if (!st.W) { st = null; return; } }
+      }
+      if (e.cancelable) e.preventDefault();
+      const d = e.touches[0].clientX - st.x0;
+      st.off = st.m === "mclose" ? Math.max(0, Math.min(st.W, d)) : Math.max(0, Math.min(st.W, st.W + d));
+      msSideMove(st.off, st.W); return;
+    }
     if (!st.lock) {
       if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
       if (Math.abs(dx) < 8 || (st.m === "open" ? dx > 0 : dx < 0)) return;
@@ -1539,7 +1567,14 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   }, { passive: false });
   const end = () => {
     if (!st) return; const s = st; st = null;
-    if (s.m === "more" || s.m === "more2") { const dx = s.dx || 0, v = -dx / Math.max(1, Date.now() - s.t); if (dx < -50 || (dx < -24 && v > 0.4)) { navigator.vibrate?.(6); if (s.m === "more2") pnSheet(false); setTimeout(() => mSheet(true), s.m === "more2" ? 120 : 0); } return; }
+    if (s.m === "more" || s.m === "more2" || s.m === "mclose") {
+      if (!s.lock) return;
+      const shown = 1 - s.off / s.W, v = (s.m === "mclose" ? s.off : s.W - s.off) / Math.max(1, Date.now() - s.t);
+      const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : shown > 0.33 || v > 0.5;
+      msSideEnd(open);
+      if (open && s.m !== "mclose") { navigator.vibrate?.(6); if (s.m === "more2") setTimeout(() => { const b = document.body; b.classList.remove("pn-sheet"); $("#pnav").style.transform = ""; $("#pnShade").style.opacity = ""; }, 280); }
+      return;
+    }
     if (!s.lock) return;
     const shown = 1 - s.off / s.W, v = (s.m === "open" ? s.W - s.off : s.off) / Math.max(1, Date.now() - s.t);
     const open = s.m === "open" ? shown > 0.33 || v > 0.5 : !(s.off / s.W > 0.33 || v > 0.5);
