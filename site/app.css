@@ -6831,18 +6831,10 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .pxp-b:not(#_x){font-size:.75rem!important}
 .ios-menu .px2 .px-slp button:not(#_x):not(#_y){font-size:.6875rem!important}
 .ios-menu .ios-menu-in.px-sheet:not(#_x){background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:0 -6px 30px -8px rgba(0,0,0,.35),0 0 0 .5px color-mix(in srgb,var(--ink) 12%,transparent)!important}
-/* 📱 thanh tab dưới thấp hơn, sát đáy kiểu iOS mới: chừa vừa đủ thanh vuốt Home (trước: vùng an toàn + 8px ≈ 42px trên iPhone → nay ≈ 20px; máy không có thanh Home: 6px) */
+/* 📱 thanh tab dưới thấp hơn 1 chút (giữ kiểu bo cũ): trước vùng an toàn + 8px ≈ 42px trên iPhone → nay ≈ 26px; máy không có thanh Home: 6px */
 @media (max-width:979px){
-  :root{--tb-b:max(6px,calc(env(safe-area-inset-bottom,0px) - 14px))}
+  :root{--tb-b:max(6px,calc(env(safe-area-inset-bottom,0px) - 8px))}
   .tabs:not(#_t){bottom:var(--tb-b)!important}
   body{padding-bottom:calc(var(--tb-h) + 14px + var(--tb-b))!important}
   body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(var(--tb-h) + 12px + var(--tb-b))!important}
-}
-/* 📱 2 góc dưới thanh tab đồng tâm với góc màn hình iPhone (--dev-r do app.js nhận theo đời máy): bo = độ bo màn hình − khoảng cách tới mép (12px); máy khác giữ 16px */
-@media (max-width:979px){
-  .tabs:not(#_t){border-bottom-left-radius:max(16px,calc(var(--dev-r,28px) - 12px))!important;border-bottom-right-radius:max(16px,calc(var(--dev-r,28px) - 12px))!important}
-}
-@media (max-width:979px){
-  .tabs.gnav>.nthumb.mthumb.e-l{border-bottom-left-radius:max(10px,calc(var(--dev-r,30px) - 20px))!important}
-  .tabs.gnav>.nthumb.mthumb.e-r{border-bottom-right-radius:max(10px,calc(var(--dev-r,30px) - 20px))!important}
 }

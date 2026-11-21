@@ -871,7 +871,6 @@ function navThumb() {
     if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
     NTH.className = "nthumb mthumb";
     if (!on) { NTH.style.opacity = "0"; return; }
-    { const V = [...nav.querySelectorAll(":scope > a, :scope > .nav-more")].filter(vis); if (on === V[0]) NTH.classList.add("e-l"); if (on === V[V.length - 1]) NTH.classList.add("e-r"); }      // mục sát mép: góc dưới viên kính bo theo góc thanh (đồng tâm góc màn hình)
     const x = on.offsetLeft, w = on.offsetWidth, moved = NTH._x != null && Math.abs(NTH._x - x) > 2; NTH._x = x;
     NTH.style.translate = `${x}px 0`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.opacity = "1"; NTH.classList.remove("press");
     if (moved && !NTH._first && !matchMedia("(prefers-reduced-motion: reduce)").matches) { NTH.classList.remove("jelly"); void NTH.offsetWidth; NTH.classList.add("jelly"); clearTimeout(NTH._jt); NTH._jt = setTimeout(() => NTH?.classList.remove("jelly"), 700); }
@@ -7788,15 +7787,6 @@ function initAccountUI() {
   Promise.resolve(route()).finally(() => { window.__splashOut?.(); navTitle(); });      // trang đầu vẽ xong → tắt màn hình mở app
 })();
 
-// ================================================================ 📱 BO GÓC MÀN HÌNH ĐIỆN THOẠI: trình duyệt không cho biết độ bo góc màn hình → nhận đời iPhone qua kích thước
-//   màn hình (điểm) + mật độ điểm ảnh, tra độ bo thật của từng đời (Apple công bố gián tiếp qua bộ công cụ thiết kế) → --dev-r. Thanh tab dưới dùng --dev-r để
-//   2 góc dưới bo ĐỒNG TÂM với góc màn hình (bo = độ bo màn hình − khoảng cách tới mép). Máy khác / không nhận ra → giữ bo mặc định.
-(() => {
-  const ua = navigator.userAgent; if (!/iPhone/.test(ua)) return;
-  const w = Math.min(screen.width, screen.height), h = Math.max(screen.width, screen.height), dpr = Math.round(devicePixelRatio || 1);
-  const R = { "375x812": dpr === 3 ? 39 : 39, "414x896": dpr === 2 ? 41.5 : 39, "360x780": 44, "390x844": 47.33, "428x926": 53.33, "393x852": 55, "430x932": 55, "402x874": 62, "440x956": 62, "420x912": 62 }[`${w}x${h}`];
-  if (R) document.documentElement.style.setProperty("--dev-r", R + "px");
-})();
 // ================================================================ BÀN PHÍM ĐIỆN THOẠI: ô đang gõ không bị thanh tab dưới / nút nổi che, tự cuộn ô vào giữa vùng còn thấy
 (() => {
   if (!matchMedia("(pointer:coarse)").matches) return;
