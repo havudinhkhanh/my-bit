@@ -56,8 +56,8 @@
      "hi": 1
     },
     {
-     "c": "perf",
-     "a": "chart",
+     "c": "imp",
+     "a": "perf",
      "t": "Biểu đồ lệnh & thẻ xem lệnh: đổi khung giờ / bật tắt EMA, khối lượng, RSI không còn để lại biểu đồ cũ chạy ngầm (đỡ nặng máy, đỡ nóng điện thoại)",
      "te": "Order chart & trade popups: switching timeframe or toggling EMA, volume, RSI no longer leaves old charts running in the background"
     }
