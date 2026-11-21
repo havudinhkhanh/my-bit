@@ -2977,7 +2977,7 @@ async function viewTrade(env, sym, ms) {
     if (!$("#trChart")) return;
     if (!K) { el.innerHTML = `<p class="faint" style="padding:12px">${bi("Không lấy được nến từ Binance.", "Couldn't load candles.")}</p>`; return; }
     el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60, tt = (msv) => Math.floor(msv / 1000 / sec) * sec + off;
-    try { window.__trC?.remove(); const i = charts.indexOf(window.__trC); if (i >= 0) charts.splice(i, 1); } catch (e) { /* đã huỷ */ }
+    chartDrop(window.__trC);
     const c = mkChart(el, { height: el.clientHeight || 360 }); window.__trC = c; const dec = pdec(+K[K.length - 1][4]);
     const cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
     const data = K.map((k) => ({ time: tt(+k[0]), open: +k[1], high: +k[2], low: +k[3], close: +k[4] }));
@@ -3036,8 +3036,8 @@ async function tPeek(env, sym, ms, box) {
   let K = null; for (const b of env === "demo" ? ["https://demo-fapi.binance.com", "https://fapi.binance.com"] : ["https://fapi.binance.com"]) { try { const q = await fetch(`${b}/fapi/v1/klines?symbol=${sym}USDT&interval=${tf}&startTime=${Math.floor(st)}&endTime=${Math.floor(en)}&limit=1000`); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử sàn khác */ } }
   const el = box.querySelector("#tpkC"); if (!el || !el.isConnected) return r;
   if (!K || typeof LightweightCharts === "undefined") { el.innerHTML = `<p class="faint">${bi("Không lấy được nến từ Binance.", "Couldn't load candles.")}</p>`; return r; }
-  el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60, tt = (v) => Math.floor(v / 1000 / sec) * sec + off;
-  const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, rightPriceScale: { borderColor: css("--line"), scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); charts.push(c);
+  chartDrop(box.__c); el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60, tt = (v) => Math.floor(v / 1000 / sec) * sec + off;
+  const c = box.__c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, rightPriceScale: { borderColor: css("--line"), scaleMargins: { top: 0.12, bottom: 0.08 } }, handleScroll: false, handleScale: false }); charts.push(c);
   const dec = pdec(+K[K.length - 1][4]), cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
   cs.setData(K.map((k) => ({ time: tt(+k[0]), open: +k[1], high: +k[2], low: +k[3], close: +k[4] })));
   const PL = [], L = (p, color, title, style = 2, w = 1) => { if (!(isNum(p) && p > 0)) return; PL.push(+p); cs.createPriceLine({ price: +p, color, lineWidth: w, lineStyle: style, axisLabelVisible: true, title }); };
@@ -3058,8 +3058,8 @@ async function coinPeek(sym, box) {
   let K = null; for (const u of [`https://fapi.binance.com/fapi/v1/klines?symbol=${sym}USDT&interval=15m&limit=96`, `https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=15m&limit=96`]) { try { const q = await fetch(u); if (!q.ok) continue; const J = await q.json(); if (Array.isArray(J) && J.length) { K = J; break; } } catch (e) { /* thử nguồn khác */ } }
   const el = box.querySelector("#tpkC"); if (!el || !el.isConnected) return;
   if (!K || typeof LightweightCharts === "undefined") { el.innerHTML = `<p class="faint">${bi("Không lấy được nến.", "Couldn't load candles.")}</p>`; return; }
-  el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60;
-  const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, handleScroll: false, handleScale: false }); charts.push(c);
+  chartDrop(box.__c); el.innerHTML = ""; const off = -new Date().getTimezoneOffset() * 60;
+  const c = box.__c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, height: 190, handleScroll: false, handleScale: false }); charts.push(c);
   const dec = pdec(+K[K.length - 1][4]), cs = c.addCandlestickSeries({ upColor: css("--up"), downColor: css("--down"), borderVisible: false, wickUpColor: css("--up"), wickDownColor: css("--down"), priceFormat: { type: "price", precision: dec, minMove: 10 ** -dec } });
   cs.setData(K.map((k) => ({ time: Math.floor(+k[0] / 1000) + off, open: +k[1], high: +k[2], low: +k[3], close: +k[4] }))); c.timeScale().fitContent();
   const o = +K[0][1], l = +K[K.length - 1][4], hi = Math.max(...K.map((k) => +k[2])), lo = Math.min(...K.map((k) => +k[3])), ch = (l / o - 1) * 100;

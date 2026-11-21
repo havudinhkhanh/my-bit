@@ -54,6 +54,12 @@
      "d": "Trước đây sau khi đổi khung giờ, menu vẫn đọc giá theo trục của biểu đồ cũ nên giá đặt lệnh và % cách giá bị lệch, có lúc rất xa.",
      "de": "After a timeframe switch the menu kept reading the old chart's price axis, so the order price and distance were off, sometimes far off.",
      "hi": 1
+    },
+    {
+     "c": "perf",
+     "a": "chart",
+     "t": "Biểu đồ lệnh & thẻ xem lệnh: đổi khung giờ / bật tắt EMA, khối lượng, RSI không còn để lại biểu đồ cũ chạy ngầm (đỡ nặng máy, đỡ nóng điện thoại)",
+     "te": "Order chart & trade popups: switching timeframe or toggling EMA, volume, RSI no longer leaves old charts running in the background"
     }
    ]
   },

@@ -183,6 +183,8 @@ const IND = {
   rsi(a, n = 14) { const o = [null]; let g = 0, l = 0; for (let i = 1; i < a.length; i++) { const d = a[i] - a[i - 1]; const G = Math.max(d, 0), L = Math.max(-d, 0); if (i <= n) { g += G / n; l += L / n; o.push(i === n ? (l === 0 ? 100 : 100 - 100 / (1 + g / l)) : null); } else { g = (g * (n - 1) + G) / n; l = (l * (n - 1) + L) / n; o.push(l === 0 ? 100 : 100 - 100 / (1 + g / l)); } } return o; },
 };
 const charts = [];
+// gỡ HẲN 1 biểu đồ đã thay bằng biểu đồ mới trong cùng khung: trước chỉ xoá phần tử → đối tượng biểu đồ cũ vẫn sống (bám khung, tự đổi cỡ, nghe rê chuột) – tốn máy, đọc nhầm giá
+function chartDrop(c) { if (!c) return; const i = charts.indexOf(c); if (i >= 0) charts.splice(i, 1); try { c.remove(); } catch (e) { /* đã huỷ */ } }
 function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof plClose === "function") plClose(); if (typeof oppClose === "function") oppClose(); if (typeof papClose === "function") papClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
 function themeOpts() {
   return {
@@ -3250,8 +3252,9 @@ async function ocDraw(keep) {
   if (I.ux) lines.push({ price: I.ux, color: css("--brass") || css("--brand"), title: bi("🏁 hẹn đóng", "🏁 close at"), style: 2, w: 2 });      // lệnh chờ đã khớp 1 phần (chưa có giá vào TB)
   const cur0 = o.c[n - 1];
   if (I.liq && Math.abs(I.liq / cur0 - 1) < 0.15) lines.push({ price: I.liq, color: css("--warn") || css("--down"), title: bi("thanh lý", "liq."), style: 2 });      // chỉ vẽ khi gần (xa thì xem ở ô số)
-  el.innerHTML = "";
   try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null;
+  try { el._ptStop?.(); } catch (e) { /* bỏ qua */ } chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null;      // biểu đồ cũ (khung giờ trước / trước khi bật tắt EMA·KL·RSI) gỡ hẳn
+  el.innerHTML = "";
   const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)] }); OCC.ch = ch; OCC.chTf = tf;
   if (KV) { try { if (KV.lr) ch.c.timeScale().setVisibleLogicalRange(KV.lr); if (KV.pr && !KV.auto) { ch.c.priceScale("right").applyOptions({ autoScale: false }); ch.c.priceScale("right").setVisibleRange?.(KV.pr); } } catch (e) { /* bỏ qua */ } }
   { const lg = document.querySelector("#ocChart .occ-lg"), lq = lines.find((l) => l.price === I.liq); lg?.querySelector(".occ-l.lq")?.remove(); if (lg && lq) lg.querySelector("#occSrc")?.insertAdjacentHTML("beforebegin", `<span class="occ-l lq"><i></i>${bi("Thanh lý", "Liq.")} <b>${px(I.liq)}</b></span>`); }      // thanh lý chỉ ghi chú khi đường có trên biểu đồ
@@ -3277,7 +3280,7 @@ async function ocDraw(keep) {
   OCC.mkLayer();
   // RSI 14 (tuỳ chọn) – khung nhỏ dưới, cùng trục thời gian
   const rEl = document.getElementById("occR"); OCC.rc = null;
-  if (rEl) { rEl.innerHTML = ""; rEl.hidden = !ocOpt("rsi"); if (ocOpt("rsi")) { const rc = LightweightCharts.createChart(rEl, { ...themeOpts(), autoSize: true, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 } }); charts.push(rc);
+  if (rEl) { rEl.innerHTML = ""; rEl.hidden = !ocOpt("rsi"); if (ocOpt("rsi")) { const rc = LightweightCharts.createChart(rEl, { ...themeOpts(), autoSize: true, timeScale: { visible: false }, rightPriceScale: { borderColor: css("--line"), minimumWidth: 74 } }); charts.push(rc); OCC.rcC = rc;
     rc.applyOptions({ localization: { ...(themeOpts().localization || {}), priceFormatter: (v) => nf(v, 1) } });      // trục RSI: 1 số lẻ (trước 87,6348)
     const rs = rc.addLineSeries({ color: css("--ref"), lineWidth: 1, priceLineVisible: false, priceFormat: { type: "price", precision: 1, minMove: 0.1 } }); const rv = IND.rsi(o.c, 14);
     rs.setData(o.t.map((t, i) => (rv[i] == null ? { time: t } : { time: t, value: rv[i] })));      // nến chưa đủ 14 cây vẫn giữ chỗ (khoảng trống) – trước bỏ hẳn → cả đường RSI lệch 14 nến so với biểu đồ chính
