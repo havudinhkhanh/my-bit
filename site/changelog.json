@@ -212,6 +212,18 @@
      "a": "ui",
      "t": "Điện thoại: giữ lâu lên nút, thanh chọn, biểu đồ không còn bôi đen chữ và bật menu Cắt / Sao chép của iPhone",
      "te": "Phone: long-pressing buttons, pickers and charts no longer selects text or pops the iPhone Cut / Copy menu"
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Điện thoại: menu đặt lệnh trên biểu đồ thành tấm trượt từ đáy, cách mép 12px, nền đặc, không còn bám sát mép hay bị cắt",
+     "te": "Phone: the chart order menu is now a bottom sheet with 12px margins and a solid background – no more hugging the edge or getting cut off"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Chữ quá to ở hàng trượt giá, nút Chọn giá và vài nút nhỏ khác (khai báo cỡ chữ sai bị trình duyệt bỏ qua) – nay đúng cỡ gọn",
+     "te": "Oversized text on the slippage row, the Pick price button and a few small buttons (an invalid font rule was ignored) – now the intended compact size"
     }
    ]
   },
