@@ -1549,13 +1549,20 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
     if (!open && x >= innerWidth - EDGE && !busy() && !(NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
-    if (st && (st.m === "open" || st.m === "more")) e.stopPropagation();
+    if (st && (st.m === "open" || st.m === "more")) {
+      e.stopPropagation();
+      // ⏳ GIỮ ngón tay ở mép ~0,35 s (chưa kéo) → chuyển sang bảng "Thêm": ngăn kéo hé ra 28px + rung nhẹ, kéo tiếp hoặc thả tay là mở
+      //    quét nhanh = Bảng phụ như cũ
+      const s0 = st; s0.hT = setTimeout(() => { if (st !== s0 || s0.lock) return; s0.m = "more"; s0.held = 1; s0.lock = true; s0.x0 = s0.cx ?? s0.x; s0.W = msSideStart(); if (!s0.W) { st = null; return; } s0.peek = 28; s0.off = s0.W - s0.peek; msSideMove(s0.off, s0.W); navigator.vibrate?.(10); }, 350);
+    }
   }, { passive: true, capture: true });
   // cú vuốt bắt đầu ở MÉP PHẢI thuộc về Bảng phụ / "Thêm": nuốt luôn sự kiện (pha bắt) → biểu đồ / bảng phía dưới không nhận
   //   (trước đây biểu đồ lệnh phía sau vẫn bị kéo thang giá / bảng bị kéo xuống theo → giật giật)
   const edgeOwn = () => st && (st.m === "open" || st.m === "more");
+  let swallowClick = 0; addEventListener("click", (e) => { if (Date.now() < swallowClick) { swallowClick = 0; e.stopPropagation(); e.preventDefault(); } }, true);
   addEventListener("touchmove", (e) => {
     if (!st) return; if (edgeOwn()) e.stopPropagation(); const dx = e.touches[0].clientX - st.x, dy = e.touches[0].clientY - st.y, N = $("#pnav"), S = $("#pnShade");
+    st.cx = e.touches[0].clientX; if (st.hT && !st.held && Math.hypot(dx, dy) > 8) { clearTimeout(st.hT); st.hT = 0; }      // đã kéo trước khi đủ lâu → không tính là giữ
     // 👉 Bảng phụ đang mở mà vuốt sang TRÁI thêm 1 lần nữa → bảng "Thêm" trượt ra đè lên (mọi trang) · trang không có Bảng phụ: vuốt mép phải → "Thêm"
     if (st.m === "close" && !st.lock && dx < -10 && Math.abs(dx) > Math.abs(dy) * 1.3) st.m = "more2";
     if (st.m === "more" || st.m === "more2" || st.m === "mclose") {
@@ -1567,7 +1574,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
       }
       if (e.cancelable) e.preventDefault();
       const d = e.touches[0].clientX - st.x0;
-      st.off = st.m === "mclose" ? Math.max(0, Math.min(st.W, d)) : Math.max(0, Math.min(st.W, st.W + d));
+      st.off = st.m === "mclose" ? Math.max(0, Math.min(st.W, d)) : Math.max(0, Math.min(st.W, st.W - (st.peek || 0) + d));
       msSideMove(st.off, st.W); return;
     }
     if (!st.lock) {
@@ -1581,11 +1588,13 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     N.style.transform = `translateX(${st.off}px)`; S.style.opacity = String(1 - st.off / st.W);
   }, { passive: false, capture: true });
   const end = (e) => {
-    if (!st) return; if (edgeOwn()) e?.stopPropagation?.(); const s = st; st = null;
+    if (!st) return; if (edgeOwn()) e?.stopPropagation?.(); const s = st; st = null; clearTimeout(s.hT);
+    if (s.held) { if (e?.cancelable) e.preventDefault(); swallowClick = Date.now() + 500; }      // thả tay sau khi giữ: không để trình duyệt "bấm" vào nền tối vừa hiện ra dưới ngón tay
     if (s.m === "more" || s.m === "more2" || s.m === "mclose") {
       if (!s.lock) return;
       const shown = 1 - s.off / s.W, v = (s.m === "mclose" ? s.off : s.W - s.off) / Math.max(1, Date.now() - s.t);
-      const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : shown > 0.33 || v > 0.5;
+      // đã giữ để chọn "Thêm": thả tay tại chỗ / kéo ra 1 chút là mở hẳn; kéo ngược ra mép (đẩy ngăn kéo vào) thì huỷ
+      const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : s.held ? s.off <= s.W - s.peek + 6 : shown > 0.33 || v > 0.5;
       msSideEnd(open);
       if (open && s.m !== "mclose") { navigator.vibrate?.(6); if (s.m === "more2") setTimeout(() => { const b = document.body; b.classList.remove("pn-sheet"); $("#pnav").style.transform = ""; $("#pnShade").style.opacity = ""; }, 280); }
       return;
@@ -1596,7 +1605,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     if (open && s.m === "open") navigator.vibrate?.(6);
     pnSheet(open);
   };
-  addEventListener("touchend", end, { capture: true }); addEventListener("touchcancel", end, { capture: true });
+  addEventListener("touchend", end, { capture: true, passive: false }); addEventListener("touchcancel", end, { capture: true });
 })();
 function pageIn() {
   if (window.__vt) return;
@@ -2003,7 +2012,7 @@ function pnCheck(force) {
   nav.hidden = !on;
   if (!on) { PN.items = []; $("#pnlist").innerHTML = ""; document.body.classList.remove("pn-sheet", "pn-focus"); return; }
   // màn cảm ứng: bỏ nút nổi "Bảng phụ" (vuốt từ mép phải để mở) → nhắc cách vuốt 1 lần duy nhất
-  if (matchMedia("(max-width:1179px) and (hover:none) and (pointer:coarse)").matches && !lsGet("pn_swipe_hint", 0)) { lsSet("pn_swipe_hint", 1); setTimeout(() => toast(T("Vuốt từ mép phải vào để mở Bảng phụ · vuốt thêm lần nữa để mở bảng Thêm")), 1800); }
+  if (matchMedia("(max-width:1179px) and (hover:none) and (pointer:coarse)").matches && !lsGet("pn_swipe_hint2", 0)) { lsSet("pn_swipe_hint2", 1); setTimeout(() => toast(T("Quét nhanh từ mép phải → Bảng phụ · giữ ngón tay ở mép 1 chút → bảng Thêm")), 1800); }
   pnTocBadge(named.length);
   const same = !force && its.length === PN.items.length && its.every((p, i) => p === PN.items[i]);
   const nr = its.reduce((n, p) => n + pnRows(p).length, 0);

@@ -302,6 +302,12 @@
      "a": "ui",
      "t": "Vuốt từ mép phải để mở Bảng phụ khi đang xem biểu đồ lệnh: biểu đồ phía sau không còn bị kéo xuống giật giật theo",
      "te": "Swiping the side panel open over the order chart no longer drags the chart behind it"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Mép phải: quét nhanh → Bảng phụ · giữ ngón tay ở mép 1 chút → bảng \"Thêm\" hé ra, kéo tiếp hoặc thả tay là mở",
+     "te": "Right edge: quick swipe → side panel · hold at the edge a moment → More peeks out; drag or release to open"
     }
    ]
   },
