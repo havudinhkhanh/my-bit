@@ -274,9 +274,9 @@ async function ivFill(LH, C, env, PT = []) {
   const box = $("#ivBox"); if (!box) return; const key = ivKey(LH, C, env, PT); if (box.dataset.done === key) return;
   const stopB = (+C.hk_stop || 0) * 100, rows = LH.filter((h) => h.t2);
   // lệnh bot anh đóng THẲNG trên app Binance: bản máy chủ mới ghi xb; bản cũ ghi nhầm "SL" → nhận ra vì lỗ còn xa mức cắt lỗ thảm hoạ (cắt lỗ thật thì lỗ ≈ hk_stop%)
-  const exB = (h) => h.xb || (h.why === "SL" && (!h.strat || h.strat === "hook") && stopB > 0 && isNum(h.net) && h.net > -0.6 * stopB);
+  const exB = (h) => h.xb || (h.why === "SL" && (!(h.ivE ? h.bs : h.strat) || (h.ivE ? h.bs : h.strat) === "hook") && stopB > 0 && isNum(h.net) && h.net > -0.6 * stopB);
   const IV = (h) => (h.ivE ? String(h.iv).split(",") : h.strat === "man" ? ["man"] : h.iv ? String(h.iv).split(",") : h.why === "MANUAL" || exB(h) ? ["close"] : []);
-  const need = rows.filter((h) => (!h.strat || h.strat === "hook") && IV(h).some((x) => x === "close" || x === "ext" || x === "keep"));      // chỉ 🪝 tính lại được theo luật bot (lệnh 7 ngày / định lượng: chưa so được)
+  const need = rows.filter((h) => { const st = h.ivE ? h.bs : h.strat; return (!st || st === "hook") && IV(h).some((x) => x === "close" || x === "ext" || x === "keep"); });      // chỉ 🪝 tính lại được theo luật bot (lệnh 7 ngày / định lượng: chưa so được)
   // phút can thiệp: đóng tay → lúc anh đóng · gia hạn / giữ → giờ giữ gốc (bot thật không tự thoát trước đó, lẽ ra đóng đúng giờ gốc)
   const fromOf = (h) => { const m = (Date.parse(h.t2 + "Z") - Date.parse(String(h.t1 || h.ts) + "Z")) / 6e4; return IV(h).includes("close") ? Math.max(0, Math.floor(m)) : Math.max(0, Math.floor(+h.h0 || +C.hk_h || 60)); };
   const sims = await Promise.all(need.map((h) => ivSim(h, C, env, fromOf(h))));
@@ -623,7 +623,7 @@ async function viewScalp() {
       ${chip(dataOk ? "ok" : X.at ? "warn" : "off", dataOk ? bi(`${nf(nMk, 0)} thị trường · ${nf(rate, 0)}/s`, `${nf(nMk, 0)} mkts · ${nf(rate, 0)}/s`) : X.at ? bi(`dữ liệu cũ ${durVi(age)}`, `data ${nf(age, 0)}s old`) : bi("chưa có dữ liệu", "no data"), bi("Dữ liệu thị trường bot đang nghe", "Market data feed"))}
       ${chip(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", Object.entries(FD).map(([t, f]) => `${t === "F" ? "F" : "S"}·${esc(String(f.src || "—").replace(/f$/, ""))}`).join(" ") || bi("sàn —", "feeds —"), Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${f.src || "—"}`).join(" · "))}
       ${chip(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", `${LV?.env === "live" || C.lv_env === "live" ? bi("Thật", "Live") : "Demo"} ${!C.lv_on ? bi("tắt", "off") : LV?.halt ? bi("ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : "—"}`, lvSt.why || LV?.halt || bi("Tài khoản Binance của bot", "Bot's Binance account"))}
-      <span id="scLive" class="sc-lv hz2-lv"></span></div>
+      ${scLiveTag()}</div>
       <div class="hz2-a"><button type="button" class="ios-sw sm" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
         <button type="button" class="hz2-ic" data-hzinfo aria-label="Chi tiết kỹ thuật" title="Chi tiết kỹ thuật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
         <div class="sc-act"><details class="sc-more"><summary class="hz-ic hz2-ic" aria-label="Thêm thao tác"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div></div>
@@ -712,7 +712,7 @@ async function viewScalp() {
     const mk = (v, c, t) => `<i class="lm ${c}" style="left:${f(v)}" title="${esc(t)} ${px(v)}"></i>`;
     const lq = !L ? "" : L > lo && L < hi ? mk(L, "lq", bi("thanh lý", "liquidation")) : `<i class="lm lq far ${L >= hi ? "r" : "l"}" title="${esc(bi("thanh lý", "liquidation"))} ${px(L)}">${L >= hi ? "›" : "‹"}</i>`;
     const a = P(m), b = P(e);
-    return `<div class="sc-lad${sd * (m - e) >= 0 ? " win" : ""}" data-lad="${esc(k)}" data-e="${e}" data-lo="${lo}" data-hi="${hi}" data-sd="${sd}" role="img" aria-label="${esc(bi("Thang giá: cắt lỗ, giá vào, giá hiện tại, chốt lời, thanh lý", "Price ladder: stop, entry, now, target, liquidation"))}">
+    return `<div class="sc-lad${sd * (m - e) >= 0 ? " win" : ""}" data-lad="${esc(k)}" data-e="${e}" data-lo="${lo}" data-hi="${hi}" data-sd="${sd}" data-mk="${SL || 0}|${TP || 0}|${L || 0}" role="img" aria-label="${esc(bi("Thang giá: cắt lỗ, giá vào, giá hiện tại, chốt lời, thanh lý", "Price ladder: stop, entry, now, target, liquidation"))}">
       <span class="tr"></span><span class="fill" style="left:${Math.min(a, b).toFixed(1)}%;width:${Math.abs(a - b).toFixed(1)}%"></span>${SL ? mk(SL, "sl", bi("cắt lỗ", "stop")) : ""}${TP ? mk(TP, "tp", bi("chốt lời", "target")) : ""}${lq}${mk(e, "en", bi("giá vào", "entry"))}<i class="cur" style="left:${a.toFixed(1)}%"></i></div>`;
   };
   const pcard0 = (k, p) => `<div class="sc-oc ${p.side > 0 ? "L" : "S"}"><div class="r1"><span>${p.strat === "hook" ? "🪝" : "⚡"} <b>${scK(k)}</b> <span class="${p.side > 0 ? "up" : "down"}">${p.side > 0 ? "Long" : "Short"}</span></span><b class="lpx" data-lpx="${esc(k)}">${px(isNum(p.m) ? p.m : p.e)}</b></div>
@@ -930,9 +930,11 @@ async function viewScalp() {
     const cond = (re) => (p.ord || []).filter((o) => re.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || 0, SL = cond(/^STOP/), TP = cond(/^TAKE_PROFIT/);
     const fr = C.fee_t ?? 0.05, est = (f) => ({ pk: k, e: p.ep, q: q * f, sd, f0: 0, fr, m: p.mk, sl: 0, long: 1, fund: isNum(p.fund) ? p.fund * f : null });      // funding đã trả (máy chủ đọc) → ước tính đóng ngay có tính funding
     MXE["mx:" + p.sym + ":0.5"] = est(0.5);
+    // lệnh sàn thử đang theo đã đóng / chưa tải → ghi tên dễ hiểu theo loại, không lộ mã nội bộ (trước: "sw:pump:pump873602521")
+    const pkName = (pk, sym) => { const [a, b] = String(pk).split(":"), c = String(sym || "").replace(/USDT$/, ""); return `${c} ${a === "sw" ? (b === "list" ? bi("Short coin mới niêm yết", "New-listing short") : bi("Short coin vừa bơm", "Pumped-coin short")) : a === "q" ? bi("Thử nghiệm", "Experimental") : a === "pp" ? bi("sàn thử", "paper") : bi("lệnh sàn thử", "paper trade")}`.trim(); };
     const busyF = window.__mCondBusy?.[p.sym], LK = LV?.man?.lk?.[p.sym] || null, lkP = LK?.pk ? PAPO.find((x) => x.pk === LK.pk) : null;
     const opts = PAPO.slice().sort((a, b) => (b.c === k.split(":")[0]) - (a.c === k.split(":")[0]) || (b.sd === sd) - (a.sd === sd));
-    const lkRow = LK ? `<div class="r4"${LK.exp ? ` data-lt0="${LK.at}" data-lh="${(LK.exp - LK.at) / 1000}"` : ""}>${LK.exp ? `<span class="sc-cd"><i></i></span><small></small>` : ""}<small class="faint">⏱ ${LK.exp ? bi("tự đóng", "auto-close") : ""}${LK.pk ? `${LK.exp ? bi(" · ", " · ") : ""}${bi("theo", "follows")} 🧪 ${esc(lkP ? `${lkP.c} ${lkP.nm}` : LK.pk)}` : ""}</small></div>` : "";
+    const lkRow = LK ? `<div class="r4"${LK.exp ? ` data-lt0="${LK.at}" data-lh="${(LK.exp - LK.at) / 1000}"` : ""}>${LK.exp ? `<span class="sc-cd"><i></i></span><small></small>` : ""}<small class="faint">⏱ ${LK.exp ? bi("tự đóng", "auto-close") : ""}${LK.pk ? `${LK.exp ? bi(" · ", " · ") : ""}${bi("theo", "follows")} 🧪 ${esc(lkP ? `${lkP.c} ${lkP.nm}` : pkName(LK.pk, p.sym))}` : ""}</small></div>` : "";
     const extRow = LK && MAN.ctl ? `<div class="sc-ext"><small class="faint">${bi("Giữ tiếp:", "Keep longer:")}</small>${[[6, bi("+6 giờ", "+6h")], [24, bi("+1 ngày", "+1 day")], [72, bi("+3 ngày", "+3 days")]].map(([h, t]) => `<button type="button" class="mchip" data-mext="${esc(p.sym)}" data-h="${h}" data-sd="${sd}" data-ex0="${LK.exp || 0}" title="${LK.pk ? bi("Gia hạn từ giờ hẹn hiện tại và BỎ đóng theo lệnh sàn thử", "Extends from the current close time and STOPS following the paper trade") : bi("Gia hạn từ giờ hẹn hiện tại", "Extends from the current close time")}">${t}</button>`).join("")}<button type="button" class="mchip" data-mext="${esc(p.sym)}" data-h="0" data-sd="${sd}" title="${bi("Bỏ mọi hẹn đóng – lệnh giữ tới khi anh tự đóng (cắt lỗ / chốt trên sàn vẫn giữ)", "Remove every scheduled close – the trade stays until you close it (exchange stop / target stay)")}">${bi("Bỏ hẹn", "No timer")}</button></div>` : "";
     const ctl = MAN.ctl ? `<div class="sc-mform" data-mf="${esc(p.sym)}" hidden>
         <label>${bi("Cắt lỗ", "Stop")}<input type="number" step="any" inputmode="decimal" data-mfsl value="${SL || ""}" placeholder="${bi("không đặt", "none")}"></label>
@@ -1317,7 +1319,7 @@ async function viewScalp() {
   };
   // bảng Lệnh đã đóng chỉ dựng khi đang ở tab Lệnh (trước: dựng cả 2 bảng Binance + sàn thử ở MỌI lần vẽ trang Bot, kể cả tab Tổng quan → nặng, giật)
   const lvTrades = () => { const lvF = clFilt(LHr.map((h, i) => ({ ...h, ch: ["lvc", i] })), LVE, LVN);
-  return `<div class="cl-wrap" data-clw="${LVE}">` + lvF.head + clT(lvF.R, LVE, tPct, bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time"), bi(`Chưa có lệnh nào đã đóng trên ${LVN}.`, `No closed trades on ${LVN} yet.`)); + "</div>"; };
+  return `<div class="cl-wrap" data-clw="${LVE}">` + lvF.head + clT(lvF.R, LVE, tPct, bi("so với tổng tài sản Binance lúc đó", "vs total Binance assets at the time"), bi(`Chưa có lệnh nào đã đóng trên ${LVN}.`, `No closed trades on ${LVN} yet.`)) + "</div>"; };
   // sàn thử: Bắt râu sập + Lướt giây (X.trades) + Thử nghiệm (định lượng / short bơm) → cùng dạng hàng với Binance
   const PWHY = { "TIME+": bi("hết giờ (giữ thêm)", "time (extended)"), REV: bi("đảo chiều – thoát sớm", "reversal – early exit"), BTC: bi("BTC sốc – thoát ngay", "BTC shock – exit"), STALE: bi("mất dữ liệu", "stale data") };
   const PCL = [...AT.map((t) => ({ t1: t.t0 || t.ts, t2: t.t1, k: t.k, side: t.side, e: t.e, x: t.x, N: isNum(t.usd) && isNum(t.net) && Math.abs(t.net) >= 1 ? Math.abs(t.usd / (t.net / 1e4)) : null, pnl: t.usd, net: t.net, why: t.why, whyL: PWHY[t.why], strat: t.strat === "hook" ? "hook" : "sec", nl: t.lv, how: t.strat === "hook" ? null : t.how, _h: t })),
@@ -1325,7 +1327,7 @@ async function viewScalp() {
     .filter((h) => h.t2).sort((a, b) => (String(a.t2) < String(b.t2) ? 1 : -1));
   PCL.forEach((h) => { if (h.strat === "hook") { const i = HT.indexOf(h._h); if (i >= 0) h.ch = ["hkc", i]; } });
   const pCap = X.start || C.capital, paperTrades = () => { const pcF = clFilt(PCL, "paper", bi("sàn thử", "paper"));
-  return `<div class="cl-wrap" data-clw="paper">` + pcF.head + clT(pcF.R, "paper", (h) => (pCap > 0 && isNum(h.pnl) ? h.pnl / pCap * 100 : null), bi("so với vốn sàn thử", "vs paper capital"), bi("Chưa có lệnh nào đã đóng trên sàn thử.", "No closed paper trades yet.")); + "</div>"; };
+  return `<div class="cl-wrap" data-clw="paper">` + pcF.head + clT(pcF.R, "paper", (h) => (pCap > 0 && isNum(h.pnl) ? h.pnl / pCap * 100 : null), bi("so với vốn sàn thử", "vs paper capital"), bi("Chưa có lệnh nào đã đóng trên sàn thử.", "No closed paper trades yet.")) + "</div>"; };
   window.__clRe = { [LVE]: lvTrades, paper: paperTrades };      // lọc mã: chỉ dựng lại khung Lệnh đã đóng, không vẽ lại cả trang Bot
   // ---------------------------------------------------------------- nội dung từng tab
   let body = "";
@@ -2050,9 +2052,11 @@ async function viewScalp() {
         if ((e.key === "ArrowDown" || e.key === "ArrowUp") && O.length) { e.preventDefault(); clDd(i, true); const n = (k + (e.key === "ArrowDown" ? 1 : -1) + O.length) % O.length; O.forEach((x, j) => x.classList.toggle("kb", j === n)); O[n].scrollIntoView({ block: "nearest" }); return; }
         if (e.key === "Escape") { clDd(i, false); return; }
         if (e.key === "Enter") { e.preventDefault(); if (k >= 0) { clDd(i, false); clGo(i.dataset.clf, O[k].dataset.c); } else if (i.value.trim()) clGo(i.dataset.clf, i.value, true); } }); });
-    $$("[data-clpick]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clpick, b.dataset.c)));
+    // bấm mã (danh sách ▾ / nút mã) khi ô đang gõ dở: xoá chữ gõ dở trước → lúc khung được dựng lại, ô gõ bị gỡ không bắn "change" với chữ cũ (trước: bấm BLESS mà lọc ra "B")
+    $$("[data-clpick]", root).forEach((b) => (b.onclick = () => { document.querySelectorAll(`[data-clf="${b.dataset.clpick}"]`).forEach((i) => (i.value = "")); clGo(b.dataset.clpick, b.dataset.c); }));
     $$("[data-clgo]", root).forEach((b) => (b.onclick = (e) => { e.preventDefault(); const i = b.parentElement.querySelector("[data-clf]"); if (i) clGo(b.dataset.clgo, i.value, true); }));
     $$("[data-clfx]", root).forEach((b) => (b.onclick = () => clGo(b.dataset.clfx, "")));
+    $$(".cl-dd, .cl-chips", root).forEach((x) => { if (!x.__md) { x.__md = 1; x.addEventListener("mousedown", (e) => e.preventDefault()); } });      // máy tính: bấm mã trong danh sách / nút mã khi đang gõ dở "B" → lọc đúng mã bấm (trước lọc "B")
     $$("[data-cldd]", root).forEach((b) => (b.onclick = (e) => { e.preventDefault(); const i = b.parentElement.querySelector("[data-clf]"), dd = b.parentElement.querySelector(".cl-dd"); clDd(i, !!dd?.hidden, true); }));
     $$("[data-clmore]", root).forEach((b) => (b.onclick = () => { const e2 = b.dataset.clmore; (window.__clDays ||= {})[e2] = ((window.__clDays[e2]) || 7) + 7; b.disabled = true; requestAnimationFrame(() => clRedo(e2)); }));
   };
@@ -2177,7 +2181,7 @@ async function viewScalp() {
     // 📲 vừa mở lại app sau khi thu nhỏ (≥ 15 giây): số liệu trên trang đã cũ → tải mới & vẽ lại NGAY, không chờ anh ngừng chạm / vuốt
     //    (trước: chạm, cuộn liên tục ngay khi mở lại thì trang hoãn làm mới → lệnh chờ anh đã huỷ vẫn nằm đó tới khi để yên đủ lâu)
     const resume = Date.now() - (window.__resumeAt || 0) < 30e3;
-    if (document.hidden || autoOff("scalp") || (!resume && userBusy()) || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
+    if (document.hidden || autoOff("scalp") || (resume ? userBusy(0) : userBusy()) || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
     const fast = Date.now() < (window.__scFast || 0);
     if (!resume && Date.now() - (window.__scLast || 0) < (fast ? 900 : innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần · vừa bấm lệnh: 1 giây / lần
     if (resume) window.__resumeAt = 0;
@@ -2713,7 +2717,7 @@ function jRows(LG, X) {
 }
 function jRows0(LG, X) {
   const M = new Map(), put = (r) => { if (!r.t2 || !(r.q > 0) || !(r.e > 0)) return; const k = `${r.env}|${r.k}|${String(r.t2).slice(0, 19)}`; if (!M.has(k)) M.set(k, r); };
-  const IVK = new Set((X?.live?.hist || []).filter(ivMan).map((h) => ivKeyOf(h, "demo")));      // ✋ lệnh "anh bấm vào ngay" – sổ máy chủ ghi theo phương pháp bot → đổi thành lệnh tay
+  const IVK = new Set((X?.live?.hist || []).filter(ivMan).map((h) => ivKeyOf(h, X?.live?.env || "demo")));      // ✋ lệnh "anh bấm vào ngay" – sổ máy chủ ghi theo phương pháp bot → đổi thành lệnh tay
   for (const a of LG?.rows || []) put({ env: a[0], strat: IVK.has(`${a[0]}|${a[2]}|${String(a[8]).slice(0, 19)}`) ? "man" : a[1], k: a[2], side: a[3], q: a[4], e: a[5], x: a[6], t1: a[7], t2: a[8], fee: a[9], fund: a[10], pnl: a[11], why: a[12], lv: a[13], R: a[14], tot: a[15], note: a[16] });
   for (const h of X?.live?.hist || []) put({ env: h.env || "demo", strat: ivMan(h) ? "man" : h.strat || "hook", k: h.k || String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note });
   for (const h of X?.live?.mh || []) put({ env: h.env || "live", strat: "man", k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: 1 });      // ✋ lệnh tay (chưa kịp vào sổ)

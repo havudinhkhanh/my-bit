@@ -701,7 +701,9 @@ function moNode(l, n) {      // true = đã vá tại chỗ · false = phải th
   const sig = n.getAttribute("data-sig"); if (sig && l.getAttribute("data-sig") === sig) return true;
   if (l.dataset.m && l.classList.contains("cbox") && n.classList.contains("cbox") && moChart(l, n)) return true;
   if ((l.id || n.id) && l.id !== n.id) return false;
-  const live = n.matches(MO_LIVE) && MO_LIVE_K.every((k) => l.hasAttribute(k) === n.hasAttribute(k)), ch = moAttrs(l, n, live);      // cùng LOẠI ô trực tiếp mới giữ nội dung đang chạy – khác loại (giá → lời/lỗ…) thì vá hẳn, không sót thuộc tính cũ
+  const live = n.matches(MO_LIVE) && MO_LIVE_K.every((k) => l.getAttribute(k) === n.getAttribute(k)), ch = moAttrs(l, n, live);      // cùng loại & CÙNG khoá (mã / mốc) mới giữ nội dung đang chạy – thẻ khác trượt vào chỗ này thì vá hẳn (không sót data-v, data-cx, lời/lỗ của lệnh trước)      // cùng LOẠI ô trực tiếp mới giữ nội dung đang chạy – khác loại (giá → lời/lỗ…) thì vá hẳn, không sót thuộc tính cũ
+  // thang giá (mốc cắt lỗ / chốt / thanh lý) & dòng đếm giờ (nhãn giữ tay / hoà vốn / theo lệnh sàn thử) có phần TĨNH do máy chủ vẽ → phần đó đổi thì vá, chỗ chạy sẽ được vẽ lại ở nhịp giá kế
+  if (live && !ch && l.childNodes.length && l.matches("[data-lad],[data-lt0]")) { const h = n.innerHTML; if (l.__srv !== h) { const had = l.__srv !== undefined; l.__srv = h; if (had) { moKids(l, n); return true; } } return true; }
   if (live && !ch && l.childNodes.length) return true;      // ô giá trực tiếp: thuộc tính không đổi → giữ nội dung đang chạy
   if (live && l._lp && n.hasAttribute("data-lpnl") && l._lp.b.isConnected) return true;      // ô lời/lỗ trực tiếp đã dựng: chỉ cập nhật thuộc tính (giá vào, khối lượng, funding…), chữ do giá trực tiếp vẽ
   if (l === document.activeElement && (l.tagName === "INPUT" || l.tagName === "TEXTAREA")) return true;
@@ -1607,6 +1609,9 @@ function sclSync(ids) {
 // tính lại kiểu dáng cả trang (~4ms/lần vì các luật :has) → rê chuột trên biểu đồ giật
 function setT(el, t) { if (!el) return; const f = el.firstChild; if (f && f.nodeType === 3 && !f.nextSibling) { if (f.data !== t) f.data = t; } else if (el.textContent !== t) el.textContent = t; }
 function setC(el, c) { if (el && el.className !== c) el.className = c; }
+// ● trạng thái giá trực tiếp (dùng chung khi vẽ trang & khi giá chạy → vá trang không xoá / nháy dòng này)
+function scLiveSt() { const last = Math.max(0, ...Object.values(SCL.at)), ok = last && Date.now() - last < 5000; return [ok ? " on" : "", ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""]; }
+function scLiveTag() { const [c, t] = scLiveSt(); return `<span id="scLive" class="sc-lv hz2-lv${c}">${t}</span>`; }
 function sclKick() { if (!SCL.tm) SCL.tm = setTimeout(() => { SCL.tm = 0; sclApply(); }, 200); }
 function sclApply() {
   if (location.hash !== "#/bot/scalp" || !document.getElementById("app")) { sclStop(); return; }
@@ -1624,13 +1629,13 @@ function sclApply() {
     const e = +el.dataset.e, q = +el.dataset.q, sd = +el.dataset.sd, usd = sd * q * (m - e) - (+el.dataset.f0) - q * m * (+el.dataset.fr) / 100 + (+el.dataset.fund || 0), b = usd / (q * e) * 1e4;
     if (!seen.has(el.dataset.lpnl)) { seen.add(el.dataset.lpnl); tot += usd; nn++; }
     const sl = +el.dataset.sl, tp = +el.dataset.tp, ok = (v) => v > 0 && v < 1e15, w = Math.max(0, Math.min(100, (sd > 0 ? (m - sl) / (tp - sl) : (sl - m) / (sl - tp)) * 100));
-    setC(el, (el.classList.contains("r2") ? "r2 " : "") + cls(usd));
+    setC(el, (el.classList.contains("r2") ? "r2 " : "") + cls(+usd.toFixed(2)));
     const rg = ok(sl) && ok(tp) && !el.dataset.norg;      // thẻ lệnh tay đã có thang giá riêng (sc-lad) – không vẽ thêm vạch cắt lỗ↔chốt
     if (!el._lp || !!el._lp.i !== rg || !el._lp.b.isConnected || !el._lp.s.isConnected || el._lp.b.parentNode !== el) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
     // ↑ dựng lại cả khi trang vừa được vá (morph) thay mất phần chữ – trước: mất dòng "% lệnh · % tài khoản" dưới số lời/lỗ
     const bal = +el.dataset.bal;      // thẻ lệnh tay: thêm lời/lỗ theo % TÀI KHOẢN (tài khoản nhỏ thì con số này sát thực tế hơn % lệnh)
     if (el._lp.b.className) el._lp.b.className = "";      // màu chỉ đặt ở khung ngoài (theo giá trực tiếp) – chữ không giữ màu cũ của bản vẽ từ máy chủ
-    setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "-"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
+    setT(el._lp.b, `${+usd.toFixed(2) > 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "-"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
   });
   // 📏 thang giá của lệnh tay: chấm giá hiện tại + vệt lời/lỗ từ giá vào
   document.querySelectorAll("[data-lad]").forEach((el) => {
@@ -1641,17 +1646,18 @@ function sclApply() {
   });
   document.querySelectorAll("[data-held]").forEach((el) => setT(el, durMs(now - +el.dataset.held)));
   document.querySelectorAll("[data-fnt]").forEach((el) => setT(el, durMs(+el.dataset.fnt - now)));
-  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100; setT(el, EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`); });
+  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100, t = EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`;
+    const f = el.firstChild; if (f && f.nodeType === 3 && f.nextSibling) { const t2 = t + " "; if (f.data !== t2) f.data = t2; } else setT(el, t); });      // còn ⏳ (đang đặt trên Binance) phía sau → chỉ ghi phần chữ, giữ biểu tượng
   document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); setT(el, t); });
   const u = document.getElementById("scUpnl");
-  if (u && nn) { setC(u, "sc-up " + cls(tot)); setT(u, `${tot >= 0 ? "+" : ""}${usd2(tot)}`); }
+  if (u && nn) { setC(u, "sc-up " + cls(+tot.toFixed(2))); setT(u, `${+tot.toFixed(2) > 0 ? "+" : ""}${usd2(tot)}`); }
   document.querySelectorAll("[data-lt0]").forEach((el) => {
     const t0 = +el.dataset.lt0, h = +el.dataset.lh, left = Math.max(0, h - (now - t0) / 1000), f = el.querySelector(".sc-cd i"), s = el.querySelector("small");
     if (f) { const W = `${(100 - left / h * 100).toFixed(1)}%`; if (f.style.width !== W) f.style.width = W; }
     if (s) setT(s, left >= 86400 ? `${Math.floor(left / 86400)} ngày ${Math.floor((left % 86400) / 3600)} giờ` : left >= 3600 ? `${Math.floor(left / 3600)}:${String(Math.floor((left % 3600) / 60)).padStart(2, "0")}:${String(Math.floor(left % 60)).padStart(2, "0")}` : left >= 60 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, "0")}` : `${Math.ceil(left)}s`);
   });
-  const lv = document.getElementById("scLive"), last = Math.max(0, ...Object.values(SCL.at));
-  if (lv) { const ok = last && now - last < 5000; setC(lv, "sc-lv " + (ok ? "on" : "")); setT(lv, ok ? "● Giá Binance trực tiếp" : SCL.ws.F || SCL.ws.S ? "○ Đang nối Binance…" : ""); }
+  const lv = document.getElementById("scLive");
+  if (lv) { const [c, t] = scLiveSt(); setC(lv, "sc-lv hz2-lv" + c); setT(lv, t); }
 }
 // khoảng thời gian dạng đọc nhanh: 3 ngày 4 giờ · 2 giờ 17 phút · 12 phút · 40 giây
 function durMs(ms) {
@@ -2826,7 +2832,7 @@ new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) i
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
-function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; const m = document.getElementById("ocChart");
+function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
   if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
 function ocOpen(I) {
   if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }      // mốc vừa gửi, máy chủ chưa báo về → nhãn ⏳
@@ -3241,7 +3247,7 @@ async function ocDraw(keep) {
   const tf = OCC.tf, [base, ag] = TFB[tf] || ["1m"], R0 = BYK?.[I.base] || {};
   // futures: đúng mã hợp đồng (giá khớp giá vào); khung theo giây chỉ có ở spot
   const r = base === "1s" ? { k: I.base, sp: R0.sp || (I.fut ? null : I.base + "USDT"), sm: R0.sm || 1 } : I.fut ? { k: I.base, bf: I.base + "USDT", bfm: 1 } : { k: I.base, sp: R0.sp || I.base + "USDT", sm: R0.sm || 1 };
-  if (!KV) el.innerHTML = skChart(Math.max(300, el.clientHeight || 420));
+  if (!KV) { try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; try { el._ptStop?.(); } catch (e) { /* bỏ qua */ } chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; OCC.mkLayer = null; el.innerHTML = skChart(Math.max(300, el.clientHeight || 420)); }      // dựng mới (đổi khung giờ) → gỡ biểu đồ cũ & lớp vẽ ngay, kể cả khi khung mới không tải được
   const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
   if (OCC.ready) await OCC.ready;      // chờ khung trượt xong rồi mới dựng biểu đồ (tạo biểu đồ nặng → làm khựng hiệu ứng mở)
   if (OCC.info !== I || OCC.tf !== tf || !el.isConnected) return;
@@ -3813,7 +3819,7 @@ async function viewPlan(k0) {
 
 // ================================================================ PHIẾU LỆNH TRỰC TIẾP – giá từng giây, trạng thái vào lệnh đổi theo giá
 const FEE_SPOT = 0.001, FEE_FUT_T = 0.0005, FEE_FUT_M = 0.0002;
-const usd2 = (x) => (isNum(x) && Math.abs(x) < 100 ? `${x < 0 ? "-" : ""}$${nf(Math.abs(x), 2)}` : usd(x));
+const usd2 = (x) => (isNum(x) && Math.abs(x) < 100 ? `${x <= -0.005 ? "-" : ""}$${nf(Math.abs(x), 2)}` : usd(x));      // −0,004 → "$0,00" (trước "-$0,00")
 function spotFutBox(t, open = true) {
   const r = BYK?.[t.k] || {}, L = t.side === "long", sd = L ? 1 : -1, N = t.N, f8 = r.f8 || 0, hold = t.holdDays || 1;
   const canSpot = L && !!r.spot, canFut = !!r.fx;
@@ -7216,7 +7222,7 @@ async function viewNotifications() {
     $("#nDel").onclick = async () => { if (!confirm("Xoá mọi thông báo đã đọc?")) return; await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
     if ($("#nMore")) $("#nMore").onclick = load_;
   };
-  const load_ = async () => { const j = await api(`notifications?limit=50${items.length ? "&before=" + items[items.length - 1].id : ""}`); items = items.concat(j.items || []); more = (j.items || []).length === 50; draw(); };
+  const load_ = async () => { const j = await api(`notifications?limit=50${items.length ? "&before=" + items[items.length - 1].id : ""}`); items = items.concat(j?.items || []); more = (j?.items || []).length === 50; draw(); };
   await load_();
 }
 let __bellN = 0;
@@ -7369,7 +7375,7 @@ function acPage(o) {
   </div>
   ${o.extra || ""}
   <section class="acp-card"><h2>Thông báo</h2><p class="acp-d">Chuông trên web luôn bật. Chọn thêm kênh và mức gửi.</p>
-    ${acRow("Thông báo đẩy", `Điện thoại / máy tính này${ps.ok && can("notify_push") ? ` · đang bật trên ${nf((subs.subs || []).length, 0)} thiết bị · ${o.pushWhen}` : ""}`, push)}
+    ${acRow("Thông báo đẩy", `Điện thoại / máy tính này${ps.ok && can("notify_push") ? ` · đang bật trên ${nf((subs?.subs || []).length, 0)} thiết bị · ${o.pushWhen}` : ""}`, push)}
     ${acRow("Mức gửi đẩy", "", lv("nPush", N.push))}
     ${acRow("Email", !can("notify_email") ? "🔒 Gói Pro" : "", lv("nEmail", N.email))}
     ${acRow("Gửi email tới", "Để trống = email đăng nhập", `<input id="nTo" type="email" placeholder="${esc(ME.email)}" value="${esc(N.email_to)}">`)}
@@ -7396,7 +7402,7 @@ async function viewAccount() {
   await Promise.all([plansData(), loadSettings()]);
   if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="acp">${acTradeHtml()}<section class="panel" id="pvBx"></section></div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); acBx(); return; }
   const [np, ps, subs] = await Promise.all([api("notify").catch(() => ({})), pushState(), api("push/list").catch(() => ({ subs: [] }))]);
-  const N = { push: np.push || "normal", email: np.email || "important", email_to: np.email_to || "", kinds: np.kinds || {} };
+  const N = { push: np?.push || "normal", email: np?.email || "important", email_to: np?.email_to || "", kinds: np?.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
   app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml() + '<section class="panel" id="pvBx"></section>', pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
   thSegBind(app()); uiPrefBind(); munPrefBind(); acBx();
@@ -7445,7 +7451,7 @@ async function acDevLoad() {
   const box = $("#acDev"); if (!box) return;
   let j;
   try { j = await api("auth/sessions"); } catch (e) { box.innerHTML = `<p class="acp-d">${bi("Chưa tải được danh sách thiết bị", "Couldn't load the device list")}${e && e.message ? " – " + esc(e.message) : ""}</p>`; return; }
-  const L = j.sessions || [], oth = L.filter((x) => !x.current), now = Date.now();
+  const L = j?.sessions || [], oth = L.filter((x) => !x.current), now = Date.now();
   const ago = (iso) => { const m = Math.max(0, (now - new Date(iso)) / 60000), h = m / 60, d = h / 24;
     return m < 2 ? bi("vừa xong", "just now") : m < 60 ? bi(`${Math.round(m)} phút trước`, `${Math.round(m)} min ago`) : h < 24 ? bi(`${Math.round(h)} giờ trước`, `${Math.round(h)} h ago`)
       : d < 30 ? bi(`${Math.round(d)} ngày trước`, `${Math.round(d)} day${Math.round(d) > 1 ? "s" : ""} ago`) : new Date(iso).toLocaleDateString(NLOC); };
@@ -7456,9 +7462,9 @@ async function acDevLoad() {
       return `<div class="acp-dv ${x.current ? "cur" : ""}"><span class="acp-di" aria-hidden="true">${DEV_IC[u.kind]}</span>
         <span class="acp-dt"><b>${esc(u.name)}${x.current ? `<i class="acp-dme">${bi("Thiết bị này", "This device")}</i>` : ""}</b><small>${meta ? meta + " · " : ""}<span class="${live(x) ? "on" : ""}">${st}</span> · ${bi("đăng nhập ", "signed in ") + ago(x.created_at)}</small></span>
         ${x.current ? "" : `<button class="btn sm" data-rv="${esc(x.id)}">${bi("Đăng xuất", "Log out")}</button>`}</div>`; }).join("")
-      + (j.legacy ? `<div class="acp-dv ghost"><span class="acp-di" aria-hidden="true">?</span><span class="acp-dt"><b>${bi("Thiết bị đăng nhập trước khi có danh sách", "Devices signed in before this list existed")}</b><small>${bi("Máy đã đăng nhập từ trước (vd. máy tính ở công ty) chỉ hiện tên ở đây sau khi mở lại web. Muốn chặn ngay cả những máy chưa hiện: bấm “Đăng xuất mọi thiết bị khác”.", "Devices signed in earlier (e.g. a work laptop) appear here by name only after they open the site again. To cut them off now, even unlisted ones: click “Log out all other devices”.")}</small></span></div>` : "");
+      + (j?.legacy ? `<div class="acp-dv ghost"><span class="acp-di" aria-hidden="true">?</span><span class="acp-dt"><b>${bi("Thiết bị đăng nhập trước khi có danh sách", "Devices signed in before this list existed")}</b><small>${bi("Máy đã đăng nhập từ trước (vd. máy tính ở công ty) chỉ hiện tên ở đây sau khi mở lại web. Muốn chặn ngay cả những máy chưa hiện: bấm “Đăng xuất mọi thiết bị khác”.", "Devices signed in earlier (e.g. a work laptop) appear here by name only after they open the site again. To cut them off now, even unlisted ones: click “Log out all other devices”.")}</small></span></div>` : "");
   const bo = $("#acOutOth");
-  if (bo) { bo.hidden = !oth.length && !j.legacy; bo.textContent = bo.dataset.t0 = !oth.length ? bi("Đăng xuất mọi thiết bị khác", "Log out all other devices") : bi(`Đăng xuất ${oth.length} thiết bị khác`, `Log out ${oth.length} other device${oth.length > 1 ? "s" : ""}`); bo.dataset.cf = "";
+  if (bo) { bo.hidden = !oth.length && !j?.legacy; bo.textContent = bo.dataset.t0 = !oth.length ? bi("Đăng xuất mọi thiết bị khác", "Log out all other devices") : bi(`Đăng xuất ${oth.length} thiết bị khác`, `Log out ${oth.length} other device${oth.length > 1 ? "s" : ""}`); bo.dataset.cf = "";
     bo.onclick = async () => { if (!confirmIn(bo, bi("Bấm lần nữa để xác nhận", "Click again to confirm"))) return; bo.disabled = true;
       try { const r = await api("auth/logout_others", "POST"); toast(r.n ? bi(`Đã đăng xuất ${r.n} thiết bị khác`, `Logged out ${r.n} other device${r.n > 1 ? "s" : ""}`) : bi("Không còn thiết bị nào khác", "No other devices")); } catch (e) { toast(e.message); }
       bo.disabled = false; acDevLoad(); }; }
@@ -7721,7 +7727,7 @@ function initAccountUI() {
   //    → sau khi bàn phím đóng / quay lại app / xoay máy: ép tính lại vị trí lớp cố định (ẩn-hiện 1 nhịp + cuộn 1px rồi trả lại);
   //      khung nhìn vẫn lệch (đáy vùng đang thấy ≠ đáy khung bố cục, không phóng to) → dời thanh tab / nút nổi theo đúng đáy vùng thấy (--vvd)
   const tb = document.getElementById("tabs");
-  let lastMv = 0, nt = 0;
+  let lastMv = 0, nt = [];
   addEventListener("scroll", () => (lastMv = Date.now()), { passive: true }); addEventListener("touchmove", () => (lastMv = Date.now()), { passive: true });
   const vvd = () => {
     let d = 0;
@@ -7735,7 +7741,7 @@ function initAccountUI() {
     if (max > 2 && Date.now() - lastMv > 350) { scrollTo(scrollX, y > 0 ? y - 1 : y + 1); requestAnimationFrame(() => { if (Date.now() - lastMv > 350 || Math.abs(scrollY - y) <= 1) scrollTo(scrollX, y); }); }
     vvd();
   };
-  const settle = () => { clearTimeout(nt); [60, 420, 950].forEach((ms, i) => (nt = setTimeout(reanchor, ms + i))); };
+  const settle = () => { nt.forEach(clearTimeout); nt = [60, 420, 950].map((ms) => setTimeout(reanchor, ms)); };
   document.addEventListener("focusout", () => setTimeout(() => { if (!isTxt(document.activeElement)) { document.body.classList.remove("kb-on"); settle(); } }, 150));
   addEventListener("pageshow", () => setTimeout(reanchor, 250)); addEventListener("orientationchange", () => setTimeout(reanchor, 450));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(reanchor, 250); });

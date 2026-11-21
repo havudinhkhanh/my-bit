@@ -105,6 +105,82 @@
      "te": "Open trade cards: the P/L % on the trade's money (and % of account) under the P/L figure no longer disappears after an auto-refresh",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh: đặt / dời cắt lỗ, chốt lời → vạch trên thang giá dời theo ngay (trước có lúc đứng nguyên mốc cũ)",
+     "te": "Trade cards: setting or moving a stop / target now moves its marker on the price ladder immediately",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh: dòng hẹn đóng / giữ tay / theo lệnh sàn thử đổi chữ đúng lúc đổi (trước giữ nhãn cũ)",
+     "te": "Trade cards: the auto-close / hold / follows-paper line now updates its label when it changes",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh: biểu tượng ⏳ \"đang đặt cắt lỗ trên Binance\" không còn biến mất sau 1 nhịp giá",
+     "te": "Trade cards: the ⏳ \"placing stop on Binance\" icon no longer vanishes on the next price tick",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh tay theo lệnh sàn thử đã đóng: ghi tên dễ hiểu (vd \"Short coin vừa bơm\") thay vì mã nội bộ",
+     "te": "Manual cards following a closed paper trade show a readable name instead of an internal ID",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Lời/lỗ ≈ 0: ghi \"$0,00\" thay vì \"-$0,00\"; điện thoại hẹp: tên mã + giá luôn 1 dòng",
+     "te": "P/L ≈ 0 shows \"$0,00\" not \"-$0,00\"; narrow phones keep coin + price on one line",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Khi danh sách lệnh đổi chỗ, ô giá / lời-lỗ của thẻ không còn mang số, màu của lệnh trước; dòng \"● Giá Binance trực tiếp\" hết nháy",
+     "te": "When cards shift, price / P&L cells no longer carry the previous trade's numbers; the live-price line stops flickering",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Lệnh đã đóng: bấm mã trong danh sách khi đang gõ dở lọc đúng mã đó; chú thích dưới bảng không còn mất sau khi lọc",
+     "te": "Closed trades: clicking a coin while typing filters that coin; the caption below no longer disappears after filtering",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: đổi sang khung giờ không có dữ liệu / đóng biểu đồ → gỡ hẳn biểu đồ cũ và lớp tường lệnh, không chạy ngầm",
+     "te": "Order chart: switching to a timeframe without data, or closing it, fully removes the old chart and order-wall layer"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Mở lại app: làm mới ngay nhưng không vẽ lại khi đang mở bảng xác nhận / biểu đồ lớn; bảng so sánh can thiệp tính lại đúng lệnh \"anh vào ngay\" rồi đóng tay / gia hạn",
+     "te": "On reopen: refresh at once but not behind an open confirm sheet / big chart; intervention analysis again simulates entered-then-closed/extended trades",
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "acct",
+     "t": "Trang Tài khoản & Thông báo không còn lỗi trắng trang khi máy chủ trả dữ liệu rỗng",
+     "te": "Account & Notifications pages no longer break when the server returns empty data"
     }
    ]
   },

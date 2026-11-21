@@ -6799,3 +6799,5 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 .cl-dd:not(#_x){border-radius:var(--rad,10px)}
 .cl-dd .cl-o:not(#_x){border-radius:calc(var(--rad,10px) - 4px)!important}
 .cl-chips .mchip:not(#_x){border-radius:var(--r-ctl,6px);padding:4px 10px}
+/* thẻ lệnh trên điện thoại hẹp (khung thẻ < 350px): bỏ nhãn "Futures" ở dòng tên để tên mã + chiều + giá luôn nằm 1 dòng (mã dài như BLESS bị đẩy giá xuống dòng 2) – dòng dưới đã ghi Tiền thật · x1 · cô lập */
+@container (max-width:349px){.sc-oc .r1 .sc-t{display:none}}
