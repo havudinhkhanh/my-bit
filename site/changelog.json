@@ -254,6 +254,12 @@
      "t": "Biểu đồ lệnh: mục \"📊 Phe đông 3 ngày qua\" – funding từng kỳ, % tài khoản Long theo giờ, hợp đồng đang mở (OI) theo giờ",
      "te": "Order chart: \"📊 Crowding, last 3 days\" – funding per period, % accounts long per hour, open interest per hour",
      "f": "futures"
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "iPhone: chụm 2 ngón trên biểu đồ chỉ thu phóng biểu đồ, không phóng to cả trang nữa (trước có lúc trang phóng to, thanh tab trôi ra giữa màn hình); lỡ phóng thì buông tay tự về cỡ chuẩn",
+     "te": "iPhone: pinching a chart zooms only the chart, not the whole page (which pushed the tab bar mid-screen); if the page does zoom it snaps back on release"
     }
    ]
   },

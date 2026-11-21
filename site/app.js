@@ -7810,6 +7810,21 @@ function initAccountUI() {
   Promise.resolve(route()).finally(() => { window.__splashOut?.(); navTitle(); });      // trang đầu vẽ xong → tắt màn hình mở app
 })();
 
+// ================================================================ 🤏 CHỤM 2 NGÓN TRÊN BIỂU ĐỒ = thu phóng BIỂU ĐỒ, không phóng to cả trang
+//   iPhone bỏ qua giới hạn phóng to với thao tác tay → chụm trên biểu đồ có lúc trang phóng to theo (biểu đồ không ăn cử chỉ, thanh tab cố định trôi ra giữa màn hình).
+//   Chặn cử chỉ phóng trang của iOS khi 2 ngón đặt trên biểu đồ; lỡ trang đã bị phóng (chụm ngoài biểu đồ ngay sát) → buông tay ~0,7 giây thì đưa trang về cỡ chuẩn.
+(() => {
+  const CH = ".tv-lightweight-charts, .lwbox, #occC, .occ-rsi, .cv-chart, .cbox, .pane, #pchart, .pxp";
+  let onChart = 0, tz = 0;
+  const hit = (e) => !!e.target?.closest?.(CH);
+  for (const ev of ["gesturestart", "gesturechange", "gestureend"]) document.addEventListener(ev, (e) => { if (hit(e) || Date.now() - onChart < 1500) e.preventDefault(); }, { passive: false });
+  document.addEventListener("touchstart", (e) => { if (e.touches.length > 1 && hit(e)) onChart = Date.now(); }, { passive: true, capture: true });
+      // (không gắn touchmove chặn trên cả trang: làm mọi lần cuộn phải chờ mã chạy → giật; cử chỉ gesture* của iOS là đủ)
+  const vv = window.visualViewport, meta = document.querySelector('meta[name="viewport"]'); if (!vv || !meta) return;
+  const reset = () => { const c = meta.content; meta.content = c.replace(/,?\s*maximum-scale=[\d.]+/, "") + ",maximum-scale=1,minimum-scale=1"; setTimeout(() => { meta.content = c; }, 400); };
+  let touching = 0; document.addEventListener("touchstart", () => (touching = Date.now()), { passive: true }); document.addEventListener("touchend", (e) => { if (!e.touches.length) touching = 0; }, { passive: true });
+  vv.addEventListener("resize", () => { clearTimeout(tz); if (vv.scale > 1.02 && Date.now() - onChart < 8000) tz = setTimeout(function chk() { if (touching) { tz = setTimeout(chk, 300); return; } if (vv.scale > 1.02) reset(); }, 700); });
+})();
 // ================================================================ BÀN PHÍM ĐIỆN THOẠI: ô đang gõ không bị thanh tab dưới / nút nổi che, tự cuộn ô vào giữa vùng còn thấy
 (() => {
   if (!matchMedia("(pointer:coarse)").matches) return;
