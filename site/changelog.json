@@ -97,6 +97,14 @@
      "a": "mascot",
      "t": "Mèo na gọi anh là \"anh\" hay \"hooman\" tuỳ hứng",
      "te": "na now calls you \"anh\" or \"hooman\" on a whim (Vietnamese)"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh đang mở: dòng % lời/lỗ trên tiền vào lệnh (và % tài khoản) dưới số lời/lỗ không còn biến mất sau khi trang tự cập nhật",
+     "te": "Open trade cards: the P/L % on the trade's money (and % of account) under the P/L figure no longer disappears after an auto-refresh",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },

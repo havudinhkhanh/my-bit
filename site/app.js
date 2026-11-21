@@ -703,6 +703,7 @@ function moNode(l, n) {      // true = đã vá tại chỗ · false = phải th
   if ((l.id || n.id) && l.id !== n.id) return false;
   const live = n.matches(MO_LIVE) && MO_LIVE_K.every((k) => l.hasAttribute(k) === n.hasAttribute(k)), ch = moAttrs(l, n, live);      // cùng LOẠI ô trực tiếp mới giữ nội dung đang chạy – khác loại (giá → lời/lỗ…) thì vá hẳn, không sót thuộc tính cũ
   if (live && !ch && l.childNodes.length) return true;      // ô giá trực tiếp: thuộc tính không đổi → giữ nội dung đang chạy
+  if (live && l._lp && n.hasAttribute("data-lpnl") && l._lp.b.isConnected) return true;      // ô lời/lỗ trực tiếp đã dựng: chỉ cập nhật thuộc tính (giá vào, khối lượng, funding…), chữ do giá trực tiếp vẽ
   if (l === document.activeElement && (l.tagName === "INPUT" || l.tagName === "TEXTAREA")) return true;
   if (l.tagName === "TEXTAREA") { if (l.value !== n.value && l !== document.activeElement) l.value = n.value; return true; }
   moKids(l, n); return true;
@@ -1625,7 +1626,8 @@ function sclApply() {
     const sl = +el.dataset.sl, tp = +el.dataset.tp, ok = (v) => v > 0 && v < 1e15, w = Math.max(0, Math.min(100, (sd > 0 ? (m - sl) / (tp - sl) : (sl - m) / (sl - tp)) * 100));
     setC(el, (el.classList.contains("r2") ? "r2 " : "") + cls(usd));
     const rg = ok(sl) && ok(tp) && !el.dataset.norg;      // thẻ lệnh tay đã có thang giá riêng (sc-lad) – không vẽ thêm vạch cắt lỗ↔chốt
-    if (!el._lp || !!el._lp.i !== rg) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
+    if (!el._lp || !!el._lp.i !== rg || !el._lp.b.isConnected || !el._lp.s.isConnected || el._lp.b.parentNode !== el) { el.innerHTML = `<b>&#8203;</b> <small>&#8203;</small>${rg ? `<span class="sc-rg" title="vị trí giá giữa cắt lỗ và chốt lời"><i></i></span>` : ""}`; el._lp = { b: el.querySelector("b"), s: el.querySelector("small"), i: el.querySelector(".sc-rg i") }; }      // dựng 1 lần, sau đó chỉ đổi chữ
+    // ↑ dựng lại cả khi trang vừa được vá (morph) thay mất phần chữ – trước: mất dòng "% lệnh · % tài khoản" dưới số lời/lỗ
     const bal = +el.dataset.bal;      // thẻ lệnh tay: thêm lời/lỗ theo % TÀI KHOẢN (tài khoản nhỏ thì con số này sát thực tế hơn % lệnh)
     if (el._lp.b.className) el._lp.b.className = "";      // màu chỉ đặt ở khung ngoài (theo giá trực tiếp) – chữ không giữ màu cũ của bản vẽ từ máy chủ
     setT(el._lp.b, `${usd >= 0 ? "+" : ""}${usd2(usd)}`); setT(el._lp.s, bal > 0 ? `${pctB(b)} ${bi("lệnh", "trade")} · ${usd >= 0 ? "+" : "-"}${nf(Math.abs(usd / bal * 100), Math.abs(usd / bal * 100) < 10 ? 2 : 1)}% ${bi("tài khoản", "account")}` : pctB(b)); if (el._lp.i) { const L = w.toFixed(0) + "%"; if (el._lp.i.style.left !== L) el._lp.i.style.left = L; }
