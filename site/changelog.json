@@ -2,6 +2,27 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.21",
+   "d": "2026-11-21",
+   "t": "Lệnh anh bấm vào tính đúng là lệnh tay",
+   "te": "Trades you entered count as manual",
+   "s": "Bot tìm ra nhưng anh bấm Vào ngay → tính là lệnh tay, không gộp vào kết quả bot.",
+   "se": "Bot-found setups you entered yourself now count as manual, not bot results.",
+   "it": [
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Bot tìm ra cú sốc nhưng lệnh chờ chưa khớp, anh bấm \"Vào ngay\" → giờ tính là ✋ lệnh tay, không còn gộp vào kết quả bot",
+     "te": "Bot spotted the shock but its orders didn't fill and you tapped \"Enter now\" → now counted as ✋ manual, no longer in the bot's results",
+     "d": "Áp dụng cho thẻ Hôm nay · bot / lệnh tay, thẻ Lệnh tay, danh sách lệnh đã đóng (ghi \"bot tìm · anh vào\"), Kết quả & sổ lệnh và theo dõi luật thoát. Bảng so sánh can thiệp vẫn ghi là \"anh vào ngay\".",
+     "de": "Applies to the Today bot / manual cards, the Manual card, closed trades (labelled \"bot found · you entered\"), Results & trade book and the exit-rule monitor. The intervention comparison still lists it as \"you entered\".",
+     "f": "bot",
+     "go": "#/bot/scalp",
+     "aud": "admin"
+    }
+   ]
+  },
+  {
    "v": "2026.11.20",
    "d": "2026-11-20",
    "t": "Thẻ lệnh tay: rủi ro nhìn 1 cái là thấy",
