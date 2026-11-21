@@ -2174,15 +2174,19 @@ async function viewScalp() {
   clearInterval(window.__scT);
   window.__scT = setInterval(async () => {
     if (location.hash !== "#/bot/scalp") { clearInterval(window.__scT); document.body.classList.remove("sc-set-on"); return; }
-    if (document.hidden || autoOff("scalp") || userBusy() || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
+    // 📲 vừa mở lại app sau khi thu nhỏ (≥ 15 giây): số liệu trên trang đã cũ → tải mới & vẽ lại NGAY, không chờ anh ngừng chạm / vuốt
+    //    (trước: chạm, cuộn liên tục ngay khi mở lại thì trang hoãn làm mới → lệnh chờ anh đã huỷ vẫn nằm đó tới khi để yên đủ lâu)
+    const resume = Date.now() - (window.__resumeAt || 0) < 30e3;
+    if (document.hidden || autoOff("scalp") || (!resume && userBusy()) || window.__scDirty || $("#scKeyOut")?.textContent || document.activeElement?.closest?.("#scForm")) return;   // đang xem / sửa dở / đang hiện khoá → không tải lại
     const fast = Date.now() < (window.__scFast || 0);
-    if (Date.now() - (window.__scLast || 0) < (fast ? 900 : innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần · vừa bấm lệnh: 1 giây / lần
-    try { const r = await Store.get("scalpstate"); if (r.data?.at && r.data.at !== X.at) {
+    if (!resume && Date.now() - (window.__scLast || 0) < (fast ? 900 : innerWidth < 980 ? 5000 : 3000)) return;     // điện thoại: 5 giây / lần · vừa bấm lệnh: 1 giây / lần
+    if (resume) window.__resumeAt = 0;
+    try { const r = await (resume ? Store.net("scalpstate") : Store.get("scalpstate")); if (resume) window.__scLast = 0; if (r.data?.at && r.data.at !== X.at) {
       // vẽ lại cả trang Bot tốn 0,1–0,8 giây (tab Lệnh nặng nhất) → chỉ vẽ khi CẤU TRÚC đổi; giá & lời/lỗ tạm tính đã chạy trực tiếp qua Binance,
       // các con số còn lại (tài sản, kết quả ngày…) cập nhật tối đa mỗi 20 giây (tab Lệnh 60 giây; điện thoại ×1,5)
       const sig = scSig(r.data, window.__scTab), age = Date.now() - (window.__scFull || 0), cap = (window.__scTab === "ord" ? 60e3 : 20e3) * (innerWidth < 980 ? 1.5 : 1);
       window.__scLast = Date.now();
-      if (sig === window.__scSigV && age < cap && !fast) return;
+      if (sig === window.__scSigV && age < cap && !fast && !resume) return;
       await softRender(() => viewScalp()); } } catch (e) { /* bỏ qua */ }
   }, 1000);
 }

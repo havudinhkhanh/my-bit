@@ -68,6 +68,16 @@
      "te": "Pending-order cards placed from the chart no longer show oversized green italic text when that slot was just an open position",
      "f": "bot",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Mở lại app sau khi thu nhỏ: trang Bot Phản Xạ tải số liệu mới ngay, lệnh chờ đã huỷ / lệnh đã đóng không còn nằm lại",
+     "te": "Reopening the app after minimising: Reflex Bot loads fresh data at once – cancelled pending orders / closed trades no longer linger",
+     "d": "Trước đây nếu vừa mở lại đã chạm, cuộn liên tục thì trang hoãn làm mới để khỏi nhảy, nên số liệu cũ nằm lại khá lâu.",
+     "de": "Before, touching or scrolling right after reopening postponed the refresh, so stale data stayed on screen.",
+     "f": "bot",
+     "go": "#/bot/scalp"
     }
    ]
   },

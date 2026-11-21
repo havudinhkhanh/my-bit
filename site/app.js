@@ -8069,6 +8069,10 @@ async function lvsPull() {
 }
 setTimeout(lvsPull, 1500); setInterval(() => { if (!LVW.open) lvsPull(); }, 30000); setInterval(() => { if (LVW.open) lvsPull(); }, 10000);      // mở rộng: 10 giây / lần
 document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - LVS.t > 20000) lvsPull(); });
+// 📲 mở lại app sau khi thu nhỏ ≥ 15 giây → đánh dấu "vừa quay lại": các trang tự làm mới tải số liệu mới ngay lượt kế tiếp (không hoãn vì đang chạm / vuốt)
+{ let hid = 0; const back = () => { if (hid && Date.now() - hid >= 15e3) window.__resumeAt = Date.now(); hid = 0; };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) hid = Date.now(); else back(); });
+  addEventListener("pagehide", () => { hid = Date.now(); }); addEventListener("pageshow", (e) => { if (e.persisted) { hid = hid || Date.now() - 15e3; back(); } }); }
 addEventListener("hashchange", () => setTimeout(lvsDraw, 120));
 
 // ================================================================ 📌 MÁY TÍNH: GHIM LỐI TẮT + KÉO GIÃN 2 THANH (11/2026)
