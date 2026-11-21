@@ -181,6 +181,22 @@
      "a": "acct",
      "t": "Trang Tài khoản & Thông báo không còn lỗi trắng trang khi máy chủ trả dữ liệu rỗng",
      "te": "Account & Notifications pages no longer break when the server returns empty data"
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: thêm ô Funding (mức hiện tại, ai trả ai, còn bao lâu tới lần trả, lệnh của anh nhận hay trả) và tỉ lệ tài khoản Long / Short trên Binance",
+     "te": "Order chart: new Funding tile (current rate, who pays whom, time to next payment, whether your trade receives or pays) and the Binance Long / Short account ratio",
+     "d": "Funding dương = phe Long trả phe Short (Long đông hơn), âm = ngược lại. Tự làm mới mỗi phút.",
+     "de": "Positive funding = longs pay shorts (longs crowded), negative = the reverse. Refreshes every minute.",
+     "f": "futures",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: dòng mô tả lệnh có dấu cách giữa các nhãn (trước dính \"Tiền thậtx1 · cô lập Lệnh tay\")",
+     "te": "Order chart: the trade description line now separates its labels"
     }
    ]
   },

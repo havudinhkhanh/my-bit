@@ -2803,7 +2803,7 @@ function ocInfo(card) {
   const lt = g("[data-lt0]", "lt0") || "", lh = +g("[data-lt0]", "lh"), t0 = isFinite(+lt) && +lt > 0 ? +lt : Date.parse(/Z$|[+-]\d\d:\d\d$/.test(lt) ? lt : lt + "Z");
   const I = { k, base: String(k).split(":")[0], fut: !/:S$/.test(k), side: sd > 0 ? 1 : -1, e: n(g("[data-lpnl]", "e")), sl: n(g("[data-lpnl]", "sl")) || n(g("[data-lsd]", "sl")), tp: n(g("[data-lpnl]", "tp")),
     q: n(g("[data-lpnl]", "q")), f0: +g("[data-lpnl]", "f0") || 0, fr: +g("[data-lpnl]", "fr") || 0.05, end: t0 > 0 && lh > 0 ? (t0 < 1e11 ? t0 * 1000 : t0) + lh * 1000 : null,
-    what: (card.querySelector(".r1s")?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 90),
+    what: [...(card.querySelector(".r1s")?.childNodes || [])].map((x) => x.textContent.replace(/\s+/g, " ").trim()).filter(Boolean).join(" · ").slice(0, 90),      // các nhãn cách nhau (trước dính: "Tiền thậtx1 · cô lập Lệnh tay")
     lv: [...card.querySelectorAll("[data-lgap][data-px]")].filter((x) => x.dataset.f !== "1").map((x) => n(x.dataset.px)).filter(Boolean),      // chỉ mức CÒN CHỜ (mức đã khớp / đã huỷ không phải lệnh chờ)
     lf: [...card.querySelectorAll("[data-lgap][data-px][data-f='1']:not([data-cx])")].map((x) => n(x.dataset.px)).filter(Boolean),
     fund: +g("[data-lpnl]", "fund") || 0, liq: n(g("[data-lpnl]", "liq")), man: card.classList.contains("man") && !card.classList.contains("mpend"),
@@ -2832,8 +2832,35 @@ new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) i
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
-function ocClose() { try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
+function ocClose() { clearInterval(OCC.fdT); OCC.fdT = 0; OCC.fd = null; try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
   if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
+// 💸 FUNDING + TỈ LỆ LONG/SHORT của mã đang xem (Binance futures): funding dương = phe Long trả phe Short (Long đông hơn), âm = ngược lại.
+//    Tỉ lệ tài khoản Long/Short (5 phút gần nhất) – gói Pro (cùng nhóm dữ liệu phái sinh như tường lệnh / vùng thanh lý). Tự làm mới mỗi phút khi biểu đồ đang mở.
+function ocFund(I) {
+  clearInterval(OCC.fdT); OCC.fd = null; if (!I?.fut) return;
+  const sym = I.base + "USDT", g = (u) => fetchJ(u, 8000).catch(() => null);
+  const pull = async () => {
+    const [pi, ls] = await Promise.all([g(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${encodeURIComponent(sym)}`), can("futures") ? g(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${encodeURIComponent(sym)}&period=5m&limit=1`) : null]);
+    if (OCC.info !== I) return;
+    const L = Array.isArray(ls) && ls.length ? ls[ls.length - 1] : null;
+    OCC.fd = { r: pi?.lastFundingRate != null ? +pi.lastFundingRate * 100 : null, nx: +pi?.nextFundingTime || 0, lg: L ? +L.longAccount * 100 : null, sh: L ? +L.shortAccount * 100 : null, at: Date.now() };
+    OCC.setPx?.();
+  };
+  pull(); OCC.fdT = setInterval(() => { if (!document.hidden) pull(); }, 60e3);
+}
+function ocFundChips(chip) {
+  const F = OCC.fd, I = OCC.info; if (!I?.fut) return "";
+  if (!F) return chip("Funding", "…", "", bi("đang lấy funding từ Binance", "loading funding from Binance"));
+  const left = F.nx ? Math.max(0, F.nx - Date.now()) / 1000 : null, cd = isNum(left) ? (left >= 3600 ? `${Math.floor(left / 3600)}g ${Math.floor((left % 3600) / 60)}p` : `${Math.floor(left / 60)}p ${Math.floor(left % 60)}s`) : "";
+  const me = I.e && isNum(F.r) && F.r !== 0 ? (I.side * F.r < 0 ? bi("lệnh của anh NHẬN", "your trade RECEIVES") : bi("lệnh của anh TRẢ", "your trade PAYS")) : "";
+  const who = !isNum(F.r) ? "" : F.r > 0 ? bi("Long trả Short – phe Long đông hơn", "Longs pay shorts – longs crowded") : F.r < 0 ? bi("Short trả Long – phe Short đông hơn", "Shorts pay longs – shorts crowded") : bi("cân bằng", "balanced");
+  const pays = !isNum(F.r) || !F.r ? "" : F.r > 0 ? bi("Long trả Short", "Longs pay") : bi("Short trả Long", "Shorts pay");
+  const out = [isNum(F.r) ? chip(`Funding${me ? ` · ${I.side * F.r < 0 ? bi("anh nhận", "you receive") : bi("anh trả", "you pay")}` : ""}`, `${F.r > 0 ? "+" : ""}${nf(F.r, 4)}%${pays || cd ? ` <small>${[pays, cd ? bi(`còn ${cd}`, `in ${cd}`) : ""].filter(Boolean).join(" · ")}</small>` : ""}`, I.e ? (I.side * F.r < 0 ? "up" : F.r ? "down" : "") : F.r > 0 ? "up" : F.r < 0 ? "down" : "",
+    `${who}${me ? ` · ${me}` : ""} · ${bi("lần trả kế tiếp sau", "next payment in")} ${cd || "—"}. ${bi("Mức funding dự kiến cho kỳ này, tính trên giá trị lệnh.", "Predicted rate for this period, on position value.")}`).replace('class="occ-k"', 'class="occ-k occ-kw"') : ""];
+  if (!can("futures")) out.push(chip(bi("Long / Short", "Long / Short"), "★ Pro", "", bi("Tỉ lệ tài khoản Long/Short – gói Pro", "Long/Short account ratio – Pro plan")));
+  else if (isNum(F.lg) && isNum(F.sh)) out.push(chip(bi("Long / Short", "Long / Short"), `<span class="up">${nf(F.lg, 0)}%</span> / <span class="down">${nf(F.sh, 0)}%</span>`, "", bi(`Trong mọi tài khoản đang có lệnh ${I.base} trên Binance futures (5 phút gần nhất): ${nf(F.lg, 1)}% Long · ${nf(F.sh, 1)}% Short. Đông một phía chưa chắc giá đi phía đó – phe đông dễ bị quét thanh lý.`, `Of all Binance futures accounts holding ${I.base} (last 5 min): ${nf(F.lg, 1)}% long · ${nf(F.sh, 1)}% short. A crowded side isn't a direction call – crowded sides get liquidation-swept.`)));
+  return out.join("");
+}
 function ocOpen(I) {
   if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }      // mốc vừa gửi, máy chủ chưa báo về → nhãn ⏳
   ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
@@ -2867,7 +2894,7 @@ function ocOpen(I) {
     const v = !(k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k)); lsSet("oc_" + k, v); b.classList.toggle("on", v); if (OCL.includes(k)) OCC.mkLayer?.(); else ocDraw(true); }));      // lớp vẽ: chỉ gắn / gỡ lớp · EMA / KL / RSI: dựng lại nhưng giữ khung đang xem
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
-  ocDraw();
+  ocDraw(); ocFund(I);
 }
 // ================================================================ 📍 CHUỘT PHẢI (máy tính) / GIỮ LÂU (điện thoại) TRÊN BIỂU ĐỒ → menu tại đúng mức giá đó:
 //   Long / Short khi giá về mức này (lệnh chờ đặt sẵn trên Binance qua máy chủ riêng) · với lệnh tay đang mở: đặt cắt lỗ / chốt lời ở mức này · chép giá
@@ -3321,9 +3348,9 @@ async function ocDraw(keep) {
     const H = [I.e ? chip(bi("Giá vào", "Entry"), px(I.e)) : "", isNum(pnl) ? chip(bi("Lời/lỗ ròng", "Net P/L"), `${pnl >= 0 ? "+" : "−"}$${nf(Math.abs(pnl), 2)}`, cls(pnl), bi(`ước tính theo giá hiện tại, đã trừ phí vào + phí ra${I.fund ? ` và funding đã trả ${I.fund >= 0 ? "+" : "−"}$${nf(Math.abs(I.fund), 2)}` : ""}`, "estimate at the current price, net of fees and funding")) : "",
       I.q && I.e ? chip(bi("Khối lượng", "Size"), `$${nf(I.q * I.e, 2)} <small>${nf(I.q, I.q < 10 ? 4 : 0)}</small>`) : "", I.sl ? chip(bi("Cắt lỗ", "Stop"), `${px(I.sl)} <small>${nf(dSL, 1)}%</small>`, "down", bi("khoảng cách từ giá hiện tại", "distance from the current price")) : "",
       I.tp ? chip(bi("Chốt lời", "Target"), `${px(I.tp)} <small>${nf(dTP, 1)}%</small>`, "up") : "", I.liq ? chip(bi("Thanh lý", "Liq."), `${px(I.liq)} <small>${nf(Math.abs(v / I.liq - 1) * 100, 1)}%</small>`, "warn", bi("giá mark chạm mức này thì sàn thanh lý vị thế", "the exchange liquidates at this mark price")) : "", lv1 ? chip(bi("Chờ gần nhất", "Nearest limit"), `${px(lv1)} <small>${nf(Math.abs(lv1 / v - 1) * 100, 2)}%</small>`) : "",
-      isNum(left) ? chip(I.e ? bi("Tự đóng sau", "Auto-close in") : bi("Còn chờ", "Waiting"), left >= 3600 ? `${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}p` : `${Math.floor(left / 60)}p ${Math.floor(left % 60)}s`) : ""].join(""); if (H !== stEl.__h) { stEl.__h = H; stEl.innerHTML = H; }      // giống thì không vẽ lại
+      isNum(left) ? chip(I.e ? bi("Tự đóng sau", "Auto-close in") : bi("Còn chờ", "Waiting"), left >= 3600 ? `${Math.floor(left / 3600)}h ${Math.floor((left % 3600) / 60)}p` : `${Math.floor(left / 60)}p ${Math.floor(left % 60)}s`) : "", ocFundChips(chip)].join(""); if (H !== stEl.__h) { stEl.__h = H; stEl.innerHTML = H; }      // giống thì không vẽ lại
   };
-  setPx(o.c[n - 1]);
+  setPx(o.c[n - 1]); OCC.setPx = () => { try { const d = ch.cs.data(); setPx(d[d.length - 1]?.close ?? o.c[n - 1]); } catch (e) { setPx(o.c[n - 1]); } };      // funding về → vẽ lại hàng số liệu
   if (L.kind === "okx") return;
   try {
     const ws = BWS1(L.kind === "spot" ? "wss://stream.binance.com:9443/ws/" : "wss://fstream.binance.com/ws/", `${L.sym.toLowerCase()}@kline_${base}`); OCC.ws = ws;
