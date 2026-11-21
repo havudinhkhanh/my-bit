@@ -197,6 +197,15 @@
      "a": "chart",
      "t": "Biểu đồ lệnh: dòng mô tả lệnh có dấu cách giữa các nhãn (trước dính \"Tiền thậtx1 · cô lập Lệnh tay\")",
      "te": "Order chart: the trade description line now separates its labels"
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ: nút \"↕ Chọn giá\" – đường giá vàng kéo được ở bất kỳ đâu (đi chậm hơn ngón tay ~3 lần, chính xác tới từng bước giá), ▲ ▼ chỉnh 1 bước, tự hút vào giá vào / lệnh đang có, hiện % và lời/lỗ ước tính → \"Chọn giá này\" mở menu đặt cắt lỗ / chốt / vào thêm / lệnh chờ",
+     "te": "Charts: new \"↕ Pick price\" button – a draggable gold price line (moves ~3× slower than your finger, tick-accurate), ▲ ▼ one tick, snaps to entry / existing orders, shows % and estimated P/L → \"Use this price\" opens the stop / target / add / limit menu",
+     "d": "Thay cho giữ ngón tay trên điện thoại (vẫn dùng được). Trên máy tính: phím ↑ ↓ chỉnh, Enter chọn, Esc huỷ.",
+     "de": "Replaces long-press on phones (still works). Desktop: ↑ ↓ to adjust, Enter to pick, Esc to cancel.",
+     "hi": 1
     }
    ]
   },

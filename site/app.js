@@ -2901,7 +2901,13 @@ function ocOpen(I) {
 function chartPxMenu(el, ch, ctx) {
   // 🎯 biểu đồ được DỰNG LẠI trong cùng khung (đổi khung giờ, bật/tắt lớp, mở mã khác trong cùng bảng) → luôn dùng biểu đồ MỚI NHẤT.
   //    Trước: chỉ gắn 1 lần với biểu đồ đầu tiên → bấm giữ / chuột phải đọc giá theo trục giá của biểu đồ CŨ (đã gỡ) → giá chấm vào lệch, có lúc lệch cả trăm %
-  if (!el || !ch?.cs) return; el.__pxCh = ch; el.__pxCtx = ctx; if (el.__pxm) return; el.__pxm = 1;
+  if (!el || !ch?.cs) return; el.__pxCh = ch; el.__pxCtx = ctx;
+  // 📍 nút "Chọn giá" ở góc biểu đồ (gắn lại mỗi lần dựng biểu đồ vì khung bị xoá trắng) → thanh giá kéo được, chính xác hơn giữ ngón tay
+  if (!el.querySelector(":scope > .pxp-b")) { if (getComputedStyle(el).position === "static") el.style.position = "relative";
+    const b = document.createElement("button"); b.type = "button"; b.className = "pxp-b"; b.title = bi("Chọn giá bằng thanh kéo – đặt cắt lỗ / chốt lời / vào thêm / lệnh chờ", "Pick a price with a draggable line – stop / target / add / limit");
+    b.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4M3 12h4M17 12h4"/></svg><span>${bi("Chọn giá", "Pick price")}</span>`;
+    b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); el.__pxPick?.(); }); el.appendChild(b); }
+  if (el.__pxm) return; el.__pxm = 1;
   const CS = () => el.__pxCh.cs;
   const priceAt = (cy) => { const r = el.getBoundingClientRect(), y = cy - r.top; if (y < 0 || y > r.height - 26) return null; const p = CS().coordinateToPrice(y); return isNum(p) && p > 0 ? p : null; };
   const cur = () => { try { const d = CS().data?.(); const b = d?.[d.length - 1]; return b?.close ?? b?.value ?? null; } catch (e) { return null; } };
@@ -2914,9 +2920,52 @@ function chartPxMenu(el, ch, ctx) {
   const open = (cx, cy) => { const p = priceAt(cy); if (!p) return; const C = { ...(el.__pxCtx?.() || {}) }; C.cur = C.cur || cur(); C.near = nearOrd(cy, C.base);
     if (C.ux && C.uxRef) { let yy = null; try { yy = CS().priceToCoordinate(C.ux); } catch (e) { /* bỏ qua */ } if (isNum(yy) && Math.abs(yy - (cy - el.getBoundingClientRect().top)) <= 10) C.near.unshift({ k: "ux", px: C.ux }); }
     pxMenu(cx, cy, p, C, el.__pxCh); };
-  el.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); open(e.clientX, e.clientY); });
+  el.addEventListener("contextmenu", (e) => { e.preventDefault(); e.stopPropagation(); if (e.target.closest?.(".pxp")) return; open(e.clientX, e.clientY); });
+  // 📍 CHẾ ĐỘ CHỌN GIÁ: 1 đường giá vàng nằm ngang + nhãn (giá · % so với giá hiện tại · lời/lỗ ước tính nếu đang có lệnh).
+  //    Kéo ngón tay ở BẤT KỲ ĐÂU trên biểu đồ (không cần chạm trúng đường): đường đi chậm hơn ngón ~3 lần → chỉnh tới từng bước giá; chạm 1 chỗ = nhảy tới đó;
+  //    ▲ ▼ = 1 bước giá (giữ để chạy liên tục); đi gần giá vào / lệnh đang có thì tự hút vào (rung nhẹ). "Chọn giá này" → mở đúng menu như chuột phải tại giá đó.
+  el.__pxPick = () => {
+    if (el.querySelector(":scope > .pxp")) return; const c0 = cur(); if (!(c0 > 0)) return;
+    const C0 = { ...(el.__pxCtx?.() || {}) }, dg = pdec(c0), step = 10 ** -dg, R = (v) => +(+v).toFixed(dg);
+    let P = R(c0), pl = null, snapK = "";
+    try { pl = CS().createPriceLine({ price: P, color: css("--brass") || css("--brand"), lineStyle: 0, lineWidth: 2, axisLabelVisible: true, title: "" }); } catch (e) { /* bỏ qua */ }      // đường giá vẽ bằng chính biểu đồ → khớp trục giá tuyệt đối
+    const ov = document.createElement("div"); ov.className = "pxp"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-label", bi("Chọn giá", "Pick price"));
+    ov.innerHTML = `<div class="pxp-tag"><b></b><small></small></div><div class="pxp-hint">${bi("Kéo lên / xuống ở bất kỳ đâu · chạm để nhảy tới", "Drag up / down anywhere · tap to jump")}</div>
+      <div class="pxp-bar"><button type="button" data-pp="x" aria-label="${bi("Huỷ", "Cancel")}">✕</button><button type="button" data-pp="dn" aria-label="${bi("Giảm 1 bước", "Down one tick")}">▼</button><button type="button" data-pp="up" aria-label="${bi("Tăng 1 bước", "Up one tick")}">▲</button><button type="button" data-pp="ok" class="ok">${bi("Chọn giá này", "Use this price")} →</button></div>`;
+    el.appendChild(ov); el.classList.add("pxp-on");
+    const T = ov.querySelector(".pxp-tag"), Hh = () => Math.max(40, el.clientHeight - 26);
+    const yOf = (v) => { try { return CS().priceToCoordinate(v); } catch (e) { return null; } }, pAt = (y) => { try { const v = CS().coordinateToPrice(y); return isNum(v) && v > 0 ? v : null; } catch (e) { return null; } };
+    const MN = window.__scCache?.d?.[1]?.data?.live?.man, sym = C0.base ? C0.base + "USDT" : "";
+    const SN = [C0.e ? [+C0.e, bi("giá vào", "entry")] : null, ...(MN?.pend || []).filter((m) => m.sym === sym).map((m) => [+m.px, bi("lệnh chờ", "limit")]), ...(MN?.ord?.[sym] || []).map((o) => [+o.px, /^STOP/.test(o.type || "") ? bi("cắt lỗ", "stop") : bi("chốt lời", "target")])].filter((x) => x && x[0] > 0);
+    const est = (X) => { if (!(C0.e > 0 && C0.q > 0 && C0.side)) return null; const fr = isNum(+C0.fr) && C0.fr !== undefined ? +C0.fr : 0.05, f0 = +C0.f0 > 0 ? +C0.f0 : C0.q * C0.e * fr / 100; return C0.side * C0.q * (X - C0.e) - f0 - C0.q * X * fr / 100 + (+C0.fund || 0); };
+    const draw = () => { if (!ov.isConnected) return stop(); const y = yOf(P), c = cur() || c0, d = (P / c - 1) * 100, u = est(P);
+      if (isNum(y)) { const yy = Math.max(0, Math.min(Hh(), y)); T.style.transform = `translateY(${yy.toFixed(1)}px)`; T.classList.toggle("dn", yy < 46); }
+      try { pl?.applyOptions({ price: P }); } catch (e) { /* bỏ qua */ }
+      T.firstChild.textContent = px(P); T.lastChild.innerHTML = `<span class="${cls(d)}">${d >= 0 ? "+" : ""}${nf(d, 2)}%</span>${isNum(u) ? ` · ${bi("lệnh", "trade")} <span class="${cls(u)}">${u >= 0.005 ? "+" : ""}${usd2(u)}</span>` : ""}${snapK ? ` · ${snapK}` : ""}`; };
+    const setP = (v, snap) => { let nv = R(v); snapK = ""; if (snap) { const y = yOf(nv); for (const [sp, nm] of SN) { const ys = yOf(sp); if (isNum(y) && isNum(ys) && Math.abs(ys - y) <= 7) { nv = sp; snapK = nm; break; } } }
+      if (nv > 0 && nv !== P) { if (snapK && R(nv) !== R(P)) navigator.vibrate?.(6); P = nv; } draw(); };
+    const iv = setInterval(draw, 300);      // giá chạy / trục tự giãn → đường & nhãn bám theo
+    const stop = () => { clearInterval(iv); clearInterval(rep); try { if (pl) CS().removePriceLine(pl); } catch (e) { /* biểu đồ đã thay */ } ov.remove(); el.classList.remove("pxp-on"); removeEventListener("keydown", key, true); };
+    let g = null, rep = 0;
+    ov.addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; e.preventDefault(); try { ov.setPointerCapture(e.pointerId); } catch (x) { /* bỏ qua */ } g = { y0: e.clientY, yp: yOf(P), mv: false }; ov.classList.add("drag"); });
+    ov.addEventListener("pointermove", (e) => { if (!g) return; const dy = e.clientY - g.y0; if (!g.mv && Math.abs(dy) < 4) return; g.mv = true;
+      const k = Math.abs(e.movementY || 0) > 14 ? 0.8 : 0.33, v = pAt(Math.max(0, Math.min(Hh(), (g.yp ?? 0) + dy * k))); g.y0 += 0; if (v) setP(v, true);      // vuốt nhanh đi nhanh, vuốt chậm đi rất chậm (chính xác)
+      if (k > 0.5) { g.y0 = e.clientY; g.yp = yOf(P); } });
+    const end = (e) => { if (!g) return; const tap = !g.mv; g = null; ov.classList.remove("drag"); if (tap && e && !e.target.closest?.("button")) { const v = pAt(e.clientY - el.getBoundingClientRect().top); if (v) setP(v, true); } };
+    ov.addEventListener("pointerup", end); ov.addEventListener("pointercancel", () => { g = null; ov.classList.remove("drag"); });
+    const nudge = (dir) => setP(P + dir * step, false);
+    ov.querySelectorAll("[data-pp=up],[data-pp=dn]").forEach((b) => { const dir = b.dataset.pp === "up" ? 1 : -1;
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); nudge(dir); clearInterval(rep); let n = 0; rep = setInterval(() => { if (++n > 4) nudge(dir * (n > 20 ? 5 : 1)); }, 90); });
+      ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => b.addEventListener(ev, () => clearInterval(rep))); });
+    ov.querySelector("[data-pp=x]").onclick = (e) => { e.stopPropagation(); stop(); };
+    ov.querySelector("[data-pp=ok]").onclick = (e) => { e.stopPropagation(); const r = el.getBoundingClientRect(), y = yOf(P), cy = r.top + (isNum(y) ? Math.max(0, Math.min(Hh(), y)) : Hh() / 2), cx = r.left + Math.min(r.width - 40, 140);
+      const C = { ...(el.__pxCtx?.() || {}) }; C.cur = C.cur || cur(); C.near = nearOrd(cy, C.base); const p = P; stop(); pxMenu(cx, cy, p, C, el.__pxCh); };
+    const key = (e) => { if (!ov.isConnected) return; if (e.key === "Escape") { e.preventDefault(); stop(); } else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); nudge(e.key === "ArrowUp" ? 1 : -1); } else if (e.key === "Enter") { e.preventDefault(); ov.querySelector("[data-pp=ok]").click(); } };
+    addEventListener("keydown", key, true);
+    draw(); setTimeout(() => ov.querySelector(".pxp-hint")?.classList.add("out"), 2800);
+  };
   let lp = null;      // giữ lâu ~0,55 giây không di ngón → mở menu (điện thoại không có chuột phải)
-  el.addEventListener("touchstart", (e) => { if (e.touches.length !== 1) return; const t = e.touches[0], x = t.clientX, y = t.clientY; clearTimeout(lp?.t); lp = { x, y, t: setTimeout(() => { navigator.vibrate?.(8); open(x, y); lp = null; }, 550) }; }, { passive: true });
+  el.addEventListener("touchstart", (e) => { if (e.touches.length !== 1 || e.target.closest?.(".pxp, .pxp-b")) return; const t = e.touches[0], x = t.clientX, y = t.clientY; clearTimeout(lp?.t); lp = { x, y, t: setTimeout(() => { navigator.vibrate?.(8); open(x, y); lp = null; }, 550) }; }, { passive: true });
   el.addEventListener("touchmove", (e) => { if (!lp) return; const t = e.touches[0]; if (Math.hypot(t.clientX - lp.x, t.clientY - lp.y) > 8) { clearTimeout(lp.t); lp = null; } }, { passive: true });
   ["touchend", "touchcancel"].forEach((ev) => el.addEventListener(ev, () => { if (lp) { clearTimeout(lp.t); lp = null; } }, { passive: true }));
 }

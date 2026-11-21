@@ -6803,3 +6803,17 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 @container (max-width:349px){.sc-oc .r1 .sc-t{display:none}}
 /* 💸 ô Funding trên biểu đồ lệnh: rộng 2 cột cho đủ "mức · ai trả ai · còn bao lâu" */
 .occ-st .occ-k.occ-kw{grid-column:span 2}.occ-st:not(#_x){grid-auto-flow:row dense}
+/* 📍 CHỌN GIÁ bằng thanh kéo trên biểu đồ (thay cho giữ ngón tay): nút góc trên-trái · lớp phủ bắt cử chỉ · đường vàng + nhãn · hàng nút dưới */
+.pxp-b:not(#_x){position:absolute;top:8px;left:8px;z-index:5;display:inline-flex!important;align-items:center;gap:5px;height:28px;min-height:0!important;padding:0 10px!important;margin:0!important;border:1px solid color-mix(in srgb,var(--brass,var(--brand)) 45%,transparent)!important;border-radius:var(--r-ctl,6px)!important;background:color-mix(in srgb,var(--surface) 88%,transparent)!important;color:var(--ink)!important;font:600 .75rem/1 inherit;box-shadow:0 2px 8px -2px rgba(0,0,0,.18)!important;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.pxp-b svg{color:var(--brass,var(--brand))}
+.pxp-on>.pxp-b{display:none!important}
+.pxp{position:absolute;left:0;right:0;top:0;bottom:26px;z-index:7;touch-action:none;cursor:ns-resize;-webkit-user-select:none;user-select:none;background:linear-gradient(transparent,transparent)}
+.pxp-tag{position:absolute;left:8px;top:0;margin-top:-44px;display:flex;flex-direction:column;gap:1px;padding:5px 9px;border-radius:var(--r-in,8px);background:var(--surface);border:1px solid color-mix(in srgb,var(--brass,var(--brand)) 55%,transparent);box-shadow:0 6px 18px -6px rgba(0,0,0,.3);pointer-events:none;will-change:transform;white-space:nowrap}
+.pxp-tag.dn{margin-top:8px}
+.pxp-tag b{font:700 .9375rem/1.1 inherit;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pxp-tag small{font-size:.6875rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.pxp-hint{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);padding:4px 9px;border-radius:var(--r-ctl,6px);background:color-mix(in srgb,var(--ink) 78%,transparent);color:var(--bg);font-size:.6875rem;white-space:nowrap;pointer-events:none;transition:opacity .4s ease}
+.pxp-hint.out{opacity:0}
+.pxp-bar{position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:flex-end;gap:6px}
+.pxp-bar button:not(#_x){height:38px;min-width:42px;min-height:0!important;padding:0 12px!important;margin:0!important;border:1px solid var(--bd)!important;border-radius:var(--r-in,8px)!important;background:color-mix(in srgb,var(--surface) 92%,transparent)!important;color:var(--ink)!important;font:600 .875rem/1 inherit;box-shadow:0 4px 12px -4px rgba(0,0,0,.25)!important;cursor:pointer;touch-action:none;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.pxp-bar button.ok:not(#_x){background:var(--brass,var(--brand))!important;border-color:transparent!important;color:#1b1408!important}
