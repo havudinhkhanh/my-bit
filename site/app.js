@@ -1005,7 +1005,7 @@ function uxStrip(root) {
     const t = n.textContent, m = t.match(UX_EMO); if (m && m[0].length < t.length) n.textContent = t.slice(m[0].length);
   });
 }
-const PC_SKIP = /^(t\/|bot\/scalp|bot\/days|bot\/journal|bot\/miss|bot\/binance|c\/|methods|notifications|account|admin)/;
+const PC_SKIP = /^(t\/|bot\/scalp|bot\/days|bot\/journal|bot\/miss|bot\/stats|bot\/binance|c\/|methods|notifications|account|admin)/;
 function pcKey(p) { return (location.hash.replace(/^#\/?/, "").split("/").slice(0, 2).join("/") || "home") + "|" + (p.firstElementChild?.textContent || "").replace(/\s+/g, " ").trim().slice(0, 40); }
 function pcOpen(p, v = true) {
   p.classList.toggle("pc-shut", !v); p.firstElementChild?.setAttribute("aria-expanded", v);
@@ -1139,7 +1139,7 @@ function cusPick(anchor) {
 }
 // menu chọn trang bot kiểu iOS: chạm nút "Bot" ở thanh dưới → menu bật lên ngay trên nút; trên trang bot, chạm tiêu đề (có dấu ⌄) → menu kéo xuống
 const BOTSUB = { bothome: "Mọi bot ở một chỗ: đang chạy, lời/lỗ hôm nay, lệnh mở", bot: "Khung ngày / 4 giờ · sàn thử · đang thử nghiệm", botscalp: "Bắt râu sập + lướt giây · sàn thử & tiền thật", botsup: "Giới hạn rủi ro chung, khám nghiệm lệnh", botdays: "Lãi/lỗ từng ngày · sổ mọi lệnh · bài học", botjournal: "Mọi lệnh: giá vào/ra, khối lượng, phí, funding · bài học tổng hợp", botbin: "Số dư, ví, giới hạn an toàn, khoá API" };
-const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : (h.startsWith("#/bot/journal") || h.startsWith("#/bot/miss")) ? "botdays" : h.startsWith("#/bot/sup") ? "bothome" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
+const botCur = (h = location.hash) => (h.startsWith("#/bot/home") ? "bothome" : h.startsWith("#/bot/binance") ? "botbin" : (h.startsWith("#/bot/journal") || h.startsWith("#/bot/miss") || h.startsWith("#/bot/stats")) ? "botdays" : h.startsWith("#/bot/sup") ? "bothome" : h.startsWith("#/bot/scalp") ? "botscalp" : h.startsWith("#/bot/days") ? "botdays" : h.startsWith("#/bot/journal") ? "botjournal" : /^#\/bot(\/|$)/.test(h) ? "bot" : "");
 // bảng xác nhận kiểu iOS (action sheet ở đáy màn hình, máy tính thì giữa màn hình) → Promise<true/false>.
 // body: HTML hoặc hàm trả HTML (vẽ lại mỗi giây – số liệu sống); ok: chữ nút hoặc hàm trả [chữ, đỏ?] (cũng vẽ lại mỗi giây); wait: nút xác nhận chỉ bấm được sau bấy nhiêu ms (chống bấm nhầm)
 // ---- HỘP XÁC NHẬN của MyBit (dùng cho mọi xác nhận: đóng lệnh, bật phương pháp, chép lệnh…) – nhận diện riêng của app:
@@ -1848,7 +1848,7 @@ async function route() {
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
     else if (r === "live") { setTab("live"); await viewLive(); }
     else if (r === "radar") { setTab("radar"); await viewRadar(); }
-    else if (r === "bot") { window.__scMode = null; if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("bothome"); await viewBotHome("sup"); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "binance") { setTab("botbin"); window.__scMode = "acct"; await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else if (arg[0] === "miss") { setTab("botjournal"); await viewJournal(arg[1], "miss"); } else { setTab("bot"); await viewBot(arg[0]); } }
+    else if (r === "bot") { window.__scMode = null; if (arg[0] === "home") { setTab("bothome"); await viewBotHome(); } else if (arg[0] === "sup") { setTab("bothome"); await viewBotHome("sup"); } else if (arg[0] === "scalp") { setTab("botscalp"); await viewScalp(); } else if (arg[0] === "binance") { setTab("botbin"); window.__scMode = "acct"; await viewScalp(); } else if (arg[0] === "days") { setTab("botdays"); await viewDays(arg[1], arg[2]); } else if (arg[0] === "journal") { setTab("botjournal"); await viewJournal(arg[1]); } else if (arg[0] === "miss") { setTab("botjournal"); await viewJournal(arg[1], "miss"); } else if (arg[0] === "stats") { setTab("botjournal"); await viewStats(arg[1]); } else { setTab("bot"); await viewBot(arg[0]); } }
     else if (r === "paper") { setTab("paper"); await viewPaper(arg[0] ? arg[0].toUpperCase() : ""); }
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
@@ -2848,6 +2848,27 @@ function ocFund(I) {
   };
   pull(); OCC.fdT = setInterval(() => { if (!document.hidden) pull(); }, 60e3);
 }
+// 📊 PHE ĐÔNG 3 NGÀY: funding các kỳ gần nhất · % tài khoản Long (mỗi giờ) · giá trị hợp đồng đang mở (OI, mỗi giờ) – thấy phe đông đang dồn thêm hay đang rút
+async function ocMkt(I) {
+  const box = document.getElementById("occMk"); if (!box || box.dataset.done === I.base) return;
+  if (!can("futures")) { box.innerHTML = `<p class="faint">${bi("Lịch sử funding, tỉ lệ Long/Short và hợp đồng mở theo giờ – gói Pro.", "Funding, Long/Short and open-interest history – Pro plan.")}</p>`; return; }
+  box.innerHTML = `<p class="faint">${bi("Đang lấy dữ liệu Binance…", "Loading Binance data…")}</p>`;
+  const sym = encodeURIComponent(I.base + "USDT"), g = (u) => fetchJ(u, 9000).catch(() => null);
+  const [fr, ls, oi] = await Promise.all([g(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${sym}&limit=24`), g(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${sym}&period=1h&limit=72`), g(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${sym}&period=1h&limit=72`)]);
+  if (OCC.info !== I || !box.isConnected) return;
+  const tl = (ms) => { const d = new Date(+ms + 7 * 3600e3).toISOString(); return `${d.slice(8, 10)}/${d.slice(5, 7)} ${d.slice(11, 13)}h`; };
+  const F = (Array.isArray(fr) ? fr : []).filter((x) => +x.fundingTime >= Date.now() - 3.2 * 864e5), L = Array.isArray(ls) ? ls : [], O = Array.isArray(oi) ? oi : [];
+  const part = [];
+  if (F.length) part.push(`<p class="occ-mk-h">Funding <small>${bi("mỗi kỳ trả · dương = Long trả Short", "per payment · positive = longs pay")}</small></p>` + lineSvg([{ name: "", bars: true, pts: F.map((x) => ({ x: tl(x.fundingTime), y: +(+x.fundingRate * 100).toFixed(4), tc: +x.fundingRate >= 0 ? "up" : "down" })) }], { h: 90, dec: 4, zero: true, fmt: (v) => nf(v, 3) + "%" }));
+  if (L.length) { const lg = L.map((x) => +x.longAccount * 100), a = lg[0], z = lg[lg.length - 1];
+    part.push(`<p class="occ-mk-h">${bi("% tài khoản Long", "% accounts long")} <small>${nf(a, 0)}% → <b>${nf(z, 0)}%</b> ${z - a >= 2 ? bi("· phe Long đang đông thêm", "· longs crowding in") : a - z >= 2 ? bi("· phe Long đang rút / Short đông thêm", "· longs leaving / shorts crowding") : bi("· gần như không đổi", "· roughly flat")}</small></p>`
+      + lineSvg([{ name: "", color: css("--up"), width: 1.6, pts: L.map((x) => ({ x: tl(x.timestamp), y: +(+x.longAccount * 100).toFixed(1) })) }], { h: 90, dec: 0, hlines: [{ y: 50, color: css("--ink-3") }], fmt: (v) => nf(v, 0) + "%" })); }
+  if (O.length) { const v = O.map((x) => +x.sumOpenInterestValue), a = v[0], z = v[v.length - 1], ch = a > 0 ? (z / a - 1) * 100 : null;
+    part.push(`<p class="occ-mk-h">${bi("Hợp đồng đang mở (OI)", "Open interest")} <small>${kUsd(a)} → <b>${kUsd(z)}</b>${isNum(ch) ? ` (${ch >= 0 ? "+" : ""}${nf(ch, 0)}%)` : ""} ${bi("· tăng = thêm tiền mở lệnh mới, giảm = đóng bớt / bị thanh lý", "· up = new positions, down = closing / liquidations")}</small></p>`
+      + lineSvg([{ name: "", color: css("--brass") || css("--brand"), width: 1.6, pts: O.map((x) => ({ x: tl(x.timestamp), y: Math.round(+x.sumOpenInterestValue) })) }], { h: 90, dec: 0, fmt: (v) => kUsd(v) })); }
+  box.innerHTML = part.length ? part.join("") + `<p class="faint occ-mk-n">${bi("Phe đông chưa chắc thắng – phe quá đông dễ bị quét thanh lý. Thông tin tham khảo, không phải khuyên mua / bán.", "A crowded side isn't a call – very crowded sides get swept. Reference only, not advice.")}</p>` : `<p class="faint">${bi("Binance chưa có dữ liệu cho mã này.", "No Binance data for this symbol.")}</p>`;
+  box.dataset.done = I.base; cbMount?.(box);
+}
 function ocFundChips(chip) {
   const F = OCC.fd, I = OCC.info; if (!I?.fut) return "";
   if (!F) return chip("Funding", "…", "", bi("đang lấy funding từ Binance", "loading funding from Binance"));
@@ -2871,7 +2892,7 @@ function ocOpen(I) {
     <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
       <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M7 15l4-4 3 3 5-6"/></svg>${bi("Phân tích", "Analysis")}</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
     ${I.what ? `<div class="occ-what faint">${esc(I.what)}</div>` : ""}
-    <div class="occ-st" id="occSt"></div>
+    <div class="occ-st" id="occSt"></div>${I.fut ? `<details class="occ-mk" id="occMkD"><summary>📊 ${bi("Phe đông 3 ngày qua", "Crowding, last 3 days")} <small>funding · Long/Short · ${bi("hợp đồng mở (OI)", "open interest")}</small>${can("futures") ? "" : ' <span class="lk">★ Pro</span>'}</summary><div id="occMk"></div></details>` : ""}
     ${(I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : ""}
     <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
       <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"], ["ob", bi("Tường lệnh", "Order walls")], ...(I.fut ? [["lqn", bi("Thanh lý gần", "Liq. near")], ["lqf", bi("Thanh lý xa", "Liq. far")]] : [])].map(([k, t]) => { const ly = OCL.includes(k), lk = ly && !can("futures"), v = k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k);
@@ -2895,6 +2916,7 @@ function ocOpen(I) {
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   ocDraw(); ocFund(I);
+  m.querySelector("#occMkD")?.addEventListener("toggle", (e) => { if (e.target.open) ocMkt(I); });
 }
 // ================================================================ 📍 CHUỘT PHẢI (máy tính) / GIỮ LÂU (điện thoại) TRÊN BIỂU ĐỒ → menu tại đúng mức giá đó:
 //   Long / Short khi giá về mức này (lệnh chờ đặt sẵn trên Binance qua máy chủ riêng) · với lệnh tay đang mở: đặt cắt lỗ / chốt lời ở mức này · chép giá
@@ -5377,6 +5399,7 @@ function dayLessons(D, T, H, C, env) {
 }
 async function viewDays(...a) { await lazyJs("app-bot.js"); return viewDays(...a); }
 async function viewJournal(...a) { await lazyJs("app-bot.js"); return viewJournal(...a); }
+async function viewStats(...a) { await lazyJs("app-bot.js"); return viewStats(...a); }
 async function viewTrade(...a) { await lazyJs("app-bot.js"); return viewTrade(...a); }
 async function viewTax(...a) { await lazyJs("app-tax.js"); return viewTax(...a); }
 async function viewScalp(...a) { await lazyJs("app-bot.js"); return viewScalp(...a); }

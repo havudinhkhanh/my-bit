@@ -236,6 +236,24 @@
      "a": "ui",
      "t": "Điện thoại: thanh tab dưới hạ thấp xuống một chút (giữ nguyên kiểu bo), trang có thêm chỗ hiển thị",
      "te": "Phone: the bottom tab bar sits a little lower (same shape), giving the page more room"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Kết quả & sổ lệnh → tab mới \"Phân tích\": bot so với lệnh tay (3 đường cộng dồn), giữ bao lâu thì lời, lời bỏ lỡ (đỉnh lời so với lúc đóng), bảng xếp hạng coin, mức rủi ro theo thời gian, phí · funding · trượt giá theo tuần, bot theo độ lớn cú sốc",
+     "te": "Results & trade book → new \"Analysis\" tab: bot vs manual (3 cumulative lines), hold time vs result, missed profit (peak vs exit), coin leaderboard, exposure over time, weekly fees · funding · slippage, bot by shock size",
+     "d": "Lọc theo sàn (Thật / Demo / Sàn thử) và khoảng 7 – 30 – 90 ngày / từ đầu. Đỉnh lời của lệnh tay đọc từ nến Binance, lưu lại trên máy.",
+     "de": "Filter by venue and 7 / 30 / 90 days / all time. Manual-trade peaks come from Binance candles, cached on the device.",
+     "f": "bot",
+     "go": "#/bot/stats",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: mục \"📊 Phe đông 3 ngày qua\" – funding từng kỳ, % tài khoản Long theo giờ, hợp đồng đang mở (OI) theo giờ",
+     "te": "Order chart: \"📊 Crowding, last 3 days\" – funding per period, % accounts long per hour, open interest per hour",
+     "f": "futures"
     }
    ]
   },

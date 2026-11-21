@@ -6838,3 +6838,18 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
   body{padding-bottom:calc(var(--tb-h) + 14px + var(--tb-b))!important}
   body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(var(--tb-h) + 12px + var(--tb-b))!important}
 }
+/* 📈 trang Phân tích (Kết quả & sổ lệnh) */
+.st-wrap{display:grid;gap:12px}
+@media (min-width:1100px){.st-wrap{grid-template-columns:1fr 1fr;align-items:start}.st-wrap>:first-child{grid-column:1/-1}}
+.st-wrap>.panel,.st-wrap>div>.panel{margin:0}
+.st-lg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 8px;font-size:.75rem;color:var(--ink-2)}.st-lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.st-t table{width:100%;font-size:.8125rem;font-variant-numeric:tabular-nums}.st-t td,.st-t th{white-space:nowrap}.st-t td small{font-size:.6875rem}
+.st-t tr.st-gap td{text-align:center;color:var(--ink-3);padding:2px}
+@media (max-width:640px){.st-t table{font-size:.71875rem}.st-t td,.st-t th{padding-left:4px!important;padding-right:4px!important}.st-t td:first-child,.st-t th:first-child{padding-left:2px!important}}
+/* 📊 Phe đông 3 ngày (biểu đồ lệnh) */
+.occ-mk{margin:0 0 10px;border:1px solid var(--line);border-radius:var(--r-in,8px);background:var(--fill-card,var(--sunk))}
+.occ-mk>summary{cursor:pointer;list-style:none;padding:8px 11px;font-size:.8125rem;font-weight:600;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px}
+.occ-mk>summary::-webkit-details-marker{display:none}.occ-mk>summary::after{content:"▾";margin-left:auto;color:var(--ink-3);transition:transform .2s}.occ-mk[open]>summary::after{transform:rotate(180deg)}
+.occ-mk>summary small{font-weight:400;color:var(--ink-3);font-size:.6875rem}.occ-mk>summary .lk{font-size:.6875rem;color:var(--brass,var(--brand))}
+#occMk{padding:0 11px 8px}.occ-mk-h{margin:8px 0 0;font-size:.75rem;font-weight:600}.occ-mk-h small{font-weight:400;color:var(--ink-3)}.occ-mk-n{margin:6px 0 0;font-size:.6875rem}
+.occ-mk>summary::marker{content:""}

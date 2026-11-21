@@ -2524,7 +2524,7 @@ async function viewSup(OUT) {
 
 // Kết quả & sổ lệnh: 1 trang 2 phần – Theo ngày | Sổ lệnh & bài học (giữ môi trường đang xem khi chuyển)
 function djSeg(cur, env) {
-  const L = [["days", "Theo ngày", "lịch lời/lỗ · so sánh"], ["journal", "Sổ lệnh", "lệnh đã đóng · bài học"], ["miss", "Lệnh hụt", "cú sốc không khớp"]];
+  const L = [["days", "Theo ngày", "lịch lời/lỗ · so sánh"], ["journal", "Sổ lệnh", "lệnh đã đóng · bài học"], ["stats", "Phân tích", "thói quen · coin · rủi ro"], ["miss", "Lệnh hụt", "cú sốc không khớp"]];
   return `<nav class="sc-sub2 dj-seg" aria-label="Kết quả & sổ lệnh">${L.map(([k, t, d]) => `<a href="#/bot/${k}${env ? "/" + env : ""}" class="${k === cur ? "on" : ""}" title="${d}"${k === cur ? ' aria-current="page"' : ""}><span>${t}</span><small>${d}</small></a>`).join("")}</nav>`;
 }
 // ---------------------------------------------------------------- HIỆU SUẤT THEO NGÀY, KHỬ TIỀN NẠP / RÚT
@@ -2718,8 +2718,8 @@ function jRows(LG, X) {
 function jRows0(LG, X) {
   const M = new Map(), put = (r) => { if (!r.t2 || !(r.q > 0) || !(r.e > 0)) return; const k = `${r.env}|${r.k}|${String(r.t2).slice(0, 19)}`; if (!M.has(k)) M.set(k, r); };
   const IVK = new Set((X?.live?.hist || []).filter(ivMan).map((h) => ivKeyOf(h, X?.live?.env || "demo")));      // ✋ lệnh "anh bấm vào ngay" – sổ máy chủ ghi theo phương pháp bot → đổi thành lệnh tay
-  for (const a of LG?.rows || []) put({ env: a[0], strat: IVK.has(`${a[0]}|${a[2]}|${String(a[8]).slice(0, 19)}`) ? "man" : a[1], k: a[2], side: a[3], q: a[4], e: a[5], x: a[6], t1: a[7], t2: a[8], fee: a[9], fund: a[10], pnl: a[11], why: a[12], lv: a[13], R: a[14], tot: a[15], note: a[16] });
-  for (const h of X?.live?.hist || []) put({ env: h.env || "demo", strat: ivMan(h) ? "man" : h.strat || "hook", k: h.k || String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note });
+  for (const a of LG?.rows || []) put({ ive: IVK.has(`${a[0]}|${a[2]}|${String(a[8]).slice(0, 19)}`) ? 1 : 0, dx: Array.isArray(a[17]) ? a[17] : null, env: a[0], strat: IVK.has(`${a[0]}|${a[2]}|${String(a[8]).slice(0, 19)}`) ? "man" : a[1], k: a[2], side: a[3], q: a[4], e: a[5], x: a[6], t1: a[7], t2: a[8], fee: a[9], fund: a[10], pnl: a[11], why: a[12], lv: a[13], R: a[14], tot: a[15], note: a[16] });
+  for (const h of X?.live?.hist || []) put({ ive: ivMan(h) ? 1 : 0, dx: h.dx ? [h.dx.pk, h.dx.mn, h.dx.tr, h.dx.sl, h.dx.hs, h.dx.lag, h.dx.dl, h.dx.ox, h.dx.os, h.dx.rl] : null, env: h.env || "demo", strat: ivMan(h) ? "man" : h.strat || "hook", k: h.k || String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1 || h.ts, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: h.nl, R: h.R, tot: h.tot, note: h.note });
   for (const h of X?.live?.mh || []) put({ env: h.env || "live", strat: "man", k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.q, e: h.e, x: h.x, t1: h.t1, t2: h.t2, fee: h.fee, fund: h.fund || 0, pnl: h.pnl, why: h.why, lv: 1 });      // ✋ lệnh tay (chưa kịp vào sổ)
   for (const t of X?.trades || []) { const n0 = t.net && t.usd ? Math.abs(t.usd / (t.net / 1e4)) : null; if (n0) put({ env: "paper", strat: t.strat || "sec", k: t.k, side: t.side, q: n0 / t.e, e: t.e, x: t.x, t1: t.t0, t2: t.t1, fee: (t.fee || 0) * n0 / 1e4, fund: t.fu || 0, pnl: t.usd, why: t.why, lv: t.lv, R: t.shock }); }
   for (const s of ["list", "pump"]) for (const h of X?.sw?.[s]?.hist || []) put({ env: "paper", strat: s, k: String(h.sym).replace(/USDT$/, "") + ":F", side: h.side, q: h.N / h.e, e: h.e, x: h.x, t1: h.t0, t2: h.t2, fee: h.fee, fund: h.fund, pnl: h.net, why: h.why, note: h.note });
@@ -3174,3 +3174,122 @@ document.addEventListener("click", (e) => {
     ...[3, 5, 10].map((v) => ({ on: A.loss === v, t: bi(`Mỗi khi lỗ thêm ${v}% tài khoản`, `Every ${v}% of account lost`), sub: bi(`lỗ ${v}%, ${v * 2}%, ${v * 3}%… số dư futures`, `at ${v}%, ${v * 2}%, ${v * 3}%… of futures balance`), run: () => save({ ...A, loss: v }) })),
   ]);
 });
+
+// ================================================================ 📈 PHÂN TÍCH (Kết quả & sổ lệnh → Phân tích): thói quen giao dịch, coin, rủi ro, chi phí, bot theo cú sốc
+// Nguồn: cùng sổ lệnh với trang Sổ lệnh (jRows: sổ lưu mãi của máy chủ + lệnh vừa đóng). Mọi số là thống kê quá khứ, không phải khuyên mua / bán.
+const ST_GRP = { bot: ["🤖", "Bot", "Bot"], man: ["✋", "Lệnh tay", "Manual"], ive: ["🤝", "Bot tìm · anh vào", "Bot-found · you entered"] };
+const stGrp = (r) => (r.ive ? "ive" : r.strat === "man" ? "man" : "bot");
+const stCol = (g) => (g === "bot" ? css("--brass") || css("--brand") : g === "man" ? "#3b82f6" : "#8b5cf6");      // 3 màu tách bạch: bot vàng đồng · lệnh tay xanh dương · bot tìm-anh vào tím
+const stGN = (g) => `${ST_GRP[g][0]} ${bi(ST_GRP[g][1], ST_GRP[g][2])}`;
+// chấm phân tán (trục ngang có thể log): mỗi chấm 1 lệnh, rê / chạm gần chấm → chi tiết lệnh
+function scatterSvg(P, o = {}) {
+  return svgMount((W, H, cx) => {
+    const pl = 46, pr = 10, pt = 8, pb = 22, Q = P.filter((p) => isNum(p.x) && isNum(p.y));
+    if (!Q.length) return `<svg width="${W}" height="${H}"></svg>`;
+    const lx = (v) => (o.xlog ? Math.log10(Math.max(o.xmin || 0.1, v)) : v);
+    let x0 = Math.min(...Q.map((p) => lx(p.x))), x1 = Math.max(...Q.map((p) => lx(p.x))); if (x1 - x0 < 1e-9) { x0 -= 1; x1 += 1; }
+    let y0 = Math.min(0, ...Q.map((p) => p.y)), y1 = Math.max(0, ...Q.map((p) => p.y)); const pd = (y1 - y0) * 0.08 || 1; y0 -= pd; y1 += pd;
+    const X = (v) => pl + (lx(v) - x0) / (x1 - x0) * (W - pl - pr), Y = (v) => pt + (y1 - v) / (y1 - y0) * (H - pt - pb);
+    let s = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img">`;
+    const st0 = (y1 - y0) / 4, mg = 10 ** Math.floor(Math.log10(st0 || 1)), stp = [1, 2, 2.5, 5, 10].map((k) => k * mg).find((k) => k >= st0) || st0;
+    for (let v = Math.ceil(y0 / stp) * stp; v <= y1 + 1e-9; v += stp) { const y = Y(v).toFixed(1); s += `<line x1="${pl}" x2="${W - pr}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width=".5"/><text x="${pl - 6}" y="${(+y + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--ink-3)">${esc(o.yfmt ? o.yfmt(v) : nf(v, 1))}</text>`; }
+    s += `<line x1="${pl}" x2="${W - pr}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="var(--ink-3)" stroke-dasharray="3 3"/>`;
+    for (const v of o.xticks || []) { const t = lx(v); if (t < x0 - 1e-9 || t > x1 + 1e-9) continue; const x = X(v).toFixed(1); s += `<line x1="${x}" x2="${x}" y1="${pt}" y2="${H - pb}" stroke="var(--line)" stroke-width=".5"/><text x="${x}" y="${H - 6}" text-anchor="middle" font-size="10" fill="var(--ink-3)">${esc(o.xfmt ? o.xfmt(v) : nf(v, 0))}</text>`; }
+    for (const p of Q) s += `<circle cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="${p.r || 3.6}" fill="${p.c}" fill-opacity=".72" stroke="var(--surface)" stroke-width=".8"/>`;
+    s += `</svg>`;
+    cx.hover = (mx, my) => { let b = null, bd = 20 * 20; for (const p of Q) { const dx = X(p.x) - mx, dy = Y(p.y) - (my ?? Y(p.y)), d = dx * dx + dy * dy; if (d < bd) { bd = d; b = p; } } return b ? { x: X(b.x), html: b.tip } : null; };
+    return s;
+  }, { h: o.h || 220 });
+}
+const MFE_C = (window.__mfeC ||= lsGet("mfe", {}) || {});      // đỉnh lời / sụt sâu nhất (bps) của lệnh tay, đọc từ nến Binance – lưu trên máy để lần sau khỏi đọc lại
+async function viewStats(envArg) {
+  const [rl, rs] = await Promise.all([Store.get("scalpledger"), Store.get("scalpstate")]);
+  const X = rs.data || {}, LG = rl.data || null, A = jRows(LG, X), J = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 });
+  const cnt = Object.fromEntries(JENV.map(([e]) => [e, e === "all" ? A.length : A.filter((r) => r.env === e).length]));
+  const env = JENV.some((x) => x[0] === envArg) ? envArg : JENV.some((x) => x[0] === J.env) ? J.env : cnt.live ? "live" : "paper"; J.env = env;
+  const TD = vnToday(), from = J.R === "all" ? "" : new Date(Date.parse(TD + "T00:00:00Z") - (J.R - 1) * 864e5).toISOString().slice(0, 10);
+  const F = A.filter((r) => (env === "all" || r.env === env) && (!from || r.d >= from) && r.N > 0).sort((a, b) => jT(a.t2) - jT(b.t2));
+  const head = `<div class="ph"><h1>Kết quả & sổ lệnh</h1><span class="meta">${bi("Giờ Việt Nam", "Vietnam time")} · ${F.length} ${bi("lệnh trong khoảng", "trades in range")}</span></div>${djSeg("stats", env === "all" ? "" : env)}
+    <div class="bseg dseg">${JENV.map(([e, t, ts]) => `<a href="#/bot/stats/${e}" class="${e === env ? "on" : ""}"><span class="dl">${t}</span><span class="ds">${ts}</span>${cnt[e] ? `<small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
+    <div class="jf"><select id="stRg" aria-label="${bi("Khoảng thời gian", "Range")}">${[[7, bi("7 ngày qua", "Last 7 days")], [30, bi("30 ngày qua", "Last 30 days")], [90, bi("90 ngày qua", "Last 90 days")], ["all", bi("Từ đầu", "All time")]].map(([v, t]) => `<option value="${v}" ${J.R === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>`;
+  const bind = () => { const s = $("#stRg"); if (s) s.onchange = (e) => { J.R = e.target.value === "all" ? "all" : +e.target.value; viewStats(env); }; };
+  if (!F.length) { app().innerHTML = head + panel(bi("Phân tích", "Analysis"), `<p class="muted">${bi("Chưa có lệnh đã đóng trong khoảng này.", "No closed trades in this range.")}</p>`); bind(); return; }
+  const sum = (a, f) => a.reduce((s2, x) => s2 + (f(x) || 0), 0), win = (a) => a.filter((r) => r.pnl > 0).length, pc = (v, d = 2) => `${v > 0 ? "+" : ""}${nf(v, d)}%`;
+  const G = ["bot", "man", "ive"].filter((g) => F.some((r) => stGrp(r) === g));
+  const dd = (d) => d.slice(8, 10) + "/" + d.slice(5, 7);
+  const note = (t) => `<p class="faint sc-cap">${t}</p>`;
+  // ---- ⑥ Bot · lệnh tay · bot tìm-anh vào: 3 đường cộng dồn theo ngày
+  const days = []; { const a = from || F[0].d; for (let t = Date.parse(a + "T00:00:00Z"); t <= Date.parse(TD + "T00:00:00Z"); t += 864e5) days.push(new Date(t).toISOString().slice(0, 10)); }
+  const byDay = {}; for (const r of F) { const o = (byDay[r.d] ||= {}); o[stGrp(r)] = (o[stGrp(r)] || 0) + r.pnl; }
+  const S6 = G.map((g) => { let c = 0; return { name: stGN(g), color: stCol(g), width: 2, pts: days.map((d) => ({ x: dd(d), y: +(c += byDay[d]?.[g] || 0).toFixed(2) })) }; });
+  const p6 = panel(bi("🤖 Bot so với ✋ lệnh tay", "🤖 Bot vs ✋ manual"), stg(G.map((g) => { const a = F.filter((r) => stGrp(r) === g), s2 = sum(a, (r) => r.pnl); return [stGN(g), j$(s2), cls(s2), `${a.length} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${nf(win(a) / a.length * 100, 0)}% · ${bi("TB", "avg")} ${j$(s2 / a.length)} · ${pctB(sum(a, (r) => r.bps) / a.length)}`]; }))
+    + lineSvg(S6, { h: 200, dec: 2, zero: true }) + note(bi("Lời/lỗ cộng dồn sau phí & funding. \"Bot tìm · anh vào\" = bot bắt được cú sốc nhưng lệnh chờ chưa khớp, anh bấm Vào ngay.", "Cumulative P/L after fees & funding. \"Bot-found · you entered\" = the bot spotted the shock, its orders hadn't filled, you tapped Enter now.")), `${F.length} ${bi("lệnh", "trades")}`);
+  // ---- ③ Giữ bao lâu thì lời: chấm phân tán + bảng theo khoảng giữ
+  const HB = [[0, 5, bi("< 5 phút", "< 5 min")], [5, 30, bi("5–30 phút", "5–30 min")], [30, 120, bi("30 phút – 2 giờ", "30 min – 2 h")], [120, 480, bi("2 – 8 giờ", "2 – 8 h")], [480, 1e9, bi("> 8 giờ", "> 8 h")]];
+  const hRows = HB.map(([a, b, t]) => { const R = F.filter((r) => r.hold / 60 >= a && r.hold / 60 < b); return { t, R, n: R.length, w: win(R), av: R.length ? sum(R, (r) => r.bps) / R.length : null, s: sum(R, (r) => r.pnl) }; }).filter((x) => x.n);
+  const bestH = hRows.filter((x) => x.n >= 3).sort((a, b) => b.av - a.av)[0], worstH = hRows.filter((x) => x.n >= 3).sort((a, b) => a.av - b.av)[0];
+  const tb = (hd, rows) => `<div class="tw st-t"><table><thead><tr>${hd.map((h, i) => `<th class="${i ? "" : "l"}">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  const p3 = panel(bi("⏱ Giữ bao lâu thì lời", "⏱ Hold time vs result"), scatterSvg(F.map((r) => ({ x: Math.max(0.2, r.hold / 60), y: r.bps / 100, c: stCol(stGrp(r)), tip: `<em>${esc(String(r.k).split(":")[0])} ${r.side > 0 ? "Long" : "Short"} · ${jTm(r.t2)}</em><span>${stGN(stGrp(r))} · ${bi("giữ", "held")} ${jHold(r.hold)}</span><span><b class="${cls(r.pnl)}">${j$(r.pnl)}</b> (${pctB(r.bps)})</span>` })),
+      { xlog: 1, xmin: 0.2, xticks: [1, 5, 15, 60, 240, 1440, 4320], xfmt: (v) => (v < 60 ? v + bi("p", "m") : v < 1440 ? v / 60 + bi("g", "h") : v / 1440 + bi("n", "d")), yfmt: (v) => nf(v, 1) + "%", h: 230 })
+    + `<div class="st-lg">${G.map((g) => `<span><i style="background:${stCol(g)}"></i>${stGN(g)}</span>`).join("")}</div>`
+    + tb([bi("Giữ", "Held"), bi("Lệnh", "Trades"), bi("Thắng", "Won"), bi("TB / lệnh", "Avg / trade"), bi("Tổng", "Total")], hRows.map((x) => `<tr><td class="l">${x.t}</td><td>${x.n}</td><td>${nf(x.w / x.n * 100, 0)}%</td><td class="${cls(x.av)}">${pctB(x.av)}</td><td class="${cls(x.s)}">${j$(x.s)}</td></tr>`))
+    + (bestH && worstH && bestH !== worstH ? note(bi(`Lời TB tốt nhất khi giữ <b>${bestH.t}</b> (${pctB(bestH.av)}/lệnh), kém nhất khi giữ <b>${worstH.t}</b> (${pctB(worstH.av)}/lệnh). Trục ngang chia theo log – mỗi chấm 1 lệnh, rê / chạm để xem.`, `Best average when held <b>${bestH.t}</b> (${pctB(bestH.av)}/trade), worst at <b>${worstH.t}</b> (${pctB(worstH.av)}/trade). Log time axis – one dot per trade.`)) : note(bi("Trục ngang chia theo log – mỗi chấm 1 lệnh, rê / chạm để xem.", "Log time axis – one dot per trade."))), `${F.length} ${bi("lệnh", "trades")}`);
+  // ---- ④ Lời bỏ lỡ: đỉnh lời từng chạm so với lúc đóng
+  const mKey = (r) => `${r.env}|${r.k}|${String(r.t2).slice(0, 19)}`;
+  const pkOf = (r) => (Array.isArray(r.dx) && isNum(+r.dx[0]) && r.dx[0] !== null ? { pk: +r.dx[0], mn: isNum(+r.dx[1]) ? +r.dx[1] : null, src: "bot" } : MFE_C[mKey(r)] ? { pk: MFE_C[mKey(r)][0], mn: MFE_C[mKey(r)][1], src: "k" } : null);
+  const mfeHtml = () => {
+    const M = F.map((r) => { const p = pkOf(r); if (!p) return null; const re = r.mv * 100; return { r, pk: Math.max(p.pk, re), mn: p.mn, re, gb: Math.max(0, Math.max(p.pk, re) - re) }; }).filter(Boolean);
+    const todo = F.filter((r) => !pkOf(r) && /:F$/.test(r.k) && r.hold >= 60 && r.hold <= 7 * 86400).length;
+    if (!M.length) return `<p class="muted">${todo ? bi(`Đang đọc nến Binance cho ${todo} lệnh…`, `Reading Binance candles for ${todo} trades…`) : bi("Chưa có dữ liệu đỉnh lời.", "No peak data yet.")}</p>`;
+    const W2 = M.filter((m) => m.pk > 0), kp = W2.length ? sum(W2, (m) => m.re) / sum(W2, (m) => m.pk) * 100 : null;
+    const gbUsd = (m) => m.gb / 1e4 * m.r.N, top = M.slice().sort((a, b) => gbUsd(b) - gbUsd(a)).slice(0, 8);
+    const gr = G.map((g) => { const a = M.filter((m) => stGrp(m.r) === g); return a.length ? [stGN(g), pctB(sum(a, (m) => m.gb) / a.length), "", `${bi("đỉnh TB", "avg peak")} ${pctB(sum(a, (m) => m.pk) / a.length)} · ${bi("chốt TB", "avg exit")} ${pctB(sum(a, (m) => m.re) / a.length)} · ${a.length} ${bi("lệnh", "trades")}`] : null; }).filter(Boolean);
+    return stg([[bi("Giữ được của đỉnh", "Kept of the peak"), isNum(kp) ? nf(kp, 0) + "%" : "—", kp >= 60 ? "up" : kp < 35 ? "down" : "", bi("lệnh từng lời: tổng chốt được ÷ tổng đỉnh lời", "trades that went green: total exit ÷ total peak")], [bi("Trả lại ≈", "Gave back ≈"), j$(-sum(M, gbUsd)), "down", bi(`${M.length} lệnh – nếu đóng ngay ở đỉnh (không thể làm mọi lần)`, `${M.length} trades – if closed at the very top (not always possible)`)], ...gr.map((x) => [`${x[0]} ${bi("trả lại TB", "avg giveback")}`, x[1].replace(/^\+/, ""), "", x[3]])])
+      + tb([bi("Lệnh", "Trade"), bi("Đỉnh lời", "Peak"), bi("Lúc đóng", "Exit"), bi("Trả lại", "Gave back")], top.map((m) => `<tr><td class="l">${stGRP0(m.r)} <b>${esc(String(m.r.k).split(":")[0])}</b> <span class="${m.r.side > 0 ? "up" : "down"}">${m.r.side > 0 ? "L" : "S"}</span> <small class="faint">${jTm(m.r.t2)}</small></td><td class="up">${pctB(m.pk)}</td><td class="${cls(m.re)}">${pctB(m.re)}</td><td class="down">${pctB(-m.gb)} <small class="faint">≈ ${j$(-gbUsd(m))}</small></td></tr>`))
+      + note(bi(`Đỉnh lời = giá đi có lợi xa nhất trong lúc giữ (lệnh bot: máy chủ ghi; lệnh tay: đọc nến 1 phút / 15 phút của Binance – ước tính). % tính trên giá trị lệnh, trước phí.${todo ? ` Đang đọc thêm ${todo} lệnh…` : ""}`, `Peak = the furthest favourable move while held (bot: server log; manual: Binance 1m/15m candles – estimate). % of trade value, before fees.${todo ? ` Reading ${todo} more…` : ""}`));
+  };
+  const stGRP0 = (r) => ST_GRP[stGrp(r)][0];
+  const p4 = `<div id="stMfe">${panel(bi("🎯 Lời bỏ lỡ – đỉnh lời so với lúc đóng", "🎯 Missed profit – peak vs exit"), mfeHtml())}</div>`;
+  // ---- ⑤ Bảng xếp hạng coin
+  const CO = {}; for (const r of F) { const c = String(r.k).split(":")[0], o = (CO[c] ||= { c, n: 0, w: 0, s: 0, L: 0, Sh: 0, nL: 0, nS: 0 }); o.n++; if (r.pnl > 0) o.w++; o.s += r.pnl; if (r.side > 0) { o.L += r.pnl; o.nL++; } else { o.Sh += r.pnl; o.nS++; } }
+  const CL = Object.values(CO).sort((a, b) => b.s - a.s), CT = CL.length > 15 ? [...CL.slice(0, 10), null, ...CL.slice(-5)] : CL;
+  const p5 = panel(bi("🏆 Bảng xếp hạng coin", "🏆 Coin leaderboard"), tb([bi("Coin", "Coin"), bi("Lệnh · thắng", "Trades · won"), bi("Ròng", "Net"), "Long", "Short"], CT.map((o) => (!o ? `<tr class="st-gap"><td colspan="5">⋯</td></tr>` : `<tr><td class="l"><a href="#/c/${enc(o.c)}"><b>${esc(o.c)}</b></a></td><td>${o.n} <small class="faint">· ${nf(o.w / o.n * 100, 0)}%</small></td><td class="${cls(o.s)}" title="${esc(bi(`TB ${j$(o.s / o.n)}/lệnh`, `avg ${j$(o.s / o.n)}/trade`))}"><b>${j$(o.s)}</b></td><td class="${o.nL ? cls(o.L) : "faint"}" title="${o.nL} ${bi("lệnh Long", "longs")}">${o.nL ? j$(o.L) : "—"}</td><td class="${o.nS ? cls(o.Sh) : "faint"}" title="${o.nS} ${bi("lệnh Short", "shorts")}">${o.nS ? j$(o.Sh) : "—"}</td></tr>`)))
+    + note(bi("Xếp theo lời/lỗ ròng sau phí. Nhiều coin thì hiện 10 mã tốt nhất và 5 mã kém nhất. Chạm tên coin để mở trang phân tích.", "Sorted by net P/L after fees. With many coins: top 10 and bottom 5. Tap a coin to open its page.")), `${CL.length} coin`);
+  // ---- ⑦ Mức rủi ro theo thời gian: giá trị lệnh đang mở (dựng lại từ giờ vào / giờ ra của từng lệnh + lệnh đang mở)
+  const LV = X.live || {}, now = Date.now(), OPEN = [];
+  if (env !== "paper") { for (const p of (LV.man?.env || LV.env) === env || env === "all" ? LV.man?.pos || [] : []) if (+p.amt && +p.ep > 0) OPEN.push({ a: jT(p.t1) || now - 3600e3, b: now, N: Math.abs(p.amt) * p.ep }); for (const e of (LV.env === env || env === "all") ? LV.ev || [] : []) if (e.pos?.q > 0) OPEN.push({ a: jT(e.t0) || now, b: now, N: e.pos.q * e.pos.ap }); }
+  if (env === "paper" || env === "all") for (const [, p] of Object.entries(X.pos || {})) if (p.q > 0) OPEN.push({ a: +p.t0 || now, b: now, N: p.q * p.e });
+  const IVs = [...F.map((r) => ({ a: jT(r.t1), b: jT(r.t2), N: r.N })), ...OPEN].filter((x) => isNum(x.a) && isNum(x.b) && x.b >= x.a);
+  const t0 = from ? Date.parse(from + "T00:00:00Z") - 7 * 3600e3 : Math.min(...IVs.map((x) => x.a)), stp = Math.max(15 * 60e3, Math.ceil((now - t0) / 320 / 60e3) * 60e3), SM = [];
+  for (let t = t0; t <= now; t += stp) { let n = 0, s2 = 0; for (const x of IVs) if (x.a <= t + stp && x.b >= t) { n++; s2 += x.N; } SM.push({ t, n, s: s2 }); }
+  const on = SM.filter((x) => x.n), mxN = Math.max(0, ...SM.map((x) => x.n)), mxS = Math.max(0, ...SM.map((x) => x.s));
+  const sl = (() => { const M2 = LV.man; if (!M2 || env === "paper") return ""; const P = (M2.pos || []).filter((p) => +p.amt), no = P.filter((p) => !(M2.ord?.[p.sym] || []).some((o) => /^STOP/.test(o.type || ""))); return P.length ? bi(` Lúc này: ${P.length} lệnh tay đang mở, <b class="${no.length ? "down" : "up"}">${no.length} chưa đặt cắt lỗ</b>.`, ` Right now: ${P.length} manual trades open, <b class="${no.length ? "down" : "up"}">${no.length} without a stop</b>.`) : ""; })();
+  const tl = (t) => { const d = new Date(t + 7 * 3600e3).toISOString(); return `${d.slice(8, 10)}/${d.slice(5, 7)} ${d.slice(11, 13)}h`; };
+  const p7 = panel(bi("🛡 Mức rủi ro theo thời gian", "🛡 Exposure over time"), stg([[bi("Thời gian có lệnh", "Time in market"), nf(on.length / Math.max(1, SM.length) * 100, 0) + "%", "", bi("trong khoảng đang xem", "of the range")], [bi("Cùng lúc nhiều nhất", "Max concurrent"), `${mxN} ${bi("lệnh", "trades")}`, mxN >= 5 ? "warn" : ""], [bi("Giá trị mở cao nhất", "Peak open value"), usd2(mxS), "", bi(`TB khi có lệnh ${usd2(on.length ? sum(on, (x) => x.s) / on.length : 0)}`, `avg when in market ${usd2(on.length ? sum(on, (x) => x.s) / on.length : 0)}`)]])
+    + lineSvg([{ name: bi("Giá trị lệnh đang mở", "Open position value"), color: stCol("bot"), width: 1.6, pts: SM.map((x) => ({ x: tl(x.t), y: +x.s.toFixed(2), tip: `${x.n} ${bi("lệnh", "trades")}` })) }], { h: 170, dec: 0, zero: true, fmt: (v) => "$" + nf(v, 0) })
+    + note(bi(`Dựng lại từ giờ vào – giờ ra của từng lệnh (cả bot lẫn lệnh tay), mỗi điểm ~${nf(stp / 3600e3, stp < 3600e3 ? 2 : 1)} giờ.${sl}`, `Rebuilt from each trade's entry / exit times (bot and manual), one point per ~${nf(stp / 3600e3, 1)} h.${sl}`)), "");
+  // ---- ⑧ Phí, funding & trượt giá theo tuần
+  const wk = (d) => { const t = new Date(d + "T00:00:00Z"), wd = (t.getUTCDay() + 6) % 7; return new Date(t.getTime() - wd * 864e5).toISOString().slice(0, 10); };
+  const WK = {}; for (const r of F) { const o = (WK[wk(r.d)] ||= { f: 0, fu: 0, sl: 0, g: 0 }); o.f += r.fee; o.fu += -r.fund; o.g += r.g; if (Array.isArray(r.dx) && isNum(+r.dx[3]) && r.dx[3] !== null) o.sl += Math.max(0, +r.dx[3]) / 1e4 * r.N; }
+  const WL = Object.keys(WK).sort(), tf = sum(F, (r) => r.fee), tfu = -sum(F, (r) => r.fund), tsl = sum(Object.values(WK), (o) => o.sl), tg = sum(F, (r) => Math.max(0, r.g)), tc = tf + tfu + tsl;
+  const p8 = panel(bi("💸 Phí, funding & trượt giá", "💸 Fees, funding & slippage"), stg([[bi("Phí sàn", "Fees"), j$(-tf), "down"], ["Funding", j$(-tfu), cls(-tfu), tfu > 0 ? bi("tổng đã trả", "net paid") : bi("tổng nhận về", "net received")], [bi("Trượt giá lúc đóng (ước)", "Exit slippage (est.)"), j$(-tsl), tsl ? "down" : "", bi("lệnh bot có nhật ký thoát", "bot trades with exit log")], [bi("Chi phí / lời trước phí", "Costs / gross profit"), tg > 0 ? nf(tc / tg * 100, 0) + "%" : "—", tg > 0 && tc / tg > 0.3 ? "warn" : "", bi("tính trên các lệnh lời", "on winning trades")]])
+    + lineSvg([{ name: bi("Chi phí mỗi tuần", "Costs per week"), bars: true, color: css("--down"), pts: WL.map((w) => { const o = WK[w], c = o.f + o.fu + o.sl; return { x: dd(w), y: +c.toFixed(3), tip: `${bi("phí", "fees")} ${usd2(o.f)} · funding ${usd2(o.fu)} · ${bi("trượt", "slip")} ${usd2(o.sl)}${o.g > 0 ? ` · ${nf(c / o.g * 100, 0)}% ${bi("lời trước phí", "of gross")}` : ""}` }; }) }], { h: 150, dec: 2, zero: true })
+    + note(bi("Cột = phí + funding đã trả + trượt giá ước tính, theo tuần (thứ Hai). Rê / chạm cột để xem từng phần.", "Bars = fees + funding paid + estimated slippage per week (Mondays). Hover a bar for the breakdown.")), "");
+  // ---- ⑩ Bot theo độ lớn cú sốc
+  const HK = F.filter((r) => stGrp(r) === "bot" && r.strat === "hook" && isNum(+r.R) && +r.R);
+  const RB = [[0, 300, "< 3%"], [300, 400, "3–4%"], [400, 600, "4–6%"], [600, 1000, "6–10%"], [1000, 1e9, "> 10%"]].map(([a, b, t]) => { const R = HK.filter((r) => Math.abs(+r.R) >= a && Math.abs(+r.R) < b); return { t, R, n: R.length, w: win(R), av: R.length ? sum(R, (r) => r.bps) / R.length : null, s: sum(R, (r) => r.pnl), nL: R.filter((r) => r.side > 0).length }; }).filter((x) => x.n);
+  const p10 = !HK.length ? "" : panel(bi("🪝 Bot Bắt râu sập theo độ lớn cú sốc", "🪝 Wick Catcher by shock size"), lineSvg([{ name: bi("TB / lệnh", "Avg / trade"), bars: true, pts: RB.map((x) => ({ x: x.t, y: +(x.av / 100).toFixed(3), tip: `${x.n} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${x.w}/${x.n} · ${j$(x.s)}`, tc: x.av >= 0 ? "up" : "down" })) }], { h: 140, dec: 2, zero: true, fmt: (v) => nf(v, 1) + "%" })
+    + tb([bi("Cú sốc", "Shock"), bi("Lệnh", "Trades"), "Long / Short", bi("Thắng", "Won"), bi("TB / lệnh", "Avg / trade"), bi("Tổng", "Total")], RB.map((x) => `<tr><td class="l">${x.t}</td><td>${x.n}</td><td>${x.nL} / ${x.n - x.nL}</td><td>${nf(x.w / x.n * 100, 0)}%</td><td class="${cls(x.av)}">${pctB(x.av)}</td><td class="${cls(x.s)}">${j$(x.s)}</td></tr>`))
+    + note(bi("Cú sốc = mức sập / vọt trong 1 phút lúc bot phát hiện. Số lệnh ít thì chưa đủ để kết luận – chỉ đổi ngưỡng bot khi anh quyết định.", "Shock = the 1-minute crash / spike when the bot fired. Small samples aren't conclusive – thresholds change only when you decide.")), `${HK.length} ${bi("lệnh", "trades")}`);
+  app().innerHTML = head + `<div class="st-wrap">${p6}${p3}${p4}${p5}${p7}${p8}${p10}</div>`; bind(); cbMount?.(app());
+  // đọc đỉnh lời / sụt sâu nhất của lệnh tay từ nến Binance (tối đa 60 lệnh mỗi lần mở, 3 lệnh cùng lúc), xong thì vẽ lại riêng khung Lời bỏ lỡ
+  const Q = F.filter((r) => !pkOf(r) && /:F$/.test(r.k) && r.hold >= 60 && r.hold <= 7 * 86400).slice(-60); if (!Q.length) return;
+  const me = location.hash; let done = 0, k = 0;
+  const one = async (r) => { const iv = r.hold <= 6 * 3600 ? "1m" : "15m", sym = String(r.k).split(":")[0] + "USDT";
+    try { const K = await fetchJ(`https://fapi.binance.com/fapi/v1/klines?symbol=${encodeURIComponent(sym)}&interval=${iv}&startTime=${jT(r.t1)}&endTime=${jT(r.t2)}&limit=1500`, 9000);
+      if (Array.isArray(K) && K.length) { const hi = Math.max(...K.map((x) => +x[2])), lo = Math.min(...K.map((x) => +x[3])), pk = (r.side > 0 ? hi / r.e - 1 : 1 - lo / r.e) * 1e4, mn = (r.side > 0 ? lo / r.e - 1 : 1 - hi / r.e) * 1e4; MFE_C[mKey(r)] = [Math.round(pk), Math.round(mn)]; } } catch (e) { /* bỏ qua */ } done++; };
+  const run = async () => { while (k < Q.length) { const r = Q[k++]; await one(r); } };
+  await Promise.all([run(), run(), run()]);
+  { const ks = Object.keys(MFE_C); if (ks.length > 600) ks.slice(0, ks.length - 600).forEach((x) => delete MFE_C[x]); lsSet("mfe", MFE_C); }
+  if (location.hash !== me) return; const box = $("#stMfe"); if (box) { box.innerHTML = panel(bi("🎯 Lời bỏ lỡ – đỉnh lời so với lúc đóng", "🎯 Missed profit – peak vs exit"), mfeHtml()); cbMount?.(box); }
+}
