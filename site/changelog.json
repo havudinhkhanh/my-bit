@@ -95,6 +95,12 @@
      "a": "bot",
      "t": "Xoay ngang: khung \"Đang chạy / Đang chờ máy chủ riêng\" của Bot Phản Xạ thu thành viên nhỏ sát mép trên bên phải (chấm trạng thái + công tắc · ⓘ · ⋯), không chiếm hàng riêng",
      "te": "Landscape: Reflex Bot's status bar shrinks to a small pill tucked at the top-right edge (status dot + switch · ⓘ · ⋯) instead of taking its own row"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang: giao diện thanh dọc bên trái giờ bật trên mọi điện thoại (kể cả máy màn hình lớn trước đây bị coi là máy tính bảng nên vẫn hiện thanh đầu trang + menu ngang); thanh bên trái né Dynamic Island / tai thỏ",
+     "te": "Landscape: the left-bars layout now kicks in on every phone (large phones were treated as tablets and kept the top bar + horizontal menu); the bars clear the Dynamic Island / notch"
     }
    ]
   },

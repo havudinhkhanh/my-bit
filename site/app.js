@@ -15,7 +15,7 @@ if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.
 const LANG = (() => { try { return JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { return "vi"; } })();
 const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);
 // 📱↔ điện thoại XOAY NGANG: thanh điều hướng thành thanh dọc bên trái (rail), bảng "Thêm" mở dạng ngăn kéo – xem khối "ĐIỆN THOẠI XOAY NGANG" trong app.css
-const PL = matchMedia("(max-width:979px) and (orientation:landscape) and (max-height:540px)");
+const PL = matchMedia("(orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse)");
 PL.addEventListener?.("change", () => { document.documentElement.classList.toggle("pl", PL.matches); setTimeout(() => { try { navThumb(); } catch (e) { /* bỏ qua */ } }, 60); });
 document.documentElement.classList.toggle("pl", PL.matches);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
 const LOC = { vi: "vi-VN", en: "en-US", de: "de-DE", fi: "fi-FI", it: "it-IT", zh: "zh-CN", fr: "fr-FR", ja: "ja-JP", ko: "ko-KR", es: "es-ES" }[LANG] || "en-US";
@@ -1302,7 +1302,7 @@ const MOB = matchMedia("(max-width:979px)");
 const SHEET_EASE = "transform .34s cubic-bezier(.32,.72,0,1)";
 // .menu (chuông / tài khoản) trên điện thoại → bảng trượt từ dưới + nền tối; đóng có hiệu ứng trượt xuống
 new MutationObserver((ms) => {
-  if (!MOB.matches) return;
+  if (!MOB.matches && !PL.matches) return;
   for (const m of ms) for (const el of m.addedNodes) {
     if (el.nodeType !== 1 || !el.classList?.contains("menu") || el.__sheet) continue;
     el.__sheet = 1; el.style.top = "";
@@ -7402,7 +7402,7 @@ async function bellOpen(o = {}) {
   if ($("#bellBox")) { bellClose(); return; }
   // bấm chuông trên đầu trang (điện thoại) → ngăn kéo bên phải, bám mép trên (mắt không phải nhảy xuống đáy màn hình);
   // vuốt lên từ đáy (o.from = "swipe") → vẫn là tấm trượt từ dưới lên như cũ
-  const SIDE = o.from !== "swipe" && matchMedia("(max-width:979px)").matches;
+  const SIDE = o.from !== "swipe" && (matchMedia("(max-width:979px)").matches || PL.matches);
   const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp" + (SIDE ? " side" : "");
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
@@ -7884,7 +7884,7 @@ function initAccountUI() {
   // menu tài khoản: mở từ ảnh đại diện trên đầu trang (điện thoại) hoặc từ hàng tài khoản cuối thanh bên (máy tính – mở NGƯỢC LÊN như các web app hiện đại)
   const meMenu = (anc) => {
     let m = $("#meMenu"); if (m) { m.remove(); return; }
-    m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu" + (anc.id !== "navMe" && matchMedia("(max-width:979px)").matches ? " side" : "");
+    m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu" + (anc.id !== "navMe" && (matchMedia("(max-width:979px)").matches || PL.matches) ? " side" : "");
     const R = anc.getBoundingClientRect();
     if (anc.id === "navMe") Object.assign(m.style, { top: "auto", bottom: Math.round(innerHeight - R.top + 6) + "px", left: Math.round(R.left) + "px", right: "auto", width: Math.max(240, Math.round(R.width)) + "px" });
     else m.style.top = Math.round(R.bottom + 6) + "px";

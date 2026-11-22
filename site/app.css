@@ -6919,7 +6919,10 @@ body:has(.occ) .msheet{z-index:1320!important}
 /* ↔ điện thoại: chuông (bấm trên đầu trang) & menu tài khoản = NGĂN KÉO BÊN PHẢI kiểu Bảng phụ – bám mép trên, trượt từ phải vào
    (vuốt lên từ đáy để mở thông báo vẫn là tấm trượt từ dưới lên) */
 @keyframes sideIn{from{transform:translateX(calc(100% + 12px))}to{transform:none}}
-@media (max-width:979px){
+@media (max-width:979px),(orientation:landscape) and (max-height:540px) and (pointer:coarse){
+  .ntp.side .ntp-bg{position:absolute;inset:0;background:rgba(0,0,0,.38)}
+  .menu.side+.sheet-bg,.sheet-bg{position:fixed;inset:0;z-index:74;background:rgba(0,0,0,.38)}
+  .menu.side{position:fixed!important;z-index:75}
   .ntp.side .ntp-in{top:calc(env(safe-area-inset-top,0px) + 10px)!important;bottom:10px!important;left:auto!important;right:10px!important;width:calc(min(380px,90vw) - 20px)!important;max-height:none!important;
     border-radius:12px!important;border-width:1px!important;padding-bottom:0!important;animation:sideIn .34s cubic-bezier(.32,.72,0,1)!important;transition:none}
   .ntp.side .ntp-in::before{display:none!important}
@@ -6965,7 +6968,7 @@ body:has(.occ) .msheet{z-index:1320!important}
 /* ================================================================ 📱↔ ĐIỆN THOẠI XOAY NGANG (cao ≤ 540px, ngang ≤ 979px)
    thanh dưới (ăn mất 1/5 chiều cao) → THANH DỌC nổi bên trái kiểu rail của iPad/Android: biểu tượng + nhãn nhỏ, viên kính trượt dọc;
    nội dung lùi sang phải đúng bề rộng thanh + vùng tai thỏ; thông báo / banner không đè lên thanh */
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   :root{--rl-w:66px;--rl-x:calc(env(safe-area-inset-left,0px) + 8px);--rl-r:calc(var(--rl-x) + var(--rl-w) + 8px)}
   .tabs:not(#_t):not(#_pl){left:var(--rl-x)!important;right:auto!important;top:calc(env(safe-area-inset-top,0px) + 8px)!important;bottom:calc(env(safe-area-inset-bottom,0px) + 8px)!important;
     width:var(--rl-w)!important;height:auto!important;display:flex!important;flex-direction:column!important;justify-content:space-evenly!important;align-items:stretch!important;
@@ -6982,7 +6985,7 @@ body:has(.occ) .msheet{z-index:1320!important}
 }
 /* 📱↔ xoay ngang – bớt cuộn: thanh trên tự ẩn khi cuộn xuống · bỏ dòng ‹ › đường dẫn (thanh dọc + vuốt mép đã thay) · tiêu đề gọn ·
    khung xếp 2 cột (.pl-flow, gắn bằng plMode) · thanh tab con dính trên cùng để đổi tab không phải cuộn lên */
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   .top{transition:transform .26s cubic-bezier(.32,.72,0,1)}
   html.pl-hide .top{transform:translateY(-110%)}
   #app>.crumb{display:none!important}
@@ -6996,7 +6999,7 @@ body:has(.occ) .msheet{z-index:1320!important}
   #app .subtabs,#app .dj-seg{position:sticky;top:calc(var(--stick,46px) + 4px);z-index:19;background:var(--bg);box-shadow:0 0 0 4px var(--bg)}
 }
 /* xoay ngang – ô số gọn hơn: nhóm ô (Xu hướng · Độ rộng · Định giá…) xếp 2 nhóm 1 hàng, ô nhỏ lại, số bớt to → trang Thị trường ngắn đi ~½ */
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   #app .stgs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;align-items:start}
   #app .stgs>*{min-width:0}
   #app dl.stats{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:8px!important}
@@ -7006,7 +7009,7 @@ body:has(.occ) .msheet{z-index:1320!important}
 }
 /* 📱↔ xoay ngang – 2–3 THANH DỌC NHỎ BÊN TRÁI (#plSide, dựng bằng plSide): thanh 1 biểu tượng nhóm · thanh 2 trang + tab · thanh 3 bộ lọc */
 #plSide{display:none}
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   :root{--pls-c1:46px;--pls-c2:46px;--pls-c3:136px;--pls-gap:6px;--pls-w2:calc(var(--pls-c1) + var(--pls-gap) + var(--pls-c2));--pls-w3:calc(var(--pls-w2) + var(--pls-gap) + var(--pls-c3));
     --pls-x:calc(env(safe-area-inset-left,0px) + 6px);--rl-r:calc(var(--pls-x) + var(--pls-w,var(--pls-w2)) + 10px)}
   html.pls .top,html.pls #tabs:not(#_a):not(#_b),html.pls .pnfab{display:none!important}
@@ -7045,13 +7048,13 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pls-t a i{font-style:normal;margin-left:auto;padding:0 5px;border-radius:7px;background:var(--fill);color:var(--ink-2);font-size:.625rem}
   html.pls #app>.crumb{display:none!important}
 }
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   /* tab con của trang đã nằm ở cột trái → bỏ hàng tab phía trên nội dung (giữ nút chọn Tiền thật / Sàn thử của Bot Phản Xạ, dời sang phải) */
   html.pls #app .dj-seg,html.pls #app .subtabs,html.pls #app .sc-tabs{display:none!important}
   html.pls #app .sc-tbar{justify-content:flex-end;margin:6px 0 10px!important;background:transparent!important;box-shadow:none!important;border:0!important;position:static!important}
   .pls-t a i{font-style:normal;margin-left:6px;padding:0 5px;border-radius:7px;background:var(--fill);color:var(--ink-2);font-size:.625rem}
 }
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   html.pls #app .ph{margin:0!important;min-height:0}
   .pls-dock{display:grid;gap:10px;align-content:start}
   .pls-dock:empty{display:none}
@@ -7065,7 +7068,7 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pls-slot .filters{display:grid!important;gap:6px!important;margin:0!important;font-size:.75rem}
   .pls-slot .dseg>a small,.pls-slot .dseg .ds{display:none!important}
 }
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   .pls-slot .sc-env .et{display:inline!important}
   .pls-slot :is(.bseg,.seg,.gseg,.sc-env){height:auto!important;min-height:0!important;max-height:none!important}
   .pls-slot .sc-env>button{display:flex!important;align-items:center;gap:6px;width:100%!important;max-width:none!important;flex:none!important}
@@ -7074,7 +7077,7 @@ body:has(.occ) .msheet{z-index:1320!important}
 }
 /* xoay ngang – Bot Phản Xạ: khung trạng thái ("Đang chạy / Đang chờ máy chủ riêng" + công tắc) thu thành VIÊN NHỎ nằm sát mép trên bên phải
    (chỉ chấm màu + chữ ngắn + công tắc · ⓘ · ⋯); các chip chi tiết xem trong ⓘ. Hàng tab trống (đã dời sang thanh trái) bỏ hẳn */
-@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   html.pls #app .sc-tbar{display:none!important}
   html.pls #app>.sc-hero{position:fixed!important;z-index:35;top:calc(env(safe-area-inset-top,0px) + 6px);right:max(10px,env(safe-area-inset-right,0px));left:auto;width:auto!important;max-width:min(420px,calc(100vw - var(--rl-r) - 20px));
     margin:0!important;padding:3px 4px 3px 10px!important;border-radius:999px!important;min-height:0!important;
