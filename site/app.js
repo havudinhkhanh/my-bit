@@ -255,9 +255,12 @@ addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweigh
   }, true);
   addEventListener("blur", () => { dn = null; });
 })();
-function pxTags(el, c, cs, lines, cur) {
+// thêm / bớt nhãn tên đường giá SAU khi biểu đồ đã dựng (vd. giá vào bình quân Long / Short còn giữ – tính xong mới có) → cùng cột nhãn bên phải trục giá
+function pxTagsExtra(el, key, lines) { const a = el?._ptArgs; if (!a || !el.isConnected) return; el._ptX = { ...(el._ptX || {}), [key]: lines || [] }; pxTags(el, a.c, a.cs, a.lines, a.cur, true); }
+function pxTags(el, c, cs, lines, cur, ext) {
   try { el._ptStop?.(); } catch (e) { /* bỏ qua */ }
-  const L = (lines || []).filter((l) => isNum(l.price) && +l.price > 0 && l.title); if (!L.length) { c._ptW = 0; return 0; }
+  if (!ext) { el._ptArgs = { c, cs, lines, cur }; el._ptX = {}; } else lines = [...(lines || []), ...Object.values(el._ptX || {}).flat()];      // dựng mới biểu đồ → bỏ nhãn thêm của biểu đồ cũ
+  const L = (lines || []).filter((l) => isNum(l.price) && +l.price > 0 && l.title); if (!L.length) { if (c._ptW) c.applyOptions({ rightPriceScale: { minimumWidth: 74 } }); c._ptW = 0; return 0; }
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const box = document.createElement("div"); box.className = "pxtags"; box.style.width = "200px"; el.appendChild(box);      // đo chữ trước khi chốt bề rộng cột
   const tip = document.createElement("div"); tip.className = "pxtip"; tip.hidden = true; el.appendChild(tip);
@@ -3471,8 +3474,14 @@ function posModel(K, OI, cur) {
 function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, ready: Promise, onSum(q) }
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const box = document.createElement("div"); box.className = "obl"; box.setAttribute("aria-hidden", "true"); el.appendChild(box);
-  let P = null, W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
+  let P = null, AL = [], AK = "", W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
   const api = o.fut ? "https://fapi.binance.com/fapi/v1" : "https://api.binance.com/api/v3";
+  // giá vào bình quân Long / Short còn giữ: đường đứt trên biểu đồ + ô giá trên trục + nhãn tên ở cột bên phải trục (cùng chỗ "vào", "chốt"…)
+  const avgLines = (Q) => { const k = Q ? `${Q.aL}|${Q.aS}` : ""; if (k === AK) return; AK = k;
+    AL.forEach((pl) => { try { ch.cs.removePriceLine(pl); } catch (e) { /* bỏ qua */ } }); AL = [];
+    const T = Q ? [[Q.aL, css("--up"), bi("TB Long", "Avg long")], [Q.aS, css("--down"), bi("TB Short", "Avg short")]].filter(([v]) => isNum(v) && v > 0) : [];
+    T.forEach(([v, c]) => { try { AL.push(ch.cs.createPriceLine({ price: v, color: c, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "" })); } catch (e) { /* bỏ qua */ } });
+    pxTagsExtra(el, "pos", T.map(([price, color, title]) => ({ price, color, title }))); };
   const pull = async () => {
     if (!alive) return; if (document.hidden) { tm = setTimeout(pull, 4000); return; }
     const cur = o.cur(); if (!(cur > 0)) { tm = setTimeout(pull, 2000); return; }
@@ -3488,7 +3497,7 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
           Z = C.z.filter((z) => (z.far ? o.lqf : o.lqn)); } else Z = [];
         if (o.pos) { if (!C.oi || Date.now() - C.oiAt > 300e3) { try { const J = await fetchJ(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${o.sym}&period=15m&limit=288`, 8000); C.oi = (J || []).map((x) => [+x.timestamp, +x.sumOpenInterestValue]).filter((x) => x[1] > 0).sort((a, b) => a[0] - b[0]); } catch (e) { C.oi = C.oi || []; } C.oiAt = Date.now(); }      // hợp đồng mở 3 ngày (5 phút đọc lại)
           if (!C.pm || C.pmAt !== C.at + "|" + C.oiAt || Math.abs(cur / C.pmc - 1) > 0.004) { C.pm = posModel(C.K, C.oi, cur); C.pmAt = C.at + "|" + C.oiAt; C.pmc = cur; }
-          P = C.pm; o.onPos?.(P, cur); } }
+          P = C.pm; o.onPos?.(P, cur); avgLines(P); } }
       ver++; kick();
     } catch (e) { /* mạng chặn / mã không có futures – thử lại sau */ }
     if (alive) tm = setTimeout(pull, 10000);
@@ -3516,15 +3525,12 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
       for (let i = 0; i < P.B; i++) { const v = P.L[i] + P.S[i]; if (!(v > P.mx * 0.015)) continue; const a = y(P.lo + (i + 1) * P.step), b = y(P.lo + i * P.step); if (!isNum(a) || !isNum(b) || b < 0 || a > H) continue;
         const t = Math.max(0, Math.min(a, b)), h = Math.max(1, Math.min(H, Math.max(a, b)) - t - 0.5), w = Math.max(2, (v / P.mx) * PWm), k = (P.L[i] / v) * 100;
         bars += `<i class="obp" style="top:${t.toFixed(1)}px;height:${h.toFixed(1)}px;width:${w.toFixed(0)}px;--a:${k.toFixed(0)}%"></i>`; }
-      const yA = isNum(P.aL) ? y(P.aL) : null, yB = isNum(P.aS) ? y(P.aS) : null, gap = isNum(yA) && isNum(yB) ? Math.abs(yA - yB) : 99, sh = gap < 19 ? (19 - gap) / 2 : 0;      // 2 nhãn TB sát nhau → tách chữ ra 2 phía (đường vẫn đúng giá)
-      const avg = (p, sd) => { const yy = isNum(p) ? y(p) : null; if (!isNum(yy) || yy < 0 || yy > H) return ""; const g = ((cur / p - 1) * 100) * sd, lose = g < 0, mv = sh ? ((sd > 0 ? yA : yB) <= (sd > 0 ? yB : yA) ? -sh : sh) : 0;
-        return `<i class="obavg ${sd > 0 ? "l" : "s"}" style="top:${yy.toFixed(1)}px"><b${mv ? ` style="top:${mv.toFixed(1)}px"` : ""}>${sd > 0 ? bi("TB Long", "Avg long") : bi("TB Short", "Avg short")} ${px(p)} · ${lose ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</b></i>`; };
       const zl = P.z.filter((q) => q.top).map((q) => { const yy = y(q.pc); if (!isNum(yy) || yy < 6 || yy > H - 6) return ""; return `<i class="obpz ${q.sd > 0 ? "l" : "s"}" style="top:${yy.toFixed(1)}px;left:${PWm + 6}px"><b>${q.sd > 0 ? "Long" : "Short"} ${bi("còn giữ", "holding")} ~${kUsd(q.amt)}${q.lose ? ` · <em>${bi("đang lỗ", "underwater")}</em>` : ""}</b></i>`; }).join("");
-      ph = bars + avg(P.aL, 1) + avg(P.aS, -1) + zl; }      // 2 nhãn TB sát nhau: lớp chống chồng bên dưới giữ nhãn trước (Long), nhãn sau ẩn chữ – đường vẫn vẽ
+      ph = bars + zl; }      // giá vào bình quân: đường + nhãn ở cột bên phải trục (avgLines)
     const html2 = ph + html; box.style.setProperty("--pw", (P ? PWm + 4 : 0) + "px");
     if (html2 === last) return; last = html2; box.style.width = Wd + "px"; box.style.height = H + "px"; box.innerHTML = html2;
-    // nhãn chồng nhau (biểu đồ hẹp): giữ nhãn quan trọng hơn – giá vào TB > cụm còn giữ > vùng thanh lý dày nhất > vùng thanh lý khác > tường lệnh – nhãn thua ẩn chữ (vùng / thanh vẫn vẽ)
-    const pri = (b) => { const c = b.parentElement.classList; return c.contains("obavg") ? 5 : c.contains("obpz") ? 4 : c.contains("obe") ? 3 : c.contains("obz") ? (/dày|heaviest/.test(b.textContent) ? 2 : 1) : 0; };
+    // nhãn chồng nhau (biểu đồ hẹp): giữ nhãn quan trọng hơn – cụm còn giữ > vùng thanh lý dày nhất > vùng thanh lý khác > tường lệnh – nhãn thua ẩn chữ (vùng / thanh vẫn vẽ)
+    const pri = (b) => { const c = b.parentElement.classList; return c.contains("obpz") ? 4 : c.contains("obe") ? 3 : c.contains("obz") ? (/dày|heaviest/.test(b.textContent) ? 2 : 1) : 0; };
     const kept = []; [...box.querySelectorAll("i>b")].map((b) => ({ b, p: pri(b), r: b.getBoundingClientRect() })).sort((a, b) => b.p - a.p).forEach((q) => {
       const hit = kept.some((k) => q.r.left < k.right + 3 && q.r.right > k.left - 3 && q.r.top < k.bottom + 1 && q.r.bottom > k.top - 1); if (hit) q.b.style.visibility = "hidden"; else kept.push(q.r); });
   };
@@ -3533,7 +3539,7 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
   const ro = "ResizeObserver" in window ? new ResizeObserver(kick) : null; ro?.observe(el);
   const iv = setInterval(() => { if (!document.hidden) kick(); }, 700);      // trục giá tự giãn / kéo trục → canh lại (dò nhanh 2 toạ độ, chỉ dựng khi đổi)
   el.addEventListener("wheel", kick, { passive: true });
-  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); o.onSum?.(null); o.onPos?.(null); }
+  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); o.onSum?.(null); o.onPos?.(null); if (el.isConnected) avgLines(null); }
   (async () => { try { await o.ready; } catch (e) { /* bỏ qua */ } await new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 800 }) : setTimeout(r, 300))); if (alive) pull(); })();      // biểu đồ mở xong & trình duyệt rảnh mới tải sổ lệnh / nến 3 ngày – không giành máy với hiệu ứng mở
   return stop;
 }
