@@ -8951,8 +8951,16 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
   }, { passive: true });
   addEventListener("hashchange", show);
   const wide = (p) => p.matches(".hero,.sc-hero,.pf-hero,.pl-full") || !!p.querySelector(".tv-lightweight-charts,.lanes") || [...p.querySelectorAll("table")].some((t) => (t.rows[0]?.cells.length || 0) > 5);
+  // lưới nào tràn ra ngoài khung nội dung (cột tối thiểu quá rộng cho bề ngang còn lại) → xếp 1 cột
+  const unspill = (app) => { const R = app.getBoundingClientRect().right + 2; app.querySelectorAll(".pl-1col").forEach((e) => e.classList.remove("pl-1col"));
+    for (const e of app.querySelectorAll(":scope>*,:scope>*>*,:scope>*>*>*,:scope>*>*>*>*,:scope>*>*>*>*>*")) {      // chỉ xét 5 tầng đầu (nhẹ)
+      if (e.getBoundingClientRect().right <= R || getComputedStyle(e).position === "fixed") continue;
+      let clipped = false, g = null; for (let n = e.parentElement; n && n !== app; n = n.parentElement) { const cs = getComputedStyle(n); if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) || cs.position === "fixed") { clipped = true; break; } if (!g && cs.display === "grid") g = n; }
+      if (!clipped && g && !g.classList.contains("pl-1col")) g.classList.add("pl-1col");
+    } };
   const mark = () => {
     const app = document.getElementById("app"); if (!app) return;
+    if (PL.matches) requestAnimationFrame(() => unspill(app));
     if (!PL.matches) { app.querySelectorAll(".pl-flow").forEach((e) => e.classList.remove("pl-flow")); if (app.classList.contains("pl-flow")) app.classList.remove("pl-flow"); return; }
     for (const el of [app, ...app.querySelectorAll(":scope > div, :scope > div > div, .sc-body, .st-wrap")]) {
       const kids = [...el.children].filter((c) => c.matches(".panel") && c.offsetParent !== null);

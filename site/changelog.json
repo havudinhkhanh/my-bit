@@ -113,6 +113,18 @@
      "a": "ui",
      "t": "Xoay ngang: nút ở các thanh trái to hơn (vừa ngón tay); thanh bộ lọc rộng hơn và kéo mép phải để nới / thu được (app nhớ độ rộng, chạm 2 lần để về mặc định)",
      "te": "Landscape: bigger buttons in the left bars; the filter bar is wider and its right edge can be dragged to resize (remembered; double-tap to reset)"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Nút / chip đang chọn (nền đậm như \"Tất cả 60\" trong thông báo) không còn vệt sáng mảnh trên và dưới viên",
+     "te": "Selected chips/buttons (dark fill, e.g. \"All 60\" in notifications) no longer show thin light lines above and below"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang: lịch lời/lỗ + chi tiết ngày (Kết quả theo ngày) và các lưới 2 cột khác không còn bị che mất cột bên phải – hết chỗ thì tự xếp 1 cột",
+     "te": "Landscape: the P/L calendar + day detail and other two-column grids no longer get cut off on the right – they stack to one column when space runs out"
     }
    ]
   },

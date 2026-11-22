@@ -7128,3 +7128,12 @@ body:has(.occ) .msheet{z-index:1320!important}
   html.pls-rzing body{transition:none}
   .pls-slot select,.pls-slot .jf select{width:100%!important}
 }
+
+/* nút/chip đang chọn (nền đậm): viền trong suốt + nền chỉ tô phần bên trong viền → lộ 1 vệt sáng mảnh trên/dưới viên (iPhone thấy rõ). Tô nền phủ cả phần viền */
+.chip.on,.nt-c.on,.bseg button.on,.bpre button.on,.bchips button.on,.seg button.on,.subtabs button.on,.lvw-seg button.on,.fd-sz button.on,.dj-seg .on{background-clip:border-box!important}
+/* xoay ngang: lưới 2 cột của trang (lịch + chi tiết ngày…) không còn chỗ thì xếp 1 cột, không tràn ra ngoài mép */
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  .dlay{grid-template-columns:minmax(0,1fr)!important}.dlay>#dCal{position:static!important}
+  .pl-1col{grid-template-columns:minmax(0,1fr)!important}
+  .pl-1col>*{grid-column:1/-1!important}
+}
