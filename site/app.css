@@ -7138,3 +7138,15 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pl-1col>*{grid-column:1/-1!important}
 }
 @media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){ html.pls #plSide{z-index:38} }      /* mèo na (z 40) luôn nổi trên các thanh trái nếu có lúc nhảy qua */
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  /* nút Binance thật / Sàn thử dời sang thanh trái: cùng cỡ & kiểu chữ với các nút lọc khác (trước giữ cỡ chữ to của hàng tab cũ) */
+  .pls-slot .sc-env>button,.pls-slot .sc-env>button *{font-family:inherit!important;font-size:.8125rem!important;font-weight:600!important;line-height:1.2!important;letter-spacing:0!important}
+  .pls-slot .sc-env>button .ei{font-size:.875rem!important}
+  .pls-slot .sc-env>button .sc-bdg,.pls-slot .sc-env>button i{font-size:.625rem!important;margin-left:auto}
+}
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  #plSide .pls-slot .sc-env>button :is(.et,.ei,span,b){font-size:.8125rem!important;font-weight:600!important;font-family:inherit!important;line-height:1.2!important}
+  #plSide .pls-slot .sc-env>button .ei{font-size:.875rem!important}
+  #plSide .pls-slot .sc-omdd{display:flex!important;align-items:center;gap:8px;justify-content:flex-start!important;text-align:left!important;font-size:.8125rem!important;white-space:nowrap}
+  #plSide .pls-slot .sc-omdd>*:not(svg){overflow:hidden;text-overflow:ellipsis;min-width:0}
+}

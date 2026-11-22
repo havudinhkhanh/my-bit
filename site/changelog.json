@@ -149,6 +149,12 @@
      "a": "bot",
      "t": "Xoay ngang – Bot Phản Xạ: nút chuyển Binance thật / Sàn thử quay lại thanh bộ lọc bên trái (bị mất sau lần gọn hàng tab)",
      "te": "Landscape – Reflex Bot: the Binance live / Paper switch is back in the left filter bar (it went missing after the tab row was tidied away)"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang: chữ nút Binance thật / Sàn thử và \"Mọi phương pháp\" ở thanh trái cùng cỡ với các nút lọc khác, không còn to / xuống 2 dòng",
+     "te": "Landscape: the Binance live / Paper and \"All methods\" buttons in the left bar now match the other filters' text size – no oversized or wrapped text"
     }
    ]
   },
