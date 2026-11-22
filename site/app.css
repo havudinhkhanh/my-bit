@@ -6910,3 +6910,15 @@ body:has(.occ) .msheet{z-index:1320!important}
   .nb-c:hover .nb-cl,.nb-cl:focus-visible{opacity:1;transform:none}
   .nb-cl:hover{background:var(--fill-h);color:var(--ink)}
 }
+
+/* 👉 tay nắm mép phải: báo có Bảng phụ / bảng "Thêm" kéo ra được – chỉ điện thoại & máy tính bảng */
+.edge-tab{display:none}
+@media (max-width:1179px) and (pointer:coarse){
+  .edge-tab{display:block;position:fixed;right:0;top:46%;z-index:1302;width:22px;height:84px;margin-top:-42px;padding:0;border:0;background:transparent;-webkit-tap-highlight-color:transparent;transition:opacity .2s,transform .25s cubic-bezier(.32,.72,0,1)}
+  .edge-tab i{position:absolute;right:3px;top:50%;width:4px;height:46px;margin-top:-23px;border-radius:4px;background:color-mix(in srgb,var(--ink) 26%,transparent);box-shadow:0 0 0 .5px color-mix(in srgb,var(--surface) 70%,transparent)}
+  .edge-tab.new i{right:0;width:15px;height:50px;margin-top:-25px;border-radius:10px 0 0 10px;background:var(--surface);box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent),-3px 2px 10px rgba(0,0,0,.16)}
+  .edge-tab.new i::before{content:"";position:absolute;left:5px;top:50%;width:6px;height:6px;margin-top:-3px;border-left:2px solid var(--ink-3);border-bottom:2px solid var(--ink-3);transform:rotate(45deg)}
+  .edge-tab:active{transform:translateX(-3px)}
+  body.pn-sheet .edge-tab,body.msheet-on .edge-tab,body.sheet-on .edge-tab,body.sc-set-on .edge-tab,body.kb-on .edge-tab,html.lb-lock .edge-tab,html.eg-drag .edge-tab{opacity:0;pointer-events:none;transform:translateX(100%)}
+}
+@media (max-width:1179px) and (pointer:coarse) and (prefers-reduced-motion:reduce){.edge-tab{transition:none}}

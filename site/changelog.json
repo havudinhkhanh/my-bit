@@ -32,6 +32,13 @@
      "a": "notif",
      "t": "Máy tính: banner thông báo bỏ vạch kéo, rê chuột lên hiện nút ✕ ở góc để đóng; phím Esc cũng đóng",
      "te": "Desktop: notification banner drops the drag handle; hover shows a ✕ in the corner, Esc also closes"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Mép phải có tay nắm ‹ cho dễ thấy (chạm là mở Bảng phụ); vuốt ra dễ bắt hơn: vùng mép rộng hơn, vuốt chéo vẫn tính, kéo 1/4 là mở",
+     "te": "Right edge now shows a ‹ handle (tap to open the side panel); the swipe is easier: wider edge zone, diagonal swipes count, a quarter pull opens it",
+     "hi": 1
     }
    ]
   },

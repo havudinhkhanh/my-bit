@@ -1536,7 +1536,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
 // ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
 // Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng, vuốt sang trái thêm lần nữa → bảng "Thêm".
 (function swipePanel() {
-  const EDGE = 24, mq = matchMedia("(max-width:1179px)");
+  const EDGE = 30, mq = matchMedia("(max-width:1179px)");      // vùng mép rộng 30px (trước 24) – dễ bắt trúng hơn
   const busy = () => document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
   const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
   let st = null;
@@ -1554,7 +1554,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
       e.stopPropagation();
       // ⏳ GIỮ ngón tay ở mép ~0,35 s (chưa kéo) → chuyển sang bảng "Thêm": ngăn kéo hé ra 28px + rung nhẹ, kéo tiếp hoặc thả tay là mở
       //    quét nhanh = Bảng phụ như cũ
-      const s0 = st; s0.hT = setTimeout(() => { if (st !== s0 || s0.lock) return; s0.m = "more"; s0.held = 1; s0.lock = true; s0.x0 = s0.cx ?? s0.x; s0.W = msSideStart(); if (!s0.W) { st = null; return; } s0.peek = 28; s0.off = s0.W - s0.peek; msSideMove(s0.off, s0.W); navigator.vibrate?.(10); }, 350);
+      const s0 = st; s0.hT = setTimeout(() => { if (st !== s0 || s0.lock) return; s0.m = "more"; s0.held = 1; s0.lock = true; s0.x0 = s0.cx ?? s0.x; s0.W = msSideStart(); if (!s0.W) { st = null; return; } s0.peek = 28; document.documentElement.classList.add("eg-drag"); s0.off = s0.W - s0.peek; msSideMove(s0.off, s0.W); navigator.vibrate?.(10); }, 350);
     }
   }, { passive: true, capture: true });
   // cú vuốt bắt đầu ở MÉP PHẢI thuộc về Bảng phụ / "Thêm": nuốt luôn sự kiện (pha bắt) → biểu đồ / bảng phía dưới không nhận
@@ -1568,9 +1568,9 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     if (st.m === "close" && !st.lock && dx < -10 && Math.abs(dx) > Math.abs(dy) * 1.3) st.m = "more2";
     if (st.m === "more" || st.m === "more2" || st.m === "mclose") {
       if (!st.lock) {
-        if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }      // cuộn dọc → bỏ
+        if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.2) { st = null; return; }      // cuộn dọc → bỏ (vuốt chéo vẫn tính)
         if (Math.abs(dx) < 8 || (st.m === "mclose" ? dx < 0 : dx > 0)) return;
-        st.lock = true; st.x0 = e.touches[0].clientX;
+        st.lock = true; st.x0 = e.touches[0].clientX; document.documentElement.classList.add("eg-drag");
         if (st.m === "mclose") st.W = ($("#msheet .msheet-in").offsetWidth || innerWidth * 0.88) + 12; else { st.W = msSideStart(); if (!st.W) { st = null; return; } }
       }
       if (e.cancelable) e.preventDefault();
@@ -1579,9 +1579,9 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
       msSideMove(st.off, st.W); return;
     }
     if (!st.lock) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { st = null; return; }
-      if (Math.abs(dx) < 8 || (st.m === "open" ? dx > 0 : dx < 0)) return;
-      st.lock = true; if (st.m === "open") { N.style.transform = "translateX(100%)"; S.style.opacity = "0"; document.body.classList.add("pn-sheet"); }
+      if (Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx) * 1.2) { st = null; return; }
+      if (Math.abs(dx) < 6 || (st.m === "open" ? dx > 0 : dx < 0)) return;
+      st.lock = true; document.documentElement.classList.add("eg-drag"); if (st.m === "open") { N.style.transform = "translateX(100%)"; S.style.opacity = "0"; document.body.classList.add("pn-sheet"); }
       st.W = N.offsetWidth || innerWidth * 0.88;
     }
     if (e.cancelable) e.preventDefault();
@@ -1589,24 +1589,32 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     N.style.transform = `translateX(${st.off}px)`; S.style.opacity = String(1 - st.off / st.W);
   }, { passive: false, capture: true });
   const end = (e) => {
-    if (!st) return; if (edgeOwn()) e?.stopPropagation?.(); const s = st; st = null; clearTimeout(s.hT);
+    if (!st) return; if (edgeOwn()) e?.stopPropagation?.(); const s = st; st = null; clearTimeout(s.hT); document.documentElement.classList.remove("eg-drag");
     if (s.held) { if (e?.cancelable) e.preventDefault(); swallowClick = Date.now() + 500; }      // thả tay sau khi giữ: không để trình duyệt "bấm" vào nền tối vừa hiện ra dưới ngón tay
     if (s.m === "more" || s.m === "more2" || s.m === "mclose") {
       if (!s.lock) return;
       const shown = 1 - s.off / s.W, v = (s.m === "mclose" ? s.off : s.W - s.off) / Math.max(1, Date.now() - s.t);
       // đã giữ để chọn "Thêm": thả tay tại chỗ / kéo ra 1 chút là mở hẳn; kéo ngược ra mép (đẩy ngăn kéo vào) thì huỷ
-      const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : s.held ? s.off <= s.W - s.peek + 6 : shown > 0.33 || v > 0.5;
+      const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : s.held ? s.off <= s.W - s.peek + 6 : shown > 0.25 || v > 0.35;
       msSideEnd(open);
       if (open && s.m !== "mclose") { navigator.vibrate?.(6); if (s.m === "more2") setTimeout(() => { const b = document.body; b.classList.remove("pn-sheet"); $("#pnav").style.transform = ""; $("#pnShade").style.opacity = ""; }, 280); }
       return;
     }
     if (!s.lock) return;
     const shown = 1 - s.off / s.W, v = (s.m === "open" ? s.W - s.off : s.off) / Math.max(1, Date.now() - s.t);
-    const open = s.m === "open" ? shown > 0.33 || v > 0.5 : !(s.off / s.W > 0.33 || v > 0.5);
-    if (open && s.m === "open") navigator.vibrate?.(6);
+    const open = s.m === "open" ? shown > 0.25 || v > 0.35 : !(s.off / s.W > 0.33 || v > 0.5);      // mở: kéo ra 1/4 hoặc vuốt nhẹ là đủ
+    if (open && s.m === "open") { navigator.vibrate?.(6); window.__egCount?.(); }
     pnSheet(open);
   };
   addEventListener("touchend", end, { capture: true, passive: false }); addEventListener("touchcancel", end, { capture: true });
+  // 👉 TAY NẮM Ở MÉP PHẢI (điện thoại / máy tính bảng): vạch mờ giữa mép phải báo "ở đây kéo ra được"; chạm = mở Bảng phụ (trang không có Bảng phụ → bảng "Thêm")
+  //    10 lần đầu: tay nắm dạng thẻ nhỏ có mũi tên ‹ cho dễ thấy; quen rồi chỉ còn vạch mảnh
+  const tab = document.createElement("button"); tab.type = "button"; tab.className = "edge-tab"; tab.setAttribute("aria-label", bi("Mở Bảng phụ (hoặc vuốt từ mép phải)", "Open side panel (or swipe from the right edge)")); tab.innerHTML = "<i></i>";
+  const fresh = () => tab.classList.toggle("new", (+lsGet("pn_edge_n", 0) || 0) < 10); fresh();
+  tab.addEventListener("click", () => { if (Date.now() < swallowClick) return; const b = document.body; lsSet("pn_edge_n", (+lsGet("pn_edge_n", 0) || 0) + 1); fresh();
+    if (b.classList.contains("pn-has")) pnSheet(true); else { const W = msSideStart(); if (W) requestAnimationFrame(() => msSideEnd(true)); } });
+  document.body.appendChild(tab);
+  window.__egCount = () => { lsSet("pn_edge_n", (+lsGet("pn_edge_n", 0) || 0) + 1); fresh(); };
 })();
 function pageIn() {
   if (window.__vt) return;
