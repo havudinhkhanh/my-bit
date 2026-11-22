@@ -26,6 +26,12 @@
      "a": "notif",
      "t": "iPhone: tin đã có thông báo của iPhone thì app không hiện thêm banner riêng cho cùng việc đó",
      "te": "iPhone: when iOS already shows a push notification, the app no longer shows its own banner for the same event"
+    },
+    {
+     "c": "imp",
+     "a": "notif",
+     "t": "Máy tính: banner thông báo bỏ vạch kéo, rê chuột lên hiện nút ✕ ở góc để đóng; phím Esc cũng đóng",
+     "te": "Desktop: notification banner drops the drag handle; hover shows a ✕ in the corner, Esc also closes"
     }
    ]
   },

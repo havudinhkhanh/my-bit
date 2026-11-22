@@ -7444,7 +7444,7 @@ function ntBanner(list) {
   box.innerHTML = `<div class="nb-c"><a class="nb-h" href="${esc(go)}"><span class="nb-ic" aria-hidden="true">${ic}</span><span class="nb-b"><span class="nb-t1"><b>${esc(viDec(title))}</b>${pl ? `<span class="nt-pl ${pl.v >= 0 ? "up" : "down"}"><b>${pl.v >= 0 ? "+" : "−"}$${nf(Math.abs(pl.v), 2)}</b>${pl.p != null ? `<small>${pl.p >= 0 ? "+" : "−"}${nf(Math.abs(pl.p), 2)}%</small>` : ""}</span>` : ""}</span>${n.body ? `<span class="nb-tx">${esc(viDec(n.body))}</span>` : ""}</span><time>${bi("bây giờ", "now")}</time></a>
     <button type="button" class="nb-ex" aria-label="${bi("Mở rộng", "Expand")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <div class="nb-x"><div class="nb-xi"><div class="nt-acts nb-acts">${A.join("")}</div>${more.length ? `<div class="nb-more">${more.map((x) => `<a href="${esc(ntTradeUrl(x) || x.url || "#/notifications")}" class="nb-mi"><b>${esc(viDec(String(x.title).slice(0, 90)))}</b><small>${esc(viDec(String(x.body || "").slice(0, 110)))}</small></a>`).join("")}<a class="nb-all" href="#/notifications">${bi("Tất cả thông báo", "All notifications")} →</a></div>` : ""}</div></div>
-    <i class="nb-g" aria-hidden="true"></i></div>${more.length ? `<div class="nb-stk" aria-hidden="true"><span>+${list.length - 1}</span></div>` : ""}`;
+    <i class="nb-g" aria-hidden="true"></i><button type="button" class="nb-cl" aria-label="${bi("Đóng", "Close")}" title="${bi("Đóng (Esc)", "Close (Esc)")}">✕</button></div>${more.length ? `<div class="nb-stk" aria-hidden="true"><span>+${list.length - 1}</span></div>` : ""}`;
   document.body.appendChild(box);
   const card = box.querySelector(".nb-c"), mob = matchMedia("(max-width:979px)").matches;
   let gone = false, tm = 0, open = false;
@@ -7469,6 +7469,10 @@ function ntBanner(list) {
   if (jellyOK()) card.animate(springKF(-90, 0, (v) => ({ transform: `translateY(${v}px)`, opacity: Math.min(1, 1 + v / 90) })), { duration: 620, easing: "linear" });
   box.querySelector(".nb-ex").onclick = (e) => { e.preventDefault(); setOpen(!open); };
   box.querySelector("[data-nbrd]").onclick = () => { read(); out(); };
+  // 🖱 máy tính: rê chuột lên banner → hiện nút ✕ ở góc (như thông báo macOS); phím Esc cũng đóng (vạch kéo chỉ dành cho điện thoại)
+  box.querySelector(".nb-cl").onclick = (e) => { e.preventDefault(); e.stopPropagation(); out(); };
+  const esc0 = (e) => { if (e.key !== "Escape" || gone || document.querySelector(".msheet:not([hidden]), .menu.open, .occ, dialog[open]")) return; out(); };
+  addEventListener("keydown", esc0); setTimeout(() => removeEventListener("keydown", esc0), 60e3);
   box.querySelectorAll(".nb-h, .nb-x a").forEach((x) => x.addEventListener("click", () => { read(); out(); bellClose(); }));
   box.addEventListener("mouseenter", () => clearTimeout(tm)); box.addEventListener("mouseleave", () => arm(3500));
   // vuốt: xuống = mở rộng (thẻ giãn theo ngón tay), lên = ẩn
