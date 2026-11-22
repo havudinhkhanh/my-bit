@@ -294,6 +294,13 @@
      "te": "Open Long / Short zones no longer cover candles",
      "d": "Thanh hồ sơ mảnh và nhạt hơn, nằm DƯỚI nến; cụm đông nhất mỗi phe ghi ở dòng chú thích thay vì giữa biểu đồ.",
      "de": "The profile bars are slimmer, lighter and sit BEHIND the candles; each side's densest cluster is listed in the legend instead of on the chart."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Xoay ngang trên iPhone: kéo biểu đồ được lại; chú thích hiện lại (1 hàng, vuốt ngang xem hết)",
+     "te": "Landscape on iPhone: chart dragging works again; legend is back (one row, swipe to see all)",
+     "d": "Safari dùng lại cùng 1 điểm chạm cho cả lượt kéo nên toạ độ bị \"đứng yên\" – giờ toạ độ đổi theo từng lúc."
     }
    ]
   },

@@ -35,8 +35,12 @@ const ROTB = { el: null };
     const B = ROTB.el; if (!B || !B.isConnected || !B.contains(this)) return C0.call(this);
     const W = innerWidth; return Array.from(C0.call(this), (r) => new DOMRect(r.top, W - r.right, r.height, r.width));
   };
-  const fix = (o) => { if (!o || o.__rf) return; const X = o.clientX, Y = o.clientY, W = innerWidth; if (!isFinite(X) || !isFinite(Y)) return;
-    try { Object.defineProperties(o, { clientX: { value: Y, configurable: true }, clientY: { value: W - X, configurable: true }, pageX: { value: Y + scrollX, configurable: true }, pageY: { value: W - X + scrollY, configurable: true }, x: { value: Y, configurable: true }, y: { value: W - X, configurable: true }, __rf: { value: 1 } }); } catch (e) { /* bỏ qua */ } };
+  // toạ độ đổi bằng HÀM ĐỌC (getter) gọi lại hàm gốc mỗi lần – Safari dùng lại CÙNG 1 đối tượng Touch cho cả lượt chạm (ghi giá trị cố định → ngón tay "đứng yên", không kéo được biểu đồ);
+  //   chỉ đổi khi đang xoay (tắt xoay → tự trả về toạ độ thật)
+  const G = (o, k) => { for (let p = Object.getPrototypeOf(o); p; p = Object.getPrototypeOf(p)) { const d = Object.getOwnPropertyDescriptor(p, k); if (d && d.get) return d.get; } return null; };
+  const fix = (o) => { if (!o || o.__rf) return; const gx = G(o, "clientX"), gy = G(o, "clientY"); if (!gx || !gy) return;
+    const X = (t) => (ROTB.el ? gy.call(t) : gx.call(t)), Y = (t) => (ROTB.el ? innerWidth - gx.call(t) : gy.call(t));
+    try { Object.defineProperties(o, { clientX: { get() { return X(this); }, configurable: true }, clientY: { get() { return Y(this); }, configurable: true }, pageX: { get() { return X(this) + scrollX; }, configurable: true }, pageY: { get() { return Y(this) + scrollY; }, configurable: true }, x: { get() { return X(this); }, configurable: true }, y: { get() { return Y(this); }, configurable: true }, __rf: { value: 1 } }); } catch (e) { /* bỏ qua */ } };
   const on = (e) => { const B = ROTB.el; if (!B || !(e.target instanceof Node) || !B.contains(e.target)) return; fix(e); for (const L of [e.touches, e.changedTouches, e.targetTouches]) if (L) for (let i = 0; i < L.length; i++) fix(L[i]); };
   ["pointerdown", "pointermove", "pointerup", "pointercancel", "pointerover", "pointerout", "pointerenter", "pointerleave", "mousedown", "mousemove", "mouseup", "mouseover", "mouseout", "mouseenter", "mouseleave", "click", "dblclick", "contextmenu", "wheel", "touchstart", "touchmove", "touchend", "touchcancel"]
     .forEach((t) => addEventListener(t, on, { capture: true, passive: true }));

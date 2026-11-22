@@ -7212,8 +7212,8 @@ body.cmdk-on:has(.cmdk.side:not([hidden]))>*:not(#_a):not(#_b):not(#_c){visibili
 .cv-chart.rot90 .ph,.cv-chart.rot90 .cops,.cv-chart.rot90 .cv-sz,.cv-chart.rot90 #panes,.cv-chart.rot90 .cbt-o{display:none!important}
 .cv-chart.rot90 .cbar{flex-wrap:nowrap;margin-bottom:4px}.cv-chart.rot90 .cbar #tfs{flex:1 1 auto;min-width:0;overflow-x:auto}
 .cv-chart.rot90 .cbar #cpos{display:none}
-/* xoay ngang: dồn chỗ cho biểu đồ – bỏ dòng chú thích (giá trị đã có ở cột nhãn bên phải trục), dòng OHLC 1 hàng */
-.occ-p.rot90 .occ-lg{display:none!important}
+/* xoay ngang: dồn chỗ cho biểu đồ – chú thích gọn 1 hàng (vuốt ngang xem hết), dòng OHLC 1 hàng */
+.occ-p.rot90 .occ-lg{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;white-space:nowrap;margin-bottom:3px!important;gap:4px 12px!important;font-size:.72rem}.occ-p.rot90 .occ-lg::-webkit-scrollbar{display:none}.occ-p.rot90 .occ-lg>*{flex:none}.occ-p.rot90 .occ-lg .occ-pos{white-space:nowrap}
 .occ-p.rot90 .occ-ohlc{white-space:nowrap;overflow:hidden;flex-wrap:nowrap!important;margin-top:2px}
 .occ-p.rot90 .occ-h{margin-bottom:2px}.occ-p.rot90 .occ-t>b:first-child{font-size:1.05rem}
 
