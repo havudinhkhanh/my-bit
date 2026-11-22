@@ -183,8 +183,8 @@
     {
      "c": "imp",
      "a": "mascot",
-     "t": "Mèo na đứng thấp xuống vài px: cách thanh điều hướng 4px (dọc), cách đáy 6px (ngang)",
-     "te": "Na sits a few px lower: 4px above the nav bar (portrait), 6px above the bottom (landscape)"
+     "t": "Mèo na đứng thấp xuống: chân vừa chạm mép trên thanh điều hướng (dọc), cách đáy 3px (ngang) – không còn lơ lửng",
+     "te": "Na sits lower: paws just on the nav bar's top edge (portrait), 3px above the bottom (landscape) – no longer floating"
     }
    ]
   },
