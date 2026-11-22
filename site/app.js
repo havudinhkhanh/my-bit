@@ -104,6 +104,7 @@ function toast(msg, o = {}) {
   const t = document.createElement("div"), ms = o.ms || (o.title ? 6500 : tp === "err" ? 6000 : tp === "warn" ? 4500 : 3200);
   t.className = `toast t-${tp}${o.title ? " ban" : ""}${o.href ? " lnk" : ""}`; t.setAttribute("role", tp === "err" ? "alert" : "status");
   t.innerHTML = `<span class="ti"></span><span class="tb"><b></b>${o.title ? "<small></small>" : ""}</span>${o.title ? `<time>${EN ? "now" : "bây giờ"}</time>` : ""}<button type="button" class="tx" aria-label="${EN ? "Close" : "Đóng"}">✕</button><i class="tp" style="animation-duration:${ms}ms"></i>`;
+  if (o.title && !o.icon) { const em = String(o.title).match(/^((?:\p{Extended_Pictographic}|\p{Regional_Indicator})(?:\uFE0F|\u200D|\p{Extended_Pictographic}|\p{Regional_Indicator})*)\s*/u); if (em) o = { ...o, icon: em[1], title: o.title.slice(em[0].length) }; }      // "✅ Vào ngay" → ô biểu tượng ✅ + chữ "Vào ngay" (như banner thông báo)
   t.querySelector(".ti").textContent = o.icon || ICO[tp];
   t.querySelector("b").textContent = o.title ? (o.icon && o.title.startsWith(o.icon) ? o.title.slice(o.icon.length).trim() : o.title) : body; if (o.title) t.querySelector("small").textContent = body;
   box.appendChild(t);
@@ -7395,6 +7396,19 @@ async function viewNotifications() {
 let __bellN = 0;
 let __bellTop = null;
 let __bellBusy = null, __bellSeen = new Set();
+// 📱 iPhone (app trên màn hình chính, đã bật thông báo đẩy): Safari BẮT BUỘC hiện thông báo hệ thống cho mỗi lần đẩy, kể cả khi app đang mở
+//    → những tin máy chủ sẽ đẩy (đủ mức quan trọng anh chọn, loại không tắt) đã có thông báo của iPhone: app KHÔNG hiện thêm banner riêng
+//    (trước: lượt hỏi chuông 60 giây đôi khi tới trước tin đẩy → 2 thông báo khác kiểu cho cùng 1 việc). Tin nhỏ không đẩy → vẫn hiện banner trong app.
+const IOS_WK = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|Edg|OPR|Android/.test(navigator.userAgent);
+let __sysP = null, __sysAt = 0;
+async function ntSysFilter(L) {
+  if (!IOS_WK || !("Notification" in window) || Notification.permission !== "granted") return L;
+  try {
+    if (!__sysP || Date.now() - __sysAt > 5 * 60e3) { __sysAt = Date.now(); const [np, ps] = await Promise.all([api("notify").catch(() => ({})), pushState().catch(() => ({}))]); __sysP = { on: !!ps?.on, lvl: { all: 0, normal: 1, important: 2, off: 99 }[np?.push || "normal"] ?? 1, off: new Set(Object.entries(np?.kinds || {}).filter(([, v]) => v === false).map(([k]) => k)) }; }
+    if (!__sysP.on) return L;
+    return L.filter((x) => !((x.sev || 0) >= __sysP.lvl && !__sysP.off.has(x.kind) && !__sysP.off.has(String(x.kind || "").replace(/w$/, ""))));
+  } catch (e) { return L; }
+}
 async function bellCount(o = {}) {      // o.quiet: thông báo hệ thống đã hiện (đẩy trên iPhone) → chỉ cập nhật chuông, không hiện thêm banner trong app
   if (!multiUser() || document.hidden) return;
   if (__bellBusy) { if (o.quiet) __bellBusy.quiet = true; return __bellBusy.p; }      // nhiều nguồn gọi cùng lúc (đẩy + đổi tab + 60 giây) → 1 lượt, không 2 banner
@@ -7407,7 +7421,7 @@ async function bellCount(o = {}) {      // o.quiet: thông báo hệ thống đ�
     if (__bellN > n0 || __bellTop == null) {
       const L = (await api("notifications?limit=6").catch(() => ({ items: [] }))).items || [];
       const top = Math.max(0, ...L.map((x) => x.id));
-      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at && !__bellSeen.has(x.id)); nw.forEach((x) => __bellSeen.add(x.id)); if (nw.length && !run.quiet) ntBanner(nw); if (nw.length) try { window.MUN?.onBell?.(nw); } catch (e) { /* bỏ qua */ } }
+      if (__bellTop != null) { const nw = L.filter((x) => x.id > __bellTop && !x.read_at && !__bellSeen.has(x.id)); nw.forEach((x) => __bellSeen.add(x.id)); const nb = nw.length && !run.quiet ? await ntSysFilter(nw) : []; if (nb.length) ntBanner(nb); if (nw.length) try { window.MUN?.onBell?.(nw); } catch (e) { /* bỏ qua */ } }
       __bellTop = Math.max(__bellTop || 0, top);
     }
   } catch (e) { /* bỏ qua */ } finally { __bellBusy = null; } })();
@@ -7434,7 +7448,10 @@ function ntBanner(list) {
   document.body.appendChild(box);
   const card = box.querySelector(".nb-c"), mob = matchMedia("(max-width:979px)").matches;
   let gone = false, tm = 0, open = false;
-  const out = (up = true) => { if (gone) return; gone = true; clearTimeout(tm); box.classList.remove("gl"); box.classList.add(up ? "out" : "out2"); setTimeout(() => box.remove(), 340); };
+  // thẻ nhắn nhanh (toast) xếp NGAY DƯỚI banner, không đè lên nhau
+  const nbH = () => document.documentElement.style.setProperty("--nbb", gone ? "0px" : (box.offsetTop + card.offsetTop + card.offsetHeight + 8) + "px"); nbH();      // mép dưới banner (không tính hiệu ứng bay)
+  const RO = window.ResizeObserver ? new ResizeObserver(nbH) : null; RO?.observe(card);
+  const out = (up = true) => { if (gone) return; gone = true; clearTimeout(tm); RO?.disconnect(); if (!document.querySelector(".nb:not(.out):not(.out2)") || document.querySelector(".nb:not(.out):not(.out2)") === box) document.documentElement.style.setProperty("--nbb", "0px"); box.classList.remove("gl"); box.classList.add(up ? "out" : "out2"); setTimeout(() => box.remove(), 340); };
   // 🫧 kính mờ kiểu iOS CHỈ khi thẻ đứng yên (sau khi bay vào xong) – bay vào / bay ra / đang kéo thì tắt mờ → mượt
   setTimeout(() => { if (!gone) box.classList.add("gl"); }, 640);
   box.__out = out;
@@ -7589,7 +7606,7 @@ async function viewAccount() {
   if ($("#puTest")) $("#puTest").onclick = async () => { const reg = await navigator.serviceWorker.getRegistration("/"); reg?.showNotification("MyBit", { body: "Thông báo đẩy hoạt động trên thiết bị này.", icon: "/icon.svg" }); };
   $("#nSave").onclick = async () => {
     const kinds = Object.fromEntries($$("[data-nk]").map((x) => [x.dataset.nk, x.checked]));
-    try { await api("notify", "PUT", { push: $("#nPush").value, email: $("#nEmail").value, email_to: $("#nTo").value.trim(), kinds, updated: new Date().toISOString() }); toast("Đã lưu cài đặt thông báo"); } catch (e) { toast(e.message); }
+    __sysP = null; try { await api("notify", "PUT", { push: $("#nPush").value, email: $("#nEmail").value, email_to: $("#nTo").value.trim(), kinds, updated: new Date().toISOString() }); toast("Đã lưu cài đặt thông báo"); } catch (e) { toast(e.message); }
   };
 }
 // ---- thiết bị đang đăng nhập (mỗi lần đăng nhập = 1 phiên): xem, đăng xuất từng thiết bị, hoặc mọi thiết bị khác ngoài thiết bị này

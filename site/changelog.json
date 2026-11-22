@@ -2,6 +2,34 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.22",
+   "d": "2026-11-22",
+   "t": "Thông báo trong app gọn về một kiểu",
+   "te": "In-app notices unified",
+   "s": "Thẻ nhắn nhanh và banner thông báo cùng một kiểu, không còn đè lên nhau hay hiện trùng.",
+   "se": "Quick notices and notification banners share one look, no overlap or duplicates.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "notif",
+     "t": "Điện thoại: thẻ nhắn nhanh (đã lưu, lỗi, kết quả bấm lệnh…) giờ cùng một kiểu với banner thông báo – ô biểu tượng tô màu, không viền, vuốt lên để ẩn",
+     "te": "Phone: quick notices now share the notification banner's look – tinted icon tile, no border, swipe up to dismiss"
+    },
+    {
+     "c": "fix",
+     "a": "notif",
+     "t": "Thẻ nhắn nhanh xếp ngay dưới banner thông báo, không còn đè lên nhau; tiêu đề không còn 2 dấu ✓ ✅",
+     "te": "Quick notices stack under the notification banner instead of overlapping; no more double check marks"
+    },
+    {
+     "c": "fix",
+     "a": "notif",
+     "t": "iPhone: tin đã có thông báo của iPhone thì app không hiện thêm banner riêng cho cùng việc đó",
+     "te": "iPhone: when iOS already shows a push notification, the app no longer shows its own banner for the same event"
+    }
+   ]
+  },
+  {
    "v": "2026.11.21",
    "d": "2026-11-21",
    "t": "Lệnh anh bấm vào tính đúng là lệnh tay",
