@@ -7009,7 +7009,7 @@ body:has(.occ) .msheet{z-index:1320!important}
 @media (max-width:979px) and (orientation:landscape) and (max-height:540px){
   :root{--pls-c1:46px;--pls-c2:46px;--pls-c3:136px;--pls-gap:6px;--pls-w2:calc(var(--pls-c1) + var(--pls-gap) + var(--pls-c2));--pls-w3:calc(var(--pls-w2) + var(--pls-gap) + var(--pls-c3));
     --pls-x:calc(env(safe-area-inset-left,0px) + 6px);--rl-r:calc(var(--pls-x) + var(--pls-w,var(--pls-w2)) + 10px)}
-  html.pls .top,html.pls #tabs,html.pls .pnfab{display:none!important}
+  html.pls .top,html.pls #tabs:not(#_a):not(#_b),html.pls .pnfab{display:none!important}
   html.pls body:not(#_pl){padding-top:calc(env(safe-area-inset-top,0px) + 6px)!important;padding-left:var(--rl-r)!important}
   #plSide{display:flex;gap:var(--pls-gap);position:fixed;z-index:40;left:var(--pls-x);top:calc(env(safe-area-inset-top,0px) + 6px);bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
@@ -7071,4 +7071,22 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pls-slot .sc-env>button{display:flex!important;align-items:center;gap:6px;width:100%!important;max-width:none!important;flex:none!important}
   .pls-slot .sc-env>button .ei{flex:none}
   .pls-slot .gseg::before,.pls-slot .gseg::after,.pls-slot .gseg>.gthumb{display:none!important}
+}
+/* xoay ngang – Bot Phản Xạ: khung trạng thái ("Đang chạy / Đang chờ máy chủ riêng" + công tắc) thu thành VIÊN NHỎ nằm sát mép trên bên phải
+   (chỉ chấm màu + chữ ngắn + công tắc · ⓘ · ⋯); các chip chi tiết xem trong ⓘ. Hàng tab trống (đã dời sang thanh trái) bỏ hẳn */
+@media (max-width:979px) and (orientation:landscape) and (max-height:540px){
+  html.pls #app .sc-tbar{display:none!important}
+  html.pls #app>.sc-hero{position:fixed!important;z-index:35;top:calc(env(safe-area-inset-top,0px) + 6px);right:max(10px,env(safe-area-inset-right,0px));left:auto;width:auto!important;max-width:min(420px,calc(100vw - var(--rl-r) - 20px));
+    margin:0!important;padding:3px 4px 3px 10px!important;border-radius:999px!important;min-height:0!important;
+    background:color-mix(in srgb,var(--surface) 92%,transparent)!important;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 12%,transparent),0 6px 18px -8px rgba(15,23,42,.35)!important}
+  html.pls #app>.sc-hero .hz2-r{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+  html.pls #app>.sc-hero .hz2-l{display:flex;align-items:center;gap:6px;min-width:0;flex-wrap:nowrap}
+  html.pls #app>.sc-hero .hz2-c{display:none!important}
+  html.pls #app>.sc-hero .hz2-s{font-size:.71875rem;white-space:nowrap}
+  html.pls #app>.sc-hero .hz2-s b{font-weight:600}
+  html.pls #app>.sc-hero .hz2-a{gap:2px}
+  html.pls #app>.sc-hero .ios-sw.sm{transform:scale(.82);transform-origin:center}
+  html.pls #app>.sc-hero .hz-pause{font-size:.6875rem;margin:4px 0 2px}
+  html.pls #app>.sc-hero details[open]:not(.sc-more){max-height:60vh;overflow:auto}
+  html.pls #app .sc-body{padding-top:2px}
 }

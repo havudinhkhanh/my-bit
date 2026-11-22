@@ -89,6 +89,12 @@
      "t": "Điện thoại xoay ngang: giao diện mới – bỏ thanh đầu trang & thanh điều hướng dưới, thay bằng 2–3 thanh dọc nhỏ bên trái (biểu tượng nhóm · biểu tượng trang · tab & bộ lọc xếp dọc); nội dung bên phải được trọn chiều cao, khung xếp 2 cột khi vừa để bớt cuộn",
      "te": "Phone in landscape: new layout – the top bar and bottom nav give way to 2–3 slim vertical bars on the left (group icons · page icons · tabs & filters stacked); content gets the full height and panels sit two-up where they fit to cut scrolling",
      "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Xoay ngang: khung \"Đang chạy / Đang chờ máy chủ riêng\" của Bot Phản Xạ thu thành viên nhỏ sát mép trên bên phải (chấm trạng thái + công tắc · ⓘ · ⋯), không chiếm hàng riêng",
+     "te": "Landscape: Reflex Bot's status bar shrinks to a small pill tucked at the top-right edge (status dot + switch · ⓘ · ⋯) instead of taking its own row"
     }
    ]
   },

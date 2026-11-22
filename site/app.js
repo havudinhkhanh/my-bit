@@ -8915,7 +8915,7 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     Z.getAnimations().forEach((a) => a.cancel());
     Z.animate([{ opacity: 0, transform: "scale(.55) rotate(-8deg)" }, { opacity: 1, transform: "scale(1) rotate(0)", offset: 0.3 }, { opacity: 0.6, offset: 0.55 }, { opacity: 0, transform: "scale(1.18) rotate(6deg)" }], { duration: 560, easing: "cubic-bezier(.2,.8,.3,1)" });
   };
-  addEventListener("load", () => setTimeout(() => { const s0 = document.querySelector('#tabs > a[data-r="botscalp"] svg'); if (s0 && !Z) { zap(s0); Z.getAnimations().forEach((a) => a.cancel()); } }, 1500));      // vẽ sẵn lớp tia điện
+  addEventListener("load", () => setTimeout(() => { const s0 = document.querySelector('#tabs > a[data-r="botscalp"] svg'); if (s0 && !Z) { zap(s0); Z?.getAnimations().forEach((a) => a.cancel()); } }, 1500));      // vẽ sẵn lớp tia điện
   const play = (svg) => {
     if (!svg || RM.matches || !svg.animate) return;
     const k = svg.__icK || (svg.__icK = kindOf(svg)), [kf, ms, org] = A[k] || A.pop;
