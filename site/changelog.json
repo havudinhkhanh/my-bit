@@ -143,6 +143,12 @@
      "a": "mascot",
      "t": "Điện thoại dọc: mèo na đứng cách thanh điều hướng dưới 1 chút, không còn chạm / che các nút trên thanh",
      "te": "Portrait: Na stands a little above the bottom navigation bar instead of touching or covering its buttons"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Xoay ngang – Bot Phản Xạ: nút chuyển Binance thật / Sàn thử quay lại thanh bộ lọc bên trái (bị mất sau lần gọn hàng tab)",
+     "te": "Landscape – Reflex Bot: the Binance live / Paper switch is back in the left filter bar (it went missing after the tab row was tidied away)"
     }
    ]
   },

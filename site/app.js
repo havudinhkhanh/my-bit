@@ -9057,7 +9057,7 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     // dòng mô tả trang chỉ dời sang khi đã có thanh 3 (có tab / bộ lọc); không thì để nguyên trong trang cạnh tiêu đề
     const Q = [...DOCKQ]; if (box.__tabs || DOCKQ.some((q) => [...document.querySelectorAll(q)].some((e) => e.__pld || e.getBoundingClientRect().height > 0))) Q.unshift("#app > .ph:not(.stk) > .meta");      // trang coin (.stk): dòng giá + nhãn quá rộng → để nguyên
     Q.forEach((q) => document.querySelectorAll(q).forEach((el, i) => {
-      if (el.__pld || (el.getBoundingClientRect().height === 0 && !el.matches(".ph > .meta"))) return;
+      if (el.__pld || getComputedStyle(el).display === "none") return;      // (hàng chứa đã bị ẩn ở chế độ ngang – vẫn dời được phần bên trong)
       const k = q + "#" + i, old = docked.get(k); if (old && old.el !== el) old.el.remove();
       docked.set(k, { el, home: el.parentNode, next: el.nextSibling }); el.__pld = 1; el.classList.add("pld"); if (el.matches(".meta")) el.parentNode?.classList.add("pl-metad");
       const slot = D.querySelector(`[data-k="${CSS.escape(k)}"]`) || D.appendChild(Object.assign(document.createElement("div"), { className: "pls-slot" })); slot.dataset.k = k;
