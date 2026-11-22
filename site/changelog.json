@@ -179,6 +179,12 @@
      "a": "ui",
      "t": "Tìm nhanh dạng ngăn kéo: trang phía sau vẫn hiện mờ thay vì nền xám trơn",
      "te": "Quick search drawer: the page behind stays visible (dimmed) instead of a flat grey background"
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Mèo na đứng thấp xuống vài px: cách thanh điều hướng 4px (dọc), cách đáy 6px (ngang)",
+     "te": "Na sits a few px lower: 4px above the nav bar (portrait), 6px above the bottom (landscape)"
     }
    ]
   },
