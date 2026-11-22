@@ -6952,3 +6952,12 @@ body:has(.occ) .msheet{z-index:1320!important}
   .cmdk.side .cmdk-g{margin:10px 10px 4px!important}
 }
 @media (prefers-reduced-motion:reduce){.cmdk.side .cmdk-in{animation:none!important}}
+/* trang Tài khoản trên điện thoại: nút chọn (Giao diện · Cỡ chữ · Mèo na…) và khối Ánh sáng ấm TRẢI ĐỦ BỀ NGANG, các lựa chọn chia đều –
+   không còn dồn sang trái chừa khoảng trống bên phải */
+@media (max-width:760px){
+  .acp-c>:is(.bseg,.th-seg,.seg){display:flex;flex-wrap:nowrap;width:100%;box-sizing:border-box}
+  .acp-c>:is(.bseg,.th-seg,.seg)>:is(button,a,label){flex:1 1 0;min-width:0;justify-content:center;text-align:center;white-space:nowrap}
+  .acp-c>.nl-box{width:100%;min-width:0!important}
+  .acp-c .nl-row{padding-left:0;padding-right:0}
+  .acp-c>.mun-sk{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));width:100%}.acp-c>.mun-sk>button{width:auto}      /* bộ đồ của na: chia đều cả hàng */
+}

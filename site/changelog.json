@@ -76,6 +76,12 @@
      "a": "ui",
      "t": "Điện thoại: tìm nhanh (🔍) mở thành ngăn kéo bên phải như Bảng phụ – ô tìm ở trên ngay chỗ vừa bấm, kết quả xếp xuống, tự co theo bàn phím; kéo sang phải hoặc chạm vùng tối để đóng",
      "te": "Phone: quick search (🔍) opens as a right-side drawer like the side panel – search box at the top, results below, fits above the keyboard; drag right or tap outside to close"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Trang Tài khoản trên điện thoại: các nút chọn (Giao diện, Cỡ chữ, Mèo na, Tiếng kêu, Cỡ na, Bộ đồ) và khối Ánh sáng ấm trải đủ bề ngang, chia đều – không còn dồn lệch sang trái",
+     "te": "Account page on phone: choice buttons and the warm-light block now span the full width, evenly split – no more left-heavy layout"
     }
    ]
   },
