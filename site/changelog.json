@@ -45,6 +45,12 @@
      "a": "ui",
      "t": "iPhone: sau khi bấm quay lại trang trước, vuốt mép phải vẫn mở được Bảng phụ (trước bị nhường hết cho cử chỉ tiến trang của iPhone)",
      "te": "iPhone: after going back, the right-edge swipe still opens the side panel (it used to be lost to iOS's forward gesture)"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Thanh dưới: đang ở tab Lệnh của Bot Phản Xạ mà có nút lối tắt \"Lệnh\" thì chỉ nút đó sáng, nút \"Bot\" không còn sáng cùng",
+     "te": "Bottom bar: when a shortcut button points to the exact tab you're on (e.g. Orders), only that button lights up – not Bot as well"
     }
    ]
   },

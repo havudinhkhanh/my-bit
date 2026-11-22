@@ -550,7 +550,7 @@ async function viewScalp() {
   // 11/2026: tab = CHỨC NĂNG; sàn thử / Binance là BỘ LỌC (công tắc trên đầu Tổng quan & Lệnh), không còn tab "Binance thật" riêng.
   const TABS = [["ov", "Tổng quan"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];      // 11/2026: Lệnh lên thứ 2 (dùng nhiều nhất); "Nhật ký" → "Hoạt động" (sự kiện bot) cho khỏi lẫn với Sổ lệnh
   const ENV = (window.__scEnv ?? (C.lv_on ? "live" : "paper")) === "live" ? "live" : "paper"; window.__scEnv = ENV;      // mở app: có tài khoản Binance thì luôn xem Binance trước; chọn tay giữ trong phiên
-  let TOP = scNormTab(window.__scTab ?? lsGet("sctab", "ov")); if (!TABS.some(([k]) => k === TOP)) TOP = "ov"; window.__scTab = TOP;
+  let TOP = scNormTab(window.__scTab ?? lsGet("sctab", "ov")); if (!TABS.some(([k]) => k === TOP)) TOP = "ov"; window.__scTab = TOP; if (window.__scNavT !== TOP) { window.__scNavT = TOP; setTimeout(() => { try { cusDraw(); } catch (e) { /* bỏ qua */ } }, 0); }      // thanh dưới: nút lối tắt trỏ đúng tab con này sáng lên ngay lần vào đầu
   const PMS0 = window.__scPm ?? lsGet("scpm", "lab"), PMS = PMS0 === "hook" ? "hook" : PMS0 === "sec" ? "sec" : "lab", LOGS = (window.__scLog ?? lsGet("sclog", "ev")) === "learn" ? "learn" : "ev";
   const TB = TOP === "pm" ? PMS : TOP === "log" ? LOGS : TOP;
   let LB = null;      // 🧪 bảng thử nghiệm: danh sách phương pháp (để các nút / kéo-thả bên dưới dùng)

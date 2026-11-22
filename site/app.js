@@ -922,6 +922,7 @@ function setTab(r) {
   requestAnimationFrame(navThumb);
   $$("#tabs a").forEach((a) => { if (a.dataset.sc) { a.classList.toggle("on", scOn(a.dataset.sc)); return; } a.classList.toggle("on", a.dataset.r === r || (a.dataset.r === "botdays" && r === "botjournal")); a.classList.toggle("par", a.classList.contains("nav-m") && !a.classList.contains("nav-cus") && a.dataset.r !== r && (innerWidth < 980 ? navGrpOf(a.dataset.r) != null && navGrpOf(a.dataset.r) === navGrpOf(r === "botjournal" ? "botdays" : r) : a.dataset.r === "botscalp" && /^bot/.test(r || ""))); });      // trang con của một nhóm (vd Sổ thuế, Danh mục ⊂ Giao dịch) → nút chính của nhóm sáng theo
   // điện thoại: thanh dưới chỉ 5 nút – trang đang mở không nằm trong 4 nút chính thì sáng nút "Thêm"
+  $$("#tabs a[data-sp-off]").forEach((a) => delete a.dataset.spOff); navSpecific();
   $("#navMore")?.classList.toggle("on", !$$("#tabs a.nav-m").some((a) => a.classList.contains("on") || a.classList.contains("par")));
   // máy tính bảng ngang: thanh menu trên cùng cuộn ngang → đưa mục đang mở vào tầm nhìn
   if (innerWidth >= 980 && innerWidth < 1180) { const on = $("#tabs a.on"), t = $("#tabs"); if (on && t) requestAnimationFrame(() => { const L = on.offsetLeft - t.scrollLeft; if (L < 0 || L + on.offsetWidth > t.clientWidth) t.scrollTo({ left: on.offsetLeft - 40, behavior: "smooth" }); }); }
@@ -1012,6 +1013,20 @@ function cusDraw() {
   if (o.sc) a.classList.toggle("on", scOn(o.sc));
   try { autoDraw(); } catch (e) { /* bỏ qua */ }
   try { if (typeof pinDraw === "function" && $("#navPins")) pinDraw(); } catch (e) { /* bỏ qua */ }
+  navSpecific();
+}
+// 📱 thanh dưới: nút lối tắt (★ tự chọn / ↻ hay vào) trỏ ĐÚNG tab đang mở (vd. "Lệnh" = Bot Phản Xạ › Lệnh) → chỉ nút đó sáng + có viên kính;
+//    nút chính cùng trang ("Bot") tắt sáng hẳn – trước đây cả 2 cùng sáng, viên kính lại nằm ở "Bot". Máy tính (thanh bên) giữ như cũ.
+function navSpecific() {
+  const nav = $("#tabs"); if (!nav) return;
+  const vis = (x) => x.offsetParent && getComputedStyle(x).display !== "none";
+  const sc = innerWidth < 980 ? [...nav.querySelectorAll(":scope > a.nav-cus.on")].filter((a) => a.dataset.sc && vis(a)) : [];
+  const rs = new Set(sc.map((a) => a.dataset.r).filter(Boolean)); let ch = false;
+  for (const a of nav.querySelectorAll(":scope > a.nav-m:not(.nav-cus)")) {
+    if (rs.has(a.dataset.r) && (a.classList.contains("on") || a.classList.contains("par"))) { a.dataset.spOff = a.classList.contains("on") ? "on" : "par"; a.classList.remove("on", "par"); ch = true; }
+    else if (!rs.has(a.dataset.r) && a.dataset.spOff) { if (a.dataset.r === CUR_TAB || a.dataset.spOff === "par") a.classList.add(a.dataset.spOff); delete a.dataset.spOff; ch = true; }
+  }
+  if (ch) requestAnimationFrame(navThumb);
 }
 // ---------------------------------------------------------------- nút "HAY VÀO": tự hiện trang anh vào nhiều nhất (điểm mỗi lần vào, giảm một nửa sau 7 ngày)
 // bỏ qua các trang đã có nút cố định (Thị trường, Cơ hội, Giao dịch, Bot) và trang đang đặt ở nút tuỳ chọn → luôn là 1 lối tắt MỚI
