@@ -8815,3 +8815,44 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
   document.addEventListener("visibilitychange", () => { if (document.hidden) hidAt = Date.now(); else check(hidAt && Date.now() - hidAt > 120e3); });
   setInterval(() => { if (!document.hidden) check(false); }, 10 * 60e3);
 })();
+
+// ================================================================ ✨ BIỂU TƯỢNG CÓ "TÍNH CÁCH" khi bấm (thanh điều hướng + nút trên đầu trang)
+// mỗi biểu tượng chuyển động đúng kiểu của nó: bánh răng quay · chuông lắc · sét loé + tia điện · đồng hồ quay kim · bia ngắm toả vòng · đường giá tự vẽ…
+// chỉ dùng transform / opacity / stroke-dashoffset (mượt, không vẽ lại trang); tắt khi máy bật "giảm chuyển động"
+(function iconMotion() {
+  const RM = matchMedia("(prefers-reduced-motion: reduce)");
+  const KIND = [
+    [/M13 2 4 14h7/, "bolt"], [/M6 8a6 6 0 1 1 12 0/, "bell"], [/M19\.4 15/, "gear"], [/m20 20-3\.5-3\.5/, "search"], [/M12 2v2M12 20v2/, "sun"],
+    [/M3 12h18M12 3c2\.6/, "globe"], [/M3 17l5-5 4 4 8-9/, "trend"], [/M2 12h4l3-8|M22 12h-4l-3 9/, "pulse"], [/M4 19V9M10 19V5/, "bars"],
+    [/M12 12l6-6/, "radar"], [/M12 8v4l3 2/, "clock"], [/M9 8h4\.5/, "coin"], [/M8 7V5a2 2 0 0 1 2-2h4/, "case"], [/M3 10h18M8 3v4/, "cal"],
+    [/M12 8V4M9 13v1/, "robot"], [/M12 3l1\.8 4\.7/, "spark"], [/M8 6h13M8 12h13/, "list"], [/M4 21v-7M4 10V3/, "slider"], [/M10 3v6L4 19/, "flask"],
+    [/M6 3h9l4 4v14H6z|M4 5a2 2 0 0 1 2-2h13v16/, "doc"], [/M3 10h18"|M7 6V4h10v2/, "card"],
+  ];
+  const kindOf = (svg) => {
+    const h = svg.innerHTML; for (const [re, k] of KIND) if (re.test(h)) return k;
+    const rc = svg.querySelectorAll("rect").length, cc = svg.querySelectorAll("circle").length;
+    if (rc === 4) return "grid"; if (cc === 3 && !svg.querySelector("path")) return "target"; if (cc === 2 && !svg.querySelector("path")) return "pairs";
+    return "pop";
+  };
+  // ⚡ tia điện bao quanh tia sét: 1 lớp vẽ tạm đặt đúng chỗ biểu tượng (gắn vào body, tự xoá)
+  const zap = (svg) => {
+    const r = svg.getBoundingClientRect(); if (!r.width) return;
+    const s = Math.max(r.width, r.height) * 2.6, z = document.createElement("i"); z.className = "ica-zz"; z.setAttribute("aria-hidden", "true");
+    z.style.cssText = `left:${r.left + r.width / 2 - s / 2}px;top:${r.top + r.height / 2 - s / 2}px;width:${s}px;height:${s}px`;
+    z.innerHTML = `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 9l3 3-2 1 3 3"/><path d="M32 8l-3 4 2 1-3 3"/><path d="M6 27l4-1-1 2 4-1"/><path d="M34 28l-4-1 1 2-4-1"/><path d="M20 2v3l-1.5 1L20 8"/><path d="M20 38v-3l1.5-1L20 32"/></svg>`;
+    document.body.appendChild(z); setTimeout(() => z.remove(), 750);
+  };
+  const play = (svg) => {
+    if (!svg || RM.matches) return;
+    const k = svg.__icK || (svg.__icK = kindOf(svg));
+    svg.classList.remove("ica", "ica-" + k); void svg.getBoundingClientRect(); svg.classList.add("ica", "ica-" + k);
+    clearTimeout(svg.__icT); svg.__icT = setTimeout(() => svg.classList.remove("ica", "ica-" + k), 1000);
+    if (k === "bolt") zap(svg);
+  };
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest?.("#tabs > a, #tabs > .nav-more, .iconbtn, #bell, #qBtn, #theme, #lang, #meBtn, .botseg a, [data-sctab]"); if (!el) return;
+    const svg = el.querySelector(":scope svg:not(.nav-me-g)") || el.querySelector("svg"); if (svg) play(svg);
+  }, true);
+  window.icPlay = play;
+})();

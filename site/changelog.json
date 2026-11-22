@@ -57,6 +57,13 @@
      "a": "ui",
      "t": "Giữ ở mép phải: bảng \"Thêm\" giờ trượt hé ra êm, nền chưa tối và bóng đổ nhạt dần theo – không còn giật hiện ra cùng mảng bóng mờ",
      "te": "Holding at the right edge: More now slides in smoothly; the dim backdrop and shadow fade in with the drag instead of popping"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Biểu tượng điều hướng có chuyển động riêng khi bấm: sét loé + tia điện, chuông lắc, bánh răng quay, bia ngắm toả vòng, đường giá tự vẽ, cặp xách nhấc lên, lịch lật trang…",
+     "te": "Navigation icons now animate in character when tapped: bolt flashes with sparks, bell rings, gear spins, target pulses, chart line redraws, briefcase lifts, calendar flips…",
+     "hi": 1
     }
    ]
   },

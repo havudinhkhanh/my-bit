@@ -6911,3 +6911,90 @@ body:has(.occ) .msheet{z-index:1320!important}
   .nb-cl:hover{background:var(--fill-h);color:var(--ink)}
 }
 
+/* ✨ biểu tượng chuyển động đúng kiểu khi bấm (xem iconMotion trong app.js) */
+svg.ica{overflow:visible}
+svg.ica *{transform-box:fill-box;transform-origin:center}
+svg.ica-pop{animation:icPop .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes icPop{0%{transform:scale(1)}35%{transform:scale(.8)}70%{transform:scale(1.14)}100%{transform:none}}
+/* ⚡ sét: loé sáng + rung điện */
+svg.ica-bolt{animation:icBolt .6s ease-out}
+@keyframes icBolt{0%{transform:scale(1);filter:none}15%{transform:scale(.85) rotate(-6deg)}35%{transform:scale(1.25) rotate(4deg);filter:drop-shadow(0 0 5px #f5c542) drop-shadow(0 0 2px #fff6cc);color:#f2b705}
+  50%{transform:scale(1.05) translateX(-1px)}60%{transform:scale(1.12) translateX(1px);filter:drop-shadow(0 0 3px #f5c542)}100%{transform:none;filter:none}}
+.ica-zz{position:fixed;z-index:100001;pointer-events:none;color:#f2b705;filter:drop-shadow(0 0 2px #f5c542)}
+.ica-zz svg{width:100%;height:100%;display:block}
+.ica-zz path{stroke-dasharray:14;stroke-dashoffset:14;opacity:0;animation:icZap .55s ease-out forwards}
+.ica-zz path:nth-child(2){animation-delay:.04s}.ica-zz path:nth-child(3){animation-delay:.09s}.ica-zz path:nth-child(4){animation-delay:.06s}.ica-zz path:nth-child(5){animation-delay:.02s}.ica-zz path:nth-child(6){animation-delay:.11s}
+@keyframes icZap{0%{opacity:0;stroke-dashoffset:14}25%{opacity:1;stroke-dashoffset:0}45%{opacity:.3}60%{opacity:1}100%{opacity:0;stroke-dashoffset:-14}}
+/* 🔔 chuông lắc qua lại, quả lắc lệch ngược */
+svg.ica-bell{animation:icBell .8s cubic-bezier(.36,.07,.19,.97);transform-origin:50% 8%}
+svg.ica-bell path:nth-child(2){animation:icClap .8s cubic-bezier(.36,.07,.19,.97)}
+@keyframes icBell{0%{transform:none}15%{transform:rotate(18deg)}30%{transform:rotate(-15deg)}45%{transform:rotate(11deg)}60%{transform:rotate(-7deg)}75%{transform:rotate(3deg)}100%{transform:none}}
+@keyframes icClap{0%,100%{transform:none}15%{transform:translateX(-2px)}30%{transform:translateX(2px)}45%{transform:translateX(-1.5px)}60%{transform:translateX(1px)}}
+/* ⚙️ bánh răng quay */
+svg.ica-gear{animation:icSpin .8s cubic-bezier(.3,.9,.3,1.1)}
+@keyframes icSpin{from{transform:rotate(0)}to{transform:rotate(180deg)}}
+/* ☀️ mặt trời xoay, tia nở ra */
+svg.ica-sun{animation:icSpin .7s cubic-bezier(.3,.9,.3,1.1)}
+svg.ica-sun circle{animation:icPop .5s cubic-bezier(.3,1.6,.5,1)}
+/* 🌐 quả địa cầu xoay ngang */
+svg.ica-globe,svg.ica-coin{animation:icFlip .7s cubic-bezier(.3,.8,.3,1)}
+@keyframes icFlip{from{transform:perspective(60px) rotateY(0)}to{transform:perspective(60px) rotateY(360deg)}}
+/* 🔍 kính lúp nghiêng soi */
+svg.ica-search{animation:icSearch .55s cubic-bezier(.3,1.4,.5,1)}
+@keyframes icSearch{0%{transform:none}40%{transform:rotate(-16deg) scale(1.15)}70%{transform:rotate(6deg) scale(1.02)}100%{transform:none}}
+/* 📈 đường giá tự vẽ lại, mũi tên bật lên */
+svg.ica-trend path:first-child,svg.ica-pulse path{stroke-dasharray:40;animation:icDraw .55s ease-out}
+svg.ica-trend path:nth-child(2){animation:icArrow .5s .3s cubic-bezier(.3,1.6,.5,1) backwards}
+@keyframes icDraw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+@keyframes icArrow{from{opacity:0;transform:translate(-3px,3px) scale(.6)}to{opacity:1;transform:none}}
+/* 📊 cột mọc lên */
+svg.ica-bars{animation:icGrow .5s cubic-bezier(.3,1.5,.5,1);transform-origin:50% 90%}
+@keyframes icGrow{0%{transform:scaleY(.4)}70%{transform:scaleY(1.12)}100%{transform:none}}
+/* ◎ bia ngắm: vòng toả ra từ tâm */
+svg.ica-target circle{animation:icRing .55s cubic-bezier(.3,1.6,.5,1) backwards}
+svg.ica-target circle:nth-child(3){animation-delay:0s}svg.ica-target circle:nth-child(2){animation-delay:.08s}svg.ica-target circle:nth-child(1){animation-delay:.16s}
+@keyframes icRing{0%{transform:scale(.4);opacity:.3}70%{transform:scale(1.12);opacity:1}100%{transform:none}}
+/* 📡 radar quét */
+svg.ica-radar path:nth-child(2){transform-box:view-box;transform-origin:12px 12px;animation:icSweep .8s cubic-bezier(.3,.8,.3,1)}
+@keyframes icSweep{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+/* 🕒 kim đồng hồ quay 1 vòng */
+svg.ica-clock path{transform-box:view-box;transform-origin:12px 12px;animation:icSweep .8s cubic-bezier(.3,.8,.3,1)}
+/* ⊞ 4 ô bật lần lượt */
+svg.ica-grid rect{animation:icRing .45s cubic-bezier(.3,1.6,.5,1) backwards}
+svg.ica-grid rect:nth-child(2){animation-delay:.06s}svg.ica-grid rect:nth-child(4){animation-delay:.12s}svg.ica-grid rect:nth-child(3){animation-delay:.18s}
+/* ⚭ 2 vòng chập vào rồi tách */
+svg.ica-pairs circle:first-child{animation:icPairL .55s cubic-bezier(.3,1.4,.5,1)}svg.ica-pairs circle:last-child{animation:icPairR .55s cubic-bezier(.3,1.4,.5,1)}
+@keyframes icPairL{40%{transform:translateX(3px)}100%{transform:none}}@keyframes icPairR{40%{transform:translateX(-3px)}100%{transform:none}}
+/* 💼 cặp xách nhấc lên */
+svg.ica-case{animation:icLift .55s cubic-bezier(.3,1.4,.5,1)}
+svg.ica-case path{animation:icHandle .55s ease-out}
+@keyframes icLift{0%{transform:none}35%{transform:translateY(-3px) rotate(-5deg)}65%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+@keyframes icHandle{35%{transform:translateY(-1.5px)}100%{transform:none}}
+/* 📄 tờ giấy lật nhẹ, dòng chữ tự viết */
+svg.ica-doc{animation:icPaper .55s cubic-bezier(.3,1.4,.5,1)}
+svg.ica-doc path:nth-child(2),svg.ica-doc path:last-child{stroke-dasharray:24;animation:icDraw2 .5s .1s ease-out backwards}
+@keyframes icPaper{0%{transform:none}35%{transform:rotate(-8deg) translateY(-1px)}70%{transform:rotate(4deg)}100%{transform:none}}
+@keyframes icDraw2{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+/* 📅 lịch lật trang */
+svg.ica-cal{animation:icCal .6s cubic-bezier(.3,1.2,.4,1)}
+@keyframes icCal{0%{transform:perspective(50px) rotateX(0)}45%{transform:perspective(50px) rotateX(-55deg)}100%{transform:none}}
+/* 🤖 rô-bốt lắc đầu, ăng-ten nhún */
+svg.ica-robot{animation:icRobot .6s ease-in-out;transform-origin:50% 85%}
+svg.ica-robot circle{animation:icAnt .6s ease-in-out}
+@keyframes icRobot{25%{transform:rotate(-9deg)}55%{transform:rotate(7deg)}80%{transform:rotate(-3deg)}100%{transform:none}}
+@keyframes icAnt{30%{transform:translateY(-2px)}60%{transform:translateY(.5px)}100%{transform:none}}
+/* ✨ lấp lánh */
+svg.ica-spark path:first-child{animation:icTwk .6s cubic-bezier(.3,1.5,.5,1)}svg.ica-spark path:last-child{animation:icTwk .6s .12s cubic-bezier(.3,1.5,.5,1) backwards}
+@keyframes icTwk{0%{transform:scale(.4) rotate(-40deg);opacity:.3}60%{transform:scale(1.2) rotate(10deg);opacity:1}100%{transform:none}}
+/* ☰ danh sách: từng dòng trượt vào */
+svg.ica-list path{stroke-dasharray:14;animation:icDraw3 .45s ease-out}
+svg.ica-list circle{animation:icRing .4s cubic-bezier(.3,1.6,.5,1) backwards}
+svg.ica-list circle:nth-child(3){animation-delay:.07s}svg.ica-list circle:nth-child(4){animation-delay:.14s}
+@keyframes icDraw3{from{stroke-dashoffset:14}to{stroke-dashoffset:0}}
+/* 🎚 thanh trượt nhích qua lại */
+svg.ica-slider{animation:icSlide .55s ease-in-out}
+@keyframes icSlide{30%{transform:translateY(-1.5px)}60%{transform:translateY(1px)}100%{transform:none}}
+/* 🧪 bình nghiệm lắc */
+svg.ica-flask{animation:icRobot .6s ease-in-out;transform-origin:50% 15%}
+svg.ica-card{animation:icPop .45s cubic-bezier(.3,1.6,.5,1)}
+@media (prefers-reduced-motion:reduce){svg.ica,svg.ica *,.ica-zz{animation:none!important}}
