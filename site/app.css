@@ -7104,3 +7104,27 @@ body:has(.occ) .msheet{z-index:1320!important}
   html.pls body.pn-sheet .pnav{top:0!important}
   html.pls #toasts:not(#_t):not(#_pl),html.pls .nb{top:8px!important}
 }
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  /* nút to hơn (≥ 40px – vừa ngón tay) · thanh 3 rộng hơn và KÉO ĐƯỢC mép phải để nới / thu */
+  :root{--pls-c1:54px;--pls-c2:54px;--pls-c3:168px}
+  .pls-c1{padding:8px 0}
+  .pls-gs{padding:0 5px;gap:3px}
+  .pls-g{padding:9px 0!important;border-radius:12px}
+  .pls-g svg{width:22px!important;height:22px!important}
+  .pls-act button{width:42px!important;height:40px!important;border-radius:11px}
+  .pls-act svg{width:21px!important;height:21px!important}
+  .pls-c2{padding:8px 5px!important;gap:3px!important}
+  .pls-p{width:42px!important;height:42px!important;border-radius:12px}
+  .pls-p svg{width:21px!important;height:21px!important}
+  .pls-t a,.pls-slot :is(.bseg,.seg,.gseg,.sc-env)>:is(button,a,label){min-height:36px!important;font-size:.8125rem!important}
+  .pls-pn{font-size:.875rem!important}
+  .pls-c3w{position:relative;display:none;width:var(--pls-c3)}
+  #plSide.has3 .pls-c3w{display:flex}
+  .pls-c3w>.pls-c3{display:flex!important;width:100%!important}
+  .pls-rz{position:absolute;top:0;bottom:0;right:-11px;width:16px;z-index:2;cursor:col-resize;touch-action:none}
+  .pls-rz::after{content:"";position:absolute;left:6px;top:50%;width:4px;height:40px;margin-top:-20px;border-radius:3px;background:color-mix(in srgb,var(--ink) 22%,transparent);transition:height .2s,background-color .2s}
+  .pls-rz.on::after{height:64px;margin-top:-32px;background:var(--brass,var(--brand))}
+  html.pls-rzing,html.pls-rzing *{-webkit-user-select:none!important;user-select:none!important;cursor:col-resize!important}
+  html.pls-rzing body{transition:none}
+  .pls-slot select,.pls-slot .jf select{width:100%!important}
+}

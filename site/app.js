@@ -8991,8 +8991,17 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     const nav = document.getElementById("tabs"); if (!nav || !document.getElementById("app")) return;
     if (!box) {
       box = document.createElement("aside"); box.id = "plSide"; box.setAttribute("aria-label", bi("Điều hướng", "Navigation"));
-      box.innerHTML = `<nav class="pls-c pls-c1"></nav><nav class="pls-c pls-c2"></nav><div class="pls-c pls-c3"><div class="pls-c3h"></div><div class="pls-dock"></div></div>`;
+      box.innerHTML = `<nav class="pls-c pls-c1"></nav><nav class="pls-c pls-c2"></nav><div class="pls-c3w"><div class="pls-c pls-c3"><div class="pls-c3h"></div><div class="pls-dock"></div></div><i class="pls-rz" title="${bi("Kéo để đổi độ rộng · chạm 2 lần để về mặc định", "Drag to resize · double-tap to reset")}"></i></div>`;
       document.body.appendChild(box);
+      // ↔ KÉO MÉP PHẢI thanh 3 để nới / thu bề rộng (nhớ cho lần sau) · chạm 2 lần = về mặc định
+      const W0 = 168, rz = box.querySelector(".pls-rz"), setC3 = (w) => document.documentElement.style.setProperty("--pls-c3", Math.round(w) + "px");
+      { const w = +lsGet("pls_c3", 0); if (w) setC3(w); }
+      let R = null;
+      rz.addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); const c3 = box.querySelector(".pls-c3"); R = { x0: e.clientX, w0: c3.offsetWidth }; rz.setPointerCapture(e.pointerId); rz.classList.add("on"); document.documentElement.classList.add("pls-rzing"); });
+      rz.addEventListener("pointermove", (e) => { if (!R) return; const max = Math.min(360, innerWidth * 0.42); setC3(Math.max(120, Math.min(max, R.w0 + e.clientX - R.x0))); });
+      const up = () => { if (!R) return; R = null; rz.classList.remove("on"); document.documentElement.classList.remove("pls-rzing"); lsSet("pls_c3", parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--pls-c3")) || W0); setTimeout(() => { try { navThumb(); } catch (er) { /* bỏ qua */ } }, 50); };
+      rz.addEventListener("pointerup", up); rz.addEventListener("pointercancel", up);
+      rz.addEventListener("dblclick", () => { setC3(W0); lsSet("pls_c3", W0); });
       box.addEventListener("click", (e) => {
         const b = e.target.closest("[data-plx]"); if (b) { e.preventDefault(); document.querySelector(b.dataset.plx)?.click(); return; }
         const tb = e.target.closest("[data-pltab]"); if (tb) { e.preventDefault(); document.querySelectorAll(TABQ)[+tb.dataset.pltab]?.click(); setTimeout(later, 60); }

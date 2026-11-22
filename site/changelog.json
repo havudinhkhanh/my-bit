@@ -107,6 +107,12 @@
      "a": "ui",
      "t": "Xoay ngang trên iPhone: bỏ dải xám thừa trên cùng – thanh trái, nội dung và các ngăn kéo sát mép trên",
      "te": "iPhone landscape: removed the empty grey band at the top – left bars, content and drawers now sit at the top edge"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Xoay ngang: nút ở các thanh trái to hơn (vừa ngón tay); thanh bộ lọc rộng hơn và kéo mép phải để nới / thu được (app nhớ độ rộng, chạm 2 lần để về mặc định)",
+     "te": "Landscape: bigger buttons in the left bars; the filter bar is wider and its right edge can be dragged to resize (remembered; double-tap to reset)"
     }
    ]
   },
