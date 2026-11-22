@@ -131,6 +131,12 @@
      "a": "mascot",
      "t": "Xoay ngang: mèo na chỉ đi trong vùng nội dung – không còn bị các thanh trái che, và đứng cách mép dưới 1 chút",
      "te": "Landscape: Na the cat stays in the content area – no longer hidden behind the left bars – and walks a little above the bottom edge"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "iPhone: xoay ngang rồi xoay dọc lại mà trang bị phóng to lệch → tự đưa về đúng cỡ, thanh đầu trang & hàng tab dính lại lên trên khi cuộn",
+     "te": "iPhone: after rotating, a page left slightly zoomed is reset to normal so the top bar and tab row stick to the top again while scrolling"
     }
    ]
   },

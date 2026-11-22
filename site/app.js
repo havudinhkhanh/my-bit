@@ -7975,6 +7975,11 @@ function initAccountUI() {
   const vv = window.visualViewport, meta = document.querySelector('meta[name="viewport"]'); if (!vv || !meta) return;
   const reset = () => { const c = meta.content; meta.content = c.replace(/,?\s*maximum-scale=[\d.]+/, "") + ",maximum-scale=1,minimum-scale=1"; setTimeout(() => { meta.content = c; }, 400); };
   let touching = 0; document.addEventListener("touchstart", () => (touching = Date.now()), { passive: true }); document.addEventListener("touchend", (e) => { if (!e.touches.length) touching = 0; }, { passive: true });
+  // 🔄 xoay máy ngang ↔ dọc: iPhone hay để trang PHÓNG TO lệch (≈1,05–1,2×) sau khi xoay → thanh đầu trang & thanh tab "dính" theo khung gốc
+  //    nên trông như cuộn trôi mất, không bám lên trên. Xoay xong mà trang còn phóng to → đưa về đúng 1×
+  let rotAt = 0; const rot = () => { rotAt = Date.now(); [450, 1100].forEach((ms) => setTimeout(() => { if (Math.abs(vv.scale - 1) > 0.01 && !touching) reset(); }, ms)); };
+  addEventListener("orientationchange", rot); screen.orientation?.addEventListener?.("change", rot);
+  let tr0 = 0; vv.addEventListener("resize", () => { if (Date.now() - rotAt < 2500 && Math.abs(vv.scale - 1) > 0.01 && !touching) { clearTimeout(tr0); tr0 = setTimeout(reset, 300); } });
   vv.addEventListener("resize", () => { clearTimeout(tz); if (vv.scale > 1.02 && Date.now() - onChart < 8000) tz = setTimeout(function chk() { if (touching) { tz = setTimeout(chk, 300); return; } if (vv.scale > 1.02) reset(); }, 700); });
 })();
 // ================================================================ BÀN PHÍM ĐIỆN THOẠI: ô đang gõ không bị thanh tab dưới / nút nổi che, tự cuộn ô vào giữa vùng còn thấy
