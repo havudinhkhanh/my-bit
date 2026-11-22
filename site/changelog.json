@@ -82,6 +82,13 @@
      "a": "ui",
      "t": "Trang Tài khoản trên điện thoại: các nút chọn (Giao diện, Cỡ chữ, Mèo na, Tiếng kêu, Cỡ na, Bộ đồ) và khối Ánh sáng ấm trải đủ bề ngang, chia đều – không còn dồn lệch sang trái",
      "te": "Account page on phone: choice buttons and the warm-light block now span the full width, evenly split – no more left-heavy layout"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điện thoại xoay ngang: giao diện mới – bỏ thanh đầu trang & thanh điều hướng dưới, thay bằng 2–3 thanh dọc nhỏ bên trái (biểu tượng nhóm · biểu tượng trang · tab & bộ lọc xếp dọc); nội dung bên phải được trọn chiều cao, khung xếp 2 cột khi vừa để bớt cuộn",
+     "te": "Phone in landscape: new layout – the top bar and bottom nav give way to 2–3 slim vertical bars on the left (group icons · page icons · tabs & filters stacked); content gets the full height and panels sit two-up where they fit to cut scrolling",
+     "hi": 1
     }
    ]
   },

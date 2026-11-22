@@ -13,7 +13,11 @@ if ("serviceWorker" in navigator) { const swReg = () => navigator.serviceWorker.
   for (const [n, kind] of [["toLocaleTimeString", "t"], ["toLocaleDateString", "d"], ["toLocaleString", "s"]]) { const o0 = P[n]; P[n] = function (loc, o) { if (isNaN(this.getTime())) return o0.call(this, loc, o); try { return fm(kind, loc, o).format(this); } catch (e) { return o0.call(this, loc, o); } }; }
 })();
 const LANG = (() => { try { return JSON.parse(localStorage.getItem("mybit_lang")) || "vi"; } catch (e) { return "vi"; } })();
-const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
+const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);
+// 📱↔ điện thoại XOAY NGANG: thanh điều hướng thành thanh dọc bên trái (rail), bảng "Thêm" mở dạng ngăn kéo – xem khối "ĐIỆN THOẠI XOAY NGANG" trong app.css
+const PL = matchMedia("(max-width:979px) and (orientation:landscape) and (max-height:540px)");
+PL.addEventListener?.("change", () => { document.documentElement.classList.toggle("pl", PL.matches); setTimeout(() => { try { navThumb(); } catch (e) { /* bỏ qua */ } }, 60); });
+document.documentElement.classList.toggle("pl", PL.matches);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
 const LOC = { vi: "vi-VN", en: "en-US", de: "de-DE", fi: "fi-FI", it: "it-IT", zh: "zh-CN", fr: "fr-FR", ja: "ja-JP", ko: "ko-KR", es: "es-ES" }[LANG] || "en-US";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -872,8 +876,8 @@ function navThumb() {
     if (!NTH || !NTH.isConnected) { NTH = document.createElement("i"); NTH.setAttribute("aria-hidden", "true"); nav.prepend(NTH); nav.classList.add("gnav"); NTH.style.transition = "none"; NTH._first = 1; }
     NTH.className = "nthumb mthumb";
     if (!on) { NTH.style.opacity = "0"; return; }
-    const x = on.offsetLeft, w = on.offsetWidth, moved = NTH._x != null && Math.abs(NTH._x - x) > 2; NTH._x = x;
-    NTH.style.translate = `${x}px 0`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.opacity = "1"; NTH.classList.remove("press");
+    const V = PL.matches, x = on.offsetLeft, w = on.offsetWidth, y = V ? on.offsetTop : 0, pos = V ? y : x, moved = NTH._x != null && Math.abs(NTH._x - pos) > 2; NTH._x = pos;
+    NTH.style.translate = `${x}px ${y}px`; NTH.style.width = w + "px"; NTH.style.height = ""; NTH.style.setProperty("--nth-h", on.offsetHeight + "px");      // xoay ngang: thanh dọc → viên kính trượt theo chiều dọc NTH.style.opacity = "1"; NTH.classList.remove("press");
     if (moved && !NTH._first && !matchMedia("(prefers-reduced-motion: reduce)").matches) { NTH.classList.remove("jelly"); void NTH.offsetWidth; NTH.classList.add("jelly"); clearTimeout(NTH._jt); NTH._jt = setTimeout(() => NTH?.classList.remove("jelly"), 700); }
     if (NTH._first) { NTH._first = 0; void NTH.offsetWidth; NTH.style.transition = ""; }
     return; }
@@ -901,18 +905,21 @@ function navGrpOf(r) {
 (function navScrub() {
   let S = null, sup = 0;
   const vis = (x) => x.offsetParent && getComputedStyle(x).display !== "none";
-  const under = (L, x) => L.find((a) => { const r = a.getBoundingClientRect(); return x >= r.left && x <= r.right; }) || L.reduce((b, a) => { const r = a.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - x); return !b || d < b.d ? { a, d } : b; }, null)?.a;
+  const under = (L, x) => { const V = PL.matches; return L.find((a) => { const r = a.getBoundingClientRect(); return V ? x >= r.top && x <= r.bottom : x >= r.left && x <= r.right; }) || L.reduce((b, a) => { const r = a.getBoundingClientRect(), d = Math.abs((V ? r.top + r.height / 2 : r.left + r.width / 2) - x); return !b || d < b.d ? { a, d } : b; }, null)?.a; };
   const end = () => { if (!S) return; S.L.forEach((a) => a.classList.remove("scrub")); NTH?.classList.remove("drag", "press"); S = null; };
   document.addEventListener("pointerdown", (e) => { if (innerWidth >= 980 || e.button > 0) return; const nav = e.target.closest?.("#tabs"); if (!nav || !e.target.closest("#tabs > a, #tabs > .nav-more")) return;
-    S = { id: e.pointerId, x0: e.clientX, nav, drag: false, L: [...nav.querySelectorAll(":scope > a, :scope > .nav-more")].filter(vis), cur: null }; }, { passive: true });
+    S = { id: e.pointerId, x0: PL.matches ? e.clientY : e.clientX, nav, drag: false, L: [...nav.querySelectorAll(":scope > a, :scope > .nav-more")].filter(vis), cur: null }; }, { passive: true });
   document.addEventListener("pointermove", (e) => { if (!S || e.pointerId !== S.id || !NTH?.classList.contains("mthumb")) return;
-    if (!S.drag) { if (Math.abs(e.clientX - S.x0) < 8) return; S.drag = true; try { S.nav.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } NTH.classList.remove("jelly"); NTH.classList.add("press", "drag"); }
-    const it = under(S.L, e.clientX); if (!it) return;
-    if (it !== S.cur) { S.cur?.classList.remove("scrub"); it.classList.add("scrub"); S.cur = it; navigator.vibrate?.(4); NTH.style.width = it.offsetWidth + "px"; }
-    const nr = S.nav.getBoundingClientRect(), w = it.offsetWidth, x = Math.max(4, Math.min(S.nav.clientWidth - w - 4, e.clientX - nr.left - w / 2));
+    const cc = PL.matches ? e.clientY : e.clientX;
+    if (!S.drag) { if (Math.abs(cc - S.x0) < 8) return; S.drag = true; try { S.nav.setPointerCapture(e.pointerId); } catch (er) { /* bỏ qua */ } NTH.classList.remove("jelly"); NTH.classList.add("press", "drag"); }
+    const it = under(S.L, cc); if (!it) return;
+    if (it !== S.cur) { S.cur?.classList.remove("scrub"); it.classList.add("scrub"); S.cur = it; navigator.vibrate?.(4); NTH.style.width = it.offsetWidth + "px"; NTH.style.setProperty("--nth-h", it.offsetHeight + "px"); }
+    const nr = S.nav.getBoundingClientRect();
+    if (PL.matches) { const h = it.offsetHeight, y = Math.max(4, Math.min(S.nav.clientHeight - h - 4, e.clientY - nr.top - h / 2)); NTH.style.translate = `${it.offsetLeft}px ${y}px`; return; }
+    const w = it.offsetWidth, x = Math.max(4, Math.min(S.nav.clientWidth - w - 4, e.clientX - nr.left - w / 2));
     NTH.style.translate = `${x}px 0`; }, { passive: true });
   document.addEventListener("pointerup", (e) => { if (!S || e.pointerId !== S.id) return; if (!S.drag) { S = null; return; }
-    const it = under(S.L, e.clientX); end(); sup = Date.now() + 450;
+    const it = under(S.L, PL.matches ? e.clientY : e.clientX); end(); sup = Date.now() + 450;
     if (it) { if (it.classList.contains("on")) requestAnimationFrame(navThumb); else it.click(); } else requestAnimationFrame(navThumb); });
   document.addEventListener("pointercancel", () => { if (S?.drag) { end(); requestAnimationFrame(navThumb); } else S = null; });
   addEventListener("click", (e) => { if (e.isTrusted && Date.now() < sup && e.target.closest?.("#tabs")) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);      // cú click “thật” sau khi lướt (rơi vào thanh) → bỏ, đã mở bằng lướt
@@ -977,7 +984,7 @@ function msSideClose() {
   setTimeout(() => { el.hidden = true; el.classList.remove("side"); sh.style.transform = sh.style.transition = bg.style.opacity = bg.style.transition = ""; document.body.classList.remove("msheet-on"); }, 240);
 }
 document.addEventListener("click", (e) => {
-  if (e.target.closest("#navMore")) { mSheet($("#msheet")?.hidden); return; }
+  if (e.target.closest("#navMore")) { if (PL.matches && $("#msheet")?.hidden) { if (msSideStart()) requestAnimationFrame(() => msSideEnd(true)); return; } mSheet($("#msheet")?.hidden); return; }      // xoay ngang: "Thêm" mở dạng ngăn kéo phải (tấm từ đáy lên quá thấp)
   if (e.target.closest("#msheet [data-close]") || e.target.closest("#msheetB a")) mSheet(false);
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#msheet")?.hidden) mSheet(false); });
@@ -2167,6 +2174,7 @@ function pnOpen(v) {
 // chiều cao phần dính trên cùng: --toph = thanh đầu trang; --stick = thanh đầu + thanh menu ngang (màn 980–1199px) → mọi thứ "dính" bên dưới (tab Bot Phản Xạ, khung bên) không bị che
 function stickH() {
   const d = document.documentElement, top = $(".top"), tb = $("#tabs");
+  if (d.classList.contains("pls")) { ["--toph", "--stick0", "--stick"].forEach((k) => d.style.setProperty(k, "0px")); return; }      // xoay ngang: không còn thanh đầu trang (cột trái thay)
   // ứng dụng (thêm vào màn hình chính): thanh đầu dính ở env(safe-area-inset-top) – phải cộng phần tai thỏ / thanh trạng thái, không thì thanh tab & tiêu đề dính bị thanh MyBit che mất
   const safe = top ? parseFloat(getComputedStyle(top).top) || 0 : 0;
   const h = (top?.offsetHeight || 51) + safe, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
@@ -8925,4 +8933,125 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
   document.addEventListener("pointerdown", (e) => { if (e.button === 0 || e.pointerType !== "mouse") go(e); }, true);      // chạy ngay khi chạm
   document.addEventListener("click", (e) => { if (e.detail === 0) go(e); }, true);      // bàn phím (Enter) không có pointerdown
   window.icPlay = play;
+})();
+
+// ================================================================ 📱↔ XOAY NGANG – BỚT CUỘN (đi cùng khối CSS "ĐIỆN THOẠI XOAY NGANG")
+// (1) thanh MyBit trên cùng tự ẩn khi cuộn xuống, hiện lại khi cuộn lên → thêm ~50px cho nội dung (màn ngang chỉ cao ~390px)
+// (2) chỗ nào có ≥ 2 khung (panel) xếp chồng → xếp 2 cột như 2 màn điện thoại dọc đặt cạnh nhau (khung rộng – bảng nhiều cột, biểu đồ, khung đầu trang – vẫn trải cả hàng)
+//     → trang ngắn đi gần một nửa, mỗi khung hiện trọn trong tầm mắt
+(function plMode() {
+  const d = document.documentElement; let lastY = scrollY, hid = false;
+  const safeTop = () => { const t = document.querySelector(".top"); return t ? parseFloat(getComputedStyle(t).paddingTop) || 0 : 0; };
+  const hide = () => { hid = true; d.classList.add("pl-hide"); const s = safeTop() + "px"; d.style.setProperty("--toph", s); d.style.setProperty("--stick0", s); d.style.setProperty("--stick", s); };
+  const show = () => { if (!hid) return; hid = false; d.classList.remove("pl-hide"); try { stickH(); } catch (e) { /* bỏ qua */ } };
+  addEventListener("scroll", () => {
+    const y = scrollY, dy = y - lastY; lastY = y;
+    if (!PL.matches || y < 60 || d.classList.contains("pls")) { show(); return; }
+    if (dy > 6 && !hid) hide(); else if (dy < -12) show();
+  }, { passive: true });
+  addEventListener("hashchange", show);
+  const wide = (p) => p.matches(".hero,.sc-hero,.pf-hero,.pl-full") || !!p.querySelector(".tv-lightweight-charts,.lanes") || [...p.querySelectorAll("table")].some((t) => (t.rows[0]?.cells.length || 0) > 5);
+  const mark = () => {
+    const app = document.getElementById("app"); if (!app) return;
+    if (!PL.matches) { app.querySelectorAll(".pl-flow").forEach((e) => e.classList.remove("pl-flow")); if (app.classList.contains("pl-flow")) app.classList.remove("pl-flow"); return; }
+    for (const el of [app, ...app.querySelectorAll(":scope > div, :scope > div > div, .sc-body, .st-wrap")]) {
+      const kids = [...el.children].filter((c) => c.matches(".panel") && c.offsetParent !== null);
+      if (kids.length >= 2 && !el.matches(".g,.lanes,.kpis,.stg,.bh-grid")) {
+        el.classList.add("pl-flow"); kids.forEach((k) => k.classList.add("pl-wide"));
+        // khung rất dài (đo khi trải cả hàng > 1,6 màn hình) mà ép vào nửa hàng sẽ càng dài thêm → để trải cả hàng; khung vừa phải mới xếp 2 cột
+        const H = innerHeight * 1.6, hs = kids.map((k) => k.offsetHeight); kids.forEach((k, i) => { if (!wide(k) && hs[i] < H) k.classList.remove("pl-wide"); });
+        // ghép cặp theo đúng thứ tự: khung hẹp đứng lẻ (không có khung hẹp kề bên) → trải cả hàng, không để nửa hàng trống
+        let run = []; const flush = () => { if (run.length % 2) run[run.length - 1].classList.add("pl-wide"); run = []; };
+        for (const c of el.children) { if (c.offsetParent === null && !c.matches(".panel")) continue; if (c.matches(".panel") && !c.classList.contains("pl-wide")) run.push(c); else if (c.getBoundingClientRect().height > 0 || c.matches(".panel")) flush(); }
+        flush();
+      }
+      else el.classList.remove("pl-flow");
+    }
+  };
+  let t = 0; const later = () => { clearTimeout(t); t = setTimeout(mark, 120); };
+  const go = () => { const app = document.getElementById("app"); if (!app) return setTimeout(go, 300); new MutationObserver(later).observe(app, { childList: true, subtree: true }); later(); };
+  go(); PL.addEventListener?.("change", () => { show(); later(); });
+})();
+
+// ================================================================ 📱↔ XOAY NGANG: 2–3 THANH DỌC NHỎ BÊN TRÁI (thay thanh đầu trang + thanh điều hướng + hàng bộ lọc)
+//   thanh 1 (hẹp, chỉ biểu tượng): MyBit · 5 nhóm trang · 🔍 🔔 👤
+//   thanh 2: các trang trong nhóm đang xem → tab của trang đang mở (Tổng quan · Lệnh…) · dòng mô tả trang
+//   thanh 3 (chỉ khi trang có bộ lọc): Tiền thật / Sàn thử · Tất cả / Đang mở… · 7/30/90 ngày… DỜI hẳn từ đầu trang sang, xếp dọc
+//   → nội dung bên phải chỉ còn số liệu, trọn chiều cao màn hình
+(function plSide() {
+  let box = null, t = 0;
+  const txt = (n) => (n?.textContent || "").replace(/\s+/g, " ").trim();
+  const ico = (a) => a?.querySelector("svg")?.outerHTML || "";
+  const TABQ = "#app [data-sctab], #app .dj-seg > a, #app .subtabs > a, #app .subtabs > button";
+  const SV = { q: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', b: '<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>' };
+  const sv = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const setW = () => { if (!box) return; const n3 = !!box.__tabs || !!box.querySelector('.pls-dock .pls-slot:not([data-k^="#app > .ph:not(.stk) > .meta"])'); document.documentElement.classList.toggle("pls-no3", !n3); box.classList.toggle("has3", n3); document.documentElement.style.setProperty("--pls-w", (n3 ? "var(--pls-w3)" : "var(--pls-w2)")); };
+  const build = () => {
+    if (!PL.matches) { if (box) { undock(); box.remove(); box = null; document.documentElement.classList.remove("pls"); try { stickH(); } catch (e) { /* bỏ qua */ } } return; }
+    const nav = document.getElementById("tabs"); if (!nav || !document.getElementById("app")) return;
+    if (!box) {
+      box = document.createElement("aside"); box.id = "plSide"; box.setAttribute("aria-label", bi("Điều hướng", "Navigation"));
+      box.innerHTML = `<nav class="pls-c pls-c1"></nav><nav class="pls-c pls-c2"></nav><div class="pls-c pls-c3"><div class="pls-c3h"></div><div class="pls-dock"></div></div>`;
+      document.body.appendChild(box);
+      box.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-plx]"); if (b) { e.preventDefault(); document.querySelector(b.dataset.plx)?.click(); return; }
+        const tb = e.target.closest("[data-pltab]"); if (tb) { e.preventDefault(); document.querySelectorAll(TABQ)[+tb.dataset.pltab]?.click(); setTimeout(later, 60); }
+      });
+    }
+    if (!document.documentElement.classList.contains("pls")) { document.documentElement.classList.add("pls"); try { stickH(); } catch (e) { /* bỏ qua */ } }
+    // nhóm trang lấy từ chính thanh điều hướng (luôn khớp menu máy tính)
+    const G = []; let g = null;
+    for (const n of nav.children) {
+      if (n.classList.contains("nav-g")) { if (n.classList.contains("nav-scg")) { g = null; continue; } g = { name: txt(n.querySelector("b")) || txt(n), items: [] }; G.push(g); continue; }
+      if (g && n.tagName === "A" && n.getAttribute("href")?.startsWith("#/") && !n.classList.contains("nav-cus") && !n.classList.contains("nav-kb")) g.items.push(n);
+    }
+    const cur = G.find((x) => x.items.some((a) => a.classList.contains("on"))) || G[0];
+    const tabs = [...document.querySelectorAll(TABQ)];
+    const tabOn = (x) => x.classList.contains("on") || x.getAttribute("aria-selected") === "true" || x.getAttribute("aria-current") === "page";
+    const bellN = document.getElementById("bellN"), bn = bellN && !bellN.hidden ? txt(bellN) : "";
+    // thanh 1
+    let h1 = `<a href="#/" class="pls-brand" aria-label="MyBit"><i></i></a><div class="pls-gs">`;
+    for (const gr of G) { if (!gr.items.length) continue; const main = gr.items.find((a) => a.classList.contains("nav-m")) || gr.items[0];
+      h1 += `<a class="pls-g${gr === cur ? " on" : ""}" href="${main.getAttribute("href")}" title="${esc(gr.name)}" aria-label="${esc(gr.name)}">${ico(main)}</a>`; }
+    h1 += `</div><div class="pls-act"><button type="button" data-plx="#qBtn" aria-label="${bi("Tìm", "Search")}">${sv(SV.q)}</button><button type="button" data-plx="#bell" aria-label="${bi("Thông báo", "Notifications")}">${sv(SV.b)}${bn ? `<b>${esc(bn)}</b>` : ""}</button><button type="button" data-plx="#meBtn" class="pls-me" aria-label="${bi("Tài khoản", "Account")}">${esc(txt(document.getElementById("meBtn")) || "👤")}</button></div>`;
+    // thanh 2: các trang trong nhóm – CHỈ BIỂU TƯỢNG (xoay ngang ưu tiên chỗ cho nội dung; giữ lâu / rê chuột thấy tên)
+    let h2 = "", pg = null;
+    for (const a of cur?.items || []) { const on = a.classList.contains("on"); if (on) pg = a; const nm = txt(a.querySelector(".nav-t")) || txt(a);
+      h2 += `<a class="pls-p${on ? " on" : ""}" href="${a.getAttribute("href")}" title="${esc(nm)}" aria-label="${esc(nm)}">${ico(a) || `<b>${esc(nm[0] || "•")}</b>`}</a>`; }
+    // thanh 3: tên trang + tab của trang (chữ – tab không có biểu tượng riêng) – bộ lọc dời sang nối tiếp bên dưới
+    const h3 = `<p class="pls-pn">${esc(pg ? txt(pg.querySelector(".nav-t")) || txt(pg) : "")}</p>${tabs.length > 1 ? `<div class="pls-t">${tabs.map((x, i) => `<a href="#" data-pltab="${i}" class="${tabOn(x) ? "on" : ""}">${esc(txt(x.querySelector(".sct-t,.dl,:scope > span")) || txt(x).replace(/\d+$/, "").trim())}${x.querySelector(".sc-bdg") ? `<i>${esc(txt(x.querySelector(".sc-bdg")))}</i>` : ""}</a>`).join("")}</div>` : ""}`;
+    box.__tabs = tabs.length > 1;
+    const C1 = box.querySelector(".pls-c1"), C2 = box.querySelector(".pls-c2"), C3 = box.querySelector(".pls-c3h");
+    if (C1.__h !== h1) { C1.__h = h1; C1.innerHTML = h1; }
+    if (C2.__h !== h2) { C2.__h = h2; C2.innerHTML = h2; }
+    if (C3.__h !== h3) { C3.__h = h3; C3.innerHTML = h3; }
+    dock(); setW();
+  };
+  // 🧲 bộ lọc đầu trang → thanh 3 (dời chính phần tử nên mọi nút vẫn chạy như cũ); trang vẽ lại → bản mới thay bản cũ; xoay dọc lại → trả về chỗ cũ
+  const DOCKQ = ["#app > .sc-tbar > .sc-env", "#app > .sc-body > .sc-ofl", "#app > .bseg", "#app > .jf", "#app > .filters", "#app > div > .bseg.dseg"];
+  const docked = new Map();
+  function dock() {
+    const D = box?.querySelector(".pls-dock"); if (!D) return;
+    // dòng mô tả trang chỉ dời sang khi đã có thanh 3 (có tab / bộ lọc); không thì để nguyên trong trang cạnh tiêu đề
+    const Q = [...DOCKQ]; if (box.__tabs || DOCKQ.some((q) => [...document.querySelectorAll(q)].some((e) => e.__pld || e.getBoundingClientRect().height > 0))) Q.unshift("#app > .ph:not(.stk) > .meta");      // trang coin (.stk): dòng giá + nhãn quá rộng → để nguyên
+    Q.forEach((q) => document.querySelectorAll(q).forEach((el, i) => {
+      if (el.__pld || (el.getBoundingClientRect().height === 0 && !el.matches(".ph > .meta"))) return;
+      const k = q + "#" + i, old = docked.get(k); if (old && old.el !== el) old.el.remove();
+      docked.set(k, { el, home: el.parentNode, next: el.nextSibling }); el.__pld = 1; el.classList.add("pld"); if (el.matches(".meta")) el.parentNode?.classList.add("pl-metad");
+      const slot = D.querySelector(`[data-k="${CSS.escape(k)}"]`) || D.appendChild(Object.assign(document.createElement("div"), { className: "pls-slot" })); slot.dataset.k = k;
+      slot.replaceChildren(el);
+    }));
+    D.querySelectorAll(".pls-slot").forEach((sl) => { if (!sl.firstElementChild || !docked.has(sl.dataset.k)) sl.remove(); });
+    const meta = D.querySelector('.pls-slot[data-k^="#app > .ph:not(.stk) > .meta"]'); if (meta && meta !== D.firstElementChild) D.prepend(meta);
+  }
+  function undock() { docked.forEach(({ el, home, next }) => { el.__pld = 0; el.classList.remove("pld"); if (home?.isConnected) home.insertBefore(el, next?.parentNode === home ? next : null); else el.remove(); }); docked.clear(); }
+  addEventListener("hashchange", () => { docked.forEach(({ el }) => el.remove()); docked.clear(); box?.querySelectorAll(".pls-slot").forEach((x) => x.remove()); });
+  const later = () => { clearTimeout(t); t = setTimeout(build, 80); };
+  addEventListener("hashchange", later); PL.addEventListener?.("change", later);
+  const go = () => { const app = document.getElementById("app"), nav = document.getElementById("tabs"); if (!app || !nav) return setTimeout(go, 300);
+    new MutationObserver(later).observe(app, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "aria-selected"] });
+    new MutationObserver(later).observe(nav, { attributes: true, subtree: true, attributeFilter: ["class"] });
+    const bn = document.getElementById("bellN"); if (bn) new MutationObserver(later).observe(bn, { childList: true, attributes: true, characterData: true, subtree: true });
+    later(); };
+  go();
 })();

@@ -1504,7 +1504,7 @@
     if (S.el) { if (A.R) cvDraw(A.R, A.sh, [], S.cfg.skin); return; }      // đổi bộ đồ: canvas vẽ bộ đồ mới ngay khung sau (S.cfg.skin)
     build(); S.nextTalk = now() + 45e3; const ld = loadSheets(); const tr = track(); const fromL = Math.random() < 0.5;
     place(fromL ? tr.l - 140 : tr.r + 140); S.el.style.opacity = "0"; face(fromL ? 1 : -1); S.pose = "enter";      // vào sân: đang ĐỨNG, quay mặt vào trang → bước vào luôn (trước: ngồi ngoài mép, đứng dậy, quay đầu mất ~7 giây)
-    Promise.race([new Promise((r) => { const iv = setInterval(() => { if (SHEET.vwalk || SHEET.walk) { clearInterval(iv); r(); } }, 80); }), ld.then(() => 0), new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { S.el.style.opacity = "";
+    Promise.race([new Promise((r) => { const iv = setInterval(() => { if (SHEET.vwalk || SHEET.walk) { clearInterval(iv); r(); } }, 80); }), ld.then(() => 0), new Promise((r) => setTimeout(r, 2500))]).then(() => requestAnimationFrame(() => { if (!S.el) return; S.el.style.opacity = "";      // na bị tắt ngay lúc đang hiện ra → thôi
       // 🌅 lần đầu mở app trong ngày → chào theo buổi ngay lúc bước vào ("Dậy rồi hả"…), không đợi đi xong
       if (lsGet("nana_hi", 0) && lsGet("na_day", "") !== new Date().toDateString() && S.cfg.talk !== "q") { const k = greetKey(); setTimeout(() => { if (S.el && say(pick(k), 4500, 1) && Math.random() < 0.5) meow(1); }, 1200); } walkTo(rnd(tr.l + (tr.r - tr.l) * 0.2, tr.l + (tr.r - tr.l) * 0.6), () => {
       if (!lsGet("nana_hi", 0)) { lsSet("nana_hi", 1); say(pick("hi"), 6500, 1); setTimeout(() => say(pick("hi2"), 4500, 1), 7000); S.nextTalk = now() + 3 * 60e3; }
