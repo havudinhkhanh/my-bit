@@ -232,6 +232,16 @@
      "te": "Chart: price-line names (entry, close-at, stop…) sit exactly on their lines",
      "d": "Trước nhãn bị đẩy lệch khi gần giá hiện tại (vd. \"vào\" thấp hơn đường vào). Trên điện thoại cột nhãn rộng hơn chút và bỏ biểu tượng đầu tên nên \"hẹn đóng\" không còn bị cắt thành \"hẹ…\".",
      "de": "Names used to be pushed off their line near the current price (e.g. \"entry\" sat below the entry line). On phones the name column is a bit wider and drops the leading icon, so \"close at\" is no longer cut off."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: hiện đủ lệnh chờ thật của anh ở mã đó, mở từ thẻ nào cũng thấy",
+     "te": "Trade chart: shows all your real pending orders on that coin, from any card",
+     "d": "Trước chỉ mở từ thẻ lệnh tay mới thấy; mở từ thẻ lệnh bot (vd. Bắt râu sập) thì không. Giờ gồm cả lệnh chờ đặt từ trang và lệnh LIMIT / STOP anh tự đặt trên app Binance (cần cập nhật máy chủ riêng). Đường giá nằm ngoài khung đang xem (cắt lỗ, lệnh chờ xa) ghim nhãn ở mép trên / dưới kèm ↑ / ↓.",
+     "de": "Previously only charts opened from a manual-trade card showed them; bot cards (e.g. Wick Catcher) didn't. Now includes orders placed from this site and LIMIT / STOP orders you placed in the Binance app (needs the private-server update). Lines outside the visible range (stop, far orders) pin their name to the top / bottom edge with ↑ / ↓.",
+     "f": "bot",
+     "hi": 1
     }
    ]
   },

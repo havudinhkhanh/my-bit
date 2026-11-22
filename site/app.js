@@ -263,15 +263,16 @@ function pxTags(el, c, cs, lines, cur) {
   const tip = document.createElement("div"); tip.className = "pxtip"; tip.hidden = true; el.appendChild(tip);
   const tg = L.map((l) => { const d = document.createElement("span"); d.className = "pxtag"; d.style.setProperty("--c", l.color || css("--ink-3")); d.textContent = el.clientWidth < 520 ? String(T(l.title)).replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, "") : T(l.title); d.title = `${T(l.title)} · ${px(+l.price)}`; box.appendChild(d); return { l, d, p: +l.price }; });
   // điện thoại (biểu đồ hẹp): cột tên đường giá tối đa 64px, bỏ biểu tượng đầu tên cho đủ chữ ("hẹn đóng" không còn bị cắt "hẹ…"); chữ dài hơn mới tự "…"
-  const TW = Math.min(el.clientWidth < 520 ? 64 : 96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
+  const TW = Math.min(el.clientWidth < 520 ? 64 : 96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 16); box.style.width = TW + "px"; c._ptW = TW;      // +10: chỗ cho mũi tên ↑ / ↓ khi đường nằm ngoài khung
   c.applyOptions({ rightPriceScale: { minimumWidth: 74 + TW } });
   let raf = 0, alive = true, last = "";
   const place = () => {
     if (!alive) return; if (!el.isConnected) { el._ptStop?.(); return; }
     if (document.hidden || !vis) return;
     let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
-    const V = tg.map((t) => ({ t, y: cs.priceToCoordinate(t.p) })).filter((v) => isNum(v.y) && v.y >= 0 && v.y <= H).sort((a, b) => a.y - b.y);
-    const key = V.map((v) => v.y.toFixed(1)).join() + H; if (key === last) return; last = key;
+    // đường giá NGOÀI khung đang xem (vd. cắt lỗ / lệnh chờ xa): nhãn ghim ở mép trên / dưới kèm ↑ / ↓ → biết là còn đó, không tưởng mất
+    const V = tg.map((t) => { const y0 = cs.priceToCoordinate(t.p); if (!isNum(y0)) return null; const e = y0 < 0 ? -1 : y0 > H ? 1 : 0; return { t, e, y: e < 0 ? 8 : e > 0 ? H - 8 : y0 }; }).filter(Boolean).sort((a, b) => a.y - b.y || a.e - b.e);
+    const key = V.map((v) => v.y.toFixed(1) + v.e).join() + H; if (key === last) return; last = key;
     // nhãn tên nằm ĐÚNG ngang đường giá của nó (trước: bắt chước cách thư viện xếp ô giá, tính cả ô giá hiện tại → ô bị đẩy lệch khỏi đường, vd. "vào" thấp hơn đường vào);
     // chỉ khi 2 nhãn tên chồng lên nhau mới đẩy ra vừa đủ (viền đứt = đã lệch khỏi đường)
     const G = 16, Q = V.map((v, i) => ({ i, y: v.y }));
@@ -279,7 +280,7 @@ function pxTags(el, c, cs, lines, cur) {
     for (let k = Q.length - 1; k >= 0; k--) { const mx = k === Q.length - 1 ? H - 8 : Q[k + 1].y - G; if (Q[k].y > mx) Q[k].y = mx; }
     const Y = V.map((v) => v.y); for (const q of Q) if (q.i >= 0) Y[q.i] = q.y;
     tg.forEach((t) => (t.d.hidden = true));
-    V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", Math.abs(Y[i] - v.y) > 3); });
+    V.forEach((v, i) => { const d = v.t.d; d.hidden = false; d.style.transform = `translateY(${Math.round(Y[i] - 8)}px)`; d.classList.toggle("off", !v.e && Math.abs(Y[i] - v.y) > 3); d.classList.toggle("eu", v.e < 0); d.classList.toggle("ed", v.e > 0); });
   };
   // ⏱ trước: chạy MỖI khung hình (60 lần/giây) cho từng biểu đồ, đọc kích thước khung → trang có biểu đồ luôn bận, cuộn giật.
   //    Giờ: vẽ lại ngay khi kéo / thu phóng / rê trên biểu đồ hoặc đổi cỡ; còn lại dò 3 lần/giây (giá mới, trục tự giãn); khuất màn hình thì nghỉ
@@ -2865,7 +2866,7 @@ function drawO(D, el, o, tf, src) {
         lines.push({ price: P.ep, color: css("--brand"), title: `✋ ${bi("vào", "entry")} ${sd > 0 ? "L" : "S"}`, style: 0, w: 2 });
         const sl = pk(/^STOP/), tp = pk(/^TAKE_PROFIT/); if (sl) lines.push({ price: sl, color: css("--down"), title: `✋ ${bi("cắt lỗ", "stop")}`, style: 2, w: 2 }); if (tp) lines.push({ price: tp, color: css("--up"), title: `✋ ${bi("chốt", "target")}`, style: 2, w: 2 });
         if (P.liq > 0 && P.ep && Math.abs(P.liq / P.ep - 1) < 0.25) lines.push({ price: P.liq, color: css("--warn"), title: `✋ ${bi("thanh lý", "liq.")}`, style: 2 }); }
-      (MN.env === (window.__scCache?.d?.[1]?.data?.live?.env || "live") ? MN.pend || [] : []).filter((m) => m.sym === sym).forEach((m) => lines.push({ price: m.px, color: css("--ink-2") || css("--ink-3"), title: `✋ ${bi("chờ", "limit")} ${m.sd > 0 ? "L" : "S"}`, style: 1, w: 2 }));
+      manPendOf(sym).forEach((m) => lines.push({ price: m.px, color: css("--ink-2") || css("--ink-3"), title: `✋ ${bi("chờ", "limit")} ${m.sd > 0 ? "L" : "S"}`, style: 1, w: 2 }));      // gồm cả lệnh chờ anh đặt trên app Binance
     } } catch (e) { /* chưa mở trang bot → chưa có dữ liệu lệnh tay */ }
   if (lsGet("showZones", true)) (LV.sup || []).slice(0, 2).concat((LV.res || []).slice(0, 2)).forEach((z) => lines.push({ price: z.p, color: z.n >= 3 ? css("--ref") : css("--ink-3"), title: `${z.side} (${z.n})`, style: 1 }));
   const n = o.t.length, show = { "1s": 300, "5s": 240, "15s": 200, "30s": 180, "1m": 240, "5m": 288, "10m": 288, "15m": 192, "30m": 240, "1h": 240, "4h": 240, "1d": 365 }[tf] || n;
@@ -2939,7 +2940,14 @@ function ocInfo(card) {
     if (P && P !== card) { const J = ocInfo0(P, n); Object.assign(I, { e: J.e, sl: J.sl, tp: J.tp, q: J.q, f0: J.f0, fr: J.fr, fund: J.fund, liq: J.liq, end: I.end || J.end, man: true, side: J.side }); }
     I.lv = [...new Set([...I.lv, ...same.filter((c) => c.classList.contains("mpend")).flatMap((c) => [...c.querySelectorAll("[data-lgap][data-px]")].map((x) => n(x.dataset.px)))].filter(Boolean))];
   }
+  I.mp = I.fut ? manPendOf(I.base + "USDT") : [];      // 📍 lệnh chờ THẬT của anh ở mã này (đặt từ trang hoặc trên app Binance) – mở biểu đồ từ thẻ nào (lệnh bot, sàn thử…) cũng thấy
   return I;
+}
+// 📍 lệnh chờ thật của anh ở 1 mã: lệnh chờ giá đặt từ trang (pend) + lệnh LIMIT / STOP anh tự đặt trên app Binance (lim – máy chủ riêng bản mới) · cùng sàn đang chạy
+function manPendOf(sym) {
+  try { const D = window.__scCache?.d?.[1]?.data?.live, MN = D?.man; if (!MN || MN.env !== (D.env || "live")) return [];
+    const A = [...(MN.pend || []).filter((m) => m.sym === sym && +m.px > 0).map((m) => ({ px: +m.px, sd: m.sd > 0 ? 1 : -1 })), ...(MN.lim?.[sym] || []).filter((o) => +o.px > 0).map((o) => ({ px: +o.px, sd: o.sd > 0 ? 1 : -1 }))];
+    return A.filter((a, i) => A.findIndex((b) => Math.abs(b.px / a.px - 1) < 1e-6 && b.sd === a.sd) === i); } catch (e) { return []; }
 }
 function ocInfo0(card, n) { const g = (sel, a) => card.querySelector(sel)?.dataset?.[a];
   return { e: n(g("[data-lpnl]", "e")), sl: n(g("[data-lpnl]", "sl")) || n(g("[data-lsd]", "sl")), tp: n(g("[data-lpnl]", "tp")), q: n(g("[data-lpnl]", "q")), f0: +g("[data-lpnl]", "f0") || 0, fr: +g("[data-lpnl]", "fr") || 0.05,
@@ -3478,8 +3486,9 @@ async function ocDraw(keep) {
   if (I.sl) lines.push({ price: I.sl, color: css("--down"), title: bi("cắt lỗ", "stop") + (I.slP ? " ⏳" : "") });
   if (I.tp) lines.push({ price: I.tp, color: css("--up"), title: bi("chốt", "target") + (I.tpP ? " ⏳" : "") });
   const lvP = I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4);      // mức đã khớp trùng giá vào → không vẽ 2 lần
-  lvP.forEach((v) => lines.push({ price: v, color: css("--ink-3"), title: bi("chờ", "limit"), style: 1 }));
+  lvP.filter((v) => !(I.mp || []).some((m) => Math.abs(m.px / v - 1) < 1e-4)).forEach((v) => lines.push({ price: v, color: css("--ink-3"), title: bi("chờ", "limit"), style: 1 }));      // lệnh chờ thật của anh → vẽ 1 lần bên dưới (có L / S)
   if (!I.e) (I.lf || []).forEach((v) => lines.push({ price: v, color: css("--brand"), title: bi("đã khớp", "filled"), style: 1 }));
+  (I.mp || []).filter((m) => !lines.some((l) => Math.abs(l.price / m.px - 1) < 1e-4)).forEach((m) => lines.push({ price: m.px, color: css("--ink-2") || css("--ink-3"), title: `✋ ${bi("chờ", "limit")} ${m.sd > 0 ? "L" : "S"}`, style: 1, w: 2 }));      // lệnh chờ thật của anh ở mã này (trùng mức đã vẽ thì thôi)
   if (I.ux) lines.push({ price: I.ux, color: css("--brass") || css("--brand"), title: bi("🏁 hẹn đóng", "🏁 close at"), style: 2, w: 2 });      // lệnh chờ đã khớp 1 phần (chưa có giá vào TB)
   const cur0 = o.c[n - 1];
   if (I.liq && Math.abs(I.liq / cur0 - 1) < 0.15) lines.push({ price: I.liq, color: css("--warn") || css("--down"), title: bi("thanh lý", "liq."), style: 2 });      // chỉ vẽ khi gần (xa thì xem ở ô số)

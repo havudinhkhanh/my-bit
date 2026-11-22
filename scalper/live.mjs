@@ -587,15 +587,21 @@ export class LiveExec {
     const MF = this.S.mof?.[env] || {};
     const fx = {}; for (const p of pos) { const F = await this.filters(p.sym).catch(() => null); if (F) fx[p.sym] = { n: F.minN, s: F.step, q: F.minQ }; }      // mức tối thiểu của sàn → trang kiểm tra số tiền vào thêm trước khi gửi
     for (const p of pos) { const f = MF[p.sym]; if (f && f.sd === Math.sign(p.amt) && f.t1) { p.t1 = iso(f.t1); if (Number.isFinite(f.fund)) p.fund = f.fund; if (f.part) p.part = f.part; } }      // 💸 funding đã trả của lệnh tay đang mở (mFund đọc)
-    const ord = {};
+    const ord = {}, lim = {};
+    // 📍 lệnh chờ anh tự đặt trên app Binance (LIMIT / STOP vào lệnh, không phải cắt lỗ / chốt) ở MỌI mã – kể cả mã bot đang có lệnh, mã chưa có vị thế
+    //   → biểu đồ trên trang vẽ đủ (trước: chỉ đọc lệnh của mã có lệnh tay → mở biểu đồ lệnh bot không thấy lệnh chờ của anh). Bỏ lệnh của bot (mb…) & lệnh chờ đặt từ trang (mp…, đã có trong pend)
+    const O0 = await this.req("GET", "/fapi/v1/openOrders", {}).catch(() => null);
+    for (const o of O0 || []) { const cid = String(o.clientOrderId || ""), ro = o.reduceOnly === true || o.reduceOnly === "true", cp = o.closePosition === true || o.closePosition === "true";
+      if (ro || cp || /^m[bp]/.test(cid)) continue; const px0 = +(+o.price || +o.stopPrice || 0); if (!(px0 > 0)) continue;
+      (lim[o.symbol] ||= []).push({ id: o.orderId, type: o.type, sd: o.side === "BUY" ? 1 : -1, px: px0, q: +o.origQty || 0 }); }
     if (pos.some((p) => !p.bot)) {
       const want = new Set(pos.filter((p) => !p.bot).map((p) => p.sym)), put = (o) => { if (want.has(o.sym)) (ord[o.sym] ||= []).push(o); };
-      const O = await this.req("GET", "/fapi/v1/openOrders", {}).catch(() => []);
+      const O = O0 || [];
       for (const o of O || []) put({ sym: o.symbol, id: o.orderId, algo: 0, type: o.type, side: o.side, px: +(+o.stopPrice || +o.price || 0), q: +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
       const A = await this.req("GET", "/fapi/v1/openAlgoOrders", {}).catch(() => []);
       for (const o of (Array.isArray(A) ? A : A?.orders || A?.rows || [])) put({ sym: o.symbol, id: o.algoId, algo: 1, type: o.orderType || o.type || "", side: o.side, px: +(+o.triggerPrice || +o.stopPrice || +o.price || 0), q: +o.quantity || +o.origQty || 0, cp: o.closePosition === true || o.closePosition === "true", ro: o.reduceOnly === true || o.reduceOnly === "true" });
     }
-    this.S.man = { env, at: iso(Date.now()), pos, ord, lk: this.S.mlk || {}, fx, cap: ["mlo", "swa", "mln", "cres"],
+    this.S.man = { env, at: iso(Date.now()), pos, ord, lim, lk: this.S.mlk || {}, fx, cap: ["mlo", "swa", "mln", "cres"],
       pend: Object.values(this.S.mo || {}).filter((m) => !m.done && m.env === env).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, q: m.q, usd: m.usd, lev: m.lev, sl: m.sl, tp: m.tp, kind: m.kind, avg: !!m.avg, t0: m.t0, vd: m.vd, eh: m.eh })),
       pdone: Object.values(this.S.mo || {}).filter((m) => m.done && m.env === env && Date.now() - (m.t2 || 0) < 86400e3).slice(-10).map((m) => ({ id: m.id, sym: m.sym, sd: m.sd, px: m.px, st: m.st, t2: m.t2 })) };
   }
