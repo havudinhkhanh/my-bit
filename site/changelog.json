@@ -269,6 +269,15 @@
      "te": "Avg long / short entry: \"Avg long\" / \"Avg short\" names sit in the column right of the price axis",
      "d": "Cùng chỗ với \"vào\", \"chốt\"…, có ô giá trên trục; không còn đè lên nến. Nằm ngoài khung đang xem thì ghim mép kèm ↑ / ↓.",
      "de": "Same place as \"entry\", \"target\"…, with a price box on the axis; no longer covers the candles. Off-screen ones pin to the edge with ↑ / ↓."
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: toàn màn hình (nút ⛶ hoặc kéo vạch trên cùng lên) và xoay ngang",
+     "te": "Trade chart: full screen (⛶ button or drag the top handle up) and landscape",
+     "d": "Kéo vạch trên cùng của bảng biểu đồ lên = toàn trang; kéo xuống vừa = về cỡ thường, kéo thật xa mới đóng. Nút xoay ngang: máy cho khoá hướng thì xoay thật, iPhone (khoá xoay màn hình) thì xoay cả khung biểu đồ – kéo nến, chạm chọn giá vẫn đúng hướng. Trang phân tích coin cũng có nút xoay ngang cạnh ⛶.",
+     "de": "Drag the chart sheet's top handle up for full page; drag down a bit to go back, far to close. Landscape button: real orientation lock where allowed; on iPhone (rotation locked) the whole chart rotates – panning and picking prices still follow your finger. Coin pages get the landscape button next to ⛶.",
+     "hi": 1
     }
    ]
   },

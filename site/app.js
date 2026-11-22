@@ -18,6 +18,35 @@ const EN = LANG === "en", bi = (vi, en) => (EN ? en : vi);
 const PL = matchMedia("(orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse)");
 PL.addEventListener?.("change", () => { document.documentElement.classList.toggle("pl", PL.matches); setTimeout(() => { try { navThumb(); } catch (e) { /* bỏ qua */ } }, 60); });
 document.documentElement.classList.toggle("pl", PL.matches);      // câu có số thay đổi: viết song ngữ ngay tại chỗ (từ điển cụm từ chỉ hợp với chữ cố định)
+// 🔄 XOAY NGANG BIỂU ĐỒ khi máy không tự xoay (iPhone khoá xoay màn hình / trình duyệt không cho khoá hướng): xoay CẢ KHỐI biểu đồ 90° bằng CSS.
+//   Thư viện biểu đồ (và các lớp vẽ của trang) tính vị trí ngón tay = toạ độ màn hình − khung phần tử → trong khối xoay phải đổi CẢ HAI về toạ độ "đứng thẳng" của khối:
+//   • khung phần tử (getBoundingClientRect) của mọi thứ trong khối xoay → đổi về hệ toạ độ của khối (khối = gốc 0,0, rộng = chiều cao màn hình)
+//   • toạ độ chạm / chuột của sự kiện trong khối → đổi tương ứng (bắt ở pha capture trên window – chạy trước mọi trình nghe khác)
+//   Màn hình (X,Y) ↔ khối (x,y): X = W − y, Y = x (W = bề ngang màn hình) ⇒ x = Y, y = W − X
+const ROTB = { el: null };
+(() => {
+  const R0 = Element.prototype.getBoundingClientRect;
+  Element.prototype.getBoundingClientRect = function () {
+    const B = ROTB.el; if (!B || !B.isConnected || !B.contains(this)) return R0.call(this);
+    const r = R0.call(this), W = innerWidth; return new DOMRect(r.top, W - r.right, r.height, r.width);
+  };
+  const fix = (o) => { if (!o || o.__rf) return; const X = o.clientX, Y = o.clientY, W = innerWidth; if (!isFinite(X) || !isFinite(Y)) return;
+    try { Object.defineProperties(o, { clientX: { value: Y, configurable: true }, clientY: { value: W - X, configurable: true }, pageX: { value: Y + scrollX, configurable: true }, pageY: { value: W - X + scrollY, configurable: true }, x: { value: Y, configurable: true }, y: { value: W - X, configurable: true }, __rf: { value: 1 } }); } catch (e) { /* bỏ qua */ } };
+  const on = (e) => { const B = ROTB.el; if (!B || !(e.target instanceof Node) || !B.contains(e.target)) return; fix(e); for (const L of [e.touches, e.changedTouches, e.targetTouches]) if (L) for (let i = 0; i < L.length; i++) fix(L[i]); };
+  ["pointerdown", "pointermove", "pointerup", "pointercancel", "pointerover", "pointerout", "pointerenter", "pointerleave", "mousedown", "mousemove", "mouseup", "mouseover", "mouseout", "mouseenter", "mouseleave", "click", "dblclick", "contextmenu", "wheel", "touchstart", "touchmove", "touchend", "touchcancel"]
+    .forEach((t) => addEventListener(t, on, { capture: true, passive: true }));
+})();
+// bật / tắt xoay 1 khối (null = tắt): kích thước khối = màn hình đảo chiều, đặt lại khi đổi cỡ màn hình
+function rotBox(el) {
+  const old = ROTB.el; if (old && old !== el) { old.classList.remove("rot90"); old.style.removeProperty("--rw"); old.style.removeProperty("--rh"); }
+  ROTB.el = el || null; document.documentElement.classList.toggle("rot-on", !!el);
+  if (el) { el.classList.add("rot90"); el.style.setProperty("--rw", innerHeight + "px"); el.style.setProperty("--rh", innerWidth + "px"); }
+  requestAnimationFrame(() => dispatchEvent(new Event("resize")));
+}
+addEventListener("resize", () => { const B = ROTB.el; if (!B) return; if (innerWidth > innerHeight) { B.dispatchEvent(new CustomEvent("rotoff")); return; } B.style.setProperty("--rw", innerHeight + "px"); B.style.setProperty("--rh", innerWidth + "px"); });      // máy đã tự xoay ngang → bỏ xoay CSS (không xoay 2 lần)
+// 📐 khoá hướng ngang thật (Android / trình duyệt hỗ trợ): toàn màn hình + khoá ngang · không được thì trả về false để dùng xoay CSS
+async function lockLand(el) { try { if (!screen.orientation?.lock || !document.fullscreenEnabled) return false; if (!document.fullscreenElement) await el.requestFullscreen({ navigationUI: "hide" }); await screen.orientation.lock("landscape"); return true; } catch (e) { try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (x) { /* bỏ qua */ } return false; } }
+async function unlockLand() { try { screen.orientation?.unlock?.(); } catch (e) { /* bỏ qua */ } try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) { /* bỏ qua */ } }
 const LOC = { vi: "vi-VN", en: "en-US", de: "de-DE", fi: "fi-FI", it: "it-IT", zh: "zh-CN", fr: "fr-FR", ja: "ja-JP", ko: "ko-KR", es: "es-ES" }[LANG] || "en-US";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -501,15 +530,22 @@ document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-
 // 📈 biểu đồ trang coin: toàn màn hình CẢ khối (thanh khung giờ + nến + RSI/MACD/CVD), như ứng dụng giao dịch
 function cvFs(on) {
   const w = document.querySelector(".cv-chart"); if (!w) return false;
-  on = on ?? !w.classList.contains("cv-fs");
+  on = on ?? !w.classList.contains("cv-fs"); if (!on && (w.classList.contains("rot") || w.classList.contains("land"))) cvRot(false);
   w.classList.toggle("cv-fs", on); document.body.classList.toggle("cz-lock", on);
   w.querySelector("[data-cvfs]")?.classList.toggle("on", on);
   requestAnimationFrame(() => window.dispatchEvent(new Event("resize")));
   return true;
 }
 document.addEventListener("click", (e) => { if (e.target.closest?.("[data-cvfs]")) { e.preventDefault(); cvFs(); } });
+// 🔄 trang coin: xoay ngang biểu đồ (khoá ngang thật nếu máy cho, không thì xoay CSS cả khối toàn màn hình)
+async function cvRot(on) { const w = document.querySelector(".cv-chart"); if (!w) return; on = on ?? !(w.classList.contains("rot") || w.classList.contains("land")); w.querySelector("[data-cvrot]")?.classList.toggle("on", on);
+  if (!on) { if (ROTB.el === w) rotBox(null); w.classList.remove("rot", "land"); unlockLand(); requestAnimationFrame(() => dispatchEvent(new Event("resize"))); return; }
+  cvFs(true); if (await lockLand(w)) { w.classList.add("land"); return; }
+  w.classList.add("rot"); rotBox(w); w.addEventListener("rotoff", () => cvRot(false), { once: true }); }
+document.addEventListener("click", (e) => { if (e.target.closest?.("[data-cvrot]")) { e.preventDefault(); cvRot(); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.querySelector(".cv-chart.cv-fs")) cvFs(false); });
-addEventListener("hashchange", () => { if (document.querySelector(".cv-fs") || document.body.classList.contains("cz-lock")) { document.querySelector(".cv-fs")?.classList.remove("cv-fs"); document.body.classList.remove("cz-lock"); } });
+addEventListener("hashchange", () => { if (ROTB.el) { rotBox(null); unlockLand(); document.querySelectorAll(".cv-chart.rot,.cv-chart.land").forEach((x) => x.classList.remove("rot", "land")); }
+  if (document.querySelector(".cv-fs") || document.body.classList.contains("cz-lock")) { document.querySelector(".cv-fs")?.classList.remove("cv-fs"); document.body.classList.remove("cz-lock"); } });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { const f = $(".cz-full"); if (f) czSet(f, "full"); } });
 // ---------------------------------------------------------------- BẢNG TỰ GỌN: bảng rộng hơn khung (máy tính có mở bảng phụ, máy tính bảng…)
 // Bước 1: tiêu đề được xuống dòng + bớt khoảng cách · Bước 2: chữ nhỏ hơn chút · Bước 3: ẩn cột phụ (theo tên cột) · còn tràn thì mờ mép phải để biết còn cột.
@@ -1352,7 +1388,7 @@ const SHEETS = [
   let D = null;
   const scroller = (t, sh) => { for (let n = t; n && n !== sh.parentNode; n = n.parentNode) { if (n.nodeType === 1 && n.scrollHeight > n.clientHeight + 2 && /auto|scroll/.test(getComputedStyle(n).overflowY)) return n; } return null; };
   addEventListener("touchstart", (e) => {
-    D = null; if (!MOB.matches || e.touches.length !== 1) return;
+    D = null; if (ROTB.el || !MOB.matches || e.touches.length !== 1) return;      // đang xoay ngang biểu đồ: không kéo đóng bảng
     for (const [sel, close] of SHEETS) {
       const sh = e.target.closest?.(sel); if (!sh) continue;
       if (sel === ".sc-set" && !document.body.classList.contains("sc-set-on")) return;
@@ -1373,9 +1409,11 @@ const SHEETS = [
     if (!D.on) {
       if (dy < -4 && !D.head) { D = null; return; }            // vuốt lên trong nội dung = cuộn bình thường
       if (Math.abs(e.touches[0].clientX - D.x0) > Math.abs(dy)) { D = null; return; }      // vuốt ngang (mở Bảng phụ, kéo nến…) ≠ kéo xuống để đóng
-      if (dy < 8) return;
-      D.on = true; D.sh.style.transition = "none";
+      const fsOk = D.head && D.sh.matches(".occ-p") && !D.sh.parentNode.classList.contains("fs") && !ROTB.el;      // biểu đồ lệnh: kéo vạch trên cùng LÊN → mở toàn màn hình
+      if (dy < 8 && !(fsOk && dy < -8)) return;
+      D.on = true; D.sh.style.transition = "none"; if (dy < 0) { D.up = true; D.h0 = D.sh.offsetHeight; }
     }
+    if (D.up) { D.dy = dy; D.sh.style.height = Math.round(Math.min(innerHeight, Math.max(D.h0, D.h0 - dy))) + "px"; if (e.cancelable) e.preventDefault(); return; }
     D.dy = Math.max(0, dy);
     D.sh.style.transform = `translateY(${D.dy}px)`;
     const bg = D.sh.previousElementSibling; if (bg?.classList.contains("occ-bg")) { bg.style.transition = "none"; bg.style.opacity = String(Math.max(0.15, 1 - D.dy / (D.sh.offsetHeight || 600))); }      // nền tối nhạt dần theo tay
@@ -1384,6 +1422,10 @@ const SHEETS = [
   addEventListener("touchend", () => {
     if (!D) return; const d = D; D = null; if (!d.on) return;
     const v = d.dy / Math.max(1, Date.now() - d.t0);
+    if (d.up) { const full = d.sh.offsetHeight - d.h0 > 50 || v < -0.4; d.sh.style.transition = "height .26s cubic-bezier(.32,.72,0,1)"; d.sh.style.height = (full ? innerHeight : d.h0) + "px";
+      setTimeout(() => { if (full) ocFs(true); d.sh.style.height = ""; d.sh.style.transition = ""; }, 280); return; }
+    if (d.sh.matches(".occ-p") && d.sh.parentNode.classList.contains("fs") && d.dy < d.sh.offsetHeight * 0.45 && (d.dy > 60 || v > 0.5)) {      // đang toàn màn hình: kéo xuống vừa → về cỡ thường (kéo thật xa mới đóng)
+      d.sh.style.transition = SHEET_EASE; d.sh.style.transform = ""; ocFs(false); const bg = d.sh.previousElementSibling; if (bg) { bg.style.transition = "opacity .3s"; bg.style.opacity = ""; } setTimeout(() => (d.sh.style.transition = ""), 360); return; }
     d.sh.style.transition = SHEET_EASE;
     if (d.dy > Math.min(140, d.sh.offsetHeight * 0.3) || (v > 0.5 && d.dy > 40)) {
       d.sh.style.transform = "translateY(105%)";
@@ -1511,7 +1553,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   let st = null;
   const ui = () => { let u = document.getElementById("swNav"); if (!u) { u = document.createElement("div"); u.id = "swNav"; u.setAttribute("aria-hidden", "true"); u.innerHTML = '<div class="sw-under"><span class="sw-t"></span></div><i class="sw-ar"></i>'; document.body.appendChild(u); } return u; };
   addEventListener("touchstart", (e) => {
-    st = null; if (e.touches.length !== 1 || blocked() || e.target.closest?.("#mun,[data-noswipe]")) return;      // vuốt trên mèo (vuốt lông) không chuyển trang
+    st = null; if (ROTB.el || e.touches.length !== 1 || blocked() || e.target.closest?.("#mun,[data-noswipe]")) return;      // vuốt trên mèo (vuốt lông) không chuyển trang
     const x = e.touches[0].clientX, y = e.touches[0].clientY, W = innerWidth, i = navI();
     const dir = x <= EDGE && i > 1 ? "back" : x >= W - EDGE && i < NAVH.max && !document.body.classList.contains("pn-has") ? "fwd" : null;      // trang có Bảng phụ: mép phải dành để kéo Bảng phụ ra (swipePanel)
     if (dir) st = { dir, x, y, t: Date.now(), dx: 0, lock: false };
@@ -1596,7 +1638,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
   let st = null;
   addEventListener("touchstart", (e) => {
-    st = null; const b = document.body; if (!mq.matches || e.touches.length !== 1 || e.target.closest?.("#mun,[data-noswipe]")) return;
+    st = null; const b = document.body; if (ROTB.el || !mq.matches || e.touches.length !== 1 || e.target.closest?.("#mun,[data-noswipe]")) return;
     const x = e.touches[0].clientX, y = e.touches[0].clientY, N = $("#pnav"), S = $("#pnShade"), open = b.classList.contains("pn-sheet");
     // bảng "Thêm" đang mở dạng ngăn kéo phải → kéo sang phải để đóng (đi theo tay)
     const M = $("#msheet"); if (M && !M.hidden && M.classList.contains("side")) { const I = M.querySelector(".msheet-in"); if ((I.contains(e.target) && !hx(e.target, I)) || e.target.classList.contains("msheet-bg")) st = { m: "mclose", x, y, t: Date.now(), off: 0, lock: false }; return; }
@@ -2972,7 +3014,16 @@ new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) i
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
-function ocClose() { clearInterval(OCC.fdT); OCC.fdT = 0; OCC.fd = null; try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
+// ⛶ biểu đồ lệnh TOÀN MÀN HÌNH (nút ⛶ hoặc kéo vạch trên cùng lên) · 🔄 XOAY NGANG (khoá ngang thật nếu máy cho, không thì xoay CSS cả khung)
+function ocFs(on) { const m = document.getElementById("ocChart"); if (!m) return; on = on ?? !m.classList.contains("fs"); m.classList.toggle("fs", on); m.querySelector("[data-ocfs]")?.classList.toggle("on", on);
+  if (!on && (m.classList.contains("rot") || m.classList.contains("land"))) ocRot(false); requestAnimationFrame(() => dispatchEvent(new Event("resize"))); }
+async function ocRot(on) { const m = document.getElementById("ocChart"), P = m?.querySelector(".occ-p"); if (!P) return; on = on ?? !(m.classList.contains("rot") || m.classList.contains("land"));
+  m.querySelector("[data-ocrot]")?.classList.toggle("on", on);
+  if (!on) { if (ROTB.el === P) rotBox(null); m.classList.remove("rot", "land"); unlockLand(); requestAnimationFrame(() => dispatchEvent(new Event("resize"))); return; }
+  ocFs(true); if (await lockLand(m)) { m.classList.add("land"); return; }
+  m.classList.add("rot"); rotBox(P); P.addEventListener("rotoff", () => ocRot(false), { once: true }); }
+function ocClose() { { const m0 = document.getElementById("ocChart"); if (m0 && (m0.classList.contains("rot") || m0.classList.contains("land"))) { if (ROTB.el && m0.contains(ROTB.el)) rotBox(null); unlockLand(); } }
+ clearInterval(OCC.fdT); OCC.fdT = 0; OCC.fd = null; try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
   if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
 // 💸 FUNDING + TỈ LỆ LONG/SHORT của mã đang xem (Binance futures): funding dương = phe Long trả phe Short (Long đông hơn), âm = ngược lại.
 //    Tỉ lệ tài khoản Long/Short (5 phút gần nhất) – gói Pro (cùng nhóm dữ liệu phái sinh như tường lệnh / vùng thanh lý). Tự làm mới mỗi phút khi biểu đồ đang mở.
@@ -3037,7 +3088,7 @@ function ocOpen(I) {
     <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
       <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"], ["ob", bi("Tường lệnh", "Order walls")], ...(I.fut ? [["pos", bi("Long/Short còn giữ", "Open L/S")], ["lqn", bi("Thanh lý gần", "Liq. near")], ["lqf", bi("Thanh lý xa", "Liq. far")]] : [])].map(([k, t]) => { const ly = OCL.includes(k), lk = ly && !can("futures"), v = k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k);
         const tip = { pos: esc(POS_TIP()), ob: bi("Khối lệnh chờ lớn trên sổ lệnh Binance (±12% quanh giá) – làm mới 10 giây/lần", "Large resting orders on the Binance book (±12%) – refreshed every 10 s"), lqn: bi("ƯỚC TÍNH vùng nhiều vị thế đòn bẩy bị thanh lý trong ±8% quanh giá – theo khối lượng 3 ngày & đòn bẩy phổ biến, không phải dữ liệu sàn", "ESTIMATED liquidation clusters within ±8% – from 3-day volume & common leverage, not exchange data"), lqf: bi("ƯỚC TÍNH vùng thanh lý xa (8–30% từ giá) – ngoài khung đang xem thì hiện nhãn ở mép trên / dưới", "ESTIMATED far liquidation clusters (8–30%) – shown as edge labels when off-screen") }[k];
-        return `<button type="button" data-octg="${k}" class="${v && !lk ? "on" : ""}${lk ? " lk" : ""}"${tip ? ` title="${tip}"` : ""}>${t}${lk ? " <small>★ Pro</small>" : ""}</button>`; }).join("")}</span></div>
+        return `<button type="button" data-octg="${k}" class="${v && !lk ? "on" : ""}${lk ? " lk" : ""}"${tip ? ` title="${tip}"` : ""}>${t}${lk ? " <small>★ Pro</small>" : ""}</button>`; }).join("")}</span><span class="occ-fsw"><button type="button" class="cv-fsb" data-ocfs title="${bi("Toàn màn hình · kéo vạch trên cùng lên cũng được", "Full screen · or drag the top handle up")}" aria-label="${bi("Toàn màn hình", "Full screen")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><button type="button" class="cv-fsb occ-rotb" data-ocrot title="${bi("Xoay ngang biểu đồ (không cần mở khoá xoay màn hình)", "Rotate chart to landscape")}" aria-label="${bi("Xoay ngang", "Landscape")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="13" height="10" rx="2"/><path d="M13 3.5a7 7 0 0 1 7 7"/><path d="M20.5 6.5v4h-4"/></svg></button></span></div>
     <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<span id="occOb"></span><span id="occPos"></span><small class="faint" id="occSrc"></small></div>
     <div class="occ-c" id="occC"></div><div class="occ-ohlc" id="occO"></div><div class="occ-rsi" id="occR"></div></div>`;
   document.body.appendChild(m);
@@ -3053,6 +3104,7 @@ function ocOpen(I) {
   m.querySelector(".occ-go").onclick = () => ocClose();
   m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg; if (b.classList.contains("lk")) { toast(bi("Tường lệnh, vùng Long/Short còn giữ & vùng thanh lý thuộc gói Pro", "Order walls, open L/S zones & liquidation zones are in Pro"), { type: "warn" }); return; }
     const v = !(k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k)); lsSet("oc_" + k, v); b.classList.toggle("on", v); if (OCL.includes(k)) OCC.mkLayer?.(); else ocDraw(true); }));      // lớp vẽ: chỉ gắn / gỡ lớp · EMA / KL / RSI: dựng lại nhưng giữ khung đang xem
+  m.querySelector("[data-ocfs]").onclick = () => ocFs(); m.querySelector("[data-ocrot]").onclick = () => ocRot();
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   ocDraw(); ocFund(I);
@@ -3644,7 +3696,7 @@ async function ocDraw(keep) {
     };
   } catch (e) { /* trình duyệt chặn websocket */ }
 }
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && document.getElementById("ocChart")) { e.stopPropagation(); ocClose(); } }, true);
+document.addEventListener("keydown", (e) => { const m = document.getElementById("ocChart"); if (e.key === "Escape" && m) { e.stopPropagation(); if (m.classList.contains("fs")) ocFs(false); else ocClose(); } }, true);      // toàn màn hình: Esc về cỡ thường trước
 addEventListener("hashchange", () => { if (document.getElementById("ocChart")) ocClose(); });
 function livePx(k, p) {
   const el = $("#lp"); if (!el || el.dataset.k !== k) return;
@@ -3659,7 +3711,7 @@ function bindChart(D) {
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
   [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"], ["#pst", "showPos"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { if (id === "#pst" && !can("futures")) { z.checked = false; toast(bi("Vùng Long / Short còn giữ thuộc gói Pro", "Open L/S zones are in Pro"), { type: "warn" }); return; } lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label>${D.row?.bf ? `<label class="chk${can("futures") ? "" : " lk"}" title="${esc(POS_TIP())}"><input type="checkbox" id="pst" ${lsGet("showPos", true) && can("futures") ? "checked" : ""}> 👥 Long/Short còn giữ${can("futures") ? "" : " <small>★ Pro</small>"}</label>` : ""}</span><small class="faint" id="csrc"></small><small class="occ-ob occ-pos" id="cpos"></small>${big ? `<span class="cbar-act"><span class="cv-sz czseg" role="group" aria-label="Cỡ biểu đồ" style="--i:${{ s: 0, m: 1, l: 2 }[cvSz()]}"><i class="czs-th" aria-hidden="true"></i>${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label>${D.row?.bf ? `<label class="chk${can("futures") ? "" : " lk"}" title="${esc(POS_TIP())}"><input type="checkbox" id="pst" ${lsGet("showPos", true) && can("futures") ? "checked" : ""}> 👥 Long/Short còn giữ${can("futures") ? "" : " <small>★ Pro</small>"}</label>` : ""}</span><small class="faint" id="csrc"></small><small class="occ-ob occ-pos" id="cpos"></small>${big ? `<span class="cbar-act"><span class="cv-sz czseg" role="group" aria-label="Cỡ biểu đồ" style="--i:${{ s: 0, m: 1, l: 2 }[cvSz()]}"><i class="czs-th" aria-hidden="true"></i>${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><button type="button" class="cv-fsb cv-rotb" data-cvrot title="Xoay ngang biểu đồ (không cần mở khoá xoay màn hình)" aria-label="Xoay ngang"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="13" height="10" rx="2"/><path d="M13 3.5a7 7 0 0 1 7 7"/><path d="M20.5 6.5v4h-4"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
