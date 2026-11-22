@@ -155,6 +155,30 @@
      "a": "ui",
      "t": "Xoay ngang: chữ nút Binance thật / Sàn thử và \"Mọi phương pháp\" ở thanh trái cùng cỡ với các nút lọc khác, không còn to / xuống 2 dòng",
      "te": "Landscape: the Binance live / Paper and \"All methods\" buttons in the left bar now match the other filters' text size – no oversized or wrapped text"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang – Lên kế hoạch lệnh: ô \"Chiều\" bị bật ra đè lên góc trên trái (trùng tên với thanh trái) – đã sửa; thanh trái & mèo na cũng không còn đọc nhầm ô này",
+     "te": "Landscape – Trade plan: the \"Side\" select no longer jumps to the top-left corner (it clashed with the left bar's name); the bar and Na no longer misread it"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang – Tài khoản: mỗi mục xếp nhãn trên, ô chọn dưới, trải đủ bề ngang (trước bị chật, chữ \"Hệ thống\" xuống dòng)",
+     "te": "Landscape – Account: each setting stacks label over control at full width (was cramped, \"System\" wrapped)"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang: ô số (Lãi/lỗ, Ngày lời…) không còn bẻ số xuống 2 dòng",
+     "te": "Landscape: stat tiles (P/L, winning days…) no longer break numbers onto two lines"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Tìm nhanh dạng ngăn kéo: trang phía sau vẫn hiện mờ thay vì nền xám trơn",
+     "te": "Quick search drawer: the page behind stays visible (dimmed) instead of a flat grey background"
     }
    ]
   },

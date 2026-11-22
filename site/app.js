@@ -3994,10 +3994,10 @@ async function viewPlan(k0) {
     <p class="faint disclaimer">Kế hoạch được tính tự động từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư và không đảm bảo kết quả. Đòn bẩy chỉ làm giảm tiền ký quỹ; mức lỗ do khối lượng và điểm cắt lỗ quyết định – luôn đặt cắt lỗ trên sàn.</p>`;
   const go = async () => {
     const k = $("#plK").value.trim().toUpperCase(); if (!BYK[k]) { $("#plOut").innerHTML = `<p class="muted">Chọn coin có trong danh sách.</p>`; return; }
-    lsSet("plk", k); lsSet("pltf", $("#plTf").value); lsSet("plside", $("#plSide").value);
+    lsSet("plk", k); lsSet("pltf", $("#plTf").value); lsSet("plside", $("#plsBar").value);
     $("#plOut").innerHTML = skLines(4);
     const D = await load(`data/c/${enc(k)}.json`);
-    const t = makeTicket(D, IJ, { tf: $("#plTf").value, side: $("#plSide").value }); if (t.none) t.k = k;
+    const t = makeTicket(D, IJ, { tf: $("#plTf").value, side: $("#plsBar").value }); if (t.none) t.k = k;
     if (t.none) { $("#plOut").innerHTML = ticketCard(t); return; }
     liveTickets($("#plOut"), [{ t, D }]);
   };
@@ -8991,7 +8991,7 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
 //   thanh 2: các trang trong nhóm đang xem → tab của trang đang mở (Tổng quan · Lệnh…) · dòng mô tả trang
 //   thanh 3 (chỉ khi trang có bộ lọc): Tiền thật / Sàn thử · Tất cả / Đang mở… · 7/30/90 ngày… DỜI hẳn từ đầu trang sang, xếp dọc
 //   → nội dung bên phải chỉ còn số liệu, trọn chiều cao màn hình
-(function plSide() {
+(function plsBar() {
   let box = null, t = 0;
   const txt = (n) => (n?.textContent || "").replace(/\s+/g, " ").trim();
   const ico = (a) => a?.querySelector("svg")?.outerHTML || "";
@@ -9003,7 +9003,7 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     if (!PL.matches) { if (box) { undock(); box.remove(); box = null; document.documentElement.classList.remove("pls"); try { stickH(); } catch (e) { /* bỏ qua */ } } return; }
     const nav = document.getElementById("tabs"); if (!nav || !document.getElementById("app")) return;
     if (!box) {
-      box = document.createElement("aside"); box.id = "plSide"; box.setAttribute("aria-label", bi("Điều hướng", "Navigation"));
+      box = document.createElement("aside"); box.id = "plsBar"; box.setAttribute("aria-label", bi("Điều hướng", "Navigation"));
       box.innerHTML = `<nav class="pls-c pls-c1"></nav><nav class="pls-c pls-c2"></nav><div class="pls-c3w"><div class="pls-c pls-c3"><div class="pls-c3h"></div><div class="pls-dock"></div></div><i class="pls-rz" title="${bi("Kéo để đổi độ rộng · chạm 2 lần để về mặc định", "Drag to resize · double-tap to reset")}"></i></div>`;
       document.body.appendChild(box);
       // ↔ KÉO MÉP PHẢI thanh 3 để nới / thu bề rộng (nhớ cho lần sau) · chạm 2 lần = về mặc định

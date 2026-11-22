@@ -7007,21 +7007,21 @@ body:has(.occ) .msheet{z-index:1320!important}
   #app:not(#_pl) dl.stats dd,#app:not(#_pl) .kpis dd,#app:not(#_pl) .stg dd{font-size:1.25rem!important;line-height:1.15!important}
   #app dl.stats small,#app .kpis small{font-size:.6875rem!important}
 }
-/* 📱↔ xoay ngang – 2–3 THANH DỌC NHỎ BÊN TRÁI (#plSide, dựng bằng plSide): thanh 1 biểu tượng nhóm · thanh 2 trang + tab · thanh 3 bộ lọc */
-#plSide{display:none}
+/* 📱↔ xoay ngang – 2–3 THANH DỌC NHỎ BÊN TRÁI (#plsBar, dựng bằng plsBar): thanh 1 biểu tượng nhóm · thanh 2 trang + tab · thanh 3 bộ lọc */
+#plsBar{display:none}
 @media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   :root{--pls-c1:46px;--pls-c2:46px;--pls-c3:136px;--pls-gap:6px;--pls-w2:calc(var(--pls-c1) + var(--pls-gap) + var(--pls-c2));--pls-w3:calc(var(--pls-w2) + var(--pls-gap) + var(--pls-c3));
     --pls-x:calc(env(safe-area-inset-left,0px) + 6px);--rl-r:calc(var(--pls-x) + var(--pls-w,var(--pls-w2)) + 10px)}
   html.pls .top,html.pls #tabs:not(#_a):not(#_b),html.pls .pnfab{display:none!important}
   html.pls body:not(#_pl){padding-top:calc(env(safe-area-inset-top,0px) + 6px)!important;padding-left:var(--rl-r)!important}
-  #plSide{display:flex;gap:var(--pls-gap);position:fixed;z-index:40;left:var(--pls-x);top:calc(env(safe-area-inset-top,0px) + 6px);bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
+  #plsBar{display:flex;gap:var(--pls-gap);position:fixed;z-index:40;left:var(--pls-x);top:calc(env(safe-area-inset-top,0px) + 6px);bottom:calc(env(safe-area-inset-bottom,0px) + 6px);
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   .pls-c{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--bd-2);border-radius:14px;box-shadow:0 8px 24px -14px rgba(15,23,42,.35);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
   .pls-c::-webkit-scrollbar{display:none}
   .pls-c1{width:var(--pls-c1);align-items:center;padding:8px 0;gap:2px}
   .pls-c2{width:var(--pls-c2);padding:8px 4px;align-items:center;gap:2px}
   .pls-c3{width:var(--pls-c3);padding:6px;display:none}
-  #plSide.has3 .pls-c3{display:flex}
+  #plsBar.has3 .pls-c3{display:flex}
   .pls-brand{display:grid;place-items:center;width:34px;height:30px;margin-bottom:4px;text-decoration:none!important}
   .pls-brand i{width:12px;height:12px;border-radius:50%;background:var(--brass,var(--brand));box-shadow:0 0 0 4px color-mix(in srgb,var(--brass,var(--brand)) 20%,transparent)}
   .pls-gs{display:flex;flex-direction:column;gap:2px;flex:1;width:100%;padding:0 4px}
@@ -7097,7 +7097,7 @@ body:has(.occ) .msheet{z-index:1320!important}
    Ở chế độ ngang bỏ qua khoảng đó: thanh trái, nội dung, viên trạng thái, các ngăn kéo đều sát mép trên */
 @media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   html.pls body:not(#_pl):not(#_pl2){padding-top:6px!important}
-  html.pls #plSide{top:6px!important}
+  html.pls #plsBar{top:6px!important}
   html.pls #app>.sc-hero{top:6px!important}
   html.pls .ntp.side .ntp-in,html.pls .menu.side,html.pls .cmdk.side .cmdk-in,html.pls .msheet.side .msheet-in{top:8px!important}
   html.pls .cmdk.side .cmdk-in{height:calc(var(--vvh,100dvh) - 16px)!important;top:calc(var(--vvt,0px) + 8px)!important}
@@ -7119,7 +7119,7 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pls-t a,.pls-slot :is(.bseg,.seg,.gseg,.sc-env)>:is(button,a,label){min-height:36px!important;font-size:.8125rem!important}
   .pls-pn{font-size:.875rem!important}
   .pls-c3w{position:relative;display:none;width:var(--pls-c3)}
-  #plSide.has3 .pls-c3w{display:flex}
+  #plsBar.has3 .pls-c3w{display:flex}
   .pls-c3w>.pls-c3{display:flex!important;width:100%!important}
   .pls-rz{position:absolute;top:0;bottom:0;right:-11px;width:16px;z-index:2;cursor:col-resize;touch-action:none}
   .pls-rz::after{content:"";position:absolute;left:6px;top:50%;width:4px;height:40px;margin-top:-20px;border-radius:3px;background:color-mix(in srgb,var(--ink) 22%,transparent);transition:height .2s,background-color .2s}
@@ -7137,7 +7137,7 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pl-1col{grid-template-columns:minmax(0,1fr)!important}
   .pl-1col>*{grid-column:1/-1!important}
 }
-@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){ html.pls #plSide{z-index:38} }      /* mèo na (z 40) luôn nổi trên các thanh trái nếu có lúc nhảy qua */
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){ html.pls #plsBar{z-index:38} }      /* mèo na (z 40) luôn nổi trên các thanh trái nếu có lúc nhảy qua */
 @media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
   /* nút Binance thật / Sàn thử dời sang thanh trái: cùng cỡ & kiểu chữ với các nút lọc khác (trước giữ cỡ chữ to của hàng tab cũ) */
   .pls-slot .sc-env>button,.pls-slot .sc-env>button *{font-family:inherit!important;font-size:.8125rem!important;font-weight:600!important;line-height:1.2!important;letter-spacing:0!important}
@@ -7145,8 +7145,24 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pls-slot .sc-env>button .sc-bdg,.pls-slot .sc-env>button i{font-size:.625rem!important;margin-left:auto}
 }
 @media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
-  #plSide .pls-slot .sc-env>button :is(.et,.ei,span,b){font-size:.8125rem!important;font-weight:600!important;font-family:inherit!important;line-height:1.2!important}
-  #plSide .pls-slot .sc-env>button .ei{font-size:.875rem!important}
-  #plSide .pls-slot .sc-omdd{display:flex!important;align-items:center;gap:8px;justify-content:flex-start!important;text-align:left!important;font-size:.8125rem!important;white-space:nowrap}
-  #plSide .pls-slot .sc-omdd>*:not(svg){overflow:hidden;text-overflow:ellipsis;min-width:0}
+  #plsBar .pls-slot .sc-env>button :is(.et,.ei,span,b){font-size:.8125rem!important;font-weight:600!important;font-family:inherit!important;line-height:1.2!important}
+  #plsBar .pls-slot .sc-env>button .ei{font-size:.875rem!important}
+  #plsBar .pls-slot .sc-omdd{display:flex!important;align-items:center;gap:8px;justify-content:flex-start!important;text-align:left!important;font-size:.8125rem!important;white-space:nowrap}
+  #plsBar .pls-slot .sc-omdd>*:not(svg){overflow:hidden;text-overflow:ellipsis;min-width:0}
 }
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  /* Tài khoản: thẻ hẹp (2 thẻ / hàng) → nhãn trên, ô chọn dưới, trải đủ bề ngang – như điện thoại dọc */
+  #app .acp-row{flex-direction:column;align-items:stretch;gap:8px}
+  #app .acp-c{justify-content:flex-start}
+  #app .acp-c input:not([type=checkbox]),#app .acp-c select{max-width:none;flex:1 1 140px}
+  #app .acp-c>:is(.bseg,.th-seg,.seg){display:flex;flex-wrap:nowrap;width:100%}
+  #app .acp-c>:is(.bseg,.th-seg,.seg)>:is(button,a,label){flex:1 1 0;min-width:0;justify-content:center;text-align:center;white-space:nowrap}
+  #app .acp-c>.nl-box{width:100%;min-width:0!important}
+  #app .acp-c>.mun-sk{display:grid;grid-template-columns:repeat(auto-fit,minmax(84px,1fr));width:100%}#app .acp-c>.mun-sk>button{width:auto}
+  /* ô số (Lãi/lỗ, Ngày lời…): tối thiểu 128px/ô → số không bị bẻ xuống dòng giữa chừng ("+$0,0" / "0") */
+  #app dl.stg{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))!important}
+  #app dl.stg dd,#app .kpis dd{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+}
+.cl-chips{min-width:0;max-width:100%}
+/* tìm nhanh dạng ngăn kéo phải: trang phía sau vẫn hiện (mờ dưới lớp tối) – trước bị ẩn hẳn (còn từ kiểu tìm toàn màn hình cũ) nên nền xám trơn */
+body.cmdk-on:has(.cmdk.side:not([hidden]))>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
