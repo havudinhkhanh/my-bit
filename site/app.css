@@ -2411,7 +2411,7 @@ body{touch-action:manipulation}
 .sc-tabs button:hover{color:var(--ink)}
 .sc-tabs button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .sc-bdg{font-style:normal;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--brand);color:var(--brand-ink,#111);font-size:.6875rem;display:inline-grid;place-items:center}
-.sc-body{display:grid;gap:12px}.sc-body>.panel{margin:0}
+.sc-body{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}.sc-body>.panel{margin:0}
 .sc-kp{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px}
 .sc-kp .st{padding:11px 12px 12px;min-height:84px}.sc-kp .st dd{font-size:1.3125rem}.sc-kp .st .spk{width:42%;height:26px;right:10px;bottom:9px;opacity:.9}
 .sc-g2{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
@@ -3326,7 +3326,7 @@ td .sc-mxr{margin:0}
 .jc2{font-size:.84375rem;font-variant-numeric:tabular-nums}.jc2 em{font-style:normal;margin-left:4px}.jc2 em.up{color:var(--up)}.jc2 em.down{color:var(--down)}
 .jc3{display:flex;flex-direction:column;gap:1px;font-size:.75rem;color:var(--ink-2)}
 .jgs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 16px;margin-top:10px}
-.jmini{width:100%;font-size:.75rem}.jmini td{padding:3px 4px;border-bottom:1px solid var(--line-2)}.jmini td.up{color:var(--up)}.jmini td.down{color:var(--down)}
+.jmini{width:100%;font-size:.75rem}.jmini td.l{white-space:normal;line-height:1.3;font-size:inherit}.jmini td{padding:3px 4px;border-bottom:1px solid var(--line-2)}.jmini td.up{color:var(--up)}.jmini td.down{color:var(--down)}
 .jd{border-top:1px solid var(--bd-2);padding:8px 0}.jd:first-of-type{border-top:0}
 .jd summary{cursor:pointer;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;list-style:none}.jd summary::-webkit-details-marker{display:none}
 .jd summary::before{content:"▸";color:var(--ink-3);transition:transform .15s}.jd[open] summary::before{transform:rotate(90deg)}
@@ -6633,9 +6633,21 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .sc-lad .lm.far.r{left:auto!important;right:-8px}.sc-lad .lm.far.l{left:-8px!important}
 .sc-lad .cur{position:absolute;top:50%;width:12px;height:12px;transform:translate(-50%,-50%);border-radius:50%;background:var(--ink);border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line),0 1px 4px rgba(0,0,0,.25);transition:left .3s cubic-bezier(.2,.8,.2,1);z-index:1}
 .sc-lad.out .cur{background:var(--down)}
-.sc-oc .sc-lvs small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:0;background:var(--ink-3)}
-.sc-oc .sc-lvs .k-sl::before{background:var(--down)}.sc-oc .sc-lvs .k-tp::before{background:var(--up)}
-.sc-oc .sc-lvs .k-lq::before{background:repeating-linear-gradient(180deg,var(--down) 0 2px,transparent 2px 3.5px)}
+.sc-oc .sc-lvs:not(.lvg) small::before{content:"";display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px;vertical-align:0;background:var(--ink-3)}
+/* 🎯 khối mức giá thống nhất: chấm · tên (+ còn cách) · giá · ≈ lời/lỗ nếu chạm – mọi hàng cùng cột */
+.sc-oc .sc-lvs.lvg{display:grid;grid-template-columns:7px minmax(0,1fr) auto auto;column-gap:8px;row-gap:4px;align-items:baseline;font-size:.75rem;line-height:1.35;margin:6px 0 2px;padding:7px 10px;border-radius:10px;background:var(--sunk)}
+.sc-lvs.lvg .lv{display:contents}
+.sc-lvs.lvg .lv-d{width:7px;height:7px;border-radius:2px;background:var(--ink-3);align-self:center}
+.sc-lvs.lvg .k-tp .lv-d{background:var(--up)}.sc-lvs.lvg .k-sl .lv-d{background:var(--down)}
+.sc-lvs.lvg .k-lq .lv-d{background:repeating-linear-gradient(180deg,var(--down) 0 2px,transparent 2px 3.5px)}
+.sc-lvs.lvg .lv-l{min-width:0;color:var(--ink-2)}.sc-lvs.lvg .lv-l>b{font-weight:600;color:var(--ink)}
+.sc-lvs.lvg .k-tp .lv-l>b{color:var(--up)}.sc-lvs.lvg .k-sl .lv-l>b,.sc-lvs.lvg .k-lq .lv-l>b{color:var(--down)}
+.sc-lvs.lvg .lv-g{font-size:.92em;color:var(--ink-3);font-style:normal;margin-left:6px;white-space:nowrap}
+.sc-lvs.lvg .lv-n{grid-column:2/-1;margin-top:-3px;font-size:.92em;color:var(--ink-3);line-height:1.3}
+.sc-lvs.lvg .lv-p{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink)}
+.sc-lvs.lvg .k-est{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.sc-lvs.lvg .lv-x{grid-column:3/-1;justify-self:end}
+.sc-lvs.lvg .none .lv-d{background:transparent;border:1px dashed var(--warn,#d89614);box-sizing:border-box}
 .sc-slq{font-weight:600;font-size:.75rem;line-height:1.3;font-family:inherit;font-family:inherit;padding:2px 9px;border-radius:999px;border:1px dashed var(--warn,#d89614);background:color-mix(in srgb,var(--warn,#d89614) 10%,transparent);color:var(--warn,#d89614);cursor:pointer}
 .sc-slq[aria-expanded="true"]{border-style:solid}
 .sc-slqr{margin:6px 0 2px;padding:8px 10px;border-radius:10px;background:var(--sunk);font-size:.75rem}
@@ -6839,8 +6851,8 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
   body.pn-has .pnfab,body.pn-mini .pnfab{bottom:calc(var(--tb-h) + 12px + var(--tb-b))!important}
 }
 /* 📈 trang Phân tích (Kết quả & sổ lệnh) */
-.st-wrap{display:grid;gap:12px}
-@media (min-width:1100px){.st-wrap{grid-template-columns:1fr 1fr;align-items:start}.st-wrap>:first-child{grid-column:1/-1}}
+.st-wrap{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:1100px){.st-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}.st-wrap>:first-child{grid-column:1/-1}}
 .st-wrap>.panel,.st-wrap>div>.panel{margin:0}
 .st-lg{display:flex;flex-wrap:wrap;gap:4px 14px;margin:4px 0 8px;font-size:.75rem;color:var(--ink-2)}.st-lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .st-t table{width:100%;font-size:.8125rem;font-variant-numeric:tabular-nums}.st-t td,.st-t th{white-space:nowrap}.st-t td small{font-size:.6875rem}

@@ -198,6 +198,32 @@
      "a": "chart",
      "t": "Biểu đồ trên điện thoại: vuốt ngang ở phần trục giá bên phải giờ cũng dời nến; cột tên đường giá hẹp lại để phần kéo nến rộng hơn (trước trục giá chiếm gần nửa biểu đồ nên tưởng không kéo được)",
      "te": "Charts on phone: a horizontal drag on the right price axis now pans the candles too; the price-line name column is narrower so the draggable area is bigger (the axis used to take almost half the chart)"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Thẻ lệnh: chốt lời · cắt lỗ · thanh lý gom về 1 khối cùng khuôn",
+     "te": "Trade card: target · stop · liquidation in one uniform block",
+     "d": "Mỗi mức 1 hàng: tên, còn cách giá hiện tại bao xa (chạy theo giá), giá, và ước tính lời/lỗ nếu chạm. Thanh lý ghi rõ mất bao nhiêu (cô lập: chỉ mất ký quỹ lệnh đó; chéo: trừ vào cả số dư futures).",
+     "de": "One row per level: name, live distance from the current price, price, and the estimated P&L if hit. Liquidation shows how much you'd lose (isolated: only that trade's margin; cross: the whole futures balance).",
+     "f": "bot",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Mèo đi lên / xuống cùng lúc với menu Thêm",
+     "te": "The cat rides up and down with the More menu",
+     "d": "Không còn đợi menu mở xong mới nhảy lên, đóng xong mới nhảy xuống – đứng trên mép menu và di chuyển theo từng khung hình, cả khi anh kéo menu xuống.",
+     "de": "No more waiting for the menu to finish before hopping – it stands on the menu edge and moves frame by frame, even while you drag it down."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: thẻ lệnh và bảng Thống kê không còn tràn mép phải",
+     "te": "Phone: trade cards and Stats panels no longer spill past the right edge",
+     "d": "Hàng nút lọc dài làm cả cột rộng hơn màn hình; nhãn dài trong bảng tóm tắt Nhật ký giờ xuống dòng.",
+     "de": "A long filter row made the whole column wider than the screen; long labels in the Journal summary tables now wrap."
     }
    ]
   },

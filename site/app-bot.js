@@ -719,7 +719,8 @@ async function viewScalp() {
       <div class="r1s">${accT("paper")} ${p.strat === "hook" ? `${bi("Bắt râu sập · sốc", "Wick Catcher · shock")} ${p.side > 0 ? "−" : "+"}${nf(Math.abs(p.R || 0) / 100, 1)}%` : esc(p.how || "")}</div>
       <div class="r2" data-lpnl="${esc(k)}" data-e="${p.e}" data-q="${p.q}" data-sd="${p.side}" data-f0="${p.fee || 0}" data-fr="${frOf(p)}" data-sl="${p.sl}" data-tp="${p.tp}" data-fund="${+p.fund || 0}" data-bal="${EQP || ""}" data-norg="1"><b>—</b></div>
       ${ladder(k, { ep: p.e, mk: isNum(p.m) ? p.m : p.e }, p.side, okPx(p.sl) ? p.sl : 0, okPx(p.tp) ? p.tp : 0)}
-      <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.e)}</b> · ${qty(p.q)} · ${bi("giá trị", "size")} <b>${usd2(p.q * p.e)}</b></small>${okPx(p.sl) ? `<small class="down" data-lsd="${esc(k)}" data-sl="${p.sl}" data-sd="${p.side}">${bi("cắt lỗ", "stop")} ${px(p.sl)}</small>` : `<small class="faint">${bi("không cắt lỗ", "no stop")}</small>`}${okPx(p.tp) ? `<small class="up">${bi("chốt", "target")} ${px(p.tp)}${pxEst(p.side, p.q, p.e, p.tp, C.fee_t ?? 0.05)}</small>` : ""}</div>
+      <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.e)}</b> · ${qty(p.q)} · ${bi("giá trị", "size")} <b>${usd2(p.q * p.e)}</b></small></div>
+      ${lvRows({ k, sd: p.side, q: p.q, e: p.e, m: p.m, fr: frOf(p), sl: okPx(p.sl) ? p.sl : 0, tp: okPx(p.tp) ? p.tp : 0, noSl: `<small class="faint">${bi("không đặt", "none")}</small>` })}
       <div class="r4" data-lt0="${p.t0}" data-lh="${p.h}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("tự đóng sau", "auto-closes after")} ${p.h >= 600 ? nf(p.h / 60, 0) + bi(" phút", " min") : nf(p.h, 0) + bi(" giây", " s")}</small></div></div>`;
   // 📋 chép 1 lệnh sàn thử đang mở sang Binance (thật / Demo): vào giá thị trường, giữ đúng cắt lỗ, chốt lời, giờ đóng của lệnh sàn thử
   const cpOK = !!LV && !!C.lv_on && (LV.env === "live" || LV.env === "demo");
@@ -895,7 +896,8 @@ async function viewScalp() {
       <div class="r1s">${accT(acc)}${acc !== "paper" ? mgT(o.lev || L[0]?.lev || C.lv_lev || 2, true) : ""} ${esc(XNM[o.k] || o.name || o.k)}${o.why ? ` · ${esc(o.why)}` : ""}</div>
       <div class="r2"><b class="${cls(o.upnl)}">${nz(o.upnl, 2) > 0 ? "+" : ""}${usd2(o.upnl || 0)}</b>${isNum(pc) ? ` <small class="${cls(pc)}">${nz(pc, 1) > 0 ? "+" : ""}${nf(pc, 1)}%</small>` : ""} <small class="faint">${bi("tạm tính", "unrealized")}</small></div>
       ${one && isNum(L[0].m) && (L[0].e ?? L[0].ap) > 0 ? ladder(String(L[0].sym).replace(/USDT$/, "") + ":F", { ep: L[0].e ?? L[0].ap, mk: L[0].m, liq: o.k === "pump" || o.k === "list" ? (L[0].e ?? L[0].ap) * 2 : 0 }, L[0].side, okPx(o.sl) ? o.sl : 0, okPx(o.tp) ? o.tp : 0) : ""}
-      <div class="r3"><small>${L.map((x) => `${bi("vào", "entry")} <b>${px(x.e ?? x.ap)}</b>${isNum(x.m) && !one ? ` → ${px(x.m)}` : ""}`).join(" · ")}${o.N ? ` · ${bi("giá trị", "size")} <b>${usd2(o.N)}</b>` : ""}</small>${okPx(o.sl) ? `<small class="down">${bi("cắt lỗ", "stop")} ${px(o.sl)}</small>` : o.k === "pump" || o.k === "list" ? `<small class="faint">${bi("x1 · không cắt lỗ", "x1 · no stop")}</small>` : ""}${okPx(o.tp) ? `<small class="up">${bi("chốt", "target")} ${px(o.tp)}</small>` : ""}</div>
+      <div class="r3"><small>${L.map((x) => `${bi("vào", "entry")} <b>${px(x.e ?? x.ap)}</b>${isNum(x.m) && !one ? ` → ${px(x.m)}` : ""}`).join(" · ")}${o.N ? ` · ${bi("giá trị", "size")} <b>${usd2(o.N)}</b>` : ""}</small></div>
+      ${(() => { const e1 = one ? L[0].e ?? L[0].ap : 0; return lvRows({ k: one ? String(L[0].sym).replace(/USDT$/, "") + ":F" : "", sd, q: one && e1 > 0 && o.N ? o.N / e1 : 0, e: e1, m: one ? L[0].m : 0, fr: C.fee_t ?? 0.05, sl: okPx(o.sl) ? o.sl : 0, tp: okPx(o.tp) ? o.tp : 0, noSl: o.k === "pump" || o.k === "list" ? `<small class="faint">${bi("x1 · không đặt", "x1 · none")}</small>` : "" }); })()}
       <div class="r4"><small class="faint">${bi("vào", "opened")} ${dt(o.t0 + "Z")}${o.exp ? ` · ${bi("tự đóng sau", "auto-closes in")} ${xLeft(o.exp)}` : ""}</small></div></div>`, key, `${XNM[o.k] || o.k} ${L.map((x) => String(x.sym).replace(/USDT$/, "")).join("/")} (${real ? (LV?.env === "live" ? "TIỀN THẬT" : "Demo") : "sàn thử"})`, real, est); };
   const xOpenP = [...(SWX ? ["pump", "list"].flatMap((k) => (SWX[k]?.pos || []).map((p) => withCp(xCard({ ...p, k, legs: [{ sym: p.sym, side: -1, e: p.e, m: p.m }], exp: p.t1 }, "paper", false, `sw:${k}:${p.id}`, { e: p.e, q: p.q, sd: -1, f0: p.fee || 0, fr: 0.15, fund: p.fund || 0, m: p.m, sl: 0, paper: 1, long: 1 }), { pk: `sw:${k}:${p.id}`, sym: p.sym, sd: -1, N: p.N || p.q * p.e, sl: 0, tp: 0, exp: Date.parse(p.t1 + "Z"), nm: `${String(p.sym).replace(/USDT$/, "")} ${XNM[k]}`, lev: 1 }))) : []),
     ...(QX ? QK.flatMap((k) => (QX[k]?.pos || []).map((p) => { const h = xCard({ ...p, k }, "paper", false, `q:${k}:${p.id}`, null), g = (p.legs || [])[0]; return (p.legs || []).length === 1 && g ? withCp(h, { pk: `q:${k}:${p.id}`, sym: g.sym, sd: g.side, N: p.N || (g.q || 0) * (g.e || g.ap || 0), sl: p.sl, tp: p.tp, exp: Date.parse(p.exp + "Z"), nm: `${String(g.sym).replace(/USDT$/, "")} ${XNM[k] || k}` }) : h; })) : [])].join("");
@@ -950,7 +952,7 @@ async function viewScalp() {
       <div class="r2 ${cls(p.up)}" data-lpnl="${esc(k)}" data-e="${p.ep}" data-q="${q}" data-sd="${sd}" data-f0="0" data-fr="${fr}" data-sl="${SL}" data-tp="${TP}" data-fund="${isNum(p.fund) ? p.fund : 0}" data-liq="${p.liq > 0 ? p.liq : ""}" data-bal="${EQ0 || ""}" data-norg="1"><b>${sg$(p.up || 0)}</b></div>
       <div class="r3"><small>${bi("vào", "entry")} <b>${px(p.ep)}</b> · ${qty(q)} · ${bi("giá trị", "size")} <b>${usd2(q * p.ep)}</b>${isNum(p.fund) && nz(p.fund, 3) ? ` · <span class="${cls(p.fund)}">${bi("funding đã tính", "funding so far")} ${sg$(p.fund)}</span>` : ""}</small></div>
       ${ladder(k, p, sd, SL, TP)}
-      <div class="r3 sc-lvs">${SL ? `<small class="k-sl down" data-lsd="${esc(k)}" data-sl="${SL}" data-sd="${sd}">${bi("cắt lỗ", "stop")} ${px(SL)}${pxEst(sd, q, p.ep, SL, fr)}${mCondPend(p.sym, "sl") ? ` <span class="pend" title="${bi("đang đặt trên Binance…", "placing on Binance…")}">⏳</span>` : ""}</small>` : MAN.ctl ? `<button type="button" class="sc-slq" data-slq="${esc(p.sym)}" aria-expanded="false">⚠ ${bi("chưa đặt cắt lỗ · đặt nhanh", "no stop · set one")}</button>` : `<small class="warn">${bi("chưa đặt cắt lỗ", "no stop set")}</small>`}${TP ? `<small class="k-tp up">${bi("chốt", "target")} ${px(TP)}${pxEst(sd, q, p.ep, TP, fr)}${mCondPend(p.sym, "tp") ? ` <span class="pend" title="${bi("đang đặt trên Binance…", "placing on Binance…")}">⏳</span>` : ""}</small>` : ""}${p.liq > 0 ? liqNote(p, q, sd) : ""}</div>
+      ${lvRows({ k, sd, q, e: p.ep, m: p.mk, fr, sl: SL, tp: TP, liq: p.liq, mt: p.mt, lev: p.lev, pSl: mCondPend(p.sym, "sl"), pTp: mCondPend(p.sym, "tp"), noSl: MAN.ctl ? `<button type="button" class="sc-slq" data-slq="${esc(p.sym)}" aria-expanded="false">⚠ ${bi("chưa đặt · đặt nhanh", "none · set one")}</button>` : `<small class="warn">${bi("chưa đặt", "not set")}</small>` })}
       ${!SL && MAN.ctl ? slQuick(p, q, sd, fr) : ""}
       <div class="r3 sc-meta">${heldT(p)}<small class="faint" data-fnx="${esc(p.sym)}" data-sd="${sd}" data-q="${q}"></small>${alChip(p.sym)}</div>
       ${partRow(p)}${lkRow}${extRow}${MAN.ctl ? "" : `<div class="r4"><small class="faint">${bi("Chỉ xem – cần cập nhật máy chủ riêng để đóng / đặt cắt lỗ ngay trên trang", "View only – update the private server to close / set stops here")}${MAN.at ? ` · ${bi("đọc lúc", "read at")} ${hms(MAN.at)}` : ""}</small></div>`}${ctl}</div>`;
@@ -967,7 +969,7 @@ async function viewScalp() {
     return `<div class="sc-oc lv man mpend pend ${m.sd > 0 ? "L" : "S"}" data-omk="man"><div class="r1"><span>📍 <b>${scK(k)}</b> <span class="${m.sd > 0 ? "up" : "down"}"><i class="pw">${bi("chờ", "pending")} </i>${m.sd > 0 ? "Long" : "Short"}</span> </span><b class="lpx" data-lpx="${esc(k)}">${px(SCL.px[k] || m.px)}</b></div>
       <div class="r1s">${accT(real ? "live" : "demo")}${mgT(m.lev, true)} ${m.avg ? bi("➕ Lệnh chờ BÌNH QUÂN (gộp vào lệnh tay đang có)", "➕ Averaging price order") : bi("Lệnh chờ giá (anh đặt từ biểu đồ)", "Price order (set from the chart)")} · ${how}</div>
       <div class="sc-lvl"><span>⏳ <i class="lw">${bi("vào", "enter")} </i>${bi("ở", "at")} <b>${px(m.px)}</b> <small class="faint">· ~${usd2(m.usd)}</small></span><small class="faint" data-lgap="${esc(k)}" data-px="${m.px}" data-sd="${gsd}" data-f="0">${gapTxt(k, m.px, gsd)}</small></div>
-      <div class="r3">${m.sl ? `<small class="down">${bi("cắt lỗ", "stop")} ${px(m.sl)}</small>` : m.avg ? `<small class="faint">${bi("giữ cắt lỗ / chốt của lệnh cũ", "keeps the open trade's stop/target")}</small>` : `<small class="warn">${bi("không cắt lỗ", "no stop")}</small>`}${m.tp ? `<small class="up">${bi("chốt", "target")} ${px(m.tp)}</small>` : ""}</div>
+      ${lvRows({ k, sd: m.sd, q: 0, e: m.px, m: SCL.px[k] || m.px, fr: 0, sl: +m.sl || 0, tp: +m.tp || 0, noSl: m.avg ? `<small class="faint">${bi("giữ của lệnh cũ", "keeps the open trade's")}</small>` : `<small class="warn">${bi("không đặt", "none")}</small>` })}
       ${vd > Date.now() && t0 > 0 ? `<div class="r4" data-lt0="${t0}" data-lh="${(vd - t0) / 1000}" title="${bi("hiệu lực tới", "valid until")} ${new Date(vd).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}"><span class="sc-cd"><i></i></span><small></small><small class="faint">${bi("còn chờ khớp", "waiting to fill")}${eh}</small></div>` : `<div class="r4 sc-noexp"><small class="faint">♾ ${bi("không hết hạn – chờ tới khi khớp hoặc anh huỷ", "no expiry – waits until filled or cancelled")}${eh}</small></div>`}
       <div class="sc-mxr">${nowB}<button type="button" class="sc-mx${real ? " real" : ""}" data-mlc="${esc(m.id)}">✕ ${bi("Huỷ lệnh chờ", "Cancel")}</button></div></div>`;
   }).join("");
@@ -2695,15 +2697,6 @@ async function viewDays(envArg, dateArg, part) {
 // ================================================================ 📒 SỔ LỆNH & BÀI HỌC – toàn bộ lịch sử giao dịch (sàn thử / Demo / thật) + bài học tổng hợp
 // Nguồn: sổ lệnh đầy đủ máy chủ riêng lưu mãi (scalpledger, 5 phút/lần) + lệnh vừa đóng trong trạng thái trực tiếp (chưa kịp vào sổ).
 const JSTRAT = { hook: ["🪝", "Bắt râu sập"], sec: ["⚡", "Lướt giây"], pump: ["🧪", "Short coin vừa bơm"], list: ["🆕", "Short coin mới niêm yết"], man: ["✋", "Lệnh tay"] };
-// mức thanh lý của lệnh tay: cô lập → chỉ mất ký quỹ của lệnh đó (ghi rõ số tối đa); chéo (cross) → dùng chung cả số dư futures
-//   (thẻ hẹp ẩn nhãn "x1 cô lập" ở dòng đầu → ghi luôn ở đây để không phải đoán)
-function liqNote(p, q, sd) {
-  const ref = p.mk > 0 ? p.mk : p.ep, d = ref > 0 ? (p.liq / ref - 1) * 100 : null, iso = p.mt === "iso";
-  const m = iso ? (q * p.ep) / Math.max(1, p.lev || 1) : null;      // ký quỹ ban đầu = giá trị lệnh ÷ đòn bẩy (không lấy số ký quỹ sàn báo vì số đó đã cộng/trừ lời lỗ đang chạy)
-  const tip = iso ? bi(`Ký quỹ cô lập: giá chạm mức này thì sàn đóng lệnh, anh mất phần ký quỹ đã bỏ vào lệnh (~${usd2(m)}), số dư còn lại trong tài khoản không bị đụng tới.`, `Isolated margin: at this price the exchange closes the trade and you lose the margin put into it (~${usd2(m)}); the rest of your balance is untouched.`)
-    : bi("Ký quỹ chéo (cross): cả số dư futures dùng chung để giữ lệnh – lỗ tới mức này là mất gần hết số dư futures (mức này còn đổi theo lời/lỗ các lệnh khác).", "Cross margin: your whole futures balance backs the trade – reaching this price wipes most of it (the level also moves with other positions' P&L).");
-  return `<small class="faint k-lq" title="${esc(tip)}">${bi("thanh lý", "liq.")} ${px(p.liq)}${isNum(d) ? ` (${d > 0 ? "+" : ""}${nf(d, 0)}%)` : ""} · ${iso ? bi(`cô lập: mất tối đa ${usd2(m)} ký quỹ lệnh`, `isolated: max loss ${usd2(m)} margin`) : bi("chéo: tính cả số dư futures", "cross: whole futures balance")}</small>`;
-}
 const JWHY = { TP: "chốt lời", SL: "cắt lỗ", UX: "tới giá anh hẹn", TIME: "hết giờ giữ", "TIME+": "hết giờ (đã giữ thêm)", TRAIL: "cắt lỗ đuổi", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", REV: "tín hiệu đảo chiều", BTC: "BTC sốc ngược chiều", STALE: "mất dữ liệu giá", MANUAL: "anh đóng tay", GONE: "đã đóng trên sàn", LIQ: "thanh lý / mất trắng", DELIST: "ngừng giao dịch", EXCH: "đóng trên Binance (tay / cắt lỗ / chốt)", TIMER: "tới giờ hẹn đóng", FOLLOW: "theo lệnh sàn thử đã đóng" };
 const JENV = [["live", "Binance thật", "Thật"], ["demo", "Demo", "Demo"], ["paper", "Sàn thử", "Sàn thử"], ["all", "Tất cả", "Tất cả"]];
 const jT = (s) => (s ? Date.parse(/Z$/.test(s) ? s : s + "Z") : NaN);
@@ -3303,4 +3296,26 @@ function pxEst(sd, q, e, x, frPct) {
   if (!(q > 0) || !(e > 0) || !(x > 0)) return "";
   const v = sd * q * (x - e) - q * x * (frPct || 0) / 100, pc = sd * (x / e - 1) * 100;
   return ` <span class="k-est ${v >= 0 ? "up" : "down"}" title="${bi("Ước tính nếu chạm giá này: chênh giá × khối lượng, đã trừ phí đóng lệnh – chưa tính funding", "Estimate if this price is hit: price move × size, after the closing fee – funding not included")}">≈ ${v >= 0 ? "+" : "−"}${usd2(Math.abs(v))} <i>${pc >= 0 ? "+" : "−"}${nf(Math.abs(pc), 1)}%</i></span>`;
+}
+
+// 🎯 KHỐI MỨC GIÁ THỐNG NHẤT trên thẻ lệnh: mỗi mức (chốt lời · cắt lỗ · thanh lý) 1 hàng cùng khuôn – chấm màu · tên + còn cách bao xa (chạy theo giá) · giá · ≈ lời/lỗ nếu chạm
+// o = { k, sd, q, e, m, fr, sl, tp, liq, mt, lev, pSl, pTp, noSl, slNote }
+function lvRows(o) {
+  const { k, sd, q, e, fr } = o, m = o.m > 0 ? o.m : e;
+  const dist = (x) => (m > 0 && x > 0 ? bi(`cách ${nf(Math.abs(x / m - 1) * 100, 1)}%`, `${nf(Math.abs(x / m - 1) * 100, 1)}% away`) : "");
+  const g = (x) => (k && x > 0 ? `<small class="lv-g" data-ldst="${esc(k)}" data-px="${x}">${dist(x)}</small>` : "");
+  const pend = (on) => (on ? ` <span class="pend" title="${bi("đang đặt trên Binance…", "placing on Binance…")}">⏳</span>` : "");
+  const row = (c, lb, x, est, extra = "", attrs = "", tip = "") => `<div class="lv ${c}"${attrs}><i class="lv-d"></i><span class="lv-l"${tip ? ` title="${esc(tip)}"` : ""}><b>${lb}</b>${extra}${g(x)}</span><span class="lv-p">${px(x)}</span>${est || "<span></span>"}</div>`;
+  const R = [];
+  if (o.tp > 0) R.push(row("k-tp", bi("Chốt lời", "Target"), o.tp, pxEst(sd, q, e, o.tp, fr), pend(o.pTp)));
+  if (o.sl > 0) R.push(row("k-sl", bi("Cắt lỗ", "Stop"), o.sl, pxEst(sd, q, e, o.sl, fr), pend(o.pSl), ` data-lsd="${esc(k || "")}" data-sl="${o.sl}" data-sd="${sd}" data-lm="row"`));
+  else if (o.noSl) R.push(`<div class="lv k-sl none"><i class="lv-d"></i><span class="lv-l"><b>${bi("Cắt lỗ", "Stop")}</b></span><span class="lv-x">${o.noSl}</span></div>`);
+  if (o.liq > 0) {
+    const iso = o.mt === "iso", mg = iso && q > 0 && e > 0 ? (q * e) / Math.max(1, o.lev || 1) : null, pc = e > 0 ? sd * (o.liq / e - 1) * 100 : null;
+    const tip = iso ? bi(`Ký quỹ cô lập: giá chạm mức này thì sàn đóng lệnh, anh mất phần ký quỹ đã bỏ vào lệnh (~${usd2(mg)}), số dư còn lại trong tài khoản không bị đụng tới.`, `Isolated margin: at this price the exchange closes the trade and you lose the margin put into it (~${usd2(mg)}); the rest of your balance is untouched.`)
+      : bi("Ký quỹ chéo (cross): cả số dư futures dùng chung để giữ lệnh – lỗ tới mức này là mất gần hết số dư futures (mức này còn đổi theo lời/lỗ các lệnh khác).", "Cross margin: your whole futures balance backs the trade – reaching this price wipes most of it (the level also moves with other positions' P&L).");
+    const est = iso && mg ? ` <span class="k-est down" title="${esc(tip)}">≈ −${usd2(mg)}${isNum(pc) ? ` <i>−${nf(Math.abs(pc), 1)}%</i>` : ""}</span>` : pxEst(sd, q, e, o.liq, fr);
+    R.push(row("k-lq", bi("Thanh lý", "Liquidation"), o.liq, est, "", "", tip) + `<small class="lv-n">${iso ? bi("cô lập: chỉ mất ký quỹ của lệnh này", "isolated: only this trade's margin") : bi("chéo: trừ vào cả số dư futures", "cross: whole futures balance")}</small>`);
+  }
+  return R.length ? `<div class="r3 sc-lvs lvg">${R.join("")}</div>` : "";
 }

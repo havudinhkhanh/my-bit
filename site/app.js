@@ -696,7 +696,7 @@ const autoOff = (k) => { try { return localStorage.getItem("mybit_auto_" + k) ==
 //   giữ cuộn, con trỏ, biểu đồ đang mở. Khối có data-sig trùng → bỏ qua cả khối.
 //   Ô do giá trực tiếp cập nhật (giá, lời/lỗ, thang giá, đồng hồ…) chỉ thay khi thuộc tính của chính nó đổi – không trả về số cũ của lần vẽ rồi mới nhảy lại.
 const SR_MORPH = [/^#\/bot\/scalp/];
-const MO_LIVE = "[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
+const MO_LIVE = "[data-ldst],[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
 const MO_LIVE_K = MO_LIVE.replace(/[[\]]/g, "").split(",");
 const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
 const MO_KC = ["gseg", "ph-fd", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
@@ -1767,7 +1767,8 @@ function sclApply() {
   });
   document.querySelectorAll("[data-held]").forEach((el) => setT(el, durMs(now - +el.dataset.held)));
   document.querySelectorAll("[data-fnt]").forEach((el) => setT(el, durMs(+el.dataset.fnt - now)));
-  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100, t = EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`;
+  document.querySelectorAll("[data-ldst]").forEach((el) => { const m = SCL.px[el.dataset.ldst]; if (!m) return; const d = nf(Math.abs(+el.dataset.px / m - 1) * 100, 1); setT(el, EN ? `${d}% away` : `cách ${d}%`); });      // 🎯 khối mức giá: còn cách bao xa
+  document.querySelectorAll("[data-lsd]").forEach((el) => { const m = SCL.px[el.dataset.lsd]; if (!m || el.dataset.lm) return; const sl = +el.dataset.sl, d = (+el.dataset.sd > 0 ? m - sl : sl - m) / m * 100, t = EN ? `stop ${px(sl)} · ${nf(d, 1)}% away` : `cắt lỗ ${px(sl)} · cách ${nf(d, 1)}%`;
     const f = el.firstChild; if (f && f.nodeType === 3 && f.nextSibling) { const t2 = t + " "; if (f.data !== t2) f.data = t2; } else setT(el, t); });      // còn ⏳ (đang đặt trên Binance) phía sau → chỉ ghi phần chữ, giữ biểu tượng
   document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); setT(el, t); });
   const u = document.getElementById("scUpnl");

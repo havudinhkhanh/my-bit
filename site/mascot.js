@@ -1139,10 +1139,31 @@
       requestAnimationFrame(f); };
     if (hasV("ready") && !RM.matches) { play("ready", 200, true); setTimeout(go, 230); } else go();
   }
+  // menu "Thêm" (bảng dưới lên): na ĐỨNG TRÊN mép bảng và đi lên / xuống CÙNG LÚC với bảng – theo từng khung hình (mở, đóng, ngón tay kéo bảng xuống)
+  //   trước: đợi bảng mở xong mới nhảy lên, đóng xong mới nhảy xuống → luôn trễ nhịp
+  const msIn = () => { const ms = document.getElementById("msheet"); return ms && !ms.hidden && !ms.classList.contains("side") ? ms.querySelector(".msheet-in") : null; };
+  function groundB() { const p = S.perch; S.perch = null; const v = track0(); S.perch = p; return v.b; }
+  function rideOn(p) {
+    if (!S.el || S.away || S.hide || LF.on || napping()) return;
+    halt(); clearTimeout(S.tm); clearTimeout(S.perchOT); S.walkTk = (S.walkTk || 0) + 1; S.chasing = false; ST.on = false; S.busy = true; S.perch = p; TRC = null;
+    const tk = (S.ride = (S.ride || 0) + 1), nb = groundB(); let last = null, calm = 0, set = false;
+    S.el.classList.add("mperch"); S.el.style.transition = "none"; setT(`translate3d(${snap(S.x)}px,0,0)`); play("sit", 1, true);
+    const f = () => {
+      if (!S.el || S.ride !== tk) return;
+      const ms = document.getElementById("msheet"), gone = !p.isConnected || !ms || ms.hidden || ms.classList.contains("side"), q = gone ? null : p.getBoundingClientRect();
+      const b = q && q.width > 0 ? Math.max(nb, Math.round(VH - q.top - 1)) : nb;
+      if (b !== last) { if (S.el.style.bottom !== b + "px") S.el.style.bottom = b + "px"; last = b; calm = 0; TRC = null; } else calm++;
+      if ((gone || ms.classList.contains("out")) && b <= nb) {      // bảng đã xuống tới thanh điều hướng → đứng lại trên thanh
+        S.ride = 0; S.perch = null; TRC = null; S.el.classList.remove("mperch"); S.busy = false; place(S.x); sched(idle, rnd(3e3, 6e3)); return; }
+      if (!set && calm > 10) { set = true; S.busy = false; TRC = null; place(S.x); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("perch"), 2400, 1); sched(idle, rnd(4e3, 7e3)); }
+      requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  }
   function perchCheck() {
-    if (!S.el) return; const p = document.querySelector(PERCH), r = p?.getBoundingClientRect(), ok = !!(mob() && r && r.width > 220 && r.top > 90 && r.top < VH - 150);
-    if (ok && (!S.perch || S.perch.kind) && !S.perchT) S.perchT = setTimeout(() => { S.perchT = 0; if (document.querySelector(PERCH) === p) perchOn(p); }, 60);
-    else if (!ok && ((S.perch && !S.perch.kind) || S.perchT)) { clearTimeout(S.perchT); S.perchT = 0; if (S.perch && !S.perch.kind) perchOff(); }      // chỉ chỗ đứng = menu (đậu trên đồ vật thì không đụng)
+    if (!S.el) return; const p = msIn(), ms = p && p.closest("#msheet"), ok = !!(mob() && p && !ms.classList.contains("out") && p.offsetWidth > 220 && p.offsetHeight > 150 && VH - p.offsetHeight > 90);
+    if (ok && !(S.ride && S.perch === p) && (!S.perch || S.perch.kind || S.perch !== p)) rideOn(p);
+    else if (!ok && !S.ride && S.perch && !S.perch.kind) perchOff();
   }
   function perchOn(p) {
     if (!S.el || S.away || S.hide || LF.on || napping()) return;
