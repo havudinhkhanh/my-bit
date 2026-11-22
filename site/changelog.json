@@ -101,6 +101,12 @@
      "a": "ui",
      "t": "Xoay ngang: giao diện thanh dọc bên trái giờ bật trên mọi điện thoại (kể cả máy màn hình lớn trước đây bị coi là máy tính bảng nên vẫn hiện thanh đầu trang + menu ngang); thanh bên trái né Dynamic Island / tai thỏ",
      "te": "Landscape: the left-bars layout now kicks in on every phone (large phones were treated as tablets and kept the top bar + horizontal menu); the bars clear the Dynamic Island / notch"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Xoay ngang trên iPhone: bỏ dải xám thừa trên cùng – thanh trái, nội dung và các ngăn kéo sát mép trên",
+     "te": "iPhone landscape: removed the empty grey band at the top – left bars, content and drawers now sit at the top edge"
     }
    ]
   },

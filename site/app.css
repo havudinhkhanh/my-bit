@@ -7093,3 +7093,14 @@ body:has(.occ) .msheet{z-index:1320!important}
   html.pls #app>.sc-hero details[open]:not(.sc-more){max-height:60vh;overflow:auto}
   html.pls #app .sc-body{padding-top:2px}
 }
+/* xoay ngang trên iPhone: thanh trạng thái bị ẩn nhưng iOS vẫn báo khoảng an toàn phía trên (~50–60px) → dải xám thừa trên cùng.
+   Ở chế độ ngang bỏ qua khoảng đó: thanh trái, nội dung, viên trạng thái, các ngăn kéo đều sát mép trên */
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){
+  html.pls body:not(#_pl):not(#_pl2){padding-top:6px!important}
+  html.pls #plSide{top:6px!important}
+  html.pls #app>.sc-hero{top:6px!important}
+  html.pls .ntp.side .ntp-in,html.pls .menu.side,html.pls .cmdk.side .cmdk-in,html.pls .msheet.side .msheet-in{top:8px!important}
+  html.pls .cmdk.side .cmdk-in{height:calc(var(--vvh,100dvh) - 16px)!important;top:calc(var(--vvt,0px) + 8px)!important}
+  html.pls body.pn-sheet .pnav{top:0!important}
+  html.pls #toasts:not(#_t):not(#_pl),html.pls .nb{top:8px!important}
+}
