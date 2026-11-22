@@ -35,15 +35,20 @@ const ROTB = { el: null };
     const B = ROTB.el; if (!B || !B.isConnected || !B.contains(this)) return C0.call(this);
     const W = innerWidth; return Array.from(C0.call(this), (r) => new DOMRect(r.top, W - r.right, r.height, r.width));
   };
-  // toạ độ đổi bằng HÀM ĐỌC (getter) gọi lại hàm gốc mỗi lần – Safari dùng lại CÙNG 1 đối tượng Touch cho cả lượt chạm (ghi giá trị cố định → ngón tay "đứng yên", không kéo được biểu đồ);
-  //   chỉ đổi khi đang xoay (tắt xoay → tự trả về toạ độ thật)
-  const G = (o, k) => { for (let p = Object.getPrototypeOf(o); p; p = Object.getPrototypeOf(p)) { const d = Object.getOwnPropertyDescriptor(p, k); if (d && d.get) return d.get; } return null; };
-  const fix = (o) => { if (!o || o.__rf) return; const gx = G(o, "clientX"), gy = G(o, "clientY"); if (!gx || !gy) return;
-    const X = (t) => (ROTB.el ? gy.call(t) : gx.call(t)), Y = (t) => (ROTB.el ? innerWidth - gx.call(t) : gy.call(t));
-    try { Object.defineProperties(o, { clientX: { get() { return X(this); }, configurable: true }, clientY: { get() { return Y(this); }, configurable: true }, pageX: { get() { return X(this) + scrollX; }, configurable: true }, pageY: { get() { return Y(this) + scrollY; }, configurable: true }, x: { get() { return X(this); }, configurable: true }, y: { get() { return Y(this); }, configurable: true }, __rf: { value: 1 } }); } catch (e) { /* bỏ qua */ } };
-  const on = (e) => { const B = ROTB.el; if (!B || !(e.target instanceof Node) || !B.contains(e.target)) return; fix(e); for (const L of [e.touches, e.changedTouches, e.targetTouches]) if (L) for (let i = 0; i < L.length; i++) fix(L[i]); };
-  ["pointerdown", "pointermove", "pointerup", "pointercancel", "pointerover", "pointerout", "pointerenter", "pointerleave", "mousedown", "mousemove", "mouseup", "mouseover", "mouseout", "mouseenter", "mouseleave", "click", "dblclick", "contextmenu", "wheel", "touchstart", "touchmove", "touchend", "touchcancel"]
-    .forEach((t) => addEventListener(t, on, { capture: true, passive: true }));
+  // toạ độ chạm / chuột: ĐỔI NGAY Ở KHUÔN MẪU (prototype) của MouseEvent & Touch – mỗi lần đọc clientX… đều đi qua đây.
+  //   (trước: gắn vào từng đối tượng sự kiện → Safari mỗi lần đọc danh sách chạm lại trả về 1 đối tượng Touch MỚI chưa đổi → kéo bị "ngược chiều")
+  //   chỉ đổi khi đang xoay VÀ điểm chạm / sự kiện nằm trong khối xoay; còn lại trả toạ độ thật
+  const inB = (o) => { const B = ROTB.el, t = o && o.target; return !!(B && t instanceof Node && B.contains(t)); };
+  for (const P of [window.MouseEvent?.prototype, window.Touch?.prototype]) {
+    if (!P) continue; const d = (k) => { for (let q = P; q; q = Object.getPrototypeOf(q)) { const x = Object.getOwnPropertyDescriptor(q, k); if (x && x.get) return x.get; } return null; };
+    const gx = d("clientX"), gy = d("clientY"), px0 = d("pageX"), py0 = d("pageY"); if (!gx || !gy) continue;
+    const def = (k, f) => { try { Object.defineProperty(P, k, { get: f, configurable: true, enumerable: true }); } catch (e) { /* bỏ qua */ } };
+    def("clientX", function () { return inB(this) ? gy.call(this) : gx.call(this); });
+    def("clientY", function () { return inB(this) ? innerWidth - gx.call(this) : gy.call(this); });
+    if (px0) def("pageX", function () { return inB(this) ? gy.call(this) + scrollX : px0.call(this); });
+    if (py0) def("pageY", function () { return inB(this) ? innerWidth - gx.call(this) + scrollY : py0.call(this); });
+    if (P === window.MouseEvent?.prototype) { def("x", function () { return this.clientX; }); def("y", function () { return this.clientY; }); }
+  }
 })();
 // bật / tắt xoay 1 khối (null = tắt): kích thước khối = màn hình đảo chiều, đặt lại khi đổi cỡ màn hình
 function rotBox(el) {
@@ -3494,10 +3499,10 @@ function lqzModel(K, cur) {
 //     (gồm cả khối lệnh đã có từ trước 3 ngày – không biết giá vào nên không vẽ, nhưng vẫn gánh phần đóng của nó)
 //   • lệnh đòn bẩy cao mà giá sau đó đã quét qua mức thanh lý → coi như đã bị đóng
 //   → ra phân bố tiền đang giữ theo giá vào, giá vào bình quân mỗi phe & phe nào đang lỗ (Long vào trên giá hiện tại, Short vào dưới giá hiện tại = đang kẹt)
-const POS_TIP = () => bi("ƯỚC TÍNH (không phải dữ liệu sàn): người đã vào lệnh ở giá nào mà CHƯA thoát, 3 ngày qua – theo hợp đồng mở (OI) tăng / giảm và phe mua / bán chủ động mỗi 5 phút. Thanh xanh = Long còn giữ, đỏ = Short còn giữ, càng dài càng nhiều tiền. Long vào trên giá hiện tại / Short vào dưới giá hiện tại = đang lỗ (dễ cắt lỗ / bị thanh lý khi giá đi tiếp). Chỉ để tham khảo, không phải khuyến nghị.", "ESTIMATE (not exchange data): where traders entered and have NOT exited, last 3 days – from open-interest changes and aggressive buy / sell flow every 5 min. Green = longs still held, red = shorts still held, longer = more money. Longs above / shorts below the current price are underwater. Reference only, not advice.");
+const POS_TIP = () => bi("ƯỚC TÍNH (không phải dữ liệu sàn): người đã vào lệnh ở giá nào mà CHƯA thoát, 3 ngày qua – theo hợp đồng mở (OI) tăng / giảm và phe mua / bán chủ động mỗi 5 phút. Thanh xanh dương = Long còn giữ, tím = Short còn giữ, càng dài càng nhiều tiền. Long vào trên giá hiện tại / Short vào dưới giá hiện tại = đang lỗ (dễ cắt lỗ / bị thanh lý khi giá đi tiếp). Chỉ để tham khảo, không phải khuyến nghị.", "ESTIMATE (not exchange data): where traders entered and have NOT exited, last 3 days – from open-interest changes and aggressive buy / sell flow every 5 min. Blue = longs still held, purple = shorts still held, longer = more money. Longs above / shorts below the current price are underwater. Reference only, not advice.");
 function posLegend(e2, P, cur) { if (!e2) return;
-  const f = (a, sd) => { if (!isNum(a)) return ""; const g = (cur / a - 1) * 100 * sd; return `<b class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</b> ${bi("TB", "avg")} ${px(a)} <span class="${g < 0 ? "down" : "up"}">${g < 0 ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</span> ~${kUsd(sd > 0 ? P.tL : P.tS)}`; };
-  const zt = (sd) => { const q = P.z.find((z) => z.top && z.sd === sd); return q ? `${sd > 0 ? "Long" : "Short"} ~${px(q.pc)} (${kUsd(q.amt)}${q.lose ? `, <em>${bi("đang lỗ", "underwater")}</em>` : ""})` : ""; };
+  const f = (a, sd) => { if (!isNum(a)) return ""; const g = (cur / a - 1) * 100 * sd; return `<b class="${sd > 0 ? "pz-l" : "pz-s"}">${sd > 0 ? "Long" : "Short"}</b> ${bi("TB", "avg")} ${px(a)} <span class="${g < 0 ? "down" : "up"}">${g < 0 ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</span> ~${kUsd(sd > 0 ? P.tL : P.tS)}`; };
+  const zt = (sd) => { const q = P.z.find((z) => z.top && z.sd === sd); return q ? `<b class="${sd > 0 ? "pz-l" : "pz-s"}">${sd > 0 ? "Long" : "Short"}</b> ~${px(q.pc)} (${kUsd(q.amt)}${q.lose ? `, <em>${bi("đang lỗ", "underwater")}</em>` : ""})` : ""; };
   const zz = P ? [zt(1), zt(-1)].filter(Boolean).join(" · ") : "";
   const h = P && cur > 0 ? `<span class="occ-ob occ-pos" title="${esc(POS_TIP())}">👥 ${bi("Còn giữ 3 ngày", "Held, 3d")}: ${f(P.aL, 1)} · ${f(P.aS, -1)}${zz ? ` <span class="faint">· ${bi("đông nhất", "densest")}: ${zz}</span>` : ""}</span>` : "";
   if (e2.__h !== h) { e2.__h = h; e2.innerHTML = h; } }
@@ -3543,7 +3548,7 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
   // giá vào bình quân Long / Short còn giữ: đường đứt trên biểu đồ + ô giá trên trục + nhãn tên ở cột bên phải trục (cùng chỗ "vào", "chốt"…)
   const avgLines = (Q) => { const k = Q ? `${Q.aL}|${Q.aS}` : ""; if (k === AK) return; AK = k;
     AL.forEach((pl) => { try { ch.cs.removePriceLine(pl); } catch (e) { /* bỏ qua */ } }); AL = [];
-    const T = Q ? [[Q.aL, css("--up"), bi("TB Long", "Avg long")], [Q.aS, css("--down"), bi("TB Short", "Avg short")]].filter(([v]) => isNum(v) && v > 0) : [];
+    const T = Q ? [[Q.aL, css("--floor"), bi("TB Long", "Avg long")], [Q.aS, css("--ceil"), bi("TB Short", "Avg short")]].filter(([v]) => isNum(v) && v > 0) : [];
     T.forEach(([v, c]) => { try { AL.push(ch.cs.createPriceLine({ price: v, color: c, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "" })); } catch (e) { /* bỏ qua */ } });
     pxTagsExtra(el, "pos", T.map(([price, color, title]) => ({ price, color, title }))); };
   const pull = async () => {

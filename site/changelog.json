@@ -301,6 +301,20 @@
      "t": "Xoay ngang trên iPhone: kéo biểu đồ được lại; chú thích hiện lại (1 hàng, vuốt ngang xem hết)",
      "te": "Landscape on iPhone: chart dragging works again; legend is back (one row, swipe to see all)",
      "d": "Safari dùng lại cùng 1 điểm chạm cho cả lượt kéo nên toạ độ bị \"đứng yên\" – giờ toạ độ đổi theo từng lúc."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Xoay ngang trên iPhone: kéo biểu đồ đúng chiều",
+     "te": "Landscape on iPhone: chart drags in the right direction",
+     "d": "Trước kéo lên / xuống thì nến chạy trái / phải và ngược lại – toạ độ ngón tay giờ được đổi ở mọi chỗ đọc."
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Long / Short còn giữ đổi màu: xanh dương (Long) và tím (Short)",
+     "te": "Open Long / Short in new colours: blue (long) and purple (short)",
+     "d": "Không còn lẫn với xanh lá / đỏ của nến, vùng thanh lý, chốt lời / cắt lỗ."
     }
    ]
   },
