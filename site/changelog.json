@@ -242,6 +242,25 @@
      "de": "Previously only charts opened from a manual-trade card showed them; bot cards (e.g. Wick Catcher) didn't. Now includes orders placed from this site and LIMIT / STOP orders you placed in the Binance app (needs the private-server update). Lines outside the visible range (stop, far orders) pin their name to the top / bottom edge with ↑ / ↓.",
      "f": "bot",
      "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ: vùng Long / Short còn giữ (ước tính) – ai đã vào ở giá nào mà chưa thoát",
+     "te": "Chart: open Long / Short zones (estimate) – where traders entered and haven't exited",
+     "d": "Thanh ngang bám mép trái biểu đồ: xanh = Long còn giữ, đỏ = Short còn giữ, càng dài càng nhiều tiền; kèm đường giá vào bình quân mỗi phe và đang lời hay lỗ. Ước tính từ hợp đồng mở (OI) tăng / giảm và phe mua / bán chủ động mỗi 5 phút trong 3 ngày qua – không phải dữ liệu sàn. Có ở biểu đồ lệnh (nút \"Long/Short còn giữ\") và trang phân tích coin có futures.",
+     "de": "Horizontal bars on the chart's left edge: green = longs still held, red = shorts still held, longer = more money; plus each side's average entry line and whether it's up or down. Estimated from open-interest changes and aggressive buy / sell flow every 5 minutes over 3 days – not exchange data. On the trade chart (\"Open L/S\" toggle) and coin pages with futures.",
+     "f": "futures",
+     "go": "#/coins",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: sổ lệnh lỗi không còn làm mất vùng thanh lý; nhãn chồng nhau tự ẩn bớt",
+     "te": "Trade chart: an order-book error no longer hides liquidation zones; overlapping labels thin out",
+     "d": "Biểu đồ hẹp: nhãn quan trọng hơn (giá vào bình quân, cụm còn giữ, vùng thanh lý dày nhất) được giữ, nhãn đè lên thì ẩn chữ nhưng vùng vẫn vẽ.",
+     "de": "On narrow charts the more important labels stay (average entries, held clusters, heaviest liquidation zone); overlapped ones hide their text but the zone is still drawn."
     }
    ]
   },

@@ -2880,14 +2880,21 @@ function drawO(D, el, o, tf, src) {
     return P ? { base: b, man: P.sym, side: Math.sign(P.amt), e: P.ep, q: Math.abs(P.amt), fut: true } : { base: b }; }); } catch (e) { /* bỏ qua */ }      // 📍 chuột phải / giữ lâu → đặt lệnh chờ tại giá đó
   return ch;
 }
+// 👥 trang phân tích coin: gắn lớp "Long / Short còn giữ" lên biểu đồ (mã có hợp đồng futures Binance, gói Pro, ô chọn bật)
+function posAttach(D, el, ch, L) {
+  const r = D.row || {}, sym = r.bf || (L?.kind === "fut" ? L.sym : null), lg = $("#cpos"); if (lg) { lg.innerHTML = ""; lg.__h = ""; }
+  if (!sym || !lsGet("showPos", true) || !can("futures") || L?.kind === "okx") return;
+  el._posStop = obLayer(el, ch, { sym, fut: true, mm: L?.kind === "fut" ? L.m || 1 : r.bfm || 1, pos: true, cur: () => { try { const d = ch.cs.data(); return d[d.length - 1]?.close; } catch (e) { return null; } }, onPos: (P, cur) => posLegend($("#cpos"), P, cur) });
+}
 async function priceChart(D, el, tf) {
-  closeWs();
+  closeWs(); try { el._posStop?.(); } catch (e) { /* bỏ qua */ } el._posStop = null;
   const r = D.row, [base, ag] = TFB[tf] || ["1d"];
   el.innerHTML = skChart(Math.max(260, Math.min(520, el.clientHeight || 380)));
   const L = await liveKlines(r, base, base === "1s" ? Math.min(6, Math.max(1, Math.ceil((ag || 1) * 300 / 1000))) : 1);
   if (L) {
     let raw = L.o, o = aggO(raw, ag);
     const ch = drawO(D, el, o, tf, `${L.src} ${L.sym} · trực tiếp`);
+    posAttach(D, el, ch, L);      // 👥 vùng Long / Short còn giữ (futures, gói Pro)
     const tools = chartTools(D, el, ch, tf); tools.upd(o, true);
     if (L.kind !== "okx") {
       try {
@@ -2916,7 +2923,7 @@ async function priceChart(D, el, tf) {
 // 📈 BIỂU ĐỒ NHANH CHO THẺ LỆNH ĐANG MỞ / ĐANG CHỜ (mọi thẻ .sc-oc): bấm nút 📈 trên thẻ → cửa sổ biểu đồ lớn, đủ khung 1s … Năm,
 //    vẽ giá vào (TB), cắt lỗ, chốt lời, các mức lệnh chờ; nến cập nhật trực tiếp. Hợp đồng futures: giá theo đúng mã hợp đồng (1000PEPE…) nên khớp giá vào.
 const OCC = { ws: null, info: null, tf: null, rc: null };
-const OCL = ["ob", "lqn", "lqf"];      // các lớp vẽ đè (bật / tắt không dựng lại biểu đồ)
+const OCL = ["ob", "lqn", "lqf", "pos"];      // các lớp vẽ đè (bật / tắt không dựng lại biểu đồ)
 const ocOpt = (k) => lsGet("oc_" + k, k !== "rsi");
 function ocInfo(card) {
   const g = (sel, a) => card.querySelector(sel)?.dataset?.[a];
@@ -3025,10 +3032,10 @@ function ocOpen(I) {
     <div class="occ-st" id="occSt"></div>${I.fut ? `<details class="occ-mk" id="occMkD"><summary>📊 ${bi("Phe đông 3 ngày qua", "Crowding, last 3 days")} <small>funding · Long/Short · ${bi("hợp đồng mở (OI)", "open interest")}</small>${can("futures") ? "" : ' <span class="lk">★ Pro</span>'}</summary><div id="occMk"></div></details>` : ""}
     ${(I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : ""}
     <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
-      <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"], ["ob", bi("Tường lệnh", "Order walls")], ...(I.fut ? [["lqn", bi("Thanh lý gần", "Liq. near")], ["lqf", bi("Thanh lý xa", "Liq. far")]] : [])].map(([k, t]) => { const ly = OCL.includes(k), lk = ly && !can("futures"), v = k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k);
-        const tip = { ob: bi("Khối lệnh chờ lớn trên sổ lệnh Binance (±12% quanh giá) – làm mới 10 giây/lần", "Large resting orders on the Binance book (±12%) – refreshed every 10 s"), lqn: bi("ƯỚC TÍNH vùng nhiều vị thế đòn bẩy bị thanh lý trong ±8% quanh giá – theo khối lượng 3 ngày & đòn bẩy phổ biến, không phải dữ liệu sàn", "ESTIMATED liquidation clusters within ±8% – from 3-day volume & common leverage, not exchange data"), lqf: bi("ƯỚC TÍNH vùng thanh lý xa (8–30% từ giá) – ngoài khung đang xem thì hiện nhãn ở mép trên / dưới", "ESTIMATED far liquidation clusters (8–30%) – shown as edge labels when off-screen") }[k];
+      <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"], ["ob", bi("Tường lệnh", "Order walls")], ...(I.fut ? [["pos", bi("Long/Short còn giữ", "Open L/S")], ["lqn", bi("Thanh lý gần", "Liq. near")], ["lqf", bi("Thanh lý xa", "Liq. far")]] : [])].map(([k, t]) => { const ly = OCL.includes(k), lk = ly && !can("futures"), v = k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k);
+        const tip = { pos: esc(POS_TIP()), ob: bi("Khối lệnh chờ lớn trên sổ lệnh Binance (±12% quanh giá) – làm mới 10 giây/lần", "Large resting orders on the Binance book (±12%) – refreshed every 10 s"), lqn: bi("ƯỚC TÍNH vùng nhiều vị thế đòn bẩy bị thanh lý trong ±8% quanh giá – theo khối lượng 3 ngày & đòn bẩy phổ biến, không phải dữ liệu sàn", "ESTIMATED liquidation clusters within ±8% – from 3-day volume & common leverage, not exchange data"), lqf: bi("ƯỚC TÍNH vùng thanh lý xa (8–30% từ giá) – ngoài khung đang xem thì hiện nhãn ở mép trên / dưới", "ESTIMATED far liquidation clusters (8–30%) – shown as edge labels when off-screen") }[k];
         return `<button type="button" data-octg="${k}" class="${v && !lk ? "on" : ""}${lk ? " lk" : ""}"${tip ? ` title="${tip}"` : ""}>${t}${lk ? " <small>★ Pro</small>" : ""}</button>`; }).join("")}</span></div>
-    <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<span id="occOb"></span><small class="faint" id="occSrc"></small></div>
+    <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<span id="occOb"></span><span id="occPos"></span><small class="faint" id="occSrc"></small></div>
     <div class="occ-c" id="occC"></div><div class="occ-ohlc" id="occO"></div><div class="occ-rsi" id="occR"></div></div>`;
   document.body.appendChild(m);
   // chặn cuộn trang phía sau bằng sự kiện (KHÔNG đổi overflow của trang: đổi overflow = trình duyệt tính lại bố cục cả trang ~70ms → khựng ngay khung đầu của hiệu ứng mở)
@@ -3041,7 +3048,7 @@ function ocOpen(I) {
   m.querySelectorAll("[data-occa]").forEach((x) => (x.onclick = () => { const a = I.acts[+x.dataset.occa], t = a && [...document.querySelectorAll(a.sel)].find((b) => !b.closest("#ocChart,.occ") && !b.disabled);
     if (!t) { toast(bi("Lệnh này vừa thay đổi (đã đóng / khớp) – xem lại ở thẻ lệnh", "This trade just changed – check its card"), { type: "warn" }); return; } t.click(); }));
   m.querySelector(".occ-go").onclick = () => ocClose();
-  m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg; if (b.classList.contains("lk")) { toast(bi("Tường lệnh & vùng thanh lý thuộc gói Pro", "Order walls & liquidation zones are in Pro"), { type: "warn" }); return; }
+  m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg; if (b.classList.contains("lk")) { toast(bi("Tường lệnh, vùng Long/Short còn giữ & vùng thanh lý thuộc gói Pro", "Order walls, open L/S zones & liquidation zones are in Pro"), { type: "warn" }); return; }
     const v = !(k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k)); lsSet("oc_" + k, v); b.classList.toggle("on", v); if (OCL.includes(k)) OCC.mkLayer?.(); else ocDraw(true); }));      // lớp vẽ: chỉ gắn / gỡ lớp · EMA / KL / RSI: dựng lại nhưng giữ khung đang xem
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
@@ -3417,24 +3424,71 @@ function lqzModel(K, cur) {
   for (const sd of [-1, 1]) { const t = out.filter((z) => z.sd === sd).sort((a, b) => b.k - a.k)[0]; if (t && t.k > 0.4) t.top = 1; }      // "dày" chỉ cho cụm mạnh nhất mỗi phía
   return out;
 }
+// 👥 VÙNG LONG / SHORT CÒN GIỮ (ƯỚC TÍNH, không phải dữ liệu sàn): người đã vào lệnh ở mức giá nào mà CHƯA thoát – 3 ngày qua
+//   • hợp đồng mở (OI, 15 phút/lần) TĂNG trong 1 nến 5 phút = có lệnh mới mở ở giá nến đó; chia phe theo dòng chủ động: mua chủ động → Long mới, bán chủ động → Short mới
+//   • OI GIẢM = có lệnh đóng: Long đóng (bán ra) theo phần bán chủ động, Short đóng (mua lại) theo phần mua chủ động – trừ đều trên mọi lệnh đang giữ của phe đó
+//     (gồm cả khối lệnh đã có từ trước 3 ngày – không biết giá vào nên không vẽ, nhưng vẫn gánh phần đóng của nó)
+//   • lệnh đòn bẩy cao mà giá sau đó đã quét qua mức thanh lý → coi như đã bị đóng
+//   → ra phân bố tiền đang giữ theo giá vào, giá vào bình quân mỗi phe & phe nào đang lỗ (Long vào trên giá hiện tại, Short vào dưới giá hiện tại = đang kẹt)
+const POS_TIP = () => bi("ƯỚC TÍNH (không phải dữ liệu sàn): người đã vào lệnh ở giá nào mà CHƯA thoát, 3 ngày qua – theo hợp đồng mở (OI) tăng / giảm và phe mua / bán chủ động mỗi 5 phút. Thanh xanh = Long còn giữ, đỏ = Short còn giữ, càng dài càng nhiều tiền. Long vào trên giá hiện tại / Short vào dưới giá hiện tại = đang lỗ (dễ cắt lỗ / bị thanh lý khi giá đi tiếp). Chỉ để tham khảo, không phải khuyến nghị.", "ESTIMATE (not exchange data): where traders entered and have NOT exited, last 3 days – from open-interest changes and aggressive buy / sell flow every 5 min. Green = longs still held, red = shorts still held, longer = more money. Longs above / shorts below the current price are underwater. Reference only, not advice.");
+function posLegend(e2, P, cur) { if (!e2) return;
+  const f = (a, sd) => { if (!isNum(a)) return ""; const g = (cur / a - 1) * 100 * sd; return `<b class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</b> ${bi("TB", "avg")} ${px(a)} <span class="${g < 0 ? "down" : "up"}">${g < 0 ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</span> ~${kUsd(sd > 0 ? P.tL : P.tS)}`; };
+  const h = P && cur > 0 ? `<span class="occ-ob occ-pos" title="${esc(POS_TIP())}">👥 ${bi("Còn giữ 3 ngày", "Held, 3d")}: ${f(P.aL, 1)} · ${f(P.aS, -1)}</span>` : "";
+  if (e2.__h !== h) { e2.__h = h; e2.innerHTML = h; } }
+const POS_LV = [[3, 0.15], [5, 0.15], [10, 0.25], [20, 0.25], [50, 0.15], [100, 0.05]];
+function posModel(K, OI, cur) {
+  const n = K?.length || 0; if (n < 30 || !(OI?.length > 4) || !(cur > 0)) return null;
+  const dOI = new Float64Array(n); let i0 = 0;
+  for (let j = 1; j < OI.length; j++) { const a = OI[j - 1][0], b = OI[j][0], d = OI[j][1] - OI[j - 1][1]; if (!isFinite(d)) continue;
+    while (i0 < n && K[i0][0] < a) i0++; let i1 = i0, sv = 0; while (i1 < n && K[i1][0] < b) { sv += K[i1][7] || 0; i1++; }
+    for (let i = i0; i < i1; i++) dOI[i] += sv > 0 ? d * (K[i][7] || 0) / sv : d / Math.max(1, i1 - i0); }
+  const sufH = new Float64Array(n + 1).fill(-Infinity), sufL = new Float64Array(n + 1).fill(Infinity);
+  for (let i = n - 1; i >= 0; i--) { sufH[i] = Math.max(sufH[i + 1], K[i][2]); sufL[i] = Math.min(sufL[i + 1], K[i][3]); }
+  const cL = new Float64Array(n), cS = new Float64Array(n); let FL = 1, FS = 1, tL = Math.max(0, OI[0][1] / 2), tS = tL;
+  for (let i = 0; i < n; i++) { const d = dOI[i], qv = K[i][7] || 0, b = qv > 0 && K[i][8] >= 0 ? Math.max(0.05, Math.min(0.95, K[i][8] / qv)) : 0.5;
+    if (d > 0) { cL[i] = (d * b) / FL; cS[i] = (d * (1 - b)) / FS; tL += d * b; tS += d * (1 - b); }
+    else if (d < 0) { const fl = tL > 0 ? Math.max(0.02, 1 - (-d * (1 - b)) / tL) : 1, fs = tS > 0 ? Math.max(0.02, 1 - (-d * b) / tS) : 1; FL *= fl; tL *= fl; FS *= fs; tS *= fs; }
+    if (FL < 1e-6 || FS < 1e-6) { for (let k = 0; k <= i; k++) { cL[k] *= FL; cS[k] *= FS; } FL = FS = 1; } }      // giữ số không quá nhỏ
+  let lo = Infinity, hi = -Infinity; for (const k of K) { if (k[3] < lo) lo = k[3]; if (k[2] > hi) hi = k[2]; }
+  const step = Math.max(cur * 0.0025, (hi - lo) / 160), B = Math.max(2, Math.ceil((hi - lo) / step) + 1), L = new Float64Array(B), S = new Float64Array(B);
+  let sL = 0, sS = 0, pL = 0, pS = 0;
+  for (let i = 0; i < n; i++) { const tp = (K[i][2] + K[i][3] + K[i][4]) / 3; let wl = 0, ws = 0;
+    for (const [lv, w] of POS_LV) { if (sufL[i + 1] > tp * (1 - 1 / lv + 0.005)) wl += w; if (sufH[i + 1] < tp * (1 + 1 / lv - 0.005)) ws += w; }      // giá sau đó chưa quét tới mức thanh lý
+    const aL = cL[i] * FL * wl, aS = cS[i] * FS * ws; if (!(aL > 0) && !(aS > 0)) continue;
+    sL += aL; sS += aS; pL += aL * tp; pS += aS * tp;
+    const b0 = Math.max(0, Math.floor((K[i][3] - lo) / step)), b1 = Math.min(B - 1, Math.floor((K[i][2] - lo) / step)), m = b1 - b0 + 1;      // trải đều từ đáy tới đỉnh nến
+    for (let b = b0; b <= b1; b++) { L[b] += aL / m; S[b] += aS / m; } }
+  if (!(sL + sS > 0)) return null;
+  const sm = (H) => H.map((x, i) => (H[i - 1] || 0) * 0.25 + x * 0.5 + (H[i + 1] || 0) * 0.25), Ls = sm(L), Ss = sm(S);
+  const mx = Math.max(...Ls.map((x, i) => x + Ss[i])) || 1, z = [];
+  for (const [H, sd] of [[Ls, 1], [Ss, -1]]) { const m1 = Math.max(...H) || 1, idx = [];
+    for (let i = 0; i < B; i++) if (H[i] >= (H[i - 1] || 0) && H[i] > (H[i + 1] || 0) && H[i] >= m1 * 0.35) idx.push(i);
+    const sel = []; for (const i of idx.sort((x, y) => H[y] - H[x])) if (sel.length < 2 && sel.every((j) => Math.abs(j - i) > 8)) sel.push(i);
+    sel.forEach((i, r) => { let a = i, b = i; while (a > 0 && H[a - 1] >= H[i] * 0.5) a--; while (b < B - 1 && H[b + 1] >= H[i] * 0.5) b++; let amt = 0; for (let k = a; k <= b; k++) amt += H[k];
+      const pc = lo + (i + 0.5) * step; z.push({ sd, top: r === 0, p0: lo + a * step, p1: lo + (b + 1) * step, pc, amt, lose: sd > 0 ? pc > cur : pc < cur }); }); }
+  return { lo, step, B, L: Ls, S: Ss, mx, z, aL: sL > 0 ? pL / sL : null, aS: sS > 0 ? pS / sS : null, tL: sL, tS: sS };
+}
 function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, ready: Promise, onSum(q) }
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const box = document.createElement("div"); box.className = "obl"; box.setAttribute("aria-hidden", "true"); el.appendChild(box);
-  let W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
+  let P = null, W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
   const api = o.fut ? "https://fapi.binance.com/fapi/v1" : "https://api.binance.com/api/v3";
   const pull = async () => {
     if (!alive) return; if (document.hidden) { tm = setTimeout(pull, 4000); return; }
     const cur = o.cur(); if (!(cur > 0)) { tm = setTimeout(pull, 2000); return; }
     try {
-      if (o.ob) { const d = await fetchJ(`${api}/depth?symbol=${o.sym}&limit=${o.fut ? 1000 : 500}`, 6000), mm = o.mm || 1, st = cur * 0.002, A = new Map(), Bm = new Map();
+      if (o.ob) try { const d = await fetchJ(`${api}/depth?symbol=${o.sym}&limit=${o.fut ? 1000 : 500}`, 6000), mm = o.mm || 1, st = cur * 0.002, A = new Map(), Bm = new Map();
         const add = (M, p, q, sd) => { p /= mm; if (Math.abs(p / cur - 1) > 0.12) return; const k = sd > 0 ? Math.floor(p / st) : Math.ceil(p / st), e = M.get(k) || { n: 0, pq: 0 }; e.n += p * q * mm; e.pq += p * p * q * mm; M.set(k, e); };
         for (const [p, q] of d.bids || []) add(Bm, +p, +q, 1); for (const [p, q] of d.asks || []) add(A, +p, +q, -1);
         W = [...[...Bm.values()].map((x) => ({ sd: 1, p: x.pq / x.n, n: x.n })), ...[...A.values()].map((x) => ({ sd: -1, p: x.pq / x.n, n: x.n }))];
-        const sum = (M, f) => [...M.values()].reduce((a, x) => a + (f(x.pq / x.n) ? x.n : 0), 0); o.onSum?.({ b2: sum(Bm, (p) => p >= cur * 0.98), a2: sum(A, (p) => p <= cur * 1.02) }); }
-      if ((o.lqn || o.lqf) && o.fut) { let C = LQZ_C.get(o.sym); const mm = o.mm || 1;
-        if (!C || Date.now() - C.at > 120e3) { const K = await fetchJ(`${api}/klines?symbol=${o.sym}&interval=5m&limit=864`, 8000); C = { at: Date.now(), K: K.map((k) => [k[0], +k[1] / mm, +k[2] / mm, +k[3] / mm, +k[4] / mm, 0, 0, +k[7]]) }; LQZ_C.set(o.sym, C); }
-        if (!C.z || C.zAt !== C.at || Math.abs(cur / C.zc - 1) > 0.004) { C.z = lqzModel(C.K, cur); C.zAt = C.at; C.zc = cur; }      // tính lại chỉ khi có nến mới / giá lệch > 0,4%
-        Z = C.z.filter((z) => (z.far ? o.lqf : o.lqn)); }
+        const sum = (M, f) => [...M.values()].reduce((a, x) => a + (f(x.pq / x.n) ? x.n : 0), 0); o.onSum?.({ b2: sum(Bm, (p) => p >= cur * 0.98), a2: sum(A, (p) => p <= cur * 1.02) }); } catch (e) { /* sổ lệnh lỗi → vẫn vẽ vùng thanh lý / còn giữ */ }
+      if ((o.lqn || o.lqf || o.pos) && o.fut) { let C = LQZ_C.get(o.sym); const mm = o.mm || 1;
+        if (!C || Date.now() - C.at > 120e3) { const K = await fetchJ(`${api}/klines?symbol=${o.sym}&interval=5m&limit=864`, 8000); C = { ...(C || {}), at: Date.now(), K: K.map((k) => [k[0], +k[1] / mm, +k[2] / mm, +k[3] / mm, +k[4] / mm, 0, 0, +k[7], +k[10]]) }; LQZ_C.set(o.sym, C); }
+        if (o.lqn || o.lqf) { if (!C.z || C.zAt !== C.at || Math.abs(cur / C.zc - 1) > 0.004) { C.z = lqzModel(C.K, cur); C.zAt = C.at; C.zc = cur; }      // tính lại chỉ khi có nến mới / giá lệch > 0,4%
+          Z = C.z.filter((z) => (z.far ? o.lqf : o.lqn)); } else Z = [];
+        if (o.pos) { if (!C.oi || Date.now() - C.oiAt > 300e3) { try { const J = await fetchJ(`https://fapi.binance.com/futures/data/openInterestHist?symbol=${o.sym}&period=15m&limit=288`, 8000); C.oi = (J || []).map((x) => [+x.timestamp, +x.sumOpenInterestValue]).filter((x) => x[1] > 0).sort((a, b) => a[0] - b[0]); } catch (e) { C.oi = C.oi || []; } C.oiAt = Date.now(); }      // hợp đồng mở 3 ngày (5 phút đọc lại)
+          if (!C.pm || C.pmAt !== C.at + "|" + C.oiAt || Math.abs(cur / C.pmc - 1) > 0.004) { C.pm = posModel(C.K, C.oi, cur); C.pmAt = C.at + "|" + C.oiAt; C.pmc = cur; }
+          P = C.pm; o.onPos?.(P, cur); } }
       ver++; kick();
     } catch (e) { /* mạng chặn / mã không có futures – thử lại sau */ }
     if (alive) tm = setTimeout(pull, 10000);
@@ -3456,14 +3510,30 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
     const html = zs.map(({ z, t, h }) => `<i class="obz ${z.sd < 0 ? "s" : "l"}" style="top:${t.toFixed(1)}px;height:${Math.max(3, h).toFixed(1)}px;--k:${(0.05 + 0.15 * z.k).toFixed(2)}"><b>${lab(z)}</b></i>`).join("")
       + [eU, eD].filter(Boolean).map((e) => `<i class="obe ${e.z.sd < 0 ? "s" : "l"} ${e.up ? "u" : "d"}"><b>${e.up ? "↑" : "↓"} ${lab(e.z)} ${px(e.z.pc)} <small>${e.z.pc > cur ? "+" : ""}${nf((e.z.pc / cur - 1) * 100, 1)}%</small></b></i>`).join("")
       + ws.map(({ w, yy, lab: lb }) => `<i class="obw ${w.sd > 0 ? "b" : "a"}${w.wall ? " wl" : ""}" style="top:${(yy - 1.5).toFixed(1)}px;width:${Math.max(3, (w.n / wm) * Math.min(150, Wd * 0.26)).toFixed(0)}px">${w.wall ? `<b>${kUsd(lb)}</b>` : ""}</i>`).join("");
-    if (html === last) return; last = html; box.style.width = Wd + "px"; box.style.height = H + "px"; box.innerHTML = html;
+    let ph = "", PWm = 0;
+    if (P) {      // 👥 hồ sơ Long / Short còn giữ: thanh ngang bám mép trái (xanh = Long, đỏ = Short, dài = nhiều tiền đang giữ ở giá đó) + giá vào bình quân mỗi phe
+      PWm = Math.round(Math.min(110, Wd * 0.22)); let bars = "";
+      for (let i = 0; i < P.B; i++) { const v = P.L[i] + P.S[i]; if (!(v > P.mx * 0.015)) continue; const a = y(P.lo + (i + 1) * P.step), b = y(P.lo + i * P.step); if (!isNum(a) || !isNum(b) || b < 0 || a > H) continue;
+        const t = Math.max(0, Math.min(a, b)), h = Math.max(1, Math.min(H, Math.max(a, b)) - t - 0.5), w = Math.max(2, (v / P.mx) * PWm), k = (P.L[i] / v) * 100;
+        bars += `<i class="obp" style="top:${t.toFixed(1)}px;height:${h.toFixed(1)}px;width:${w.toFixed(0)}px;--a:${k.toFixed(0)}%"></i>`; }
+      const yA = isNum(P.aL) ? y(P.aL) : null, yB = isNum(P.aS) ? y(P.aS) : null, gap = isNum(yA) && isNum(yB) ? Math.abs(yA - yB) : 99, sh = gap < 19 ? (19 - gap) / 2 : 0;      // 2 nhãn TB sát nhau → tách chữ ra 2 phía (đường vẫn đúng giá)
+      const avg = (p, sd) => { const yy = isNum(p) ? y(p) : null; if (!isNum(yy) || yy < 0 || yy > H) return ""; const g = ((cur / p - 1) * 100) * sd, lose = g < 0, mv = sh ? ((sd > 0 ? yA : yB) <= (sd > 0 ? yB : yA) ? -sh : sh) : 0;
+        return `<i class="obavg ${sd > 0 ? "l" : "s"}" style="top:${yy.toFixed(1)}px"><b${mv ? ` style="top:${mv.toFixed(1)}px"` : ""}>${sd > 0 ? bi("TB Long", "Avg long") : bi("TB Short", "Avg short")} ${px(p)} · ${lose ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</b></i>`; };
+      const zl = P.z.filter((q) => q.top).map((q) => { const yy = y(q.pc); if (!isNum(yy) || yy < 6 || yy > H - 6) return ""; return `<i class="obpz ${q.sd > 0 ? "l" : "s"}" style="top:${yy.toFixed(1)}px;left:${PWm + 6}px"><b>${q.sd > 0 ? "Long" : "Short"} ${bi("còn giữ", "holding")} ~${kUsd(q.amt)}${q.lose ? ` · <em>${bi("đang lỗ", "underwater")}</em>` : ""}</b></i>`; }).join("");
+      ph = bars + avg(P.aL, 1) + avg(P.aS, -1) + zl; }      // 2 nhãn TB sát nhau: lớp chống chồng bên dưới giữ nhãn trước (Long), nhãn sau ẩn chữ – đường vẫn vẽ
+    const html2 = ph + html; box.style.setProperty("--pw", (P ? PWm + 4 : 0) + "px");
+    if (html2 === last) return; last = html2; box.style.width = Wd + "px"; box.style.height = H + "px"; box.innerHTML = html2;
+    // nhãn chồng nhau (biểu đồ hẹp): giữ nhãn quan trọng hơn – giá vào TB > cụm còn giữ > vùng thanh lý dày nhất > vùng thanh lý khác > tường lệnh – nhãn thua ẩn chữ (vùng / thanh vẫn vẽ)
+    const pri = (b) => { const c = b.parentElement.classList; return c.contains("obavg") ? 5 : c.contains("obpz") ? 4 : c.contains("obe") ? 3 : c.contains("obz") ? (/dày|heaviest/.test(b.textContent) ? 2 : 1) : 0; };
+    const kept = []; [...box.querySelectorAll("i>b")].map((b) => ({ b, p: pri(b), r: b.getBoundingClientRect() })).sort((a, b) => b.p - a.p).forEach((q) => {
+      const hit = kept.some((k) => q.r.left < k.right + 3 && q.r.right > k.left - 3 && q.r.top < k.bottom + 1 && q.r.bottom > k.top - 1); if (hit) q.b.style.visibility = "hidden"; else kept.push(q.r); });
   };
   const kick = () => { if (!raf && alive) raf = requestAnimationFrame(place); };
   try { ch.c.timeScale().subscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ }
   const ro = "ResizeObserver" in window ? new ResizeObserver(kick) : null; ro?.observe(el);
   const iv = setInterval(() => { if (!document.hidden) kick(); }, 700);      // trục giá tự giãn / kéo trục → canh lại (dò nhanh 2 toạ độ, chỉ dựng khi đổi)
   el.addEventListener("wheel", kick, { passive: true });
-  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); o.onSum?.(null); }
+  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); o.onSum?.(null); o.onPos?.(null); }
   (async () => { try { await o.ready; } catch (e) { /* bỏ qua */ } await new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 800 }) : setTimeout(r, 300))); if (alive) pull(); })();      // biểu đồ mở xong & trình duyệt rảnh mới tải sổ lệnh / nến 3 ngày – không giành máy với hiệu ứng mở
   return stop;
 }
@@ -3513,9 +3583,10 @@ async function ocDraw(keep) {
   try { chartPxMenu(el, ch, () => ({ base: I.base, man: I.man ? I.base + "USDT" : null, side: I.side, e: I.e, q: I.q, f0: I.f0, fr: I.fr, fund: I.fund, fut: I.fut, uxRef: I.uxRef, ux: I.ux })); } catch (e) { /* bỏ qua */ }
   // 🧱🔥 tường lệnh + vùng thanh lý ước tính (gói Pro) – bật / tắt chỉ gắn / gỡ LỚP VẼ, không dựng lại biểu đồ (giữ nguyên zoom / khung đang xem)
   OCC.mkLayer = () => { try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null;
-    const on = { ob: ocOpt("ob"), lqn: I.fut && ocOpt("lqn"), lqf: I.fut && lsGet("oc_lqf", false) };
-    if (!can("futures") || L.kind === "okx" || !el.isConnected || !(on.ob || on.lqn || on.lqf)) return;
+    const on = { ob: ocOpt("ob"), lqn: I.fut && ocOpt("lqn"), lqf: I.fut && lsGet("oc_lqf", false), pos: I.fut && ocOpt("pos") };
+    if (!can("futures") || L.kind === "okx" || !el.isConnected || !(on.ob || on.lqn || on.lqf || on.pos)) return;
     OCC.ob = obLayer(el, ch, { sym: L.sym, fut: L.kind !== "spot", mm: L.m || 1, ...on, ready: OCC.ready, cur: () => { try { const d = ch.cs.data(); return d[d.length - 1]?.close; } catch (e) { return o.c[n - 1]; } },
+      onPos: (P, cur) => posLegend(document.getElementById("occPos"), P, cur),
       onSum: (q) => { const e2 = document.getElementById("occOb"); if (!e2) return; const h = q ? `<span class="occ-ob" title="${bi("Tổng tiền đặt chờ trong ±2% quanh giá hiện tại (sổ lệnh Binance)", "Resting orders within ±2% of the price (Binance book)")}">${bi("Sổ lệnh ±2%", "Book ±2%")} <b class="up">${bi("mua", "bid")} ${kUsd(q.b2)}</b> · <b class="down">${bi("bán", "ask")} ${kUsd(q.a2)}</b></span>` : ""; if (e2.__h !== h) { e2.__h = h; e2.innerHTML = h; } } }); };
   OCC.mkLayer();
   // RSI 14 (tuỳ chọn) – khung nhỏ dưới, cùng trục thời gian
@@ -3580,9 +3651,9 @@ function bindChart(D) {
   const el = $("#pchart"); if (!el) return;
   priceChart(D, el, CTF);
   $$("#tfs button").forEach((b) => b.onclick = () => { CTF = b.dataset.tf; lsSet("ctf2", CTF); disposeCharts(); $$("#tfs button").forEach((x) => x.classList.toggle("on", x === b)); priceChart(D, el, CTF); });
-  [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
+  [["#zt", "showZones"], ["#smt", "showSmc"], ["#mgt", "showMag"], ["#pnt", "showPanes"], ["#pst", "showPos"]].forEach(([id, key]) => { const z = $(id); if (z) z.onchange = () => { if (id === "#pst" && !can("futures")) { z.checked = false; toast(bi("Vùng Long / Short còn giữ thuộc gói Pro", "Open L/S zones are in Pro"), { type: "warn" }); return; } lsSet(key, z.checked); disposeCharts(); priceChart(D, el, CTF); }; });
 }
-const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label></span><small class="faint" id="csrc"></small>${big ? `<span class="cbar-act"><span class="cv-sz czseg" role="group" aria-label="Cỡ biểu đồ" style="--i:${{ s: 0, m: 1, l: 2 }[cvSz()]}"><i class="czs-th" aria-hidden="true"></i>${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
+const chartBox = (D, h = 440, big = false) => `<div class="cbar">${tfSeg(CTF)}<span class="cops"><label class="chk"><input type="checkbox" id="smt" ${lsGet("showSmc", true) ? "checked" : ""}> SMC</label><label class="chk" title="Vùng giá dễ quay về + xác suất chạm (học máy)"><input type="checkbox" id="mgt" ${lsGet("showMag", true) ? "checked" : ""}> 🧲</label><label class="chk"><input type="checkbox" id="pnt" ${lsGet("showPanes", true) ? "checked" : ""}> RSI · MACD · CVD</label><label class="chk"><input type="checkbox" id="zt" ${lsGet("showZones", true) ? "checked" : ""}> Hỗ trợ/kháng cự</label>${D.row?.bf ? `<label class="chk${can("futures") ? "" : " lk"}" title="${esc(POS_TIP())}"><input type="checkbox" id="pst" ${lsGet("showPos", true) && can("futures") ? "checked" : ""}> 👥 Long/Short còn giữ${can("futures") ? "" : " <small>★ Pro</small>"}</label>` : ""}</span><small class="faint" id="csrc"></small><small class="occ-ob occ-pos" id="cpos"></small>${big ? `<span class="cbar-act"><span class="cv-sz czseg" role="group" aria-label="Cỡ biểu đồ" style="--i:${{ s: 0, m: 1, l: 2 }[cvSz()]}"><i class="czs-th" aria-hidden="true"></i>${[["s", "S", "nhỏ – nửa chiều ngang"], ["m", "M", "vừa – 2/3 chiều ngang"], ["l", "L", "lớn – cả hàng, cao theo màn hình"]].map(([k, t, d]) => `<button type="button" data-cvsz="${k}" class="${cvSz() === k ? "on" : ""}" title="Cỡ ${d}">${t}</button>`).join("")}</span><button type="button" class="cv-fsb" data-cvfs title="Toàn màn hình (phím F · Esc để thoát)" aria-label="Toàn màn hình"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></span>` : ""}</div><div class="chart${big ? " chart-xl" : ""}" id="pchart"${big ? ` data-sz="${cvSz()}"` : ""} style="height:${h}px"></div><div id="panes" class="panes"></div>`;
 function tabOverview(D) {
   const r = D.row, V = D.val || {}, T = D.trend || {}, cg = D.cg || {};
   const why = (V.why || []).slice(0, 4);
