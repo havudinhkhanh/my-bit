@@ -7137,3 +7137,4 @@ body:has(.occ) .msheet{z-index:1320!important}
   .pl-1col{grid-template-columns:minmax(0,1fr)!important}
   .pl-1col>*{grid-column:1/-1!important}
 }
+@media (orientation:landscape) and (max-height:540px) and (max-width:1400px) and (pointer:coarse){ html.pls #plSide{z-index:38} }      /* mèo na (z 40) luôn nổi trên các thanh trái nếu có lúc nhảy qua */

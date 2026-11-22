@@ -125,6 +125,12 @@
      "a": "ui",
      "t": "Xoay ngang: lịch lời/lỗ + chi tiết ngày (Kết quả theo ngày) và các lưới 2 cột khác không còn bị che mất cột bên phải – hết chỗ thì tự xếp 1 cột",
      "te": "Landscape: the P/L calendar + day detail and other two-column grids no longer get cut off on the right – they stack to one column when space runs out"
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Xoay ngang: mèo na chỉ đi trong vùng nội dung – không còn bị các thanh trái che, và đứng cách mép dưới 1 chút",
+     "te": "Landscape: Na the cat stays in the content area – no longer hidden behind the left bars – and walks a little above the bottom edge"
     }
    ]
   },
