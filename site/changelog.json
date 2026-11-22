@@ -137,6 +137,12 @@
      "a": "ui",
      "t": "iPhone: xoay ngang rồi xoay dọc lại mà trang bị phóng to lệch → tự đưa về đúng cỡ, thanh đầu trang & hàng tab dính lại lên trên khi cuộn",
      "te": "iPhone: after rotating, a page left slightly zoomed is reset to normal so the top bar and tab row stick to the top again while scrolling"
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Điện thoại dọc: mèo na đứng cách thanh điều hướng dưới 1 chút, không còn chạm / che các nút trên thanh",
+     "te": "Portrait: Na stands a little above the bottom navigation bar instead of touching or covering its buttons"
     }
    ]
   },

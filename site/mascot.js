@@ -642,7 +642,7 @@
     if (S.perch) { const q = S.perch.isConnected && S.perch.getBoundingClientRect(); if (q && q.width > 0) return { b: Math.round(VH - q.top - 1), l: q.left + 8 + pad, r: q.right - 8 - cw - pad }; S.perch = null; }      // đang đứng trên mép menu
     // 📱↔ điện thoại xoay ngang (thanh dọc bên trái): na đi trong vùng nội dung – không lấn vào các thanh trái, nhích lên cách đáy 1 chút
     { const ps = document.documentElement.classList.contains("pls") && document.getElementById("plSide")?.getBoundingClientRect(); if (ps && ps.width > 0) return { b: 10, l: ps.right + 10 + pad, r: W - 16 - cw - pad }; }
-    if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > VH - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > VW / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(VH - r.top - 2), l: r.left + 14, r: rr }; }
+    if (mob() && r && r.height > 0 && r.height < 140 && r.bottom > VH - 60) { let rr = r.right - 14 - cw; if (fr && fr.bottom > r.top - 40 && fr.left > VW / 2) rr = Math.min(rr, fr.left - 8 - cw); return { b: Math.round(VH - r.top + 8), l: r.left + 14, r: rr }; }      // đứng cách thanh dưới 8px (trước: chân chạm / đè lên thanh → che các nút điều hướng)
     let l = (r && r.width < 400 && r.height > VH * 0.6 ? r.right + 12 : 12) + pad; if (fr && fr.bottom > VH - 80 && fr.left < VW / 2) l = Math.max(l, fr.right + 12 + pad);
     let rr = W - 16 - cw - pad; if (fr && fr.bottom > VH - 80 && fr.left >= VW / 2) rr = Math.min(rr, fr.left - 8 - cw - pad * 0.3);      // nút nổi Bảng phụ góc phải dưới → không đứng đè lên nút
     return { b: 0, l, r: rr };
