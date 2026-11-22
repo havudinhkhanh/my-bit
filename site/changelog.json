@@ -224,6 +224,14 @@
      "te": "Phone: trade cards and Stats panels no longer spill past the right edge",
      "d": "Hàng nút lọc dài làm cả cột rộng hơn màn hình; nhãn dài trong bảng tóm tắt Nhật ký giờ xuống dòng.",
      "de": "A long filter row made the whole column wider than the screen; long labels in the Journal summary tables now wrap."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ: nhãn tên đường giá (vào, hẹn đóng, cắt lỗ…) nằm đúng ngang đường của nó",
+     "te": "Chart: price-line names (entry, close-at, stop…) sit exactly on their lines",
+     "d": "Trước nhãn bị đẩy lệch khi gần giá hiện tại (vd. \"vào\" thấp hơn đường vào). Trên điện thoại cột nhãn rộng hơn chút và bỏ biểu tượng đầu tên nên \"hẹn đóng\" không còn bị cắt thành \"hẹ…\".",
+     "de": "Names used to be pushed off their line near the current price (e.g. \"entry\" sat below the entry line). On phones the name column is a bit wider and drops the leading icon, so \"close at\" is no longer cut off."
     }
    ]
   },

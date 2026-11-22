@@ -261,9 +261,9 @@ function pxTags(el, c, cs, lines, cur) {
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const box = document.createElement("div"); box.className = "pxtags"; box.style.width = "200px"; el.appendChild(box);      // đo chữ trước khi chốt bề rộng cột
   const tip = document.createElement("div"); tip.className = "pxtip"; tip.hidden = true; el.appendChild(tip);
-  const tg = L.map((l) => { const d = document.createElement("span"); d.className = "pxtag"; d.style.setProperty("--c", l.color || css("--ink-3")); d.textContent = T(l.title); d.title = `${T(l.title)} · ${px(+l.price)}`; box.appendChild(d); return { l, d, p: +l.price }; });
-  // điện thoại (biểu đồ hẹp): cột tên đường giá tối đa 56px (trước 96px → trục giá chiếm gần nửa biểu đồ, chỗ kéo nến còn quá hẹp); chữ dài tự "…"
-  const TW = Math.min(el.clientWidth < 520 ? 56 : 96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
+  const tg = L.map((l) => { const d = document.createElement("span"); d.className = "pxtag"; d.style.setProperty("--c", l.color || css("--ink-3")); d.textContent = el.clientWidth < 520 ? String(T(l.title)).replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, "") : T(l.title); d.title = `${T(l.title)} · ${px(+l.price)}`; box.appendChild(d); return { l, d, p: +l.price }; });
+  // điện thoại (biểu đồ hẹp): cột tên đường giá tối đa 64px, bỏ biểu tượng đầu tên cho đủ chữ ("hẹn đóng" không còn bị cắt "hẹ…"); chữ dài hơn mới tự "…"
+  const TW = Math.min(el.clientWidth < 520 ? 64 : 96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
   c.applyOptions({ rightPriceScale: { minimumWidth: 74 + TW } });
   let raf = 0, alive = true, last = "";
   const place = () => {
@@ -271,12 +271,11 @@ function pxTags(el, c, cs, lines, cur) {
     if (document.hidden || !vis) return;
     let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
     const V = tg.map((t) => ({ t, y: cs.priceToCoordinate(t.p) })).filter((v) => isNum(v.y) && v.y >= 0 && v.y <= H).sort((a, b) => a.y - b.y);
-    let cp = null; try { cp = typeof cur === "function" ? cur() : cur; } catch (e) { /* bỏ qua */ } const yc = isNum(cp) ? cs.priceToCoordinate(cp) : null;
-    const key = V.map((v) => v.y.toFixed(1)).join() + H + "|" + (isNum(yc) ? yc.toFixed(1) : ""); if (key === last) return; last = key;
-    // xếp NHƯ thư viện xếp các ô giá ở trục: từ trên xuống, ô nào chạm ô phía trên thì bị đẩy xuống đúng 1 ô (cao ~16px) – kể cả ô GIÁ HIỆN TẠI
-    // (không có nhãn tên nhưng vẫn chiếm chỗ) → nhãn tên luôn NGANG HÀNG ô giá của chính nó
-    const G = 16, Q = V.map((v, i) => ({ i, y: v.y })); if (isNum(yc) && yc >= 0 && yc <= H) Q.push({ i: -1, y: yc });
-    Q.sort((a, b) => a.y - b.y || (a.i < 0 ? -1 : b.i < 0 ? 1 : 0)); for (let k = 1; k < Q.length; k++) Q[k].y = Math.max(Q[k].y, Q[k - 1].y + G);
+    const key = V.map((v) => v.y.toFixed(1)).join() + H; if (key === last) return; last = key;
+    // nhãn tên nằm ĐÚNG ngang đường giá của nó (trước: bắt chước cách thư viện xếp ô giá, tính cả ô giá hiện tại → ô bị đẩy lệch khỏi đường, vd. "vào" thấp hơn đường vào);
+    // chỉ khi 2 nhãn tên chồng lên nhau mới đẩy ra vừa đủ (viền đứt = đã lệch khỏi đường)
+    const G = 16, Q = V.map((v, i) => ({ i, y: v.y }));
+    for (let k = 1; k < Q.length; k++) Q[k].y = Math.max(Q[k].y, Q[k - 1].y + G);
     for (let k = Q.length - 1; k >= 0; k--) { const mx = k === Q.length - 1 ? H - 8 : Q[k + 1].y - G; if (Q[k].y > mx) Q[k].y = mx; }
     const Y = V.map((v) => v.y); for (const q of Q) if (q.i >= 0) Y[q.i] = q.y;
     tg.forEach((t) => (t.d.hidden = true));
