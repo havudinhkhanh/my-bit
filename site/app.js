@@ -1301,10 +1301,11 @@ new MutationObserver((ms) => {
     el.__sheet = 1; el.style.top = "";
     const bg = document.createElement("div"); bg.className = "sheet-bg"; el.before(bg);
     document.body.classList.add("sheet-on");
+    const side = el.classList.contains("side"); if (side) sideDrag(el, bg, () => el.remove());      // mở từ nút trên đầu trang → ngăn kéo phải, kéo sang phải để đóng
     const rm = el.remove.bind(el);
     el.remove = () => {
       if (el.__closing) return; el.__closing = 1; el.removeAttribute("id");
-      el.style.transition = SHEET_EASE; el.style.transform = "translateY(105%)"; bg.classList.add("out");
+      el.style.transition = side ? "transform .24s cubic-bezier(.32,.72,0,1)" : SHEET_EASE; el.style.transform = side ? "translateX(calc(100% + 12px))" : "translateY(105%)"; bg.classList.add("out");
       setTimeout(() => { rm(); bg.remove(); if (!document.querySelector(".menu")) document.body.classList.remove("sheet-on"); }, 300);
     };
     bg.addEventListener("click", (e) => { e.stopPropagation(); el.remove(); });
@@ -1326,7 +1327,8 @@ const SHEETS = [
     for (const [sel, close] of SHEETS) {
       const sh = e.target.closest?.(sel); if (!sh) continue;
       if (sel === ".sc-set" && !document.body.classList.contains("sc-set-on")) return;
-      if (sel === ".msheet-in" && sh.parentNode.classList.contains("side")) return;      // "Thêm" dạng ngăn kéo phải: đóng bằng kéo sang phải
+      if (sel === ".msheet-in" && sh.parentNode.classList.contains("side")) return;
+      if (sel === ".menu" && sh.classList.contains("side")) return;      // ngăn kéo phải: đóng bằng kéo sang phải (sideDrag)      // "Thêm" dạng ngăn kéo phải: đóng bằng kéo sang phải
       if (sel === ".occ-p" && (e.target.closest(".occ-c,.occ-rsi,.occ-tf,.occ-tg,.occ-mk canvas,.occ-mk svg,.pxp,.pxp-b,.tv-lightweight-charts") || !sh.parentNode.classList.contains("on"))) return;
       if (e.target.closest("input, select, textarea, [data-nodrag]")) return;
       const top = sh.getBoundingClientRect().top, y = e.touches[0].clientY, sc = scroller(e.target, sh);
@@ -1547,7 +1549,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => removeEventListener("click", eat, { capture: true }), 400);      // không coi là chạm vào nút tab
     drop();
     const v = s.dy / Math.max(1, Date.now() - s.t);
-    if (s.dy >= TH || (v > 0.45 && s.dy > 24)) { if (s.side === "s") cmdk(true); else bellOpen(); }      // gọi ngay trong lúc nhấc tay → iOS cho bật bàn phím
+    if (s.dy >= TH || (v > 0.45 && s.dy > 24)) { if (s.side === "s") cmdk(true); else bellOpen({ from: "swipe" }); }      // gọi ngay trong lúc nhấc tay → iOS cho bật bàn phím
   };
   T.addEventListener("touchend", end); T.addEventListener("touchcancel", () => { st = null; drop(); });
 })();
@@ -7216,10 +7218,11 @@ function ntpDrag(box) {
     D = null; if (!mq.matches || e.touches.length !== 1 || e.target.closest(".nt-cs")) return;      // hàng lọc vuốt ngang: để nguyên
     const y = e.touches[0].clientY, inSh = sh.contains(e.target), head = inSh && y - sh.getBoundingClientRect().top < 64 && !e.target.closest("button, a, input, select");
     const inList = list && list.contains(e.target);
-    D = { y0: y, yl: y, t0: Date.now(), dy: 0, head, inList, inSh, on: false };
+    D = { y0: y, yl: y, t0: Date.now(), dy: 0, head, inList, inSh, on: false, side: box.classList.contains("side") };
   }, { passive: true });
   box.addEventListener("touchmove", (e) => {
     if (!D) return;
+    if (D.side) { if (!D.inSh && e.cancelable) e.preventDefault(); return; }      // ngăn kéo phải: không kéo lên/xuống (đóng bằng kéo sang phải)
     const y = e.touches[0].clientY, dy = y - D.y0, step = y - D.yl; D.yl = y;
     if (!D.inSh) { if (e.cancelable) e.preventDefault(); return; }              // chạm nền mờ: không cuộn trang dưới
     if (!D.on) {
@@ -7342,7 +7345,25 @@ async function ntPeek(n, touch = false) {
     ${A.title ? `<h4>${esc(A.title)}</h4>` : ""}${A.paras.map((x) => (x.h ? `<h5>${esc(x.h)}</h5>` : `<p>${esc(x.p)}</p>`)).join("")}`;
   box.querySelector(".ntpk-t")?.classList.add("dim");
 }
-function bellClose() { const b = $("#bellBox"); if (!b) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), 220); }
+function bellClose() { const b = $("#bellBox"); if (!b || b.classList.contains("out")) return; b.classList.add("out"); document.body.classList.remove("nt-on"); setTimeout(() => b.remove(), b.classList.contains("side") ? 260 : 220); }
+// ↔ ngăn kéo bên phải (chuông / tài khoản mở từ đầu trang trên điện thoại): kéo sang PHẢI để đóng, bảng đi theo ngón tay
+//    skip(target) = true → chỗ đó không bắt kéo (vd. danh sách thông báo đang dùng vuốt ngang để đổi mục)
+function sideDrag(sh, bg, close, skip) {
+  if (!sh) return; let D = null;
+  sh.addEventListener("touchstart", (e) => { D = null; if (e.touches.length !== 1 || (skip && skip(e.target))) return; D = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, t0: Date.now(), dx: 0, on: false }; }, { passive: true });
+  sh.addEventListener("touchmove", (e) => {
+    if (!D) return; const dx = e.touches[0].clientX - D.x0, dy = e.touches[0].clientY - D.y0;
+    if (!D.on) { if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) { D = null; return; } if (dx < 8) return; D.on = true; sh.style.transition = "none"; if (bg) bg.style.transition = "none"; }
+    if (e.cancelable) e.preventDefault(); D.dx = Math.max(0, dx); const W = sh.offsetWidth + 12;
+    sh.style.transform = `translateX(${D.dx}px)`; if (bg) bg.style.opacity = String(Math.max(0, 1 - D.dx / W));
+  }, { passive: false });
+  sh.addEventListener("touchend", () => {
+    if (!D) return; const d = D; D = null; if (!d.on) return; const W = sh.offsetWidth, v = d.dx / Math.max(1, Date.now() - d.t0);
+    sh.style.transition = "transform .26s cubic-bezier(.32,.72,0,1)"; if (bg) bg.style.transition = "opacity .26s";
+    if (d.dx > W * 0.3 || (v > 0.45 && d.dx > 30)) { sh.style.transform = "translateX(calc(100% + 12px))"; if (bg) bg.style.opacity = "0"; setTimeout(close, 200); }
+    else { sh.style.transform = ""; if (bg) bg.style.opacity = ""; }
+  }, { passive: true });
+}
 // cuộn chuột / bàn di (máy tính): trong bảng nổi, danh sách cuộn được thì cuộn danh sách; tới đầu/cuối hoặc chuột đang ở phần
 // không cuộn được (tiêu đề, nền, hàng lọc) thì cuộn luôn trang phía sau – không bắt phải đưa chuột ra ngoài bảng mới cuộn được trang
 // lăn chuột trong bảng nổi (chuông…): chỉ cuộn phần bên trong; hết chỗ cuộn thì DỪNG, không kéo trang phía sau chạy theo
@@ -7363,9 +7384,12 @@ function wheelChain(root) {
     e.preventDefault();      // hết chỗ cuộn bên trong → nuốt lần lăn, trang phía sau đứng yên
   }, { passive: false });
 }
-async function bellOpen() {
+async function bellOpen(o = {}) {
   if ($("#bellBox")) { bellClose(); return; }
-  const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp";
+  // bấm chuông trên đầu trang (điện thoại) → ngăn kéo bên phải, bám mép trên (mắt không phải nhảy xuống đáy màn hình);
+  // vuốt lên từ đáy (o.from = "swipe") → vẫn là tấm trượt từ dưới lên như cũ
+  const SIDE = o.from !== "swipe" && matchMedia("(max-width:979px)").matches;
+  const box = document.createElement("div"); box.id = "bellBox"; box.className = "ntp" + (SIDE ? " side" : "");
   const bb = $("#bell")?.getBoundingClientRect();
   box.innerHTML = `<div class="ntp-bg" data-x></div><div class="ntp-in" role="dialog" aria-label="Thông báo" style="--nt-top:${Math.round((bb?.bottom || 44) + 6)}px">
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><span class="ntp-ic gbar">
@@ -7376,7 +7400,8 @@ async function bellOpen() {
     <div class="ntp-act"><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
     <div class="nt-cs"></div><div class="ntp-l">${skRows(4, 1)}</div></div>`;
   document.body.appendChild(box); document.body.classList.add("nt-on"); ntpDrag(box); wheelChain(box);
-  if (matchMedia("(max-width:979px)").matches && jellyOK()) { const sh = box.querySelector(".ntp-in"); sh.classList.add("jl"); const H = sh.offsetHeight || innerHeight * 0.8;      // tấm trượt lên kiểu lò xo, nảy nhẹ quá đích rồi về
+  if (SIDE) sideDrag(box.querySelector(".ntp-in"), box.querySelector(".ntp-bg"), bellClose, (t) => !t.closest(".ntp-h") || t.closest("button, a"));      // kéo tiêu đề sang phải = đóng (danh sách vuốt ngang để đổi mục)
+  else if (matchMedia("(max-width:979px)").matches && jellyOK()) { const sh = box.querySelector(".ntp-in"); sh.classList.add("jl"); const H = sh.offsetHeight || innerHeight * 0.8;      // tấm trượt lên kiểu lò xo, nảy nhẹ quá đích rồi về
     sh.animate(springKF(H, 0, (v) => ({ transform: `translateY(${v}px)` }), { z: 0.68, w: 15 }), { duration: 600, easing: "linear" }); }
   let items = [], f = "all";
   const draw = (chips = true) => {
@@ -7396,7 +7421,7 @@ async function bellOpen() {
   const esc_ = (e) => { if (e.key === "Escape") { bellClose(); document.removeEventListener("keydown", esc_); } }; document.addEventListener("keydown", esc_);
   addEventListener("hashchange", bellClose, { once: true });
   const j = await api("notifications?limit=60").catch(() => ({ items: [] }));
-  items = j.items || []; if (box.isConnected) draw();
+  items = j?.items || []; if (box.isConnected) draw();
 }
 async function viewNotifications() {
   if (!multiUser()) { app().innerHTML = NLEGACY; return; }
@@ -7845,7 +7870,7 @@ function initAccountUI() {
   // menu tài khoản: mở từ ảnh đại diện trên đầu trang (điện thoại) hoặc từ hàng tài khoản cuối thanh bên (máy tính – mở NGƯỢC LÊN như các web app hiện đại)
   const meMenu = (anc) => {
     let m = $("#meMenu"); if (m) { m.remove(); return; }
-    m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu";
+    m = document.createElement("div"); m.id = "meMenu"; m.className = "menu memenu" + (anc.id !== "navMe" && matchMedia("(max-width:979px)").matches ? " side" : "");
     const R = anc.getBoundingClientRect();
     if (anc.id === "navMe") Object.assign(m.style, { top: "auto", bottom: Math.round(innerHeight - R.top + 6) + "px", left: Math.round(R.left) + "px", right: "auto", width: Math.max(240, Math.round(R.width)) + "px" });
     else m.style.top = Math.round(R.bottom + 6) + "px";

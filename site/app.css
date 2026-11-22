@@ -6998,3 +6998,19 @@ svg.ica-slider{animation:icSlide .55s ease-in-out}
 svg.ica-flask{animation:icRobot .6s ease-in-out;transform-origin:50% 15%}
 svg.ica-card{animation:icPop .45s cubic-bezier(.3,1.6,.5,1)}
 @media (prefers-reduced-motion:reduce){svg.ica,svg.ica *,.ica-zz{animation:none!important}}
+
+/* ↔ điện thoại: chuông (bấm trên đầu trang) & menu tài khoản = NGĂN KÉO BÊN PHẢI kiểu Bảng phụ – bám mép trên, trượt từ phải vào
+   (vuốt lên từ đáy để mở thông báo vẫn là tấm trượt từ dưới lên) */
+@keyframes sideIn{from{transform:translateX(calc(100% + 12px))}to{transform:none}}
+@media (max-width:979px){
+  .ntp.side .ntp-in{top:calc(env(safe-area-inset-top,0px) + 10px)!important;bottom:10px!important;left:auto!important;right:10px!important;width:calc(min(380px,90vw) - 20px)!important;max-height:none!important;
+    border-radius:12px!important;border-width:1px!important;padding-bottom:0!important;animation:sideIn .34s cubic-bezier(.32,.72,0,1)!important;transition:none}
+  .ntp.side .ntp-in::before{display:none!important}
+  .ntp.side.out .ntp-in{opacity:1!important;transform:translateX(calc(100% + 12px));transition:transform .24s cubic-bezier(.32,.72,0,1)!important}
+  .ntp.side.out .ntp-bg{opacity:0;transition:opacity .24s}
+  .menu.side{top:calc(env(safe-area-inset-top,0px) + 10px)!important;bottom:10px!important;left:auto!important;right:10px!important;width:calc(min(360px,88vw) - 20px)!important;max-height:none!important;
+    border-radius:12px!important;border-width:1px!important;padding-bottom:6px!important;animation:sideIn .34s cubic-bezier(.32,.72,0,1)!important;align-content:start;
+    background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+  .menu.side::before{display:none!important}
+}
+@media (prefers-reduced-motion:reduce){.ntp.side .ntp-in,.menu.side{animation:none!important}}

@@ -64,6 +64,12 @@
      "t": "Biểu tượng điều hướng có chuyển động riêng khi bấm: sét loé + tia điện, chuông lắc, bánh răng quay, bia ngắm toả vòng, đường giá tự vẽ, cặp xách nhấc lên, lịch lật trang…",
      "te": "Navigation icons now animate in character when tapped: bolt flashes with sparks, bell rings, gear spins, target pulses, chart line redraws, briefcase lifts, calendar flips…",
      "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Điện thoại: bấm chuông hoặc ảnh đại diện trên đầu trang giờ mở ngăn kéo bên phải (như Bảng phụ), không bật từ đáy lên nữa – kéo sang phải để đóng. Vuốt lên từ đáy để mở thông báo vẫn như cũ",
+     "te": "Phone: tapping the bell or avatar at the top now opens a right-side drawer (like the side panel) instead of a bottom sheet – drag right to close. Swiping up from the bottom for notifications is unchanged"
     }
    ]
   },
