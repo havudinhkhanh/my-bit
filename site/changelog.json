@@ -278,6 +278,22 @@
      "d": "Kéo vạch trên cùng của bảng biểu đồ lên = toàn trang; kéo xuống vừa = về cỡ thường, kéo thật xa mới đóng. Nút xoay ngang: máy cho khoá hướng thì xoay thật, iPhone (khoá xoay màn hình) thì xoay cả khung biểu đồ – kéo nến, chạm chọn giá vẫn đúng hướng. Trang phân tích coin cũng có nút xoay ngang cạnh ⛶.",
      "de": "Drag the chart sheet's top handle up for full page; drag down a bit to go back, far to close. Landscape button: real orientation lock where allowed; on iPhone (rotation locked) the whole chart rotates – panning and picking prices still follow your finger. Coin pages get the landscape button next to ⛶.",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Xoay ngang trên iPhone: biểu đồ không còn bị kéo giãn / mờ; dành thêm chỗ cho nến",
+     "te": "Landscape on iPhone: the chart is no longer stretched / blurry; more room for candles",
+     "d": "Safari đo khung vẽ theo cách khác Chrome nên nét vẽ bị kéo giãn khi xoay – đã đổi cả cách đo đó. Khi xoay ngang bỏ dòng chú thích (giá đã có ở cột nhãn bên phải trục).",
+     "de": "Safari measures the drawing area differently from Chrome, which stretched the chart when rotated – that measurement is now converted too. In landscape the legend line is hidden (prices are in the right-hand label column)."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Long / Short còn giữ không còn che nến",
+     "te": "Open Long / Short zones no longer cover candles",
+     "d": "Thanh hồ sơ mảnh và nhạt hơn, nằm DƯỚI nến; cụm đông nhất mỗi phe ghi ở dòng chú thích thay vì giữa biểu đồ.",
+     "de": "The profile bars are slimmer, lighter and sit BEHIND the candles; each side's densest cluster is listed in the legend instead of on the chart."
     }
    ]
   },

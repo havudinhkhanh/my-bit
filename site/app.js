@@ -30,6 +30,11 @@ const ROTB = { el: null };
     const B = ROTB.el; if (!B || !B.isConnected || !B.contains(this)) return R0.call(this);
     const r = R0.call(this), W = innerWidth; return new DOMRect(r.top, W - r.right, r.height, r.width);
   };
+  const C0 = Element.prototype.getClientRects;      // Safari (không có device-pixel-content-box): thư viện biểu đồ đo KHUNG VẼ bằng getClientRects → phải đổi y hệt, không thì nét vẽ bị kéo giãn / mờ
+  Element.prototype.getClientRects = function () {
+    const B = ROTB.el; if (!B || !B.isConnected || !B.contains(this)) return C0.call(this);
+    const W = innerWidth; return Array.from(C0.call(this), (r) => new DOMRect(r.top, W - r.right, r.height, r.width));
+  };
   const fix = (o) => { if (!o || o.__rf) return; const X = o.clientX, Y = o.clientY, W = innerWidth; if (!isFinite(X) || !isFinite(Y)) return;
     try { Object.defineProperties(o, { clientX: { value: Y, configurable: true }, clientY: { value: W - X, configurable: true }, pageX: { value: Y + scrollX, configurable: true }, pageY: { value: W - X + scrollY, configurable: true }, x: { value: Y, configurable: true }, y: { value: W - X, configurable: true }, __rf: { value: 1 } }); } catch (e) { /* bỏ qua */ } };
   const on = (e) => { const B = ROTB.el; if (!B || !(e.target instanceof Node) || !B.contains(e.target)) return; fix(e); for (const L of [e.touches, e.changedTouches, e.targetTouches]) if (L) for (let i = 0; i < L.length; i++) fix(L[i]); };
@@ -3488,7 +3493,9 @@ function lqzModel(K, cur) {
 const POS_TIP = () => bi("ƯỚC TÍNH (không phải dữ liệu sàn): người đã vào lệnh ở giá nào mà CHƯA thoát, 3 ngày qua – theo hợp đồng mở (OI) tăng / giảm và phe mua / bán chủ động mỗi 5 phút. Thanh xanh = Long còn giữ, đỏ = Short còn giữ, càng dài càng nhiều tiền. Long vào trên giá hiện tại / Short vào dưới giá hiện tại = đang lỗ (dễ cắt lỗ / bị thanh lý khi giá đi tiếp). Chỉ để tham khảo, không phải khuyến nghị.", "ESTIMATE (not exchange data): where traders entered and have NOT exited, last 3 days – from open-interest changes and aggressive buy / sell flow every 5 min. Green = longs still held, red = shorts still held, longer = more money. Longs above / shorts below the current price are underwater. Reference only, not advice.");
 function posLegend(e2, P, cur) { if (!e2) return;
   const f = (a, sd) => { if (!isNum(a)) return ""; const g = (cur / a - 1) * 100 * sd; return `<b class="${sd > 0 ? "up" : "down"}">${sd > 0 ? "Long" : "Short"}</b> ${bi("TB", "avg")} ${px(a)} <span class="${g < 0 ? "down" : "up"}">${g < 0 ? bi("lỗ", "down") : bi("lời", "up")} ${nf(Math.abs(g), 1)}%</span> ~${kUsd(sd > 0 ? P.tL : P.tS)}`; };
-  const h = P && cur > 0 ? `<span class="occ-ob occ-pos" title="${esc(POS_TIP())}">👥 ${bi("Còn giữ 3 ngày", "Held, 3d")}: ${f(P.aL, 1)} · ${f(P.aS, -1)}</span>` : "";
+  const zt = (sd) => { const q = P.z.find((z) => z.top && z.sd === sd); return q ? `${sd > 0 ? "Long" : "Short"} ~${px(q.pc)} (${kUsd(q.amt)}${q.lose ? `, <em>${bi("đang lỗ", "underwater")}</em>` : ""})` : ""; };
+  const zz = P ? [zt(1), zt(-1)].filter(Boolean).join(" · ") : "";
+  const h = P && cur > 0 ? `<span class="occ-ob occ-pos" title="${esc(POS_TIP())}">👥 ${bi("Còn giữ 3 ngày", "Held, 3d")}: ${f(P.aL, 1)} · ${f(P.aS, -1)}${zz ? ` <span class="faint">· ${bi("đông nhất", "densest")}: ${zz}</span>` : ""}</span>` : "";
   if (e2.__h !== h) { e2.__h = h; e2.innerHTML = h; } }
 const POS_LV = [[3, 0.15], [5, 0.15], [10, 0.25], [20, 0.25], [50, 0.15], [100, 0.05]];
 function posModel(K, OI, cur) {
@@ -3526,7 +3533,8 @@ function posModel(K, OI, cur) {
 function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, ready: Promise, onSum(q) }
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const box = document.createElement("div"); box.className = "obl"; box.setAttribute("aria-hidden", "true"); el.appendChild(box);
-  let P = null, AL = [], AK = "", W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
+  const back = document.createElement("div"); back.className = "obl obl-b"; back.setAttribute("aria-hidden", "true"); el.appendChild(back); el.classList.add("has-oblb");      // lớp NẰM DƯỚI nến (hồ sơ Long / Short còn giữ) – không che nến
+  let P = null, lastB = "", AL = [], AK = "", W = [], Z = [], ver = 0, alive = true, last = "", qk = "", tm = 0, raf = 0;
   const api = o.fut ? "https://fapi.binance.com/fapi/v1" : "https://api.binance.com/api/v3";
   // giá vào bình quân Long / Short còn giữ: đường đứt trên biểu đồ + ô giá trên trục + nhãn tên ở cột bên phải trục (cùng chỗ "vào", "chốt"…)
   const avgLines = (Q) => { const k = Q ? `${Q.aL}|${Q.aS}` : ""; if (k === AK) return; AK = k;
@@ -3573,13 +3581,13 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
       + ws.map(({ w, yy, lab: lb }) => `<i class="obw ${w.sd > 0 ? "b" : "a"}${w.wall ? " wl" : ""}" style="top:${(yy - 1.5).toFixed(1)}px;width:${Math.max(3, (w.n / wm) * Math.min(150, Wd * 0.26)).toFixed(0)}px">${w.wall ? `<b>${kUsd(lb)}</b>` : ""}</i>`).join("");
     let ph = "", PWm = 0;
     if (P) {      // 👥 hồ sơ Long / Short còn giữ: thanh ngang bám mép trái (xanh = Long, đỏ = Short, dài = nhiều tiền đang giữ ở giá đó) + giá vào bình quân mỗi phe
-      PWm = Math.round(Math.min(110, Wd * 0.22)); let bars = "";
+      PWm = Math.round(Math.min(90, Wd * 0.16)); let bars = "";
       for (let i = 0; i < P.B; i++) { const v = P.L[i] + P.S[i]; if (!(v > P.mx * 0.015)) continue; const a = y(P.lo + (i + 1) * P.step), b = y(P.lo + i * P.step); if (!isNum(a) || !isNum(b) || b < 0 || a > H) continue;
         const t = Math.max(0, Math.min(a, b)), h = Math.max(1, Math.min(H, Math.max(a, b)) - t - 0.5), w = Math.max(2, (v / P.mx) * PWm), k = (P.L[i] / v) * 100;
         bars += `<i class="obp" style="top:${t.toFixed(1)}px;height:${h.toFixed(1)}px;width:${w.toFixed(0)}px;--a:${k.toFixed(0)}%"></i>`; }
-      const zl = P.z.filter((q) => q.top).map((q) => { const yy = y(q.pc); if (!isNum(yy) || yy < 6 || yy > H - 6) return ""; return `<i class="obpz ${q.sd > 0 ? "l" : "s"}" style="top:${yy.toFixed(1)}px;left:${PWm + 6}px"><b>${q.sd > 0 ? "Long" : "Short"} ${bi("còn giữ", "holding")} ~${kUsd(q.amt)}${q.lose ? ` · <em>${bi("đang lỗ", "underwater")}</em>` : ""}</b></i>`; }).join("");
-      ph = bars + zl; }      // giá vào bình quân: đường + nhãn ở cột bên phải trục (avgLines)
-    const html2 = ph + html; box.style.setProperty("--pw", (P ? PWm + 4 : 0) + "px");
+      ph = bars; }      // cụm đông nhất: ghi ở dòng chú thích (trước ghi giữa biểu đồ → che nến)      // giá vào bình quân: đường + nhãn ở cột bên phải trục (avgLines)
+    if (ph !== lastB) { lastB = ph; back.style.width = Wd + "px"; back.style.height = H + "px"; back.innerHTML = ph; }
+    const html2 = html; box.style.setProperty("--pw", (P ? PWm + 4 : 0) + "px");
     if (html2 === last) return; last = html2; box.style.width = Wd + "px"; box.style.height = H + "px"; box.innerHTML = html2;
     // nhãn chồng nhau (biểu đồ hẹp): giữ nhãn quan trọng hơn – cụm còn giữ > vùng thanh lý dày nhất > vùng thanh lý khác > tường lệnh – nhãn thua ẩn chữ (vùng / thanh vẫn vẽ)
     const pri = (b) => { const c = b.parentElement.classList; return c.contains("obpz") ? 4 : c.contains("obe") ? 3 : c.contains("obz") ? (/dày|heaviest/.test(b.textContent) ? 2 : 1) : 0; };
@@ -3591,7 +3599,7 @@ function obLayer(el, ch, o) {      // o: { sym, fut, mm, cur(), ob, lqn, lqf, re
   const ro = "ResizeObserver" in window ? new ResizeObserver(kick) : null; ro?.observe(el);
   const iv = setInterval(() => { if (!document.hidden) kick(); }, 700);      // trục giá tự giãn / kéo trục → canh lại (dò nhanh 2 toạ độ, chỉ dựng khi đổi)
   el.addEventListener("wheel", kick, { passive: true });
-  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); o.onSum?.(null); o.onPos?.(null); if (el.isConnected) avgLines(null); }
+  function stop() { alive = false; clearTimeout(tm); clearInterval(iv); cancelAnimationFrame(raf); ro?.disconnect(); el.removeEventListener("wheel", kick); try { ch.c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ } box.remove(); back.remove(); el.classList.remove("has-oblb"); o.onSum?.(null); o.onPos?.(null); if (el.isConnected) avgLines(null); }
   (async () => { try { await o.ready; } catch (e) { /* bỏ qua */ } await new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 800 }) : setTimeout(r, 300))); if (alive) pull(); })();      // biểu đồ mở xong & trình duyệt rảnh mới tải sổ lệnh / nến 3 ngày – không giành máy với hiệu ứng mở
   return stop;
 }

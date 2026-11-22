@@ -6746,7 +6746,7 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 .obe>b small{font-size:inherit;font-weight:600;opacity:.75}
 .obl{contain:strict}
 /* 👥 Long / Short còn giữ: thanh ngang bám mép trái (phần xanh = Long, đỏ = Short), nhãn cụm lớn nhất (giá vào bình quân: nhãn ở cột bên phải trục) */
-.obp{left:0;border-radius:0 2px 2px 0;opacity:.5;background:linear-gradient(90deg,var(--up) 0 var(--a),var(--down) var(--a) 100%)}
+.obp{left:0;border-radius:0 2px 2px 0;opacity:.32;background:linear-gradient(90deg,var(--up) 0 var(--a),var(--down) var(--a) 100%)}
 .obpz{height:0;--zc:var(--up)}.obpz.s{--zc:var(--down)}
 .obpz>b{position:absolute;left:0;top:0;transform:translateY(-50%);font-size:.625rem;font-weight:700;white-space:nowrap;padding:1px 6px;border-radius:5px;color:color-mix(in srgb,var(--zc) 85%,var(--ink));background:color-mix(in srgb,var(--surface) 82%,transparent)}
 .obpz>b em{font-style:normal;color:var(--warn,#d89614)}
@@ -7212,3 +7212,11 @@ body.cmdk-on:has(.cmdk.side:not([hidden]))>*:not(#_a):not(#_b):not(#_c){visibili
 .cv-chart.rot90 .ph,.cv-chart.rot90 .cops,.cv-chart.rot90 .cv-sz,.cv-chart.rot90 #panes,.cv-chart.rot90 .cbt-o{display:none!important}
 .cv-chart.rot90 .cbar{flex-wrap:nowrap;margin-bottom:4px}.cv-chart.rot90 .cbar #tfs{flex:1 1 auto;min-width:0;overflow-x:auto}
 .cv-chart.rot90 .cbar #cpos{display:none}
+/* xoay ngang: dồn chỗ cho biểu đồ – bỏ dòng chú thích (giá trị đã có ở cột nhãn bên phải trục), dòng OHLC 1 hàng */
+.occ-p.rot90 .occ-lg{display:none!important}
+.occ-p.rot90 .occ-ohlc{white-space:nowrap;overflow:hidden;flex-wrap:nowrap!important;margin-top:2px}
+.occ-p.rot90 .occ-h{margin-bottom:2px}.occ-p.rot90 .occ-t>b:first-child{font-size:1.05rem}
+
+/* lớp dưới nến: biểu đồ nổi lên trên (nền biểu đồ trong suốt) */
+.has-oblb>.tv-lightweight-charts{position:relative;z-index:1}.obl.obl-b{z-index:0}
+.occ-pos em{font-style:normal;color:var(--warn,#d89614)}
