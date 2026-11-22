@@ -7166,3 +7166,6 @@ body:has(.occ) .msheet{z-index:1320!important}
 .cl-chips{min-width:0;max-width:100%}
 /* tìm nhanh dạng ngăn kéo phải: trang phía sau vẫn hiện (mờ dưới lớp tối) – trước bị ẩn hẳn (còn từ kiểu tìm toàn màn hình cũ) nên nền xám trơn */
 body.cmdk-on:has(.cmdk.side:not([hidden]))>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
+
+/* ước tính lời/lỗ ngay sau giá chốt / cắt lỗ trên thẻ lệnh */
+.k-est{font-weight:650;margin-left:2px;white-space:nowrap}.k-est i{font-style:normal;font-weight:500;opacity:.75;font-size:.92em}

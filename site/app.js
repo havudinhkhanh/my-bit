@@ -191,6 +191,23 @@ const charts = [];
 // gỡ HẲN 1 biểu đồ đã thay bằng biểu đồ mới trong cùng khung: trước chỉ xoá phần tử → đối tượng biểu đồ cũ vẫn sống (bám khung, tự đổi cỡ, nghe rê chuột) – tốn máy, đọc nhầm giá
 function chartDrop(c) { if (!c) return; const i = charts.indexOf(c); if (i >= 0) charts.splice(i, 1); try { c.remove(); } catch (e) { /* đã huỷ */ } }
 function disposeCharts() { while (charts.length) { try { charts.pop().remove(); } catch (e) { /* đã huỷ */ } } if (typeof closeWs === "function") closeWs(); if (typeof rdClose === "function") rdClose(); if (typeof plClose === "function") plClose(); if (typeof oppClose === "function") oppClose(); if (typeof papClose === "function") papClose(); if (typeof lvClose === "function" && !location.hash.startsWith("#/live")) lvClose(); }
+// 👆 KÉO NGANG TRÊN TRỤC GIÁ cũng dời được nến (điện thoại): trước đây vuốt ngang ở phần trục giá bên phải (khá rộng vì có cột tên đường giá) không làm gì
+//    → tưởng biểu đồ không kéo được. Vuốt DỌC trên trục giá vẫn co giãn giá như cũ.
+function axDrag(el, c) {
+  if (el.__axd || !matchMedia("(pointer:coarse)").matches) return; el.__axd = 1; let S = null;
+  el.addEventListener("touchstart", (e) => {
+    S = null; if (e.touches.length !== 1 || e.target.closest?.(".pxp,.pxp-b,.cbt,.cd-tb,button,a")) return; const r = el.getBoundingClientRect(), x = e.touches[0].clientX - r.left;
+    let pw = 0; try { pw = c.priceScale("right").width(); } catch (er) { return; } if (!pw || x < r.width - pw) return;
+    const ts = c.timeScale(); S = { x0: e.touches[0].clientX, y0: e.touches[0].clientY, p0: ts.scrollPosition(), bs: ts.options().barSpacing || 6, lock: false };
+  }, { passive: true, capture: true });
+  el.addEventListener("touchmove", (e) => {
+    if (!S) return; const dx = e.touches[0].clientX - S.x0, dy = e.touches[0].clientY - S.y0;
+    if (!S.lock) { if (Math.abs(dy) > 6 && Math.abs(dy) >= Math.abs(dx)) { S = null; return; } if (Math.abs(dx) < 8) return; S.lock = true; }
+    if (e.cancelable) e.preventDefault(); e.stopPropagation();
+    try { c.timeScale().scrollToPosition(S.p0 - dx / S.bs, false); } catch (er) { S = null; }
+  }, { passive: false, capture: true });
+  el.addEventListener("touchend", () => { S = null; }, { passive: true, capture: true });
+}
 function themeOpts() {
   return {
     layout: { background: { color: "transparent" }, textColor: css("--ink-2"), fontFamily: "Be Vietnam Pro, system-ui", fontSize: 11 },
@@ -201,6 +218,7 @@ function themeOpts() {
 }
 function mkChart(el, extra = {}) {
   const c = LightweightCharts.createChart(el, { ...themeOpts(), autoSize: true, ...extra }); charts.push(c);
+  axDrag(el, c);
   if (el.clientHeight >= 200 && !(el._cbt?.isConnected) && !el.querySelector(":scope > .cbt")) {
     el.classList.add("lwbox");
     const t = document.createElement("div"); t.className = "cbt"; t.innerHTML = CZ_BTN; t._box = el; el._cbt = t;
@@ -244,7 +262,8 @@ function pxTags(el, c, cs, lines, cur) {
   const box = document.createElement("div"); box.className = "pxtags"; box.style.width = "200px"; el.appendChild(box);      // đo chữ trước khi chốt bề rộng cột
   const tip = document.createElement("div"); tip.className = "pxtip"; tip.hidden = true; el.appendChild(tip);
   const tg = L.map((l) => { const d = document.createElement("span"); d.className = "pxtag"; d.style.setProperty("--c", l.color || css("--ink-3")); d.textContent = T(l.title); d.title = `${T(l.title)} · ${px(+l.price)}`; box.appendChild(d); return { l, d, p: +l.price }; });
-  const TW = Math.min(96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
+  // điện thoại (biểu đồ hẹp): cột tên đường giá tối đa 56px (trước 96px → trục giá chiếm gần nửa biểu đồ, chỗ kéo nến còn quá hẹp); chữ dài tự "…"
+  const TW = Math.min(el.clientWidth < 520 ? 56 : 96, Math.ceil(Math.max(...tg.map((t) => t.d.offsetWidth))) + 6); box.style.width = TW + "px"; c._ptW = TW;
   c.applyOptions({ rightPriceScale: { minimumWidth: 74 + TW } });
   let raf = 0, alive = true, last = "";
   const place = () => {

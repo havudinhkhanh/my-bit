@@ -185,6 +185,19 @@
      "a": "mascot",
      "t": "Mèo na đứng thấp xuống: chân vừa chạm mép trên thanh điều hướng (dọc), cách đáy 3px (ngang) – không còn lơ lửng",
      "te": "Na sits lower: paws just on the nav bar's top edge (portrait), 3px above the bottom (landscape) – no longer floating"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Thẻ lệnh: ngay sau giá chốt / cắt lỗ hiện lời / lỗ ước tính nếu chạm giá đó (đã trừ phí đóng, chưa tính funding) – vd \"chốt 0,01146 ≈ +$1,02 +2,8%\"",
+     "te": "Trade cards: right after the target / stop price, the estimated P/L if it's hit (after the closing fee, funding not included) – e.g. \"target 0.01146 ≈ +$1.02 +2.8%\"",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Biểu đồ trên điện thoại: vuốt ngang ở phần trục giá bên phải giờ cũng dời nến; cột tên đường giá hẹp lại để phần kéo nến rộng hơn (trước trục giá chiếm gần nửa biểu đồ nên tưởng không kéo được)",
+     "te": "Charts on phone: a horizontal drag on the right price axis now pans the candles too; the price-line name column is narrower so the draggable area is bigger (the axis used to take almost half the chart)"
     }
    ]
   },
