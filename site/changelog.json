@@ -36,9 +36,15 @@
     {
      "c": "imp",
      "a": "ui",
-     "t": "Mép phải có tay nắm ‹ cho dễ thấy (chạm là mở Bảng phụ); vuốt ra dễ bắt hơn: vùng mép rộng hơn, vuốt chéo vẫn tính, kéo 1/4 là mở",
-     "te": "Right edge now shows a ‹ handle (tap to open the side panel); the swipe is easier: wider edge zone, diagonal swipes count, a quarter pull opens it",
+     "t": "Vuốt mép phải mở Bảng phụ dễ bắt hơn: vùng nhận ngón tay rộng gần gấp đôi, vuốt chéo vẫn tính, kéo 1/4 là mở",
+     "te": "Right-edge swipe for the side panel is easier to catch: nearly twice the touch zone, diagonal swipes count, a quarter pull opens it",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "iPhone: sau khi bấm quay lại trang trước, vuốt mép phải vẫn mở được Bảng phụ (trước bị nhường hết cho cử chỉ tiến trang của iPhone)",
+     "te": "iPhone: after going back, the right-edge swipe still opens the side panel (it used to be lost to iOS's forward gesture)"
     }
    ]
   },

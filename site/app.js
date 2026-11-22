@@ -1536,7 +1536,13 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
 // ---------------------------------------------------------------- VUỐT TỪ MÉP PHẢI → KÉO BẢNG PHỤ RA (điện thoại / máy tính bảng)
 // Bảng phụ đi theo ngón tay; thả quá 1/3 hoặc vuốt nhanh thì mở hẳn, không thì thu về. Đang mở: vuốt sang phải trên Bảng phụ (hoặc vùng tối) để đóng, vuốt sang trái thêm lần nữa → bảng "Thêm".
 (function swipePanel() {
-  const EDGE = 30, mq = matchMedia("(max-width:1179px)");      // vùng mép rộng 30px (trước 24) – dễ bắt trúng hơn
+  const mq = matchMedia("(max-width:1179px)");
+  // 🎯 VÙNG BẮT NGÓN TAY Ở MÉP PHẢI (không hiện gì, chỉ dễ bắt hơn):
+  //  - bình thường: 44px tính từ mép (trước 24px). 22px sát mép luôn là của Bảng phụ; 22px phía trong nhường cho dải cuộn ngang / biểu đồ nếu ngón tay đặt lên đó
+  //  - iPhone (iOS 26) khi còn trang phía trước: iOS giữ ~18px sát mép cho cử chỉ "tiến trang" → vẫn mở được Bảng phụ nếu bắt đầu hơi vào trong (18–60px)
+  //    (trước: còn trang phía trước là vuốt mép phải KHÔNG mở được Bảng phụ – hay gặp sau khi bấm quay lại)
+  const hScr = (t) => { for (let n = t; n && n !== document.body; n = n.parentElement) { if (n.matches?.(".occ-c,.occ-rsi,.tv-lightweight-charts,canvas,input,textarea,select,[data-noswipe]")) return true; if (n.scrollWidth > n.clientWidth + 2 && /(auto|scroll)/.test(getComputedStyle(n).overflowX) && n.scrollLeft < n.scrollWidth - n.clientWidth - 2) return true; } return false; };
+  const inEdge = (x, t) => { const W = innerWidth; if (NATIVE_SWIPE && navI() < NAVH.max) return x >= W - 60 && x <= W - 18 && (x >= W - 40 || !hScr(t)); if (x < W - 44) return false; return x >= W - 22 || !hScr(t); };
   const busy = () => document.documentElement.classList.contains("lb-lock") || document.getElementById("iosSheet") || document.getElementById("iosMenu") || (document.getElementById("msheet") && !document.getElementById("msheet").hidden) || document.querySelector(".menu.open, .lb-dr.on, dialog[open]");
   const hx = (t, root) => { for (let n = t; n && n !== root && n !== document.body; n = n.parentElement) { if (n.matches?.("input, textarea, select, [data-noswipe]")) return true; const cs = getComputedStyle(n); if (/(auto|scroll)/.test(cs.overflowX) && n.scrollWidth > n.clientWidth + 2) return true; } return false; };
   let st = null;
@@ -1546,9 +1552,9 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     // bảng "Thêm" đang mở dạng ngăn kéo phải → kéo sang phải để đóng (đi theo tay)
     const M = $("#msheet"); if (M && !M.hidden && M.classList.contains("side")) { const I = M.querySelector(".msheet-in"); if ((I.contains(e.target) && !hx(e.target, I)) || e.target.classList.contains("msheet-bg")) st = { m: "mclose", x, y, t: Date.now(), off: 0, lock: false }; return; }
     // trang KHÔNG có Bảng phụ: vuốt từ mép phải (khi không còn trang phía trước để tiến tới) → mở bảng "Thêm"
-    if (!b.classList.contains("pn-has")) { if (x >= innerWidth - EDGE && !busy() && !(navI() < NAVH.max)) st = { m: "more", x, y, t: Date.now(), off: 0, lock: false }; return; }
-    // iOS có vuốt tiến sẵn ở mép phải khi còn trang phía trước → nhường cho iOS (mở Bảng phụ bằng nút ☰), tránh kéo 2 thứ cùng lúc
-    if (!open && x >= innerWidth - EDGE && !busy() && !(NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
+    if (!b.classList.contains("pn-has")) { if (inEdge(x, e.target) && !busy() && !(!NATIVE_SWIPE && navI() < NAVH.max)) st = { m: "more", x, y, t: Date.now(), off: 0, lock: false }; return; }      // còn trang phía trước (máy không có vuốt sẵn) → mép phải là "tiến trang"
+    // iOS có vuốt tiến sẵn ở sát mép phải khi còn trang phía trước → vùng bắt lùi vào trong (xem inEdge), tránh kéo 2 thứ cùng lúc
+    if (!open && inEdge(x, e.target) && !busy()) st = { m: "open", x, y, t: Date.now(), off: 0, lock: false };
     else if (open && N && (N.contains(e.target) || e.target === S) && !hx(e.target, N)) st = { m: "close", x, y, t: Date.now(), off: 0, lock: false };
     if (st && (st.m === "open" || st.m === "more")) {
       e.stopPropagation();
@@ -1603,18 +1609,10 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
     if (!s.lock) return;
     const shown = 1 - s.off / s.W, v = (s.m === "open" ? s.W - s.off : s.off) / Math.max(1, Date.now() - s.t);
     const open = s.m === "open" ? shown > 0.25 || v > 0.35 : !(s.off / s.W > 0.33 || v > 0.5);      // mở: kéo ra 1/4 hoặc vuốt nhẹ là đủ
-    if (open && s.m === "open") { navigator.vibrate?.(6); window.__egCount?.(); }
+    if (open && s.m === "open") navigator.vibrate?.(6);
     pnSheet(open);
   };
   addEventListener("touchend", end, { capture: true, passive: false }); addEventListener("touchcancel", end, { capture: true });
-  // 👉 TAY NẮM Ở MÉP PHẢI (điện thoại / máy tính bảng): vạch mờ giữa mép phải báo "ở đây kéo ra được"; chạm = mở Bảng phụ (trang không có Bảng phụ → bảng "Thêm")
-  //    10 lần đầu: tay nắm dạng thẻ nhỏ có mũi tên ‹ cho dễ thấy; quen rồi chỉ còn vạch mảnh
-  const tab = document.createElement("button"); tab.type = "button"; tab.className = "edge-tab"; tab.setAttribute("aria-label", bi("Mở Bảng phụ (hoặc vuốt từ mép phải)", "Open side panel (or swipe from the right edge)")); tab.innerHTML = "<i></i>";
-  const fresh = () => tab.classList.toggle("new", (+lsGet("pn_edge_n", 0) || 0) < 10); fresh();
-  tab.addEventListener("click", () => { if (Date.now() < swallowClick) return; const b = document.body; lsSet("pn_edge_n", (+lsGet("pn_edge_n", 0) || 0) + 1); fresh();
-    if (b.classList.contains("pn-has")) pnSheet(true); else { const W = msSideStart(); if (W) requestAnimationFrame(() => msSideEnd(true)); } });
-  document.body.appendChild(tab);
-  window.__egCount = () => { lsSet("pn_edge_n", (+lsGet("pn_edge_n", 0) || 0) + 1); fresh(); };
 })();
 function pageIn() {
   if (window.__vt) return;
