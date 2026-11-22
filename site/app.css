@@ -6859,7 +6859,7 @@ html[data-nl] body{min-height:100vh;min-height:100dvh}
 @media (max-width:640px){.jf .jrg{grid-column:1/-1}}
 
 /* bảng "Thêm" mở bằng vuốt từ mép phải → ngăn kéo bên phải giống Bảng phụ (cùng bề rộng, bo góc trái) */
-.msheet.side .msheet-in{top:10px;bottom:10px;left:auto;right:10px;width:calc(min(360px,88vw) - 20px);max-height:none!important;border-radius:var(--rad,12px)!important;border:1px solid var(--bd-2);box-shadow:-12px 0 32px rgba(0,0,0,.22);padding-bottom:0;overflow:hidden;animation:none!important;will-change:transform}
+.msheet.side .msheet-in{top:10px;bottom:10px;left:auto;right:10px;width:calc(min(360px,88vw) - 20px);max-height:none!important;border-radius:var(--rad,12px)!important;border:1px solid var(--bd-2);box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent),-10px 0 30px rgba(0,0,0,calc(.24 * var(--msk,1)));padding-bottom:0;overflow:hidden;animation:none!important;will-change:transform}
 .msheet.side .msheet-in::before{display:none!important}
 .msheet.side .msheet-bg{animation:none!important}
 .msheet.side .msheet-b{flex:1;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}

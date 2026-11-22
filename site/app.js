@@ -960,8 +960,11 @@ const REACH = matchMedia("(pointer:coarse)");
 function msReach() { const B = $("#msheetB"), R = B?.querySelector(".ms-reach"); if (!R) return; R.style.height = Math.round(B.clientHeight * 0.45) + "px"; B.scrollTop = R.offsetHeight; }
 // bảng "Thêm" dạng NGĂN KÉO BÊN PHẢI (mở bằng vuốt từ mép phải) – giống Bảng phụ, đi theo ngón tay
 const msSide = () => { const el = $("#msheet"); return { el, sh: el?.querySelector(".msheet-in"), bg: el?.querySelector(".msheet-bg") }; };
-function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); msReach(); sh.style.transition = bg.style.transition = "none"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
-function msSideMove(off, W) { const { sh, bg } = msSide(); if (!sh) return; sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(Math.max(0, 1 - off / W)); }
+function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); msReach(); sh.style.transition = bg.style.transition = "none"; sh.style.setProperty("--msk", "0"); sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
+// nền tối chỉ đậm dần khi ngăn kéo ra quá ~15% (hé ở mép thì chưa tối) · bóng đổ cũng lớn dần theo, không bật ra cả mảng
+function msSideMove(off, W, anim) { const { sh, bg } = msSide(); if (!sh) return; const k = Math.max(0, Math.min(1, (1 - off / W - 0.15) / 0.85));
+  sh.style.transition = anim ? "transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s" : "none"; bg.style.transition = anim ? "opacity .28s" : "none";
+  sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(k); sh.style.setProperty("--msk", String(Math.max(0.15, k))); }
 function msSideEnd(open) {
   const { el, sh, bg } = msSide(); if (!sh) return; const T = "transform .26s " + PN_EASE;
   sh.style.transition = T; bg.style.transition = "opacity .26s";
@@ -1575,7 +1578,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
       e.stopPropagation();
       // ⏳ GIỮ ngón tay ở mép ~0,35 s (chưa kéo) → chuyển sang bảng "Thêm": ngăn kéo hé ra 28px + rung nhẹ, kéo tiếp hoặc thả tay là mở
       //    quét nhanh = Bảng phụ như cũ
-      const s0 = st; s0.hT = setTimeout(() => { if (st !== s0 || s0.lock) return; s0.m = "more"; s0.held = 1; s0.lock = true; s0.x0 = s0.cx ?? s0.x; s0.W = msSideStart(); if (!s0.W) { st = null; return; } s0.peek = 28; document.documentElement.classList.add("eg-drag"); s0.off = s0.W - s0.peek; msSideMove(s0.off, s0.W); navigator.vibrate?.(10); }, 350);
+      const s0 = st; s0.hT = setTimeout(() => { if (st !== s0 || s0.lock) return; s0.m = "more"; s0.held = 1; s0.lock = true; s0.x0 = s0.cx ?? s0.x; s0.W = msSideStart(); if (!s0.W) { st = null; return; } s0.peek = 28; document.documentElement.classList.add("eg-drag"); s0.off = s0.W - s0.peek; requestAnimationFrame(() => msSideMove(s0.off, s0.W, true)); navigator.vibrate?.(10); }, 350);
     }
   }, { passive: true, capture: true });
   // cú vuốt bắt đầu ở MÉP PHẢI thuộc về Bảng phụ / "Thêm": nuốt luôn sự kiện (pha bắt) → biểu đồ / bảng phía dưới không nhận

@@ -51,6 +51,12 @@
      "a": "ui",
      "t": "Thanh dưới: đang ở tab Lệnh của Bot Phản Xạ mà có nút lối tắt \"Lệnh\" thì chỉ nút đó sáng, nút \"Bot\" không còn sáng cùng",
      "te": "Bottom bar: when a shortcut button points to the exact tab you're on (e.g. Orders), only that button lights up – not Bot as well"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Giữ ở mép phải: bảng \"Thêm\" giờ trượt hé ra êm, nền chưa tối và bóng đổ nhạt dần theo – không còn giật hiện ra cùng mảng bóng mờ",
+     "te": "Holding at the right edge: More now slides in smoothly; the dim backdrop and shadow fade in with the drag instead of popping"
     }
    ]
   },
