@@ -8912,8 +8912,12 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     if (!svg || RM.matches || !svg.animate) return;
     const k = svg.__icK || (svg.__icK = kindOf(svg)), [kf, ms, org] = A[k] || A.pop;
     if (svg.__icA && svg.__icA.playState === "running" && performance.now() - svg.__icAt < 120) return;      // chạm + click liền nhau: không chạy 2 lần
-    svg.__icA?.cancel(); svg.style.transformOrigin = org || "50% 50%"; svg.__icAt = performance.now();
-    svg.__icA = svg.animate(kf, { duration: ms, easing: EASE });
+    svg.__icA?.cancel(); svg.__icAt = performance.now();
+    // v3: CỘNG DỒN lên trạng thái sẵn có của biểu tượng (đang nhấn thu nhỏ / đang chọn phóng to) thay vì ghi đè → không giật lúc bắt đầu & lúc kết thúc;
+    //     gốc xoay riêng (chuông xoay quanh móc treo…) đưa vào chính khung hình bằng translate, không đổi transform-origin của biểu tượng
+    let K = kf; if (org) { const [px_, py_] = org.split(" ").map(parseFloat), w = svg.clientWidth || 20, h = svg.clientHeight || 20, ox = ((px_ - 50) / 100) * w, oy = ((py_ - 50) / 100) * h;
+      K = kf.map((f) => ({ ...f, transform: `translate(${ox}px,${oy}px) ${f.transform} translate(${-ox}px,${-oy}px)` })); }
+    try { svg.__icA = svg.animate(K, { duration: ms, easing: EASE, composite: "add" }); } catch (e) { svg.__icA = svg.animate(K, { duration: ms, easing: EASE }); }
     if (k === "bolt") zap(svg);
   };
   const SEL = "#tabs > a, #tabs > .nav-more, .iconbtn, #bell, #qBtn, #theme, #lang, #meBtn, .botseg a, [data-sctab]";
