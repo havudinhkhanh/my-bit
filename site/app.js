@@ -6950,7 +6950,10 @@ function springKF(from, to, fmt, { z = 0.7, w = 16, n = 40, dur = 560 } = {}) {
 const jellyOK = () => !matchMedia("(prefers-reduced-motion: reduce)").matches && !!document.body.animate;
 function cmdk(open = true) {
   let el = $("#cmdk");
-  if (!open) { if (el) { el.hidden = true; document.body.classList.remove("cmdk-on"); } return; }
+  if (!open) { if (el && !el.hidden) {
+      const fin = () => { el.hidden = true; el.classList.remove("out"); document.body.classList.remove("cmdk-on"); const I = $(".cmdk-in", el), B = $(".cmdk-bg", el); [I, B].forEach((x) => x && (x.style.transform = x.style.transition = x.style.opacity = "")); };
+      if (el.classList.contains("side") && !matchMedia("(prefers-reduced-motion: reduce)").matches) { document.activeElement?.blur?.(); el.classList.add("out"); setTimeout(fin, 230); } else fin();      // ngăn kéo: trượt ra phải rồi mới ẩn
+    } return; }
   if (!el) {
     document.body.insertAdjacentHTML("beforeend", `<div id="cmdk" class="cmdk" hidden><div class="cmdk-bg" data-x></div><div class="cmdk-in" role="dialog" aria-label="Tìm nhanh">
       <div class="cmdk-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="cmdkQ" type="search" autocomplete="off" spellcheck="false" placeholder="Tìm coin, trang hoặc thao tác…"><kbd>Esc</kbd><button type="button" class="cmdk-x" data-x>Huỷ</button></div>
@@ -6961,7 +6964,7 @@ function cmdk(open = true) {
       items = cmdkItems(q.value); sel = Math.min(sel, Math.max(0, items.length - 1)); let g = "";
       const btnOf = (x, i) => `<button type="button" class="cmdk-i${i === sel ? " on" : ""}" data-i="${i}" role="option"><span class="cmdk-ic">${x.icon || (x.g === "Thao tác" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m13 3-8 11h6l-1 7 8-11h-6l1-7z"/></svg>' : x.g === "Coin" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 8.5h3.5a2 2 0 0 1 0 4H9.5h4a2 2 0 0 1 0 4H9.5zM11 7v1.5M11 16.5V18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>')}</span><span class="cmdk-t">${x.html || esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span>${x.right ? `<em>${x.right}</em>` : ""}</button>`;
       // điện thoại: danh sách xếp từ DƯỚI lên (cột đảo) – kết quả khớp nhất nằm sát ô tìm ở đáy, tiêu đề nhóm vẫn ở trên nhóm của nó
-      const MOBR = matchMedia("(pointer:coarse),(max-width:600px)").matches; L.classList.toggle("rev", MOBR);
+      const MOBR = matchMedia("(pointer:coarse),(max-width:600px)").matches && !el.classList.contains("side"); L.classList.toggle("rev", MOBR);      // dạng ngăn kéo: ô tìm ở trên → danh sách xếp xuôi
       L.innerHTML = items.length ? (MOBR ? items.map((x, i) => btnOf(x, i) + (items[i + 1]?.g !== x.g ? `<p class="cmdk-g">${esc(x.g)}</p>` : "")).join("") : items.map((x, i) => `${x.g !== g ? `<p class="cmdk-g">${esc((g = x.g))}</p>` : ""}${btnOf(x, i)}`).join(""))
         : `<p class="muted" style="padding:14px">Không thấy “${esc(q.value)}”.</p>`;
       if (MOBR) L.scrollTop = 0;      // cột đảo: 0 = đáy (kết quả đầu)
@@ -6978,11 +6981,14 @@ function cmdk(open = true) {
     L.addEventListener("mousemove", (e) => { const b = e.target.closest(".cmdk-i"); if (b && +b.dataset.i !== sel) { sel = +b.dataset.i; mark(); } });
     L.addEventListener("click", (e) => { const b = e.target.closest(".cmdk-i"); if (b) run(+b.dataset.i); });
     el.addEventListener("click", (e) => { if (e.target.closest("[data-x]")) cmdk(false); });
+    sideDrag($(".cmdk-in", el), $(".cmdk-bg", el), () => cmdk(false), (t) => !el.classList.contains("side") || !!t.closest("input"));      // ngăn kéo: kéo sang phải để đóng
   }
+  // 📱 điện thoại / máy tính bảng: tìm nhanh = NGĂN KÉO BÊN PHẢI kiểu Bảng phụ – ô tìm ở trên (ngay chỗ vừa bấm), kết quả xếp xuống dưới, tự co theo bàn phím
+  el.classList.toggle("side", matchMedia("(pointer:coarse),(max-width:979px)").matches); el.classList.remove("out"); { const q0 = $("#cmdkQ"); if (q0) { q0.dataset.ph ||= q0.placeholder; q0.placeholder = el.classList.contains("side") ? bi("Tìm coin, trang…", "Coins, pages…") : q0.dataset.ph; } }
   if (!COINS) coins().then(() => !el.hidden && el._draw());
   el.hidden = false; document.body.classList.add("cmdk-on"); popClose();
   const q = $("#cmdkQ"); q.value = ""; el._draw(); q.focus();
-  if (matchMedia("(pointer:coarse),(max-width:600px)").matches && jellyOK()) {      // điện thoại: ô tìm nảy lên từ đáy (ngay trên bàn phím), danh sách hiện mờ dần
+  if (!el.classList.contains("side") && matchMedia("(pointer:coarse),(max-width:600px)").matches && jellyOK()) {      // (dạng cũ, không còn dùng trên điện thoại) ô tìm nảy lên từ đáy (ngay trên bàn phím), danh sách hiện mờ dần
     $(".cmdk-q", el).animate(springKF(70, 0, (v) => ({ transform: `translateY(${v}px) scale(${1 - v / 900})` })), { duration: 560, easing: "linear" });
     $(".cmdk-l", el).animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" });
     $(".cmdk-in", el).animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); }
@@ -8842,8 +8848,9 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
 })();
 
 // ================================================================ ✨ BIỂU TƯỢNG CÓ "TÍNH CÁCH" khi bấm (thanh điều hướng + nút trên đầu trang)
-// mỗi biểu tượng chuyển động đúng kiểu của nó: bánh răng quay · chuông lắc · sét loé + tia điện · đồng hồ quay kim · bia ngắm toả vòng · đường giá tự vẽ…
-// chỉ dùng transform / opacity / stroke-dashoffset (mượt, không vẽ lại trang); tắt khi máy bật "giảm chuyển động"
+// mỗi biểu tượng chuyển động đúng kiểu của nó: bánh răng quay · chuông lắc · sét loé + tia điện · bia ngắm nảy · địa cầu xoay · lịch lật…
+// v2 (mượt): CHỈ biến đổi cả khối biểu tượng (transform/opacity) bằng Web Animations → chạy trên luồng đồ hoạ, không khựng khi trang mới đang vẽ;
+// bắt đầu ngay lúc NGÓN TAY CHẠM (pointerdown), trước khi trang chuyển → kịp chạy những khung đầu. Không còn tô bóng/vẽ lại nét (tốn, gây giật).
 (function iconMotion() {
   const RM = matchMedia("(prefers-reduced-motion: reduce)");
   const KIND = [
@@ -8851,7 +8858,7 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     [/M3 12h18M12 3c2\.6/, "globe"], [/M3 17l5-5 4 4 8-9/, "trend"], [/M2 12h4l3-8|M22 12h-4l-3 9/, "pulse"], [/M4 19V9M10 19V5/, "bars"],
     [/M12 12l6-6/, "radar"], [/M12 8v4l3 2/, "clock"], [/M9 8h4\.5/, "coin"], [/M8 7V5a2 2 0 0 1 2-2h4/, "case"], [/M3 10h18M8 3v4/, "cal"],
     [/M12 8V4M9 13v1/, "robot"], [/M12 3l1\.8 4\.7/, "spark"], [/M8 6h13M8 12h13/, "list"], [/M4 21v-7M4 10V3/, "slider"], [/M10 3v6L4 19/, "flask"],
-    [/M6 3h9l4 4v14H6z|M4 5a2 2 0 0 1 2-2h13v16/, "doc"], [/M3 10h18"|M7 6V4h10v2/, "card"],
+    [/M6 3h9l4 4v14H6z|M4 5a2 2 0 0 1 2-2h13v16/, "doc"],
   ];
   const kindOf = (svg) => {
     const h = svg.innerHTML; for (const [re, k] of KIND) if (re.test(h)) return k;
@@ -8859,25 +8866,59 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     if (rc === 4) return "grid"; if (cc === 3 && !svg.querySelector("path")) return "target"; if (cc === 2 && !svg.querySelector("path")) return "pairs";
     return "pop";
   };
-  // ⚡ tia điện bao quanh tia sét: 1 lớp vẽ tạm đặt đúng chỗ biểu tượng (gắn vào body, tự xoá)
+  const t = (s) => ({ transform: s });
+  // [khung hình, thời gian ms, gốc xoay] – đường cong êm, nảy nhẹ 1 lần rồi về chỗ
+  const A = {
+    pop: [[t("scale(1)"), t("scale(.86)"), t("scale(1.1)"), t("scale(1)")], 420],
+    bolt: [[t("scale(1) rotate(0)"), t("scale(.88) rotate(-8deg)"), t("scale(1.2) rotate(5deg)"), t("scale(.98) rotate(-2deg)"), t("scale(1) rotate(0)")], 520],
+    bell: [[t("rotate(0)"), t("rotate(16deg)"), t("rotate(-13deg)"), t("rotate(9deg)"), t("rotate(-5deg)"), t("rotate(2deg)"), t("rotate(0)")], 760, "50% 12%"],
+    gear: [[t("rotate(0)"), t("rotate(200deg)"), t("rotate(180deg)")], 720],
+    sun: [[t("rotate(0) scale(1)"), t("rotate(100deg) scale(1.12)"), t("rotate(90deg) scale(1)")], 620],
+    globe: [[t("perspective(60px) rotateY(0)"), t("perspective(60px) rotateY(360deg)")], 680],
+    coin: [[t("perspective(60px) rotateY(0)"), t("perspective(60px) rotateY(360deg)")], 620],
+    search: [[t("rotate(0) scale(1)"), t("rotate(-14deg) scale(1.12)"), t("rotate(4deg) scale(1)"), t("rotate(0) scale(1)")], 520],
+    trend: [[t("translate(0,0) scale(1)"), t("translate(-1.5px,1.5px) scale(.92)"), t("translate(2px,-2px) scale(1.08)"), t("translate(0,0) scale(1)")], 520],
+    pulse: [[t("scaleY(1)"), t("scaleY(1.35)"), t("scaleY(.85)"), t("scaleY(1)")], 460],
+    bars: [[t("scaleY(1)"), t("scaleY(.6)"), t("scaleY(1.12)"), t("scaleY(1)")], 500, "50% 90%"],
+    target: [[t("scale(1)"), t("scale(.8)"), t("scale(1.14)"), t("scale(.97)"), t("scale(1)")], 540],
+    radar: [[t("rotate(0)"), t("rotate(360deg)")], 700],
+    clock: [[t("rotate(0)"), t("rotate(-12deg)"), t("rotate(8deg)"), t("rotate(0)")], 480],
+    case: [[t("translateY(0) rotate(0)"), t("translateY(-3px) rotate(-5deg)"), t("translateY(0) rotate(3deg)"), t("translateY(0) rotate(0)")], 520],
+    doc: [[t("rotate(0)"), t("rotate(-9deg) translateY(-1px)"), t("rotate(4deg)"), t("rotate(0)")], 520],
+    cal: [[t("perspective(50px) rotateX(0)"), t("perspective(50px) rotateX(-50deg)"), t("perspective(50px) rotateX(0)")], 560, "50% 20%"],
+    robot: [[t("rotate(0)"), t("rotate(-9deg)"), t("rotate(7deg)"), t("rotate(-3deg)"), t("rotate(0)")], 620, "50% 85%"],
+    spark: [[t("rotate(0) scale(1)"), t("rotate(-25deg) scale(.85)"), t("rotate(15deg) scale(1.15)"), t("rotate(0) scale(1)")], 560],
+    list: [[t("translateX(0)"), t("translateX(-3px)"), t("translateX(2px)"), t("translateX(0)")], 440],
+    slider: [[t("translateY(0)"), t("translateY(-2px)"), t("translateY(1px)"), t("translateY(0)")], 440],
+    flask: [[t("rotate(0)"), t("rotate(-10deg)"), t("rotate(8deg)"), t("rotate(-3deg)"), t("rotate(0)")], 600, "50% 15%"],
+    grid: [[t("rotate(0) scale(1)"), t("rotate(45deg) scale(.85)"), t("rotate(90deg) scale(1)")], 520],
+    pairs: [[t("scaleX(1)"), t("scaleX(.8)"), t("scaleX(1.1)"), t("scaleX(1)")], 460],
+  };
+  const EASE = "cubic-bezier(.25,.8,.3,1)";
+  // ⚡ tia điện quanh tia sét: 1 lớp vẽ sẵn, chỉ phóng to + mờ dần (luồng đồ hoạ) – không vẽ lại nét
+  let Z = null;      // lớp tia điện tạo SẴN 1 lần (đã vẽ) – lúc bấm chỉ dời chỗ + chạy hiệu ứng, không phải vẽ mới giữa lúc trang đang chuyển
   const zap = (svg) => {
     const r = svg.getBoundingClientRect(); if (!r.width) return;
-    const s = Math.max(r.width, r.height) * 2.6, z = document.createElement("i"); z.className = "ica-zz"; z.setAttribute("aria-hidden", "true");
-    z.style.cssText = `left:${r.left + r.width / 2 - s / 2}px;top:${r.top + r.height / 2 - s / 2}px;width:${s}px;height:${s}px`;
-    z.innerHTML = `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M8 9l3 3-2 1 3 3"/><path d="M32 8l-3 4 2 1-3 3"/><path d="M6 27l4-1-1 2 4-1"/><path d="M34 28l-4-1 1 2-4-1"/><path d="M20 2v3l-1.5 1L20 8"/><path d="M20 38v-3l1.5-1L20 32"/></svg>`;
-    document.body.appendChild(z); setTimeout(() => z.remove(), 750);
+    if (!Z) { Z = document.createElement("i"); Z.className = "ica-zz"; Z.setAttribute("aria-hidden", "true");
+      Z.innerHTML = `<svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="20" r="9" fill="currentColor" stroke="none" opacity=".16"/>
+      <path d="M9 10l3 3-2 1 3 3"/><path d="M31 9l-3 4 2 1-3 3"/><path d="M7 27l4-1-1 2 4-1"/><path d="M33 28l-4-1 1 2-4-1"/><path d="M20 3v3l-1.5 1L20 9"/><path d="M20 37v-3l1.5-1L20 31"/></svg>`;
+      document.body.appendChild(Z); }
+    const s = Math.max(r.width, r.height) * 2.4; Z.style.cssText = `left:${r.left + r.width / 2 - s / 2}px;top:${r.top + r.height / 2 - s / 2}px;width:${s}px;height:${s}px`;
+    Z.getAnimations().forEach((a) => a.cancel());
+    Z.animate([{ opacity: 0, transform: "scale(.55) rotate(-8deg)" }, { opacity: 1, transform: "scale(1) rotate(0)", offset: 0.3 }, { opacity: 0.6, offset: 0.55 }, { opacity: 0, transform: "scale(1.18) rotate(6deg)" }], { duration: 560, easing: "cubic-bezier(.2,.8,.3,1)" });
   };
+  addEventListener("load", () => setTimeout(() => { const s0 = document.querySelector('#tabs > a[data-r="botscalp"] svg'); if (s0 && !Z) { zap(s0); Z.getAnimations().forEach((a) => a.cancel()); } }, 1500));      // vẽ sẵn lớp tia điện
   const play = (svg) => {
-    if (!svg || RM.matches) return;
-    const k = svg.__icK || (svg.__icK = kindOf(svg));
-    svg.classList.remove("ica", "ica-" + k); void svg.getBoundingClientRect(); svg.classList.add("ica", "ica-" + k);
-    clearTimeout(svg.__icT); svg.__icT = setTimeout(() => svg.classList.remove("ica", "ica-" + k), 1000);
+    if (!svg || RM.matches || !svg.animate) return;
+    const k = svg.__icK || (svg.__icK = kindOf(svg)), [kf, ms, org] = A[k] || A.pop;
+    if (svg.__icA && svg.__icA.playState === "running" && performance.now() - svg.__icAt < 120) return;      // chạm + click liền nhau: không chạy 2 lần
+    svg.__icA?.cancel(); svg.style.transformOrigin = org || "50% 50%"; svg.__icAt = performance.now();
+    svg.__icA = svg.animate(kf, { duration: ms, easing: EASE });
     if (k === "bolt") zap(svg);
   };
-  document.addEventListener("click", (e) => {
-    const el = e.target.closest?.("#tabs > a, #tabs > .nav-more, .iconbtn, #bell, #qBtn, #theme, #lang, #meBtn, .botseg a, [data-sctab]"); if (!el) return;
-    const svg = el.querySelector(":scope svg:not(.nav-me-g)") || el.querySelector("svg"); if (svg) play(svg);
-  }, true);
+  const SEL = "#tabs > a, #tabs > .nav-more, .iconbtn, #bell, #qBtn, #theme, #lang, #meBtn, .botseg a, [data-sctab]";
+  const go = (e) => { const el = e.target.closest?.(SEL); if (!el) return; const svg = el.querySelector(":scope svg:not(.nav-me-g)") || el.querySelector("svg"); if (svg) play(svg); };
+  document.addEventListener("pointerdown", (e) => { if (e.button === 0 || e.pointerType !== "mouse") go(e); }, true);      // chạy ngay khi chạm
+  document.addEventListener("click", (e) => { if (e.detail === 0) go(e); }, true);      // bàn phím (Enter) không có pointerdown
   window.icPlay = play;
 })();
