@@ -100,6 +100,14 @@
      "te": "The red market lamp and \"running\" dot no longer make the page repaint continuously",
      "d": "Hiệu ứng chuyển sang chỉ đổi độ mờ – card đồ hoạ tự chạy, trông như cũ.",
      "de": "The effect now only fades opacity – run by the graphics card, looks the same."
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Khung biểu đồ lệnh: dải số vừa 1 hàng, không phải cuộn ngang",
+     "te": "Trade chart sheet: the stats strip fits one row – no horizontal scrolling",
+     "d": "Màn rộng: nhãn và số cùng dòng; màn vừa: nhãn nhỏ trên, số dưới. Chi tiết funding (phe nào trả, còn bao lâu) xem khi rê chuột.",
+     "de": "Wide screens: label and value side by side; medium screens: small label above the value. Funding details (who pays, time left) on hover."
     }
    ]
   },

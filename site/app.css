@@ -7301,3 +7301,19 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 .lvs-dot.on:not(.hot){box-shadow:none!important}
 @keyframes glowFade{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.bd-light.red i::after,.lvs-dot.on:not(.hot)::after{animation:none}}
+/* máy tính: dải số không cuộn ngang – các ô co giãn lấp đủ hàng, thiếu chỗ thì xuống hàng 2 (điện thoại vẫn trượt ngang để giữ chiều cao cho biểu đồ) */
+@media (min-width:761px){
+  .occ-st{flex-wrap:wrap!important;overflow:visible!important}
+  .occ-k{flex:1 1 auto;justify-content:space-between;padding:4px 9px;gap:6px}
+  .occ-k>b small{font-size:.75em}
+}
+@media (min-width:761px){
+  .occ-kw>b small{display:none}      /* "Long trả Short · còn …" đã có trong chú thích rê chuột → dải vừa 1 hàng */
+  .occ-k{max-width:260px}
+}
+@media (min-width:761px) and (max-width:1399px){
+  .occ-st{flex-wrap:nowrap!important;gap:4px}
+  .occ-k{flex:1 1 0;min-width:0;max-width:none;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;padding:3px 8px}
+  .occ-k>small{font-size:.65rem;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .occ-k>b{font-size:.8125rem;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+}
