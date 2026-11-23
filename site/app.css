@@ -7638,8 +7638,15 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
    Thanh bên tự thu gọn khi mở ra (rê chuột) phải nằm TRÊN nút "Bảng phụ" nổi (z 45) – trước đây nút này đè lên đáy thanh bên. */
 .nav-me-row{display:none}
 @media (min-width:1180px){
-  .tabs .nav-me-row{display:flex;flex-direction:column;gap:2px;margin-top:auto;flex:none;padding-top:8px;border-top:1px solid var(--bd-2)}
-  .tabs .nav-me-row .nav-me{margin-top:0}
+  /* hàng cuối: [ảnh · tên · gói ⌃] [⚙] nằm NGANG (như Discord / Slack) – ⚙ là nút vuông bên phải ảnh đại diện */
+  .tabs .nav-me-row{display:flex;flex-direction:row;align-items:center;gap:4px;margin-top:auto;flex:none;padding-top:8px;border-top:1px solid var(--bd-2)}
+  .tabs .nav-me-row .nav-me{margin-top:0;flex:1 1 auto;min-width:0;width:auto}
+  .tabs .nav-me-row a.nav-set{order:2;flex:none;width:40px;height:40px;padding:0!important;gap:0!important;justify-content:center;align-items:center;border-radius:10px;transform:none!important}
+  .tabs .nav-me-row a.nav-set .nav-t{display:none}
+  .tabs .nav-me-row a.nav-set::before{display:none}
+  .tabs .nav-me-row a.nav-set svg{transition:transform .3s cubic-bezier(.32,.72,0,1)}
+  .tabs .nav-me-row a.nav-set:hover svg{transform:rotate(45deg);color:var(--ink)}
+  body.rail-auto .tabs:not(.open) .nav-me-row a.nav-set{opacity:0;pointer-events:none}
   .tabs .nav-me:hover .nav-me-g{transform:translateY(-2px)}
   .tabs .nav-me[aria-expanded="true"] .nav-me-g{transform:rotate(180deg)}
   body.rail-auto .tabs.open{z-index:50}

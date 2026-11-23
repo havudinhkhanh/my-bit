@@ -12,8 +12,8 @@
     {
      "c": "new",
      "a": "acct",
-     "t": "⚙️ Cài đặt có mục riêng ở cuối thanh bên, tách khỏi hồ sơ",
-     "te": "⚙️ Settings now has its own item at the bottom of the sidebar, separate from your profile",
+     "t": "⚙️ Cài đặt có nút riêng cạnh ảnh đại diện cuối thanh bên, tách khỏi hồ sơ",
+     "te": "⚙️ Settings has its own button next to your avatar at the bottom of the sidebar, separate from your profile",
      "d": "Bấm ⚙️ Cài đặt là tới thẳng giao diện, cỡ chữ, mèo na, vốn & rủi ro, khoá Binance và thông báo. Hàng tài khoản giờ chỉ mở menu hồ sơ. Trang Tài khoản chia 2 thẻ: Hồ sơ & bảo mật / Cài đặt. Phím tắt g , mở Cài đặt.",
      "de": "⚙️ Settings goes straight to appearance, text size, the na cat, capital & risk, Binance keys and notifications. The account row now opens just the profile menu. The Account page has two tabs: Profile & security / Settings. Shortcut g , opens Settings.",
      "go": "#/settings",

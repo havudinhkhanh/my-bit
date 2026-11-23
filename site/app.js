@@ -8320,7 +8320,7 @@ function initAccountUI() {
   if (tabs && pin && !document.getElementById("navMe")) {
     const nm = document.createElement("button"); nm.type = "button"; nm.id = "navMe"; nm.className = "nav-me"; nm.setAttribute("aria-haspopup", "menu"); nm.title = `${ME.name || ME.email} · Hồ sơ & gói`;
     nm.innerHTML = `<span class="nav-av" id="navMeAv" aria-hidden="true"></span><span class="nav-t"><b>${esc(ME.name || ME.email)}</b><small>Gói ${esc(ME.plan_name || ME.eff_plan || "")}</small></span><svg class="nav-me-g" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5-5 5 5"/></svg>`;
-    // ⚙️ CÀI ĐẶT là 1 mục riêng ngay trên hàng tài khoản (như Linear / Slack / ChatGPT): không phải mở hồ sơ rồi mới tìm.
+    // ⚙️ CÀI ĐẶT là nút vuông riêng nằm NGANG bên phải hàng tài khoản (như Discord / Slack): không phải mở hồ sơ rồi mới tìm.
     // Bọc trong .nav-me-row để không lẫn vào danh sách "trang tuỳ chọn" (cusOpts chỉ duyệt con trực tiếp của #tabs); data-r → setTab tự sáng như mục menu khác
     const row = document.createElement("div"); row.className = "nav-me-row"; tabs.insertBefore(row, pin);
     const st = document.createElement("a"); st.id = "navSet"; st.className = "nav-set"; st.href = "#/settings"; st.dataset.r = "settings"; st.title = bi("Cài đặt: giao diện, khoá Binance, vốn & rủi ro, thông báo", "Settings: appearance, Binance keys, capital & risk, notifications");
