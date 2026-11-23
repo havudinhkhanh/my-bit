@@ -325,6 +325,26 @@
      "a": "bot",
      "t": "Thanh tab Bot Phản Xạ khi dính không còn sát rạt thanh trên",
      "te": "Reflex Bot tab bar no longer hugs the top bar when sticky"
+    },
+    {
+     "c": "imp",
+     "a": "acct",
+     "aud": "admin",
+     "t": "Tài sản futures: hiện vốn và +x% so với vốn (giống Sàn thử)",
+     "te": "Futures equity: shows capital and +x% vs capital (like Paper)",
+     "d": "Vốn = tài sản lúc máy chủ bắt đầu theo dõi + tiền nạp − tiền rút về sau; rê chuột lên chữ \"vốn\" để xem mốc ngày.",
+     "de": "Capital = equity when the server began tracking + deposits − withdrawals since; hover \"capital\" for the start date.",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "aud": "admin",
+     "t": "Binance: công tắc bật / tắt \"Ngừng mở mới khi lỗ trong ngày\"",
+     "te": "Binance: on / off switch for \"Stop opening new trades after a daily loss\"",
+     "d": "Thiết lập › Binance: bật thì chỉnh mức % (hiện luôn số $ tương ứng); tắt thì bot không tự ngừng dù lỗ bao nhiêu trong ngày (các giới hạn an toàn chung vẫn giữ). Tắt khi đang bị ngừng → bot mở lệnh lại ngay. Cần cập nhật máy chủ riêng.",
+     "de": "Settings › Binance: when on, set the % (the $ amount is shown); when off, the bot never stops for a daily loss (account-wide safety limits still apply). Turning it off while halted resumes at once. Requires a server update.",
+     "go": "#/bot/scalp"
     }
    ]
   },

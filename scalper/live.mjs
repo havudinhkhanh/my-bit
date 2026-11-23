@@ -57,6 +57,8 @@ export class LiveExec {
   }
   // vốn để tính cỡ lệnh & giới hạn lỗ ngày. Thật: min(Vốn tối đa, số dư ví futures) – hoặc TOÀN BỘ số dư khi bật "Dùng toàn bộ số dư" (lv_all)
   // → lời thì cỡ lệnh tự tăng theo (lãi kép), lỗ thì tự nhỏ lại. Demo: giữ nguyên như cũ (Vốn tối đa).
+  // ⛔ ngừng mở lệnh mới khi lỗ trong ngày ≥ lv_daily% vốn – anh có thể TẮT hẳn công tắc này (lv_daily_on = false) trong Thiết lập
+  dayLoss(c = this.cfg()) { return c.lv_daily_on !== false && this.dayLoss(c); }
   base() { const c = this.cfg(); return this.env() === "live" && this.st.bal > 0 ? (c.lv_all ? this.st.bal : Math.min(c.lv_cap, this.st.bal)) : c.lv_cap; }
   say(m, kind = "info") { this.S.log = [...this.S.log.slice(-299), { t: iso(Date.now()), k: kind, m }]; this.log(`💵 ${m}`); this._cap?.push({ k: kind, m }); this.save(); }
   // 🧾 PHẢN HỒI lệnh anh bấm trên trang: gom mọi thông báo máy chủ nói ra trong lúc xử lý 1 lệnh → S.cres (trang đọc theo "at" của lần bấm, hiện ngay kết quả:
@@ -216,7 +218,7 @@ export class LiveExec {
     if (this.S.halt) return skip(`đang ngừng mở mới – ${this.S.halt}`);
     if (this.S.day.d !== vnDay(now)) this.S.day = { d: vnDay(now), pnl: 0 };
     const B = this.base();
-    if (this.S.day.pnl <= -B * c.lv_daily / 100) return skip(`đã lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay (giới hạn ${c.lv_daily}% của ${+B.toFixed(2)} USDT)`);
+    if (c.lv_daily_on !== false && this.S.day.pnl <= -B * c.lv_daily / 100) return skip(`đã lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay (giới hạn ${c.lv_daily}% của ${+B.toFixed(2)} USDT)`);
     const A = this.active();
     if (A.length >= c.hk_max) return skip(`đã có ${A.length} lần bắt đang mở (tối đa ${c.hk_max})`);
     // 🧩 vòng 19: cú sập "cả nhóm" (nhiều coin cùng sập 1 lúc) → tối đa hk_gmax lần đang mở – đêm 10–11/10/2025 cả 9 chỗ vào trong 4 phút rồi cùng lỗ
@@ -333,6 +335,7 @@ export class LiveExec {
       await this.bDay().catch((e) => { if (!this.bdErrAt || Date.now() - this.bdErrAt > 1800e3) { this.bdErrAt = Date.now(); this.err("đọc sổ thu chi trong ngày", e); } });
       await this.mFund().catch((e) => { if (!this.mfErrAt || Date.now() - this.mfErrAt > 900e3) { this.mfErrAt = Date.now(); this.err("đọc funding lệnh tay đang mở", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
+      if (/hôm nay/.test(this.S.halt || "") && !this.dayLoss()) { this.S.halt = null; this.say("▶️ Bỏ ngừng do lỗ trong ngày (anh đã tắt / nới giới hạn) – bot mở lệnh mới lại", "info"); this.save(); }
     } finally { this.busy = false; }
   }
   async manage(ev) {
@@ -1085,7 +1088,7 @@ export class LiveExec {
     this.say(`${pnl >= 0 ? "💰" : "🔻"} 📐 Đóng ${p.name} ${sym.replace(/USDT/g, "")} – ${wl}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%${src ? "" : ", ước tính"})`, pnl >= 0 ? "win" : "loss");
     this.note(`qc:${p.id}`, 2, `${LTAG(p.env)} · ${pnl >= 0 ? "🟢" : "🔴"} 📐 ${p.legs.map((L) => coin(L.sym)).join("/")} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${p.name} · ${wl} · ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% phần lệnh`, `lv:${p.id}`);
     for (const [k, v] of Object.entries(this.S.qp)) if (v.done && Date.now() - v.t2 > 30 * 864e5) delete this.S.qp[k];
-    if (this.S.day.pnl <= -this.base() * c.lv_daily / 100 && !this.S.halt) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); }
+    if (this.dayLoss(c) && !this.S.halt) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); }
     this.save();
   }
   // funding & phí ĐÃ TRẢ THẬT của lệnh đang mở (sổ thu chi Binance, 10 phút/lần) → trang ước tính lời/lỗ ròng nếu đóng tay ngay
@@ -1141,7 +1144,7 @@ export class LiveExec {
     this.say(`${pnl >= 0 ? "💰" : "🔻"} 🧪 Đóng Short bơm ${coin(p.sym)} – ${wl}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% phần lệnh, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)})`, pnl >= 0 ? "win" : "loss");
     this.note(`swc:${p.id}`, 2, `${LTAG(p.env)} · ${pnl >= 0 ? "🟢" : "🔴"} 🧪 ${coin(p.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `Short coin vừa bơm · ${wl} · ${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% phần lệnh`, `lv:${p.id}`);
     for (const [k, v] of Object.entries(this.S.swp)) if (v.done && Date.now() - v.t2 > 30 * 864e5) delete this.S.swp[k];
-    if (this.S.day.pnl <= -this.base() * c.lv_daily / 100 && !this.S.halt) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); }
+    if (this.dayLoss(c) && !this.S.halt) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); }
     this.save();
   }
   // Lời/lỗ THẬT từ sổ thu chi của sàn (income): lời lỗ giá đã chốt, phí giao dịch, phí FUNDING trong lúc giữ lệnh. Không đọc được → dùng ước tính.
@@ -1215,7 +1218,7 @@ export class LiveExec {
     const bps = P.ap ? ev.side * (px / P.ap - 1) * 1e4 : 0;
     this.say(`${pnl >= 0 ? "💰" : "🔻"} Đóng ${ev.sym} ${ev.side > 0 ? "Long" : "Short"} – ${{ TIME: "hết giờ giữ", SL: "cắt lỗ", TRAIL: "cắt lỗ đuổi (đã lời rồi trả lại)", PEAK: "ra ở đỉnh nhịp nảy", BE: "về hoà vốn (gia hạn)", EXT: "hết giờ gia hạn", MANUAL: "anh đóng tay", UX: "tới giá anh hẹn" }[why] || why}: ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT (${bps >= 0 ? "+" : ""}${(bps / 100).toFixed(2)}% giá; phí ${fee.toFixed(3)}${fund ? `, funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} USDT – ${src}) ${extra}`, pnl >= 0 ? "win" : "loss");
     this.note(`close:${ev.id}`, 2, `${LTAG(ev.env)} · ${pnl >= 0 ? "🟢" : "🔴"} ${coin(ev.sym)} ${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)} USDT${tot0 > 0 ? ` (${pnl >= 0 ? "+" : ""}${(pnl / tot0 * 100).toFixed(2)}% tổng tài sản)` : ""}`, `${{ TIME: "Hết giờ giữ", SL: "Cắt lỗ", TRAIL: "Cắt lỗ đuổi", PEAK: "Ra ở đỉnh nhịp nảy", BE: "Về hoà vốn", EXT: "Hết giờ gia hạn", MANUAL: "Anh đóng tay" }[why] || why} · ${bps >= 0 ? "+" : ""}${(bps / 100).toFixed(2)}%\nVào ${+P.ap.toPrecision(8)} → ra ${+px.toPrecision(8)} · ${+P.q.toFixed(8)} ${coin(ev.sym)} (${(P.q * P.ap).toFixed(2)} USDT) · giữ ${Math.max(1, Math.round((Date.now() - (P.t1 || ev.t0)) / 60000))} phút\nLời gộp ${gp >= 0 ? "+" : ""}${gp.toFixed(3)} · phí −${Math.abs(fee).toFixed(3)}${fund ? ` · funding ${fund >= 0 ? "+" : ""}${fund.toFixed(3)}` : ""} · hôm nay ${this.S.day.pnl >= 0 ? "+" : ""}${this.S.day.pnl.toFixed(2)} USDT`, `lv:${ev.id}`);
-    if (this.S.day.pnl <= -this.base() * c.lv_daily / 100) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
+    if (this.dayLoss(c)) { this.S.halt = `lỗ ${this.S.day.pnl.toFixed(2)} USDT hôm nay – ngừng mở mới tới hết ngày`; this.say(`⛔ ${this.S.halt}`, "stop"); this.dayEvent(`⛔ ${this.S.halt}`); this.note(`halt:${this.S.day.d}`, 3, "⛔ Tài khoản Binance thật: ngừng mở lệnh mới tới hết ngày", this.S.halt); }
     this.save();
   }
   // ---------------------------------------------------------------- kết quả theo ngày, tách riêng Demo / Thật
