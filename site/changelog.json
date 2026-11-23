@@ -405,6 +405,20 @@
      "a": "bot",
      "t": "Thanh tab Bot Phản Xạ khi dính che kín phía sau – nội dung cuộn qua không còn lộ ra ở khe trên và 2 mép",
      "te": "Sticky Reflex Bot tab bar now fully covers what's behind – no content peeking through the gap above or the edges"
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Thanh tab Bot Phản Xạ khi dính thành \"thanh trên thứ 2\": tràn hết bề ngang, liền ngay dưới thanh trên",
+     "te": "The sticky Reflex Bot tab bar becomes a \"second top bar\": full width, right under the top bar",
+     "d": "Nền trải từ mép thanh bên trái tới mép phải màn hình, không bo góc, không khe; 2 thanh liền nhau như 1 khối (chỉ thanh dưới có bóng nhẹ). Nút tab vẫn thẳng cột với nội dung.",
+     "de": "Background spans from the left rail to the right edge, no rounded corners or gap; the two bars read as one block (only the lower one casts a soft shadow). Tabs stay aligned with the content."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Thanh bên thu gọn: mục đang mở không còn lòi 1 dải trắng bên phải biểu tượng",
+     "te": "Collapsed sidebar: the active item no longer shows a white strip to the right of its icon"
     }
    ]
   },

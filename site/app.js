@@ -8601,8 +8601,11 @@ function lvwPlace(el, anim = true) {
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
 // thanh tab dính (Bot Phản Xạ…) khi ĐANG DÍNH → lớp .stuck: nền che kín khoảng hở phía trên & 2 bên (nội dung cuộn qua không lộ ra) – chỉ đổi lớp khi đổi trạng thái
-{ let q = 0; const chk = () => { q = 0; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, st = b.getBoundingClientRect().top <= top + 0.5 && scrollY > 0; if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st); } };
-  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("hashchange", () => setTimeout(chk, 300)); }
+{ let q = 0; const chk = () => { q = 0; let any = false; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, r = b.getBoundingClientRect(), st = r.top <= top + 0.5 && scrollY > 0; if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st);
+    if (st) { const a = document.getElementById("app")?.getBoundingClientRect(), L = Math.max(0, Math.round(r.left - (a?.left || 0))) + "px", R = Math.max(0, Math.round(document.documentElement.clientWidth - r.right)) + "px";      // tràn hết bề ngang vùng nội dung → như thanh trên thứ 2
+      if (b.style.getPropertyValue("--sbL") !== L) b.style.setProperty("--sbL", L); if (b.style.getPropertyValue("--sbR") !== R) b.style.setProperty("--sbR", R); } any ||= st; }
+    const H = document.documentElement; if (H.classList.contains("sub-stuck") !== any) H.classList.toggle("sub-stuck", any); };
+  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("resize", () => { if (!q) q = requestAnimationFrame(chk); }); addEventListener("hashchange", () => setTimeout(chk, 300)); }
 // cuộn khỏi đầu trang → thanh trên có viền tóc + bóng nhẹ (chỉ đổi lớp khi qua ngưỡng, không làm gì mỗi khung cuộn)
 { let on = false, q = 0; addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; const v = scrollY > 6; if (v !== on) { on = v; document.documentElement.classList.toggle("top-sc", v); } }); }, { passive: true }); }
 // 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.

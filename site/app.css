@@ -7618,4 +7618,13 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 @media (min-width:980px){.ticker .tk-lamp>span{display:inline-flex;flex-direction:column;line-height:1.05}.ticker .tk-lamp>span>small{font-size:.625rem;font-weight:550;color:var(--ink-3)}}
 @media (min-width:980px) and (max-width:1365px){.ticker .tk-lamp>span>small{display:none}}
 /* thanh tab Bot Phản Xạ đang dính: phủ màu nền lên khoảng hở 10px phía trên + 2 mép (bóng đặc, không tốn vẽ thêm) → nội dung cuộn bên dưới không lòi ra */
-@media (min-width:761px){.sc-tbar.stuck{box-shadow:0 -14px 0 6px var(--bg),0 10px 22px -12px rgba(15,23,42,.28),0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent)!important}}
+/* đang dính → THANH TRÊN THỨ 2: nền tràn hết bề ngang vùng nội dung (từ mép cột trái tới mép phải màn hình), liền ngay dưới thanh trên (lấp khe 10px),
+   không bo góc, viền tóc + bóng rất nhẹ ở đáy; nút tab vẫn thẳng cột với nội dung. Nền là lớp ::before phía sau (không đổi bố cục → không giật) */
+@media (min-width:761px){
+  .sc-tbar.stuck{border-radius:0!important;box-shadow:none!important;background:transparent!important}
+  .sc-tbar.stuck::before{content:"";position:absolute;z-index:-1;top:-12px;bottom:-6px;left:calc(-1 * var(--sbL,0px));right:calc(-1 * var(--sbR,0px));
+    background:var(--surface);border-bottom:1px solid var(--bd);box-shadow:0 8px 20px -14px rgba(15,23,42,.35);pointer-events:none}
+  html.sub-stuck .top{box-shadow:none!important}      /* 2 thanh liền nhau như 1 khối – chỉ thanh dưới có bóng */
+}
+/* thanh bên THU GỌN (chỉ biểu tượng): ẩn viên kính trượt của mục đang mở – viên vẫn rộng như lúc mở rộng nên lòi ra 1 dải trắng bên phải biểu tượng; ô vuông vàng nhạt quanh biểu tượng đã đủ báo đang ở đâu */
+@media (min-width:1180px){body.rail-auto .tabs:not(.open) .nthumb{opacity:0!important;transition:opacity .12s}}
