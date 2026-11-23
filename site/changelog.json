@@ -269,6 +269,15 @@
      "te": "iPhone: scrolling no longer makes the ‹ › bar and the tab row flicker or shake",
      "d": "Khi cuộn, iPhone co giãn thanh địa chỉ liên tục; trang ghi lại vài thông số lên gốc trang mỗi lần (dù không đổi) và đặt lại viên lệnh bot có hoạt ảnh → cả trang tính lại, thanh dính nháy. Giờ chỉ ghi khi thật sự đổi; cách tách lớp vẽ mới chỉ bật trên Chrome / Edge.",
      "de": "While scrolling, iPhone keeps resizing the address bar; the page re-wrote a few values on the root each time (even unchanged) and re-placed the bot-trades pill with an animation → whole-page restyles and flickering sticky bars. Now values are written only when they change; the new paint isolation is enabled on Chrome / Edge only."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Điện thoại · So sánh Sàn thử ↔ Binance: tên coin không còn bị dựng đứng từng chữ",
+     "te": "Phones · Paper vs Binance comparison: coin names no longer stack letter by letter",
+     "d": "Dòng có lý do dài (vd \"anh đang có vị thế … – bot không đụng vào\") làm cột bên phải phình hết bề ngang → cột tên coin còn 0. Giờ tên coin luôn 1 dòng, cột Binance tối đa khoảng nửa thẻ và chữ dài tự xuống dòng.",
+     "de": "Rows with a long reason (e.g. \"you hold a position … – the bot won't touch it\") made the right column take the full width, squeezing the coin column to nothing. Coin names now stay on one line, the Binance column is capped at about half the card and long text wraps.",
+     "go": "#/bot/scalp"
     }
    ]
   },
