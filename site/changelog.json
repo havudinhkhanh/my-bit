@@ -383,6 +383,22 @@
      "go": "#/",
      "d": "Tự tổng hợp: 1 câu tóm tắt (hiện dần) + 3 cột – Thị trường (đèn, BTC, sợ hãi & tham lam, độ rộng), Đáng chú ý (tăng mạnh 7 ngày, funding lệch, mở khoá token 48 giờ tới, phiên Á/Âu/Mỹ đang mở), Của anh (lời/lỗ bot hôm nay, lệnh đang mở, coin anh quan tâm). Chỉ nêu dữ kiện, không khuyên mua/bán; ẩn được tới hôm sau. Gói Miễn phí thấy câu tóm tắt, chi tiết ở gói Pro.",
      "de": "Auto-compiled: a one-line summary (fades in) + 3 columns – Market (light, BTC, fear & greed, breadth), Worth a look (7-day gainers, extreme funding, token unlocks in 48h, which Asia/EU/US session is open), Yours (bot P&L today, open trades, coins you follow). Facts only, no buy/sell advice; hide until tomorrow. Free plan sees the summary; details are Pro."
+    },
+    {
+     "c": "new",
+     "a": "notif",
+     "t": "Thông báo học theo anh: loại hay mở có mục \"✨ Anh hay xem\", loại ít mở hiện nhạt",
+     "te": "Notifications learn from you: \"✨ Your picks\" for types you open, faded rows for types you ignore",
+     "d": "Đếm trên máy anh: mỗi loại thông báo được thấy bao nhiêu / mở bao nhiêu. Loại anh hầu như không mở (≥ 15 lần thấy, gần như chưa mở) hiện nhạt hơn; lệnh TIỀN THẬT và tin quan trọng không bao giờ bị làm nhạt.",
+     "de": "Counted on your device: how often each notification type is shown vs opened. Types you almost never open (15+ shown, nearly none opened) are faded; real-money trades and important alerts are never faded."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Theo ngữ cảnh: đèn thị trường hiện phiên Á / Âu / Mỹ đang mở; Na báo khi bot vừa vào / đóng lệnh",
+     "te": "Context-aware: the market light shows the open Asia / EU / US session; Na tells you when the bot opens / closes a trade",
+     "d": "Câu của Na chỉ là dữ kiện (vd \"Bot vừa đóng AGT: +$0,20\"), tối đa 1 câu / 3 phút, không nói khi anh không xem trang.",
+     "de": "Na only states facts (e.g. \"Bot just closed AGT: +$0.20\"), at most once every 3 minutes, and stays quiet when you're not looking."
     }
    ]
   },

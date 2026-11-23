@@ -7612,3 +7612,8 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 .bf-d>summary::-webkit-details-marker{display:none}.bf-d>summary::after{content:"▾";transition:transform .2s}.bf-d[open]>summary::after{transform:rotate(180deg)}
 @media (min-width:701px){.bf-d>summary{display:none}}
 .bf-d>summary::before{display:none!important;content:none!important}
+/* thông báo loại anh hầu như không mở → nhạt hơn (rê chuột / chạm thì rõ lại) */
+.nt-i.nt-low{opacity:.62;transition:opacity .15s}.nt-i.nt-low:hover{opacity:1}
+/* đèn thị trường: dòng phụ phiên giao dịch (Á / Âu / Mỹ) */
+@media (min-width:980px){.ticker .tk-lamp>span{display:inline-flex;flex-direction:column;line-height:1.05}.ticker .tk-lamp>span>small{font-size:.625rem;font-weight:550;color:var(--ink-3)}}
+@media (min-width:980px) and (max-width:1365px){.ticker .tk-lamp>span>small{display:none}}

@@ -7339,7 +7339,8 @@ function tkSet(k, p, r1) {
 // 🚦 đèn thị trường đứng ĐẦU băng giá (không chạy theo băng): bấm = sang trang Thị trường
 function tkLamp(C) { const l = C?.light || "", T = $("#ticker"); if (!T) return; let e = T.querySelector(".tk-lamp");
   if (!e) { e = document.createElement("a"); e.className = "tk-lamp"; e.href = "#/"; T.prepend(e); }
-  const vi = LIGHT_VI[l] || "—"; e.dataset.l = l; e.title = bi(`Đèn thị trường: ${vi} – bấm để xem`, `Market light: ${l || "—"} – click to view`); e.innerHTML = `<i></i><span>${bi("Thị trường", "Market")}</span>`; }
+  const vi = LIGHT_VI[l] || "—", ss = vnSession(); e.dataset.l = l; e.title = bi(`Đèn thị trường: ${vi} · đang ${ss} – bấm để xem`, `Market light: ${l || "—"} · ${ss} – click to view`); e.innerHTML = `<i></i><span>${bi("Thị trường", "Market")}<small>${ss}</small></span>`; }
+setInterval(() => { if (!document.hidden && COINS) tkLamp(COINS); }, 5 * 60e3);      // phiên Á / Âu / Mỹ đổi theo giờ
 function tkLock() { document.querySelectorAll("#ticker [data-tk]").forEach((el) => { el.style.minWidth = ""; const w = Math.ceil(el.getBoundingClientRect().width); if (w) el.style.minWidth = w + 6 + "px"; }); }
 function tkMarq() {
   const T = $("#ticker"), R = T?.querySelector(".tk-run"); if (!R) return; const G = R.querySelector(".tk-g"); if (!G) return;
@@ -7491,6 +7492,15 @@ function ntActsHtml(n) {
     : [["show", bi("Xem lệnh", "View")], ["ext", bi("Gia hạn…", "Extend…")], ["close", bi("Đóng…", "Close…")]];
   return `<div class="nt-acts">${A.map(([d, t]) => `<a class="nt-ab${d === "close" ? " dn" : ""}" data-ntdo href="#/bot/scalp?do=${d}&k=${encodeURIComponent(n._ref)}">${t}</a>`).join("")}</div>`;
 }
+// 🧠 THÔNG BÁO HỌC THEO ANH: đếm mỗi loại (nhóm) anh được thấy bao nhiêu / mở bao nhiêu (chỉ trên máy) → loại anh hầu như không mở thì hiện nhạt hơn,
+//    mục "✨ Anh hay xem" gom các loại anh mở nhiều. Lệnh TIỀN THẬT & mức quan trọng cao không bao giờ bị làm nhạt.
+const NTE = { d: (() => { const v = lsGet("nte", null); return v && typeof v === "object" ? v : {}; })(), seen: new Set(), t: 0 };
+const nteSave = () => { clearTimeout(NTE.t); NTE.t = setTimeout(() => lsSet("nte", NTE.d), 600); };
+function nteShown(L) { for (const n of L) { if (NTE.seen.has(n.id)) continue; NTE.seen.add(n.id); const g = ntfGrp(n.kind)[0], o = (NTE.d[g] ||= [0, 0]); o[0] = Math.min(400, o[0] + 1); } nteSave(); }
+function nteOpen(n) { const g = ntfGrp(n.kind)[0], o = (NTE.d[g] ||= [0, 0]); o[1] = Math.min(400, o[1] + 1); o[0] = Math.max(o[0], o[1]); nteSave(); }
+const nteAff = (g) => { const o = NTE.d[g] || [0, 0]; return (o[1] + 1) / (o[0] + 3); };      // ~ tỉ lệ mở (có làm mượt cho loại mới)
+const nteLow = (n) => { const g = ntfGrp(n.kind)[0], o = NTE.d[g] || [0, 0]; return o[0] >= 15 && nteAff(g) < 0.06 && (n.sev || 0) < 2 && !/TIỀN THẬT|LỆNH THẬT/.test(n.title || ""); };
+const nteMine = (n) => { const g = ntfGrp(n.kind)[0], o = NTE.d[g] || [0, 0]; return o[1] >= 3 && nteAff(g) >= 0.3; };
 function ntfRow(n) {
   const url = /^event/.test(n.kind || "") && /^#\/s\/[A-Z0-9]+$/.test(n.url || "") ? n.url + "/ev" : ntTradeUrl(n) || n.url;   // thông báo sự kiện → mở biểu đồ đúng đợt; lệnh bot → trang chi tiết lệnh
   const tm = new Date(n.created_at).toLocaleTimeString(NLOC, { hour: "2-digit", minute: "2-digit" }), g = ntfGrp(n.kind);
@@ -7507,13 +7517,14 @@ function ntfRow(n) {
   // dòng thời gian của lệnh: các mốc trước → mốc hiện tại
   const tl = n._steps?.length ? `<span class="nt-tl">${[...n._steps].reverse().concat([{ n, st: n._st }]).map((s, i, A) => `<span class="nt-st${i === A.length - 1 ? " cur" : ""}">${bi(NT_ST[s.st]?.[1] || "", NT_ST[s.st]?.[2] || "")} ${hm(s.n.created_at)}</span>`).join('<span class="nt-ar" aria-hidden="true">→</span>')}</span>` : "";
   const stb = n._ref && !n._steps?.length ? `<span class="nt-tl"><span class="nt-st cur s-${n._st}">${bi(NT_ST[n._st]?.[1] || "", NT_ST[n._st]?.[2] || "")}</span></span>` : "";
-  return `<div class="nt-i ${unr ? "new" : "rd"} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"${unr ? ` aria-label="${bi("Chưa đọc", "Unread")}: ${esc(viDec(title))}"` : ""}><span class="nt-dot" aria-hidden="true"></span><span class="nt-ic" aria-hidden="true">${ic}</span>
+  return `<div class="nt-i ${unr ? "new" : "rd"}${nteLow(n) ? " nt-low" : ""} sev${n.sev || 0}${acc ? " nt-" + acc : ""}${n._ref ? " nt-th" : ""}" data-nid="${n.id}"><a class="nt-a" href="${esc(url || "#/notifications")}"${unr ? ` aria-label="${bi("Chưa đọc", "Unread")}: ${esc(viDec(title))}"` : ""}><span class="nt-dot" aria-hidden="true"></span><span class="nt-ic" aria-hidden="true">${ic}</span>
     <span class="nt-b"><span class="nt-h1"><b>${esc(viDec(title))}</b></span>${plc}${n.body ? `<span class="nt-t">${esc(viDec(n.body))}</span>` : ""}<small class="nt-m">${accB}${tl || stb}${acc ? "" : `<span>${esc(g[1])}</span>${n.sym ? `<span class="nt-s">${esc(n.sym)}</span>` : ""}`}<span class="nt-ago">${tl ? "" : `${tm} · `}${agoShort(n.created_at)}</span></small></span></a>
     ${!unr ? `<button type="button" class="nt-rd nt-ur" data-ur="${n.id}" title="Đánh dấu chưa đọc" aria-label="Đánh dấu chưa đọc"><i></i></button>` : `<button type="button" class="nt-rd" data-rd="${n.id}" title="Đánh dấu đã đọc" aria-label="Đánh dấu đã đọc">✓</button>`}${ntActsHtml(n)}</div>`;
 }
 // danh sách gom theo ngày + thanh lọc; f = "all" | "new" | mã nhóm
 function ntfList(items, f) {
-  const L = ntThread(items.filter((n) => f === "all" || (f === "new" ? !n.read_at : ntfGrp(n.kind)[0] === f)));
+  nteShown(items.slice(0, 60));
+  const L = ntThread(items.filter((n) => f === "all" || (f === "new" ? !n.read_at : f === "mine" ? nteMine(n) : ntfGrp(n.kind)[0] === f)));
   if (!L.length) return `<p class="nt-empty">${items.length ? "Không có thông báo nào trong mục này." : NEMPTY}</p>`;
   // kiểu iOS / Android mới: CHƯA ĐỌC gom lên đầu (mục "Mới"), ĐÃ ĐỌC xếp dưới theo ngày, nhạt hơn → nhìn là biết
   const U = L.filter((n) => !n.read_at || n._un), Rd = L.filter((n) => !(!n.read_at || n._un));
@@ -7524,7 +7535,8 @@ function ntfList(items, f) {
 function ntfChips(items, f) {
   const cnt = {}; for (const n of items) { const g = ntfGrp(n.kind)[0]; cnt[g] = (cnt[g] || 0) + 1; }
   const un = items.filter((n) => !n.read_at).length;
-  const C = [["all", "Tất cả", items.length], ["new", "Chưa đọc", un], ...NGRP.filter((g) => cnt[g[0]]).map((g) => [g[0], g[1], cnt[g[0]]]), ...(cnt.other ? [["other", "Khác", cnt.other]] : [])];
+  const mi = items.filter(nteMine).length;
+  const C = [["all", "Tất cả", items.length], ["new", "Chưa đọc", un], ...(mi ? [["mine", bi("✨ Anh hay xem", "✨ Your picks"), mi]] : []), ...NGRP.filter((g) => cnt[g[0]]).map((g) => [g[0], g[1], cnt[g[0]]]), ...(cnt.other ? [["other", "Khác", cnt.other]] : [])];
   return C.map(([k, t, n]) => `<button type="button" class="nt-c ${k === f ? "on" : ""}" data-nf="${k}">${esc(t)}${n ? ` <i>${n}</i>` : ""}</button>`).join("");
 }
 function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => ntBindRow(it, items, redraw));
@@ -7532,7 +7544,7 @@ function bindNtf(root, items, redraw) { $$("[data-nid]", root).forEach((it) => n
 function ntBindRow(it, items, redraw) {
   if (it._b) return; it._b = { items, redraw };
   const n = () => items?.find((x) => x.id === Number(it.dataset.nid));
-  it.querySelector(".nt-a")?.addEventListener("click", () => { const x = n(); if (x && (!x.read_at || x._un)) ntSetRead(x, true, it._b, false); bellClose(); });
+  it.querySelector(".nt-a")?.addEventListener("click", () => { const x = n(); if (x) nteOpen(x); if (x && (!x.read_at || x._un)) ntSetRead(x, true, it._b, false); bellClose(); });
   it.querySelectorAll("[data-ntdo]").forEach((b) => b.addEventListener("click", () => { const x = n(); if (x && (!x.read_at || x._un)) ntSetRead(x, true, it._b, false); bellClose(); }));      // nút làm nhanh: tới tab Lệnh, mở bảng xác nhận
   const rd = it.querySelector("[data-rd]"), ur = it.querySelector("[data-ur]");
   if (rd) rd.onclick = (e) => { e.preventDefault(); e.stopPropagation(); const x = n(); if (x) ntSetRead(x, true, it._b); };
@@ -8718,6 +8730,15 @@ function lvsDraw() {
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
   if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ
   if (LVW.sig && sig !== LVW.sig) setTimeout(tkRefresh, 500);      // có lệnh mới / vừa đóng → coin đó lên / xuống băng giá
+  // 🐈 Na nói theo ngữ cảnh: bot vừa vào / vừa đóng lệnh → 1 câu ngắn, CHỈ DỮ KIỆN (tối đa 1 câu / 3 phút, không nói khi đang ẩn trang)
+  try { const ids = new Set([...I.live, ...I.paper].filter((x) => x.st === "open").map((x) => x.acc + x.sym)), P0 = LVW.ids;
+    if (P0 && window.MUN?.say && !document.hidden && Date.now() - (LVW.naAt || 0) > 180e3) {
+      const nw = [...I.live, ...I.paper].find((x) => x.st === "open" && !P0.has(x.acc + x.sym)), gone = [...P0].find((k) => !ids.has(k));
+      let t = "";
+      if (nw) t = bi(`Bot vừa vào ${nw.sym} ${nw.side > 0 ? "Long" : "Short"}${nw.acc === "paper" ? " (sàn thử)" : ""}`, `Bot just opened ${nw.sym} ${nw.side > 0 ? "Long" : "Short"}${nw.acc === "paper" ? " (paper)" : ""}`);
+      else if (gone) { const h = [...I.lastL, ...I.lastP].find((x) => gone.endsWith(x.sym)); t = h ? bi(`Bot vừa đóng ${h.sym}: ${lvw$(h.pnl || 0)}`, `Bot just closed ${h.sym}: ${lvw$(h.pnl || 0)}`) : ""; }
+      if (t) { LVW.naAt = Date.now(); window.MUN.say(t, 5000); } }
+    LVW.ids = ids; } catch (e) { /* bỏ qua */ }
   LVW.sig = sig;
   const P = lvwParts(D), set = (sel, k, html) => { if (LVW.h[k] === html) return; LVW.h[k] = html; const n = el.querySelector(sel); if (!n) return; if (k === "body") { const y = n.scrollTop; n.innerHTML = html; n.scrollTop = y; } else n.innerHTML = html; };
   // 📱 điện thoại / máy tính bảng: không có lệnh mở hay chờ → viên tự thu thành chấm dính mép (không che nội dung); có lệnh → hiện lại viên đầy đủ
