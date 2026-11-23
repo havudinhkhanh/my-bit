@@ -8306,7 +8306,7 @@ function lvsPop(btn) {
 // 3 chế độ: full (thẻ mở rộng) · mini (viên gọn) · dot (chấm nhỏ dính mép). Vị trí = mép (l/r/t/b) + tỉ lệ dọc theo mép (0–1) → kéo thả tới bất kỳ đâu trên mép màn hình.
 const LVW_OLD = { br: { e: "r", f: 0.96 }, bl: { e: "l", f: 0.96 }, tr: { e: "r", f: 0.03 }, tl: { e: "l", f: 0.03 } };
 // mở trang: lệnh bot trực tiếp luôn ở dạng thu gọn (thẻ chỉ mở khi anh bấm)
-const LVW = { mode: ((m) => (m === "full" ? lsGet("lvwrest", "mini") : m))(lsGet("lvwmode", null) || "mini"), rest: lsGet("lvwrest", "mini"), pos: lsGet("lvwpos", null), tab: lsGet("lvwtab", null), px: {}, pxAt: 0, sig: "", tick: 0, h: {} };
+const LVW = { pin: lsGet("lvwpin", false), mode: ((m) => (m === "full" ? lsGet("lvwrest", "mini") : m))(lsGet("lvwmode", null) || "mini"), rest: lsGet("lvwrest", "mini"), pos: lsGet("lvwpos", null), tab: lsGet("lvwtab", null), px: {}, pxAt: 0, sig: "", tick: 0, h: {} };
 if (typeof LVW.pos === "string") LVW.pos = LVW_OLD[LVW.pos] || null;
 if (!["full", "mini", "dot"].includes(LVW.mode)) LVW.mode = "mini"; if (!["mini", "dot"].includes(LVW.rest)) LVW.rest = "mini";
 Object.defineProperty(LVW, "open", { get: () => LVW.mode === "full" });
@@ -8371,6 +8371,14 @@ function lvwPlace(el, anim = true) {
   const pill = el.querySelector(".lvw-pill"); if (!pill) return;
   const K = lvwBounds(), mob = MOB.matches, P = LVW.pos || (mob ? { e: "r", f: 0.72 } : { e: "r", f: 0.97 }), dot = LVW.mode === "dot" && LVW.mode !== "full";
   const w = pill.offsetWidth, h = pill.offsetHeight, f = Math.max(0, Math.min(1, isNum(P.f) ? P.f : 0.5));
+  // 📌 GHIM lên thanh trên cùng (máy tính): viên nằm trong ô chừa sẵn trên thanh đầu trang, thẻ mở xuống dưới
+  const slot = document.getElementById("topLv"), pinOn = LVW.pin && !mob && RAILQ0();
+  el.classList.toggle("lvw-pin", !!pinOn); document.documentElement.classList.toggle("has-toplv", !!pinOn);
+  if (slot) slot.style.width = pinOn ? w + "px" : "";
+  if (pinOn && slot) { const r = slot.getBoundingClientRect(), x = Math.round(r.left), y = Math.round(r.top + (r.height - h) / 2), cw = Math.min(360, K.W - 24), cl = Math.max(12 - x, Math.min(K.W - 12 - cw - x, x + w / 2 < K.W / 2 ? 0 : w - cw));
+    el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, K.H - (y + h) - 16))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
+    ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-t")); el.classList.remove("lvw-upw"); el.classList.toggle("lvw-al", x + w / 2 < K.W / 2);
+    el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y]; if (!anim) requestAnimationFrame(() => el.classList.remove("noanim")); return; }
   let x, y;
   if (P.e === "l" || P.e === "r") { y = K.T + f * Math.max(0, K.B - K.T - h); x = P.e === "l" ? (dot ? K.L - 8 : K.L) : (dot ? K.R + 8 - w : K.R - w); }
   else { x = K.L + f * Math.max(0, K.R - K.L - w); y = P.e === "t" ? K.T : K.B - h; }
@@ -8394,6 +8402,8 @@ function lvwPlace(el, anim = true) {
   el.__fix = 0; el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
+const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
+function lvwPin(on) { LVW.pin = !!on; lsSet("lvwpin", LVW.pin); if (on && LVW.mode === "dot") { LVW.mode = LVW.rest = "mini"; lsSet("lvwmode", "mini"); lsSet("lvwrest", "mini"); } const el = document.getElementById("lvw"); if (el) { lvsDraw(); lvwPlace(el); } try { toast(on ? bi("Đã ghim lên thanh trên cùng – kéo viên ra ngoài để bỏ ghim", "Pinned to the top bar – drag it out to unpin") : bi("Đã bỏ ghim", "Unpinned")); } catch (e) { /* bỏ qua */ } }
 function lvwMode(m) {
   if (m === LVW.mode) return; const el = document.getElementById("lvw"); LVW.mode = m; lsSet("lvwmode", m); if (m !== "full") { LVW.rest = m; lsSet("lvwrest", m); }
   if (!el) return; lvsDraw(); el.classList.remove("lvw-pop"); void el.offsetWidth; el.classList.add("lvw-pop");
@@ -8408,10 +8418,11 @@ function lvsDraw() {
     first = true; LVW.h = {};
     el = document.createElement("div"); el.id = "lvw"; el.className = "lvw noanim"; document.body.appendChild(el);
     // khung cố định: chỉ thay phần nội dung đổi → không nháy, không chạy lại hiệu ứng mở
-    el.innerHTML = `<button type="button" class="lvw-pill" data-lvw-t data-lvw-drag></button><div class="lvw-card" role="dialog" aria-label="${bi("Lệnh bot trực tiếp", "Live bot trades")}"><div class="lvw-top" data-lvw-drag><span class="lvw-grip" aria-hidden="true"></span><b>${bi("Lệnh bot · trực tiếp", "Bot trades · live")}</b><small class="lvw-ago"></small><button type="button" data-lvw-m="dot" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="currentColor"/></svg></button><button type="button" data-lvw-m="mini" title="${bi("Thu gọn", "Collapse")}" aria-label="${bi("Thu gọn", "Collapse")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div><div class="lvw-segw"></div><div class="lvw-body"></div><div class="lvw-f"></div></div>`;
+    el.innerHTML = `<button type="button" class="lvw-pill" data-lvw-t data-lvw-drag></button><div class="lvw-card" role="dialog" aria-label="${bi("Lệnh bot trực tiếp", "Live bot trades")}"><div class="lvw-top" data-lvw-drag><span class="lvw-grip" aria-hidden="true"></span><b>${bi("Lệnh bot · trực tiếp", "Bot trades · live")}</b><small class="lvw-ago"></small><button type="button" class="lvw-pinb" data-lvw-pin title="${bi("Ghim lên thanh trên cùng / bỏ ghim", "Pin to the top bar / unpin")}" aria-label="${bi("Ghim lên thanh trên cùng", "Pin to the top bar")}"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h4l-.6 4 2.1 2H4.5l2.1-2z"/><path d="M8 8.5V14"/></svg></button><button type="button" data-lvw-m="dot" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><circle cx="8" cy="8" r="2.6" fill="currentColor"/></svg></button><button type="button" data-lvw-m="mini" title="${bi("Thu gọn", "Collapse")}" aria-label="${bi("Thu gọn", "Collapse")}"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 8h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div><div class="lvw-segw"></div><div class="lvw-body"></div><div class="lvw-f"></div></div>`;
     el.addEventListener("click", (e) => {
       if (el.__drag) { e.preventDefault(); e.stopPropagation(); el.__drag = false; return; }
       if (e.target.closest("[data-lvw-dot]")) { e.stopPropagation(); lvwMode("dot"); return; }
+      if (e.target.closest("[data-lvw-pin]")) { e.stopPropagation(); lvwPin(!LVW.pin); return; }
       const m = e.target.closest("[data-lvw-m]"); if (m) { lvwMode(m.dataset.lvwM); return; }
       if (e.target.closest("[data-lvw-t]")) { lvwMode(LVW.mode === "full" ? LVW.rest : LVW.mode === "dot" ? "mini" : "full"); return; }      // chấm → viên → thẻ; bấm viên khi đang mở → thu về
       const tb = e.target.closest("[data-lvw-tab]"); if (tb) { const d = LVW.swd || (tb.dataset.lvwTab === "paper" ? 1 : -1); LVW.swd = 0; if (LVW.tab === tb.dataset.lvwTab) return; LVW.tab = tb.dataset.lvwTab; lsSet("lvwtab", LVW.tab); lvsDraw();
@@ -8429,6 +8440,9 @@ function lvsDraw() {
         ev.preventDefault(); if (!raf) raf = requestAnimationFrame(() => { raf = 0; el.style.transform = `translate3d(${x0 + lx - px0}px,${y0 + ly - py0}px,0)`; }); };
       const up = () => { removeEventListener("pointermove", mv); removeEventListener("pointerup", up); removeEventListener("pointercancel", up); if (raf) cancelAnimationFrame(raf); if (!moved) return;
         el.__drag = true; setTimeout(() => (el.__drag = false), 80); el.classList.remove("drag");
+        const hb = document.querySelector("header.top")?.getBoundingClientRect();
+        if (!MOB.matches && RAILQ0() && hb && ly < hb.bottom + 6) { lvwPin(true); return; }      // thả lên thanh trên cùng = ghim
+        if (LVW.pin) LVW.pin = false, lsSet("lvwpin", false);      // kéo viên đang ghim ra ngoài = bỏ ghim, đặt ở chỗ vừa thả
         const K = lvwBounds(), cx = x0 + lx - px0 + pw / 2, cy = y0 + ly - py0 + ph / 2;
         const d = { l: cx - K.L, r: K.R - cx, t: (cy - K.T) * 1.6, b: (K.B - cy) * 1.6 };      // ưu tiên mép trái/phải (đỡ che nội dung trên/dưới)
         const eg = Object.keys(d).reduce((a, b) => (d[a] <= d[b] ? a : b));
@@ -8461,7 +8475,7 @@ function lvsDraw() {
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && LVW.mode === "full" && !document.getElementById("iosSheet")) lvwMode(LVW.rest); });
     const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", rp); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
-    clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); }, 1000);
+    clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); if (LVW.pin && !el.classList.contains("drag")) { const r = document.getElementById("topLv")?.getBoundingClientRect(); if (r && el.__xy && Math.abs(r.left - el.__xy[0]) > 1) lvwPlace(el, false); } }, 1000);      // ghim: thanh trên đổi bố cục (dải trạng thái bot hiện / ẩn) → viên theo ô
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
   if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ

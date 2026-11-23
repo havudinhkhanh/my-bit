@@ -116,6 +116,23 @@
      "te": "The top price ticker now scrolls continuously",
      "d": "Không đủ chỗ hiện hết các mã thì băng giá tự chạy vòng (rê chuột vào để dừng đọc / bấm); đủ chỗ thì đứng yên. Chạy bằng card đồ hoạ nên không làm nặng máy. Ở trang Bot Phản Xạ, dải trạng thái và băng giá chia chỗ hợp lý hơn.",
      "de": "When the coins don't all fit, the ticker loops continuously (hover to pause and click); when they fit it stays still. Runs on the graphics card, so it doesn't load the machine. On the Reflex Bot page the status chip and ticker share space better."
+    },
+    {
+     "c": "new",
+     "a": "live",
+     "t": "Ghim viên \"Lệnh bot trực tiếp\" lên thanh trên cùng",
+     "te": "Pin the \"Live bot trades\" pill to the top bar",
+     "d": "Máy tính: kéo viên thả lên thanh trên cùng (hoặc bấm 📌 trong thẻ) để ghim; bấm viên mở thẻ xuống dưới. Kéo viên ra ngoài để bỏ ghim.",
+     "de": "Desktop: drag the pill onto the top bar (or press 📌 in its card) to pin it; click it to open the card below. Drag it out to unpin.",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh trên cùng trải hết bề ngang, cột trái bắt đầu ngay dưới",
+     "te": "The top bar spans the full width; the left rail starts right below it",
+     "d": "Logo MyBit nằm trên thanh, thẳng cột trái – thanh trên rộng thêm cho trạng thái bot, viên ghim và băng giá.",
+     "de": "The MyBit logo sits on the bar above the rail, giving the bar more room for bot status, the pinned pill and the ticker."
     }
    ]
   },

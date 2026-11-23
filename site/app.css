@@ -7338,3 +7338,28 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
   html.has-topst .ticker{min-width:120px}
   html.has-topst .top-in .search{flex:0 1 260px;min-width:170px;width:auto}
 }
+
+/* 📌 viên "lệnh bot trực tiếp" ghim trên thanh trên cùng */
+.toplv{display:none;flex:none;height:36px}
+@media (min-width:980px){html.has-toplv .toplv{display:block}}
+.lvw.lvw-pin .lvw-pinb{color:var(--brass,var(--brand))}
+.lvw-pinb{display:inline-grid;place-items:center}
+
+/* ⬛ thanh trên cùng trải hết bề ngang (cả phần đầu cột trái) – cột trái bắt đầu ngay dưới thanh; logo MyBit nằm trên thanh, thẳng cột trái */
+@media (min-width:1180px){
+  header.top{margin-left:calc(-1 * var(--rail))}
+  .tabs{top:var(--toph,52px)!important}
+  .eg-rail{top:var(--toph,52px)!important}
+  .top-in{max-width:none!important;padding-left:16px!important}
+  .top a.brand{display:inline-flex!important;align-items:center;flex:none;width:calc(var(--rail) - 28px);min-width:0;overflow:hidden;white-space:nowrap}
+  body.rail-auto .top a.brand,body.rail-min .top a.brand{width:auto}
+}
+@media (min-width:980px){
+  html.has-topst .topst{flex:none}
+  html.has-topst.has-toplv .ticker{min-width:150px}
+  .lvw.lvw-pin .lvw-nt{display:none}      /* viên ghim gọn: bỏ chữ "chưa có lệnh" */
+}
+@media (min-width:980px) and (max-width:1680px){
+  html.has-toplv .topst .hz2-c{display:none!important}      /* thanh trên chật (có viên ghim): dải trạng thái chỉ còn đèn + trạng thái + công tắc · ⓘ · ⋯ */
+  html.has-toplv .topst .hz2-l{overflow:visible}
+}
