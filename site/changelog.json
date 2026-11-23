@@ -149,6 +149,15 @@
      "te": "Manual card: % at target / stop / liquidation is now of the margin",
      "d": "Khớp với \"% lệnh\" ở đầu thẻ; thanh lý ký quỹ cô lập ghi −100% (mất trọn ký quỹ) – trước ghi % chênh giá (−96%) lệch với số tiền.",
      "de": "Matches the \"% of trade\" figure at the top; isolated liquidation shows −100% (whole margin lost) – it used to show the price move (−96%), which didn't match the amount."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Khung Cắt lỗ · chốt lời của lệnh tay gọn và hợp lý hơn",
+     "te": "The manual-trade stop / target panel is tidier and more logical",
+     "d": "3 khối rõ: Cắt lỗ · Chốt lời · Hẹn đóng; gõ giá là thấy ngay ≈ lời / lỗ và % ký quỹ, sai phía giá hiện tại thì báo ngay. Nút % cắt lỗ tính từ giá hiện tại (trước tính từ giá vào → lệnh đang lỗ nặng bấm ra mức sàn từ chối); nút % chốt lời luôn ra mức có lời; thêm nút Hoà vốn khi lệnh đang lời; có nút Huỷ; phần giải thích thu gọn.",
+     "de": "Three clear blocks: Stop · Target · Auto-close; typing a price shows the ≈ P/L and % of margin at once, and a level on the wrong side of the price is flagged. Stop % chips now count from the current price (they used to count from entry, so a trade deep in loss got a level the exchange rejects); target chips always give a profitable level; a Breakeven chip appears when in profit; a Cancel button; the explanation is collapsed.",
+     "hi": 1
     }
    ]
   },
