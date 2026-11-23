@@ -660,13 +660,13 @@ function licWrap(el) {
   if (!n || n.nodeType !== 3) return false;
   const m = n.nodeValue.match(LIC_RE); if (!m) return false;
   const i = document.createElement("i"); i.className = "lic"; i.setAttribute("aria-hidden", "true"); i.textContent = m[2];
-  n.nodeValue = n.nodeValue.slice(m[0].length); el.insertBefore(i, n); return true;
+  n.nodeValue = n.nodeValue.slice(m[0].length); el.insertBefore(i, n); el.classList.add("lic-h"); return true;
 }
 function licAlign(root = document) {
   const its = root.querySelectorAll?.(LIC_ITEM); if (!its || !its.length) return;
   const groups = new Map();
   its.forEach((el) => { const box = el.closest(".ios-menu-in,.sc-menu,.memenu,.pop"); if (!box || box.querySelector(".ios-ic")) return; const has = licWrap(el); (groups.get(box) || groups.set(box, []).get(box)).push([el, has]); });
-  groups.forEach((L) => { if (!L.some(([, h]) => h)) return; L.forEach(([el, h]) => { if (!h && !el.firstElementChild?.classList.contains("lic")) { const i = document.createElement("i"); i.className = "lic lic-0"; i.setAttribute("aria-hidden", "true"); el.prepend(i); } }); });
+  groups.forEach((L) => { if (!L.some(([, h]) => h)) return; L.forEach(([el, h]) => { if (!h && !el.firstElementChild?.classList.contains("lic")) { const i = document.createElement("i"); i.className = "lic lic-0"; i.setAttribute("aria-hidden", "true"); el.prepend(i); el.classList.add("lic-h"); } }); });
 }
 let licRq = 0;
 // trước: theo dõi cả đổi CHỮ ở mọi nơi → giá chạy / đồng hồ đếm làm hàm này quét cả trang mỗi khung hình. Giờ chỉ khi có menu / danh sách mới gắn vào
@@ -1366,6 +1366,58 @@ document.addEventListener("pointerover", (e) => {
   if (first) { void hl.offsetWidth; } hl.classList.add("on"); requestAnimationFrame(() => hl.classList.remove("jump"));
 }, { passive: true });
 function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.add("out"); setTimeout(() => m.remove(), 180); $$("[aria-expanded=true][data-iosm]").forEach((b) => b.setAttribute("aria-expanded", "false")); }
+// 🔽 ô chọn (<select>) → menu thả xuống của app thay cho bảng chọn mặc định của máy (iOS / Android / trình duyệt trông lạc kiểu)
+//    ô <select> vẫn là nguồn dữ liệu: chọn xong gán .value + bắn input/change như cũ → mọi chỗ đang nghe "change" chạy y nguyên
+//    bàn phím (Tab, mũi tên, Alt+↓) vẫn dùng kiểu gốc · thêm data-native vào <select> nếu chỗ nào cần bảng gốc
+//    option: data-mt = chữ hiện trong menu (thay chữ trên ô) · data-sub = dòng phụ nhỏ bên dưới; dài và có " · " thì tự tách dòng phụ
+const selOk = (t) => t && t.tagName === "SELECT" && !t.multiple && !t.disabled && !(t.size > 1) && !t.hasAttribute("data-native") && !t.closest("[data-native]");
+function selMenu(sel) {
+  if ($("#iosMenu")) { const was = $("#iosMenu").__sel === sel; iosMenuClose(); if (was) return; }
+  const r = sel.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = innerHeight;
+  const W = Math.min(Math.max(r.width, 260), 360, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left));
+  const below = vh - r.bottom - 12, above = r.top - 12, up = below < 220 && above > below, maxH = Math.max(160, Math.min(up ? above : below, 420));
+  const pos = up ? `bottom:${Math.round(vh - r.top + 6)}px;transform-origin:24px calc(100% + 6px)` : `top:${Math.round(r.bottom + 6)}px;transform-origin:24px -6px`;
+  const item = (o) => {
+    let t = o.dataset.mt || o.textContent.trim(), sub = o.dataset.sub || "";
+    if (!sub && t.length > 30 && t.includes(" · ")) { const i = t.indexOf(" · "); sub = t.slice(i + 3); t = t.slice(0, i); }
+    return `<button type="button" role="menuitemradio" aria-checked="${o.selected}" data-i="${o.index}"${o.disabled ? " disabled" : ""}><span class="ios-t">${esc(t)}${sub ? `<small>${esc(sub)}</small>` : ""}</span></button>`;
+  };
+  let html = "";
+  for (const c of sel.children) {
+    if (c.tagName === "OPTGROUP") html += `<div class="ios-menu-h">${esc(c.label)}</div>` + [...c.children].filter((o) => !o.hidden).map(item).join("");
+    else if (c.tagName === "OPTION" && !c.hidden) html += item(c);
+  }
+  const hd = sel.dataset.mh || sel.getAttribute("aria-label") || "";
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu sel-menu"; m.__sel = sel;
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${esc(hd)}" style="left:${left}px;width:${W}px;max-height:${Math.round(maxH)}px;${pos}">${hd ? `<div class="ios-menu-h">${esc(hd)}</div>` : ""}${html}</div>`;
+  document.body.appendChild(m); sel.setAttribute("aria-expanded", "true"); sel.dataset.iosm = "1";
+  const box = m.querySelector(".ios-menu-in"), cur = box.querySelector('[aria-checked="true"]');
+  if (cur && cur.offsetTop + cur.offsetHeight > box.clientHeight) box.scrollTop = cur.offsetTop - box.clientHeight / 2 + cur.offsetHeight / 2;
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-i]"); if (!b || b.disabled) return;
+    const o = sel.options[+b.dataset.i]; iosMenuClose(); try { sel.focus({ preventScroll: true }); } catch { /* bỏ qua */ }
+    if (o && !o.selected) { sel.selectedIndex = o.index; sel.dispatchEvent(new Event("input", { bubbles: true })); sel.dispatchEvent(new Event("change", { bubbles: true })); }
+  });
+  const k = (e) => { if (!m.isConnected) { removeEventListener("keydown", k, true); return; }
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); iosMenuClose(); removeEventListener("keydown", k, true); return; }
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const bs = [...box.querySelectorAll("button:not([disabled])")], i = bs.indexOf(document.activeElement); const j = i < 0 ? Math.max(0, bs.indexOf(cur)) : Math.max(0, Math.min(bs.length - 1, i + (e.key === "ArrowDown" ? 1 : -1))); bs[j]?.focus(); } };
+  addEventListener("keydown", k, true);
+  const y0 = r.top, sc = (e) => { if (!m.isConnected) { removeEventListener("scroll", sc, true); return; }      // trang cuộn làm ô chọn trôi xa → đóng menu (cuộn nhẹ / cuộn trong menu thì giữ)
+    if (!box.contains(e.target) && Math.abs(sel.getBoundingClientRect().top - y0) > 24) { iosMenuClose(); removeEventListener("scroll", sc, true); } };
+  setTimeout(() => addEventListener("scroll", sc, { capture: true, passive: true }), 60);
+  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
+}
+(function selHook() {
+  let tx = 0, ty = 0;
+  // chuột / bút: chặn cả pointerdown lẫn mousedown (Chrome mới mở bảng gốc từ pointerdown) – mở menu 1 lần ở pointerdown
+  document.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch" || e.button !== 0 || !selOk(e.target)) return; e.preventDefault(); selMenu(e.target); }, true);
+  document.addEventListener("mousedown", (e) => { if (e.button === 0 && selOk(e.target) && !e.sourceCapabilities?.firesTouchEvents) e.preventDefault(); }, true);
+  document.addEventListener("click", (e) => { if (selOk(e.target) && e.detail > 0) e.preventDefault(); }, true);
+  document.addEventListener("touchstart", (e) => { const t = e.touches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true, capture: true });
+  document.addEventListener("touchend", (e) => { if (!selOk(e.target) || !e.cancelable) return; const t = e.changedTouches[0]; if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) return;
+    e.preventDefault(); selMenu(e.target); }, { passive: false, capture: true });
+})();
 function botMenu(anchor, up) {
   if ($("#iosMenu")) { iosMenuClose(); return; }
   botWarm();      // tải sẵn mọi trang bot trong lúc anh chọn → bấm là hiện ngay

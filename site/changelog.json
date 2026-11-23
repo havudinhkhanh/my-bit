@@ -3,11 +3,26 @@
  "rel": [
   {
    "v": "2026.11.24",
-   "t": "Sửa giao diện",
-   "te": "UI fixes",
-   "s": "Sửa lỗi hiển thị trong khung cắt lỗ · chốt lời.",
-   "se": "Display fix in the stop / target panel.",
+   "t": "Ô chọn đồng bộ giao diện",
+   "te": "Native pickers restyled",
+   "s": "Mọi ô chọn mở menu của app thay cho bảng chọn mặc định của máy.",
+   "se": "Every dropdown now opens the app's own menu instead of the device picker.",
    "it": [
+    {
+     "c": "imp",
+     "a": "ui",
+     "hi": 1,
+     "t": "Mọi ô chọn (lọc, cài đặt, theo lệnh sàn thử…) mở menu cùng kiểu app thay cho bảng chọn mặc định của iPhone / Android / trình duyệt",
+     "te": "Every dropdown opens the app's own menu instead of the iPhone / Android / browser picker",
+     "d": "Mục dài tách dòng phụ nhỏ; lệnh sàn thử hiện rõ coin · chiều · còn bao lâu đóng.",
+     "de": "Long items get a small second line; paper trades show coin · side · time left."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Menu: chữ dài xuống dòng thẳng cột với chữ sau biểu tượng",
+     "te": "Menus: wrapped text lines up after the icon"
+    },
     {
      "c": "fix",
      "a": "live",
