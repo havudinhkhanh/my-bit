@@ -8418,7 +8418,7 @@ function lvwPlace(el, anim = true) {
   if (pinOn && slot) { const r = slot.getBoundingClientRect(), x = Math.round(r.left), y = Math.round(r.top + (r.height - h) / 2), cw = Math.min(360, K.W - 24), cl = Math.max(12 - x, Math.min(K.W - 12 - cw - x, x + w / 2 < K.W / 2 ? 0 : w - cw));
     el.style.setProperty("--lvw-mh", `${Math.max(200, Math.min(560, K.H - (y + h) - 16))}px`); el.style.setProperty("--lvw-cx", `${cl}px`); el.style.setProperty("--lvw-cw", `${cw}px`);
     ["e-l", "e-r", "e-t", "e-b"].forEach((c) => el.classList.toggle(c, c === "e-t")); el.classList.remove("lvw-upw"); el.classList.toggle("lvw-al", x + w / 2 < K.W / 2);
-    el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y]; if (!anim) requestAnimationFrame(() => el.classList.remove("noanim")); return; }
+    el.classList.toggle("noanim", !anim); el.style.transform = `translate(${x}px,${y}px)`; el.__xy = [x, y]; if (!anim) requestAnimationFrame(() => el.classList.remove("noanim")); return; }
   let x, y;
   if (P.e === "l" || P.e === "r") { y = K.T + f * Math.max(0, K.B - K.T - h); x = P.e === "l" ? (dot ? K.L - 8 : K.L) : (dot ? K.R + 8 - w : K.R - w); }
   else { x = K.L + f * Math.max(0, K.R - K.L - w); y = P.e === "t" ? K.T : K.B - h; }
@@ -8439,7 +8439,7 @@ function lvwPlace(el, anim = true) {
   if (!Number.isFinite(x) || !Number.isFinite(y) || x > K.W - 20 || y > K.H - 20 || x + w < 20 || y + h < 20) {      // vị trí hỏng / ngoài màn hình → về chỗ mặc định
     if (!el.__fix) { el.__fix = 1; LVW.pos = null; lsSet("lvwpos", null); return lvwPlace(el, false); } x = Math.max(8, K.W - w - 12); y = Math.max(8, K.H - h - 90);
   }
-  el.__fix = 0; el.classList.toggle("noanim", !anim); el.style.transform = `translate3d(${x}px,${y}px,0)`; el.__xy = [x, y];
+  el.__fix = 0; el.classList.toggle("noanim", !anim); el.style.transform = `translate(${x}px,${y}px)`; el.__xy = [x, y];
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;

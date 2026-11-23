@@ -278,6 +278,14 @@
      "d": "Dòng có lý do dài (vd \"anh đang có vị thế … – bot không đụng vào\") làm cột bên phải phình hết bề ngang → cột tên coin còn 0. Giờ tên coin luôn 1 dòng, cột Binance tối đa khoảng nửa thẻ và chữ dài tự xuống dòng.",
      "de": "Rows with a long reason (e.g. \"you hold a position … – the bot won't touch it\") made the right column take the full width, squeezing the coin column to nothing. Coin names now stay on one line, the Binance column is capped at about half the card and long text wraps.",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Viên & thẻ \"Lệnh bot trực tiếp\" hết nhoè chữ (nhất là khi ghim lên thanh trên)",
+     "te": "The \"Live bot trades\" pill & card no longer look blurry (especially when pinned)",
+     "d": "Trước viên luôn nằm trên 1 lớp đồ hoạ riêng nên chữ mất kiểu khử răng cưa sắc nét của Windows, trông mờ hơn phần còn lại. Giờ chỉ tách lớp lúc đang trượt / kéo; đứng yên chữ nét như mọi chỗ. Tiêu đề thẻ cũng gọn 1 dòng.",
+     "de": "The pill always sat on its own GPU layer, so text lost Windows' crisp subpixel antialiasing and looked softer than the rest. It now only gets its own layer while sliding / dragging; at rest it is as sharp as everything else. The card title also fits on one line."
     }
    ]
   },

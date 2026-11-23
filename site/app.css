@@ -7479,3 +7479,8 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 .rdt tr.flash td::after{animation-duration:2.5s}
 @keyframes flO{from{opacity:1}to{opacity:0}}
 #lp,#scUpnl{display:inline-block}      /* số lăn (numRoll) cần khối nội tuyến để trượt được */
+/* 🔍 viên / thẻ "Lệnh bot trực tiếp" (nhất là khi ghim lên thanh trên cùng) bị nhoè: lớp GPU riêng thường trực (will-change + translate3d) làm chữ mất khử răng cưa
+   theo điểm ảnh màu (ClearType trên Windows) → trông mờ hơn phần còn lại. Giờ chỉ tách lớp lúc đang trượt / kéo, đứng yên là vẽ chung với trang → chữ nét như mọi chỗ khác */
+.lvw:not(.drag){will-change:auto!important}
+/* tiêu đề thẻ lệnh bot 1 dòng ("Lệnh bot · trực tiếp" không bẻ đôi); "cập nhật …" co lại có dấu … khi chật */
+.lvw-top>b{white-space:nowrap;flex:none}.lvw-top>.lvw-ago{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
