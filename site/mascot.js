@@ -59,6 +59,9 @@
     .finally(() => loadSheet("vturn")).finally(() => loadSheet("vrun")).finally(() => loadSheet("vpounce")).finally(() => loadSheet("roll"))      // chạy + vồ tải sớm (đuổi chuột / rình con trỏ dùng ngay) – trước nằm cuối hàng chờ, 10–40 giây đầu na chạy bằng dáng vẽ cũ
     .finally(() => new Promise((r) => setTimeout(r, 6000))).finally(loadG2).finally(() => SHEET.vgpaw || loadSheet("sit"));      // bảng liếm cũ chỉ tải khi bộ video liếm hỏng
   let HZ = 60; const DTS = [];      // tần số màn hình đo được
+  // 🐢 CHẾ ĐỘ NHẸ (máy yếu): mỗi lần mèo đổi hình, trình duyệt phải dựng lại lớp hình cả trang – máy cũ không kịp → mèo khựng, trang ì.
+  //    Bật khi máy ít nhân / ít RAM, hoặc tự đo thấy khung hình hay trễ: động tác tại chỗ ~12 hình/giây, đi / chạy 30 hình/giây đều nhịp.
+  let ECO = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4; const JK = { n: 0, j: 0 };
   function mk(t, p) { let cx = 0, cy = 0, ar = 0; const n = p.length / 2; for (let i = 0; i < n; i++) { cx += p[2 * i]; cy += p[2 * i + 1]; const j = (i + 1) % n; ar += p[2 * i] * p[2 * j + 1] - p[2 * j] * p[2 * i + 1]; } return { t, p, n, cx: cx / n, cy: cy / n, ar: Math.abs(ar / 2) }; }
   // ================================================================ biến hình: ghép đa giác cùng loại gần nhau, dàn đều số điểm, chọn điểm đầu khớp nhất; đa giác lẻ thì thu / nở từ tâm
   // chia lại viền theo ĐỘ DÀI (điểm cách đều ~3 đơn vị): viền từ video có điểm thưa chỗ thẳng, dày chỗ cong, mỗi khung một kiểu → khớp điểm theo thứ tự
@@ -577,7 +580,8 @@
   function loop(t) {
     if (!S.el) { A.on = false; return; }
     // tần số màn hình: đo từ MỌI khung (kể cả khung nghỉ) – trước đo lẫn khoảng nghỉ → ra 30 Hz → không nghỉ khung nào
-    { const d = A.lt ? (t - A.lt) / 1000 : 0; A.lt = t; if (d > 0 && d < 0.05 && DTS.length < 90) { DTS.push(d); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } } }
+    { const d = A.lt ? (t - A.lt) / 1000 : 0; A.lt = t; if (!ECO && d > 0 && d < 0.5 && DTS.length >= 90) { JK.n++; if (d > 2.2 / HZ) JK.j++; if (JK.n >= 240) { if (JK.j / JK.n > 0.15) ECO = true; JK.n = JK.j = 0; } }      // > 15% khung trễ gấp đôi → máy không theo kịp
+    if (d > 0 && d < 0.05 && DTS.length < 90) { DTS.push(d); if (DTS.length === 90) { const m = DTS.slice().sort((x, y) => x - y)[45]; HZ = Math.max(30, Math.min(144, Math.round(1 / m))); } } }
     if (A.skipN > 0 && !A.snap) { A.skipN--; requestAnimationFrame(loop); return; }
     const dt = A.last ? Math.min(0.1, (t - A.last) / 1000) : 0; A.last = t; A.ct += dt;      // nhịp vẽ thưa (15–30/giây) vẫn đúng thời gian thật
     A.gx = null; const c = A.clip, tgt = clipShape(c, A.snap ? 0 : dt); let sh = tgt;      // đang nắn sang clip mới: clip CHỜ ở khung đầu (trước: clip vẫn chạy ngầm → nắn xong nhảy cóc vài khung = giật / nháy ở mọi chỗ nối)
@@ -610,7 +614,7 @@
     const dk = S.cfg.skin + (document.documentElement.dataset.theme || "") + S.s, same = !gh && !ops.length && !A.snap && sh === A.dSh && bl === A.dBl && dk === A.dSk;
     if (A.R && !same) { const t0 = performance.now(); cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); const dd = performance.now() - t0; A.dms = A.dms == null ? dd : A.dms * 0.97 + Math.min(dd, 30) * 0.03; A.slow = A.dms > (A.slow ? 2.5 : 4); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }      // 🐢 máy yếu (vẽ 1 hình > 4 ms) → ngồi yên chỉ vẽ khung chính 24/giây như điện thoại
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || A.sw || c.scr;
-    nx(mv || bl > 0 || t + 70 >= A.blT || (A.slowBl && t + 70 >= A.slowBl) || (c.sheet && SHEET[c.sheet]?.pe) ? 0 : c.loop || c.seq || c.sheet ? 26 : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
+    nx(mv || bl > 0 || t + 70 >= A.blT || (A.slowBl && t + 70 >= A.slowBl) || (c.sheet && SHEET[c.sheet]?.pe) ? (ECO && mv && !A.snap ? 33 : 0) : c.loop || c.seq || c.sheet ? (ECO ? 80 : 26) : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
   }
   function morphMap(m, u, keep) {
     const polys = [], hk = keep ? 1 : 1 - Math.sin(Math.PI * u);
@@ -647,26 +651,39 @@
     let rr = W - 16 - cw - pad; if (fr && fr.bottom > VH - 80 && fr.left >= VW / 2) rr = Math.min(rr, fr.left - 8 - cw - pad * 0.3);      // nút nổi Bảng phụ góc phải dưới → không đứng đè lên nút
     return { b: 0, l, r: rr };
   }
-  function setT(tf) { if (S.el && S.el.__tf !== tf) { S.el.__tf = tf; S.el.style.transform = tf; const b = S.el.__say || (S.el.__say = S.el.querySelector(".mun-say")); if (b && !b.hidden) b._ap?.(); } }      // ghi vị trí chỉ khi đổi: ghi lại cùng giá trị vẫn bắt trình duyệt dựng lại lớp hiển thị mỗi khung (đo: ~40 lần/giây lúc mèo đứng yên)
+  function setT(tf) { const an = S.el && S.mvA; if (an) { S.mvA = null; S.el.__tf = null; } if (S.el && S.el.__tf !== tf) { S.el.__tf = tf; S.el.style.transform = tf; const b = S.el.__say || (S.el.__say = S.el.querySelector(".mun-say")); if (b && !b.hidden) b._ap?.(); }  if (an) an.cancel(); }      // ghi vị trí chỉ khi đổi: ghi lại cùng giá trị vẫn bắt trình duyệt dựng lại lớp hiển thị mỗi khung (đo: ~40 lần/giây lúc mèo đứng yên)
   function place(x) { const tr = track(), st = S.el.style, bt = Math.round(tr.b) + "px", tf = `translate3d(${snap((x = Math.max(tr.l, Math.min(tr.r, x))))}px,0,0)`; S.x = x; S.yo = 0; if (st.bottom !== bt) st.bottom = bt; if (st.transition !== "none") st.transition = "none"; setT(tf); }      // chỉ ghi khi giá trị đổi (đuổi chuột gọi mỗi khung)
-  function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; }
+  function halt() { clearTimeout(S.walkTm); S.mvTk = (S.mvTk || 0) + 1; A.v = 0; if (S.mvA) setT(`translate3d(${snap(S.x)}px,0,0)`); }      // đang đi (hoạt ảnh trình duyệt) → chốt tại chỗ hiện tại
   // ⏸ đứng yên (không vẽ, không di chuyển) khi bị che (biểu đồ bật ra, toàn màn hình…) HOẶC anh đang rê chuột / ngón tay trên biểu đồ:
   //    mỗi khung hình na đổi hình = trình duyệt tính lại kiểu dáng → giành máy với biểu đồ → rê chuột bị giật
   const still = () => S.away || (window.__chartHot && performance.now() - window.__chartHot < 900);
+  // 🚶 ĐI / CHẠY: trước ghi vị trí (style.transform) MỖI khung hình → mỗi lần trình duyệt dựng lại lớp hình cả trang trên luồng chính (máy cũ: mèo khựng, trang ì).
+  //    Giờ: tính trước quãng đường ~0,3 giây (cùng công thức tăng / giảm tốc) rồi giao cho HOẠT ẢNH TRÌNH DUYỆT (Web Animations) chạy ở lớp đồ hoạ;
+  //    mỗi khung chỉ đọc lại vị trí theo kế hoạch (cho dáng chân / chao người), gần hết kế hoạch hoặc đích đổi thì tính tiếp – luồng chính gần như rảnh.
   function moveTo(x, vmax, done, opt = {}) {
-    const tk = (S.mvTk = (S.mvTk || 0) + 1), Ac = vmax * 1.6, G = (S.mv = { x, done, tk }); let v = 0, last = 0;      // G: đích có thể đổi giữa chừng (rình theo chuột) mà không dừng lại bước lại
+    const tk = (S.mvTk = (S.mvTk || 0) + 1), Ac = vmax * 1.6, G = (S.mv = { x, done, tk }); let v = 0, last = 0, P = null;      // G: đích có thể đổi giữa chừng (rình theo chuột) mà không dừng lại bước lại
+    const H = 0.3, DT = 1 / 60, N = Math.round(H / DT);
+    const plan = (t, x1) => {
+      const xs = [S.x], vs = [v]; let sx = S.x, sv = v;
+      for (let i = 1; i <= N; i++) { const d = x1 - sx; if (Math.abs(d) < 0.6) { sx = x1; sv = 0; } else { const want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9); sv += Math.max(-Ac * DT, Math.min(Ac * DT, want - sv)); sx += Math.sign(d) * Math.min(Math.abs(d), sv * DT); } xs.push(sx); vs.push(sv); }
+      const old = S.mvA; S.el.__tf = null;
+      try { S.mvA = S.el.animate(xs.map((q) => ({ transform: `translate3d(${snap(q)}px,0,0)` })), { duration: H * 1000, fill: "forwards" }); } catch (e) { S.mvA = null; }
+      old?.cancel(); P = { t0: t, xs, vs, x1 };
+      const b = S.el.__say; if (b && !b.hidden) b._ap?.();
+    };
     const f = (t) => {
-      if (tk !== S.mvTk || !S.el) return; if (still() || A.snap) { last = t; requestAnimationFrame(f); return; }      // đang nắn sang dáng đi (chân chưa bước) → đứng yên chờ, không trượt
+      if (tk !== S.mvTk || !S.el) return;
+      if (still() || A.snap) { if (S.mvA) setT(`translate3d(${snap(S.x)}px,0,0)`); P = null; last = t; requestAnimationFrame(f); return; }      // đang nắn sang dáng đi (chân chưa bước) → đứng yên chờ, không trượt
       const dt = last ? Math.min(0.05, (t - last) / 1000) : 0; last = t;
+      const v0 = v;
+      if (P) { const k = Math.min(N, Math.max(0, (t - P.t0) / 1000 / DT)), i = Math.floor(k), j = Math.min(N, i + 1), u = k - i; S.x = P.xs[i] + (P.xs[j] - P.xs[i]) * u; v = P.vs[i] + (P.vs[j] - P.vs[i]) * u; A.v = v; }
       { const q = track(); x = Math.max(q.l, Math.min(q.r, G.x)); if (G.d0 == null) G.d0 = Math.sign(x - S.x); if ((x - S.x) * G.d0 < 0) x = S.x; }      // đích kẹp theo sân HIỆN TẠI (nút Bảng phụ hiện ra giữa chừng → dừng trước nút, không bước tiếp / không đi lùi)
-      if (Math.abs(x - S.x) < 0.6) { S.x = x; A.v = 0; setT(`translate3d(${snap(S.x)}px,0,0)`); G.done?.(); return; }      // tới nơi / bị chặn → dừng ngay, không bước tại chỗ chờ hết đà
-      const d = x - S.x, want = Math.min(vmax, Math.sqrt(2 * Ac * Math.abs(d)) * 0.9);
-      const v0 = v; v += Math.max(-Ac * dt, Math.min(Ac * dt, want - v)); S.x += Math.sign(d) * Math.min(Math.abs(d), v * dt); A.v = v;
+      if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; setT(`translate3d(${snap(S.x)}px,0,0)`); G.done?.(); return; }      // tới nơi / bị chặn → dừng ngay, không bước tại chỗ chờ hết đà
+      if (!P || !S.mvA || Math.abs(P.x1 - x) > 0.5 || t - P.t0 > (H - 0.1) * 1000) plan(t, x);      // (!S.mvA: chỗ khác vừa ghi vị trí → hoạt ảnh đã huỷ)      // chưa có kế hoạch / đích đổi / sắp hết kế hoạch → tính tiếp từ đúng chỗ & vận tốc hiện tại
+      const d = x - S.x;
       // ⚖️ quán tính: chạy nước rút / chạy thì tăng tốc chúi người tới, phanh thì ngả người ra sau (lò xo xoay quanh chân – dùng chung bộ lò xo chao người)
       if (dt > 0 && (S.pose === "dash" || S.pose === "run")) { S.swT = performance.now(); S.swTgt = Math.max(-6, Math.min(6, (v - v0) / dt / Ac * 5)) * (Math.sign(d) === S.face ? 1 : -1); }
-      setT(`translate3d(${snap(S.x)}px,0,0)`);
-      if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; return slip(); }
-      if (Math.abs(x - S.x) < 0.6 && v < 6) { S.x = x; A.v = 0; G.done?.(); return; }
+      if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; setT(`translate3d(${snap(S.x)}px,0,0)`); return slip(); }
       requestAnimationFrame(f);
     };
     requestAnimationFrame(f);

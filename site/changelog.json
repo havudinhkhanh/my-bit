@@ -83,6 +83,15 @@
      "te": "Coin page: the S · M · L chart size switch no longer gets stretched",
      "d": "Dòng \"Còn giữ 3 ngày\" dời xuống dưới thanh công cụ – trước nằm chung hàng nên cả thanh cao lên ở màn rộng.",
      "de": "The \"Open positions, 3 days\" line moved below the toolbar – it used to share the row and stretch it on wide screens."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Mèo đi lại nhẹ máy hơn nhiều, trang bớt ì",
+     "te": "The cat walks far more cheaply – pages feel lighter",
+     "d": "Trước mỗi bước đi của mèo bắt trình duyệt dựng lại lớp hình cả trang 60 lần/giây (máy cũ: mèo khựng, trang ì). Giờ quãng đường được tính trước rồi giao cho card đồ hoạ tự chạy. Máy yếu (ít nhân / ít RAM, hoặc đo thấy hay trễ khung) tự sang chế độ nhẹ: động tác tại chỗ ~12 hình/giây.",
+     "de": "Each step used to make the browser rebuild the whole page's layers 60 times a second (old machines: a jerky cat and a sluggish page). The path is now planned ahead and run by the graphics card. Weak machines (few cores / little RAM, or frequent dropped frames) switch to a light mode with ~12 fps idle motions.",
+     "hi": 1
     }
    ]
   },
