@@ -419,6 +419,12 @@
      "a": "ui",
      "t": "Thanh bên thu gọn: mục đang mở không còn lòi 1 dải trắng bên phải biểu tượng",
      "te": "Collapsed sidebar: the active item no longer shows a white strip to the right of its icon"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Thanh bên thu gọn: rê chuột mục sát bên không còn chồng lên ô vàng của mục đang mở",
+     "te": "Collapsed sidebar: hovering the item next to the active one no longer overlaps its highlight"
     }
    ]
   },

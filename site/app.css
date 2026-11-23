@@ -7628,3 +7628,7 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 }
 /* thanh bên THU GỌN (chỉ biểu tượng): ẩn viên kính trượt của mục đang mở – viên vẫn rộng như lúc mở rộng nên lòi ra 1 dải trắng bên phải biểu tượng; ô vuông vàng nhạt quanh biểu tượng đã đủ báo đang ở đâu */
 @media (min-width:1180px){body.rail-auto .tabs:not(.open) .nthumb{opacity:0!important;transition:opacity .12s}}
+/* thanh bên thu gọn: ô nền khi rê chuột / mục đang mở cao ĐÚNG bằng 1 dòng (trước 38px trong khi các dòng cách nhau ~23px → rê chuột mục sát bên thì 2 ô chồng lên nhau) */
+@media (min-width:1180px){
+  body.rail-auto .tabs:not(.open) :is(a,.rail-pin)::after{top:1px!important;bottom:1px!important;height:auto!important;margin-top:0!important;border-radius:8px!important;width:40px!important}
+}
