@@ -7265,3 +7265,31 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
   .sc-hero.hz-up .hz-pause{margin:0 0 12px}
 }
 @media (min-width:980px) and (max-width:1340px){ .topst .hz2-c:nth-of-type(2),.topst .hz2-lv{display:none} }
+
+/* 📈 khung biểu đồ lệnh: biểu đồ cao hơn – khung lớn hơn, ô số thành 1 dải gọn (nhãn + số cùng dòng), nút thao tác & "Phe đông" chung 1 hàng */
+.occ-r2{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px;margin:0 0 8px}
+.occ-r2>.occ-act{margin:0!important;flex:none}
+.occ-r2>.occ-mk{margin:0!important;flex:1 1 320px;min-width:0}
+.occ-r2:empty{display:none}
+@media (min-width:761px){
+  .occ-p:not(.rot90){width:min(1320px,97vw);height:min(1040px,95dvh);padding-top:12px}
+  .occ-h{margin-bottom:4px}
+  .occ-st{display:flex!important;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}.occ-st::-webkit-scrollbar{display:none}
+  .occ-k{flex:none;flex-direction:row;align-items:baseline;gap:6px;padding:4px 10px;border-radius:8px}
+  .occ-k>small{white-space:nowrap}.occ-k>b{white-space:nowrap;font-size:.875rem}
+  .occ-r2>.occ-mk>summary{padding-top:7px;padding-bottom:7px}
+  .occ-act .sc-mx{padding:6px 12px}
+}
+.occ-foot{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.occ-foot>.occ-ohlc{flex:1 1 auto;min-width:0}
+.occ-foot>#occSrc{flex:none;padding-top:6px;font-size:.72rem;white-space:nowrap}
+@media (max-width:640px){.occ-foot>#occSrc{display:none}}
+.occ-p.rot90 .occ-foot>#occSrc{display:none}
+@media (max-width:760px){
+  .occ-st{display:flex!important;flex-wrap:nowrap;gap:4px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}.occ-st::-webkit-scrollbar{display:none}
+  .occ-k{flex:none;flex-direction:row;align-items:baseline;gap:5px;padding:4px 9px;border-radius:8px}
+  .occ-k>small,.occ-k>b{white-space:nowrap}
+  .occ-r2>.occ-mk>summary small{display:none}
+  .occ-r2>.occ-mk>summary{padding-top:6px;padding-bottom:6px}
+  .occ-act .sc-mx{padding:7px 10px}
+}
