@@ -7617,3 +7617,5 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 /* đèn thị trường: dòng phụ phiên giao dịch (Á / Âu / Mỹ) */
 @media (min-width:980px){.ticker .tk-lamp>span{display:inline-flex;flex-direction:column;line-height:1.05}.ticker .tk-lamp>span>small{font-size:.625rem;font-weight:550;color:var(--ink-3)}}
 @media (min-width:980px) and (max-width:1365px){.ticker .tk-lamp>span>small{display:none}}
+/* thanh tab Bot Phản Xạ đang dính: phủ màu nền lên khoảng hở 10px phía trên + 2 mép (bóng đặc, không tốn vẽ thêm) → nội dung cuộn bên dưới không lòi ra */
+@media (min-width:761px){.sc-tbar.stuck{box-shadow:0 -14px 0 6px var(--bg),0 10px 22px -12px rgba(15,23,42,.28),0 0 0 .5px color-mix(in srgb,var(--ink) 8%,transparent)!important}}

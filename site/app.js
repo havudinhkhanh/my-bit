@@ -8600,6 +8600,9 @@ function lvwPlace(el, anim = true) {
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
+// thanh tab dính (Bot Phản Xạ…) khi ĐANG DÍNH → lớp .stuck: nền che kín khoảng hở phía trên & 2 bên (nội dung cuộn qua không lộ ra) – chỉ đổi lớp khi đổi trạng thái
+{ let q = 0; const chk = () => { q = 0; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, st = b.getBoundingClientRect().top <= top + 0.5 && scrollY > 0; if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st); } };
+  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("hashchange", () => setTimeout(chk, 300)); }
 // cuộn khỏi đầu trang → thanh trên có viền tóc + bóng nhẹ (chỉ đổi lớp khi qua ngưỡng, không làm gì mỗi khung cuộn)
 { let on = false, q = 0; addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; const v = scrollY > 6; if (v !== on) { on = v; document.documentElement.classList.toggle("top-sc", v); } }); }, { passive: true }); }
 // 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.
