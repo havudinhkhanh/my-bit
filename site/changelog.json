@@ -261,6 +261,14 @@
      "t": "Bảng quản trị: rê chuột không còn làm cả bảng xám đi",
      "te": "Admin tables: hovering no longer greys out the whole table",
      "aud": "admin"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "iPhone: cuộn lên xuống, thanh ‹ › và hàng tab không còn nháy, rung",
+     "te": "iPhone: scrolling no longer makes the ‹ › bar and the tab row flicker or shake",
+     "d": "Khi cuộn, iPhone co giãn thanh địa chỉ liên tục; trang ghi lại vài thông số lên gốc trang mỗi lần (dù không đổi) và đặt lại viên lệnh bot có hoạt ảnh → cả trang tính lại, thanh dính nháy. Giờ chỉ ghi khi thật sự đổi; cách tách lớp vẽ mới chỉ bật trên Chrome / Edge.",
+     "de": "While scrolling, iPhone keeps resizing the address bar; the page re-wrote a few values on the root each time (even unchanged) and re-placed the bot-trades pill with an animation → whole-page restyles and flickering sticky bars. Now values are written only when they change; the new paint isolation is enabled on Chrome / Edge only."
     }
    ]
   },

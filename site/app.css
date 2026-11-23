@@ -7453,7 +7453,7 @@ html.has-topst .topst{min-width:0}
 .ticker [data-tk]{display:inline-block;font-variant-numeric:tabular-nums;white-space:nowrap}
 /* ⚡ VÙNG NỘI DUNG TÁCH LỚP VẼ: mèo / băng giá / số nhảy làm trình duyệt cập nhật mỗi khung hình – trước đó mỗi khung phải duyệt lại cây vẽ của CẢ trang
    (trang Tra cứu coin 18.000 phần tử: ~5 ms/khung máy nhanh, ~20 ms máy yếu → giật). isolation chỉ tạo ngữ cảnh xếp lớp riêng, không cắt / không đổi vị trí gì. */
-#app{isolation:isolate}
+html.app-iso #app{isolation:isolate}
 /* toàn màn hình biểu đồ (cz-lock) / menu thả xuống đang mở (app-pop): bỏ tách lớp để lớp phủ trong trang nổi lên trên thanh trên, thanh tab, nền tối */
 body.cz-lock #app,body.app-pop #app{isolation:auto}
 /* ⚡ ánh lướt trên khung chờ tải (skeleton): trước chạy bằng background-position → trình duyệt vẽ lại từng khung trên luồng chính (trang Cơ hội: 14 ô biểu đồ nhỏ

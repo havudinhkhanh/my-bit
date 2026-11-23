@@ -2281,13 +2281,15 @@ function pnOpen(v) {
 // chiều cao phần dính trên cùng: --toph = thanh đầu trang; --stick = thanh đầu + thanh menu ngang (màn 980–1199px) → mọi thứ "dính" bên dưới (tab Bot Phản Xạ, khung bên) không bị che
 function stickH() {
   const d = document.documentElement, top = $(".top"), tb = $("#tabs");
-  if (d.classList.contains("pls")) { ["--toph", "--stick0", "--stick"].forEach((k) => d.style.setProperty(k, "0px")); return; }      // xoay ngang: không còn thanh đầu trang (cột trái thay)
+  if (d.classList.contains("pls")) { ["--toph", "--stick0", "--stick"].forEach((k) => { if (d.style.getPropertyValue(k) !== "0px") d.style.setProperty(k, "0px"); }); return; }      // xoay ngang: không còn thanh đầu trang (cột trái thay)
   // ứng dụng (thêm vào màn hình chính): thanh đầu dính ở env(safe-area-inset-top) – phải cộng phần tai thỏ / thanh trạng thái, không thì thanh tab & tiêu đề dính bị thanh MyBit che mất
   const safe = top ? parseFloat(getComputedStyle(top).top) || 0 : 0;
   const h = (top?.offsetHeight || 51) + safe, tbs = tb && getComputedStyle(tb).position === "sticky" ? tb.offsetHeight : 0;
   // thanh điều hướng (‹ › · nhóm › trang) dính ngay dưới thanh đầu → mọi thứ dính khác (tab Bot Phản Xạ, khung bên…) lùi xuống thêm đúng chiều cao của nó
   const cr = document.querySelector("#app > .crumb[data-nd]"), crh = cr && getComputedStyle(cr).position === "sticky" ? cr.offsetHeight : 0;
-  d.style.setProperty("--toph", h + "px"); d.style.setProperty("--stick0", h + tbs + "px"); d.style.setProperty("--stick", h + tbs + crh + "px");
+  // chỉ ghi khi đổi: iPhone cuộn → thanh địa chỉ co giãn → "resize" liên tục; ghi lại biến trên <html> (dù cùng giá trị) bắt tính lại kiểu cả trang → thanh dính nháy
+  const sv = (k, v) => { if (d.style.getPropertyValue(k) !== v) d.style.setProperty(k, v); };
+  sv("--toph", h + "px"); sv("--stick0", h + tbs + "px"); sv("--stick", h + tbs + crh + "px");
 }
 if (!window.__crSc) { window.__crSc = 1; addEventListener("hashchange", () => setTimeout(stickH, 450)); }
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
@@ -6991,7 +6993,7 @@ TH_MQ.addEventListener?.("change", () => { if (thPref() === "system") thApply();
 //      độ vàng chỉnh 0–100 · tuỳ chọn tự bật 19:00 → 6:00 (theo giờ máy) · lưu trên máy, áp dụng ngay cả trước khi trang tải xong (index.html)
 function nlOp(w) { return 0.05 + w / 100 * 0.55; }      // tông vàng giấy (amber nhạt 255·186·112) – thanh lịch hơn cam đậm
 function nlMul(hex, o) { const W = [255, 186, 112]; return /^#[0-9a-f]{6}$/i.test(hex) ? "#" + [1, 3, 5].map((i, j) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - o + o * W[j] / 255)).toString(16).padStart(2, "0")).join("") : hex; }
-const nlTopH = () => { const t = $(".top"); if (t) document.documentElement.style.setProperty("--top-h", Math.round(t.getBoundingClientRect().height) + "px"); };
+const nlTopH = () => { const t = $(".top"), v = t ? Math.round(t.getBoundingClientRect().height) + "px" : ""; if (v && document.documentElement.style.getPropertyValue("--top-h") !== v) document.documentElement.style.setProperty("--top-h", v); };
 addEventListener("resize", () => { clearTimeout(nlTopH._t); nlTopH._t = setTimeout(nlTopH, 120); });
 const nlGet = () => ({ on: false, w: 45, auto: false, ...(lsGet("nl", {}) || {}) });
 const nlActive = (n = nlGet()) => { const h = new Date().getHours(); return !!n.on && (!n.auto || h >= 19 || h < 6); };
@@ -8221,8 +8223,11 @@ function initAccountUI() {
   const vv = window.visualViewport, root = document.documentElement;
   const isTxt = (el) => !!el && (el.tagName === "TEXTAREA" || el.isContentEditable || (el.tagName === "INPUT" && !/^(checkbox|radio|range|button|submit|reset|color|file|image)$/i.test(el.type || "")));
   let tm = 0;
+  // ghi biến lên <html> CHỈ khi giá trị đổi: iPhone cuộn → sự kiện cuộn / co giãn của khung nhìn bắn liên tục (vd --vvt luôn = 0); ghi lại mỗi lần = tính lại kiểu cả trang
+  //   mỗi khung cuộn → thanh dính (‹ › và hàng tab) nháy, rung
+  const rsv = (k, v) => { if (root.style.getPropertyValue(k) !== v) root.style.setProperty(k, v); };
   const fit = () => {
-    if (vv) { root.style.setProperty("--vvh", Math.round(vv.height) + "px"); root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px"); }      // --vvt: iOS đẩy vùng thấy lên khi mở bàn phím → bảng cố định bám theo
+    if (vv) { rsv("--vvh", Math.round(vv.height) + "px"); rsv("--vvt", Math.round(vv.offsetTop) + "px"); }      // --vvt: iOS đẩy vùng thấy lên khi mở bàn phím → bảng cố định bám theo
     const a = document.activeElement;
     if (isTxt(a) && !a.closest(".cmdk,.pal,.top")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* bỏ qua */ } }, 80); }
   };
@@ -8259,7 +8264,7 @@ function initAccountUI() {
   addEventListener("pageshow", () => setTimeout(reanchor, 250)); addEventListener("orientationchange", () => setTimeout(reanchor, 450));
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") setTimeout(reanchor, 250); });
   let vt = 0; const vvLater = () => { clearTimeout(vt); vt = setTimeout(vvd, 90); };
-  vv?.addEventListener("resize", () => { fit(); vvLater(); }); vv?.addEventListener("scroll", () => { root.style.setProperty("--vvt", Math.round(vv.offsetTop) + "px"); vvLater(); }); fit(); vvd();
+  vv?.addEventListener("resize", () => { fit(); vvLater(); }); vv?.addEventListener("scroll", () => { rsv("--vvt", Math.round(vv.offsetTop) + "px"); vvLater(); }); fit(); vvd();
 })();
 
 // ================================================================ MENU BẬT RA KHÔNG TRÀN MÀN HÌNH: mọi <details> mở ra một khung nổi (⋯, bộ lọc, chọn…) → đẩy khung vào trong màn hình
@@ -8440,6 +8445,9 @@ function lvwPlace(el, anim = true) {
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
 // 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.
 //    Đang mở menu / danh sách thả xuống trong trang → tạm bỏ tách lớp (body.app-pop), đóng lại thì tách lại
+// tách lớp chỉ bật trên trình duyệt nhân Chromium (Chrome / Edge máy tính & Android) – nơi đã đo được lợi; Safari / mọi trình duyệt trên iPhone (WebKit)
+//   giữ nguyên như cũ (thanh dính – nút lùi/tiến, hàng tab – bị nháy rung khi cuộn nếu tách lớp)
+if (/Chrome\/|Chromium\/|Edg\//.test(navigator.userAgent) && !/iPhone|iPad|iPod|CriOS|EdgiOS/.test(navigator.userAgent) && !(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) document.documentElement.classList.add("app-iso");
 function appPop() { const on = !!document.querySelector("#app details[open] .sc-menu, #app details[open] .memenu, #app .cl-dd:not([hidden])"); if (document.body.classList.contains("app-pop") !== on) document.body.classList.toggle("app-pop", on); }
 document.addEventListener("toggle", (e) => { if (e.target?.closest?.("#app")) appPop(); }, true);
 addEventListener("hashchange", () => setTimeout(appPop, 0));
@@ -8469,7 +8477,7 @@ function tctBind() {
 (() => { const a = document.getElementById("app"); if (!a) return; let q = 0; const DT = matchMedia("(min-width:980px)");
   // chỉ dựng lại khi tiêu đề trang thật sự đổi (sang trang khác / trang vẽ lại) – máy tính & trang không có tiêu đề: chỉ 1 lần tìm, không dựng gì
   new MutationObserver(() => { if (q || DT.matches) return; q = requestAnimationFrame(() => { q = 0; const h = document.querySelector("#app .ph h1"); if (h !== TCT.h) tctBind(); }); }).observe(a, { childList: true, subtree: true });
-  addEventListener("resize", () => { clearTimeout(TCT.rt); TCT.rt = setTimeout(tctBind, 200); });
+  let w0 = innerWidth; addEventListener("resize", () => { if (innerWidth === w0) return; w0 = innerWidth; clearTimeout(TCT.rt); TCT.rt = setTimeout(tctBind, 200); });      // iPhone: thanh địa chỉ co giãn khi cuộn chỉ đổi chiều cao → bỏ qua
   setInterval(() => { if (TCT.on && !document.hidden) tctSet(true); }, 1000);      // trạng thái mini theo kịp số liệu (chỉ khi đang hiện – rẻ)
   document.getElementById("topCt")?.addEventListener("click", () => scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })); })();
 
@@ -8477,7 +8485,7 @@ function tctBind() {
 //    cho tới khi vừa – ô tìm & chuông không bao giờ bị đẩy ra ngoài màn hình (trước: màn 1.366px tràn ngang ~95px)
 function topFit() {
   const T = document.querySelector(".top-in"); if (!T) return; const R = document.documentElement;
-  for (let k = 1; k <= 6; k++) R.classList.remove("tf" + k);
+  for (let k = 1; k <= 6; k++) if (R.classList.contains("tf" + k)) R.classList.remove("tf" + k);      // chỉ gỡ khi có: iPhone cuộn = thanh địa chỉ co giãn = "resize" liên tục → ghi lại lớp của <html> mỗi lần là tính lại kiểu cả trang
   if (!matchMedia("(min-width:980px)").matches) return;
   for (let k = 1; k <= 6 && T.scrollWidth > T.clientWidth + 1; k++) R.classList.add("tf" + k);
 }
@@ -8555,7 +8563,7 @@ function lvsDraw() {
       lvwMode(LVW.rest); if (e.target === bd) { e.preventDefault(); e.stopPropagation(); } }, true);
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && LVW.mode === "full" && !document.getElementById("iosSheet")) lvwMode(LVW.rest); });
-    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const e0 = LVW.eff; lvsDraw(); if (LVW.eff === e0) rp(); }); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
+    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const d = RAILQ0(); if (d !== LVW.rd) { LVW.rd = d; lvsDraw(); } else rp(); });      // chỉ vẽ lại khi đổi điện thoại ↔ máy tính (iPhone cuộn → "resize" liên tục: chỉ đặt lại chỗ, không hoạt ảnh) addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); if (LVW.pin && !el.classList.contains("drag")) { const r = document.getElementById("topLv")?.getBoundingClientRect(); if (r && el.__xy && Math.abs(r.left - el.__xy[0]) > 1) lvwPlace(el, false); } }, 1000);      // ghim: thanh trên đổi bố cục (dải trạng thái bot hiện / ẩn) → viên theo ô
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
