@@ -7363,3 +7363,4 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
   html.has-toplv .topst .hz2-c{display:none!important}      /* thanh trên chật (có viên ghim): dải trạng thái chỉ còn đèn + trạng thái + công tắc · ⓘ · ⋯ */
   html.has-toplv .topst .hz2-l{overflow:visible}
 }
+@media (min-width:1180px){ .top a.brand{display:none!important} }      /* bỏ logo trên thanh trên cùng – các mục tràn sang trái, thêm chỗ cho trạng thái bot & băng giá */

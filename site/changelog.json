@@ -131,8 +131,8 @@
      "a": "ui",
      "t": "Thanh trên cùng trải hết bề ngang, cột trái bắt đầu ngay dưới",
      "te": "The top bar spans the full width; the left rail starts right below it",
-     "d": "Logo MyBit nằm trên thanh, thẳng cột trái – thanh trên rộng thêm cho trạng thái bot, viên ghim và băng giá.",
-     "de": "The MyBit logo sits on the bar above the rail, giving the bar more room for bot status, the pinned pill and the ticker."
+     "d": "Bỏ logo trên thanh – các mục tràn hết sang trái, thanh trên rộng thêm cho trạng thái bot, viên ghim và băng giá.",
+     "de": "The logo is gone from the bar – items extend all the way left, giving more room for bot status, the pinned pill and the ticker."
     }
    ]
   },
