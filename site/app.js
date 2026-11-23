@@ -4889,20 +4889,20 @@ async function liveData1() {
   return LIVE;
 }
 // dải giá đầu trang: websocket Binance (giá từng giây)
-function tickerWs() {
-  const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"].filter((k) => BYK?.[k]?.sp);
+function tickerWs(ks0) {
+  const ks = (ks0 || TK.keys || ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"]).filter((k) => BYK?.[k]?.sp);
+  try { TK.ws && (TK.ws.__x = 1, TK.ws.close()); } catch (e) { /* bỏ qua */ } TK.ws = null;
   if (!ks.length) return;
   try {
-    const ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
+    const ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/")); TK.ws = ws;
     const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
-    // ⚡ giá về lẻ tẻ (7 mã × 1 tin/giây, lệch nhau) → GOM lại vẽ 1 lần/giây trong 1 khung hình; chỉ đổi chữ trong nút chữ sẵn có (không thay phần tử),
-    //    ô giữ bề rộng cố định → băng đang chạy không phải đo lại / dựng lại lớp hình. Trước: 14 lần thay HTML/giây trong băng đang chạy → trình duyệt duyệt lại
-    //    cả cây vẽ của trang mỗi lần (trang Tra cứu coin: ~50% CPU máy yếu chỉ vì băng giá)
+    // ⚡ giá về lẻ tẻ (mỗi mã 1 tin/giây, lệch nhau) → GOM lại vẽ 1 lần/giây trong 1 khung hình; chỉ đổi chữ trong nút chữ sẵn có (không thay phần tử),
+    //    ô giữ bề rộng cố định → băng đang chạy không phải đo lại / dựng lại lớp hình
     const dirty = new Set(); let ft = 0;
     const flush = () => { ft = 0; for (const k of dirty) { const r = BYK[k]; tkSet(k, r.p, r.r1); livePx(k, r.p); } dirty.clear(); };
     ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1, p = +d.c / m, o = +d.o / m; r.p = p; r.r1 = (p / o - 1) * 100;
       dirty.add(k); if (!ft) ft = setTimeout(() => requestAnimationFrame(flush), document.hidden ? 5000 : 1000 - (Date.now() % 1000)); };      // nhịp đều đầu mỗi giây
-    ws.onclose = () => setTimeout(tickerWs, 15000);
+    ws.onclose = () => { if (!ws.__x && TK.ws === ws) setTimeout(() => tickerWs(), 15000); };
   } catch (e) { /* không có websocket */ }
 }
 
@@ -6612,7 +6612,7 @@ const WL = {
   set: new Set(), loaded: false,
   async load() { if (this.loaded) return; const r = await Store.get("watchlist"); this.set = new Set((r.data?.symbols) || []); this.loaded = true; },
   has(k) { return this.set.has(k); },
-  async toggle(k) { await this.load(); if (this.set.has(k)) this.set.delete(k); else this.set.add(k); await Store.put("watchlist", { symbols: [...this.set] }); toast(this.set.has(k) ? `Đã theo dõi ${k}` : `Bỏ theo dõi ${k}`); },
+  async toggle(k) { await this.load(); if (this.set.has(k)) this.set.delete(k); else { this.set.add(k); hbHit("c", k, 3); } await Store.put("watchlist", { symbols: [...this.set] }); setTimeout(tkRefresh, 300); toast(this.set.has(k) ? `Đã theo dõi ${k}` : `Bỏ theo dõi ${k}`); },
 };
 
 // ================================================================ DANH MỤC (spot + futures)
@@ -7169,7 +7169,13 @@ function cmdkItems(q) {
     { g: "Thao tác", label: "Mở / đóng bảng phụ", sub: "điểm chính, mục lục, coin theo dõi, tính lệnh", go: () => $("#pnFab")?.click(), right: ksKey("p") },
     { g: "Thao tác", label: bi("Xem bảng phím tắt", "Show keyboard shortcuts"), sub: bi("mọi phím tắt của MyBit", "every MyBit shortcut"), go: () => setTimeout(ksSheet, 30), right: ksKey("?") },
     { g: "Thao tác", label: bi("Tải lại dữ liệu trang này", "Reload this page's data"), go: ksReload, right: ksKey("r") }];
-  if (!t) return [...pages, ...acts];
+  if (!t) {      // ✨ chưa gõ gì: mục DÀNH CHO ANH (coin hay xem / đang có lệnh, trang hay vào) lên đầu
+    const fy = [], G = bi("✨ Dành cho anh", "✨ For you");
+    const ks = [...new Set([...(Object.keys(TK.why || {}).filter((k) => TK.why[k] === "own")), ...hbTop("c", 5)])].slice(0, 5);
+    ks.forEach((k) => { const r = BYK?.[k]; if (r) fy.push({ g: G, kind: "coin", html: `<b>${esc(k)}</b>`, label: k, sub: TK.why[k] === "own" ? bi("đang có lệnh bot", "bot has a trade") : bi("anh hay xem", "you view it often"), right: `${px(r.p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`, go: () => { location.hash = `#/c/${k}`; } }); });
+    try { autoTop(3).forEach((o) => fy.push({ g: G, label: o.t, sub: bi("trang anh hay vào", "a page you visit often"), icon: o.nsvg || o.svg || "", go: () => { location.hash = o.href; } })); } catch (e) { /* bỏ qua */ }
+    return [...fy, ...pages, ...acts];
+  }
   const coinsHit = (COINS?.rows || []).filter((r) => r.k.startsWith(T) || fold(r.n).includes(t))
     .sort((a, b) => (b.k === T) - (a.k === T) || (b.k.startsWith(T) - a.k.startsWith(T)) || (b.mc || 0) - (a.mc || 0)).slice(0, 6)
     .map((r) => ({ g: "Coin", html: `<b>${esc(r.k)}</b>`, label: r.k, sub: r.n || "", right: `${px(r.p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`, go: () => { location.hash = `#/c/${r.k}`; } }));
@@ -7200,7 +7206,7 @@ function cmdk(open = true) {
     const q = $("#cmdkQ"), L = $("#cmdkL"); let items = [], sel = 0;
     const draw = () => {
       items = cmdkItems(q.value); sel = Math.min(sel, Math.max(0, items.length - 1)); let g = "";
-      const btnOf = (x, i) => `<button type="button" class="cmdk-i${i === sel ? " on" : ""}" data-i="${i}" role="option"><span class="cmdk-ic">${x.icon || (x.g === "Thao tác" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m13 3-8 11h6l-1 7 8-11h-6l1-7z"/></svg>' : x.g === "Coin" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 8.5h3.5a2 2 0 0 1 0 4H9.5h4a2 2 0 0 1 0 4H9.5zM11 7v1.5M11 16.5V18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>')}</span><span class="cmdk-t">${x.html || esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span>${x.right ? `<em>${x.right}</em>` : ""}</button>`;
+      const btnOf = (x, i) => `<button type="button" class="cmdk-i${i === sel ? " on" : ""}" data-i="${i}" role="option"><span class="cmdk-ic">${x.icon || (x.g === "Thao tác" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m13 3-8 11h6l-1 7 8-11h-6l1-7z"/></svg>' : (x.g === "Coin" || x.kind === "coin") ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.5 8.5h3.5a2 2 0 0 1 0 4H9.5h4a2 2 0 0 1 0 4H9.5zM11 7v1.5M11 16.5V18"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>')}</span><span class="cmdk-t">${x.html || esc(x.label)}${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span>${x.right ? `<em>${x.right}</em>` : ""}</button>`;
       // điện thoại: danh sách xếp từ DƯỚI lên (cột đảo) – kết quả khớp nhất nằm sát ô tìm ở đáy, tiêu đề nhóm vẫn ở trên nhóm của nó
       const MOBR = matchMedia("(pointer:coarse),(max-width:600px)").matches && !el.classList.contains("side"); L.classList.toggle("rev", MOBR);      // dạng ngăn kéo: ô tìm ở trên → danh sách xếp xuôi
       L.innerHTML = items.length ? (MOBR ? items.map((x, i) => btnOf(x, i) + (items[i + 1]?.g !== x.g ? `<p class="cmdk-g">${esc(x.g)}</p>` : "")).join("") : items.map((x, i) => `${x.g !== g ? `<p class="cmdk-g">${esc((g = x.g))}</p>` : ""}${btnOf(x, i)}`).join(""))
@@ -7235,7 +7241,8 @@ function cmdk(open = true) {
 // 📜 thanh giá trên cùng: không đủ chỗ hiện hết các mã → chạy chữ liên tục (2 bản sao nối đuôi, trượt bằng transform – card đồ hoạ tự chạy, luồng chính rảnh);
 //    rê chuột vào thì dừng để đọc / bấm; đủ chỗ thì đứng yên như cũ; người dùng chọn giảm chuyển động thì đứng yên
 // 1 ô băng giá: <b>MÃ</b><span>giá</span> <i>%</i> – đổi chữ tại chỗ, đổi lớp màu chỉ khi đổi dấu; bề rộng ô chỉ nới ra (không co) → không nhảy chữ, không đo lại
-function tkCell(k) { const r = BYK[k]; return `<span data-tk="${k}"><b>${k}</b><span class="tk-p">${px(r.p)}</span><i class="${cls(r.r1)}">${pct(r.r1, 1)}</i></span>`; }
+function tkCell(k) { const r = BYK[k], w = TK.why[k], tt = { own: bi("đang có lệnh bot", "bot has a trade"), watch: bi("anh đang theo dõi", "on your watchlist"), seen: bi("anh hay xem gần đây", "you viewed it often lately") }[w];
+  return `<span data-tk="${k}"${w ? ` data-w="${w}" title="${esc(k + " · " + tt)}"` : ""}><b>${k}</b><span class="tk-p">${px(r.p)}</span><i class="${cls(r.r1)}">${pct(r.r1, 1)}</i></span>`; }
 // giá đổi → ô nháy xanh / đỏ rất nhẹ (lớp phủ mờ dần bằng opacity – GPU, ≤ 1 lần/giây/mã)
 function tkSet(k, p, r1) {
   const t = px(p);
@@ -7259,13 +7266,42 @@ function tkMarq() {
   if (need) { const c = G.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.querySelectorAll("a").forEach((a) => a.tabIndex = -1); R.appendChild(c); R.style.setProperty("--tkd", Math.max(18, Math.round(G.offsetWidth / 38)) + "s"); }
   if (!T.__ro && "ResizeObserver" in window) { let w = T.clientWidth; T.__ro = new ResizeObserver(() => { if (Math.abs(T.clientWidth - w) > 8) { w = T.clientWidth; tkMarq(); } }); T.__ro.observe(T); }
 }
+// ================================================================ 🧠 HỌC THÓI QUEN (chỉ trên máy của anh, không gửi đi đâu)
+// mỗi lần xem 1 coin / theo dõi / có lệnh → điểm của coin đó tăng; điểm tự giảm một nửa sau 7 ngày không đụng tới → "hay xem gần đây", không phải "xem 1 lần năm ngoái"
+const HB = { d: (() => { const v = lsGet("hb", null); return v && typeof v === "object" ? v : { c: {} }; })(), t: 0 };
+const HB_HL = 7 * 864e5;
+function hbHit(kind, key, w = 1) {
+  if (!key) return; const now = Date.now(), M = (HB.d[kind] ||= {}), o = M[key] || { s: 0, t: now };
+  o.s = o.s * Math.pow(0.5, (now - o.t) / HB_HL) + w; o.t = now; M[key] = o;
+  const K = Object.keys(M); if (K.length > 120) K.map((k) => [k, M[k].s * Math.pow(0.5, (now - M[k].t) / HB_HL)]).sort((a, b) => a[1] - b[1]).slice(0, K.length - 100).forEach(([k]) => delete M[k]);
+  clearTimeout(HB.t); HB.t = setTimeout(() => lsSet("hb", HB.d), 800);
+}
+function hbTop(kind, n = 5) { const now = Date.now(), M = HB.d[kind] || {}; return Object.entries(M).map(([k, o]) => [k, o.s * Math.pow(0.5, (now - o.t) / HB_HL)]).filter((x) => x[1] >= 0.6).sort((a, b) => b[1] - a[1]).slice(0, n).map((x) => x[0]); }
+addEventListener("hashchange", () => { const m = location.hash.match(/^#\/c\/([^/?]+)/); if (m) hbHit("c", decodeURIComponent(m[1]).toUpperCase()); });
+// 🎯 BĂNG GIÁ CỦA RIÊNG ANH: BTC · coin đang có lệnh bot · coin đang theo dõi · coin hay xem · rồi mới tới các coin lớn mặc định (tối đa 9)
+const TK = { keys: null, ws: null, why: {} };
+function tkKeys() {
+  const out = [], why = {}, add = (k, w) => { k = String(k || "").toUpperCase(); if (!k || out.includes(k) || !BYK?.[k]?.sp || out.length >= 9) return; out.push(k); if (w) why[k] = w; };
+  add("BTC");
+  try { if (LVS?.d) { const I = lvwItems(LVS.d); [...I.live, ...I.paper].forEach((x) => add(x.sym, "own")); } } catch (e) { /* bỏ qua */ }
+  try { [...(WL?.set || [])].forEach((k) => add(k, "watch")); } catch (e) { /* bỏ qua */ }
+  hbTop("c", 4).forEach((k) => add(k, "seen"));
+  ["ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"].forEach((k) => add(k));
+  TK.why = why; return out;
+}
+function tkRefresh() {      // thói quen / lệnh đổi → băng đổi theo (≤ 1 lần/phút, chỉ khi danh sách thật sự khác)
+  if (!BYK || !$("#ticker .tk-g")) return; const ks = tkKeys(); if (TK.keys && ks.join() === TK.keys.join()) return;
+  TK.keys = ks; const T = $("#ticker"), R = T.querySelector(".tk-run"); if (!R) return;
+  R.innerHTML = `<span class="tk-g">${ks.map((k) => `<a href="#/c/${k}">${tkCell(k)}</a>`).join("")}</span>`; tkLock(); tkMarq(); tickerWs(ks);
+}
+setInterval(() => { if (!document.hidden) tkRefresh(); }, 60e3);
 async function drawTicker() {
   const C = await tryLoad("data/coins.json"); if (!C) return;
   COINS = COINS || C; BYK = BYK || Object.fromEntries(C.rows.map((r) => [r.k, r]));
-  const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"];
+  const ks = (TK.keys = tkKeys());
   const H = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}">${tkCell(k)}</a>`).join("");
   $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkLamp(C); tkLock(); tkMarq();
-  tickerWs();
+  tickerWs(ks);
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;
   $("#upd").title = "Dữ liệu cập nhật lúc " + new Date(C.at).toLocaleString(LOC);
@@ -8598,6 +8634,7 @@ function lvsDraw() {
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
   if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ
+  if (LVW.sig && sig !== LVW.sig) setTimeout(tkRefresh, 500);      // có lệnh mới / vừa đóng → coin đó lên / xuống băng giá
   LVW.sig = sig;
   const P = lvwParts(D), set = (sel, k, html) => { if (LVW.h[k] === html) return; LVW.h[k] = html; const n = el.querySelector(sel); if (!n) return; if (k === "body") { const y = n.scrollTop; n.innerHTML = html; n.scrollTop = y; } else n.innerHTML = html; };
   // 📱 điện thoại / máy tính bảng: không có lệnh mở hay chờ → viên tự thu thành chấm dính mép (không che nội dung); có lệnh → hiện lại viên đầy đủ
@@ -8685,7 +8722,7 @@ async function lvwPx() {
 }
 async function lvsPull() {
   if (document.hidden || LVS.busy || !ME || ME.legacy) return; LVS.busy = true;
-  try { const r = await fetch("api/scalpbrief", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { LVS.d = await r.json(); LVS.t = Date.now(); lvsDraw(); if (document.getElementById("lvsPop")) { /* giữ bảng đang mở */ } } } catch (e) { /* mất mạng: thử lại lần sau */ }
+  try { const r = await fetch("api/scalpbrief", { cache: "no-store" }); if (r.ok && (r.headers.get("content-type") || "").includes("json")) { LVS.d = await r.json(); LVS.t = Date.now(); lvsDraw(); if (!TK.lv) { TK.lv = 1; setTimeout(tkRefresh, 300); } if (document.getElementById("lvsPop")) { /* giữ bảng đang mở */ } } } catch (e) { /* mất mạng: thử lại lần sau */ }
   LVS.busy = false;
 }
 setTimeout(lvsPull, 1500); setInterval(() => { if (!LVW.open) lvsPull(); }, 30000); setInterval(() => { if (LVW.open) lvsPull(); }, 10000);      // mở rộng: 10 giây / lần

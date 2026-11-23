@@ -345,6 +345,23 @@
      "d": "Thiết lập › Binance: bật thì chỉnh mức % (hiện luôn số $ tương ứng); tắt thì bot không tự ngừng dù lỗ bao nhiêu trong ngày (các giới hạn an toàn chung vẫn giữ). Tắt khi đang bị ngừng → bot mở lệnh lại ngay. Cần cập nhật máy chủ riêng.",
      "de": "Settings › Binance: when on, set the % (the $ amount is shown); when off, the bot never stops for a daily loss (account-wide safety limits still apply). Turning it off while halted resumes at once. Requires a server update.",
      "go": "#/bot/scalp"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "hi": 1,
+     "t": "Băng giá của riêng anh: tự thêm coin đang có lệnh, đang theo dõi, hay xem",
+     "te": "Your own ticker: adds coins you trade, watch or view often",
+     "d": "Băng giá trên cùng không còn cố định 7 mã: BTC, rồi coin bot đang có lệnh, coin anh theo dõi, coin anh hay xem gần đây, sau mới tới các coin lớn. Chấm nhỏ trước mã cho biết lý do (rê chuột để xem). Thói quen chỉ lưu trên máy của anh, giảm dần nếu lâu không xem.",
+     "de": "The top tape is no longer a fixed 7 symbols: BTC, then coins the bot is trading, your watchlist, coins you viewed lately, then majors. A small dot before the symbol tells why (hover to see). Habits stay on your device and fade if unused."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Tìm nhanh (Ctrl K) có mục \"✨ Dành cho anh\"",
+     "te": "Quick search (Ctrl K) gets a \"✨ For you\" section",
+     "d": "Mở mà chưa gõ gì: coin đang có lệnh, coin hay xem (kèm giá) và trang anh hay vào nằm sẵn trên cùng.",
+     "de": "Open it without typing: coins with open trades, coins you view often (with price) and your frequent pages are right on top."
     }
    ]
   },

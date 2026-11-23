@@ -7580,3 +7580,8 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 }
 /* thanh tab Bot Phản Xạ khi dính (máy tính): cách thanh trên 10px – trước dính sát 6px, bóng 2 thanh chồng nhau trông như tràn vào nhau */
 @media (min-width:761px){.sc-tbar{top:calc(var(--stick,57px) + 10px)!important}}
+/* 🎯 băng giá cá nhân: chấm nhỏ trước mã cho biết vì sao mã đó có mặt (đang có lệnh · đang theo dõi · hay xem) – rê chuột xem chú thích */
+.ticker [data-tk][data-w] b::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;margin:0 5px 2px 0;vertical-align:middle;background:var(--ink-3)}
+.ticker [data-tk][data-w="own"] b::before{background:var(--brass,var(--brand));box-shadow:0 0 0 2px color-mix(in srgb,var(--brass,var(--brand)) 25%,transparent)}
+.ticker [data-tk][data-w="watch"] b::before{background:#f2b705}
+.ticker [data-tk][data-w="seen"] b::before{background:color-mix(in srgb,var(--ink-3) 70%,transparent)}
