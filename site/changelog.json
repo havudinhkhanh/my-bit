@@ -286,6 +286,14 @@
      "te": "The \"Live bot trades\" pill & card no longer look blurry (especially when pinned)",
      "d": "Trước viên luôn nằm trên 1 lớp đồ hoạ riêng nên chữ mất kiểu khử răng cưa sắc nét của Windows, trông mờ hơn phần còn lại. Giờ chỉ tách lớp lúc đang trượt / kéo; đứng yên chữ nét như mọi chỗ. Tiêu đề thẻ cũng gọn 1 dòng.",
      "de": "The pill always sat on its own GPU layer, so text lost Windows' crisp subpixel antialiasing and looked softer than the rest. It now only gets its own layer while sliding / dragging; at rest it is as sharp as everything else. The card title also fits on one line."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Viên lệnh bot khi ghim: hoà vào thanh trên cùng, không còn viền / bóng nổi",
+     "te": "Pinned bot-trades pill blends into the top bar – no more border / floating shadow",
+     "d": "Cùng kiểu với dải trạng thái bot và ô tìm: nền chìm, bo tròn, cao bằng các ô khác trên thanh; bỏ nút thu thành chấm khi đang ghim. Ô chừa sẵn trên thanh co giãn đúng theo bề rộng viên – hết khoảng trống thừa trước băng giá.",
+     "de": "Same style as the bot status strip and search box: recessed fill, rounded, same height as the other top-bar items; the shrink-to-dot button is hidden while pinned. The reserved slot now tracks the pill width – no stray gap before the ticker."
     }
    ]
   },

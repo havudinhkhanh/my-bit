@@ -8564,6 +8564,8 @@ function lvsDraw() {
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && LVW.mode === "full" && !document.getElementById("iosSheet")) lvwMode(LVW.rest); });
     const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const d = RAILQ0(); if (d !== LVW.rd) { LVW.rd = d; lvsDraw(); } else rp(); });      // chỉ vẽ lại khi đổi điện thoại ↔ máy tính (iPhone cuộn → "resize" liên tục: chỉ đặt lại chỗ, không hoạt ảnh) addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
+    // ghim: viên đổi bề rộng (chữ chạy dài / ngắn, đổi giao diện) → ô chừa sẵn trên thanh trên cùng co giãn theo ngay (trước: ô giữ bề rộng cũ → khoảng trống thừa trước băng giá)
+    if (window.ResizeObserver) { let pw0 = 0; new ResizeObserver(() => { const pw = el.querySelector(".lvw-pill")?.offsetWidth || 0; if (pw === pw0) return; pw0 = pw; if (LVW.pin && !el.classList.contains("drag")) lvwPlace(el, false); }).observe(el.querySelector(".lvw-pill")); }
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); if (LVW.pin && !el.classList.contains("drag")) { const r = document.getElementById("topLv")?.getBoundingClientRect(); if (r && el.__xy && Math.abs(r.left - el.__xy[0]) > 1) lvwPlace(el, false); } }, 1000);      // ghim: thanh trên đổi bố cục (dải trạng thái bot hiện / ẩn) → viên theo ô
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");

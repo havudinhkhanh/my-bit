@@ -7484,3 +7484,12 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 .lvw:not(.drag){will-change:auto!important}
 /* tiêu đề thẻ lệnh bot 1 dòng ("Lệnh bot · trực tiếp" không bẻ đôi); "cập nhật …" co lại có dấu … khi chật */
 .lvw-top>b{white-space:nowrap;flex:none}.lvw-top>.lvw-ago{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 📌 viên ghim HOÀ VÀO thanh trên cùng: cùng kiểu với dải trạng thái bot / ô tìm (nền chìm, bo tròn, không viền, không bóng nổi) – không còn là "viên nổi" */
+@media (min-width:980px){
+  .toplv{height:32px}
+  .lvw.lvw-pin:not(.drag) .lvw-pill{height:32px;padding:0 12px 0 10px;border:0!important;background:var(--sunk)!important;box-shadow:none!important;color:var(--ink-2);
+    transition:background-color .16s ease}
+  .lvw.lvw-pin:not(.drag) .lvw-pill:hover,.lvw.lvw-pin.m-full .lvw-pill{background:var(--fill-h,color-mix(in srgb,var(--ink) 9%,var(--sunk)))!important}
+  .lvw.lvw-pin .lvw-min{display:none}      /* ghim = luôn dạng viên gọn, không thu thành chấm */
+  .lvw.lvw-pin.lvw-hot .lvw-pill{box-shadow:none!important}
+}
