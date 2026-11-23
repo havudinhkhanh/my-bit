@@ -2675,6 +2675,47 @@ const STG_TAG = { "Xu hướng": "Xu hướng", "Độ rộng thị trường": 
 const stGroup = (title, items) => { const L = items.filter(Boolean), g = L.filter((x) => x[3] > 0).length, r = L.filter((x) => x[3] < 0).length;
   return `<div class="stg"><h3><span>${title}</span><small>${g ? `<i class="sg-g">● ${g} tốt</i>` : ""}${r ? `<i class="sg-b">● ${r} xấu</i>` : ""}</small></h3><dl class="stats">${L.map((x) => stc(x)).join("")}</dl></div>`; };
 const sgn = (x, good = 1, th = 0) => (!isNum(x) ? 0 : x > th ? good : x < -th ? -good : 0);
+// ================================================================ 📰 BẢN TIN CỦA ANH (gói Pro) – tự viết từ số liệu: thị trường · điều đáng chú ý · của riêng anh (bot, lệnh, coin anh quan tâm)
+//    CHỈ NÊU DỮ KIỆN (không khuyên mua / bán). Mỗi ngày 1 bản; ẩn được tới hôm sau. Câu mở đầu hiện dần từng cụm (opacity – GPU).
+function vnSession(d = new Date()) {      // phiên giao dịch theo giờ Việt Nam: Á 7–15h · Âu 14–22h · Mỹ 20:30–4h (chồng nhau = giờ sôi động)
+  const h = (d.getUTCHours() + 7) % 24 + d.getUTCMinutes() / 60, S = [];
+  if (h >= 7 && h < 15) S.push(bi("Á", "Asia")); if (h >= 14 && h < 22) S.push(bi("Âu", "Europe")); if (h >= 20.5 || h < 4) S.push(bi("Mỹ", "US"));
+  return S.length ? `${bi("phiên", "session")} ${S.join(" + ")}` : bi("ngoài giờ chính", "off-hours");
+}
+function briefData(M) {
+  const b = M.btc || {}, F = M.fng || {}, L = M.light || {}, br = M.breadth || {}, lst = M.lists || {}, BT = BYK?.BTC || {};
+  const p = BT.p || b.price, r1 = BT.r1, fy = (F.series || []).slice(-2)[0]?.[1], dF = isNum(F.now) && isNum(fy) ? F.now - fy : null;
+  const mk = [`${bi("Đèn", "Light")} <b class="lt-${L.color}">${LIGHT_VI[L.color] || "—"}</b>${L.text ? ` – ${esc(L.text)}` : ""}`,
+    `BTC <b>$${nf(p, 0)}</b>${isNum(r1) ? ` <span class="${cls(r1)}">${pct(r1, 1)}</span> 24h` : ""}${isNum(b.r7) ? ` · <span class="${cls(b.r7)}">${pct(b.r7, 0)}</span> 7 ${bi("ngày", "days")}` : ""}${isNum(b.dist200) ? ` · ${b.dist200 >= 0 ? bi("trên", "above") : bi("dưới", "below")} MA200 ${nf(Math.abs(b.dist200), 1)}%` : ""}`,
+    isNum(F.now) ? `${bi("Sợ hãi & tham lam", "Fear & greed")} <b>${nf(F.now, 0)}</b> ${esc(F.zone || "")}${dF ? ` (${dF > 0 ? "+" : ""}${nf(dF, 0)} ${bi("so với hôm qua", "vs yesterday")})` : ""}` : "",
+    isNum(br.above50) ? `${nf(br.above50, 0)}% ${bi("coin lớn trên MA50", "of large coins above MA50")}` : ""].filter(Boolean);
+  const nt = [];
+  if (lst.gain7?.length) nt.push(`${bi("Tăng mạnh 7 ngày", "Top 7-day gainers")}: ${lst.gain7.slice(0, 3).map((k) => `<a href="#/c/${enc(k)}">${esc(k)}</a>`).join(", ")}`);
+  if (lst.f_hot?.length || lst.f_cold?.length) nt.push(`${bi("Funding lệch mạnh", "Extreme funding")}: ${[...(lst.f_hot || []).slice(0, 2).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a> <small class="down">${bi("Long trả", "longs pay")}</small>`), ...(lst.f_cold || []).slice(0, 2).map((k) => `<a href="#/c/${enc(k)}/fut">${esc(k)}</a> <small class="up">${bi("Short trả", "shorts pay")}</small>`)].join(", ")}`);
+  const now = Date.now() / 1000, U = (M.unlocks || []).filter((u) => u.t > now && u.t - now < 2 * 86400 && u.pct <= 100 && (u.pct >= 1 || u.usd >= 2e7)).sort((a, c) => a.t - c.t).slice(0, 3);
+  if (U.length) nt.push(`${bi("Mở khoá token 48 giờ tới", "Token unlocks in 48h")}: ${U.map((u) => `<a href="#/c/${enc(u.k)}">${esc(u.k)}</a> ${nf(u.pct, 1)}% ${bi("cung", "supply")} (~$${nf(u.usd / 1e6, 0)} ${bi("tr", "M")})`).join(", ")}`);
+  nt.push(`${bi("Lúc này", "Now")}: ${vnSession()}`);
+  const me = [];
+  try { const D = LVS?.d; if (D) { const I = lvwItems(D), o = [...I.live, ...I.paper].filter((x) => x.st === "open"), w = [...I.live, ...I.paper].filter((x) => x.st === "wait"), dl = D.live?.day, dp = D.paper?.day;
+    if (isNum(dl) && D.live?.on) me.push(`${bi("Bot trên Binance hôm nay", "Bot on Binance today")} <b class="${cls(dl)}">${lvw$(dl)}</b>`);
+    if (isNum(dp)) me.push(`${bi("Sàn thử hôm nay", "Paper today")} <b class="${cls(dp)}">${lvw$(dp)}</b>`);
+    me.push(o.length || w.length ? `${o.length} ${bi("lệnh đang mở", "open")}${w.length ? ` · ${w.length} ${bi("đang chờ khớp", "pending")}` : ""}${o.length ? ` (${o.slice(0, 3).map((x) => esc(x.sym)).join(", ")})` : ""}` : bi("Không có lệnh đang mở – bot đang canh", "No open trades – the bot is watching")); } } catch (e) { /* bỏ qua */ }
+  const mine = [...new Set([...(WL?.set || []), ...hbTop("c", 6)])].map((k) => BYK?.[k] ? [k, BYK[k].r1] : null).filter((x) => x && isNum(x[1])).sort((a, c) => Math.abs(c[1]) - Math.abs(a[1])).slice(0, 3);
+  if (mine.length) me.push(`${bi("Coin anh quan tâm", "Your coins")}: ${mine.map(([k, r]) => `<a href="#/c/${enc(k)}">${esc(k)}</a> <span class="${cls(r)}">${pct(r, 1)}</span>`).join(", ")}`);
+  // câu mở đầu – ghép từ các ý chính
+  const head = [`${bi("Thị trường", "Market")} ${LIGHT_VI[L.color] ? `<b class="lt-${L.color}">${LIGHT_VI[L.color]}</b>` : ""}`, `BTC $${nf(p, 0)}${isNum(r1) ? ` (<span class="${cls(r1)}">${pct(r1, 1)}</span>)` : ""}`, isNum(F.now) ? `${esc(F.zone || "")} ${nf(F.now, 0)}` : "", me.length ? me[0].replace(/<b class="([^"]*)">/, '<b class="$1">') : ""].filter(Boolean);
+  return { head, mk, nt, me };
+}
+function briefHtml(M) {
+  const td = vnToday(); if (lsGet("brief_hide", "") === td) return `<button type="button" class="bf-show" data-bf="show">📰 ${bi("Hiện bản tin hôm nay", "Show today's brief")}</button>`;
+  let D; try { D = briefData(M); } catch (e) { return ""; }
+  const pro = typeof can !== "function" || can("brief"), col = (t, L) => (L.length ? `<div class="bf-c"><h4>${t}</h4><ul>${L.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : "");
+  const words = D.head.join(" · ").split(/( · )/).map((w, i) => `<span style="animation-delay:${i * 70}ms">${w}</span>`).join("");
+  return `<section class="panel bf${pro ? "" : " bf-lock"}" aria-label="${bi("Bản tin hôm nay", "Today's brief")}"><div class="bf-h"><span class="bf-ic" aria-hidden="true">✨</span><div class="bf-ht"><small>${bi("Bản tin của anh", "Your brief")} · ${new Date().toLocaleDateString(LOC, { weekday: "long", day: "numeric", month: "numeric" })}</small><p class="bf-lead">${words}</p></div><button type="button" class="bf-x" data-bf="hide" title="${bi("Ẩn tới ngày mai", "Hide until tomorrow")}" aria-label="${bi("Ẩn tới ngày mai", "Hide until tomorrow")}">✕</button></div>
+    <details class="bf-d"${innerWidth > 700 || !pro ? " open" : ""}><summary>${bi("Xem chi tiết", "Details")}</summary><div class="bf-g">${col(bi("📈 Thị trường", "📈 Market"), D.mk)}${col(bi("👀 Đáng chú ý", "👀 Worth a look"), D.nt)}${col(bi("👤 Của anh", "👤 Yours"), D.me)}</div></details>
+    ${pro ? `<p class="bf-f faint">${bi("Tự tổng hợp từ số liệu trên trang – chỉ nêu dữ kiện, không phải lời khuyên mua / bán.", "Auto-compiled from the site's data – facts only, not buy / sell advice.")}</p>` : `<div class="bf-lk"><b>✨ ${bi("Bản tin đầy đủ mỗi ngày – gói Pro", "Full daily brief – Pro plan")}</b><a class="btn sm primary" href="#/account">${bi("Xem gói", "See plans")}</a></div>`}</section>`;
+}
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-bf]"); if (!b) return; lsSet("brief_hide", b.dataset.bf === "hide" ? vnToday() : ""); if (location.hash === "#/" || location.hash === "" || location.hash === "#/market") viewMarket(); });
 async function viewMarket() {
   const [M, IJ] = await Promise.all([load("data/market.json"), tryLoad("data/ideas.json"), coins()]);
   const L0 = await liveData();
@@ -2695,7 +2736,7 @@ async function viewMarket() {
   const sec = (X.sectors || []).map((s) => `<tr><td class="l"><a href="#/sector/${enc(s.g)}"><b>${esc(s.g)}</b></a> <small class="faint">${s.n}</small></td><td class="${cls(s.r1)}">${pct(s.r1, 1)}</td><td class="${cls(s.r7)}">${pct(s.r7, 1)}</td><td class="${cls(s.r30)}">${pct(s.r30, 0)}</td><td>${usd(s.mc)}</td><td>${nf(s.up / s.n * 100, 0)}%</td><td class="l">${coinLink(s.best)} <small class="${cls(s.best7)}">${pct(s.best7, 0)}</small></td></tr>`).join("");
   app().innerHTML = `
   <div class="ph"><h1>Thị trường</h1><span class="meta">Cập nhật ${esc(new Date(M.at).toLocaleString(LOC))} · ${nf(M.counts?.coins, 0)} coin · ${nf(M.counts?.fut, 0)} futures</span></div>
-  ${PG("Tổng quan")}<section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
+  ${briefHtml(M)}${PG("Tổng quan")}<section class="panel hero light-${L.color}"><div class="ph"><h2>🚦 Đèn thị trường: ${LIGHT_VI[L.color] || "—"} – ${esc(L.text || "")}</h2><span class="meta">${esc(P.head || "")}</span></div>
   <div class="stgs">
     ${stGroup("Xu hướng", [
       ["BTC", `$${nf(BT.p ?? b.price, 0)}`, `<span class="${cls(BT.r1)}">${pct(BT.r1, 2)} 24h</span>`, sgn(BT.r1), "Giá trực tiếp (Binance)", spark(b.sp), "mkBtc"],

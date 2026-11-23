@@ -372,6 +372,17 @@
      "te": "✨ Quick search understands plain sentences: \"losing trades this week\", \"funding SOL\", \"turn off bot\"…",
      "d": "Gõ tự nhiên (tiếng Việt có dấu hay không dấu, hoặc tiếng Anh): tự nhận coin, chủ đề (funding, hỗ trợ/kháng cự, định giá, kỹ thuật, kế hoạch lệnh), khoảng thời gian (hôm nay, tuần, tháng) và lời/lỗ → mở đúng trang, đúng tab, lọc sẵn; kèm số nhanh (giá, funding). Thao tác nhạy cảm như bật/tắt bot chỉ đưa tới đúng công tắc để anh tự bấm. Chạy ngay trên máy, không gửi câu đi đâu.",
      "de": "Type naturally (Vietnamese with or without accents, or English): it spots the coin, topic (funding, support/resistance, valuation, technicals, trade plan), time range (today, week, month) and win/loss → opens the right page and tab, pre-filtered, with quick numbers (price, funding). Sensitive actions like turning the bot on/off only take you to the switch so you press it yourself. Runs on your device; nothing is sent anywhere."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "hi": 1,
+     "f": "brief",
+     "t": "📰 Bản tin của anh mỗi ngày trên trang Thị trường",
+     "te": "📰 Your daily brief on the Market page",
+     "go": "#/",
+     "d": "Tự tổng hợp: 1 câu tóm tắt (hiện dần) + 3 cột – Thị trường (đèn, BTC, sợ hãi & tham lam, độ rộng), Đáng chú ý (tăng mạnh 7 ngày, funding lệch, mở khoá token 48 giờ tới, phiên Á/Âu/Mỹ đang mở), Của anh (lời/lỗ bot hôm nay, lệnh đang mở, coin anh quan tâm). Chỉ nêu dữ kiện, không khuyên mua/bán; ẩn được tới hôm sau. Gói Miễn phí thấy câu tóm tắt, chi tiết ở gói Pro.",
+     "de": "Auto-compiled: a one-line summary (fades in) + 3 columns – Market (light, BTC, fear & greed, breadth), Worth a look (7-day gainers, extreme funding, token unlocks in 48h, which Asia/EU/US session is open), Yours (bot P&L today, open trades, coins you follow). Facts only, no buy/sell advice; hide until tomorrow. Free plan sees the summary; details are Pro."
     }
    ]
   },
