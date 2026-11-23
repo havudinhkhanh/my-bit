@@ -7317,3 +7317,24 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
   .occ-k>small{font-size:.65rem;line-height:1.2;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   .occ-k>b{font-size:.8125rem;line-height:1.25;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 }
+/* 📜 thanh giá chạy chữ */
+.ticker{gap:0!important}
+.ticker .tk-run{display:flex;flex:none;min-width:0}
+.ticker .tk-g{display:flex;flex:none;gap:14px;padding-right:28px}
+.ticker.mq{mask-image:linear-gradient(90deg,transparent,#000 4%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 4%,#000 94%,transparent)}
+.ticker.mq .tk-run{animation:tkMq var(--tkd,30s) linear infinite;will-change:transform}
+.ticker.mq:hover .tk-run,.ticker.mq:focus-within .tk-run{animation-play-state:paused}
+@keyframes tkMq{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker.mq .tk-run{animation:none}}
+html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bot trên thanh trên cùng không ép băng giá còn vài chục px */
+.topst .hz2-s,.topst .hz2-c{white-space:nowrap;flex:none}
+@media (min-width:980px) and (max-width:1340px){
+  html.has-topst .ticker{min-width:180px}
+  .topst .hz2-c{display:none!important}      /* màn vừa: chỉ đèn + trạng thái + công tắc · ⓘ · ⋯ (chi tiết bấm ⓘ) */
+  .topst .hz2-l{overflow:visible}
+}
+@media (min-width:980px) and (max-width:1340px){
+  html.has-topst .topst{flex:none}
+  html.has-topst .ticker{min-width:120px}
+  html.has-topst .top-in .search{flex:0 1 260px;min-width:170px;width:auto}
+}

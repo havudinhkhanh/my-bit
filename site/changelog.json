@@ -108,6 +108,14 @@
      "te": "Trade chart sheet: the stats strip fits one row – no horizontal scrolling",
      "d": "Màn rộng: nhãn và số cùng dòng; màn vừa: nhãn nhỏ trên, số dưới. Chi tiết funding (phe nào trả, còn bao lâu) xem khi rê chuột.",
      "de": "Wide screens: label and value side by side; medium screens: small label above the value. Funding details (who pays, time left) on hover."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh giá trên cùng chạy chữ liên tục",
+     "te": "The top price ticker now scrolls continuously",
+     "d": "Không đủ chỗ hiện hết các mã thì băng giá tự chạy vòng (rê chuột vào để dừng đọc / bấm); đủ chỗ thì đứng yên. Chạy bằng card đồ hoạ nên không làm nặng máy. Ở trang Bot Phản Xạ, dải trạng thái và băng giá chia chỗ hợp lý hơn.",
+     "de": "When the coins don't all fit, the ticker loops continuously (hover to pause and click); when they fit it stays still. Runs on the graphics card, so it doesn't load the machine. On the Reflex Bot page the status chip and ticker share space better."
     }
    ]
   },

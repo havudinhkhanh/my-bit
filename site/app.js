@@ -4858,7 +4858,7 @@ function tickerWs() {
     const ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
     const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
     ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1, p = +d.c / m, o = +d.o / m; r.p = p; r.r1 = (p / o - 1) * 100;
-      const el = $(`#ticker [data-tk="${k}"]`); if (el) el.innerHTML = `<b>${k}</b>${px(p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`; livePx(k, p); };
+      const h = `<b>${k}</b>${px(p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`; document.querySelectorAll(`#ticker [data-tk="${k}"]`).forEach((el) => { if (el.innerHTML !== h) el.innerHTML = h; }); livePx(k, p); };      // băng chạy có 2 bản sao – cập nhật cả 2
     ws.onclose = () => setTimeout(tickerWs, 15000);
   } catch (e) { /* không có websocket */ }
 }
@@ -7189,11 +7189,22 @@ function cmdk(open = true) {
     $(".cmdk-in", el).animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: "ease-out" }); }
 }
 
+// 📜 thanh giá trên cùng: không đủ chỗ hiện hết các mã → chạy chữ liên tục (2 bản sao nối đuôi, trượt bằng transform – card đồ hoạ tự chạy, luồng chính rảnh);
+//    rê chuột vào thì dừng để đọc / bấm; đủ chỗ thì đứng yên như cũ; người dùng chọn giảm chuyển động thì đứng yên
+function tkMarq() {
+  const T = $("#ticker"), R = T?.querySelector(".tk-run"); if (!R) return; const G = R.querySelector(".tk-g"); if (!G) return;
+  R.querySelectorAll(".tk-g[aria-hidden]").forEach((x) => x.remove());
+  const need = G.scrollWidth > T.clientWidth + 2 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  T.classList.toggle("mq", need);
+  if (need) { const c = G.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.querySelectorAll("a").forEach((a) => a.tabIndex = -1); R.appendChild(c); R.style.setProperty("--tkd", Math.max(18, Math.round(G.offsetWidth / 38)) + "s"); }
+  if (!T.__ro && "ResizeObserver" in window) { let w = T.clientWidth; T.__ro = new ResizeObserver(() => { if (Math.abs(T.clientWidth - w) > 8) { w = T.clientWidth; tkMarq(); } }); T.__ro.observe(T); }
+}
 async function drawTicker() {
   const C = await tryLoad("data/coins.json"); if (!C) return;
   COINS = COINS || C; BYK = BYK || Object.fromEntries(C.rows.map((r) => [r.k, r]));
   const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"];
-  $("#ticker").innerHTML = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}"><span data-tk="${k}"><b>${k}</b>${px(BYK[k].p)} <i class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></span></a>`).join("");
+  const H = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}"><span data-tk="${k}"><b>${k}</b>${px(BYK[k].p)} <i class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></span></a>`).join("");
+  $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkMarq();
   tickerWs();
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;
