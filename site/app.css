@@ -7399,7 +7399,7 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
 .mf2 input[type=number]{-moz-appearance:textfield}.mf2 input::-webkit-inner-spin-button,.mf2 input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .mf2 input:focus,.mf2 select:focus{outline:2px solid color-mix(in srgb,var(--brand) 50%,transparent);outline-offset:0;background:var(--surface)!important}
 /* hẹn đóng: [ngày][giờ] · [theo lệnh sàn thử ▾] cùng 1 dòng */
-.mf2 .mf-r.tm{grid-template-areas:"l in q q"}
+.mf2 .mf-r.tm{grid-template-columns:54px max-content minmax(0,1fr);grid-template-areas:"l in q"} /* ô ngày/giờ tự rộng theo chữ – không tràn đè ô "theo lệnh sàn thử" */
 .mf2 .sc-mfd{grid-area:in;display:flex;align-items:center;gap:3px;font-size:11.5px;color:var(--ink-3)}
 .mf2 .sc-mfd input{width:34px!important;flex:none;text-align:center;padding:0 2px}
 .mf2 .mf-pk{grid-area:q;min-width:0}
@@ -7412,7 +7412,7 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
 /* thẻ hẹp (điện thoại, cột lệnh hẹp): nút % xuống dòng dưới ô giá, vẫn 1 hàng */
 @container (max-width:400px){
   .mf2 .mf-r{grid-template-columns:56px minmax(0,1fr) auto;grid-template-areas:"l in est" ". q q"}
-  .mf2 .mf-r.tm{grid-template-areas:"l in in" ". q q"}
+  .mf2 .mf-r.tm{grid-template-columns:56px minmax(0,1fr);grid-template-areas:"l in" ". q"}
   .mf2 .mf-q{flex-wrap:wrap}
 }
 /* khung đang mở: nút "Cắt lỗ · chốt" trên thẻ hiện trạng thái đang bật */

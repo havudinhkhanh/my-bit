@@ -2,6 +2,22 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.24",
+   "t": "Sửa giao diện",
+   "te": "UI fixes",
+   "s": "Sửa lỗi hiển thị trong khung cắt lỗ · chốt lời.",
+   "se": "Display fix in the stop / target panel.",
+   "it": [
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Ô Hẹn đóng không còn bị ô \"theo lệnh sàn thử\" đè lên chữ \"giờ\"",
+     "te": "Auto-close: the paper-trade picker no longer overlaps the hours field",
+     "f": "futures"
+    }
+   ]
+  },
+  {
    "v": "2026.11.23",
    "d": "2026-11-23",
    "t": "Nhẹ máy hơn, bố cục gọn hơn",
