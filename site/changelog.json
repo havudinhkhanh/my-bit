@@ -3,10 +3,11 @@
  "rel": [
   {
    "v": "2026.11.23",
-   "t": "Bố cục lệnh gọn hơn",
-   "te": "Tidier trade layout",
-   "s": "Khung lệnh rộng hơn, tách Đang mở / Chờ khớp",
-   "se": "Wider trade area, Open / Pending split",
+   "d": "2026-11-23",
+   "t": "Nhẹ máy hơn, bố cục gọn hơn",
+   "te": "Lighter and tidier",
+   "s": "Rê chuột & mèo đi lại nhẹ máy hơn nhiều; khung lệnh rộng hơn, tách Đang mở / Chờ khớp; trạng thái bot và viên lệnh trực tiếp lên thanh trên cùng.",
+   "se": "Much lighter mouse movement and cat; wider trade area with Open / Pending split; bot status and the live pill in the top bar.",
    "it": [
     {
      "c": "imp",
@@ -158,6 +159,45 @@
      "d": "Kiểu danh sách của app (1 mặt liền, không hộp lồng hộp): Cắt lỗ · Chốt lời · Hẹn đóng mỗi mục 1 hàng; gõ giá là thấy ngay ≈ lời / lỗ và % ký quỹ, sai phía giá hiện tại thì báo ngay. Nút % cắt lỗ tính từ giá hiện tại (trước tính từ giá vào → lệnh đang lỗ nặng bấm ra mức sàn từ chối); nút % chốt lời luôn ra mức có lời; thêm nút Hoà vốn khi lệnh đang lời; có nút Huỷ; phần giải thích thu gọn.",
      "de": "App-style list (one surface, no nested boxes): Stop · Target · Auto-close, one row each; typing a price shows the ≈ P/L and % of margin at once, and a level on the wrong side of the price is flagged. Stop % chips now count from the current price (they used to count from entry, so a trade deep in loss got a level the exchange rejects); target chips always give a profitable level; a Breakeven chip appears when in profit; a Cancel button; the explanation is collapsed.",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Màn laptop 1.366px: thanh trên cùng không còn tràn ngang",
+     "te": "1,366px laptops: the top bar no longer overflows sideways",
+     "d": "Khi chật, thanh tự ẩn dần mục phụ (thẻ giá trực tiếp → sàn → dữ liệu → giờ cập nhật) để ô tìm và chuông luôn nằm trong màn hình – kể cả lúc số liệu bot vừa đổi.",
+     "de": "When space runs out the bar hides secondary items one by one (live price chip → exchange → data → update time) so search and the bell always stay on screen – even right after bot numbers change."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Điện thoại & máy tính bảng: viên lệnh bot thu thành chấm khi chưa có lệnh",
+     "te": "Phones & tablets: the bot-trades pill shrinks to a dot when nothing is open",
+     "d": "Không có lệnh mở hay chờ khớp → viên tự dính vào mép thành chấm nhỏ, không che nội dung; có lệnh là hiện lại viên đầy đủ. Bấm chấm để mở thẻ.",
+     "de": "With no open or pending trades the pill tucks into the edge as a small dot so it no longer covers content; it comes back as soon as a trade appears. Tap the dot to open the card."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Điện thoại: bộ lọc và ô nhập xếp lưới 2 cột gọn gàng",
+     "te": "Phones: filters and input fields line up in a tidy two-column grid",
+     "d": "Tra cứu coin, Bảng giá trực tiếp, Công cụ tính, Danh mục…: ô nhập rộng hết ô, hàng thẳng, ô tick không bị cắt chữ; ô nhập trong thẻ không còn bị lồng thêm 1 hộp.",
+     "de": "Coin lookup, Live prices, Calculators, Portfolio…: inputs fill their cell, rows align and checkboxes no longer get cut off; inputs inside a card no longer sit in an extra nested box.",
+     "go": "#/tools"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Trang \"Có gì mới\" không còn hiện \"NaN ngày\"",
+     "te": "\"What's new\" no longer shows \"NaN days\""
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Đường dẫn #/market mở trang Thị trường thay vì báo không có trang",
+     "te": "The #/market link opens the Market page instead of \"page not found\"",
+     "d": "Trang không tồn tại giờ có thêm lối tắt tìm trang.",
+     "de": "Unknown pages now also offer a quick page search."
     }
    ]
   },

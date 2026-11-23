@@ -7413,3 +7413,22 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
 }
 /* khung đang mở: nút "Cắt lỗ · chốt" trên thẻ hiện trạng thái đang bật */
 .sc-mx[data-mft][aria-expanded="true"]{background:var(--sel)!important;color:var(--sel-ink)!important}
+/* 📏 thanh trên cùng tự co (topFit): ẩn dần mục phụ khi chật */
+html.tf1 .topst .hz2-lv{display:none!important}
+html.tf2 .topst .hz2-c:nth-of-type(3){display:none!important}      /* sàn */
+html.tf3 .topst .hz2-c:nth-of-type(2){display:none!important}      /* dữ liệu */
+html.tf4 .topst .hz2-c{display:none!important}
+html.tf5 .top-in>.upd{display:none!important}
+html.tf6 .top-in .search{flex:0 1 200px!important;min-width:140px!important}
+html.has-topst .topst{min-width:0}
+/* 📝 bộ lọc / ô nhập trong thẻ: không lồng thêm 1 hộp (trước: Công cụ tính có khoảng trống thừa phía trên ô nhập) */
+.panel>.filters{padding:0;border:0;background:transparent;box-shadow:none}
+/* 📱 điện thoại: bộ lọc & ô nhập xếp lưới 2 cột đều, ô nhập rộng hết ô (trước: ô nhập chỉ nửa thẻ, hàng so le, ô tick bị cắt chữ) */
+@media (max-width:640px){
+  .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:end}
+  .filters>.field{min-width:0}
+  .filters>.field>input,.filters>.field>select,.filters>.field>.sel{width:100%;min-width:0}
+  .filters>.field.w2{grid-column:1/-1}
+  .filters>.btn{width:100%;justify-content:center}
+  .filters .chk{min-width:0;white-space:normal;line-height:1.25;height:auto;min-height:var(--ctl)}
+}

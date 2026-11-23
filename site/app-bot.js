@@ -230,10 +230,11 @@ function fdPlace() { $$("#app .fd-sz").forEach((c) => { const h = c.closest(".pa
 function hzTop() {
   const slot = document.getElementById("topSt"); if (!slot) return; const R = document.documentElement;
   const hero = /^#\/bot\/scalp/.test(location.hash) ? document.querySelector("#app .sc-hero.hz2") : null, cur = slot.firstElementChild;
-  if (!hero) { if (cur) slot.replaceChildren(); R.classList.remove("has-topst"); return; }
+  if (!hero) { if (cur) slot.replaceChildren(); R.classList.remove("has-topst"); try { topFit(); } catch (e) { /* bỏ qua */ } return; }
   const row = hero.querySelector(":scope > .hz2-r");
   if (matchMedia("(min-width:980px)").matches) { if (row) slot.replaceChildren(row); hero.classList.add("hz-up"); R.classList.add("has-topst"); }
   else { if (!row && cur) hero.prepend(cur); slot.replaceChildren(); hero.classList.remove("hz-up"); R.classList.remove("has-topst"); }
+  try { topFit(); } catch (e) { /* bỏ qua */ }
 }
 addEventListener("resize", () => { clearTimeout(window.__hzT); window.__hzT = setTimeout(hzTop, 150); });
 addEventListener("hashchange", () => setTimeout(hzTop, 0));

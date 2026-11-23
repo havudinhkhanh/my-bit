@@ -2037,7 +2037,7 @@ async function route() {
   if (!app().querySelector(".panel")) { app().innerHTML = skPage(r, arg[0]); app().classList.remove("pg-wait"); }
   else if (!SR_H) { const root = app(), old = root.firstElementChild, h0 = location.hash; clearTimeout(route.sk); route.sk = setTimeout(() => { if (location.hash === h0 && root.firstElementChild === old && root.classList.contains("pg-wait")) { root.innerHTML = skPage(r, arg[0]); root.classList.remove("pg-wait"); } }, 140); }
   try {
-    if (!r) { setTab("market"); await viewMarket(); }
+    if (!r || r === "market" || r === "home") { setTab("market"); await viewMarket(); }
     else if (r === "coins") { setTab("coins"); await viewCoins(arg[0]); }
     else if (r === "t" && arg[1]) { setTab("botscalp"); await viewTrade(arg[0], arg[1], arg[2]); }
     else if (r === "c" && arg[0]) { setTab("coins"); await viewCoin(arg[0].toUpperCase(), arg[1]); }
@@ -2062,7 +2062,7 @@ async function route() {
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
     else if (r === "keys") { setTab("keys"); await viewKeys(); }
     else if (r === "changes" || r === "changelog") { setTab("changes"); await viewChanges(arg[0]); }
-    else app().innerHTML = `<div class="empty">Không có trang này. <a href="#/">Về trang Thị trường</a></div>`;
+    else app().innerHTML = `<div class="panel empty-pg"><div class="empty">${bi("Không có trang này.", "This page doesn't exist.")} <a href="#/">${bi("Về trang Thị trường", "Back to Market")}</a> · <a href="javascript:void 0" onclick="cmdk(true);return false">${bi("Tìm trang", "Find a page")}</a></div></div>`;
   } catch (e) {
     console.error(e);
     app().innerHTML = `<div class="panel"><h2>Chưa có dữ liệu để hiển thị</h2><p>${esc(e.message)}</p><p class="muted">Hệ thống cập nhật mỗi 4 giờ. Nếu đây là lần đầu, chờ lượt chạy đầu tiên hoàn tất.</p></div>`;
@@ -2780,7 +2780,7 @@ async function viewCoins(view0) {
   app().innerHTML = `<div class="ph"><h1>Tra cứu coin</h1><span class="meta">${nf(C.rows.length, 0)} coin · top 300 vốn hoá + mọi coin có futures · đã loại stablecoin, token bọc</span></div>
     <div class="views">${Object.entries(VIEWS).map(([k, [n]]) => `<button data-v="${k}" class="${k === view ? "on" : ""}">${n}</button>`).join("")}</div>
     <div class="filters">
-      <div class="field"><label>Tìm</label><input id="fq" value="${esc(F.q)}" placeholder="Tên hoặc mã"></div>
+      <div class="field w2"><label>Tìm</label><input id="fq" value="${esc(F.q)}" placeholder="Tên hoặc mã"></div>
       <div class="field"><label>Nhóm</label><select id="fg"><option value="">Tất cả</option>${groups.map((g) => `<option ${F.g === g ? "selected" : ""}>${esc(g)}</option>`).join("")}</select></div>
       <div class="field"><label>Định giá</label><select id="fvd"><option value="">Tất cả</option>${["Rẻ", "Hợp lý", "Hơi đắt", "Đắt", "Đầu cơ", "L1 rẻ tương đối", "L1 ngang nhóm", "L1 đắt tương đối"].map((v) => `<option ${F.vd === v ? "selected" : ""}>${v}</option>`).join("")}</select></div>
       <div class="field"><label>Xu hướng</label><select id="fts"><option value="">Tất cả</option><option value="1" ${F.ts === "1" ? "selected" : ""}>Tăng</option><option value="0" ${F.ts === "0" ? "selected" : ""}>Ngang</option><option value="-1" ${F.ts === "-1" ? "selected" : ""}>Giảm</option></select></div>
@@ -4736,7 +4736,7 @@ async function viewLive() {
   app().innerHTML = `<div class="ph"><h1>Bảng giá trực tiếp</h1><span class="meta">Spot USDT + perp USDT-M · giá trực tiếp từ Binance
     · spot <b id="lvS">${LV.st.spot}</b> · futures <b id="lvF">${LV.st.fut}</b></span></div>
     <div class="g g3" id="lvMov"></div>
-    <div class="filters"><div class="field"><label>Tìm</label><input id="lvQ" placeholder="BTC, SOL…"></div>
+    <div class="filters"><div class="field w2"><label>Tìm</label><input id="lvQ" placeholder="BTC, SOL…"></div>
       <label class="chk"><input type="checkbox" id="lvB"> Chỉ cặp có cả spot và perp</label><div class="field"><label>Số cặp</label><select id="lvA"><option value="60">60 lớn nhất</option><option value="120">120</option><option value="250">250</option><option value="0">Tất cả</option></select></div>
       <small class="faint" id="lvN"></small></div>
     <div class="tw sticky" id="lvT"></div>
@@ -8356,7 +8356,7 @@ function lvwParts(D) {
   const lastH = last.length ? `<div class="lvw-h">${bi("Vừa đóng", "Just closed")}</div>${last.slice(0, 3).map((h) => `<a class="lvw-it done" href="#/t/${h.acc}/${enc(h.sym)}/${h.t || Date.now()}"><div class="lvw-r1"><span>${h.man ? "✋ " : ""}<b>${esc(h.sym)}</b> <b class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</b> <small class="faint">${h.t ? lvwAgo(h.t) : ""}</small></span><span class="lvw-pl ${cls(h.pnl)}">${lvw$(h.pnl || 0)}${isNum(h.net) ? `<small>${pctB(h.net)}</small>` : ""}</span></div></a>`).join("")}` : "";
   const body = `${tab === "live" && L?.halt ? `<p class="lvw-halt">⛔ ${esc(L.halt)}</p>` : ""}${sec(bi("Đang mở", "Open"), O)}${sec(bi("Đang chờ khớp", "Pending"), W)}${!O.length && !W.length ? `<p class="lvw-none">${bi("Không có lệnh nào đang mở hay đang chờ – bot đang canh cú sốc.", "No open or pending trades – the bot is watching for shocks.")}</p>` : ""}${lastH}`;
   const foot = `<span>${bi("Hôm nay", "Today")} <b class="${cls(day)}">${isNum(day) ? lvw$(day) : "—"}</b>${tab === "live" && isNum(L?.bal) ? ` · ${bi("số dư", "balance")} ${usd2(L.bal)}` : tab === "paper" && isNum(D.paper?.eq) ? ` · ${bi("tài sản", "equity")} ${usd2(D.paper.eq)}` : ""}</span><a href="#/bot/scalp" data-lvw-go="${tab}">${bi("Bot Phản Xạ →", "Reflex Bot →")}</a>`;
-  return { pill, seg, body, foot, st, n: nAll };
+  return { pill, seg, body, foot, st, n: nAll, any: I.live.length + I.paper.length };
 }
 // vùng được phép đặt: dưới thanh đầu trang, trên thanh tab dưới (điện thoại), không đè thanh điều hướng trái / bảng phụ (máy tính)
 function lvwBounds() {
@@ -8369,7 +8369,7 @@ function lvwBounds() {
 }
 function lvwPlace(el, anim = true) {
   const pill = el.querySelector(".lvw-pill"); if (!pill) return;
-  const K = lvwBounds(), mob = MOB.matches, P = LVW.pos || (mob ? { e: "r", f: 0.72 } : { e: "r", f: 0.97 }), dot = LVW.mode === "dot" && LVW.mode !== "full";
+  const K = lvwBounds(), mob = MOB.matches, P = LVW.pos || (mob ? { e: "r", f: 0.72 } : { e: "r", f: 0.97 }), dot = (LVW.eff || LVW.mode) === "dot";
   const w = pill.offsetWidth, h = pill.offsetHeight, f = Math.max(0, Math.min(1, isNum(P.f) ? P.f : 0.5));
   // 📌 GHIM lên thanh trên cùng (máy tính): viên nằm trong ô chừa sẵn trên thanh đầu trang, thẻ mở xuống dưới
   const slot = document.getElementById("topLv"), pinOn = LVW.pin && !mob && RAILQ0();
@@ -8403,7 +8403,18 @@ function lvwPlace(el, anim = true) {
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
-function lvwPin(on) { LVW.pin = !!on; lsSet("lvwpin", LVW.pin); if (on && LVW.mode === "dot") { LVW.mode = LVW.rest = "mini"; lsSet("lvwmode", "mini"); lsSet("lvwrest", "mini"); } const el = document.getElementById("lvw"); if (el) { lvsDraw(); lvwPlace(el); } try { toast(on ? bi("Đã ghim lên thanh trên cùng – kéo viên ra ngoài để bỏ ghim", "Pinned to the top bar – drag it out to unpin") : bi("Đã bỏ ghim", "Unpinned")); } catch (e) { /* bỏ qua */ } }
+// 📏 thanh trên cùng TỰ CO: dải trạng thái bot / viên ghim / băng giá chiếm nhiều chỗ → ẩn dần mục phụ (thẻ giá trực tiếp → sàn → Thật → dữ liệu → "x giờ trước")
+//    cho tới khi vừa – ô tìm & chuông không bao giờ bị đẩy ra ngoài màn hình (trước: màn 1.366px tràn ngang ~95px)
+function topFit() {
+  const T = document.querySelector(".top-in"); if (!T) return; const R = document.documentElement;
+  for (let k = 1; k <= 6; k++) R.classList.remove("tf" + k);
+  if (!matchMedia("(min-width:980px)").matches) return;
+  for (let k = 1; k <= 6 && T.scrollWidth > T.clientWidth + 1; k++) R.classList.add("tf" + k);
+}
+addEventListener("resize", () => { clearTimeout(topFit._t); topFit._t = setTimeout(topFit, 120); });
+// dải trạng thái bot / viên ghim đổi bề rộng (số liệu mới, chip hiện / ẩn) → co lại ngay trong khung hình kế tiếp, không để thanh trên tràn ngang thoáng qua
+if (window.ResizeObserver) { const ro = new ResizeObserver(() => { cancelAnimationFrame(topFit._r); topFit._r = requestAnimationFrame(topFit); }); ["topSt", "topLv"].forEach((id) => { const n = document.getElementById(id); if (n) ro.observe(n); }); }
+function lvwPin(on) { setTimeout(topFit, 60); LVW.pin = !!on; lsSet("lvwpin", LVW.pin); if (on && LVW.mode === "dot") { LVW.mode = LVW.rest = "mini"; lsSet("lvwmode", "mini"); lsSet("lvwrest", "mini"); } const el = document.getElementById("lvw"); if (el) { lvsDraw(); lvwPlace(el); } try { toast(on ? bi("Đã ghim lên thanh trên cùng – kéo viên ra ngoài để bỏ ghim", "Pinned to the top bar – drag it out to unpin") : bi("Đã bỏ ghim", "Unpinned")); } catch (e) { /* bỏ qua */ } }
 function lvwMode(m) {
   if (m === LVW.mode) return; const el = document.getElementById("lvw"); LVW.mode = m; lsSet("lvwmode", m); if (m !== "full") { LVW.rest = m; lsSet("lvwrest", m); }
   if (!el) return; lvsDraw(); el.classList.remove("lvw-pop"); void el.offsetWidth; el.classList.add("lvw-pop");
@@ -8474,16 +8485,18 @@ function lvsDraw() {
       lvwMode(LVW.rest); if (e.target === bd) { e.preventDefault(); e.stopPropagation(); } }, true);
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && LVW.mode === "full" && !document.getElementById("iosSheet")) lvwMode(LVW.rest); });
-    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", rp); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
+    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const e0 = LVW.eff; lvsDraw(); if (LVW.eff === e0) rp(); }); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); if (LVW.pin && !el.classList.contains("drag")) { const r = document.getElementById("topLv")?.getBoundingClientRect(); if (r && el.__xy && Math.abs(r.left - el.__xy[0]) > 1) lvwPlace(el, false); } }, 1000);      // ghim: thanh trên đổi bố cục (dải trạng thái bot hiện / ẩn) → viên theo ô
   }
   const L = D.live, I = lvwItems(D), sig = [...I.live, ...I.paper].map((x) => x.sym + x.st).join(",") + "|" + (L?.last?.[0]?.t2 || "") + (D.paper?.last?.[0]?.t1 || "");
   if (LVW.sig && sig !== LVW.sig) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }      // có lệnh mới / vừa khớp / vừa đóng → nháy nhẹ
   LVW.sig = sig;
   const P = lvwParts(D), set = (sel, k, html) => { if (LVW.h[k] === html) return; LVW.h[k] = html; const n = el.querySelector(sel); if (!n) return; if (k === "body") { const y = n.scrollTop; n.innerHTML = html; n.scrollTop = y; } else n.innerHTML = html; };
+  // 📱 điện thoại / máy tính bảng: không có lệnh mở hay chờ → viên tự thu thành chấm dính mép (không che nội dung); có lệnh → hiện lại viên đầy đủ
+  LVW.eff = LVW.mode === "mini" && !RAILQ0() && P.st !== "hot" && !P.any ? "dot" : LVW.mode; el.classList.toggle("lvw-auto", LVW.eff !== LVW.mode);
   const pillEl = el.querySelector(".lvw-pill"); set(".lvw-pill", "pill", P.pill); pillEl.setAttribute("aria-expanded", String(LVW.mode === "full"));
-  pillEl.title = LVW.mode === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
-  ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.mode === m)); el.classList.toggle("lvw-hot", P.st === "hot");
+  pillEl.title = (LVW.eff || LVW.mode) === "dot" ? bi("Lệnh bot – bấm để hiện viên · kéo ra khỏi mép để mở", "Bot trades – tap to show the pill · drag away from the edge to expand") : bi("Bấm để mở / thu · kéo tới mép bất kỳ · vuốt sát mép để cất thành chấm", "Tap to open / close · drag to any edge · swipe into the edge to tuck away");
+  ["full", "mini", "dot"].forEach((m) => el.classList.toggle("m-" + m, LVW.eff === m)); el.classList.toggle("lvw-hot", P.st === "hot");
   document.getElementById("lvwBd")?.classList.toggle("on", LVW.mode === "full" && MOB.matches); if (LVW.mode !== "full") el.__gdOpen = 0;
   if (LVW.mode === "full") { set(".lvw-segw", "seg", P.seg); set(".lvw-body", "body", P.body); set(".lvw-f", "foot", P.foot); if (el.classList.contains("lvw-mfull")) requestAnimationFrame(() => lvwGarden(el, P)); else lvwHold(el, D, P); }
   lvwTick(true); lvwPlace(el, !first && !el.classList.contains("drag") && (LVW.mode !== "full" || MOB.matches)); el.__pw = el.querySelector(".lvw-pill").offsetWidth;      // thẻ đang mở: viên đổi bề rộng (đổi tab / số mới) → đặt lại tức thì, thẻ đứng yên – không trượt ngang
@@ -8893,7 +8906,7 @@ async function viewChanges(focusV) {
   if (!R0.length) { app().innerHTML = `<div class="ph"><h1>${bi("Có gì mới", "What's new")}</h1></div><div class="empty">${bi("Chưa tải được nhật ký phiên bản – thử lại khi có mạng.", "Couldn't load the changelog – try again when online.")}</div>`; return; }
   const R = R0.map((r) => ({ ...r, it: r.it.filter(chgVis) })).filter((r) => r.it.length), seen = chgSeen(R0), EN = I18N.lang !== "vi";
   const st = { c: lsGet("chg_c", "all"), a: lsGet("chg_a", "all"), q: "" };
-  const all = R.flatMap((r) => r.it), cnt = (k, v) => all.filter((x) => x[k] === v).length, days = Math.max(1, Math.round((Date.parse(R[0].d) - Date.parse(R[R.length - 1].d)) / 864e5) + 1);
+  const all = R.flatMap((r) => r.it), cnt = (k, v) => all.filter((x) => x[k] === v).length, rd = (r) => Date.parse(r.d || String(r.v || "").replace(/\./g, "-")), days = Math.max(1, Math.round((rd(R[0]) - rd(R[R.length - 1])) / 864e5) + 1) || 1;      // thiếu ngày "d" → lấy từ số phiên bản 2026.11.23
   const unseen = chgUnseen(R, seen), CS = Object.keys(CHG_C).filter((k) => cnt("c", k)), AS = Object.keys(CHG_A).filter((k) => cnt("a", k));
   if (!CS.includes(st.c)) st.c = "all"; if (st.a !== "all" && !AS.includes(st.a)) st.a = "all";
   const tx = (x, k) => (EN && x[k + "e"]) || x[k] || "";
