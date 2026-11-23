@@ -198,6 +198,14 @@
      "te": "The #/market link opens the Market page instead of \"page not found\"",
      "d": "Trang không tồn tại giờ có thêm lối tắt tìm trang.",
      "de": "Unknown pages now also offer a quick page search."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Vuốt mở bảng \"Thêm\" đè lên Bảng phụ: nền không còn tối sầm rồi sáng bật lại",
+     "te": "Swiping \"More\" over the side panel: the background no longer darkens then flashes back",
+     "d": "Trước 2 lớp nền tối chồng lên nhau khi bảng \"Thêm\" trượt ra, rồi Bảng phụ phía sau đóng lại làm nền sáng bật lên. Giờ nền tối của Bảng phụ nhạt dần đúng bằng phần bảng \"Thêm\" đậm lên – độ tối của trang giữ nguyên suốt cú vuốt.",
+     "de": "Two dark overlays used to stack while \"More\" slid in, then the panel behind closed and the page flashed brighter. Now the panel's overlay fades exactly as the \"More\" overlay darkens, so the page stays equally dim throughout the swipe."
     }
    ]
   },

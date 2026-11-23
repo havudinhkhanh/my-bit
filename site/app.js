@@ -1055,19 +1055,24 @@ function msReach() { const B = $("#msheetB"), R = B?.querySelector(".ms-reach");
 const msSide = () => { const el = $("#msheet"); return { el, sh: el?.querySelector(".msheet-in"), bg: el?.querySelector(".msheet-bg") }; };
 function msSideStart() { const { el, sh, bg } = msSide(); if (!el) return 0; mSheet(true); el.classList.add("side"); msReach(); sh.style.transition = bg.style.transition = "none"; sh.style.setProperty("--msk", "0"); sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0"; return (sh.offsetWidth || innerWidth * 0.88) + 12; }
 // nền tối chỉ đậm dần khi ngăn kéo ra quá ~15% (hé ở mép thì chưa tối) · bóng đổ cũng lớn dần theo, không bật ra cả mảng
+// 🌗 "Thêm" trượt ĐÈ lên Bảng phụ đang mở: nền tối của Bảng phụ nhạt dần đúng bằng phần nền tối của "Thêm" đậm lên → độ tối của trang KHÔNG đổi
+//    (trước: 2 lớp tối chồng nhau → trang tối sầm lại, rồi Bảng phụ đóng ở phía sau → sáng bật lại)
+const MS_A = 0.45;      // độ đậm nền tối của cả 2 lớp (.msheet-bg, .pnshade)
+function msPnShade(k, tr) { if (!document.body.classList.contains("pn-sheet")) return; const S = $("#pnShade"); if (!S) return;
+  S.style.transition = tr || "none"; S.style.opacity = String(Math.max(0, Math.min(1, (1 - (1 - MS_A) / (1 - MS_A * k)) / MS_A))); }
 function msSideMove(off, W, anim) { const { sh, bg } = msSide(); if (!sh) return; const k = Math.max(0, Math.min(1, (1 - off / W - 0.15) / 0.85));
   sh.style.transition = anim ? "transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s" : "none"; bg.style.transition = anim ? "opacity .28s" : "none";
-  sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(k); sh.style.setProperty("--msk", String(Math.max(0.15, k))); }
+  sh.style.transform = `translateX(${off}px)`; bg.style.opacity = String(k); sh.style.setProperty("--msk", String(Math.max(0.15, k))); msPnShade(k, anim ? "opacity .28s" : ""); }
 function msSideEnd(open) {
   const { el, sh, bg } = msSide(); if (!sh) return; const T = "transform .26s " + PN_EASE;
   sh.style.transition = T; bg.style.transition = "opacity .26s";
-  if (open) { sh.style.transform = "translateX(0)"; bg.style.opacity = "1"; setTimeout(() => { sh.style.transition = bg.style.transition = ""; }, 280); return; }
+  if (open) { sh.style.transform = "translateX(0)"; bg.style.opacity = "1"; msPnShade(1, "opacity .26s"); setTimeout(() => { sh.style.transition = bg.style.transition = ""; }, 280); return; }
   msSideClose();
 }
 function msSideClose() {
-  const { el, sh, bg } = msSide(); if (!sh) return;
+  const { el, sh, bg } = msSide(); if (!sh) return; msPnShade(0, "opacity .22s");
   sh.style.transition = "transform .22s " + PN_EASE; bg.style.transition = "opacity .22s"; sh.style.transform = "translateX(calc(100% + 12px))"; bg.style.opacity = "0";
-  setTimeout(() => { el.hidden = true; el.classList.remove("side"); sh.style.transform = sh.style.transition = bg.style.opacity = bg.style.transition = ""; document.body.classList.remove("msheet-on"); }, 240);
+  setTimeout(() => { el.hidden = true; el.classList.remove("side"); sh.style.transform = sh.style.transition = bg.style.opacity = bg.style.transition = ""; document.body.classList.remove("msheet-on"); const S = $("#pnShade"); if (S) S.style.transition = ""; }, 240);
 }
 document.addEventListener("click", (e) => {
   if (e.target.closest("#navMore")) { if (PL.matches && $("#msheet")?.hidden) { if (msSideStart()) requestAnimationFrame(() => msSideEnd(true)); return; } mSheet($("#msheet")?.hidden); return; }      // xoay ngang: "Thêm" mở dạng ngăn kéo phải (tấm từ đáy lên quá thấp)
@@ -1722,7 +1727,7 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
       // đã giữ để chọn "Thêm": thả tay tại chỗ / kéo ra 1 chút là mở hẳn; kéo ngược ra mép (đẩy ngăn kéo vào) thì huỷ
       const open = s.m === "mclose" ? !(s.off / s.W > 0.33 || v > 0.5) : s.held ? s.off <= s.W - s.peek + 6 : shown > 0.25 || v > 0.35;
       msSideEnd(open);
-      if (open && s.m !== "mclose") { navigator.vibrate?.(6); if (s.m === "more2") setTimeout(() => { const b = document.body; b.classList.remove("pn-sheet"); $("#pnav").style.transform = ""; $("#pnShade").style.opacity = ""; }, 280); }
+      if (open && s.m !== "mclose") { navigator.vibrate?.(6); if (s.m === "more2") setTimeout(() => { const b = document.body; b.classList.remove("pn-sheet"); $("#pnav").style.transform = ""; $("#pnShade").style.opacity = $("#pnShade").style.transition = ""; }, 280); }
       return;
     }
     if (!s.lock) return;
