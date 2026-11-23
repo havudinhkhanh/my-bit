@@ -362,6 +362,16 @@
      "te": "Quick search (Ctrl K) gets a \"✨ For you\" section",
      "d": "Mở mà chưa gõ gì: coin đang có lệnh, coin hay xem (kèm giá) và trang anh hay vào nằm sẵn trên cùng.",
      "de": "Open it without typing: coins with open trades, coins you view often (with price) and your frequent pages are right on top."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "hi": 1,
+     "f": "nlq",
+     "t": "✨ Tìm nhanh hiểu câu nói: \"lệnh lỗ tuần này\", \"funding SOL\", \"tắt bot\"…",
+     "te": "✨ Quick search understands plain sentences: \"losing trades this week\", \"funding SOL\", \"turn off bot\"…",
+     "d": "Gõ tự nhiên (tiếng Việt có dấu hay không dấu, hoặc tiếng Anh): tự nhận coin, chủ đề (funding, hỗ trợ/kháng cự, định giá, kỹ thuật, kế hoạch lệnh), khoảng thời gian (hôm nay, tuần, tháng) và lời/lỗ → mở đúng trang, đúng tab, lọc sẵn; kèm số nhanh (giá, funding). Thao tác nhạy cảm như bật/tắt bot chỉ đưa tới đúng công tắc để anh tự bấm. Chạy ngay trên máy, không gửi câu đi đâu.",
+     "de": "Type naturally (Vietnamese with or without accents, or English): it spots the coin, topic (funding, support/resistance, valuation, technicals, trade plan), time range (today, week, month) and win/loss → opens the right page and tab, pre-filtered, with quick numbers (price, funding). Sensitive actions like turning the bot on/off only take you to the switch so you press it yourself. Runs on your device; nothing is sent anywhere."
     }
    ]
   },

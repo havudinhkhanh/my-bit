@@ -7157,6 +7157,47 @@ function initPop() {
   addEventListener("resize", () => popClose()); addEventListener("hashchange", () => popClose());
 }
 
+// ================================================================ ✨ HIỂU CÂU NÓI (gói Pro) – gõ tự nhiên vào Ctrl K: "funding SOL", "lệnh lỗ tuần này", "SOL hỗ trợ ở đâu",
+//    "tắt bot", "coin tăng mạnh"… → hiểu ý (coin + chủ đề + khoảng thời gian + thao tác) và đưa tới ĐÚNG chỗ, kèm số liệu nhanh nếu có. Chạy ngay trên máy, không gửi câu đi đâu.
+const NLQ_STOP = new Set(["LO", "LOI", "BOT", "TOP", "GIA", "OI", "VS", "AI", "ON", "OFF", "THE", "AND", "MUA", "BAN", "LENH", "NAY", "TUAN", "NAM", "NGAY", "CAO", "IN", "IS", "IT", "TO", "OF", "ME", "MY", "UP", "SO", "LA", "VA", "CO"]);
+function nlq(q) {
+  const t = " " + fold(q).replace(/[?!.,;:]/g, " ").replace(/\s+/g, " ").trim() + " ", has = (re) => re.test(t);
+  if (t.trim().split(" ").length < 2 && !/funding|bieu do|chart/.test(t)) return [];      // 1 từ → để tìm thường lo
+  // coin: mã viết tắt (SOL) hoặc tên (solana)
+  let K = null; for (const w of q.toUpperCase().replace(/[^A-Z0-9 ]/g, " ").split(/\s+/)) if (w.length >= 2 && !NLQ_STOP.has(w) && BYK?.[w]) { K = w; break; }
+  if (!K) { const r = (COINS?.rows || []).find((r) => r.n && r.n.length >= 4 && t.includes(" " + fold(r.n) + " ")); if (r) K = r.k; }
+  const R = K ? BYK[K] : null, out = [], G = bi("✨ Hiểu ý anh", "✨ Understood"), add = (label, sub, go, right = "") => out.push({ g: G, label, sub, go, right, icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>' });
+  const days = has(/ hom nay | today | 24h /) ? 1 : has(/ hom qua | yesterday /) ? 2 : has(/ tuan | 7 ngay | week /) ? 7 : has(/ thang | 30 ngay | month /) ? 30 : has(/ 90 ngay | quy | quarter /) ? 90 : has(/ tat ca | tu dau | all time /) ? "all" : null;
+  const res = has(/ (lo|thua|loss|losing|am) /) ? "loss" : has(/ (loi|thang|win|winning|lai) /) ? "win" : "all", dLab = { 1: bi("hôm nay", "today"), 2: bi("2 ngày", "2 days"), 7: bi("7 ngày", "7 days"), 30: bi("30 ngày", "30 days"), 90: bi("90 ngày", "90 days"), all: bi("từ đầu", "all time") }[days];
+  const J = (go) => () => { const j = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 }); if (days) j.R = days; j.res = res; j.q = K || ""; go(); };
+  // — về LỆNH / KẾT QUẢ
+  if (has(/ (lenh|trade|trades|giao dich|ket qua|so lenh|pnl|loi lo|lich su) /) && !has(/ dang mo | vi the | dang giu | open | ke hoach | plan | tinh lenh /)) {
+    add(`${bi("Sổ lệnh", "Trade log")}${res === "loss" ? bi(" · lệnh lỗ", " · losing") : res === "win" ? bi(" · lệnh lời", " · winning") : ""}${K ? ` · ${K}` : ""}${dLab ? ` · ${dLab}` : ""}`, bi("Kết quả & sổ lệnh – lọc sẵn theo câu anh gõ", "Results & trade log – pre-filtered from your query"), J(() => { location.hash = "#/bot/journal"; }));
+    if (has(/ ngay | lich | calendar | theo ngay /)) add(bi("Lịch lời/lỗ theo ngày", "Daily P/L calendar"), "", () => { location.hash = "#/bot/days"; });
+  }
+  if (has(/ dang mo | vi the | dang giu | open (trade|position)s? | dang cho /)) add(bi("Lệnh đang mở & chờ khớp", "Open & pending trades"), bi("Bot Phản Xạ › Lệnh", "Reflex Bot › Trades"), () => { window.__scTab = "ord"; lsSet("sctab", "ord"); location.hash = "#/bot/scalp"; });
+  // — THAO TÁC BOT (không bật/tắt hộ – đưa tới đúng công tắc cho anh tự bấm)
+  if (has(/ (tat|bat|dung|chay|ngung|mo|khoi dong) bot | (turn|switch) (on|off)| (stop|start|pause) (the )?bot /)) add(has(/ (tat|dung|ngung|off|stop|pause) /) ? bi("Tắt bot Phản Xạ", "Turn the Reflex Bot off") : bi("Bật bot Phản Xạ", "Turn the Reflex Bot on"), bi("mở trang bot – công tắc ở dải trạng thái trên cùng (anh tự bấm để chắc chắn)", "opens the bot page – the switch is in the status strip (you press it)"), () => { location.hash = "#/bot/scalp"; setTimeout(() => { const sw = document.getElementById("scOn"); if (sw) { sw.scrollIntoView({ block: "center" }); sw.animate?.([{ boxShadow: "0 0 0 0 rgba(212,160,23,.0)" }, { boxShadow: "0 0 0 6px rgba(212,160,23,.55)" }, { boxShadow: "0 0 0 0 rgba(212,160,23,0)" }], { duration: 1200, iterations: 2 }); } }, 900); });
+  // — VỀ 1 COIN
+  if (K) {
+    const C = (sub, lab, info, right = "") => add(`${lab} · ${K}`, info, () => { location.hash = `#/c/${K}${sub ? "/" + sub : ""}`; }, right);
+    if (has(/ funding | phai sinh | oi | open interest | long ?short | basis | futures /)) C("fut", bi("Funding & phái sinh", "Funding & derivatives"), R?.fx ? `funding 8h ${f8s(R.f8)}` : bi("chưa có futures trên sàn theo dõi", "no futures on tracked exchanges"), R?.fx ? `<span class="${f8c(R.f8)}">${f8s(R.f8)}</span>` : "");
+    if (has(/ ho tro | khang cu | support | resistance | muc gia | vung gia | dinh | day /)) C("lv", bi("Mức giá: hỗ trợ / kháng cự", "Levels: support / resistance"), bi("các vùng giá quan trọng & thời gian", "key price zones & timing"));
+    if (has(/ dinh gia | re hay dat | valuation | mvrv | dat khong | re khong /)) C("val", bi("Định giá", "Valuation"), R?.vd ? `${bi("hiện:", "now:")} ${R.vd}` : "");
+    if (has(/ ky thuat | rsi | macd | chi bao | indicator | ema | ma200 /)) C("tech", bi("Kỹ thuật & chỉ báo", "Technicals & indicators"), "");
+    if (has(/ smc | vao lenh | diem vao | entry | setup /)) C("smc", bi("SMC & điểm vào lệnh", "SMC & entries"), "");
+    if (has(/ ke hoach | plan | tinh lenh | khoi luong | size | don bay /)) add(`${bi("Lên kế hoạch lệnh", "Plan a trade")} · ${K}`, bi("tính khối lượng, đòn bẩy, cắt lỗ theo vốn của anh", "size, leverage and stop from your capital"), () => { location.hash = `#/plan/${K}`; });
+    if (!out.length || has(/ gia | bao nhieu | price | bieu do | chart | tong quan | the nao | ra sao /)) C("", bi("Tổng quan & biểu đồ", "Overview & chart"), R ? `${px(R.p)} · 24h ${pct(R.r1, 1)}` : "", R ? `${px(R.p)} <i class="${cls(R.r1)}">${pct(R.r1, 1)}</i>` : "");
+  } else {
+    // — THỊ TRƯỜNG CHUNG
+    if (has(/ funding /)) add(bi("Funding cao nhất / thấp nhất", "Highest / lowest funding"), bi("Phái sinh & funding", "Derivatives & funding"), () => { location.hash = "#/futures"; });
+    if (has(/ (tang|giam) (manh|nhieu|nhat) | top (tang|giam) | gainers | losers | pump | dump | bien dong /)) add(bi("Coin biến động mạnh nhất lúc này", "Biggest movers right now"), bi("Bảng giá trực tiếp – xếp theo % 5 phút / 24h", "Live prices – sorted by 5-min / 24h %"), () => { location.hash = "#/live"; });
+    if (has(/ co hoi | tin hieu | signal | setup | nen mua gi | coin nao /)) add(bi("Cơ hội hôm nay", "Today's opportunities"), bi("dữ kiện & thống kê lịch sử – không phải lời khuyên", "facts & historical stats – not advice"), () => { location.hash = "#/ideas"; });
+    if (has(/ thi truong | so hai | tham lam | fear | greed | den | market /)) add(bi("Đèn thị trường & tâm lý", "Market light & sentiment"), "", () => { location.hash = "#/"; });
+  }
+  if (out.length && typeof can === "function" && !can("nlq")) return [{ g: G, label: bi("✨ Hiểu câu nói tự nhiên – có ở gói Pro", "✨ Natural-language search – Pro plan"), sub: bi(`ví dụ câu của anh sẽ mở: ${out[0].label}`, `your query would open: ${out[0].label}`), go: () => { location.hash = "#/account"; }, icon: out[0].icon }];
+  return out.slice(0, 5);
+}
 // ================================================================ Ctrl K – bảng lệnh nhanh: tìm coin, nhảy tới mọi trang, đổi giao diện / ngôn ngữ
 function cmdkItems(q) {
   const t = fold(q.trim()), T = q.trim().toUpperCase(), out = [];
@@ -7176,6 +7217,7 @@ function cmdkItems(q) {
     try { autoTop(3).forEach((o) => fy.push({ g: G, label: o.t, sub: bi("trang anh hay vào", "a page you visit often"), icon: o.nsvg || o.svg || "", go: () => { location.hash = o.href; } })); } catch (e) { /* bỏ qua */ }
     return [...fy, ...pages, ...acts];
   }
+  const NL = nlq(q); if (NL.length) out.push(...NL);
   const coinsHit = (COINS?.rows || []).filter((r) => r.k.startsWith(T) || fold(r.n).includes(t))
     .sort((a, b) => (b.k === T) - (a.k === T) || (b.k.startsWith(T) - a.k.startsWith(T)) || (b.mc || 0) - (a.mc || 0)).slice(0, 6)
     .map((r) => ({ g: "Coin", html: `<b>${esc(r.k)}</b>`, label: r.k, sub: r.n || "", right: `${px(r.p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`, go: () => { location.hash = `#/c/${r.k}`; } }));
@@ -7200,7 +7242,7 @@ function cmdk(open = true) {
     } return; }
   if (!el) {
     document.body.insertAdjacentHTML("beforeend", `<div id="cmdk" class="cmdk" hidden><div class="cmdk-bg" data-x></div><div class="cmdk-in" role="dialog" aria-label="Tìm nhanh">
-      <div class="cmdk-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="cmdkQ" type="search" autocomplete="off" spellcheck="false" placeholder="Tìm coin, trang hoặc thao tác…"><kbd>Esc</kbd><button type="button" class="cmdk-x" data-x>Huỷ</button></div>
+      <div class="cmdk-q"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="cmdkQ" type="search" autocomplete="off" spellcheck="false" placeholder="Tìm coin, trang… hoặc gõ câu: “lệnh lỗ tuần này”, “funding SOL”"><kbd>Esc</kbd><button type="button" class="cmdk-x" data-x>Huỷ</button></div>
       <div class="cmdk-l" id="cmdkL" role="listbox"></div><div class="cmdk-f"><span><kbd>↑</kbd><kbd>↓</kbd> chọn</span><span><kbd>Enter</kbd> mở</span><span><kbd>Ctrl</kbd><kbd>K</kbd> mở / đóng</span><span class="cmdk-fk"><kbd>?</kbd> mọi phím tắt</span></div></div></div>`);
     el = $("#cmdk");
     const q = $("#cmdkQ"), L = $("#cmdkL"); let items = [], sel = 0;

@@ -35,7 +35,9 @@
         "notify_push",
         "notify_email",
         "bot",
-        "acct_history"
+        "acct_history",
+        "nlq",
+        "brief"
       ],
       "limits": {
         "holdings": 200,
@@ -57,7 +59,9 @@
     "notify_push": "Thông báo đẩy",
     "notify_email": "Thông báo qua email",
     "bot": "Bot giao dịch tự động (sàn thử)",
-    "acct_history": "Lịch sử tài khoản Binance từ ngày đầu (sổ lớn tới ~24 MB)"
+    "acct_history": "Lịch sử tài khoản Binance từ ngày đầu (sổ lớn tới ~24 MB)",
+    "nlq": "Tìm bằng câu nói tự nhiên (Ctrl K hiểu ý)",
+    "brief": "Bản tin & nhận định tự động mỗi ngày"
   },
   "paths": [],
   "strip": []
