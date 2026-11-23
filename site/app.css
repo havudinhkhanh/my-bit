@@ -7241,3 +7241,12 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 .fd-tip{position:fixed;z-index:9000;max-width:min(440px,calc(100vw - 24px));padding:8px 11px;border-radius:10px;background:var(--surface);color:var(--ink);box-shadow:0 8px 28px rgba(0,0,0,.18),0 0 0 1px var(--bd-2);font-size:.8125rem;line-height:1.45;pointer-events:none;white-space:normal;overflow-wrap:anywhere}
 .fd-tip[hidden]{display:none}
 .fd-tip .sc-ftg{margin-right:4px}
+/* thẻ lệnh hẹp: tên mức (Chốt lời / Cắt lỗ / Thanh lý) không bao giờ bẻ đôi; "cách x%" xuống dòng dưới tên, % ước tính xuống dưới số tiền */
+.sc-lvs.lvg .lv-l>b{white-space:nowrap}
+@container (max-width:380px){
+  .sc-lvs.lvg .lv-g{display:block;margin-left:0}
+  .sc-lvs.lvg .k-est i{display:block}
+}
+/* S · M · L: thanh chọn cùng kiểu kính trượt như các thanh chọn khác (trước: 3 nút xám rời) */
+.fd-sz.bseg{gap:0;padding:2px;margin:0;border-radius:9px;background:var(--sunk)}
+.fd-sz.bseg button{min-width:30px;padding:3px 9px;font-size:.75rem!important;font-weight:650;letter-spacing:.02em;border-radius:7px}

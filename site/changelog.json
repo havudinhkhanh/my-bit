@@ -41,6 +41,22 @@
      "d": "Bỏ vài kiểu định dạng khiến mỗi lần nhãn giá / chú thích nến đổi là trình duyệt tính lại cả trang; nhãn tên đường giá không còn tính lại vị trí mỗi lần chuột nhích. Đo trên máy giả lập chậm: thời gian xử lý khi rê chuột giảm khoảng 3 lần, khung hình chậm nhất từ ~0,9 giây còn ~0,17 giây.",
      "de": "Removed styling patterns that made the browser restyle the whole page whenever a price label or candle legend changed, and price-line labels no longer re-measure on every mouse move. On a throttled test machine, mouse-move work dropped about 3× and the slowest frame went from ~0.9 s to ~0.17 s.",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh hẹp: chữ \"Chốt lời\", \"Thanh lý\" không còn bị bẻ đôi",
+     "te": "Narrow trade cards: \"Target\" and \"Liquidation\" labels no longer split across lines",
+     "d": "Khoảng cách tới giá xuống dòng dưới tên mức, % ước tính xuống dưới số tiền.",
+     "de": "The distance moves under the label and the estimated % under the amount."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Nút độ dài khung sự kiện thành thanh chọn S · M · L",
+     "te": "Event list size is now an S · M · L segmented switch",
+     "d": "Cùng kiểu với các thanh chọn khác, gọn hơn; rê chuột lên để xem giải thích từng mức.",
+     "de": "Matches the other switches and takes less room; hover a letter for what it does."
     }
    ]
   },
