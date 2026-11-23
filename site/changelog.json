@@ -133,6 +133,22 @@
      "te": "The top bar spans the full width; the left rail starts right below it",
      "d": "Bỏ logo trên thanh – các mục tràn hết sang trái, thanh trên rộng thêm cho trạng thái bot, viên ghim và băng giá.",
      "de": "The logo is gone from the bar – items extend all the way left, giving more room for bot status, the pinned pill and the ticker."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Thẻ lệnh tay gọn và dễ đọc hơn",
+     "te": "Manual trade card is tidier and easier to read",
+     "d": "Vào · khối lượng · giá trị thành 1 hàng; thang giá có nhãn (vào · chốt · cắt lỗ · thanh lý, thanh lý ngoài thang có mũi tên); funding gộp 1 dòng: đã nhận / đã trả + kỳ tới; báo động nằm gọn bên phải.",
+     "de": "Entry · size · value on one row; the price ladder is labelled (entry · target · stop · liquidation, with an arrow when liquidation is off-scale); funding on one line: received / paid so far + next period; the alert chip sits neatly on the right."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh tay: % ở chốt lời / cắt lỗ / thanh lý tính theo tiền ký quỹ",
+     "te": "Manual card: % at target / stop / liquidation is now of the margin",
+     "d": "Khớp với \"% lệnh\" ở đầu thẻ; thanh lý ký quỹ cô lập ghi −100% (mất trọn ký quỹ) – trước ghi % chênh giá (−96%) lệch với số tiền.",
+     "de": "Matches the \"% of trade\" figure at the top; isolated liquidation shows −100% (whole margin lost) – it used to show the price move (−96%), which didn't match the amount."
     }
    ]
   },

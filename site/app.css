@@ -7364,3 +7364,14 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
   html.has-toplv .topst .hz2-l{overflow:visible}
 }
 @media (min-width:1180px){ .top a.brand{display:none!important} }      /* bỏ logo trên thanh trên cùng – các mục tràn sang trái, thêm chỗ cho trạng thái bot & băng giá */
+
+/* ✋ thẻ lệnh tay gọn & dễ đọc hơn */
+.sc-oc .sc-ent{display:flex;flex-wrap:wrap;gap:2px 14px;color:var(--ink-3)}
+.sc-oc .sc-ent small{white-space:nowrap}.sc-oc .sc-ent b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.sc-lad{margin-bottom:16px!important}
+.sc-lad .ll{position:absolute;top:100%;margin-top:1px;transform:translateX(-50%);font-size:.6rem;line-height:1.1;font-weight:600;color:var(--ink-3);white-space:nowrap;pointer-events:none}
+.sc-lad .ll.tp{color:var(--up)}.sc-lad .ll.sl,.sc-lad .ll.lq{color:var(--down)}
+.sc-oc .sc-meta{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:2px 10px}
+.sc-oc .sc-meta>small{grid-column:1;min-width:0}
+.sc-oc .sc-meta>.sc-al{grid-column:2;grid-row:1/span 2;margin:0!important;align-self:center}
+.sc-oc .sc-fnd b{font-weight:600}
