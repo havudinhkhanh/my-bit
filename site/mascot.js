@@ -684,7 +684,8 @@
       // ⚖️ quán tính: chạy nước rút / chạy thì tăng tốc chúi người tới, phanh thì ngả người ra sau (lò xo xoay quanh chân – dùng chung bộ lò xo chao người)
       if (dt > 0 && (S.pose === "dash" || S.pose === "run")) { S.swT = performance.now(); S.swTgt = Math.max(-6, Math.min(6, (v - v0) / dt / Ac * 5)) * (Math.sign(d) === S.face ? 1 : -1); }
       if (opt.slip && !opt.did && Math.abs(d) < Math.abs(opt.at)) { opt.did = 1; setT(`translate3d(${snap(S.x)}px,0,0)`); return slip(); }
-      requestAnimationFrame(f);
+      // chế độ tiết kiệm: thân mèo vẽ 30 khung/giây → vòng canh đường đi cũng chỉ cần ~20 lần/giây (vị trí thật do hoạt ảnh GPU chạy) – không đánh thức trình duyệt thêm 30 khung/giây
+      if (ECO) setTimeout(() => requestAnimationFrame(f), 45); else requestAnimationFrame(f);
     };
     requestAnimationFrame(f);
   }

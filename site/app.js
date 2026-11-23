@@ -288,8 +288,10 @@ addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweigh
   const KID = ".kpis>div>dd,.stg>div>dd,.lv-kp>span>b,.cmp-sum>span>b,.cmp-sum>button>b,.tx-kpi>div>b,.iv-k>b,.opp-sum .os-g>div>b,.pvs>div>b,.bexp>div>b,.lm-st>b";
   const one = (x) => { const p = x.parentElement; if (!p) return; let u = 0, d = 0; for (const c of p.children) { if (c.tagName !== x.tagName) continue; const L = c.classList; if (L.contains("down")) d = 1; else if (L.contains("up")) u = 1; }
     const v = d ? "d" : u ? "u" : ""; if ((p.dataset.kt || "") !== v) { if (v) p.dataset.kt = v; else delete p.dataset.kt; } };
-  const scan = (n) => { if (n.nodeType !== 1) return; if (n.matches(KID)) one(n); if (n.firstElementChild) n.querySelectorAll(KID).forEach(one); };
-  const go = () => { scan(document.body); new MutationObserver((L) => { for (const m of L) { if (m.type === "attributes") { if (m.target.matches?.(KID)) one(m.target); } else m.addedNodes.forEach(scan); } })
+  // ô số có biểu đồ nhỏ (svg.spk) → lớp st-spk cho ô (thay :has(.spk) – luật đó bắt tính lại kiểu > 1.500 phần tử mỗi lần băng giá đổi chữ)
+  const spk = (n) => { const st = n.closest?.(".st"); if (st && !st.classList.contains("st-spk")) st.classList.add("st-spk"); };
+  const scan = (n) => { if (n.nodeType !== 1) return; if (n.matches(KID)) one(n); if (n.firstElementChild) { n.querySelectorAll(KID).forEach(one); n.querySelectorAll(".st .spk").forEach(spk); } if (n.matches(".spk")) spk(n); };
+  const go = () => { scan(document.body); new MutationObserver((L) => { for (const m of L) { if (m.type === "attributes") { const t = m.target; if (t.matches?.(KID)) one(t); else if (t.classList?.contains("st") && !t.classList.contains("st-spk") && t.querySelector(".spk")) t.classList.add("st-spk"); } else m.addedNodes.forEach(scan); } })
     .observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] }); };
   document.body ? go() : addEventListener("DOMContentLoaded", go, { once: true });
 })();
@@ -1340,8 +1342,9 @@ addEventListener("touchmove", (e) => {
 document.addEventListener("pointerover", (e) => {
   const it = e.target.closest?.(".ios-menu-in>a,.ios-menu-in>button,.sc-menu>.btn,.sc-menu>button,.memenu>a,.memenu>button,.pop>.pop-i"); if (!it || e.pointerType === "touch") return;
   const m = it.parentElement; let hl = m.querySelector(":scope>.ios-hl");
-  if (!hl) { hl = document.createElement("i"); hl.className = "ios-hl jump"; hl.setAttribute("aria-hidden", "true"); m.prepend(hl);
+  if (!hl) { hl = document.createElement("i"); hl.className = "ios-hl jump"; hl.setAttribute("aria-hidden", "true"); m.prepend(hl); m.classList.add("has-hl");      // lớp thay cho :not(:has(>.ios-hl)) trong CSS – luật :has kiểu đó bắt tính lại kiểu cả trang mỗi lần chữ đổi
     m.addEventListener("pointerleave", () => hl.classList.remove("on")); }
+  if (!m.classList.contains("has-hl")) m.classList.add("has-hl");
   const first = !hl.classList.contains("on"); hl.classList.toggle("jump", first);
   hl.style.transform = `translateY(${it.offsetTop}px)`; hl.style.height = it.offsetHeight + "px"; hl.style.left = it.offsetLeft + "px"; hl.style.right = "auto"; hl.style.width = it.offsetWidth + "px";
   if (first) { void hl.offsetWidth; } hl.classList.add("on"); requestAnimationFrame(() => hl.classList.remove("jump"));
@@ -1641,13 +1644,13 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   }, { passive: true });
   T.addEventListener("touchmove", (e) => {
     if (!st) return; const dx = e.touches[0].clientX - st.x0, dy = e.touches[0].clientY - st.y0;
-    if (!st.lock) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { st = null; return; } if (dy > -10) return; st.lock = true; mkHint(st.side, st.x0); T.classList.add("tp-pull"); try { setTab(CUR_TAB); } catch (x) { /* bỏ qua */ } }      // chạm thanh tab đã sáng sẵn nút dưới ngón tay (phản hồi nhanh) → đang kéo thì trả lại đúng nút của trang hiện tại
+    if (!st.lock) { if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) { st = null; return; } if (dy > -10) return; st.lock = true; mkHint(st.side, st.x0); T.classList.add("tp-pull"); document.body.classList.add("tp-pull-on"); try { setTab(CUR_TAB); } catch (x) { /* bỏ qua */ } }      // chạm thanh tab đã sáng sẵn nút dưới ngón tay (phản hồi nhanh) → đang kéo thì trả lại đúng nút của trang hiện tại
     if (e.cancelable) e.preventDefault();
     const d = Math.max(0, -dy), p = Math.min(1, d / TH); st.dy = d;
     hint.style.setProperty("--p", p.toFixed(3)); hint.style.setProperty("--lift", `${(16 * (1 - 1 / (d / 50 + 1))).toFixed(1)}px`);      // trồi lên tối đa ~16px, càng kéo càng nặng
     if (p >= 1 && !st.armed) { st.armed = true; hint.classList.add("go"); navigator.vibrate?.(8); } else if (p < 1 && st.armed) { st.armed = false; hint.classList.remove("go"); }
   }, { passive: false });
-  const drop = () => { T.classList.remove("tp-pull"); const h = hint; hint = null; if (h) { h.classList.add("out"); setTimeout(() => h.remove(), 220); } };
+  const drop = () => { T.classList.remove("tp-pull"); document.body.classList.remove("tp-pull-on"); const h = hint; hint = null; if (h) { h.classList.add("out"); setTimeout(() => h.remove(), 220); } };
   const end = () => {
     if (!st) return; const s = st; st = null; if (!s.lock) return;
     const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; addEventListener("click", eat, { capture: true, once: true }); setTimeout(() => removeEventListener("click", eat, { capture: true }), 400);      // không coi là chạm vào nút tab
@@ -1747,6 +1750,11 @@ function pageIn() {
     // các khung lần lượt trồi lên nhẹ (8px, cách nhau 35 ms, tối đa 8 khung đầu đang thấy) – chỉ transform/opacity nên không tốn
     const P = [...a.querySelectorAll(".panel, .lane, .kpis > *, .sc-kp > *")].filter((p) => !p.parentElement.closest(".panel, .lane")).filter((p) => { const r = p.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; }).slice(0, 8);
     P.forEach((p, i) => p.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 300, delay: i * 35, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }));
+    // 🎞️ cuộn tới khung nằm dưới màn hình lúc mở trang → khung trồi lên nhẹ đúng lúc lộ ra (1 lần / khung / lượt mở trang). IntersectionObserver gần như không tốn gì;
+    //    hoạt ảnh chỉ transform + opacity. Khung không bao giờ bị ẩn chờ – hoạt ảnh chỉ chạy khi khung đã vào màn hình
+    pageIn.io?.disconnect(); if ("IntersectionObserver" in window) { const io = new IntersectionObserver((L) => { for (const e of L) { if (!e.isIntersecting) continue; io.unobserve(e.target);
+        if (e.boundingClientRect.top > innerHeight * 0.55) e.target.animate([{ opacity: 0.001, transform: "translateY(18px) scale(.985)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: "cubic-bezier(.2,.8,.2,1)" }); } }, { rootMargin: "0px 0px -6% 0px" });
+      pageIn.io = io; [...a.querySelectorAll(":scope > .panel, :scope > .g > *, :scope > .lanes > *")].filter((p) => p.getBoundingClientRect().top >= innerHeight).slice(0, 40).forEach((p) => io.observe(p)); }
     return; } catch (e) { /* trình duyệt cũ */ } }
   a.classList.remove("pg-in"); requestAnimationFrame(() => a.classList.add("pg-in"));
 }
@@ -1820,7 +1828,8 @@ function sclApply() {
     const p = SCL.px[el.dataset.lpx]; if (!p) return;
     const o = +el.dataset.v || 0; if (p === o) return;
     el.dataset.v = p; setT(el, px(p));
-    if (o && el.animate) el.animate([{ backgroundColor: `color-mix(in srgb, ${p > o ? up : dn} 26%, transparent)` }, { backgroundColor: "transparent" }], { duration: 650, easing: "ease-out" });
+    // nháy màu khi giá đổi: lớp phủ ::after mờ dần bằng opacity (chạy trên GPU) – trước đổi màu nền từng khung trên luồng chính
+    if (o && el.animate) { const c = p > o ? "u" : "d"; if (el.dataset.fl !== c) el.dataset.fl = c; try { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 650, easing: "ease-out", pseudoElement: "::after" }); } catch (e) { /* trình duyệt cũ: bỏ nháy */ } }
   });
   let tot = 0, nn = 0; const seen = new Set();
   document.querySelectorAll("[data-lpnl]").forEach((el) => {
@@ -1850,7 +1859,7 @@ function sclApply() {
     const f = el.firstChild; if (f && f.nodeType === 3 && f.nextSibling) { const t2 = t + " "; if (f.data !== t2) f.data = t2; } else setT(el, t); });      // còn ⏳ (đang đặt trên Binance) phía sau → chỉ ghi phần chữ, giữ biểu tượng
   document.querySelectorAll("[data-lgap]").forEach((el) => { if (el.dataset.f === "1") return; const m = SCL.px[el.dataset.lgap]; if (!m) return; const g = (+el.dataset.sd > 0 ? m - +el.dataset.px : +el.dataset.px - m) / m * 100; const t = g > 0 ? (EN ? `${nf(g, 2)}% away` : `còn ${nf(g, 2)}%`) : bi("đang chạm", "touching"); setT(el, t); });
   const u = document.getElementById("scUpnl");
-  if (u && nn) { setC(u, "sc-up " + cls(+tot.toFixed(2))); setT(u, `${+tot.toFixed(2) > 0 ? "+" : ""}${usd2(tot)}`); }
+  if (u && nn) { setC(u, "sc-up " + cls(+tot.toFixed(2))); const t = `${+tot.toFixed(2) > 0 ? "+" : ""}${usd2(tot)}`; if (u.textContent !== t) { const o = u.__v; u.__v = tot; setT(u, t); if (o != null) numRoll(u, tot > o ? 1 : tot < o ? -1 : 0); } }
   document.querySelectorAll("[data-lt0]").forEach((el) => {
     const t0 = +el.dataset.lt0, h = +el.dataset.lh, left = Math.max(0, h - (now - t0) / 1000), f = el.querySelector(".sc-cd i"), s = el.querySelector("small");
     if (f) { const W = `${(100 - left / h * 100).toFixed(1)}%`; if (f.style.width !== W) f.style.width = W; }
@@ -3057,7 +3066,7 @@ async function ocRot(on) { const m = document.getElementById("ocChart"), P = m?.
   m.classList.add("rot"); rotBox(P); P.addEventListener("rotoff", () => ocRot(false), { once: true }); }
 function ocClose() { { const m0 = document.getElementById("ocChart"); if (m0 && (m0.classList.contains("rot") || m0.classList.contains("land"))) { if (ROTB.el && m0.contains(ROTB.el)) rotBox(null); unlockLand(); } }
  clearInterval(OCC.fdT); OCC.fdT = 0; OCC.fd = null; try { OCC.ws?.close(); } catch (e) { /* bỏ qua */ } OCC.ws = null; try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null; chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null; const m = document.getElementById("ocChart");
-  if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => m.remove(), 260); } }
+  if (m && !m.classList.contains("out")) { m.removeAttribute("id"); m.querySelectorAll("[id]").forEach((x) => x.removeAttribute("id")); m.classList.add("out"); m.classList.remove("on"); setTimeout(() => { m.remove(); if (!document.querySelector(".occ")) document.body.classList.remove("occ-on"); }, 260); } }
 // 💸 FUNDING + TỈ LỆ LONG/SHORT của mã đang xem (Binance futures): funding dương = phe Long trả phe Short (Long đông hơn), âm = ngược lại.
 //    Tỉ lệ tài khoản Long/Short (5 phút gần nhất) – gói Pro (cùng nhóm dữ liệu phái sinh như tường lệnh / vùng thanh lý). Tự làm mới mỗi phút khi biểu đồ đang mở.
 function ocFund(I) {
@@ -3110,7 +3119,7 @@ function ocOpen(I) {
   if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }      // mốc vừa gửi, máy chủ chưa báo về → nhãn ⏳
   ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
   const sec = /s$/.test(OCC.tf); if (sec && !BYK?.[I.base]?.sp) OCC.tf = "1m";
-  const m = document.createElement("div"); m.id = "ocChart"; m.className = "occ";
+  const m = document.createElement("div"); m.id = "ocChart"; m.className = "occ"; document.body.classList.add("occ-on");      // lớp thay cho body:has(.occ) trong CSS
   const lab = (t, v, c) => (v ? `<span class="occ-l ${c}"><i></i>${t} <b>${px(v)}</b></span>` : "");
   m.innerHTML = `<div class="occ-bg" data-occx></div><div class="occ-p" role="dialog" aria-modal="true" aria-label="${bi("Biểu đồ", "Chart")} ${esc(I.base)}">
     <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
@@ -3736,8 +3745,15 @@ addEventListener("hashchange", () => { if (document.getElementById("ocChart")) o
 function livePx(k, p) {
   const el = $("#lp"); if (!el || el.dataset.k !== k) return;
   const prev = Number(el.dataset.p || p); el.dataset.p = p;
-  el.textContent = px(p); el.classList.toggle("up", p > prev); el.classList.toggle("down", p < prev);
+  const t = px(p); if (el.textContent !== t) { el.textContent = t; numRoll(el, p > prev ? 1 : p < prev ? -1 : 0); } el.classList.toggle("up", p > prev); el.classList.toggle("down", p < prev);
   const r = BYK?.[k]; if (r) r.p = p;
+}
+// 🎞️ SỐ "LĂN" khi giá đổi (kiểu đồng hồ số): chữ trượt nhẹ từ trên xuống (giá lên) / từ dưới lên (giá xuống) – chỉ transform + opacity → GPU, không vẽ lại
+//    cách nhau tối thiểu 350 ms (giá nhảy dồn dập không thành rung lắc); máy yếu / người dùng tắt chuyển động → bỏ
+const RM = matchMedia("(prefers-reduced-motion: reduce)");
+function numRoll(el, dir) {
+  if (!dir || RM.matches || !el.animate || document.hidden) return; const now = performance.now(); if (now - (el.__rl || 0) < 350) return; el.__rl = now;
+  try { el.__ra?.cancel(); el.__ra = el.animate([{ transform: `translateY(${dir > 0 ? -38 : 38}%)`, opacity: 0.25 }, { transform: "none", opacity: 1 }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" }); } catch (e) { /* bỏ qua */ }
 }
 const tfSeg = (cur) => `<span class="seg tfseg" id="tfs">${TFS.map(([k, n]) => `<button data-tf="${k}" class="${cur === k ? "on" : ""}">${n}</button>`).join("")}</span>`;
 function bindChart(D) {
@@ -4862,8 +4878,13 @@ function tickerWs() {
   try {
     const ws = BWS("wss://stream.binance.com:9443/stream?streams=" + ks.map((k) => BYK[k].sp.toLowerCase() + "@miniTicker").join("/"));
     const by = Object.fromEntries(ks.map((k) => [BYK[k].sp, k]));
+    // ⚡ giá về lẻ tẻ (7 mã × 1 tin/giây, lệch nhau) → GOM lại vẽ 1 lần/giây trong 1 khung hình; chỉ đổi chữ trong nút chữ sẵn có (không thay phần tử),
+    //    ô giữ bề rộng cố định → băng đang chạy không phải đo lại / dựng lại lớp hình. Trước: 14 lần thay HTML/giây trong băng đang chạy → trình duyệt duyệt lại
+    //    cả cây vẽ của trang mỗi lần (trang Tra cứu coin: ~50% CPU máy yếu chỉ vì băng giá)
+    const dirty = new Set(); let ft = 0;
+    const flush = () => { ft = 0; for (const k of dirty) { const r = BYK[k]; tkSet(k, r.p, r.r1); livePx(k, r.p); } dirty.clear(); };
     ws.onmessage = (ev) => { const d = JSON.parse(ev.data).data; const k = by[d?.s]; if (!k) return; const r = BYK[k], m = r.sm || 1, p = +d.c / m, o = +d.o / m; r.p = p; r.r1 = (p / o - 1) * 100;
-      const h = `<b>${k}</b>${px(p)} <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i>`; document.querySelectorAll(`#ticker [data-tk="${k}"]`).forEach((el) => { if (el.innerHTML !== h) el.innerHTML = h; }); livePx(k, p); };      // băng chạy có 2 bản sao – cập nhật cả 2
+      dirty.add(k); if (!ft) ft = setTimeout(() => requestAnimationFrame(flush), document.hidden ? 5000 : 1000 - (Date.now() % 1000)); };      // nhịp đều đầu mỗi giây
     ws.onclose = () => setTimeout(tickerWs, 15000);
   } catch (e) { /* không có websocket */ }
 }
@@ -7196,6 +7217,15 @@ function cmdk(open = true) {
 
 // 📜 thanh giá trên cùng: không đủ chỗ hiện hết các mã → chạy chữ liên tục (2 bản sao nối đuôi, trượt bằng transform – card đồ hoạ tự chạy, luồng chính rảnh);
 //    rê chuột vào thì dừng để đọc / bấm; đủ chỗ thì đứng yên như cũ; người dùng chọn giảm chuyển động thì đứng yên
+// 1 ô băng giá: <b>MÃ</b><span>giá</span> <i>%</i> – đổi chữ tại chỗ, đổi lớp màu chỉ khi đổi dấu; bề rộng ô chỉ nới ra (không co) → không nhảy chữ, không đo lại
+function tkCell(k) { const r = BYK[k]; return `<span data-tk="${k}"><b>${k}</b><span class="tk-p">${px(r.p)}</span> <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i></span>`; }
+function tkSet(k, p, r1) {
+  for (const el of document.querySelectorAll(`#ticker [data-tk="${k}"]`)) {
+    const P = el.querySelector(".tk-p"), I = el.querySelector("i"); if (!P || !I) continue;
+    setT(P, px(p)); setT(I, pct(r1, 1)); const c = cls(r1); if (I.className !== c) I.className = c;
+  }
+}
+function tkLock() { document.querySelectorAll("#ticker [data-tk]").forEach((el) => { el.style.minWidth = ""; const w = Math.ceil(el.getBoundingClientRect().width); if (w) el.style.minWidth = w + 6 + "px"; }); }
 function tkMarq() {
   const T = $("#ticker"), R = T?.querySelector(".tk-run"); if (!R) return; const G = R.querySelector(".tk-g"); if (!G) return;
   R.querySelectorAll(".tk-g[aria-hidden]").forEach((x) => x.remove());
@@ -7208,8 +7238,8 @@ async function drawTicker() {
   const C = await tryLoad("data/coins.json"); if (!C) return;
   COINS = COINS || C; BYK = BYK || Object.fromEntries(C.rows.map((r) => [r.k, r]));
   const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"];
-  const H = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}"><span data-tk="${k}"><b>${k}</b>${px(BYK[k].p)} <i class="${cls(BYK[k].r1)}">${pct(BYK[k].r1, 1)}</i></span></a>`).join("");
-  $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkMarq();
+  const H = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}">${tkCell(k)}</a>`).join("");
+  $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkLock(); tkMarq();
   tickerWs();
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;
@@ -8408,6 +8438,41 @@ function lvwPlace(el, anim = true) {
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
+// 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.
+//    Đang mở menu / danh sách thả xuống trong trang → tạm bỏ tách lớp (body.app-pop), đóng lại thì tách lại
+function appPop() { const on = !!document.querySelector("#app details[open] .sc-menu, #app details[open] .memenu, #app .cl-dd:not([hidden])"); if (document.body.classList.contains("app-pop") !== on) document.body.classList.toggle("app-pop", on); }
+document.addEventListener("toggle", (e) => { if (e.target?.closest?.("#app")) appPop(); }, true);
+addEventListener("hashchange", () => setTimeout(appPop, 0));
+// 📱 THANH TRÊN THU GỌN KIỂU iOS (điện thoại / máy tính bảng): cuộn qua tiêu đề trang → "MyBit · x phút trước" mờ đi, thanh trên hiện TÊN TRANG
+//    (+ trạng thái mini nếu trang có, vd Bot Phản Xạ: ● Đang chạy · 285/s). Chạm vào tên = lên đầu trang. Chỉ đổi opacity/transform → chạy trên GPU, không vẽ lại trang.
+const TCT = { io: null, h: null, on: false, sub: "" };
+function tctSub() {
+  const H = document.querySelector("#app .sc-hero.hz2") || document.getElementById("topSt"); const s = H?.querySelector(".hz2-s"); if (!s) return "";
+  const c = ["ok", "warn", "bad", "off"].find((k) => s.classList.contains(k)) || "off", d = H.querySelector(".hz2-c"), dt = d ? String(d.textContent).split("·").pop().trim() : "";
+  return `<i class="tct-d ${c}"></i><span class="tct-x">${esc(s.textContent.trim())}${dt ? ` · ${esc(dt)}` : ""}</span>`;
+}
+function tctSet(on) {
+  const R = document.documentElement, el = document.getElementById("topCt"); if (!el) return;
+  if (on) { const t = (TCT.h?.firstChild?.textContent || TCT.h?.textContent || "").trim(), sub = tctSub(); setT(el.querySelector(".tct-t"), t); if (sub !== TCT.sub) { TCT.sub = sub; el.querySelector(".tct-s").innerHTML = sub; } el.classList.toggle("has-s", !!sub); }
+  if (on === TCT.on) return; TCT.on = on; R.classList.toggle("tct-on", on); el.setAttribute("aria-hidden", String(!on)); el.tabIndex = on ? 0 : -1;
+}
+function tctBind() {
+  TCT.io?.disconnect(); TCT.h = null; const h = document.querySelector("#app .ph h1");
+  if (!h || RAILQ0()) { tctSet(false); return; } TCT.h = h;
+  const hb = document.querySelector("header.top")?.getBoundingClientRect().bottom || 56;
+  { const ti = document.querySelector(".top-in"), el = document.getElementById("topCt"); if (ti && el) { const L = ti.getBoundingClientRect().left + 12; let R = ti.getBoundingClientRect().right;
+      for (const b of ti.querySelectorAll(":scope > .iconbtn, :scope > .ticker, :scope > .search, :scope > button:not(.top-ct)")) { const r = b.getBoundingClientRect(); if (r.width && r.left > L + 40) R = Math.min(R, r.left); }
+      el.style.maxWidth = Math.max(80, Math.round(R - L - 10)) + "px"; } }      // không lấn lên nút tìm / chuông / ảnh (trước: cố định 100% − 170px → màn 360px có 5 nút bị đè)
+  TCT.io = new IntersectionObserver(([e]) => tctSet(!e.isIntersecting && e.boundingClientRect.top < hb), { rootMargin: `-${Math.round(hb)}px 0px 0px 0px` });
+  TCT.io.observe(h);
+}
+(() => { const a = document.getElementById("app"); if (!a) return; let q = 0; const DT = matchMedia("(min-width:980px)");
+  // chỉ dựng lại khi tiêu đề trang thật sự đổi (sang trang khác / trang vẽ lại) – máy tính & trang không có tiêu đề: chỉ 1 lần tìm, không dựng gì
+  new MutationObserver(() => { if (q || DT.matches) return; q = requestAnimationFrame(() => { q = 0; const h = document.querySelector("#app .ph h1"); if (h !== TCT.h) tctBind(); }); }).observe(a, { childList: true, subtree: true });
+  addEventListener("resize", () => { clearTimeout(TCT.rt); TCT.rt = setTimeout(tctBind, 200); });
+  setInterval(() => { if (TCT.on && !document.hidden) tctSet(true); }, 1000);      // trạng thái mini theo kịp số liệu (chỉ khi đang hiện – rẻ)
+  document.getElementById("topCt")?.addEventListener("click", () => scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })); })();
+
 // 📏 thanh trên cùng TỰ CO: dải trạng thái bot / viên ghim / băng giá chiếm nhiều chỗ → ẩn dần mục phụ (thẻ giá trực tiếp → sàn → Thật → dữ liệu → "x giờ trước")
 //    cho tới khi vừa – ô tìm & chuông không bao giờ bị đẩy ra ngoài màn hình (trước: màn 1.366px tràn ngang ~95px)
 function topFit() {

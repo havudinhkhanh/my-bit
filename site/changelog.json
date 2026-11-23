@@ -206,6 +206,61 @@
      "te": "Swiping \"More\" over the side panel: the background no longer darkens then flashes back",
      "d": "Trước 2 lớp nền tối chồng lên nhau khi bảng \"Thêm\" trượt ra, rồi Bảng phụ phía sau đóng lại làm nền sáng bật lên. Giờ nền tối của Bảng phụ nhạt dần đúng bằng phần bảng \"Thêm\" đậm lên – độ tối của trang giữ nguyên suốt cú vuốt.",
      "de": "Two dark overlays used to stack while \"More\" slid in, then the panel behind closed and the page flashed brighter. Now the panel's overlay fades exactly as the \"More\" overlay darkens, so the page stays equally dim throughout the swipe."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "hi": 1,
+     "t": "Cả trang nhẹ hơn hẳn: CPU giảm 30–75% trên máy yếu và điện thoại",
+     "te": "The whole site is much lighter: 30–75% less CPU on older computers and phones",
+     "d": "Đo trên máy giả lập yếu (CPU chậm 4 lần), giá trực tiếp vẫn chạy: Tra cứu coin 97% → 37%, Thị trường 60% → 31%, Bot Phản Xạ 60% → 36%; điện thoại: Tra cứu coin 74% → 19%. Nguyên nhân chính: vài luật định dạng làm mỗi lần băng giá đổi chữ phải tính lại hơn 1.500 phần tử, và mèo / băng giá làm mỗi khung hình phải duyệt lại cả trang. Giá, lời/lỗ, đếm ngược vẫn cập nhật như cũ.",
+     "de": "Measured on a simulated slow machine (4× slower CPU) with live prices running: Coin lookup 97% → 37%, Market 60% → 31%, Reflex Bot 60% → 36%; phones: Coin lookup 74% → 19%. Main causes: a few style rules forced 1,500+ elements to restyle on every ticker update, and the cat / ticker made every frame re-walk the whole page. Prices, P&L and countdowns update exactly as before."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Băng giá trên cùng: gom cập nhật mỗi giây, không nhảy chữ",
+     "te": "Top ticker: updates batched once per second, no text jumping",
+     "d": "Giá vẫn mới từng giây nhưng vẽ 1 lần cho cả 7 mã; ô giữ bề rộng, số đều nét.",
+     "de": "Prices still refresh every second but all 7 symbols are drawn in one go; cells keep their width and digits are tabular."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Hiệu ứng nháy giá, khung chờ tải chạy trên GPU",
+     "te": "Price flashes and loading shimmers now run on the GPU",
+     "d": "Nháy màu khi giá đổi (Bot Phản Xạ, Bảng giá trực tiếp, Radar) và ánh lướt của khung chờ tải trước bắt trình duyệt vẽ lại từng khung; giờ chỉ mờ dần / trượt một lớp riêng.",
+     "de": "Price-change flashes (Reflex Bot, Live prices, Radar) and loading shimmers used to repaint every frame; now they just fade / slide a separate layer."
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Máy yếu: mèo đi lại đánh thức trình duyệt ít hơn một nửa",
+     "te": "Slower devices: the walking cat wakes the browser less than half as often"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Điện thoại: cuộn xuống, thanh trên cùng hiện tên trang (+ trạng thái bot)",
+     "te": "Phones: scroll down and the top bar shows the page name (+ bot status)",
+     "d": "Kiểu iOS: tiêu đề trang khuất thì \"MyBit\" nhường chỗ cho tên trang; ở Bot Phản Xạ có thêm chấm trạng thái + tốc độ dữ liệu. Chạm vào tên để lên đầu trang.",
+     "de": "iOS-style: once the page title scrolls away, \"MyBit\" gives way to the page name; on Reflex Bot it also shows a status dot + data rate. Tap the name to jump to the top.",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Chuyển động mới: số giá lăn, khung trồi lên khi cuộn tới",
+     "te": "New motion: rolling price digits, panels rise in as you scroll",
+     "d": "Giá trên trang coin và tổng lời/lỗ Bot Phản Xạ trượt nhẹ theo chiều giá; các khung phía dưới trồi lên lúc lộ ra. Chỉ dùng hiệu ứng GPU, tôn trọng cài đặt \"giảm chuyển động\".",
+     "de": "The coin-page price and Reflex Bot total P&L slide in the direction of the move; lower panels rise in as they appear. GPU-only effects; respects \"reduce motion\"."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Bảng quản trị: rê chuột không còn làm cả bảng xám đi",
+     "te": "Admin tables: hovering no longer greys out the whole table",
+     "aud": "admin"
     }
    ]
   },
