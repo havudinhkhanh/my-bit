@@ -7293,3 +7293,11 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
   .occ-r2>.occ-mk>summary{padding-top:6px;padding-bottom:6px}
   .occ-act .sc-mx{padding:7px 10px}
 }
+/* ⚡ nhấp nháy vô hạn bằng box-shadow = vẽ lại 60 lần/giây → đổi sang lớp ::after chỉ đổi độ mờ (card đồ hoạ tự chạy, luồng chính rảnh) */
+.bd-light.red i{animation:none!important;position:relative}
+.bd-light.red i::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 10px var(--l-red);pointer-events:none;animation:glowFade 2.4s ease-in-out infinite}
+.lvs-dot.on:not(.hot){animation:none!important;position:relative}
+.lvs-dot.on:not(.hot)::after{content:"";position:absolute;inset:-3px;border-radius:50%;box-shadow:0 0 0 3px color-mix(in srgb,var(--up) 22%,transparent);pointer-events:none;animation:glowFade 2.4s ease-in-out infinite}
+.lvs-dot.on:not(.hot){box-shadow:none!important}
+@keyframes glowFade{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.bd-light.red i::after,.lvs-dot.on:not(.hot)::after{animation:none}}
