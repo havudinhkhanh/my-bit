@@ -1029,8 +1029,6 @@ th.brand{color:var(--brand)}
 .lay>.lc>.panel,.lay>.lc>.deck,.lay>.lc>[data-card]{margin:0!important;flex:1;min-width:0}
 .lay>.lc.s1{grid-column:span 1}.lay>.lc.s2{grid-column:span 2}.lay>.lc.s3{grid-column:1/-1}
 .lay>.lc.hid{display:none}
-.lay>.lc:has(> section[hidden]){display:none}
-.lay>.lc:empty,.lay>.lc:has(> .lbar:only-child){display:none}      /* ô chỉ còn thanh tiêu đề (trước: :has(> :not(.lbar)) – khớp mọi phần tử → chậm cả trang) */
 .lay>.lc.col>:not(.lbar)>:not(.ph):not(summary){display:none}
 .lay>.lc.col>.panel{flex:0 0 auto;cursor:pointer}
 .lay>.lc.col>.panel .ph::after{content:"▸ mở";font-size:.6875rem;color:var(--ink-3);margin-left:8px}
@@ -5719,7 +5717,8 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .gseg.gseg>button,.gseg.gseg>a,.gseg.gseg>button.on,.gseg.gseg>a.on,.gseg.gseg>[aria-selected=true],.gseg.gseg>[aria-current=page]{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
 .gseg.gseg>button.on,.gseg.gseg>a.on,.gseg.gseg>[aria-selected=true],.gseg.gseg>[aria-current=page]{color:var(--ink)!important}
 .gseg.gseg>.on small,.gseg.gseg>.on .ds{color:var(--ink-2)!important}
-.sc-env.gseg>.gthumb:has(~ [data-scenv=live].on){background:linear-gradient(180deg,color-mix(in srgb,#E8B931 30%,var(--surface)),color-mix(in srgb,#E8B931 20%,var(--surface)))}
+.sc-env.gseg[data-ev=live]>.gthumb{      /* ⚡ trước :has(~ [data-scenv=live].on) – mọi lần đổi class "on" ở bất kỳ đâu đều bắt tính lại kiểu cả trang */
+background:linear-gradient(180deg,color-mix(in srgb,#E8B931 30%,var(--surface)),color-mix(in srgb,#E8B931 20%,var(--surface)))}
 /* (độ ưu tiên cao hơn mọi kiểu "đang chọn" cũ – kể cả kiểu dùng :not(#_)) */
 .gseg:not(#_g):not(#_h)>button,.gseg:not(#_g):not(#_h)>a{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
 .gseg:not(#_g):not(#_h)>button.on,.gseg:not(#_g):not(#_h)>a.on,.gseg:not(#_g):not(#_h)>[aria-selected=true],.gseg:not(#_g):not(#_h)>[aria-current=page]{color:var(--ink)!important}
@@ -5789,10 +5788,11 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 :is(.st,:is(.kpis,.stg)>div,.bh-card):not(.panel *):not(.occ *):not(.ntp *):not(#_k){--kt-base:var(--kt-top);box-shadow:var(--kt-sh)!important;transition:box-shadow .2s,transform .25s var(--g-spring,ease)}
 :is(.st,.bh-card):not(.panel *):not(.occ *):hover{box-shadow:var(--kt-sh-h)!important;transform:translateY(-1px)}
 /* tín hiệu tốt / xấu: phủ màu rất nhẹ góc trên-trái + vạch màu bên trái + số cùng màu */
-:is(.st.g,:is(.kpis,.stg)>div:has(>dd.up)){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
-:is(.st.b,:is(.kpis,.stg)>div:has(>dd.down)){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
-:is(.st.g,.st.b,:is(.kpis,.stg)>div:has(>dd.up),:is(.kpis,.stg)>div:has(>dd.down))::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
-:is(.st.b,:is(.kpis,.stg)>div:has(>dd.down))::after{background:var(--down)}
+/* ⚡ [data-kt] do JS gắn (ktTint) thay cho :has(> dd.up) – xem app.js */
+.st.g,.kpis>div[data-kt=u],.stg>div[data-kt=u]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
+.st.b,.kpis>div[data-kt=d],.stg>div[data-kt=d]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
+.st.g::after,.st.b::after,.kpis>div[data-kt=u]::after,.stg>div[data-kt=u]::after,.kpis>div[data-kt=d]::after,.stg>div[data-kt=d]::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
+.st.b::after,.kpis>div[data-kt=d]::after,.stg>div[data-kt=d]::after{background:var(--down)}
 .st.g>dd{color:var(--up)}.st.b>dd{color:var(--down)}
 /* chữ: nhãn rõ (ink-2, đậm vừa), số to – đậm – số cố định bề rộng */
 .st>dt,:is(.kpis,.stg)>div>dt{color:var(--ink-2)!important;font-weight:550;letter-spacing:.005em}
@@ -5818,10 +5818,10 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
   position:relative;background:var(--kt-tint),var(--kt-hl),var(--kt-base)!important;box-shadow:var(--kt-sh-in);border-color:transparent!important;border-radius:var(--r-in)!important}
 :is(.tx-kpi>div,.bcard):not(.panel *):not(#_k){--kt-base:var(--kt-top);box-shadow:var(--kt-sh)}
 .bcard.on{box-shadow:inset 0 0 0 1.5px var(--brand),var(--kt-sh-in)!important}
-:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.up){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
-:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.down){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
-:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):is(:has(>b.up),:has(>b.down))::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
-:is(.lv-kp>span,.cmp-sum>span,.cmp-sum>button,.tx-kpi>div):has(>b.down)::after{background:var(--down)}
+.lv-kp>span[data-kt=u],.cmp-sum>span[data-kt=u],.cmp-sum>button[data-kt=u],.tx-kpi>div[data-kt=u]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
+.lv-kp>span[data-kt=d],.cmp-sum>span[data-kt=d],.cmp-sum>button[data-kt=d],.tx-kpi>div[data-kt=d]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
+.lv-kp>span[data-kt=u]::after,.lv-kp>span[data-kt=d]::after,.cmp-sum>span[data-kt=u]::after,.cmp-sum>span[data-kt=d]::after,.cmp-sum>button[data-kt=u]::after,.cmp-sum>button[data-kt=d]::after,.tx-kpi>div[data-kt=u]::after,.tx-kpi>div[data-kt=d]::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
+.lv-kp>span[data-kt=d]::after,.cmp-sum>span[data-kt=d]::after,.cmp-sum>button[data-kt=d]::after,.tx-kpi>div[data-kt=d]::after{background:var(--down)}
 .lv-kp>span{padding:10px 12px!important;gap:2px!important}
 .lv-kp i,.cmp-sum i,.tx-kpi i{color:var(--ink-2)!important;font-weight:550}
 .lv-kp>span>b{font-size:1.25rem!important;font-weight:700;letter-spacing:-.01em;line-height:1.2}
@@ -6045,10 +6045,10 @@ pre.cmdl{background:var(--sunk);padding:8px 10px;border-radius:6px;font-size:.78
 :is(.iv-k,.opp-sum .os-g>div,.tk-b,.pvs>div,.lm-st,.bexp>div,.fbt):not(#_k){--kt-base:var(--kt-in);--kt-tint:linear-gradient(transparent,transparent);position:relative;
   background:var(--kt-tint),var(--kt-hl),var(--kt-base)!important;box-shadow:var(--kt-sh-in)!important;border:0!important;border-radius:var(--r-in,8px)!important}
 :is(.iv-k,.opp-sum .os-g>div,.tk-b,.pvs>div,.lm-st,.bexp>div):not(.panel *):not(#_k){--kt-base:var(--kt-top);box-shadow:var(--kt-sh)!important}
-:is(.iv-k,.opp-sum .os-g>div,.pvs>div,.bexp>div,.lm-st):has(>b.up){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
-:is(.iv-k,.opp-sum .os-g>div,.pvs>div,.bexp>div,.lm-st):has(>b.down){--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
-:is(.iv-k,.opp-sum .os-g>div,.pvs>div,.bexp>div,.lm-st):is(:has(>b.up),:has(>b.down))::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
-:is(.iv-k,.opp-sum .os-g>div,.pvs>div,.bexp>div,.lm-st):has(>b.down)::after{background:var(--down)}
+.iv-k[data-kt=u],.opp-sum .os-g>div[data-kt=u],.pvs>div[data-kt=u],.bexp>div[data-kt=u],.lm-st[data-kt=u]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--up) 11%,transparent),transparent 58%)}
+.iv-k[data-kt=d],.opp-sum .os-g>div[data-kt=d],.pvs>div[data-kt=d],.bexp>div[data-kt=d],.lm-st[data-kt=d]{--kt-tint:linear-gradient(135deg,color-mix(in srgb,var(--down) 11%,transparent),transparent 58%)}
+.iv-k[data-kt=u]::after,.iv-k[data-kt=d]::after,.opp-sum .os-g>div[data-kt=u]::after,.opp-sum .os-g>div[data-kt=d]::after,.pvs>div[data-kt=u]::after,.pvs>div[data-kt=d]::after,.bexp>div[data-kt=u]::after,.bexp>div[data-kt=d]::after,.lm-st[data-kt=u]::after,.lm-st[data-kt=d]::after{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--up);pointer-events:none}
+.iv-k[data-kt=d]::after,.opp-sum .os-g>div[data-kt=d]::after,.pvs>div[data-kt=d]::after,.bexp>div[data-kt=d]::after,.lm-st[data-kt=d]::after{background:var(--down)}
 .iv-k{padding:12px 14px!important}.iv-k small,.opp-sum .os-g i,.pvs i,.bexp i,.tk-b h4{color:var(--ink-2)!important;font-weight:550}
 .iv-k b{font-size:1.5rem!important;font-weight:700;letter-spacing:-.01em;line-height:1.15;margin:4px 0 2px!important;font-variant-numeric:tabular-nums}
 .iv-k em{color:var(--ink-2)!important}
@@ -6232,8 +6232,8 @@ body.cz-lock::after{animation:czDim .22s ease both}@keyframes czDim{from{opacity
 :is(.occ-tg button,.cv-chart .cops .chk):not(#_t){height:28px!important;padding:0 10px!important;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;
   color:var(--ink-3);font-size:.78rem!important;font-weight:550;white-space:nowrap;transition:background-color .15s,color .15s,box-shadow .15s}
 :is(.occ-tg button:hover,.cv-chart .cops .chk:hover):not(#_t){color:var(--ink)}
-:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t){background:var(--surface)!important;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12),0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent)!important}
-:root:not([data-theme=light]) :is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t){background:color-mix(in srgb,var(--ink) 14%,var(--surface))!important}
+.occ-tg button.on:not(#_t),.cv-chart .cops .chk:has(input:checked):not(#_t){background:var(--surface)!important;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12),0 0 0 .5px color-mix(in srgb,var(--ink) 10%,transparent)!important}
+:root:not([data-theme=light]) .occ-tg button.on:not(#_t),:root:not([data-theme=light]) .cv-chart .cops .chk:has(input:checked):not(#_t){background:color-mix(in srgb,var(--ink) 14%,var(--surface))!important}
 :is(.occ-bar,.cv-chart .cbar){align-items:stretch!important}
 :is(.occ-tf,.cv-chart .tfseg){align-self:stretch}
 /* nút cỡ biểu đồ S·M·L·⛶ – bớt bo (v4): rãnh 8px, nút & con trượt 6px */
@@ -6768,9 +6768,9 @@ body.lvw-mf .pnfab{opacity:0!important;pointer-events:none!important;transition:
 :is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u){position:relative;display:inline-flex;align-items:center;gap:6px;border-radius:7px!important;padding:0 10px 0 9px!important;background:transparent!important;box-shadow:none!important;color:var(--ink-3)}
 :is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u)::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--ink) 30%,transparent);transition:background-color .15s,box-shadow .15s}
 :is(.occ-tg button,.cv-chart .cops .chk):not(#_t):not(#_u):hover{color:var(--ink);background:color-mix(in srgb,var(--ink) 5%,transparent)!important}
-:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u){color:var(--ink);background:color-mix(in srgb,var(--brand) 11%,transparent)!important;box-shadow:none!important}
-:is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u)::before{background:var(--brand);box-shadow:none}
-:root:not([data-theme=light]) :is(.occ-tg button.on,.cv-chart .cops .chk:has(input:checked)):not(#_t):not(#_u){background:color-mix(in srgb,var(--brand) 16%,transparent)!important}
+.occ-tg button.on:not(#_t):not(#_u),.cv-chart .cops .chk:has(input:checked):not(#_t):not(#_u){color:var(--ink);background:color-mix(in srgb,var(--brand) 11%,transparent)!important;box-shadow:none!important}
+.occ-tg button.on:not(#_t):not(#_u)::before,.cv-chart .cops .chk:has(input:checked):not(#_t):not(#_u)::before{background:var(--brand);box-shadow:none}
+:root:not([data-theme=light]) .occ-tg button.on:not(#_t):not(#_u),:root:not([data-theme=light]) .cv-chart .cops .chk:has(input:checked):not(#_t):not(#_u){background:color-mix(in srgb,var(--brand) 16%,transparent)!important}
 .cv-chart .cops .chk:not(#_t):not(#_u) input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}      /* ô tích gốc ẩn đi (vẫn bấm được qua nhãn) – chấm tròn thay thế */
 .cv-chart .cops .chk:not(#_t):not(#_u):has(input:focus-visible){outline:2px solid var(--brand);outline-offset:1px}
 .occ-tg button.lk:not(#_t):not(#_u)::before{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brass,var(--brand)) 60%,transparent)}
@@ -7184,7 +7184,8 @@ body:has(.occ) .msheet{z-index:1320!important}
 }
 .cl-chips{min-width:0;max-width:100%}
 /* tìm nhanh dạng ngăn kéo phải: trang phía sau vẫn hiện (mờ dưới lớp tối) – trước bị ẩn hẳn (còn từ kiểu tìm toàn màn hình cũ) nên nền xám trơn */
-body.cmdk-on:has(.cmdk.side:not([hidden]))>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
+/* ⚡ trước dùng body:has(.cmdk.side:not([hidden])) – mỗi lần BẤT KỲ phần tử nào bật/tắt [hidden] (vd. nhãn giá khi rê chuột trên biểu đồ) trình duyệt phải tính lại kiểu cả trang (~5.000 phần tử) → giật trên máy yếu. Giờ dùng lớp cmdk-sd gắn lúc mở */
+body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 
 /* ước tính lời/lỗ ngay sau giá chốt / cắt lỗ trên thẻ lệnh */
 .k-est{font-weight:650;margin-left:2px;white-space:nowrap}.k-est i{font-style:normal;font-weight:500;opacity:.75;font-size:.92em}

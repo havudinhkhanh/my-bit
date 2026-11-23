@@ -281,6 +281,18 @@ if (document.documentElement.classList.contains("nl-ios")) { const OVL = "body.p
   new MutationObserver((ms) => { if (!q && ms.some(rel)) q = requestAnimationFrame(chk); }).observe(document.body || document.documentElement, { childList: true, subtree: true, attributes: true, attributeOldValue: true, attributeFilter: ["hidden", "class"] }); chk(); }
 // rê chuột / ngón tay trên biểu đồ → ghi lúc đó: na (mascot) đứng yên cho biểu đồ chạy mượt
 addEventListener("pointermove", (e) => { if (e.target?.closest?.(".tv-lightweight-charts")) window.__chartHot = performance.now(); }, { passive: true, capture: true });
+// ⚡ ô số tô xanh / đỏ theo dấu: gắn data-kt="u"|"d" lên ô khi số con đổi lớp up / down.
+//    Trước dùng CSS :has(> b.up) / :has(> dd.down) – có các luật này thì MỖI lần bất kỳ phần tử nào đổi class (nhãn giá khi rê chuột, chú thích nến…)
+//    trình duyệt tính lại kiểu > 1.000 phần tử → rê chuột trên biểu đồ giật rõ trên máy yếu.
+(() => {
+  const KID = ".kpis>div>dd,.stg>div>dd,.lv-kp>span>b,.cmp-sum>span>b,.cmp-sum>button>b,.tx-kpi>div>b,.iv-k>b,.opp-sum .os-g>div>b,.pvs>div>b,.bexp>div>b,.lm-st>b";
+  const one = (x) => { const p = x.parentElement; if (!p) return; let u = 0, d = 0; for (const c of p.children) { if (c.tagName !== x.tagName) continue; const L = c.classList; if (L.contains("down")) d = 1; else if (L.contains("up")) u = 1; }
+    const v = d ? "d" : u ? "u" : ""; if ((p.dataset.kt || "") !== v) { if (v) p.dataset.kt = v; else delete p.dataset.kt; } };
+  const scan = (n) => { if (n.nodeType !== 1) return; if (n.matches(KID)) one(n); if (n.firstElementChild) n.querySelectorAll(KID).forEach(one); };
+  const go = () => { scan(document.body); new MutationObserver((L) => { for (const m of L) { if (m.type === "attributes") { if (m.target.matches?.(KID)) one(m.target); } else m.addedNodes.forEach(scan); } })
+    .observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] }); };
+  document.body ? go() : addEventListener("DOMContentLoaded", go, { once: true });
+})();
 // 🖱️ CHỐNG "DÍNH KÉO" BIỂU ĐỒ: bấm giữ kéo rồi nhả mà biểu đồ vẫn chạy theo chuột = thư viện biểu đồ không nhận được lần nhả chuột
 //    (trình duyệt bắt đầu kéo-thả gốc – liên kết logo, chữ đang bôi đen – hoặc lần nhả rơi ngoài trang). Hai lớp:
 //    1) trong biểu đồ không cho kéo-thả gốc / bôi đen;  2) thấy chuột di chuyển mà KHÔNG còn giữ nút trong khi biểu đồ còn đang "giữ" → tự gửi lần nhả chuột cho biểu đồ.
@@ -315,9 +327,9 @@ function pxTags(el, c, cs, lines, cur, ext) {
   const place = () => {
     if (!alive) return; if (!el.isConnected) { el._ptStop?.(); return; }
     if (document.hidden || !vis) return;
-    let H = el.clientHeight; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }
+    if (!EH) EH = el.clientHeight; let H = EH; try { H -= c.timeScale().height(); } catch (e) { /* bỏ qua */ }      // chiều cao khung đo lúc đổi cỡ (đọc clientHeight mỗi lần = bắt trình duyệt tính lại bố cục cả trang)
     // đường giá NGOÀI khung đang xem (vd. cắt lỗ / lệnh chờ xa): nhãn ghim ở mép trên / dưới kèm ↑ / ↓ → biết là còn đó, không tưởng mất
-    const V = tg.map((t) => { const y0 = cs.priceToCoordinate(t.p); if (!isNum(y0)) return null; const e = y0 < 0 ? -1 : y0 > H ? 1 : 0; return { t, e, y: e < 0 ? 8 : e > 0 ? H - 8 : y0 }; }).filter(Boolean).sort((a, b) => a.y - b.y || a.e - b.e);
+    const V = tg.map((t) => { const y0 = cs.priceToCoordinate(t.p); t.y = y0; if (!isNum(y0)) return null; const e = y0 < 0 ? -1 : y0 > H ? 1 : 0; return { t, e, y: e < 0 ? 8 : e > 0 ? H - 8 : y0 }; }).filter(Boolean).sort((a, b) => a.y - b.y || a.e - b.e);
     const key = V.map((v) => v.y.toFixed(1) + v.e).join() + H; if (key === last) return; last = key;
     // nhãn tên nằm ĐÚNG ngang đường giá của nó (trước: bắt chước cách thư viện xếp ô giá, tính cả ô giá hiện tại → ô bị đẩy lệch khỏi đường, vd. "vào" thấp hơn đường vào);
     // chỉ khi 2 nhãn tên chồng lên nhau mới đẩy ra vừa đủ (viền đứt = đã lệch khỏi đường)
@@ -330,27 +342,29 @@ function pxTags(el, c, cs, lines, cur, ext) {
   };
   // ⏱ trước: chạy MỖI khung hình (60 lần/giây) cho từng biểu đồ, đọc kích thước khung → trang có biểu đồ luôn bận, cuộn giật.
   //    Giờ: vẽ lại ngay khi kéo / thu phóng / rê trên biểu đồ hoặc đổi cỡ; còn lại dò 3 lần/giây (giá mới, trục tự giãn); khuất màn hình thì nghỉ
-  let vis = true; const kick = () => { if (!raf && alive) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
+  let vis = true, EH = 0, EW = 0; const kick = () => { if (!raf && alive) raf = requestAnimationFrame(() => { raf = 0; place(); }); };
   const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => { vis = es[es.length - 1].isIntersecting; if (vis) kick(); }) : null; io?.observe(el);
-  const ro = "ResizeObserver" in window ? new ResizeObserver(kick) : null; ro?.observe(el);
+  const ro = "ResizeObserver" in window ? new ResizeObserver(() => { EH = EW = 0; kick(); }) : null; ro?.observe(el);
+  const drg = (e) => { if (e.buttons) kick(); }; el.addEventListener("pointermove", drg, { passive: true });      // kéo trục giá / biểu đồ → canh nhãn theo ngay
   const iv = setInterval(place, 330); try { c.timeScale().subscribeVisibleLogicalRangeChange(kick); } catch (e) { /* bỏ qua */ }
   place();
-  let curT = null, tipW = 0, tipXY = "";
+  let curT = null, tipXY = "";
   const hv = (pm) => {      // chỉ đụng DOM khi đổi đường được trỏ / đổi chỗ hộp – rê chuột không làm trình duyệt tính lại cả trang
-    kick(); const pt = pm?.point; let best = null;
-    if (pt) for (const t of tg) { const y = cs.priceToCoordinate(t.p); if (isNum(y) && Math.abs(y - pt.y) <= 6 && (!best || Math.abs(y - pt.y) < best.dy)) best = { t, dy: Math.abs(y - pt.y) }; }
+    const pt = pm?.point; let best = null;      // rê chuột: dùng toạ độ đã tính ở lần canh nhãn gần nhất (trước: đổi giá → toạ độ cho mọi nhãn + canh lại cả cột, MỖI lần chuột nhích)
+    if (pt) for (const t of tg) { const y = t.y; if (isNum(y) && Math.abs(y - pt.y) <= 6 && (!best || Math.abs(y - pt.y) < best.dy)) best = { t, dy: Math.abs(y - pt.y) }; }
     const nt = best?.t || null;
     if (nt !== curT) { curT?.d.classList.remove("on"); nt?.d.classList.add("on"); curT = nt;
       if (!nt) { tip.hidden = true; tipXY = ""; return; }
       const cp = typeof cur === "function" ? cur() : cur, d = cp ? (nt.p / cp - 1) * 100 : null;
       tip.innerHTML = `<i style="background:${nt.l.color || css("--ink-3")}"></i><b>${esc(T(nt.l.title))}</b> ${px(nt.p)}${isNum(d) ? ` <small>${bi(`cách giá ${d >= 0 ? "+" : ""}${nf(d, 2)}%`, `${d >= 0 ? "+" : ""}${nf(d, 2)}% from price`)}</small>` : ""}`;
-      tip.hidden = false; tipW = tip.offsetWidth; }
+      tip.hidden = false; }
     if (!nt) return;
-    const x = Math.min(Math.max(4, pt.x + 12), el.clientWidth - tipW - 4), y = Math.max(2, cs.priceToCoordinate(nt.p) - 30), xy = `${Math.round(x / 4) * 4},${Math.round(y)}`;
-    if (xy !== tipXY) { tipXY = xy; tip.style.transform = `translate(${xy.replace(",", "px,")}px)`; }
+    // không đo bề rộng hộp (offsetWidth = bắt trình duyệt tính lại bố cục ngay) – nửa phải biểu đồ thì hộp lật sang trái con trỏ bằng translateX(-100%)
+    if (!EW) EW = el.clientWidth; const fl = pt.x > EW * 0.55, x = fl ? pt.x - 12 : Math.max(4, pt.x + 12), y = Math.max(2, nt.y - 30), xy = `${Math.round(x / 4) * 4},${Math.round(y)}${fl ? "f" : ""}`;
+    if (xy !== tipXY) { tipXY = xy; tip.style.transform = `translate(${Math.round(x / 4) * 4}px,${Math.round(y)}px)${fl ? " translateX(-100%)" : ""}`; }
   };
   c.subscribeCrosshairMove(hv);
-  el._ptStop = () => { if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(iv); io?.disconnect(); ro?.disconnect(); try { c.unsubscribeCrosshairMove(hv); c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
+  el._ptStop = () => { if (!alive) return; alive = false; cancelAnimationFrame(raf); clearInterval(iv); io?.disconnect(); ro?.disconnect(); el.removeEventListener("pointermove", drg); try { c.unsubscribeCrosshairMove(hv); c.timeScale().unsubscribeVisibleLogicalRangeChange(kick); } catch (e) { /* đã huỷ */ } box.remove(); tip.remove(); };
   return TW;
 }
 function candleChart(el, o, opts = {}) {
@@ -7133,7 +7147,7 @@ const jellyOK = () => !matchMedia("(prefers-reduced-motion: reduce)").matches &&
 function cmdk(open = true) {
   let el = $("#cmdk");
   if (!open) { if (el && !el.hidden) {
-      const fin = () => { el.hidden = true; el.classList.remove("out"); document.body.classList.remove("cmdk-on"); const I = $(".cmdk-in", el), B = $(".cmdk-bg", el); [I, B].forEach((x) => x && (x.style.transform = x.style.transition = x.style.opacity = "")); };
+      const fin = () => { el.hidden = true; el.classList.remove("out"); document.body.classList.remove("cmdk-on", "cmdk-sd"); const I = $(".cmdk-in", el), B = $(".cmdk-bg", el); [I, B].forEach((x) => x && (x.style.transform = x.style.transition = x.style.opacity = "")); };
       if (el.classList.contains("side") && !matchMedia("(prefers-reduced-motion: reduce)").matches) { document.activeElement?.blur?.(); el.classList.add("out"); setTimeout(fin, 230); } else fin();      // ngăn kéo: trượt ra phải rồi mới ẩn
     } return; }
   if (!el) {
@@ -7168,7 +7182,7 @@ function cmdk(open = true) {
   // 📱 điện thoại / máy tính bảng: tìm nhanh = NGĂN KÉO BÊN PHẢI kiểu Bảng phụ – ô tìm ở trên (ngay chỗ vừa bấm), kết quả xếp xuống dưới, tự co theo bàn phím
   el.classList.toggle("side", matchMedia("(pointer:coarse),(max-width:979px)").matches); el.classList.remove("out"); { const q0 = $("#cmdkQ"); if (q0) { q0.dataset.ph ||= q0.placeholder; q0.placeholder = el.classList.contains("side") ? bi("Tìm coin, trang…", "Coins, pages…") : q0.dataset.ph; } }
   if (!COINS) coins().then(() => !el.hidden && el._draw());
-  el.hidden = false; document.body.classList.add("cmdk-on"); popClose();
+  el.hidden = false; document.body.classList.add("cmdk-on"); document.body.classList.toggle("cmdk-sd", el.classList.contains("side")); popClose();
   const q = $("#cmdkQ"); q.value = ""; el._draw(); q.focus();
   if (!el.classList.contains("side") && matchMedia("(pointer:coarse),(max-width:600px)").matches && jellyOK()) {      // (dạng cũ, không còn dùng trên điện thoại) ô tìm nảy lên từ đáy (ngay trên bàn phím), danh sách hiện mờ dần
     $(".cmdk-q", el).animate(springKF(70, 0, (v) => ({ transform: `translateY(${v}px) scale(${1 - v / 900})` })), { duration: 560, easing: "linear" });

@@ -32,6 +32,15 @@
      "te": "Hover a truncated event to see the full text in a tooltip",
      "d": "Dòng giữ nguyên chiều cao, danh sách không nhảy; trên điện thoại vẫn chạm để mở rộng.",
      "de": "Rows keep their height so the list doesn't jump; on phones tap still expands the row."
+    },
+    {
+     "c": "imp",
+     "a": "perf",
+     "t": "Rê chuột trên biểu đồ mượt hơn hẳn trên máy yếu",
+     "te": "Much smoother mouse movement over charts on older computers",
+     "d": "Bỏ vài kiểu định dạng khiến mỗi lần nhãn giá / chú thích nến đổi là trình duyệt tính lại cả trang; nhãn tên đường giá không còn tính lại vị trí mỗi lần chuột nhích. Đo trên máy giả lập chậm: thời gian xử lý khi rê chuột giảm khoảng 3 lần, khung hình chậm nhất từ ~0,9 giây còn ~0,17 giây.",
+     "de": "Removed styling patterns that made the browser restyle the whole page whenever a price label or candle legend changed, and price-line labels no longer re-measure on every mouse move. On a throttled test machine, mouse-move work dropped about 3× and the slowest frame went from ~0.9 s to ~0.17 s.",
+     "hi": 1
     }
    ]
   },
