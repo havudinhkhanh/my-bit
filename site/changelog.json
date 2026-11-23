@@ -75,6 +75,14 @@
      "d": "Máy tính: khung lớn hơn, ô số gọn thành 1 dải, nút thao tác chung hàng với \"Phe đông 3 ngày qua\", dòng nguồn giá xuống cạnh dòng nến – biểu đồ cao thêm khoảng 150px. Điện thoại: ô số thành 1 dải trượt ngang, biểu đồ cao thêm khoảng 100px.",
      "de": "Desktop: bigger sheet, stats in one compact strip, actions share a row with \"Crowding, last 3 days\", the source label moved next to the candle line – about 150px more chart. Phones: stats become one swipeable strip – about 100px more chart.",
      "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Trang coin: nút cỡ biểu đồ S · M · L không còn bị méo",
+     "te": "Coin page: the S · M · L chart size switch no longer gets stretched",
+     "d": "Dòng \"Còn giữ 3 ngày\" dời xuống dưới thanh công cụ – trước nằm chung hàng nên cả thanh cao lên ở màn rộng.",
+     "de": "The \"Open positions, 3 days\" line moved below the toolbar – it used to share the row and stretch it on wide screens."
     }
    ]
   },

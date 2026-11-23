@@ -7189,7 +7189,7 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 
 /* ước tính lời/lỗ ngay sau giá chốt / cắt lỗ trên thẻ lệnh */
 .k-est{font-weight:650;margin-left:2px;white-space:nowrap}.k-est i{font-style:normal;font-weight:500;opacity:.75;font-size:.92em}
-.cbar #cpos{flex-basis:100%;order:9}.cbar #cpos:empty{display:none}
+#cpos.cpos-l{display:block;margin:-2px 0 8px;line-height:1.45}#cpos.cpos-l:empty{display:none}      /* dòng "Còn giữ 3 ngày" nằm DƯỚI thanh công cụ (trước nằm trong thanh: khung rộng không xuống dòng → cả thanh cao lên, nút S·M·L méo) */
 /* ⛶ biểu đồ lệnh toàn màn hình (nút ⛶ hoặc kéo vạch trên cùng lên) · 🔄 xoay ngang */
 .occ-fsw{display:flex;gap:6px;margin-left:8px;flex:none;align-items:center}
 .occ-fsw .cv-fsb{width:34px;height:34px}
@@ -7211,7 +7211,7 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 .cv-fsb.on{background:var(--sel)!important;color:var(--sel-ink)!important}
 .cv-chart.rot90 .ph,.cv-chart.rot90 .cops,.cv-chart.rot90 .cv-sz,.cv-chart.rot90 #panes,.cv-chart.rot90 .cbt-o{display:none!important}
 .cv-chart.rot90 .cbar{flex-wrap:nowrap;margin-bottom:4px}.cv-chart.rot90 .cbar #tfs{flex:1 1 auto;min-width:0;overflow-x:auto}
-.cv-chart.rot90 .cbar #cpos{display:none}
+.cv-chart.rot90 #cpos{display:none}
 /* xoay ngang: dồn chỗ cho biểu đồ – chú thích gọn 1 hàng (vuốt ngang xem hết), dòng OHLC 1 hàng */
 .occ-p.rot90 .occ-lg{flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;white-space:nowrap;margin-bottom:3px!important;gap:4px 12px!important;font-size:.72rem}.occ-p.rot90 .occ-lg::-webkit-scrollbar{display:none}.occ-p.rot90 .occ-lg>*{flex:none}.occ-p.rot90 .occ-lg .occ-pos{white-space:nowrap}
 .occ-p.rot90 .occ-ohlc{white-space:nowrap;overflow:hidden;flex-wrap:nowrap!important;margin-top:2px}
