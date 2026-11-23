@@ -16,6 +16,22 @@
      "d": "Khung lệnh chiếm phần lớn bề ngang, cột sự kiện gọn lại; lệnh đã khớp và lệnh chờ giá nằm ở 2 nhóm riêng, mỗi nhóm có số đếm.",
      "de": "The trades area takes most of the width and the events column is narrower; filled trades and pending price orders sit in two groups with counts.",
      "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Khung sự kiện cạnh khung lệnh lấp đầy chiều cao, hết khoảng trống dài",
+     "te": "The events box beside the trades fills its height – no more long empty gap",
+     "d": "Trước khung chỉ cao tối đa vài dòng rồi để trống phần dưới.",
+     "de": "It used to stop after a few rows and leave the rest empty."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Rê chuột lên sự kiện bị cắt chữ: hiện đủ nội dung trong hộp nổi",
+     "te": "Hover a truncated event to see the full text in a tooltip",
+     "d": "Dòng giữ nguyên chiều cao, danh sách không nhảy; trên điện thoại vẫn chạm để mở rộng.",
+     "de": "Rows keep their height so the list doesn't jump; on phones tap still expands the row."
     }
    ]
   },

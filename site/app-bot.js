@@ -202,6 +202,24 @@ document.addEventListener("click", (e) => {
   const li = e.target.closest?.(".sc-feed li");      // chế độ Gọn / Vừa: chạm 1 sự kiện để xem đủ chữ
   if (li && document.documentElement.dataset.fdsz !== "l" && !e.target.closest("a, button")) li.classList.toggle("open");
 });
+// 🖱️ rê chuột lên sự kiện bị cắt chữ (Gọn / Vừa) → hộp nổi hiện đủ nội dung; dòng giữ nguyên chiều cao (trước: dòng giãn ra 1–2 hàng, cả danh sách nhảy)
+(() => {
+  let tip = null, cur = null;
+  const hide = () => { cur = null; if (tip) tip.hidden = true; };
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType !== "mouse") return;
+    const li = e.target.closest?.(".sc-feed li"), m = li?.querySelector(".sc-fm");
+    if (li === cur) return; hide(); if (!m || li.classList.contains("open")) return;
+    if (m.scrollWidth <= m.clientWidth + 1 && m.scrollHeight <= m.clientHeight + 1) return;      // chữ đã hiện đủ → khỏi hộp nổi
+    if (!tip) { tip = document.createElement("div"); tip.className = "fd-tip"; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip); }
+    cur = li; tip.innerHTML = m.innerHTML; tip.hidden = false; put();      // giữ nhãn nguồn (Bắt râu sập · Binance thật) như trong dòng
+  }, { passive: true });
+  const put = () => { const m = cur?.querySelector(".sc-fm"); if (!m || !m.isConnected) return hide(); const r = m.getBoundingClientRect(); if (r.bottom < 0 || r.top > innerHeight) return hide();
+    const w = tip.offsetWidth, h = tip.offsetHeight, below = r.bottom + 6 + h < innerHeight - 8;
+    tip.style.left = Math.max(12, Math.min(r.left - 11, innerWidth - w - 12)) + "px"; tip.style.top = (below ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + "px"; };
+  document.addEventListener("pointerout", (e) => { if (cur && !cur.contains(e.relatedTarget)) hide(); }, { passive: true });
+  addEventListener("scroll", (e) => { if (cur && (e.target === document || e.target.contains?.(cur))) put(); }, { passive: true, capture: true });      // trang / khung chứa dòng cuộn → hộp đi theo dòng (ra khỏi màn hình thì ẩn) document.addEventListener("click", hide, true);
+})();
 const durVi = (sec) => (sec < 90 ? `${nf(sec, 0)} giây` : sec < 5400 ? `${nf(sec / 60, 0)} phút` : sec < 172800 ? `${nf(sec / 3600, 0)} giờ` : `${nf(sec / 86400, 0)} ngày`);
 const cmpMark = () => { const f = window.__cmpF || "all"; $$("[data-cmpf]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cmpf === f))); $$(".cmp-l").forEach((l) => (l.dataset.f = f)); };
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cmpf]"); if (!b) return; const f = b.dataset.cmpf; window.__cmpF = f === "all" || window.__cmpF === f ? "all" : f; cmpMark(); });
