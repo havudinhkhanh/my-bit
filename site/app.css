@@ -7546,3 +7546,37 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 /* viên lệnh bot: nhãn nhỏ trước con số ("đang mở" / "hôm nay") */
 .lvw-day small{font-size:.65rem;font-weight:600;color:var(--ink-3);margin-right:4px;letter-spacing:.01em;text-transform:none}
 .lvw.m-dot .lvw-day small{display:none}
+
+/* ================================================================ ✨ THANH TRÊN v3 – thứ tự: [đường dẫn] │ [🚦 Thị trường · băng giá ———] [giờ] │ [trạng thái bot] [lệnh bot] │ [tìm] [🔔]
+   Trái = đang ở đâu · giữa = thị trường (nhìn lướt nhiều nhất, chiếm phần rộng nhất) · phải = việc của anh (bot, lệnh, thông báo) */
+@media (min-width:980px){
+  .top-in>.topnav{order:1}.top-in>.ticker{order:2}.top-in>.upd{order:3}.top-in>.topst{order:4}.top-in>.toplv{order:5}.top-in>.search{order:6}.top-in>.iconbtn{order:7}
+  html.has-topst .top-in>.topst{margin-left:4px}
+  /* băng giá nổi bật: viên nền chìm riêng, đèn thị trường đứng yên ở đầu, mỗi mã là 1 "thẻ" chữ đậm + % trong ô màu */
+  .top-in>.ticker{flex:1 1 auto;min-width:160px;height:34px;padding:0;border-radius:10px;background:var(--sunk);gap:0!important;position:relative;overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent)!important;mask-image:linear-gradient(90deg,#000 calc(100% - 30px),transparent)!important}
+  /* đầu băng: đèn đứng yên, có nền che + dải mờ 18px → giá chạy "chui" vào dưới đèn mượt (không đặt mask lên phần đang chạy) */
+  .ticker .tk-lamp::before{content:"";position:absolute;top:0;bottom:0;right:-18px;width:18px;background:linear-gradient(90deg,var(--sunk),transparent);pointer-events:none}
+  .ticker .tk-lamp{flex:none;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px 0 11px;margin-right:2px;border-radius:10px 0 0 10px;color:var(--ink-2);font-size:.75rem;font-weight:650;text-decoration:none!important;position:relative;z-index:1;background:var(--sunk)}
+  .ticker .tk-lamp::after{content:"";position:absolute;right:0;top:9px;bottom:9px;width:1px;background:var(--bd)}
+  .ticker .tk-lamp:hover{color:var(--ink)}
+  .ticker .tk-lamp i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+  .ticker .tk-lamp[data-l="green"] i{background:var(--l-green,var(--up));box-shadow:0 0 0 3px color-mix(in srgb,var(--l-green,var(--up)) 22%,transparent)}
+  .ticker .tk-lamp[data-l="yellow"] i{background:var(--l-yellow,#d9a21b);box-shadow:0 0 0 3px color-mix(in srgb,var(--l-yellow,#d9a21b) 22%,transparent)}
+  .ticker .tk-lamp[data-l="red"] i{background:var(--l-red,var(--down));box-shadow:0 0 0 3px color-mix(in srgb,var(--l-red,var(--down)) 22%,transparent)}
+  .ticker .tk-g{gap:6px!important;padding:0 10px!important;align-items:center}
+  .ticker .tk-g>a{display:inline-flex;border-radius:8px;text-decoration:none!important}
+  .ticker [data-tk]{position:relative;display:inline-flex!important;align-items:center;gap:6px;height:26px;padding:0 8px;border-radius:8px;font-size:.8125rem;transition:background-color .15s ease}
+  .ticker a:hover [data-tk]{background:var(--surface)}
+  .ticker [data-tk] b{font-weight:750;letter-spacing:.01em;color:var(--ink)}
+  .ticker [data-tk] .tk-p{color:var(--ink-2);font-weight:550}
+  .ticker [data-tk] i{font-size:.71875rem;font-weight:700;padding:1px 6px;border-radius:6px;background:color-mix(in srgb,var(--ink-3) 14%,transparent);color:var(--ink-2)}
+  .ticker [data-tk] i.up{background:color-mix(in srgb,var(--up) 15%,transparent);color:var(--up)}
+  .ticker [data-tk] i.down{background:color-mix(in srgb,var(--down) 14%,transparent);color:var(--down)}
+  .ticker [data-tk]::after{content:"";position:absolute;inset:0;border-radius:8px;background:color-mix(in srgb,var(--up) 22%,transparent);opacity:0;pointer-events:none}
+  .ticker [data-tk][data-fl="d"]::after{background:color-mix(in srgb,var(--down) 20%,transparent)}
+  /* giờ dữ liệu sát sau băng giá */
+  .top-in>.upd{margin-left:-2px}
+}
+/* thanh tab Bot Phản Xạ khi dính (máy tính): cách thanh trên 10px – trước dính sát 6px, bóng 2 thanh chồng nhau trông như tràn vào nhau */
+@media (min-width:761px){.sc-tbar{top:calc(var(--stick,57px) + 10px)!important}}

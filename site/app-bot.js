@@ -232,7 +232,8 @@ function hzTop() {
   const hero = /^#\/bot\/scalp/.test(location.hash) ? document.querySelector("#app .sc-hero.hz2") : null, cur = slot.firstElementChild;
   if (!hero) { if (cur) slot.replaceChildren(); R.classList.remove("has-topst"); try { topFit(); } catch (e) { /* bỏ qua */ } return; }
   const row = hero.querySelector(":scope > .hz2-r");
-  if (matchMedia("(min-width:980px)").matches) { if (row) slot.replaceChildren(row); hero.classList.add("hz-up"); R.classList.add("has-topst"); }
+  if (matchMedia("(min-width:980px)").matches) { const was = R.classList.contains("has-topst"); if (row) slot.replaceChildren(row); hero.classList.add("hz-up"); R.classList.add("has-topst");
+    if (!was && slot.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) slot.animate([{ opacity: 0, transform: "translateX(10px)" }, { opacity: 1, transform: "none" }], { duration: 280, easing: "cubic-bezier(.2,.8,.2,1)" }); }      // vào trang bot: dải trạng thái trượt vào
   else { if (!row && cur) hero.prepend(cur); slot.replaceChildren(); hero.classList.remove("hz-up"); R.classList.remove("has-topst"); }
   try { topFit(); } catch (e) { /* bỏ qua */ }
 }

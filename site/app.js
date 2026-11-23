@@ -934,7 +934,9 @@ function crDock() {
   const slot = document.getElementById("topNav"), app_ = $("#app"); if (!slot || !app_) return; const R = document.documentElement;
   const real = app_.querySelector(":scope > .crumb[data-nd]:not(.crumb-ph)"), ph = app_.querySelector(":scope > .crumb-ph");
   if (CRQ.matches) {
-    if (real) { const h = document.createElement("div"); h.className = "crumb crumb-ph"; h.dataset.nd = ""; h.hidden = true; real.replaceWith(h); slot.replaceChildren(real); }
+    if (real) { const h = document.createElement("div"); h.className = "crumb crumb-ph"; h.dataset.nd = ""; h.hidden = true; real.replaceWith(h);
+      const old = slot.querySelector(".cr-cur")?.textContent; slot.replaceChildren(real);
+      const cur = real.querySelector(".cr-cur"); if (cur && old !== cur.textContent && !RM.matches && cur.animate) cur.animate([{ opacity: 0, transform: "translateY(5px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.8,.2,1)" }); }      // đổi trang → tên trang mới trượt lên nhẹ
     else if (!ph && slot.firstChild) slot.replaceChildren();      // trang không có đường dẫn → thanh trên không giữ đường dẫn cũ
   } else if (slot.firstElementChild) { if (ph) ph.replaceWith(slot.firstElementChild); slot.replaceChildren(); }
   const on = !!slot.firstElementChild; if (R.classList.contains("has-topnav") !== on) R.classList.toggle("has-topnav", on);
@@ -7233,18 +7235,26 @@ function cmdk(open = true) {
 // 📜 thanh giá trên cùng: không đủ chỗ hiện hết các mã → chạy chữ liên tục (2 bản sao nối đuôi, trượt bằng transform – card đồ hoạ tự chạy, luồng chính rảnh);
 //    rê chuột vào thì dừng để đọc / bấm; đủ chỗ thì đứng yên như cũ; người dùng chọn giảm chuyển động thì đứng yên
 // 1 ô băng giá: <b>MÃ</b><span>giá</span> <i>%</i> – đổi chữ tại chỗ, đổi lớp màu chỉ khi đổi dấu; bề rộng ô chỉ nới ra (không co) → không nhảy chữ, không đo lại
-function tkCell(k) { const r = BYK[k]; return `<span data-tk="${k}"><b>${k}</b><span class="tk-p">${px(r.p)}</span> <i class="${cls(r.r1)}">${pct(r.r1, 1)}</i></span>`; }
+function tkCell(k) { const r = BYK[k]; return `<span data-tk="${k}"><b>${k}</b><span class="tk-p">${px(r.p)}</span><i class="${cls(r.r1)}">${pct(r.r1, 1)}</i></span>`; }
+// giá đổi → ô nháy xanh / đỏ rất nhẹ (lớp phủ mờ dần bằng opacity – GPU, ≤ 1 lần/giây/mã)
 function tkSet(k, p, r1) {
+  const t = px(p);
   for (const el of document.querySelectorAll(`#ticker [data-tk="${k}"]`)) {
     const P = el.querySelector(".tk-p"), I = el.querySelector("i"); if (!P || !I) continue;
-    setT(P, px(p)); setT(I, pct(r1, 1)); const c = cls(r1); if (I.className !== c) I.className = c;
+    const o = +el.dataset.v || 0; el.dataset.v = p;
+    if (P.firstChild?.data !== t) { setT(P, t); if (o && p !== o && !RM.matches && el.animate) { const d = p > o ? "u" : "d"; if (el.dataset.fl !== d) el.dataset.fl = d; try { el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 900, easing: "ease-out", pseudoElement: "::after" }); } catch (e) { /* bỏ qua */ } } }
+    setT(I, pct(r1, 1)); const c = cls(r1); if (I.className !== c) I.className = c;
   }
 }
+// 🚦 đèn thị trường đứng ĐẦU băng giá (không chạy theo băng): bấm = sang trang Thị trường
+function tkLamp(C) { const l = C?.light || "", T = $("#ticker"); if (!T) return; let e = T.querySelector(".tk-lamp");
+  if (!e) { e = document.createElement("a"); e.className = "tk-lamp"; e.href = "#/"; T.prepend(e); }
+  const vi = LIGHT_VI[l] || "—"; e.dataset.l = l; e.title = bi(`Đèn thị trường: ${vi} – bấm để xem`, `Market light: ${l || "—"} – click to view`); e.innerHTML = `<i></i><span>${bi("Thị trường", "Market")}</span>`; }
 function tkLock() { document.querySelectorAll("#ticker [data-tk]").forEach((el) => { el.style.minWidth = ""; const w = Math.ceil(el.getBoundingClientRect().width); if (w) el.style.minWidth = w + 6 + "px"; }); }
 function tkMarq() {
   const T = $("#ticker"), R = T?.querySelector(".tk-run"); if (!R) return; const G = R.querySelector(".tk-g"); if (!G) return;
   R.querySelectorAll(".tk-g[aria-hidden]").forEach((x) => x.remove());
-  const need = G.scrollWidth > T.clientWidth + 2 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const need = G.scrollWidth > T.clientWidth - (T.querySelector(".tk-lamp")?.offsetWidth || 0) + 2 && !matchMedia("(prefers-reduced-motion: reduce)").matches;
   T.classList.toggle("mq", need);
   if (need) { const c = G.cloneNode(true); c.setAttribute("aria-hidden", "true"); c.querySelectorAll("a").forEach((a) => a.tabIndex = -1); R.appendChild(c); R.style.setProperty("--tkd", Math.max(18, Math.round(G.offsetWidth / 38)) + "s"); }
   if (!T.__ro && "ResizeObserver" in window) { let w = T.clientWidth; T.__ro = new ResizeObserver(() => { if (Math.abs(T.clientWidth - w) > 8) { w = T.clientWidth; tkMarq(); } }); T.__ro.observe(T); }
@@ -7254,7 +7264,7 @@ async function drawTicker() {
   COINS = COINS || C; BYK = BYK || Object.fromEntries(C.rows.map((r) => [r.k, r]));
   const ks = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "HYPE"];
   const H = ks.filter((k) => BYK[k]).map((k) => `<a href="#/c/${k}">${tkCell(k)}</a>`).join("");
-  $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkLock(); tkMarq();
+  $("#ticker").innerHTML = `<div class="tk-run"><span class="tk-g">${H}</span></div>`; tkLamp(C); tkLock(); tkMarq();
   tickerWs();
   const age = (Date.now() - new Date(C.at)) / 60000;
   $("#upd").textContent = age < 90 ? `${Math.round(age)} phút trước` : `${Math.round(age / 60)} giờ trước`;

@@ -311,6 +311,20 @@
      "te": "Bot-trades pill shows OPEN P&L at the current price",
      "d": "Có lệnh đang mở → viên hiện \"đang mở +$x\" (giá cập nhật ~10 giây/lần cả khi thu gọn); không có lệnh → \"hôm nay $x\" như trước. Nhãn nhỏ cho biết đang xem số nào.",
      "de": "With open trades the pill shows \"open +$x\" (prices refresh every ~10 s even when collapsed); otherwise \"today $x\" as before. A small label tells which number you're looking at."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh trên: băng giá thị trường lên giữa, nổi bật hơn; việc của anh dồn sang phải",
+     "te": "Top bar: the market tape moves to the centre and stands out; your own items sit on the right",
+     "d": "Thứ tự mới: đường dẫn │ 🚦 Thị trường + băng giá │ trạng thái bot · lệnh bot │ tìm · chuông. Băng giá thành 1 viên riêng: đèn thị trường đứng yên ở đầu (bấm để mở trang Thị trường), mỗi mã chữ đậm, % trong ô màu xanh/đỏ, giá đổi thì ô nháy nhẹ (chạy trên GPU). Đổi trang: tên trang trượt lên; vào Bot Phản Xạ: dải trạng thái trượt vào.",
+     "de": "New order: path │ 🚦 Market + tape │ bot status · bot trades │ search · bell. The tape is its own capsule: the market light stays put at the start (click for the Market page), bold symbols, % in green/red chips, a soft flash when a price changes (GPU). Changing page slides the new name in; entering Reflex Bot slides the status strip in."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thanh tab Bot Phản Xạ khi dính không còn sát rạt thanh trên",
+     "te": "Reflex Bot tab bar no longer hugs the top bar when sticky"
     }
    ]
   },
