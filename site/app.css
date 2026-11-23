@@ -7250,3 +7250,18 @@ body.cmdk-on.cmdk-sd>*:not(#_a):not(#_b):not(#_c){visibility:visible!important}
 /* S · M · L: thanh chọn cùng kiểu kính trượt như các thanh chọn khác (trước: 3 nút xám rời) */
 .fd-sz.bseg{gap:0;padding:2px;margin:0;border-radius:9px;background:var(--sunk)}
 .fd-sz.bseg button{min-width:30px;padding:3px 9px;font-size:.75rem!important;font-weight:650;letter-spacing:.02em;border-radius:7px}
+/* ⬆ dải trạng thái Bot Phản Xạ trên thanh trên cùng (màn rộng) */
+.topst{display:none}
+@media (min-width:980px){
+  html.has-topst .topst{display:flex;align-items:center;flex:0 1 auto;min-width:0;padding:3px 4px 3px 12px;border-radius:999px;background:var(--sunk)}
+  .topst .hz2-r{gap:10px;min-width:0}
+  .topst .hz2-l{flex-wrap:nowrap;overflow:hidden;gap:10px}
+  .topst .hz2-s{font-size:.8125rem}
+  .topst .hz2-ic{width:24px;height:24px;background:transparent}
+  .topst .ios-sw.sm{transform:scale(.9)}
+  .sc-hero.hz-up{padding:0!important;border:0!important;background:none!important;box-shadow:none!important;margin:0!important;min-height:0}      /* không dùng :has() ở đây – xem ghi chú hiệu năng */
+  .sc-hero.hz-up>.sc-i:not([open]){display:none}
+  .sc-hero.hz-up>.sc-i[open]{margin:0 0 12px!important;padding:10px 14px!important;border:0!important;border-radius:14px;background:var(--surface);box-shadow:var(--sh-1,0 1px 3px rgba(0,0,0,.08))}
+  .sc-hero.hz-up .hz-pause{margin:0 0 12px}
+}
+@media (min-width:980px) and (max-width:1340px){ .topst .hz2-c:nth-of-type(2),.topst .hz2-lv{display:none} }

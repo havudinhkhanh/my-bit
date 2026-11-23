@@ -225,7 +225,18 @@ const cmpMark = () => { const f = window.__cmpF || "all"; $$("[data-cmpf]").forE
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cmpf]"); if (!b) return; const f = b.dataset.cmpf; window.__cmpF = f === "all" || window.__cmpF === f ? "all" : f; cmpMark(); });
 // nút Gọn / Vừa / Đầy đủ: đặt lên hàng tiêu đề của khung sự kiện (cùng dòng với tên khung) cho đỡ tốn chỗ
 function fdPlace() { $$("#app .fd-sz").forEach((c) => { const h = c.closest(".panel")?.querySelector(":scope > .ph"); if (h && c.parentElement !== h) { h.appendChild(c); h.classList.add("ph-fd"); } }); }
-document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-hzinfo]"); if (!b) return; const d = b.closest(".hz2")?.querySelector(":scope > .sc-i"); if (d) { d.open = !d.open; window.__hzInfo = d.open; b.setAttribute("aria-expanded", String(d.open)); } });
+// ⬆ dải trạng thái bot (đèn · dữ liệu · sàn · Binance · công tắc · ⓘ · ⋯) lên THANH TRÊN CÙNG khi màn rộng – trang đỡ 1 hàng; màn hẹp giữ trong trang
+function hzTop() {
+  const slot = document.getElementById("topSt"); if (!slot) return; const R = document.documentElement;
+  const hero = /^#\/bot\/scalp/.test(location.hash) ? document.querySelector("#app .sc-hero.hz2") : null, cur = slot.firstElementChild;
+  if (!hero) { if (cur) slot.replaceChildren(); R.classList.remove("has-topst"); return; }
+  const row = hero.querySelector(":scope > .hz2-r");
+  if (matchMedia("(min-width:980px)").matches) { if (row) slot.replaceChildren(row); hero.classList.add("hz-up"); R.classList.add("has-topst"); }
+  else { if (!row && cur) hero.prepend(cur); slot.replaceChildren(); hero.classList.remove("hz-up"); R.classList.remove("has-topst"); }
+}
+addEventListener("resize", () => { clearTimeout(window.__hzT); window.__hzT = setTimeout(hzTop, 150); });
+addEventListener("hashchange", () => setTimeout(hzTop, 0));
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-hzinfo]"); if (!b) return; const d = document.querySelector("#app .sc-hero.hz2 > .sc-i"); if (d) { d.open = !d.open; window.__hzInfo = d.open; b.setAttribute("aria-expanded", String(d.open)); } });
 function lvEqBind() {
   $$("#lvEqBox [data-lvr]").forEach((b) => (b.onclick = () => { window.__lvRng = b.dataset.lvr; lsSet("lvrng", b.dataset.lvr); window.__lvEqRedraw?.(); }));
   $$("#lvEqBox [data-lvm]").forEach((b) => (b.onclick = () => { window.__lvMd = b.dataset.lvm; lsSet("lvmd", b.dataset.lvm); window.__lvEqRedraw?.(); }));
@@ -1975,6 +1986,7 @@ async function viewScalp() {
     if (await Store.put("scalp", C)) { (window.__mClosing ||= {})[key] = now; toast(bi("Đã gửi – máy chủ đóng lệnh trong vài giây", "Sent – the server closes it in a few seconds")); setTimeout(() => { delete window.__mClosing?.[key]; }, 90e3); }
     else { b.disabled = false; b.classList.remove("busy"); b.textContent = bi("✕ Đóng lệnh", "✕ Close"); }
   })); if (window.__hzInfo) { const d = $(".hz2 > .sc-i"); if (d) d.open = true; }
+  hzTop();
   $("#scOn").onclick = async () => {
     if (C.enabled && !confirm(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`)) return;
     C.enabled = !C.enabled; $("#scOn")?.setAttribute("aria-checked", String(C.enabled)); delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };

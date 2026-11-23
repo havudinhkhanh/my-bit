@@ -766,7 +766,7 @@ const SR_MORPH = [/^#\/bot\/scalp/];
 const MO_LIVE = "[data-ldst],[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
 const MO_LIVE_K = MO_LIVE.replace(/[[\]]/g, "").split(",");
 const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
-const MO_KC = ["gseg", "ph-fd", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
+const MO_KC = ["gseg", "ph-fd", "hz-up", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
 const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded" || MO_MARK.has(a)
   || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"));
 function moAttrs(l, n, live) {

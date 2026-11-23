@@ -57,6 +57,15 @@
      "te": "Event list size is now an S · M · L segmented switch",
      "d": "Cùng kiểu với các thanh chọn khác, gọn hơn; rê chuột lên để xem giải thích từng mức.",
      "de": "Matches the other switches and takes less room; hover a letter for what it does."
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Trạng thái Bot Phản Xạ lên thanh trên cùng",
+     "te": "Bot status moves into the top bar",
+     "d": "Màn hình rộng: đèn trạng thái, dữ liệu, sàn, số dư, công tắc, ⓘ và ⋯ nằm trên thanh trên cùng – trang đỡ một hàng. Điện thoại vẫn hiện trong trang.",
+     "de": "On wide screens the status light, data, feeds, balance, switch, ⓘ and ⋯ sit in the top bar, saving a row. Phones keep it on the page.",
+     "go": "#/bot/scalp"
     }
    ]
   },
