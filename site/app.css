@@ -7423,7 +7423,7 @@ html.tf2 .topst .hz2-lv{display:none!important}
 html.tf3 .topst .hz2-c:nth-of-type(3){display:none!important}      /* sàn */
 html.tf4 .topst .hz2-c{display:none!important}      /* dữ liệu, Thật … */
 html.tf5 .top-in .search{flex:0 1 210px!important;width:210px!important;min-width:150px!important}
-html.tf6 .topnav .cr-b[data-crg],html.tf6 .topnav .crumb>span{display:none!important}      /* đường dẫn: chỉ còn ‹ › + tên trang */
+html.tf6 .topnav .cr-b[data-crg],html.tf6 .topnav .crumb>span:not(.cr-nav){display:none!important}      /* đường dẫn: chỉ còn ‹ › + tên trang */
 html.tf7 .top-in .search{flex:0 1 150px!important;width:150px!important;min-width:120px!important}
 html.tf8 .top-in>.ticker{display:none!important}      /* rất chật: bỏ băng giá */
 html.tf9 .topst .hz2-s b{display:none!important}      /* chật nữa: trạng thái bot chỉ còn đèn + công tắc */
@@ -7633,4 +7633,4 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
   body.rail-auto .tabs:not(.open) :is(a,.rail-pin)::after{top:1px!important;bottom:1px!important;height:auto!important;margin-top:0!important;border-radius:8px!important;width:40px!important}
 }
 /* đường dẫn trên thanh trên (máy tính): bỏ nút NHÓM ("4 Bot ›") – nhóm đã thấy ở thanh điều hướng bên trái; chỉ còn ‹ › + tên trang (bấm tên trang vẫn mở danh sách trang cùng nhóm) */
-@media (min-width:980px){.topnav .cr-b[data-crg],.topnav .crumb>span{display:none!important}}
+@media (min-width:980px){.topnav .cr-b[data-crg],.topnav .crumb>span:not(.cr-nav){display:none!important}}
