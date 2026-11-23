@@ -2,6 +2,24 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.23",
+   "t": "Bố cục lệnh gọn hơn",
+   "te": "Tidier trade layout",
+   "s": "Khung lệnh rộng hơn, tách Đang mở / Chờ khớp",
+   "se": "Wider trade area, Open / Pending split",
+   "it": [
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Tổng quan: thẻ lệnh rộng hơn, tách nhóm Đang mở và Chờ khớp",
+     "te": "Overview: wider trade cards, Open and Pending shown as separate groups",
+     "d": "Khung lệnh chiếm phần lớn bề ngang, cột sự kiện gọn lại; lệnh đã khớp và lệnh chờ giá nằm ở 2 nhóm riêng, mỗi nhóm có số đếm.",
+     "de": "The trades area takes most of the width and the events column is narrower; filled trades and pending price orders sit in two groups with counts.",
+     "f": "bot"
+    }
+   ]
+  },
+  {
    "v": "2026.11.22",
    "d": "2026-11-22",
    "t": "Thông báo trong app gọn về một kiểu",
