@@ -7634,3 +7634,24 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 }
 /* đường dẫn trên thanh trên (máy tính): bỏ nút NHÓM ("4 Bot ›") – nhóm đã thấy ở thanh điều hướng bên trái; chỉ còn ‹ › + tên trang (bấm tên trang vẫn mở danh sách trang cùng nhóm) */
 @media (min-width:980px){.topnav .cr-b[data-crg],.topnav .crumb>span:not(.cr-nav){display:none!important}}
+/* 11/2026: ⚙️ CÀI ĐẶT tách khỏi HỒ SƠ – 1 mục riêng cuối thanh bên (ngay trên hàng tài khoản) + trang Tài khoản chia 2 thẻ.
+   Thanh bên tự thu gọn khi mở ra (rê chuột) phải nằm TRÊN nút "Bảng phụ" nổi (z 45) – trước đây nút này đè lên đáy thanh bên. */
+.nav-me-row{display:none}
+@media (min-width:1180px){
+  .tabs .nav-me-row{display:flex;flex-direction:column;gap:2px;margin-top:auto;flex:none;padding-top:8px;border-top:1px solid var(--bd-2)}
+  .tabs .nav-me-row .nav-me{margin-top:0}
+  .tabs .nav-me:hover .nav-me-g{transform:translateY(-2px)}
+  .tabs .nav-me[aria-expanded="true"] .nav-me-g{transform:rotate(180deg)}
+  body.rail-auto .tabs.open{z-index:50}
+  body.rail-auto .tabs:not(.open) .nav-me-row{border-top-color:transparent}
+}
+.acp-tabs{align-self:flex-start;display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:rgba(118,118,128,.12);max-width:100%;overflow-x:auto;scrollbar-width:none}
+:root[data-theme="dark"] .acp-tabs{background:rgba(118,118,128,.24)}
+.acp-tabs a{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:9px;color:var(--ink-2);font-size:.875rem;font-weight:600;white-space:nowrap;text-decoration:none!important;transition:background-color .15s,color .15s}
+.acp-tabs a:hover{color:var(--ink)}
+.acp-tabs a.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.acp[data-t="me"] [data-acg="set"],.acp[data-t="set"] [data-acg="me"]{display:none!important}
+.acp[data-t="set"] .acp-grid{grid-template-columns:1fr}
+@media (max-width:760px){.acp-tabs{align-self:stretch}.acp-tabs a{flex:1 1 0;justify-content:center;padding:8px 10px}}
+/* trang Cài đặt: nhãn "Ánh sáng ấm" đã ở cột trái → bỏ chữ lặp trong hộp, chỉ còn công tắc (thẳng hàng phải như các nút khác) */
+.acp-c .nl-row :is(.nl-ic,.nl-t){display:none}.acp-c .nl-row{grid-template-columns:auto;justify-content:end}.acp-c .nl-sl,.acp-c .nl-au{padding-left:0!important}

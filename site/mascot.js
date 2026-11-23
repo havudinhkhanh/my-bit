@@ -1329,7 +1329,7 @@
       ${it("quiet", S.cfg.talk === "q" ? "💬" : "🤫", S.cfg.talk === "q" ? L("Nói chuyện bình thường", "Talk normally") : L("Ít nói thôi", "Talk less"), S.cfg.talk === "q" ? "" : L("chỉ đáp khi anh gọi", "only answers when poked"))}
       ${it("snd", S.cfg.snd ? "🔇" : "🔊", S.cfg.snd ? L("Tắt tiếng kêu", "Mute meows") : L("Bật tiếng kêu", "Unmute meows"), L("meo meo khi bật loa", "meows when sound is on"))}
       ${it("size", "📏", L("Cỡ: ", "Size: ") + ({ s: L("Nhỏ", "Small"), m: L("Vừa", "Medium"), l: L("Lớn", "Large") })[S.cfg.size || "l"], L("chạm để đổi Nhỏ → Vừa → Lớn", "tap to cycle Small → Medium → Large"))}
-      ${it("skin", "🎩", L("Đổi bộ đồ…", "Change outfit…"), L("Tài khoản › Mèo na", "Account › na"))}
+      ${it("skin", "🎩", L("Đổi bộ đồ…", "Change outfit…"), L("Cài đặt › Mèo na", "Settings › na"))}
       ${it("off", "🙈", L("Cất na đi", "Hide na"), L("bật lại trong Tài khoản", "turn back on in Account"))}</div>`;
     document.body.appendChild(m);
     m.querySelector("[data-x]").onclick = () => iosMenuClose();
@@ -1348,8 +1348,8 @@
       else if (k === "yarn" || k === "post" || k === "fly") setTimeout(() => toy(k, true), 250);
       else if (k === "sleep") { S.napTill = now() + 30 * 60e3; if (!napping() && !napV()) pose("curl"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
       else if (k === "quiet") { await setU((u) => (u.talk = S.cfg.talk === "q" ? "n" : "q")); say(S.cfg.talk === "q" ? L("Im thì im.", "Fine. Silent.") : L("na về rồi. Nhớ chứ gì.", "na is back. You missed me."), 3000, 2); }
-      else if (k === "off") { await setU((u) => (u.on = false)); (orig || toast)(L("Đã cất na – bật lại trong Tài khoản › Mèo na", "na is hidden – turn back on in Account › na")); }
-      else if (k === "skin") location.hash = "#/account";
+      else if (k === "off") { await setU((u) => (u.on = false)); (orig || toast)(L("Đã cất na – bật lại trong Cài đặt › Mèo na", "na is hidden – turn back on in Settings › na")); }
+      else if (k === "skin") location.hash = "#/settings";
     }));
     const kd = (e) => { if (e.key === "Escape") { iosMenuClose(); removeEventListener("keydown", kd); } }; addEventListener("keydown", kd);
   }

@@ -10,6 +10,28 @@
    "se": "Much lighter mouse movement and cat; wider trade area with Open / Pending split; bot status and the live pill in the top bar.",
    "it": [
     {
+     "c": "new",
+     "a": "acct",
+     "t": "⚙️ Cài đặt có mục riêng ở cuối thanh bên, tách khỏi hồ sơ",
+     "te": "⚙️ Settings now has its own item at the bottom of the sidebar, separate from your profile",
+     "d": "Bấm ⚙️ Cài đặt là tới thẳng giao diện, cỡ chữ, mèo na, vốn & rủi ro, khoá Binance và thông báo. Hàng tài khoản giờ chỉ mở menu hồ sơ. Trang Tài khoản chia 2 thẻ: Hồ sơ & bảo mật / Cài đặt. Phím tắt g , mở Cài đặt.",
+     "de": "⚙️ Settings goes straight to appearance, text size, the na cat, capital & risk, Binance keys and notifications. The account row now opens just the profile menu. The Account page has two tabs: Profile & security / Settings. Shortcut g , opens Settings.",
+     "go": "#/settings",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Nút “Bảng phụ” không còn đè lên đáy thanh bên khi thanh bên mở ra",
+     "te": "The “Side panel” button no longer covers the bottom of the sidebar when it expands"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Cài đặt Ánh sáng ấm không còn lặp tên 2 lần",
+     "te": "The Warm light setting no longer shows its name twice"
+    },
+    {
      "c": "imp",
      "a": "bot",
      "t": "Tổng quan: thẻ lệnh rộng hơn, tách nhóm Đang mở và Chờ khớp",

@@ -1102,7 +1102,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/tax": "Sổ thuế", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản" };
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/tax": "Sổ thuế", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản", "#/settings": "Cài đặt" };
 // icon riêng cho từng tab con của Bot Phản Xạ trên thanh dưới (trước dùng chung tia sét của nút Bot → nút "Lệnh" trông y hệt nút "Bot")
 const SVG0 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const SC_SVG = { ov: SVG0('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'), ord: SVG0('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>'), pm: SVG0('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), log: SVG0('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'), set: SVG0('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>') };
@@ -1117,7 +1117,8 @@ function cusOpts() {
     if (href === "#/bot/scalp") [...CUS_SUB, ["live", "Tổng quan · Binance"]].forEach(([k, st]) => out.push({ g, href, r: n.dataset.r, sc: k, t: `Bot Phản Xạ › ${st}`, tn: `Phản Xạ › ${st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử")}`, nsvg: k === "live" ? $('#tabs a[data-r="botbin"] svg')?.outerHTML : SC_SVG[k] || "", short: st.replace("Tổng quan · Binance", "Binance").replace("Tổng quan · Sàn thử", "Sàn thử").replace("Học & kiểm chứng", "Học"), emo: SC_ICON[k], svg: n.querySelector("svg")?.outerHTML || "" }));
   }
   out.push({ g: "Khác", href: "#/notifications", r: "", t: "Thông báo", short: "Thông báo", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>' },
-    { g: "Khác", href: "#/account", r: "", t: "Tài khoản & cài đặt", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' });
+    { g: "Khác", href: "#/account", r: "", t: "Hồ sơ & gói", short: "Tài khoản", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.2-3.6 4-5 7-5s5.8 1.4 7 5"/></svg>' },
+    { g: "Khác", href: "#/settings", r: "", t: "Cài đặt", short: "Cài đặt", svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>' });
   return out;
 }
 const cusKey = (o) => o.href + (o.sc ? "|" + o.sc : "");
@@ -1515,7 +1516,7 @@ function navTrack() {      // gọi mỗi lần đổi trang: trả "back" / "fw
 function navTitle() {
   const h = document.querySelector("#app > .ph h1") || document.querySelector("#app h1"), c = document.querySelector("#app .cr-cur") || [...document.querySelectorAll("a[href] .nav-t")].find((x) => x.parentElement.closest("a").getAttribute("href") === location.hash) || document.querySelector("#tabs a.on");
   const t = ((h && (h.childNodes[0]?.textContent || h.textContent)) || (c && c.textContent) || "").replace(/[▾⌄]/g, "").trim().slice(0, 40);
-  const ex = { account: bi("Tài khoản", "Account"), admin: bi("Quản trị", "Admin"), notifications: bi("Thông báo", "Notifications"), changes: bi("Có gì mới", "What's new") }[location.hash.replace(/^#\/?/, "").split(/[/?]/)[0]];      // trang ngoài menu
+  const ex = { account: bi("Tài khoản", "Account"), settings: bi("Cài đặt", "Settings"), admin: bi("Quản trị", "Admin"), notifications: bi("Thông báo", "Notifications"), changes: bi("Có gì mới", "What's new") }[location.hash.replace(/^#\/?/, "").split(/[/?]/)[0]];      // trang ngoài menu
   const tt = t || ex;
   if (tt) { NAVH.t[navI()] = tt; navSave(); }
 }
@@ -2086,7 +2087,8 @@ async function route() {
     else if (r === "help") { window.__openHelp = true; Store.fast = false; location.replace("#/methods"); return; }      // Hướng dẫn đã gộp vào Phương pháp
     else if (r === "methods") { setTab("methods"); await viewMethods(arg[0]); }
     else if (r === "tax") { setTab("tax"); await viewTax(); }
-    else if (r === "account") { setTab(""); await viewAccount(); }
+    else if (r === "account") { setTab(""); await viewAccount("me"); }
+    else if (r === "settings") { setTab("settings"); await viewAccount("set"); }
     else if (r === "admin") { setTab(""); await viewAdmin(arg[0]); }
     else if (r === "notifications") { setTab(""); await viewNotifications(); }
     else if (r === "keys") { setTab("keys"); await viewKeys(); }
@@ -6192,7 +6194,7 @@ async function bxPanel() {
   // chưa từng chọn môi trường → theo tài khoản bot đang chạy (bot đánh Binance thật thì mặc định Binance thật, không hiện Demo)
   if (!BX.envSync && !lsGet("bxenv", null) && !Object.keys(BX.keys).length) { BX.envSync = 1; try { const c = (await Store.get("scalp")).data; if (c?.lv_on && BXE[c.lv_env]) BX.env = c.lv_env; } catch (e) { /* bỏ qua */ } }
   const st = lsGet("bxk_" + BX.env, null), open = !!BX.keys[BX.env];
-  if (!location.hash.startsWith("#/account")) {      // 11/2026: kết nối khoá chỉ làm 1 lần → nằm trong ⚙️ Tài khoản & cài đặt; Sàn thử / trang Binance chỉ còn 1 dòng trạng thái
+  if (!/^#\/(settings|account)/.test(location.hash)) {      // 11/2026: kết nối khoá chỉ làm 1 lần → nằm trong ⚙️ Tài khoản & cài đặt; Sàn thử / trang Binance chỉ còn 1 dòng trạng thái
     el.classList.add("bx-mini");
     el.innerHTML = `<div class="bx-line"><span><span><b>Khoá API cho lệnh tay</b> · ${esc(BXE[BX.env]?.n || BX.env)} · ${open ? '<span class="up">đã mở khoá</span>' : st ? "đã lưu, chưa mở khoá" : '<span class="faint">chưa kết nối</span>'}</span><small class="faint">Bot dùng khoá riêng trên máy chủ – không cần khoá này.</small></span><a class="btn sm" href="#/account" data-acjump="bx">Cài đặt khoá →</a></div>`;
     $("[data-acjump]", el).onclick = () => { window.__acJump = "bx"; };
@@ -6567,14 +6569,14 @@ async function viewMethods(id) {
       <li><b>Place trades</b>: <a href="#/plan">Trade plan</a> computes entry, stop and size; <b>leverage is capped by the system</b> from the market light & volatility. <a href="#/paper">Paper trading</a> works like a real exchange with virtual money; <a href="#/portfolio">Portfolio</a> tracks real holdings.</li>
       <li><b>Bots</b>: minute bots on paper; <a href="#/bot/scalp">Reflex Bot</a> on your own server (scalping + wick catcher) – only the wick catcher connects to Binance Demo/live, API keys stay on the server with no withdrawal rights; <a href="#/bot/sup">Supervisor</a> manages overall risk.</li>
       <li><b>Learn & test</b>: this page explains each concept; <a href="#/backtest">Backtests</a> replay rules on history (fees, slippage, funding included).</li>
-      <li><b>Side panel</b> (right column / ☰ on phones): Summary · Jump to (key <kbd>/</kbd>) · Mine (watchlist, positions, bots) · Size calc. Set capital & risk in <a href="#/account">Account</a>.</li>
+      <li><b>Side panel</b> (right column / ☰ on phones): Summary · Jump to (key <kbd>/</kbd>) · Mine (watchlist, positions, bots) · Size calc. Set capital & risk in <a href="#/settings">Settings</a>.</li>
       <li>All signals come from fixed rules & past statistics – not investment advice, no guaranteed results. Always place a stop on the exchange.</li></ul></details></section>` : `<section class="panel mguide"><details id="mHelp"><summary>🧭 MyBit làm gì – tổng quan & cách dùng</summary><ul class="why">
       <li><b>Thị trường</b> (đang ra sao?): đèn thị trường, tâm lý, on-chain, phái sinh, nhóm ngành – số liệu cập nhật mỗi 4 giờ, giá trực tiếp từng giây từ Binance.</li>
       <li><b>Tìm cơ hội</b> (lệnh nào?): <a href="#/ideas">Cơ hội hôm nay</a> – thiết lập SMC/xu hướng khung 4 giờ & ngày đã kiểm chứng lịch sử, kèm 🪝 Bắt râu sập (cú sốc 1 phút do Bot Phản Xạ phát hiện); <a href="#/radar">Radar</a> quét trực tiếp; <a href="#/pairs">Coin cùng nhịp</a>.</li>
       <li><b>Vào lệnh</b> (vào thế nào?): <a href="#/plan">Lên kế hoạch lệnh</a> tính giá vào, cắt lỗ, khối lượng; <b>đòn bẩy do hệ thống kiểm soát</b> theo đèn thị trường & biến động. <a href="#/paper">Sàn thử</a> đặt lệnh y như sàn thật bằng tiền ảo; <a href="#/portfolio">Danh mục</a> theo dõi tài sản thật.</li>
       <li><b>Bot tự động</b>: bot phút chạy trên sàn thử; <a href="#/bot/scalp">Bot Phản Xạ</a> chạy trên máy chủ riêng (lướt giây + Bắt râu sập) – chỉ Bắt râu sập được nối Binance Demo/thật, khoá API chỉ nằm trên máy chủ và không có quyền rút tiền; <a href="#/bot/sup">Bot giám sát</a> quản rủi ro chung.</li>
       <li><b>Học & kiểm chứng</b>: trang này giải thích từng khái niệm; <a href="#/backtest">Kiểm chứng</a> chạy lại quy tắc trên dữ liệu lịch sử (đã trừ phí, trượt giá, funding).</li>
-      <li><b>Bảng phụ</b> (cột phải / nút ☰ trên điện thoại): Tóm tắt trang · Đi tới mục (phím <kbd>/</kbd>) · Của tôi (theo dõi, vị thế, bot) · Tính lệnh. Cài vốn & rủi ro ở <a href="#/account">Tài khoản</a>.</li>
+      <li><b>Bảng phụ</b> (cột phải / nút ☰ trên điện thoại): Tóm tắt trang · Đi tới mục (phím <kbd>/</kbd>) · Của tôi (theo dõi, vị thế, bot) · Tính lệnh. Cài vốn & rủi ro ở <a href="#/settings">Cài đặt</a>.</li>
       <li>Mọi tín hiệu đến từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư, không đảm bảo kết quả. Luôn đặt cắt lỗ trên sàn.</li></ul></details></section>`}
     <div class="mlay">
       <aside class="mside panel">
@@ -7243,7 +7245,8 @@ function nlq(q) {
 function cmdkItems(q) {
   const t = fold(q.trim()), T = q.trim().toUpperCase(), out = [];
   const pages = $$("#tabs a[href^='#/']:not(.nav-cus)").map((a) => ({ g: "Trang", label: (a.querySelector(".nav-t")?.textContent || [...a.childNodes].filter((n) => n.nodeType === 3 || (n.nodeType === 1 && !n.matches("svg,.nav-s,.nav-d,i,em,small"))).map((n) => n.textContent).join("")).trim(), sub: a.dataset.h || a.title || "", go: () => { location.hash = a.getAttribute("href"); }, icon: a.querySelector("svg")?.outerHTML || "", right: ksHint(a.getAttribute("href")) }));
-  pages.push({ g: "Trang", label: "Tài khoản & cài đặt", sub: "Gói, khoá Binance, cài đặt vốn & rủi ro", go: () => { location.hash = "#/account"; }, right: ksHint("#/account") });
+  pages.push({ g: "Trang", label: "Hồ sơ & gói", sub: "Tên, email, mật khẩu, gói đang dùng", go: () => { location.hash = "#/account"; }, right: ksHint("#/account") });
+  pages.push({ g: "Trang", label: "Cài đặt", sub: "Giao diện, khoá Binance, vốn & rủi ro, thông báo", go: () => { location.hash = "#/settings"; }, right: ksHint("#/settings") });
   if (!pages.some((p) => p.label === "Phím tắt" || p.label === "Shortcuts")) pages.push({ g: "Trang", label: bi("Phím tắt", "Shortcuts"), sub: bi("Danh sách mọi phím tắt · bấm ? ở bất kỳ đâu", "Every shortcut · press ? anywhere"), go: () => { location.hash = "#/keys"; }, right: ksHint("#/keys") });
   const acts = [...TH_OPT.filter(([k]) => k !== thPref()).map(([k, t]) => ({ g: "Thao tác", label: `Giao diện: ${t}`, go: () => thApply(k) })),
     ...LANGS.filter((l) => l[0] !== I18N.lang).map(([k, nat, vi]) => ({ g: "Thao tác", label: I18N.lang === "vi" ? `Ngôn ngữ: ${vi} (${nat})` : `Language: ${nat}`, go: () => langSet(k) })),
@@ -7798,7 +7801,7 @@ async function bellOpen(o = {}) {
     <div class="ntp-h"><b>Thông báo</b><span class="ntp-n"></span><span class="ntp-ic gbar">
       <button type="button" class="gib" id="bellAll" title="${bi("Đánh dấu mọi thông báo là đã đọc", "Mark every notification as read")}" aria-label="${bi("Đọc hết", "Mark all read")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 12.5 4.5 4.5L15 8.5"/><path d="m10 16.5.5.5L22 6.5"/></svg></button>
       <a class="gib" href="#/notifications" title="${bi("Xem tất cả thông báo", "See all notifications")}" aria-label="${bi("Xem tất cả", "See all")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></a>
-      <a class="gib ntp-set" href="#/account" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
+      <a class="gib ntp-set" href="#/settings" title="Cài đặt nhận thông báo" aria-label="Cài đặt nhận thông báo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></a>
       <button type="button" class="gib ntp-x" data-x aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></span></div>
     <div class="ntp-act"><small class="ntp-sw" title="${bi("Vuốt 1 thông báo sang trái: đã đọc / chưa đọc · sang phải: xem nhanh · vuốt chỗ trống: đổi mục", "Swipe a notification left: read / unread · right: quick view · swipe empty space: switch tab")}">${bi("← đọc · → xem nhanh", "← read · → quick view")}</small></div>
     <div class="nt-cs"></div><div class="ntp-l">${skRows(4, 1)}</div></div>`;
@@ -7832,7 +7835,7 @@ async function viewNotifications() {
   const draw = () => {
     const un = items.filter((n) => !n.read_at).length;
     app().innerHTML = `<div class="ph"><h1>Thông báo</h1><span class="meta">${un ? `${un} chưa đọc` : "đã đọc hết"} · ${items.length}${more ? "+" : ""} thông báo gần nhất</span></div>
-      <div class="nt-bar"><button class="btn" id="nAll">✓ Đánh dấu tất cả đã đọc</button><button class="btn" id="nDel">🗑 Xoá thông báo đã đọc</button><a class="btn" href="#/account">⚙️ Cài đặt nhận thông báo</a></div>
+      <div class="nt-bar"><button class="btn" id="nAll">✓ Đánh dấu tất cả đã đọc</button><button class="btn" id="nDel">🗑 Xoá thông báo đã đọc</button><a class="btn" href="#/settings">⚙️ Cài đặt nhận thông báo</a></div>
       <section class="panel nt-page"><div class="nt-cs">${ntfChips(items, f)}</div><div class="ntp-l">${ntfList(items, f)}</div>
       ${more ? '<button class="btn" id="nMore" style="margin-top:10px">Xem thêm</button>' : ""}</section>`;
     bindNtf(app(), items, draw);
@@ -7991,20 +7994,24 @@ function acPage(o) {
   const { N, ps, subs } = o;
   const push = !can("notify_push") ? `<span class="acp-lock">🔒 Gói Pro</span>` : !ps.ok ? `<span class="acp-warn">${esc(ps.why)}</span>`
     : `<span class="acp-st ${ps.on ? "on" : ""}">${ps.on ? "● Đang bật" : ps.perm === "denied" ? "Bị chặn trong trình duyệt" : "Chưa bật"}</span>${ps.on ? '<button class="btn" id="puTest">Gửi thử</button><button class="btn" id="puOff">Tắt</button>' : '<button class="btn primary" id="puOn">Bật</button>'}`;
-  return `<div class="acp">
-  <header class="acp-hero"><span class="acp-avw"><button type="button" class="acp-av" id="acAv" aria-haspopup="dialog" aria-label="Đổi ảnh đại diện" title="Đổi ảnh đại diện">${ini}</button><i class="acp-cam" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></i></span><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
+  const T = window.__acT === "set" ? "set" : "me";
+  return `<div class="acp" data-t="${T}">
+  <nav class="acp-tabs" role="tablist" aria-label="${bi("Tài khoản & cài đặt", "Account & settings")}"><a role="tab" href="#/account" class="${T === "me" ? "on" : ""}" aria-selected="${T === "me"}">👤 ${bi("Hồ sơ & bảo mật", "Profile & security")}</a><a role="tab" href="#/settings" class="${T === "set" ? "on" : ""}" aria-selected="${T === "set"}">⚙️ ${bi("Cài đặt", "Settings")}</a></nav>
+  <header class="acp-hero" data-acg="me"><span class="acp-avw"><button type="button" class="acp-av" id="acAv" aria-haspopup="dialog" aria-label="Đổi ảnh đại diện" title="Đổi ảnh đại diện">${ini}</button><i class="acp-cam" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></i></span><div class="acp-id"><h1>${esc(ME.name || "Tài khoản")}</h1><p>${esc(ME.email)}</p>
     <div class="acp-tags"><span class="acp-tag ${pro ? "pro" : ""}">${pro ? "★ " : ""}Gói ${esc(ME.plan_name || ME.eff_plan)}${ME.plan_until ? ` · đến ${esc(ME.plan_until)}` : ""}</span><span class="acp-tag">${ME.role === "admin" ? "Quản trị viên" : "Thành viên"}</span><span class="acp-tag">Đăng nhập: ${esc(login)}</span></div></div></header>
   <div class="acp-grid">
-  <section class="acp-card"><h2>Hồ sơ</h2>
+  <section class="acp-card" data-acg="me"><h2>Hồ sơ</h2>
     ${acRow("Tên hiển thị", "Hiện trên đầu trang & trong thông báo", `<input id="acName" value="${esc(ME.name || "")}" placeholder="Tên của anh/chị"><button class="btn" id="acSave">Lưu</button>`)}
     ${acRow("Email đăng nhập", ME.has_pw ? "Đổi email cần mật khẩu hiện tại · email cũ sẽ nhận thư báo" : "Đặt mật khẩu ở mục Bảo mật trước rồi mới đổi được email", `<span class="acp-v" id="acEmV">${esc(ME.email)}</span>${ME.has_pw ? `<button class="btn" id="acEmEdit">Đổi email</button>` : ""}`)}
     <div class="acp-row acp-emf" id="acEmF" hidden><div class="acp-l"><b>Email mới</b><small>Sau khi đổi, các thiết bị khác phải đăng nhập lại bằng email mới</small></div><div class="acp-c acp-emc"><input id="acEm" type="email" autocomplete="email" placeholder="email@vidu.com"><input id="acEmPw" type="password" autocomplete="current-password" placeholder="Mật khẩu hiện tại"><button class="btn primary" id="acEmSave">Lưu email</button><button class="btn" id="acEmX">Huỷ</button></div></div>
-    ${acRow("Giao diện", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
+  </section>
+  <section class="acp-card" data-acg="set"><h2>${bi("Giao diện", "Appearance")}</h2>
+    ${acRow("Sáng / Tối", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
     ${acRow("Ánh sáng ấm", "Phủ ánh vàng lên cả trang – dịu mắt khi xem lúc tối, dùng chung với Sáng / Tối", nlHtml())}
     ${uiPrefHtml()}
     ${munPrefHtml()}
   </section>
-  <section class="acp-card"><h2>Bảo mật</h2>
+  <section class="acp-card" data-acg="me"><h2>Bảo mật</h2>
     ${ME.has_pw ? acRow("Mật khẩu hiện tại", "", `<input id="pwOld" type="password" autocomplete="current-password" placeholder="••••••••">`) : ""}
     ${acRow(ME.has_pw ? "Mật khẩu mới" : "Đặt mật khẩu", "Ít nhất 8 ký tự", `<input id="pwNew" type="password" autocomplete="new-password" placeholder="••••••••"><button class="btn" id="pwSave">${ME.has_pw ? "Đổi" : "Đặt"}</button>`)}
     <h3 class="acp-sub">Thiết bị đang đăng nhập</h3>
@@ -8013,8 +8020,8 @@ function acPage(o) {
       <small>Nghi bị lộ mật khẩu: đổi mật khẩu (tự đăng xuất các thiết bị khác) hoặc bấm “Đăng xuất mọi thiết bị khác”. Thiết bị bị đăng xuất không sửa được dữ liệu ngay lập tức và mất quyền xem trong tối đa 10 phút.</small></div>
   </section>
   </div>
-  ${o.extra || ""}
-  <section class="acp-card"><h2>Thông báo</h2><p class="acp-d">Chuông trên web luôn bật. Chọn thêm kênh và mức gửi.</p>
+  <div data-acg="set">${o.extra || ""}</div>
+  <section class="acp-card" data-acg="set"><h2>Thông báo</h2><p class="acp-d">Chuông trên web luôn bật. Chọn thêm kênh và mức gửi.</p>
     ${acRow("Thông báo đẩy", `Điện thoại / máy tính này${ps.ok && can("notify_push") ? ` · đang bật trên ${nf((subs?.subs || []).length, 0)} thiết bị · ${o.pushWhen}` : ""}`, push)}
     ${acRow("Mức gửi đẩy", "", lv("nPush", N.push))}
     ${acRow("Email", !can("notify_email") ? "🔒 Gói Pro" : "", lv("nEmail", N.email))}
@@ -8023,7 +8030,7 @@ function acPage(o) {
     <div class="acp-kinds">${Object.entries(NKIND).map(([k, t]) => `<label class="acp-kind"><span class="acp-ki">${NK[k] || "🔔"}</span><span class="acp-kt">${esc(t)}</span><input type="checkbox" class="acp-sw" data-nk="${k}" ${N.kinds[k] === false ? "" : "checked"}></label>`).join("")}</div>
     <div class="acp-foot"><button class="btn primary" id="nSave">Lưu cài đặt thông báo</button><small>${o.levels}</small></div>
   </section>
-  <section class="acp-card">${planTable()}<p class="acp-d" style="margin:10px 0 0">Muốn nâng cấp hoặc gia hạn gói, liên hệ quản trị viên.</p></section>
+  <section class="acp-card" data-acg="me">${planTable()}<p class="acp-d" style="margin:10px 0 0">Muốn nâng cấp hoặc gia hạn gói, liên hệ quản trị viên.</p></section>
   </div>`;
 }
 function planTable() {
@@ -8038,9 +8045,10 @@ function planTable() {
 
 // khung "Kết nối Binance cho lệnh tay" trong trang Tài khoản; đến từ nút "Cài đặt khoá →" thì cuộn thẳng tới khung
 async function acBx() { await bxPanel(); if (window.__acJump === "bx") { window.__acJump = null; setTimeout(() => $("#pvBx")?.scrollIntoView({ block: "start", behavior: "smooth" }), 60); } }
-async function viewAccount() {
+async function viewAccount(tab) {
+  window.__acT = tab || window.__acT || "me";
   await Promise.all([plansData(), loadSettings()]);
-  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>Tài khoản</h1></div><div class="acp">${acTradeHtml()}<section class="panel" id="pvBx"></section></div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); acBx(); return; }
+  if (!multiUser()) { await loadSettings(); app().innerHTML = `<div class="ph"><h1>${bi("Cài đặt", "Settings")}</h1></div><div class="acp">${acTradeHtml()}<section class="panel" id="pvBx"></section></div><div class="panel"><p>Trang đang chạy chế độ một chủ sở hữu (đăng nhập qua Cloudflare Access). Khi bật chế độ nhiều người dùng (gắn cơ sở dữ liệu D1), mỗi người có tài khoản, danh mục và thông báo riêng.</p></div><section class="panel sec">${planTable()}</section>`; acTradeBind(); acBx(); return; }
   const [np, ps, subs] = await Promise.all([api("notify").catch(() => ({})), pushState(), api("push/list").catch(() => ({ subs: [] }))]);
   const N = { push: np?.push || "normal", email: np?.email || "important", email_to: np?.email_to || "", kinds: np?.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
@@ -8286,7 +8294,7 @@ function initAccountUI() {
     const pro = ME.eff_plan === "pro";
     m.innerHTML = `<a class="mm-id" href="#/account" title="Mở trang tài khoản"><span class="nav-av" id="mmAv" aria-hidden="true"></span><span class="mm-who"><b>${esc(ME.name || ME.email)}</b><small>${esc(ME.email)}</small></span><span class="mm-plan ${pro ? "pro" : ""}">${pro ? "★ " : ""}${esc(ME.plan_name || ME.eff_plan || "")}</span></a>
       <hr class="mm-sep">
-      <a href="#/account">${ic(I.set)}<span>Cài đặt tài khoản</span></a>
+      <a href="#/settings">${ic(I.set)}<span>Cài đặt</span></a>
       <div class="mm-th">${ic('<path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.6-1.3.3-2.7 1.8-2.7H17a4 4 0 0 0 4-4c0-5-4-9.5-9-9.5z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/>')}<span class="mm-lb">Giao diện</span>${thSegHtml()}</div>
       <div class="mm-nl">${nlHtml()}</div>
       <div class="mm-th mm-lgr">${ic('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>')}<span class="mm-lb">Ngôn ngữ</span><div class="th-seg mm-lg" role="radiogroup" aria-label="Ngôn ngữ">${LANGS.map((l) => `<button type="button" role="radio" aria-checked="${l[0] === I18N.lang}" data-lgv="${l[0]}" title="${esc(l[1])}">${l[3]}</button>`).join("")}</div></div>
@@ -8310,9 +8318,15 @@ function initAccountUI() {
   // 👤 hàng tài khoản cố định cuối thanh bên (máy tính): ảnh đại diện · tên · gói · ⚙ – bấm mở menu tài khoản
   const tabs = document.getElementById("tabs"), pin = document.getElementById("railPin");
   if (tabs && pin && !document.getElementById("navMe")) {
-    const nm = document.createElement("button"); nm.type = "button"; nm.id = "navMe"; nm.className = "nav-me"; nm.setAttribute("aria-haspopup", "menu"); nm.title = `${ME.name || ME.email} · Tài khoản & cài đặt`;
-    nm.innerHTML = `<span class="nav-av" id="navMeAv" aria-hidden="true"></span><span class="nav-t"><b>${esc(ME.name || ME.email)}</b><small>Gói ${esc(ME.plan_name || ME.eff_plan || "")}</small></span><svg class="nav-me-g" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`;
-    tabs.insertBefore(nm, pin); document.body.classList.add("has-navme");
+    const nm = document.createElement("button"); nm.type = "button"; nm.id = "navMe"; nm.className = "nav-me"; nm.setAttribute("aria-haspopup", "menu"); nm.title = `${ME.name || ME.email} · Hồ sơ & gói`;
+    nm.innerHTML = `<span class="nav-av" id="navMeAv" aria-hidden="true"></span><span class="nav-t"><b>${esc(ME.name || ME.email)}</b><small>Gói ${esc(ME.plan_name || ME.eff_plan || "")}</small></span><svg class="nav-me-g" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 15 5-5 5 5"/></svg>`;
+    // ⚙️ CÀI ĐẶT là 1 mục riêng ngay trên hàng tài khoản (như Linear / Slack / ChatGPT): không phải mở hồ sơ rồi mới tìm.
+    // Bọc trong .nav-me-row để không lẫn vào danh sách "trang tuỳ chọn" (cusOpts chỉ duyệt con trực tiếp của #tabs); data-r → setTab tự sáng như mục menu khác
+    const row = document.createElement("div"); row.className = "nav-me-row"; tabs.insertBefore(row, pin);
+    const st = document.createElement("a"); st.id = "navSet"; st.className = "nav-set"; st.href = "#/settings"; st.dataset.r = "settings"; st.title = bi("Cài đặt: giao diện, khoá Binance, vốn & rủi ro, thông báo", "Settings: appearance, Binance keys, capital & risk, notifications");
+    st.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="nav-t">' + bi("Cài đặt", "Settings") + "</span>";
+    row.append(st, nm); if (location.hash.startsWith("#/settings")) st.classList.add("on");
+    document.body.classList.add("has-navme");
     nm.onclick = (e) => { e.stopPropagation(); meMenu(nm); };
     uiAvStyle(document.getElementById("navMeAv"));
   }
@@ -9078,7 +9092,8 @@ const KS = [
     { k: ["g", "h"], t: ["Cẩm nang chỉ báo", "Indicator guide"], h: "#/methods" },
     { k: ["g", "z"], t: ["Kiểm chứng", "Verification"], h: "#/backtest" },
     { k: ["g", "o"], t: ["Trang thông báo", "Notifications page"], h: "#/notifications" },
-    { k: ["g", "a"], t: ["Tài khoản & cài đặt", "Account & settings"], h: "#/account" },
+    { k: ["g", "a"], t: ["Hồ sơ & gói", "Profile & plan"], h: "#/account" },
+    { k: ["g", ","], t: ["Cài đặt", "Settings"], h: "#/settings" },
     { k: ["g", "w"], t: ["Có gì mới – nhật ký phiên bản", "What's new – release notes"], h: "#/changes" },
     { k: ["g", "?"], t: ["Trang phím tắt này", "This shortcuts page"], h: "#/keys" },
     { k: ["<"], t: ["Trang trước theo thứ tự menu", "Previous page in menu order"], run: () => navStep(-1) },
