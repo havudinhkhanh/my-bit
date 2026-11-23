@@ -294,6 +294,23 @@
      "te": "Pinned bot-trades pill blends into the top bar – no more border / floating shadow",
      "d": "Cùng kiểu với dải trạng thái bot và ô tìm: nền chìm, bo tròn, cao bằng các ô khác trên thanh; bỏ nút thu thành chấm khi đang ghim. Ô chừa sẵn trên thanh co giãn đúng theo bề rộng viên – hết khoảng trống thừa trước băng giá.",
      "de": "Same style as the bot status strip and search box: recessed fill, rounded, same height as the other top-bar items; the shrink-to-dot button is hidden while pinned. The reserved slot now tracks the pill width – no stray gap before the ticker."
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "hi": 1,
+     "t": "Thanh trên cùng mới: đường dẫn ‹ › · nhóm › trang nằm ngay trên thanh, bớt 1 hàng",
+     "te": "New top bar: the ‹ › · group › page path now lives in the bar – one row less",
+     "d": "Máy tính: hàng đường dẫn dưới thanh trên được đưa lên thanh, nội dung trang lên cao hơn. Thanh chia vùng rõ: đường dẫn │ trạng thái bot · lệnh bot │ băng giá · giờ dữ liệu │ tìm · chuông; mọi ô cùng chiều cao, nền chìm, không viền / bóng nổi; cuộn xuống thanh có viền tóc + bóng rất nhẹ. Màn hẹp tự gọn dần (giờ dữ liệu → chi tiết trạng thái → tên nhóm → ô tìm thành nút kính lúp → băng giá). Điện thoại giữ như cũ.",
+     "de": "Desktop: the breadcrumb row below the top bar moved into the bar, so page content sits higher. Clear zones: path │ bot status · bot trades │ market tape · data age │ search · bell; every item the same height, recessed fill, no borders / floating shadows; scrolling adds a hairline + very soft shadow. Narrow screens tidy up step by step (data age → status details → group name → search becomes a magnifier button → market tape). Phones unchanged."
+    },
+    {
+     "c": "imp",
+     "a": "live",
+     "t": "Viên lệnh bot: hiện lời/lỗ ĐANG MỞ theo giá hiện tại",
+     "te": "Bot-trades pill shows OPEN P&L at the current price",
+     "d": "Có lệnh đang mở → viên hiện \"đang mở +$x\" (giá cập nhật ~10 giây/lần cả khi thu gọn); không có lệnh → \"hôm nay $x\" như trước. Nhãn nhỏ cho biết đang xem số nào.",
+     "de": "With open trades the pill shows \"open +$x\" (prices refresh every ~10 s even when collapsed); otherwise \"today $x\" as before. A small label tells which number you're looking at."
     }
    ]
   },

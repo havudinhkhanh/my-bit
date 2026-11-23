@@ -7418,12 +7418,18 @@ html.has-topst .ticker{min-width:min(300px,24vw)}      /* dải trạng thái bo
 /* khung đang mở: nút "Cắt lỗ · chốt" trên thẻ hiện trạng thái đang bật */
 .sc-mx[data-mft][aria-expanded="true"]{background:var(--sel)!important;color:var(--sel-ink)!important}
 /* 📏 thanh trên cùng tự co (topFit): ẩn dần mục phụ khi chật */
-html.tf1 .topst .hz2-lv{display:none!important}
-html.tf2 .topst .hz2-c:nth-of-type(3){display:none!important}      /* sàn */
-html.tf3 .topst .hz2-c:nth-of-type(2){display:none!important}      /* dữ liệu */
-html.tf4 .topst .hz2-c{display:none!important}
-html.tf5 .top-in>.upd{display:none!important}
-html.tf6 .top-in .search{flex:0 1 200px!important;min-width:140px!important}
+html.tf1 .top-in>.upd{display:none!important}      /* giờ cập nhật dữ liệu */
+html.tf2 .topst .hz2-lv{display:none!important}
+html.tf3 .topst .hz2-c:nth-of-type(3){display:none!important}      /* sàn */
+html.tf4 .topst .hz2-c{display:none!important}      /* dữ liệu, Thật … */
+html.tf5 .top-in .search{flex:0 1 210px!important;width:210px!important;min-width:150px!important}
+html.tf6 .topnav .cr-b[data-crg],html.tf6 .topnav .crumb>span{display:none!important}      /* đường dẫn: chỉ còn ‹ › + tên trang */
+html.tf7 .top-in .search{flex:0 1 150px!important;width:150px!important;min-width:120px!important}
+html.tf8 .top-in>.ticker{display:none!important}      /* rất chật: bỏ băng giá */
+html.tf9 .topst .hz2-s b{display:none!important}      /* chật nữa: trạng thái bot chỉ còn đèn + công tắc */
+/* dòng chạy trong viên ghim: bề rộng cố định theo màn (KHÔNG để topFit đụng – viên đổi bề rộng chậm 1 nhịp sẽ làm thanh co / giãn qua lại) */
+@media (min-width:980px) and (max-width:1439px){.lvw.lvw-pin .lvw-tk{max-width:112px}}
+@media (min-width:980px) and (max-width:1179px){.lvw.lvw-pin .lvw-tk{display:none!important}}
 html.has-topst .topst{min-width:0}
 /* 📝 bộ lọc / ô nhập trong thẻ: không lồng thêm 1 hộp (trước: Công cụ tính có khoảng trống thừa phía trên ô nhập) */
 .panel>.filters{padding:0;border:0;background:transparent;box-shadow:none}
@@ -7493,3 +7499,50 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
   .lvw.lvw-pin .lvw-min{display:none}      /* ghim = luôn dạng viên gọn, không thu thành chấm */
   .lvw.lvw-pin.lvw-hot .lvw-pill{box-shadow:none!important}
 }
+
+/* ================================================================ ✨ THANH TRÊN CÙNG v2 (máy tính ≥ 980px)
+   1 hàng duy nhất, chia vùng rõ ràng:  [‹ › Nhóm › Trang]  │  [trạng thái bot] [lệnh bot trực tiếp]  │  [băng giá thị trường ······]  [giờ dữ liệu] [⌕ Tìm … ⌘K] [🔔]
+   mọi ô cao 34px, bo 10px, nền chìm cùng 1 màu, không viền / không bóng nổi; cuộn xuống → thanh có viền tóc + bóng rất nhẹ để tách khỏi nội dung */
+.crumb-ph{display:none!important}
+.topnav{display:none}
+@media (min-width:980px){
+  .top-in{min-height:56px;gap:8px!important}
+  .top-in>.brand{order:0}.top-in>.topnav{order:1}.top-in>.topst{order:2}.top-in>.toplv{order:3}.top-in>.ticker{order:4}.top-in>.upd{order:5}.top-in>.search{order:6}.top-in>.iconbtn{order:7}
+  html.has-topnav .topnav{display:flex;align-items:center;flex:none;min-width:0;padding-right:10px;margin-right:2px;position:relative}
+  html.has-topnav .topnav::after{content:"";position:absolute;right:0;top:50%;width:1px;height:20px;transform:translateY(-50%);background:var(--bd)}
+  .topnav .crumb{position:static!important;margin:0!important;padding:0!important;height:34px;gap:2px!important;flex-wrap:nowrap!important;background:none!important;box-shadow:none!important;border:0!important;font-size:.8125rem;top:auto!important}
+  .topnav .crumb .cr-nav{gap:2px;margin-right:4px}
+  .topnav .crumb .cr-nv{width:30px;height:30px;border-radius:9px;background:transparent;color:var(--ink-2)}
+  .topnav .crumb .cr-nv:hover:not(:disabled){background:var(--sunk)}
+  .topnav .crumb .cr-b{height:30px;padding:0 9px;border-radius:9px;font-size:.8125rem;color:var(--ink-3)}
+  .topnav .crumb .cr-b:hover,.topnav .crumb .cr-b[aria-expanded="true"]{background:var(--sunk);color:var(--ink)}
+  .topnav .crumb .cr-b.cr-cur{color:var(--ink);font-weight:650;font-size:.875rem}
+  .topnav .crumb .cr-b i{width:18px;height:18px;border-radius:6px;background:var(--sunk);font-size:.6875rem;font-weight:700;color:var(--ink-2)}
+  .topnav .crumb>span{opacity:.4;margin:0 -2px}
+  /* giờ dữ liệu: chữ nhỏ có chấm, nằm cuối băng giá */
+  .top-in>.upd{flex:none;font-size:.71875rem;color:var(--ink-3);padding:0 2px;gap:5px}
+  .top-in>.upd::before{content:"";width:6px;height:6px;border-radius:50%;background:color-mix(in srgb,var(--ink-3) 55%,transparent)}
+  /* ô tìm: viên chìm, kính lúp + phím tắt */
+  .top-in>.search input{height:34px!important;border-radius:10px!important;border:0!important;background-color:var(--sunk)!important;font-size:.8125rem}
+  .top-in>.search input:focus{background-color:var(--surface)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--brand) 50%,transparent)!important}
+  .top-in>.iconbtn{width:34px!important;min-width:34px!important;height:34px!important;border-radius:10px!important;background:var(--sunk)!important;box-shadow:none!important;border:0!important}
+  .top-in>.iconbtn:hover{background:var(--fill-h,color-mix(in srgb,var(--ink) 9%,var(--sunk)))!important}
+  /* dải trạng thái bot & viên lệnh: cùng chiều cao, cùng nền */
+  html.has-topst .topst{height:34px;padding:0 4px 0 12px!important;border-radius:999px;background:var(--sunk)!important}
+  .toplv{height:34px!important}
+  .lvw.lvw-pin:not(.drag) .lvw-pill{height:34px!important}
+  /* băng giá: chữ thị trường gọn, mờ 2 đầu */
+  .top-in>.ticker{font-size:.8125rem;height:34px;align-items:center;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 94%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 94%,transparent)}
+  /* cuộn xuống: thanh tách khỏi nội dung bằng viền tóc + bóng rất nhẹ */
+  .top{transition:box-shadow .2s ease}
+  html.top-sc .top{box-shadow:0 1px 0 var(--bd),0 8px 24px -16px rgba(16,24,40,.35)!important}
+}
+/* máy tính bảng ngang / màn nhỏ (980–1179px, có hàng menu ngang bên dưới): ô tìm thu thành nút kính lúp (vẫn mở bảng tìm nhanh), logo chỉ còn chấm */
+@media (min-width:980px) and (max-width:1179px){
+  .top-in>.search{display:none!important}
+  .top-in>.qbtn{display:inline-flex!important;align-items:center;justify-content:center}
+  html.has-topnav .top-in>.brand{display:none!important}      /* đường dẫn trên thanh đã cho biết đang ở đâu; về trang chủ: menu ngang bên dưới */
+}
+/* viên lệnh bot: nhãn nhỏ trước con số ("đang mở" / "hôm nay") */
+.lvw-day small{font-size:.65rem;font-weight:600;color:var(--ink-3);margin-right:4px;letter-spacing:.01em;text-transform:none}
+.lvw.m-dot .lvw-day small{display:none}

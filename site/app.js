@@ -927,9 +927,22 @@ document.addEventListener("click", (e) => {
   if (b.dataset.crg !== undefined) { navMenu(b, bi("Mọi trang", "All pages"), X.items.map((x) => ({ ...x, gh: navGName(x) })), X.cur.a); return; }
   navMenu(b, navGName(X.cur), X.items.filter((x) => x.gi === X.cur.gi), X.cur.a);
 });
+// 🧭 MÁY TÍNH: thanh ‹ › · nhóm › trang nằm TRÊN THANH TRÊN CÙNG (bớt hẳn 1 hàng – nội dung lên cao hơn).
+//    Trong trang chỉ còn 1 chỗ giữ ẩn (.crumb-ph, cùng lớp crumb[data-nd]) để mọi chỗ kiểm "trang đã có đường dẫn chưa" vẫn đúng. Điện thoại: giữ như cũ (hàng dính dưới thanh trên)
+const CRQ = matchMedia("(min-width:980px)");
+function crDock() {
+  const slot = document.getElementById("topNav"), app_ = $("#app"); if (!slot || !app_) return; const R = document.documentElement;
+  const real = app_.querySelector(":scope > .crumb[data-nd]:not(.crumb-ph)"), ph = app_.querySelector(":scope > .crumb-ph");
+  if (CRQ.matches) {
+    if (real) { const h = document.createElement("div"); h.className = "crumb crumb-ph"; h.dataset.nd = ""; h.hidden = true; real.replaceWith(h); slot.replaceChildren(real); }
+    else if (!ph && slot.firstChild) slot.replaceChildren();      // trang không có đường dẫn → thanh trên không giữ đường dẫn cũ
+  } else if (slot.firstElementChild) { if (ph) ph.replaceWith(slot.firstElementChild); slot.replaceChildren(); }
+  const on = !!slot.firstElementChild; if (R.classList.contains("has-topnav") !== on) R.classList.toggle("has-topnav", on);
+}
+CRQ.addEventListener?.("change", () => { crDock(); try { stickH(); topFit(); } catch (e) { /* bỏ qua */ } });
 function navDecor(r) {
   const app_ = $("#app"); if (!app_) return;
-  app_.querySelectorAll(".crumb[data-nd], .nextstep[data-nd]").forEach((x) => x.remove());
+  app_.querySelectorAll(".crumb[data-nd], .nextstep[data-nd]").forEach((x) => x.remove()); document.getElementById("topNav")?.replaceChildren();
   const X = navCtx(r); if (!X) return;
   const gname = X.cur.g?.querySelector("b")?.textContent || "", name = X.cur.a.querySelector(".nav-t")?.textContent || "";
   const ph = app_.querySelector(".ph");
@@ -940,7 +953,7 @@ function navDecor(r) {
   const nb = (d) => `<button type="button" class="cr-nv" data-crn="${d}"${can(d) ? "" : " disabled"} title="${d < 0 ? bi("Quay lại trang vừa xem (Alt+←)", "Back (Alt+←)") : bi("Tiến tới (Alt+→)", "Forward (Alt+→)")}" aria-label="${d < 0 ? bi("Quay lại", "Back") : bi("Tiến tới", "Forward")}">${chev(d)}</button>`;
   const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(-1)}${nb(1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
   if (ph && ph.parentElement === app_) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);      // luôn là con trực tiếp của #app → dính được suốt trang (tiêu đề nằm trong khung con thì đặt lên đầu trang)
-  requestAnimationFrame(() => stickH());
+  crDock(); requestAnimationFrame(() => { stickH(); try { topFit(); } catch (e) { /* bỏ qua */ } });
   try { lvsDraw(); } catch (e) { /* bỏ qua */ }
   if (X.next) {
     const n = X.next, nn = n.a.querySelector(".nav-t")?.textContent || "", ng = n.g?.querySelector("b")?.textContent || "";
@@ -951,7 +964,7 @@ function navDecor(r) {
 let CUR_TAB = "";
 (() => {   // trang vẽ lại (đổi tab con, tự làm mới) → gắn lại "vị trí trong quy trình" & "bước tiếp theo"
   let t = 0; const el = document.getElementById("app");
-  if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB); }, 60); }).observe(el, { childList: true });
+  if (el) new MutationObserver(() => { clearTimeout(t); t = setTimeout(() => { if (CUR_TAB && el.querySelector(".ph") && !el.querySelector(".crumb[data-nd]")) navDecor(CUR_TAB); else crDock(); }, 60); }).observe(el, { childList: true });
 })();
 // 🫧 v4: thanh bên (máy tính) – 1 viên kính trượt lò xo tới trang đang mở (giống thanh chọn)
 let NTH = null;
@@ -8388,8 +8401,11 @@ function lvwParts(D) {
   const tab = LVW.tab === "paper" || !liveOn ? "paper" : "live", A = tab === "live" ? I.live : I.paper, last = tab === "live" ? I.lastL : I.lastP;
   const nW = (X) => X.filter((x) => x.st === "wait").length, nO = (X) => X.filter((x) => x.st === "open").length;
   const fresh = Date.now() - lvsT(D.at) < 150e3, st = !fresh ? "off" : L?.halt && tab === "live" ? "warn" : (nO(A) || nW(A)) ? "hot" : "on";
+  // 💹 LỜI/LỖ ĐANG MỞ (tạm tính theo giá hiện tại) – con số anh cần nhìn nhất khi có lệnh; không có lệnh mở → hiện lời/lỗ hôm nay như cũ
+  const upOf = (x) => { if (x.st !== "open") return null; const m = LVW.px[x.sym] || x.m; if (isNum(m) && x.e > 0) { const N = x.N || (x.q ? x.q * x.e : null); if (N) return x.side * (m / x.e - 1) * N; } return isNum(x.upnl) ? +x.upnl : null; };
+  const opn = A.filter((x) => x.st === "open").map(upOf).filter(isNum), upT = opn.length ? opn.reduce((a, b) => a + b, 0) : null;
   const day = tab === "live" ? L?.day : D.paper?.day, envL = tab === "live" ? (L.env === "live" ? bi("💵 Thật", "💵 Live") : "🟡 Demo") : `🧪 ${bi("Sàn thử", "Paper")}`, nAll = nW(A) + nO(A);
-  const pill = `<span class="lvs-dot ${st}"></span><span class="lvw-n${nAll ? "" : " z"}">${nAll || ""}</span><span class="lvw-pi"><b>${envL}</b>${nW(A) ? `<span class="lvw-c w">⏳ ${nW(A)}</span>` : ""}${nO(A) ? `<span class="lvw-c o">📌 ${nO(A)}</span>` : ""}${!nW(A) && !nO(A) ? `<span class="faint lvw-nt">${bi("chưa có lệnh", "no trades")}</span>` : ""}${isNum(day) ? `<span class="lvw-day ${cls(day)}">${lvw$(day)}</span>` : ""}${liveOn && tab === "live" && (nW(I.paper) || nO(I.paper)) ? `<span class="lvw-sub">🧪 ${nW(I.paper) + nO(I.paper)}</span>` : ""}<span class="lvw-tk" aria-live="polite"></span></span><span class="lvw-min" data-lvw-dot role="button" tabindex="-1" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M3 6h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>`;
+  const pill = `<span class="lvs-dot ${st}"></span><span class="lvw-n${nAll ? "" : " z"}">${nAll || ""}</span><span class="lvw-pi"><b>${envL}</b>${nW(A) ? `<span class="lvw-c w">⏳ ${nW(A)}</span>` : ""}${nO(A) ? `<span class="lvw-c o">📌 ${nO(A)}</span>` : ""}${!nW(A) && !nO(A) ? `<span class="faint lvw-nt">${bi("chưa có lệnh", "no trades")}</span>` : ""}${isNum(upT) ? `<span class="lvw-day lvw-up ${cls(upT)}" title="${bi("Lời/lỗ tạm tính của lệnh đang mở (theo giá hiện tại)", "Unrealised P&L of open trades (at current price)")}"><small>${bi("đang mở", "open")}</small>${lvw$(upT)}</span>` : isNum(day) ? `<span class="lvw-day ${cls(day)}" title="${bi("Lời/lỗ đã chốt hôm nay", "Realised P&L today")}"><small>${bi("hôm nay", "today")}</small>${lvw$(day)}</span>` : ""}${liveOn && tab === "live" && (nW(I.paper) || nO(I.paper)) ? `<span class="lvw-sub">🧪 ${nW(I.paper) + nO(I.paper)}</span>` : ""}<span class="lvw-tk" aria-live="polite"></span></span><span class="lvw-min" data-lvw-dot role="button" tabindex="-1" title="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}" aria-label="${bi("Thu nhỏ thành chấm", "Shrink to a dot")}"><svg viewBox="0 0 12 12" width="10" height="10" aria-hidden="true"><path d="M3 6h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span>`;
   const seg = liveOn ? `<div class="lvw-seg">${[["live", L.env === "live" ? bi("Binance thật", "Binance live") : "Binance Demo", I.live.length], ["paper", bi("Sàn thử", "Paper"), I.paper.length]].map(([k, t, n]) => `<button type="button" data-lvw-tab="${k}" class="${tab === k ? "on" : ""}">${t}${n ? ` <i>${n}</i>` : ""}</button>`).join("")}</div>` : "";
   const O = A.filter((x) => x.st === "open").sort((a, b) => (b.a || 0) - (a.a || 0)), W = A.filter((x) => x.st === "wait").sort((a, b) => (a.b || 0) - (b.b || 0));
   const sec = (t, L2) => (L2.length ? `<div class="lvw-h">${t} <i>${L2.length}</i></div>${L2.map(lvwRow).join("")}` : "");
@@ -8443,6 +8459,8 @@ function lvwPlace(el, anim = true) {
   if (!anim) requestAnimationFrame(() => el.classList.remove("noanim"));
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
+// cuộn khỏi đầu trang → thanh trên có viền tóc + bóng nhẹ (chỉ đổi lớp khi qua ngưỡng, không làm gì mỗi khung cuộn)
+{ let on = false, q = 0; addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; const v = scrollY > 6; if (v !== on) { on = v; document.documentElement.classList.toggle("top-sc", v); } }); }, { passive: true }); }
 // 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.
 //    Đang mở menu / danh sách thả xuống trong trang → tạm bỏ tách lớp (body.app-pop), đóng lại thì tách lại
 // tách lớp chỉ bật trên trình duyệt nhân Chromium (Chrome / Edge máy tính & Android) – nơi đã đo được lợi; Safari / mọi trình duyệt trên iPhone (WebKit)
@@ -8485,9 +8503,9 @@ function tctBind() {
 //    cho tới khi vừa – ô tìm & chuông không bao giờ bị đẩy ra ngoài màn hình (trước: màn 1.366px tràn ngang ~95px)
 function topFit() {
   const T = document.querySelector(".top-in"); if (!T) return; const R = document.documentElement;
-  for (let k = 1; k <= 6; k++) if (R.classList.contains("tf" + k)) R.classList.remove("tf" + k);      // chỉ gỡ khi có: iPhone cuộn = thanh địa chỉ co giãn = "resize" liên tục → ghi lại lớp của <html> mỗi lần là tính lại kiểu cả trang
+  for (let k = 1; k <= 9; k++) if (R.classList.contains("tf" + k)) R.classList.remove("tf" + k);      // chỉ gỡ khi có: iPhone cuộn = thanh địa chỉ co giãn = "resize" liên tục → ghi lại lớp của <html> mỗi lần là tính lại kiểu cả trang
   if (!matchMedia("(min-width:980px)").matches) return;
-  for (let k = 1; k <= 6 && T.scrollWidth > T.clientWidth + 1; k++) R.classList.add("tf" + k);
+  for (let k = 1; k <= 9 && T.scrollWidth > T.clientWidth + 1; k++) R.classList.add("tf" + k);
 }
 addEventListener("resize", () => { clearTimeout(topFit._t); topFit._t = setTimeout(topFit, 120); });
 // dải trạng thái bot / viên ghim đổi bề rộng (số liệu mới, chip hiện / ẩn) → co lại ngay trong khung hình kế tiếp, không để thanh trên tràn ngang thoáng qua
@@ -8647,7 +8665,7 @@ function lvwTick(now) {
     tk.innerHTML = `${esc(x.sym)} <b class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "L" : "S"}</b>${u != null ? ` <span class="${cls(u)}">${u >= 0 ? "+" : ""}${nf(u, 2)}%</span>` : x.st === "wait" ? " ⏳" : ""}${x.b && x.b > Date.now() ? ` <small>${lvsLeft(x.b - Date.now())}</small>` : ""}`; tk.classList.remove("tk-in"); void tk.offsetWidth; tk.classList.add("tk-in"); } }
   if (!now && !el.classList.contains("drag")) { const pw = el.querySelector(".lvw-pill")?.offsetWidth; if (pw && pw !== el.__pw) { el.__pw = pw; lvwPlace(el, LVW.mode !== "full"); } }      // dòng chạy đổi độ dài → giữ viên trong màn hình
   const ag = el.querySelector(".lvw-ago"); if (ag && (now || LVW.k % 5 === 0)) ag.textContent = `${bi("cập nhật", "updated")} ${lvwAgo(lvsT(LVS.d.at))}`;
-  if (LVW.mode === "full" && LVW.k % 10 === 0) lvwPx().then(() => lvsDraw());
+  if (LVW.k % 10 === 0 && (LVW.mode === "full" || A.some((x) => x.st === "open"))) lvwPx().then(() => lvsDraw());      // có lệnh đang mở → giá mới mỗi ~10 giây cả khi viên thu gọn (lời/lỗ đang mở trên viên luôn sát giá)
 }
 // giá hiện tại (Binance futures, công khai) cho các lệnh đang mở / chờ – chỉ lấy khi ô đang mở rộng
 async function lvwPx() {
