@@ -635,7 +635,7 @@ export class ScalpCore {
     for (const [id, H] of Object.entries(S.hk)) if (now > H.exp) { delete S.hk[id]; if (!H.lv.some((l) => l.f)) { this.say(now, `🪝 ${id.split(":")[0]}: hết ${c.hk_w} phút giá không xuống tới lệnh chờ – huỷ`, "info");
       // 📋 lệnh HỤT của sàn thử (giống tài khoản Binance) – tab Lệnh › Hụt: mức chờ gần nhất, giá đi tới đâu, còn thiếu bao nhiêu %
       const L0 = H.lv.filter((l) => !l.mk).sort((a, b) => a.d - b.d)[0]; if (L0) { const bx = H.bx || H.c0, gap = Math.max(0, H.side * (bx / L0.px - 1) * 100);
-        (S.hkMiss ||= []).push({ k: id, side: H.side, t0: iso(H.t0), R: H.R, lvl: L0.px, gap: r2(gap, 2), what: "nofill", env: "paper" }); if (S.hkMiss.length > 60) S.hkMiss.splice(0, S.hkMiss.length - 60); } } }
+        (S.hkMiss ||= []).push({ k: id, side: H.side, t0: iso(H.t0), t1: iso(H.exp), R: H.R, lvl: L0.px, gap: r2(gap, 2), what: "nofill", env: "paper" }); if (S.hkMiss.length > 60) S.hkMiss.splice(0, S.hkMiss.length - 60); } } }
     const kk = c.k + (S.kadd || 0), hourN = this.tradesLastHour(now), nOpen = Object.values(S.pos).filter((p) => p.strat !== "hook").length + Object.keys(S.ord).length;
     const live = {}, cnt = { all: 0, learn: 0, fee: 0, go: 0, skip: 0, hold: 0, stale: 0 }, cand = [];
     const bx = this.M["BTC:F"] || this.M["BTC:S"], bz = bx ? this.trendZ(bx, 5) : null;      // BTC 5 phút: dẫn dắt cả thị trường

@@ -37,7 +37,10 @@
         "bot",
         "acct_history",
         "nlq",
-        "brief"
+        "brief",
+        "themes",
+        "wrapped",
+        "sharecard"
       ],
       "limits": {
         "holdings": 200,
@@ -61,7 +64,10 @@
     "bot": "Bot giao dịch tự động (sàn thử)",
     "acct_history": "Lịch sử tài khoản Binance từ ngày đầu (sổ lớn tới ~24 MB)",
     "nlq": "Tìm bằng câu nói tự nhiên (Ctrl K hiểu ý)",
-    "brief": "Bản tin & nhận định tự động mỗi ngày"
+    "brief": "Bản tin & nhận định tự động mỗi ngày",
+    "themes": "Thêm 4 màu nhấn cho giao diện",
+    "wrapped": "Tổng kết tháng của bot dạng story",
+    "sharecard": "Ảnh kết quả ngày không hình mờ"
   },
   "paths": [],
   "strip": []

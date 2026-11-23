@@ -11,6 +11,60 @@
    "it": [
     {
      "c": "new",
+     "a": "bot",
+     "t": "♻️ Lệnh vừa hết chờ được giữ lại 1 giờ để vào lại",
+     "te": "♻️ Just-expired orders are kept for 1 hour so you can get back in",
+     "d": "Lệnh chờ của bot hết 8 phút mà giá không về giờ không biến mất ngay: nằm trong nhóm “Vừa hết chờ” ở khung Đang mở & chờ khớp, kèm giá còn cách mức chờ bao nhiêu và đồng hồ đếm ngược. Bấm “Đặt lại lệnh chờ” (đúng mức cũ) hoặc “Vào giá hiện tại” để mở bảng đặt lệnh điền sẵn – anh xác nhận mới gửi. Quá 1 giờ hoặc bấm ✕ là tự xoá; danh sách đầy đủ vẫn ở Lệnh › Hụt.",
+     "de": "Bot orders that waited 8 minutes without a fill now stay in a “Just expired” group for an hour, with the distance to the old level and a countdown. Tap “Re-place” (same level) or “At current price” to open a pre-filled order sheet – nothing is sent until you confirm. After an hour, or when you tap ✕, they disappear; the full list stays under Orders › Missed.",
+     "f": "bot",
+     "go": "#/bot/scalp",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "✨ Tổng kết tháng của bot dạng story",
+     "te": "✨ Monthly bot wrap, story-style",
+     "d": "Trang Kết quả & sổ lệnh có nút “Tổng kết tháng”: 6 thẻ chạy như story – kết quả cả tháng (đã khử nạp/rút), tỷ lệ thắng, ngày tốt nhất / khó nhất, coin của tháng, giờ bot bận nhất, lời nhận xét của na – và nút lưu ảnh tổng kết. Chạm để qua thẻ, giữ ngón tay để dừng.",
+     "de": "Results & journal has a “Monthly wrap” button: 6 story cards – the month's result (net of deposits/withdrawals), win rate, best and toughest day, coin of the month, the bot's busiest hour, a note from na – plus a summary image to save. Tap to advance, hold to pause.",
+     "f": "wrapped",
+     "go": "#/bot/days",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "🖼 Ảnh kết quả ngày để chia sẻ",
+     "te": "🖼 Shareable daily result image",
+     "d": "Một ảnh đẹp cho ngày đang chọn: % ngày, đường lời/lỗ trong ngày, số lệnh, coin tốt nhất. Có thể ẩn số tiền, chọn nền Tối / Sáng, tải về, chia sẻ hoặc sao chép. Gói Free có hình mờ MyBit, Pro ảnh sạch.",
+     "de": "A polished image of the selected day: day %, intraday P&L line, trades, best coin. Hide amounts, pick dark or light, then download, share or copy. Free adds a MyBit watermark; Pro is clean.",
+     "go": "#/bot/days"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "🎨 Màu nhấn, nền đen tuyền OLED và nền đổi sắc theo thị trường",
+     "te": "🎨 Accent colours, true-black OLED and a market-mood background",
+     "d": "Cài đặt › Giao diện: chọn màu nhấn (Vàng đồng, Xanh ngọc; gói Pro thêm Xanh dương, Tím, Hồng đào, Cam), bật nền đen tuyền khi ở chế độ Tối, và nền rất nhạt ngả xanh / vàng / đỏ theo đèn thị trường (chỉ là màu nền, không phải tín hiệu).",
+     "de": "Settings › Appearance: pick an accent colour (Brass, Teal; Pro adds Blue, Violet, Rose, Orange), turn on true black in dark mode, and a very faint background that leans green / amber / red with the market light (just a colour, not a signal).",
+     "go": "#/settings"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Bấm 1 coin: tên coin bay mượt lên thành tiêu đề trang chi tiết",
+     "te": "Tap a coin: its name glides up into the detail page title"
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Trang và khung trống có mèo na thay vì chữ khô",
+     "te": "Empty pages and boxes now show na instead of plain text",
+     "d": "na ngồi ở khung trống, nằm ngủ khi bot đang chờ chưa có lệnh, nghiêng đầu ở trang không tồn tại.",
+     "de": "na sits in empty boxes, naps while the bot is waiting, and tilts its head on pages that don't exist."
+    },
+    {
+     "c": "new",
      "a": "acct",
      "t": "⚙️ Cài đặt có nút riêng cạnh ảnh đại diện cuối thanh bên, tách khỏi hồ sơ",
      "te": "⚙️ Settings has its own button next to your avatar at the bottom of the sidebar, separate from your profile",

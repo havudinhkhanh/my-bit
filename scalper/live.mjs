@@ -394,7 +394,7 @@ export class LiveExec {
     const rH = B.length ? Math.max(...B.map((b) => b[2])) : null, rL = B.length ? Math.min(...B.map((b) => b[3])) : null, rr = ev.side > 0 ? rL : rH;
     const realHit = rr != null && (ev.side > 0 ? rr <= lvl : rr >= lvl), nm = ev.env === "live" ? "sàn thật" : "Demo";
     ev.miss = { hi, lo, rH, rL, lvl };
-    this.missAdd({ k: ev.k, side: ev.side, R: ev.R, t0: iso(ev.t0), what: "nofill", reach: +reach.toPrecision(6), lvl: +lvl.toPrecision(6), gap: +gap.toFixed(2), real: rr != null ? +rr.toPrecision(6) : null, realHit });
+    this.missAdd({ k: ev.k, side: ev.side, R: ev.R, t0: iso(ev.t0), t1: iso(ev.exp), what: "nofill", reach: +reach.toPrecision(6), lvl: +lvl.toPrecision(6), gap: +gap.toFixed(2), real: rr != null ? +rr.toPrecision(6) : null, realHit });
     this.say(`🔍 ${ev.sym}: ${nm} ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+reach.toPrecision(6)} – còn cách mức chờ gần nhất ${+lvl.toPrecision(6)} ${gap.toFixed(2)}%${rr != null ? ` · giá Binance thật (sàn thử dùng) ${ev.side > 0 ? "thấp nhất" : "cao nhất"} ${+rr.toPrecision(6)}${realHit ? " – ĐÃ chạm mức chờ" : " – cũng chưa chạm"}` : ""}${realHit && ev.env !== "live" ? ". Sàn Demo có sổ lệnh riêng, râu nến lúc sốc thường ngắn hơn sàn thật → lệnh chờ sâu khó khớp trên Demo." : ""}`);
   }
   missAdd(m) { const env = this.env(); this.S.miss = [...(this.S.miss || []).slice(-79), { ...m, env }]; }

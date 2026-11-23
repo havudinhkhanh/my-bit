@@ -101,7 +101,7 @@ function lazyJs(name) {
     document.head.appendChild(el);
   }));
 }
-const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__" };
+const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__", "app-wrap.js": "__JSV_WRAP__" };
 // công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
 function drawHook(el, c, s, o, dkey) {
   if (!el || !dkey || el.clientHeight < 200) return;
@@ -1757,10 +1757,28 @@ if (NATIVE_SWIPE) addEventListener("touchstart", (e) => { const x = e.touches[0]
   };
   addEventListener("touchend", end, { capture: true, passive: false }); addEventListener("touchcancel", end, { capture: true });
 })();
+// 🪄 BẤM 1 COIN → TÊN COIN "BAY" TỪ CHỖ VỪA BẤM LÊN TIÊU ĐỀ TRANG CHI TIẾT (kiểu FLIP: nhớ vị trí lúc bấm, trang mới vẽ xong thì tiêu đề trượt + co giãn
+//    từ vị trí đó về chỗ của nó). Chỉ 1 hoạt ảnh transform/opacity trên 1 phần tử → gần như không tốn; tải lâu hơn 2,5 giây thì bỏ qua.
+const MORPH = { r: null, h: "", t: 0 };
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.('a[href^="#/c/"]'); if (!a || e.defaultPrevented || e.metaKey || e.ctrlKey) return;
+  const el = a.querySelector("b, strong, .ck, img") || a, r = el.getBoundingClientRect();
+  if (r.width && r.height && r.top < innerHeight && r.bottom > 0) Object.assign(MORPH, { r, h: a.getAttribute("href").split("/").slice(0, 3).join("/"), t: Date.now() });
+}, true);
+function pageMorph(a) {
+  const M = MORPH, r = M.r; MORPH.r = null;
+  if (!r || Date.now() - M.t > 2500 || !location.hash.startsWith(M.h)) return false;
+  const h = a.querySelector(".ph h1, h1"); if (!h) return false;
+  const b = h.getBoundingClientRect(); if (!b.width || b.top > innerHeight) return false;
+  const s = Math.max(0.35, Math.min(2.5, r.height / Math.max(1, b.height)));
+  h.animate([{ transformOrigin: "0 0", transform: `translate(${r.left - b.left}px,${r.top - b.top}px) scale(${s})`, opacity: 0.5 }, { transformOrigin: "0 0", transform: "none", opacity: 1 }], { duration: 420, easing: "cubic-bezier(.2,.9,.25,1)" });
+  return true;
+}
 function pageIn() {
   if (window.__vt) return;
   const a = document.getElementById("app"); if (!a) return;
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { MORPH.r = null; return; }
+  try { pageMorph(a); } catch (e) { /* bỏ qua */ }
   if (a.animate) { try {
     pageIn.x?.cancel(); pageIn.x = a.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: "ease-out" });
     // các khung lần lượt trồi lên nhẹ (8px, cách nhau 35 ms, tối đa 8 khung đầu đang thấy) – chỉ transform/opacity nên không tốn
@@ -7342,7 +7360,7 @@ function tkSet(k, p, r1) {
 // 🚦 đèn thị trường đứng ĐẦU băng giá (không chạy theo băng): bấm = sang trang Thị trường
 function tkLamp(C) { const l = C?.light || "", T = $("#ticker"); if (!T) return; let e = T.querySelector(".tk-lamp");
   if (!e) { e = document.createElement("a"); e.className = "tk-lamp"; e.href = "#/"; T.prepend(e); }
-  const vi = LIGHT_VI[l] || "—", ss = vnSession(); e.dataset.l = l; e.title = bi(`Đèn thị trường: ${vi} · đang ${ss} – bấm để xem`, `Market light: ${l || "—"} · ${ss} – click to view`); e.innerHTML = `<i></i><span>${bi("Thị trường", "Market")}<small>${ss}</small></span>`; }
+  const vi = LIGHT_VI[l] || "—", ss = vnSession(); e.dataset.l = l; { const d = document.documentElement; if (l && d.dataset.mood !== l) d.dataset.mood = l; }      /* 🌈 nền ngả màu theo đèn thị trường (CSS lo phần đổi màu từ từ) */ e.title = bi(`Đèn thị trường: ${vi} · đang ${ss} – bấm để xem`, `Market light: ${l || "—"} · ${ss} – click to view`); e.innerHTML = `<i></i><span>${bi("Thị trường", "Market")}<small>${ss}</small></span>`; }
 setInterval(() => { if (!document.hidden && COINS) tkLamp(COINS); }, 5 * 60e3);      // phiên Á / Âu / Mỹ đổi theo giờ
 function tkLock() { document.querySelectorAll("#ticker [data-tk]").forEach((el) => { el.style.minWidth = ""; const w = Math.ceil(el.getBoundingClientRect().width); if (w) el.style.minWidth = w + 6 + "px"; }); }
 function tkMarq() {
@@ -8007,6 +8025,7 @@ function acPage(o) {
   </section>
   <section class="acp-card" data-acg="set"><h2>${bi("Giao diện", "Appearance")}</h2>
     ${acRow("Sáng / Tối", "“Hệ thống” = tự đổi theo Sáng/Tối của máy", thSegHtml())}
+    ${thPrefHtml()}
     ${acRow("Ánh sáng ấm", "Phủ ánh vàng lên cả trang – dịu mắt khi xem lúc tối, dùng chung với Sáng / Tối", nlHtml())}
     ${uiPrefHtml()}
     ${munPrefHtml()}
@@ -8053,7 +8072,7 @@ async function viewAccount(tab) {
   const N = { push: np?.push || "normal", email: np?.email || "important", email_to: np?.email_to || "", kinds: np?.kinds || {} };
   const lv = (k, v) => `<select id="${k}">${[["all", "Tất cả"], ["normal", "Bình thường (bỏ tin nhỏ)"], ["important", "Chỉ việc quan trọng"], ["off", "Tắt"]].map(([a, b]) => `<option value="${a}" ${v === a ? "selected" : ""}>${b}</option>`).join("")}</select>`;
   app().innerHTML = acPage({ N, ps, subs, extra: acTradeHtml() + '<section class="panel" id="pvBx"></section>', pushWhen: "gửi ngay sau mỗi lượt cập nhật", levels: "“Quan trọng” = vị thế gần thanh lý, chạm cắt lỗ, xu hướng coin đang giữ đảo chiều, cảnh báo giá. “Bình thường” thêm đám đông futures cực đoan, mở khoá token lớn, đèn thị trường." });
-  thSegBind(app()); uiPrefBind(); munPrefBind(); acBx();
+  thSegBind(app()); uiPrefBind(); thPrefBind(); munPrefBind(); acBx();
   if ($("#acEmEdit")) { const F = $("#acEmF");
     $("#acEmEdit").onclick = () => { F.hidden = false; $("#acEm").value = ""; $("#acEmPw").value = ""; $("#acEm").focus(); };
     $("#acEmX").onclick = () => { F.hidden = true; };
@@ -8195,8 +8214,15 @@ const UI_EMO = ["", "😎", "🦊", "🐯", "🦁", "🐼", "🚀", "💎", "⚡
 const UI_FS = [["s", "Nhỏ", 15], ["m", "Vừa", 16], ["l", "Lớn", 17], ["xl", "Rất lớn", 18]];
 function uiAvHtml() { const ini = esc(((ME?.name || ME?.email || "?").trim()[0] || "?").toUpperCase()); return UIP.av ? "" : UIP.emo ? UIP.emo : ini; }
 function uiAvStyle(el) { if (!el) return; el.textContent = uiAvHtml(); el.classList.toggle("has-img", !!UIP.av); el.style.backgroundImage = UIP.av ? `url("${UIP.av}")` : UIP.col ? "none" : ""; el.style.backgroundColor = !UIP.av && UIP.col ? UIP.col : ""; el.style.color = !UIP.av && UIP.col ? "#fff" : ""; el.classList.toggle("has-emo", !UIP.av && !!UIP.emo); }
+// 🎨 MÀU NHẤN + ĐEN TUYỀN (OLED) + NỀN THEO NHỊP THỊ TRƯỜNG – lưu trong UIP (đồng bộ mọi máy). Free: Vàng đồng + Xanh ngọc · Pro: thêm 4 màu.
+const UI_ACC = [["brass", "Vàng đồng", "#9A7433", 0], ["teal", "Xanh ngọc", "#0F7A70", 0], ["blue", "Xanh dương", "#2459D6", 1], ["violet", "Tím", "#7448D8", 1], ["rose", "Hồng đào", "#C23C6A", 1], ["orange", "Cam", "#C4601A", 1]];
+const uiPro = () => (typeof can === "function" && can("themes")) || ME?.eff_plan === "pro";
 function uiApply() {
   const f = UI_FS.find(([k]) => k === (UIP.fs || "m"))?.[2] || 16; document.documentElement.style.fontSize = f === 16 ? "" : f + "px";
+  { const d = document.documentElement, A = UI_ACC.find(([k]) => k === UIP.acc), acc = A && A[0] !== "brass" && !(A[3] && ME && !uiPro()) ? A[0] : "";
+    if ((d.dataset.acc || "") !== acc) { if (acc) d.dataset.acc = acc; else delete d.dataset.acc; }
+    if (!!d.dataset.oled !== !!UIP.oled) { if (UIP.oled) d.dataset.oled = "1"; else delete d.dataset.oled; }
+    d.classList.toggle("mood-off", UIP.mood === false); }
   uiAvStyle($("#meBtn")); uiAvStyle($("#acAv")); uiAvStyle($("#navMeAv"));
   munBoot();
 }
@@ -8227,6 +8253,18 @@ function munPrefBind() {
 uiApply();
 async function uiLoad() { try { const r = await Store.get("ui"); if (r?.data && typeof r.data === "object") { UIP = { ...r.data }; lsSet("ui_cache", UIP); uiApply(); if (Array.isArray(UIP.pins)) { lsSet("navpins", UIP.pins); if (typeof pinDraw === "function") pinDraw(); } } } catch (e) { /* bỏ qua */ } }
 async function uiSave() { lsSet("ui_cache", UIP); uiApply(); try { await Store.put("ui", UIP); } catch (e) { /* bỏ qua */ } }
+function thPrefHtml() {
+  const pro = uiPro(), cur = UIP.acc || "brass";
+  return acRow("Đen tuyền (OLED)", "Khi đang ở chế độ Tối: nền đen hẳn – sâu hơn, đỡ tốn pin trên màn OLED", `<input type="checkbox" class="acp-sw" id="uiOled" ${UIP.oled ? "checked" : ""} aria-label="Đen tuyền (OLED)">`, "th-row")
+    + acRow("Màu nhấn", pro ? "Màu của mục đang chọn, nút nhấn, viền sáng" : "Màu của mục đang chọn, nút nhấn, viền sáng · ★ Gói Pro mở thêm 4 màu", `<div class="acc-sw" role="radiogroup" aria-label="Màu nhấn">${UI_ACC.map(([k, t, c, p]) => `<button type="button" role="radio" aria-checked="${cur === k}" data-uiacc="${k}" class="${p && !pro ? "lock" : ""}" style="--c:${c}" title="${t}${p && !pro ? " · ★ Pro" : ""}" aria-label="${t}"><i></i>${p && !pro ? "<b>★</b>" : ""}</button>`).join("")}</div>`, "th-row")
+    + acRow("Nền theo nhịp thị trường", "Phía sau trang ngả xanh khi đèn thị trường xanh, vàng khi lưỡng lự, đỏ khi xấu – rất nhạt, đổi từ từ. Chỉ là màu nền, không phải tín hiệu mua / bán", `<input type="checkbox" class="acp-sw" id="uiMood" ${UIP.mood === false ? "" : "checked"} aria-label="Nền theo nhịp thị trường">`, "th-row");
+}
+function thPrefBind() {
+  const re = () => { const R = $$(".th-row"); if (!R.length) return; const tmp = document.createElement("div"); tmp.innerHTML = thPrefHtml(); R.slice(1).forEach((x) => x.remove()); R[0].replaceWith(...tmp.children); thPrefBind(); };
+  const o = $("#uiOled"); if (o) o.onchange = async () => { UIP = { ...UIP, oled: o.checked }; await uiSave(); if (o.checked && document.documentElement.dataset.theme === "light") toast("Đen tuyền chỉ hiện khi anh chuyển sang Tối"); };
+  const m = $("#uiMood"); if (m) m.onchange = async () => { UIP = { ...UIP, mood: m.checked }; await uiSave(); };
+  $$("[data-uiacc]").forEach((b) => (b.onclick = async () => { if (b.classList.contains("lock")) { toast("★ Màu này dành cho gói Pro – xem các gói ở Hồ sơ & gói", { type: "info" }); return; } UIP = { ...UIP, acc: b.dataset.uiacc }; await uiSave(); re(); }));
+}
 function uiPrefHtml() {      // ảnh đại diện: bấm thẳng vào ảnh trên đầu trang Tài khoản (avPick) – không còn khu vực riêng
   return `${acRow("Cỡ chữ", "áp dụng cho toàn bộ app, mọi trang cùng một cỡ", `<div class="bseg" id="uiFs">${UI_FS.map(([k, t]) => `<button type="button" data-uifs="${k}" class="${(UIP.fs || "m") === k ? "on" : ""}">${t}</button>`).join("")}</div>`)}`;
 }
@@ -9154,7 +9192,7 @@ function ksHTML(compact) {
 // Chưa xem → chấm trên menu "Có gì mới" + nhãn Mới trên phiên bản; vừa tự tải bản app mới → toast mời xem.
 const CHG_C = { new: ["✨", "Tính năng mới", "New"], imp: ["⚡", "Cải tiến", "Improved"], fix: ["🔧", "Sửa lỗi", "Fixed"], res: ["🔬", "Nghiên cứu", "Research"] };
 const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na", "Na"], res: ["Nghiên cứu", "Research"] };
-const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email", "acct_history"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
+const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email", "acct_history", "nlq", "brief", "themes", "wrapped", "sharecard"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
 let CHG_P = null;
 const chgLoad = () => (CHG_P ||= fetch("changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.rel || []).catch(() => { CHG_P = null; return []; }));
 const chgVis = (x) => x.aud !== "admin" || isAdmin();

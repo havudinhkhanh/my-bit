@@ -87,7 +87,7 @@ def stamp_lazy() -> None:
                 mjs = mjs.replace(f"__JSV_SEQ_{nm}__", h)
                 print(f"gắn phiên bản mascot-seq-{nm}.json?v={h} vào mascot.js")
         ms.write_text(mjs, encoding="utf-8")
-    for name, ph in (("app-bot.js", "__JSV_APPBOT__"), ("chartdraw.js", "__JSV_DRAW__"), ("app-tax.js", "__JSV_APPTAX__"), ("mascot.js", "__JSV_MASCOT__")):
+    for name, ph in (("app-bot.js", "__JSV_APPBOT__"), ("chartdraw.js", "__JSV_DRAW__"), ("app-tax.js", "__JSV_APPTAX__"), ("mascot.js", "__JSV_MASCOT__"), ("app-wrap.js", "__JSV_WRAP__")):
         f = SITE / name
         if f.exists() and ph in js:
             h = hashlib.sha1(f.read_bytes()).hexdigest()[:10]
@@ -97,7 +97,7 @@ def stamp_lazy() -> None:
 
 
 if __name__ == "__main__":
-    for name, loader in (("app.js", "js"), ("app-bot.js", "js"), ("app-tax.js", "js"), ("chartdraw.js", "js"), ("mascot.js", "js"), ("glossary.js", "js"), ("app.css", "css")):
+    for name, loader in (("app.js", "js"), ("app-bot.js", "js"), ("app-tax.js", "js"), ("app-wrap.js", "js"), ("chartdraw.js", "js"), ("mascot.js", "js"), ("glossary.js", "js"), ("app.css", "css")):
         if (SITE / name).exists():
             minify(SITE / name, loader)
     stamp_lazy()
