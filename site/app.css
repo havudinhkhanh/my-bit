@@ -7632,3 +7632,5 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 @media (min-width:1180px){
   body.rail-auto .tabs:not(.open) :is(a,.rail-pin)::after{top:1px!important;bottom:1px!important;height:auto!important;margin-top:0!important;border-radius:8px!important;width:40px!important}
 }
+/* đường dẫn trên thanh trên (máy tính): bỏ nút NHÓM ("4 Bot ›") – nhóm đã thấy ở thanh điều hướng bên trái; chỉ còn ‹ › + tên trang (bấm tên trang vẫn mở danh sách trang cùng nhóm) */
+@media (min-width:980px){.topnav .cr-b[data-crg],.topnav .crumb>span{display:none!important}}

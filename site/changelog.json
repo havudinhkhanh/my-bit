@@ -425,6 +425,14 @@
      "a": "ui",
      "t": "Thanh bên thu gọn: rê chuột mục sát bên không còn chồng lên ô vàng của mục đang mở",
      "te": "Collapsed sidebar: hovering the item next to the active one no longer overlaps its highlight"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh trên: đường dẫn chỉ còn ‹ › và tên trang",
+     "te": "Top bar: the path shows just ‹ › and the page name",
+     "d": "Bỏ nút nhóm (\"4 Bot ›\") vì nhóm đã thấy ở thanh điều hướng bên trái; bấm tên trang vẫn mở danh sách các trang cùng nhóm.",
+     "de": "The group button (\"4 Bot ›\") is gone since the left navigation already shows it; clicking the page name still lists the pages in that group."
     }
    ]
   },
