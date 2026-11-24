@@ -10,6 +10,16 @@
    "it": [
     {
      "c": "fix",
+     "a": "live",
+     "aud": "admin",
+     "hi": 1,
+     "t": "Binance thật: hết báo lỗi \"Maximum call stack size exceeded\" sau mỗi lần đóng lệnh – chốt chặn \"ngừng khi lỗ trong ngày\" kiểm tra lại đúng sau khi đóng",
+     "te": "Binance live: no more \"Maximum call stack size exceeded\" after each close – the daily-loss stop is checked correctly again after closing",
+     "d": "Cần cập nhật máy chủ riêng để có hiệu lực.",
+     "de": "Needs a private-server update to take effect."
+    },
+    {
+     "c": "fix",
      "a": "ui",
      "t": "Menu ô chọn: không còn hiện tiêu đề nhóm trống",
      "te": "Dropdown menus no longer show empty group headings"

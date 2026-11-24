@@ -58,7 +58,7 @@ export class LiveExec {
   // vốn để tính cỡ lệnh & giới hạn lỗ ngày. Thật: min(Vốn tối đa, số dư ví futures) – hoặc TOÀN BỘ số dư khi bật "Dùng toàn bộ số dư" (lv_all)
   // → lời thì cỡ lệnh tự tăng theo (lãi kép), lỗ thì tự nhỏ lại. Demo: giữ nguyên như cũ (Vốn tối đa).
   // ⛔ ngừng mở lệnh mới khi lỗ trong ngày ≥ lv_daily% vốn – anh có thể TẮT hẳn công tắc này (lv_daily_on = false) trong Thiết lập
-  dayLoss(c = this.cfg()) { return c.lv_daily_on !== false && this.dayLoss(c); }
+  dayLoss(c = this.cfg()) { return c.lv_daily_on !== false && this.S.day.pnl <= -this.base() * c.lv_daily / 100; }      // (trước tự gọi lại chính nó → "Maximum call stack size exceeded" mỗi lần đóng lệnh, chốt chặn lỗ ngày sau khi đóng không chạy)
   base() { const c = this.cfg(); return this.env() === "live" && this.st.bal > 0 ? (c.lv_all ? this.st.bal : Math.min(c.lv_cap, this.st.bal)) : c.lv_cap; }
   say(m, kind = "info") { this.S.log = [...this.S.log.slice(-299), { t: iso(Date.now()), k: kind, m }]; this.log(`💵 ${m}`); this._cap?.push({ k: kind, m }); this.save(); }
   // 🧾 PHẢN HỒI lệnh anh bấm trên trang: gom mọi thông báo máy chủ nói ra trong lúc xử lý 1 lệnh → S.cres (trang đọc theo "at" của lần bấm, hiện ngay kết quả:
