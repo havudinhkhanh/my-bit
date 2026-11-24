@@ -1402,6 +1402,12 @@ function menuPlace(box, a) {
   const hh = Math.min(h, room); if (h > room) box.style.maxHeight = Math.round(room) + "px";
   box.style.top = Math.round(up ? r.top - 6 - hh : r.bottom + 6) + "px"; box.style.transformOrigin = up ? "24px calc(100% + 6px)" : "24px -6px";
 }
+// menu vừa mở: 0,8 giây đầu khung nhìn còn đổi (bàn phím cất, trang tự cuộn lại) → đặt lại chỗ theo ô thay vì đóng
+function menuFollow(m, box, a) {
+  const t0 = Date.now(), vv = window.visualViewport, re = () => { if (!m.isConnected || Date.now() - t0 > 800) return off(); menuPlace(box, a); };
+  const off = () => { vv?.removeEventListener("resize", re); vv?.removeEventListener("scroll", re); };
+  vv?.addEventListener("resize", re); vv?.addEventListener("scroll", re); setTimeout(off, 900); return t0;
+}
 const selOk = (t) => t && t.tagName === "SELECT" && !t.multiple && !t.disabled && !(t.size > 1) && !t.hasAttribute("data-native") && !t.closest("[data-native]");
 function selMenu(sel, kb = false) {
   if ($("#iosMenu")) { const was = $("#iosMenu").__sel === sel; iosMenuClose(); if (was) return; }
@@ -1421,7 +1427,7 @@ function selMenu(sel, kb = false) {
   const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu sel-menu"; m.__sel = sel;
   m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${esc(hd)}" style="left:${left}px;width:${W}px;max-height:420px">${hd ? `<div class="ios-menu-h">${esc(hd)}</div>` : ""}${html}</div>`;
   document.body.appendChild(m); sel.setAttribute("aria-expanded", "true"); sel.dataset.iosm = "1";
-  const box = m.querySelector(".ios-menu-in"), cur = box.querySelector('[aria-checked="true"]'); menuPlace(box, sel);
+  const box = m.querySelector(".ios-menu-in"), cur = box.querySelector('[aria-checked="true"]'); menuPlace(box, sel); const tF = menuFollow(m, box, sel);
   if (cur && cur.offsetTop + cur.offsetHeight > box.clientHeight) box.scrollTop = cur.offsetTop - box.clientHeight / 2 + cur.offsetHeight / 2;
   if (kb) (cur || box.querySelector("button:not([disabled])"))?.focus({ preventScroll: true });      // mở bằng bàn phím: ↑ ↓ chọn, Enter / Space chốt, Esc đóng
   m.querySelector("[data-x]").onclick = iosMenuClose;
@@ -1434,10 +1440,11 @@ function selMenu(sel, kb = false) {
     if (e.key === "Escape" || e.key === "Tab") { if (e.key === "Escape") e.preventDefault(); e.stopPropagation(); iosMenuClose(); removeEventListener("keydown", k, true); try { sel.focus({ preventScroll: true }); } catch { /* bỏ qua */ } return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const bs = [...box.querySelectorAll("button:not([disabled])")], i = bs.indexOf(document.activeElement); const j = i < 0 ? Math.max(0, bs.indexOf(cur)) : Math.max(0, Math.min(bs.length - 1, i + (e.key === "ArrowDown" ? 1 : -1))); bs[j]?.focus(); } };
   addEventListener("keydown", k, true);
-  const y0 = r.top, sc = (e) => { if (!m.isConnected) { removeEventListener("scroll", sc, true); return; }      // trang cuộn làm ô chọn trôi xa → đóng menu (cuộn nhẹ / cuộn trong menu thì giữ)
-    if (!box.contains(e.target) && Math.abs(sel.getBoundingClientRect().top - y0) > 24) { iosMenuClose(); removeEventListener("scroll", sc, true); } };
-  setTimeout(() => addEventListener("scroll", sc, { capture: true, passive: true }), 60);
-  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
+  let y0 = r.top; setTimeout(() => { y0 = sel.getBoundingClientRect().top; }, 820); const sc = (e) => { if (!m.isConnected) { removeEventListener("scroll", sc, true); return; }      // trang cuộn làm ô chọn trôi xa → đóng menu (cuộn nhẹ / cuộn trong menu thì giữ)
+    if (box.contains(e.target)) return; if (Date.now() - tF < 800) { menuPlace(box, sel); return; }
+    if (Math.abs(sel.getBoundingClientRect().top - y0) > 24) { iosMenuClose(); removeEventListener("scroll", sc, true); } };
+  addEventListener("scroll", sc, { capture: true, passive: true });
+  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", () => { if (!m.isConnected) return; if (Date.now() - tF > 800) iosMenuClose(); else menuPlace(box, sel); });
 }
 // 📅 ô ngày (<input type=date / datetime-local>) → lịch nhỏ kiểu app thay bánh xe iPhone / lịch trắng của trình duyệt
 //    ô nhập vẫn là nguồn dữ liệu: chọn xong gán .value + bắn input/change · bàn phím (Tab rồi gõ số) vẫn dùng kiểu gốc
@@ -1468,7 +1475,7 @@ function datePop(inp) {
       <div class="dt-f">${inp.required ? "" : `<button type="button" class="btn ghost sm" data-dclr>${bi("Xoá", "Clear")}</button>`}<span></span><button type="button" class="btn ghost sm" data-dnow${ok(today) ? "" : " disabled"}>${dt ? bi("Bây giờ", "Now") : bi("Hôm nay", "Today")}</button>${dt ? `<button type="button" class="btn primary sm" data-dok${pick ? "" : " disabled"}>${bi("Xong", "Done")}</button>` : ""}</div>`;
   };
   const rdT = () => { const v = [...box.querySelectorAll("[data-tp]")].map((x, i) => p2(Math.max(0, Math.min(i ? 59 : 23, parseInt(x.value, 10) || 0)))); tm = v.join(":"); };
-  draw(); menuPlace(box, inp);
+  draw(); menuPlace(box, inp); menuFollow(m, box, inp);
   box.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b || b.disabled) return;
     if (b.dataset.mv) { if (dt) rdT(); M += +b.dataset.mv; if (M < 0) { M = 11; Y--; } if (M > 11) { M = 0; Y++; } draw(); return; }
@@ -1486,21 +1493,23 @@ function datePop(inp) {
 }
 (function selHook() {
   let tx = 0, ty = 0; const okT = (t) => selOk(t) || dtOk(t), go = (t, kb) => (dtOk(t) ? datePop(t) : selMenu(t, kb));
-  // đang gõ ở ô khác (bàn phím iPhone đang mở): cất bàn phím trước, đợi khung nhìn ổn định rồi mới mở menu – tránh menu lơ lửng sai chỗ
+  // đang gõ ở ô khác (bàn phím iPhone đang mở): cất bàn phím và MỞ MENU NGAY (trước đợi bàn phím cất xong ~0,4 giây → bấm thấy đơ);
+  //    trong lúc bàn phím trượt xuống, menu bám theo ô chọn (menuFollow)
   const open = (t, kb) => {
-    const ae = document.activeElement, vv = window.visualViewport;
-    if (ae && ae !== t && (ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !/^(checkbox|radio|button|submit|range|color|file)$/i.test(ae.type))) && vv && vv.height < innerHeight - 120) {
-      ae.blur(); let done = false; const fire = () => { if (done) return; done = true; vv.removeEventListener("resize", onR); requestAnimationFrame(() => go(t, kb)); };
-      const onR = () => { if (vv.height >= innerHeight - 120) setTimeout(fire, 60); }; vv.addEventListener("resize", onR); setTimeout(fire, 450); return;
-    }
+    const ae = document.activeElement;
+    if (ae && ae !== t && (ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !/^(checkbox|radio|button|submit|range|color|file)$/i.test(ae.type)))) ae.blur();
     go(t, kb);
   };
   // chuột / bút: chặn cả pointerdown lẫn mousedown (Chrome mới mở bảng gốc từ pointerdown) – mở menu 1 lần ở pointerdown
   document.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch" || e.button !== 0 || !okT(e.target)) return; e.preventDefault(); open(e.target); }, true);
   document.addEventListener("mousedown", (e) => { if (e.button === 0 && okT(e.target) && !e.sourceCapabilities?.firesTouchEvents) e.preventDefault(); }, true);
   document.addEventListener("click", (e) => { if (okT(e.target) && e.detail > 0) e.preventDefault(); }, true);
-  document.addEventListener("touchstart", (e) => { const t = e.touches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true, capture: true });
-  document.addEventListener("touchend", (e) => { if (!okT(e.target) || !e.cancelable) return; const t = e.changedTouches[0]; if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) return;
+  // chạm vào ô: lún nhẹ NGAY lúc đặt ngón tay (như nút gốc của iPhone) – trước không có phản hồi gì tới khi nhấc tay, cảm giác đơ
+  let pr = null; const unpr = () => { pr?.classList.remove("tap-on"); pr = null; };
+  document.addEventListener("touchstart", (e) => { const t = e.touches[0]; tx = t.clientX; ty = t.clientY; unpr(); if (okT(e.target)) { pr = e.target; pr.classList.add("tap-on"); } }, { passive: true, capture: true });
+  document.addEventListener("touchmove", (e) => { if (pr && (Math.abs(e.touches[0].clientX - tx) > 10 || Math.abs(e.touches[0].clientY - ty) > 10)) unpr(); }, { passive: true, capture: true });
+  document.addEventListener("touchcancel", unpr, { passive: true, capture: true });
+  document.addEventListener("touchend", (e) => { const P = pr; if (P) setTimeout(() => P.classList.remove("tap-on"), 120); pr = null; if (!okT(e.target) || !e.cancelable) return; const t = e.changedTouches[0]; if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) return;
     e.preventDefault(); try { e.target.blur(); } catch { /* bỏ qua */ } open(e.target); }, { passive: false, capture: true });
 })();
 function botMenu(anchor, up) {

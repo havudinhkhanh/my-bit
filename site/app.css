@@ -7825,3 +7825,7 @@ select[aria-expanded="true"]{outline:2px solid color-mix(in srgb,var(--brand) 50
 .dt-f{display:flex;align-items:center;gap:6px;margin-top:8px}
 .dt-f span{flex:1}
 .dt-menu .dt-in .dt-f .btn{display:inline-flex!important;width:auto!important;min-height:0!important;grid-template-columns:none!important}
+/* chạm ô chọn / ô ngày: lún nhẹ ngay khi đặt ngón tay */
+select,input[type=date],input[type=datetime-local]{transition:transform .12s var(--ease-out,ease),background-color .12s}
+select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,var(--fill))!important}
+.sel-menu .ios-menu-in{animation-duration:.14s!important}
