@@ -1332,6 +1332,29 @@ function iosSheet({ title = "", body = "", ok = "OK", danger = false, cancel = "
     w.tabIndex = -1; w.focus({ preventScroll: true });      // giữ phím Esc / Tab trong hộp, không tô vòng focus lên nút khi mở bằng chuột
   });
 }
+// 💬 HỎI LẠI kiểu app – thay hộp confirm() / prompt() xám của trình duyệt (lạc kiểu, iPhone còn hiện tên trang ở đầu hộp)
+//    dòng đầu = tiêu đề, phần sau (cách dòng trống) = nội dung · câu có Xoá / TẮT / TIỀN THẬT / Đóng TẤT CẢ… → nút đỏ
+//    askText: có "Gõ XXX" trong câu → nút xác nhận chỉ sáng khi gõ đúng XXX (nơi gọi vẫn tự kiểm tra lại như cũ)
+const ASK_DANGER = /xo[aá]|TẮT|Tắt |TIỀN THẬT|TẤT CẢ|bỏ thay đổi|ngắt|Làm lại|khoá mới|Bỏ khoá|delete|wipe/i;
+function askParts(msg) { const s = String(msg ?? ""), i = s.indexOf("\n"); return i < 0 ? [s, ""] : [s.slice(0, i), s.slice(i + 1).replace(/^\n+/, "")]; }
+const askBody = (rest) => rest ? `<div class="ask-p">${rest.split(/\n{2,}/).map((p) => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("")}</div>` : "";
+function askOk(msg, o = {}) {
+  const [t, rest] = askParts(msg), dz = o.danger ?? ASK_DANGER.test(String(msg));
+  return iosSheet({ title: esc(t), body: askBody(rest), ok: o.ok || (dz ? bi("Xác nhận", "Confirm") : bi("Đồng ý", "OK")), danger: dz, cancel: o.cancel || bi("Huỷ", "Cancel") });
+}
+function askText(msg, def = "", o = {}) {
+  const [t, rest] = askParts(msg), mm = String(msg).match(/Gõ\s+["“]?([A-Z][A-Z ]*[A-Z])\b/), need = o.expect || (mm ? mm[1] : ""), id = "askIn" + Date.now();
+  const pr = iosSheet({ title: esc(t), body: askBody(rest) + `<input id="${id}" class="ask-in" type="text" value="${esc(def ?? "")}" autocomplete="off" autocapitalize="${need ? "characters" : "off"}" spellcheck="false"${need ? ` placeholder="${esc(need)}"` : ""}>`,
+    ok: o.ok || bi("Xác nhận", "Confirm"), danger: !!need || ASK_DANGER.test(String(msg)), cancel: o.cancel || bi("Huỷ", "Cancel") });
+  const inp = document.getElementById(id), okB = document.querySelector("#iosSheet [data-ok]");
+  if (inp) {
+    const chk = () => { if (!need || !okB) return; const good = inp.value.trim().toUpperCase() === need; okB.disabled = !good; okB.dataset.lock = good ? "" : "1"; };
+    chk(); inp.addEventListener("input", chk);
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && okB && !okB.disabled) { e.preventDefault(); okB.click(); } });
+    try { inp.focus({ preventScroll: true }); if (def) inp.select(); } catch { /* bỏ qua */ }
+  }
+  return pr.then((ok) => (ok ? document.getElementById(id)?.value ?? "" : null));
+}
 // 🔒 KHOÁ CUỘN TRANG PHÍA SAU khi đang mở bảng trượt / menu / bảng thông báo (điện thoại): vuốt trong bảng chỉ cuộn được phần bảng có thể cuộn,
 //    tới mép (hoặc phần không cuộn được như 1 lựa chọn) thì CHẶN – trước đây iPhone chuyền cú vuốt xuống trang bên dưới (trang chạy theo ngón tay).
 const OVL_PANEL = "#iosSheet .mbd-w, .msheet:not([hidden]) .msheet-in, .ntp .ntp-in, .ntpk .ntpk-card, .ios-menu .ios-menu-in, .menu.memenu";
@@ -1370,13 +1393,20 @@ function iosMenuClose() { const m = $("#iosMenu"); if (!m) return; m.classList.a
 //    ô <select> vẫn là nguồn dữ liệu: chọn xong gán .value + bắn input/change như cũ → mọi chỗ đang nghe "change" chạy y nguyên
 //    bàn phím (Tab, mũi tên, Alt+↓) vẫn dùng kiểu gốc · thêm data-native vào <select> nếu chỗ nào cần bảng gốc
 //    option: data-mt = chữ hiện trong menu (thay chữ trên ô) · data-sub = dòng phụ nhỏ bên dưới; dài và có " · " thì tự tách dòng phụ
+// đặt menu thả xuống cạnh ô: đo chiều cao thật rồi chọn trên / dưới trong VÙNG ĐANG THẤY (visualViewport – iPhone đang mở bàn phím thì vùng thấy
+//    ngắn lại & lệch khỏi khung trang; trước tính theo innerHeight + bottom nên menu bật lên lơ lửng xa ô chọn)
+function menuPlace(box, a) {
+  const vv = window.visualViewport, r = a.getBoundingClientRect(), vt = vv ? vv.offsetTop : 0, vb = vv ? vv.offsetTop + vv.height : innerHeight;
+  box.style.bottom = "auto"; box.style.top = "0px"; box.style.maxHeight = "";
+  const h = box.offsetHeight, below = vb - r.bottom - 10, above = r.top - vt - 10, up = h > below && above > below, room = Math.max(140, up ? above : below);
+  const hh = Math.min(h, room); if (h > room) box.style.maxHeight = Math.round(room) + "px";
+  box.style.top = Math.round(up ? r.top - 6 - hh : r.bottom + 6) + "px"; box.style.transformOrigin = up ? "24px calc(100% + 6px)" : "24px -6px";
+}
 const selOk = (t) => t && t.tagName === "SELECT" && !t.multiple && !t.disabled && !(t.size > 1) && !t.hasAttribute("data-native") && !t.closest("[data-native]");
-function selMenu(sel) {
+function selMenu(sel, kb = false) {
   if ($("#iosMenu")) { const was = $("#iosMenu").__sel === sel; iosMenuClose(); if (was) return; }
-  const r = sel.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = innerHeight;
+  const r = sel.getBoundingClientRect(), vw = document.documentElement.clientWidth;
   const W = Math.min(Math.max(r.width, 260), 360, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left));
-  const below = vh - r.bottom - 12, above = r.top - 12, up = below < 220 && above > below, maxH = Math.max(160, Math.min(up ? above : below, 420));
-  const pos = up ? `bottom:${Math.round(vh - r.top + 6)}px;transform-origin:24px calc(100% + 6px)` : `top:${Math.round(r.bottom + 6)}px;transform-origin:24px -6px`;
   const item = (o) => {
     let t = o.dataset.mt || o.textContent.trim(), sub = o.dataset.sub || "";
     if (!sub && t.length > 30 && t.includes(" · ")) { const i = t.indexOf(" · "); sub = t.slice(i + 3); t = t.slice(0, i); }
@@ -1389,10 +1419,11 @@ function selMenu(sel) {
   }
   const hd = sel.dataset.mh || sel.getAttribute("aria-label") || "";
   const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu sel-menu"; m.__sel = sel;
-  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${esc(hd)}" style="left:${left}px;width:${W}px;max-height:${Math.round(maxH)}px;${pos}">${hd ? `<div class="ios-menu-h">${esc(hd)}</div>` : ""}${html}</div>`;
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in" role="menu" aria-label="${esc(hd)}" style="left:${left}px;width:${W}px;max-height:420px">${hd ? `<div class="ios-menu-h">${esc(hd)}</div>` : ""}${html}</div>`;
   document.body.appendChild(m); sel.setAttribute("aria-expanded", "true"); sel.dataset.iosm = "1";
-  const box = m.querySelector(".ios-menu-in"), cur = box.querySelector('[aria-checked="true"]');
+  const box = m.querySelector(".ios-menu-in"), cur = box.querySelector('[aria-checked="true"]'); menuPlace(box, sel);
   if (cur && cur.offsetTop + cur.offsetHeight > box.clientHeight) box.scrollTop = cur.offsetTop - box.clientHeight / 2 + cur.offsetHeight / 2;
+  if (kb) (cur || box.querySelector("button:not([disabled])"))?.focus({ preventScroll: true });      // mở bằng bàn phím: ↑ ↓ chọn, Enter / Space chốt, Esc đóng
   m.querySelector("[data-x]").onclick = iosMenuClose;
   box.addEventListener("click", (e) => {
     const b = e.target.closest("button[data-i]"); if (!b || b.disabled) return;
@@ -1400,7 +1431,7 @@ function selMenu(sel) {
     if (o && !o.selected) { sel.selectedIndex = o.index; sel.dispatchEvent(new Event("input", { bubbles: true })); sel.dispatchEvent(new Event("change", { bubbles: true })); }
   });
   const k = (e) => { if (!m.isConnected) { removeEventListener("keydown", k, true); return; }
-    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); iosMenuClose(); removeEventListener("keydown", k, true); return; }
+    if (e.key === "Escape" || e.key === "Tab") { if (e.key === "Escape") e.preventDefault(); e.stopPropagation(); iosMenuClose(); removeEventListener("keydown", k, true); try { sel.focus({ preventScroll: true }); } catch { /* bỏ qua */ } return; }
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const bs = [...box.querySelectorAll("button:not([disabled])")], i = bs.indexOf(document.activeElement); const j = i < 0 ? Math.max(0, bs.indexOf(cur)) : Math.max(0, Math.min(bs.length - 1, i + (e.key === "ArrowDown" ? 1 : -1))); bs[j]?.focus(); } };
   addEventListener("keydown", k, true);
   const y0 = r.top, sc = (e) => { if (!m.isConnected) { removeEventListener("scroll", sc, true); return; }      // trang cuộn làm ô chọn trôi xa → đóng menu (cuộn nhẹ / cuộn trong menu thì giữ)
@@ -1408,15 +1439,69 @@ function selMenu(sel) {
   setTimeout(() => addEventListener("scroll", sc, { capture: true, passive: true }), 60);
   addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", iosMenuClose, { once: true });
 }
+// 📅 ô ngày (<input type=date / datetime-local>) → lịch nhỏ kiểu app thay bánh xe iPhone / lịch trắng của trình duyệt
+//    ô nhập vẫn là nguồn dữ liệu: chọn xong gán .value + bắn input/change · bàn phím (Tab rồi gõ số) vẫn dùng kiểu gốc
+const dtOk = (t) => t && t.tagName === "INPUT" && (t.type === "date" || t.type === "datetime-local") && !t.disabled && !t.readOnly && !t.hasAttribute("data-native") && !t.closest("[data-native]");
+const DT_WD = () => (LANG === "en" ? ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] : ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]);
+function datePop(inp) {
+  if ($("#iosMenu")) { const was = $("#iosMenu").__sel === inp; iosMenuClose(); if (was) return; }
+  const dt = inp.type === "datetime-local", p2 = (n) => String(n).padStart(2, "0"), ymd = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
+  const v0 = inp.value || "", today = ymd(new Date()), mn = (inp.min || "").slice(0, 10), mx = (inp.max || "").slice(0, 10), secs = dt && +inp.step && +inp.step < 60;
+  let pick = v0.slice(0, 10) || "", tm = dt ? (v0.slice(11) || (() => { const n = new Date(); return `${p2(n.getHours())}:${p2(n.getMinutes())}${secs ? ":" + p2(n.getSeconds()) : ""}`; })()) : "";
+  const base = pick || (mx && today > mx ? mx : mn && today < mn ? mn : today);
+  let Y = +base.slice(0, 4), M = +base.slice(5, 7) - 1;
+  const r = inp.getBoundingClientRect(), vw = document.documentElement.clientWidth, W = Math.min(300, vw - 16), left = Math.max(8, Math.min(vw - W - 8, r.left));
+  const m = document.createElement("div"); m.id = "iosMenu"; m.className = "ios-menu sel-menu dt-menu"; m.__sel = inp;
+  m.innerHTML = `<div class="ios-menu-bg" data-x></div><div class="ios-menu-in dt-in" role="dialog" aria-label="${bi("Chọn ngày", "Pick a date")}" style="left:${left}px;width:${W}px"></div>`;
+  document.body.appendChild(m); inp.setAttribute("aria-expanded", "true"); inp.dataset.iosm = "1";
+  const box = m.querySelector(".dt-in"), ok = (d) => (!mn || d >= mn) && (!mx || d <= mx);
+  const apply = (val) => { iosMenuClose(); if (inp.value === val) return; inp.value = val; inp.dispatchEvent(new Event("input", { bubbles: true })); inp.dispatchEvent(new Event("change", { bubbles: true })); };
+  const draw = () => {
+    const f = new Date(Y, M, 1), off = (f.getDay() + 6) % 7, st = new Date(Y, M, 1 - off), cells = [];
+    for (let i = 0; i < 42; i++) { const d = new Date(st.getFullYear(), st.getMonth(), st.getDate() + i), k = ymd(d);
+      cells.push(`<button type="button" class="dt-d${d.getMonth() !== M ? " o" : ""}${k === today ? " t" : ""}${k === pick ? " on" : ""}" data-d="${k}"${ok(k) ? "" : " disabled"} aria-pressed="${k === pick}">${d.getDate()}</button>`); }
+    const prevOk = !mn || ymd(new Date(Y, M, 0)) >= mn, nextOk = !mx || ymd(new Date(Y, M + 1, 1)) <= mx;
+    const tp = tm.split(":");
+    box.innerHTML = `<div class="dt-h"><button type="button" class="dt-nv" data-mv="-1"${prevOk ? "" : " disabled"} aria-label="${bi("Tháng trước", "Previous month")}">‹</button><b>${LANG === "en" ? new Date(Y, M, 1).toLocaleString("en", { month: "long", year: "numeric" }) : `Tháng ${M + 1}, ${Y}`}</b><button type="button" class="dt-nv" data-mv="1"${nextOk ? "" : " disabled"} aria-label="${bi("Tháng sau", "Next month")}">›</button></div>
+      <div class="dt-g">${DT_WD().map((w) => `<i>${w}</i>`).join("")}${cells.join("")}</div>
+      ${dt ? `<div class="dt-t"><span>${bi("Giờ", "Time")}</span><input inputmode="numeric" maxlength="2" data-tp="0" value="${esc(tp[0] || "00")}" aria-label="${bi("giờ", "hour")}">:<input inputmode="numeric" maxlength="2" data-tp="1" value="${esc(tp[1] || "00")}" aria-label="${bi("phút", "minute")}">${secs ? `:<input inputmode="numeric" maxlength="2" data-tp="2" value="${esc(tp[2] || "00")}" aria-label="${bi("giây", "second")}">` : ""}</div>` : ""}
+      <div class="dt-f">${inp.required ? "" : `<button type="button" class="btn ghost sm" data-dclr>${bi("Xoá", "Clear")}</button>`}<span></span><button type="button" class="btn ghost sm" data-dnow${ok(today) ? "" : " disabled"}>${dt ? bi("Bây giờ", "Now") : bi("Hôm nay", "Today")}</button>${dt ? `<button type="button" class="btn primary sm" data-dok${pick ? "" : " disabled"}>${bi("Xong", "Done")}</button>` : ""}</div>`;
+  };
+  const rdT = () => { const v = [...box.querySelectorAll("[data-tp]")].map((x, i) => p2(Math.max(0, Math.min(i ? 59 : 23, parseInt(x.value, 10) || 0)))); tm = v.join(":"); };
+  draw(); menuPlace(box, inp);
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b || b.disabled) return;
+    if (b.dataset.mv) { if (dt) rdT(); M += +b.dataset.mv; if (M < 0) { M = 11; Y--; } if (M > 11) { M = 0; Y++; } draw(); return; }
+    if (b.dataset.d) { pick = b.dataset.d; if (!dt) return apply(pick); rdT(); const [y, mo] = pick.split("-"); Y = +y; M = +mo - 1; draw(); return; }
+    if (b.hasAttribute("data-dclr")) return apply("");
+    if (b.hasAttribute("data-dnow")) { const n = new Date(); return apply(dt ? `${ymd(n)}T${p2(n.getHours())}:${p2(n.getMinutes())}${secs ? ":" + p2(n.getSeconds()) : ""}` : today); }
+    if (b.hasAttribute("data-dok") && pick) { rdT(); return apply(`${pick}T${tm}`); }
+  });
+  box.addEventListener("focusin", (e) => { if (e.target.matches?.("[data-tp]")) e.target.select(); });
+  m.querySelector("[data-x]").onclick = iosMenuClose;
+  const k = (e) => { if (!m.isConnected) { removeEventListener("keydown", k, true); return; } if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); iosMenuClose(); removeEventListener("keydown", k, true); }
+    else if (e.key === "Enter" && e.target.matches?.("[data-tp]")) { e.preventDefault(); box.querySelector("[data-dok]")?.click(); } };
+  addEventListener("keydown", k, true);
+  addEventListener("hashchange", iosMenuClose, { once: true });
+}
 (function selHook() {
-  let tx = 0, ty = 0;
+  let tx = 0, ty = 0; const okT = (t) => selOk(t) || dtOk(t), go = (t, kb) => (dtOk(t) ? datePop(t) : selMenu(t, kb));
+  // đang gõ ở ô khác (bàn phím iPhone đang mở): cất bàn phím trước, đợi khung nhìn ổn định rồi mới mở menu – tránh menu lơ lửng sai chỗ
+  const open = (t, kb) => {
+    const ae = document.activeElement, vv = window.visualViewport;
+    if (ae && ae !== t && (ae.tagName === "TEXTAREA" || (ae.tagName === "INPUT" && !/^(checkbox|radio|button|submit|range|color|file)$/i.test(ae.type))) && vv && vv.height < innerHeight - 120) {
+      ae.blur(); let done = false; const fire = () => { if (done) return; done = true; vv.removeEventListener("resize", onR); requestAnimationFrame(() => go(t, kb)); };
+      const onR = () => { if (vv.height >= innerHeight - 120) setTimeout(fire, 60); }; vv.addEventListener("resize", onR); setTimeout(fire, 450); return;
+    }
+    go(t, kb);
+  };
   // chuột / bút: chặn cả pointerdown lẫn mousedown (Chrome mới mở bảng gốc từ pointerdown) – mở menu 1 lần ở pointerdown
-  document.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch" || e.button !== 0 || !selOk(e.target)) return; e.preventDefault(); selMenu(e.target); }, true);
-  document.addEventListener("mousedown", (e) => { if (e.button === 0 && selOk(e.target) && !e.sourceCapabilities?.firesTouchEvents) e.preventDefault(); }, true);
-  document.addEventListener("click", (e) => { if (selOk(e.target) && e.detail > 0) e.preventDefault(); }, true);
+  document.addEventListener("pointerdown", (e) => { if (e.pointerType === "touch" || e.button !== 0 || !okT(e.target)) return; e.preventDefault(); open(e.target); }, true);
+  document.addEventListener("mousedown", (e) => { if (e.button === 0 && okT(e.target) && !e.sourceCapabilities?.firesTouchEvents) e.preventDefault(); }, true);
+  document.addEventListener("click", (e) => { if (okT(e.target) && e.detail > 0) e.preventDefault(); }, true);
   document.addEventListener("touchstart", (e) => { const t = e.touches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true, capture: true });
-  document.addEventListener("touchend", (e) => { if (!selOk(e.target) || !e.cancelable) return; const t = e.changedTouches[0]; if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) return;
-    e.preventDefault(); selMenu(e.target); }, { passive: false, capture: true });
+  document.addEventListener("touchend", (e) => { if (!okT(e.target) || !e.cancelable) return; const t = e.changedTouches[0]; if (Math.abs(t.clientX - tx) > 10 || Math.abs(t.clientY - ty) > 10) return;
+    e.preventDefault(); try { e.target.blur(); } catch { /* bỏ qua */ } open(e.target); }, { passive: false, capture: true });
 })();
 function botMenu(anchor, up) {
   if ($("#iosMenu")) { iosMenuClose(); return; }
@@ -6988,7 +7073,7 @@ async function viewPortfolio() {
     const q = numIn($("#fQ").value) > 0 ? numIn($("#fQ").value) : mg > 0 && e > 0 ? mg * l / e : NaN;
     if (!BYK[s] || !(q > 0) || !(e > 0)) return toast("Nhập mã coin, giá vào và ký quỹ USDT (hoặc số lượng)");
     const G = levGov(BYK[s], $("#fSide").value, "d", sl ? Math.abs(e - sl) / e * 100 : null);
-    if (l > G.cap && !confirm(`Đòn bẩy x${l} vượt mức hệ thống cho phép x${G.cap} cho ${s}.\n\n${G.why.join("\n")}\n\nVẫn ghi lại vị thế này (hệ thống sẽ nhắc giảm)?`)) return;
+    if (l > G.cap && !(await askOk(`Đòn bẩy x${l} vượt mức hệ thống cho phép x${G.cap} cho ${s}.\n\n${G.why.join("\n")}\n\nVẫn ghi lại vị thế này (hệ thống sẽ nhắc giảm)?`))) return;
     PF.futures.push({ symbol: s, side: $("#fSide").value, qty: q, entry: e, lev: l, stop: sl, opened: new Date().toISOString().slice(0, 10) });
     await pfSave(); viewPortfolio();
   };
@@ -6996,16 +7081,16 @@ async function viewPortfolio() {
   $$("[data-df]").forEach((b) => b.onclick = async () => { PF.futures.splice(Number(b.dataset.df), 1); await pfSave(); viewPortfolio(); });
   $$("[data-dp]").forEach((b) => b.onclick = async () => { PF.plans.splice(Number(b.dataset.dp), 1); await pfSave(); viewPortfolio(); });
   // đóng vị thế → ghi sổ lệnh (lãi/lỗ thực), tiền về tiền mặt – để hệ thống tính lỗ ngày/tuần & chuỗi thua
-  const askExit = (k, def) => { const v = prompt(`Giá thoát ${k} (để trống = giá hiện tại ${px(def)}):`, ""); if (v === null) return null; const x = Number(String(v).replace(",", ".")); return x > 0 ? x : def; };
+  const askExit = async (k, def) => { const v = (await askText(`Giá thoát ${k} (để trống = giá hiện tại ${px(def)}):`, "")); if (v === null) return null; const x = Number(String(v).replace(",", ".")); return x > 0 ? x : def; };
   $$("[data-cf]").forEach((b) => b.onclick = async () => {
-    const f = PF.futures[Number(b.dataset.cf)], cur = BYK[f.symbol]?.p, x = askExit(f.symbol, cur); if (!x) return;
+    const f = PF.futures[Number(b.dataset.cf)], cur = BYK[f.symbol]?.p, x = await askExit(f.symbol, cur); if (!x) return;
     const sd = f.side === "short" ? -1 : 1, pnl = sd * f.qty * (x - f.entry) - f.qty * (f.entry + x) * FEE1;
     PF.journal.push({ k: f.symbol, side: f.side, qty: f.qty, entry: f.entry, exit: x, lev: f.lev, stop: f.stop, pnl, r: f.stop ? pnl / (f.qty * Math.abs(f.entry - f.stop)) : null, opened: f.opened, closed: new Date().toISOString() });
     PF.cash = Number(PF.cash || 0) + f.qty * f.entry / (f.lev || 1) + pnl;
     PF.futures.splice(Number(b.dataset.cf), 1); await pfSave(); toast(`Đã đóng ${f.symbol}: ${pnl >= 0 ? "lãi" : "lỗ"} ${usd(Math.abs(pnl))}`); viewPortfolio();
   });
   $$("[data-ch]").forEach((b) => b.onclick = async () => {
-    const h = PF.holdings[Number(b.dataset.ch)], cur = BYK[h.symbol]?.p, x = askExit(h.symbol, cur); if (!x) return;
+    const h = PF.holdings[Number(b.dataset.ch)], cur = BYK[h.symbol]?.p, x = await askExit(h.symbol, cur); if (!x) return;
     const pnl = h.qty * (x - (h.cost || x)) - h.qty * x * FEE1 * 2;
     PF.journal.push({ k: h.symbol, side: "spot", qty: h.qty, entry: h.cost, exit: x, lev: 1, pnl, closed: new Date().toISOString() });
     PF.cash = Number(PF.cash || 0) + h.qty * (h.cost || x) + pnl;
@@ -7208,7 +7293,7 @@ function initSearch() {
   });
 }
 // ================================================================ MENU THẢ XUỐNG ĐỒNG NHẤT – thay bảng gợi ý của <datalist> và hộp chọn mặc định của trình duyệt
-// (trình duyệt vẽ 2 loại này theo kiểu riêng của hệ điều hành – nền trắng, chữ khác font). Điện thoại / màn cảm ứng: giữ bánh xe chọn gốc của máy.
+// (trình duyệt vẽ 2 loại này theo kiểu riêng của hệ điều hành – nền trắng, chữ khác font). Ô <select>: xem selMenu (mọi thiết bị); ô ngày: datePop.
 const POP = { el: null, host: null, items: [], sel: 0, pick: null };
 const fold = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
 function popClose() { if (POP.el) POP.el.remove(); if (POP.host) POP.host.removeAttribute("aria-expanded"); POP.el = POP.host = POP.pick = null; POP.items = []; }
@@ -7226,11 +7311,6 @@ function popOpen(host, items, pick, sel = 0) {
   el.querySelector(".pop-i.on")?.scrollIntoView({ block: "nearest" });
   el.addEventListener("mousedown", (e) => e.preventDefault());           // giữ con trỏ trong ô nhập
   el.addEventListener("click", (e) => { const b = e.target.closest(".pop-i"); if (b) { const it = POP.items[+b.dataset.i], f = POP.pick; popClose(); f?.(it); } });
-}
-const coarse = () => matchMedia("(pointer:coarse)").matches;
-function popSelect(s) {
-  const items = [...s.options].filter((o) => !o.hidden).map((o) => ({ v: o.value, label: o.textContent.trim(), cur: o.selected, dis: o.disabled, g: o.parentElement?.tagName === "OPTGROUP" ? o.parentElement.label : "" }));
-  popOpen(s, items.filter((x) => !x.dis), (it) => { if (s.value === it.v) return; s.value = it.v; s.dispatchEvent(new Event("input", { bubbles: true })); s.dispatchEvent(new Event("change", { bubbles: true })); }, items.filter((x) => !x.dis).findIndex((x) => x.cur));
 }
 function popList(inp) {
   const dl = document.getElementById(inp.dataset.dl); if (!dl) return popClose();
@@ -7254,13 +7334,12 @@ function initPop() {
   document.addEventListener("input", (e) => { const i = e.target.closest?.("input[data-dl]"); if (i && e.isTrusted) popList(i); });
   document.addEventListener("focusout", (e) => { if (POP.host && e.target === POP.host) setTimeout(() => { if (document.activeElement !== POP.host) popClose(); }, 0); });
   document.addEventListener("mousedown", (e) => {
-    const s = e.target.closest?.("select");
-    if (s && !s.multiple && !(s.size > 1) && !s.disabled && !coarse() && e.button === 0) { e.preventDefault(); s.focus(); if (POP.host === s) popClose(); else popSelect(s); return; }
+    // ô <select> giờ do selMenu lo cho MỌI thiết bị (chuột, chạm, bàn phím) – ở đây chỉ còn gợi ý của ô nhập (datalist)
     if (POP.el && !POP.el.contains(e.target) && e.target !== POP.host) popClose();
   }, true);
   document.addEventListener("keydown", (e) => {
     const a = document.activeElement;
-    if (a?.tagName === "SELECT" && !coarse() && !a.multiple && POP.host !== a && (e.key === " " || e.key === "Enter" || (e.altKey && e.key === "ArrowDown") || e.key === "F4")) { e.preventDefault(); popSelect(a); return; }
+    if (selOk(a) && !$("#iosMenu") && (e.key === " " || e.key === "Enter" || (e.altKey && e.key === "ArrowDown") || e.key === "F4")) { e.preventDefault(); selMenu(a, true); return; }
     if (!POP.el || a !== POP.host) return;
     if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); e.stopPropagation(); popMove(e.key === "ArrowDown" ? 1 : -1); }
     else if (e.key === "Enter" || (e.key === " " && a.tagName === "SELECT")) { e.preventDefault(); e.stopPropagation(); const it = POP.items[POP.sel], f = POP.pick; popClose(); f?.(it); }
@@ -7912,7 +7991,7 @@ async function viewNotifications() {
     $$("[data-nf]", app()).forEach((b) => (b.onclick = () => { f = b.dataset.nf; lsSet("ntf_f", f); draw(); }));
     const pg = app().querySelector(".nt-page"); if (pg && !pg._sw) { pg._sw = 1; ntTabSwipe(pg, () => app().querySelector(".nt-page .ntp-l"), (k) => { f = k; lsSet("ntf_f", f); draw(); }); }
     $("#nAll").onclick = async () => { await api("notifications/read", "POST", { all: true }); items.forEach((n) => (n.read_at ||= "x")); draw(); bellCount(); };
-    $("#nDel").onclick = async () => { if (!confirm("Xoá mọi thông báo đã đọc?")) return; await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
+    $("#nDel").onclick = async () => { if (!(await askOk("Xoá mọi thông báo đã đọc?"))) return; await api("notifications", "DELETE"); items = items.filter((n) => !n.read_at); draw(); };
     if ($("#nMore")) $("#nMore").onclick = load_;
   };
   const load_ = async () => { const j = await api(`notifications?limit=50${items.length ? "&before=" + items[items.length - 1].id : ""}`); items = items.concat(j?.items || []); more = (j?.items || []).length === 50; draw(); };

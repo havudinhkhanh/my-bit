@@ -3,11 +3,40 @@
  "rel": [
   {
    "v": "2026.11.24",
-   "t": "Ô chọn đồng bộ giao diện",
-   "te": "Native pickers restyled",
-   "s": "Mọi ô chọn mở menu của app thay cho bảng chọn mặc định của máy.",
-   "se": "Every dropdown now opens the app's own menu instead of the device picker.",
+   "t": "Menu, lịch, hộp hỏi lại đồng bộ giao diện",
+   "te": "Pickers & dialogs restyled",
+   "s": "Ô chọn, ô ngày và hộp hỏi lại giờ đều dùng kiểu của app thay cho bảng mặc định của máy.",
+   "se": "Dropdowns, date fields and confirmations now use the app's own style instead of the device's.",
    "it": [
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Ô chọn khi đang mở bàn phím (iPhone): bàn phím tự cất rồi menu mới mở ngay cạnh ô – hết bật lơ lửng sai chỗ",
+     "te": "Dropdowns opened while the iPhone keyboard is up: keyboard closes first, menu appears right by the field"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "hi": 1,
+     "t": "Ô ngày (lọc theo khoảng ngày, sổ thuế, ngày mua…) mở lịch nhỏ cùng kiểu app thay bánh xe iPhone / lịch trắng của trình duyệt",
+     "te": "Date fields open the app's own calendar instead of the iPhone wheel / browser calendar",
+     "d": "Có Hôm nay / Xoá; ô có giờ thì chỉnh giờ ngay dưới lịch.",
+     "de": "With Today / Clear; date-time fields get a time row."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Hộp hỏi lại (xoá, tắt bot, đổi thiết lập tiền thật, gõ TIEN THAT / XOA…) dùng bảng xác nhận của app thay hộp xám của trình duyệt",
+     "te": "Confirmations (delete, turn bot off, real-money changes, type TIEN THAT / XOA…) use the app's sheet instead of the browser's grey box",
+     "d": "Việc nguy hiểm có nút đỏ; ô phải gõ chữ xác nhận thì nút chỉ sáng khi gõ đúng.",
+     "de": "Risky actions get a red button; typed confirmations only enable the button once the text matches."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Máy tính: ô chọn dùng chung 1 kiểu menu với điện thoại (trước có 2 kiểu khác nhau)",
+     "te": "Desktop: dropdowns share the same menu style as phones"
+    },
     {
      "c": "imp",
      "a": "ui",

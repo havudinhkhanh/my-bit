@@ -7799,3 +7799,29 @@ body.wr-on{overflow:hidden}
 .sel-menu .ios-menu-in>button[disabled]{opacity:.4;cursor:default}
 .sel-menu .ios-t{overflow-wrap:anywhere}
 select[aria-expanded="true"]{outline:2px solid color-mix(in srgb,var(--brand) 50%,transparent);outline-offset:0}
+/* 💬 hộp hỏi lại kiểu app (askOk / askText – thay confirm / prompt của trình duyệt) */
+.ask-p p{margin:0 0 8px;font-size:.875rem;line-height:1.5;color:var(--ink-2);white-space:normal}
+.ask-p p:last-child{margin-bottom:0}
+.ask-in{display:block;width:100%;height:42px;margin-top:10px;padding:0 12px;border:1px solid var(--line-2,var(--bd-2));border-radius:10px;background:var(--fill);color:var(--ink);font:inherit;font-size:16px;letter-spacing:.02em}
+.ask-in:focus{outline:2px solid color-mix(in srgb,var(--brand) 50%,transparent);outline-offset:0;background:var(--surface)}
+/* 📅 lịch chọn ngày kiểu app (datePop – thay bánh xe iPhone / lịch trắng của trình duyệt) */
+.dt-menu .dt-in{padding:10px!important;display:block}
+.dt-h{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 6px}
+.dt-h b{font-size:.875rem;font-weight:700;text-transform:capitalize}
+.dt-menu .dt-in .dt-nv{display:grid!important;place-items:center;width:32px;height:32px;min-height:0!important;padding:0!important;border:0;border-radius:8px!important;background:var(--fill)!important;color:var(--ink);font:600 18px/1 inherit;cursor:pointer}
+.dt-menu .dt-in .dt-nv[disabled]{opacity:.35;cursor:default}
+.dt-g{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+.dt-g i{font-style:normal;text-align:center;font-size:.6875rem;font-weight:650;color:var(--ink-3);padding:2px 0 4px}
+.dt-menu .dt-in .dt-d{display:grid!important;place-items:center;height:34px;min-height:0!important;padding:0!important;border:0;border-radius:9px!important;background:transparent!important;color:var(--ink)!important;font:500 .8125rem/1 inherit;font-variant-numeric:tabular-nums;cursor:pointer}
+.dt-menu .dt-in .dt-d:hover{background:var(--fill)!important}
+.dt-menu .dt-in .dt-d.o{color:var(--ink-3)!important;opacity:.55}
+.dt-menu .dt-in .dt-d.t{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--brand) 60%,transparent)}
+.dt-menu .dt-in .dt-d.on{background:var(--brand)!important;color:#fff!important;font-weight:700;opacity:1}
+.dt-menu .dt-in .dt-d[disabled]{opacity:.22;cursor:default;background:transparent!important}
+.dt-t{display:flex;align-items:center;gap:4px;margin-top:8px;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--ink) 8%,transparent);font-variant-numeric:tabular-nums}
+.dt-t span{flex:1;font-size:.8125rem;color:var(--ink-2);font-weight:600}
+.dt-t input{width:42px;height:34px;padding:0;border:0;border-radius:8px;background:var(--fill);color:var(--ink);text-align:center;font:inherit;font-size:16px}
+.dt-t input:focus{outline:2px solid color-mix(in srgb,var(--brand) 50%,transparent);background:var(--surface)}
+.dt-f{display:flex;align-items:center;gap:6px;margin-top:8px}
+.dt-f span{flex:1}
+.dt-menu .dt-in .dt-f .btn{display:inline-flex!important;width:auto!important;min-height:0!important;grid-template-columns:none!important}

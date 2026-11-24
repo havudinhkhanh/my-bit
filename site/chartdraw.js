@@ -329,7 +329,7 @@
     const openTb = (v) => { tb.hidden = !v; if (btn) btn.classList.toggle("on", v); if (v) OPEN_TB = inst; else { setTool("cur"); st.sel = null; } req(); };
     const toggle = (v) => openTb(v ?? tb.hidden);
     tb.addEventListener("pointerdown", (e) => e.stopPropagation());
-    tb.addEventListener("click", (e) => {
+    tb.addEventListener("click", async (e) => {
       const b = e.target.closest("button"); if (!b) return; e.stopPropagation();
       if (b.dataset.t) return setTool(st.tool === b.dataset.t && b.dataset.t !== "cur" ? "cur" : b.dataset.t);
       if (b.dataset.c) { st.color = b.dataset.c; cfg.set("draw_color", st.color); tb.querySelector(".cd-col i").style.background = st.color; tb.querySelector(".cd-pal").hidden = true; if (st.sel) { st.sel.c = st.color; save(); } return req(); }
@@ -340,7 +340,7 @@
       else if (a === "ap") apOn(!AP.on);
       else if (a === "del") {
         if (st.sel) { D = D.filter((d) => d !== st.sel); st.sel = null; }
-        else if (D.length && confirm(`Xoá hết ${D.length} hình đã vẽ trên biểu đồ này?`)) D = [];
+        else if (D.length && (await askOk(`Xoá hết ${D.length} hình đã vẽ trên biểu đồ này?`))) D = [];
         save(); if (btn) btn.classList.toggle("has", D.length > 0); req();
       }
     });

@@ -1658,7 +1658,7 @@ async function viewScalp() {
   app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
     ${hero}<div class="sc-tbar">${tabBar}${envSeg ? envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') : ""}</div><div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
   try { if (typeof CUR_TAB !== "undefined" && CUR_TAB && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB); } catch (e) { /* bỏ qua */ }      // đường dẫn trang vẽ NGAY cùng nội dung – không chèn trễ làm cả trang nhảy xuống
-  $$("[data-sctab]").forEach((b) => (b.onclick = () => { if (window.__scDirty && window.__scTab === "set" && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
+  $$("[data-sctab]").forEach((b) => (b.onclick = async () => { if (window.__scDirty && window.__scTab === "set" && !(await askOk("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?"))) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
   $$("[data-scenv]").forEach((b) => (b.onclick = async () => {      // đổi sàn: giữ nguyên chỗ đang xem (không giật trang)
     if (window.__scEnv === b.dataset.scenv) return;
     window.__scEnv = b.dataset.scenv; lsSet("scenv", b.dataset.scenv); window.__scUseCache = true;
@@ -1785,7 +1785,7 @@ async function viewScalp() {
     $$("#scForm .sc-num").forEach((n) => (n.oninput = () => { const k = n.id.slice(3), r = box.querySelector(`input[type=range][data-for="${k}"]`), v = numIn(n.value); if (r && isFinite(v)) r.value = v; chk(k); dirty(); }));
     $$("#scForm details.sc-adv").forEach((d) => (d.ontoggle = () => { (window.__scAdvO ||= {})[d.dataset.adv] = d.open; }));
     $$("#scForm [data-scjump]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); const el = $("#scs-" + a.dataset.scjump); if (!el) return; const top = el.getBoundingClientRect().top + scrollY - ((($(".sc-tabs")?.getBoundingClientRect().bottom) || 70) + 10); scrollTo({ top, behavior: "smooth" }); }));
-    $$("#scForm [data-sctab-q]").forEach((b) => (b.onclick = () => { if (window.__scDirty && !confirm("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?")) return; window.__scDirty = false; scTabGo("q"); }));
+    $$("#scForm [data-sctab-q]").forEach((b) => (b.onclick = async () => { if (window.__scDirty && !(await askOk("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?"))) return; window.__scDirty = false; scTabGo("q"); }));
     // mục lục bên trái: tô mục đang xem
     try { const io = new IntersectionObserver((es) => { for (const en of es) if (en.isIntersecting) $$("#scForm .sc-snav a").forEach((a) => a.classList.toggle("on", "scs-" + a.dataset.scjump === en.target.id)); }, { rootMargin: "-40% 0px -55% 0px" }); $$("#scForm .sc-sbody > section[id]").forEach((s) => io.observe(s)); } catch (e) { /* bỏ qua */ }
     $$("#scForm [data-scp]").forEach((b) => (b.onclick = () => { rd(); Object.assign(C, PRE[b.dataset.scp].v); dirty(); f(); toast(bi(`Đã chọn ${PRE[b.dataset.scp].n} – bấm 💾 Lưu để áp dụng`, `${PRE[b.dataset.scp].n} selected – press 💾 Save to apply`)); }));
@@ -1795,23 +1795,23 @@ async function viewScalp() {
     $$("#scForm [data-scv]").forEach((b) => (b.onclick = () => { rd(); C.lv_on = !C.lv_on; dirty(); f(); }));
     $$("#scForm [data-scsec]").forEach((b) => (b.onclick = () => { rd(); C.sec_on = C.sec_on === false; dirty(); f(); }));
     // ⛔ công tắc "ngừng khi lỗ trong ngày" trên Binance: tắt = bỏ chốt chặn → hỏi lại 1 lần
-    $$("#scForm [data-scld]").forEach((b) => (b.onclick = () => { rd(); const on = C.lv_daily_on !== false;
-      if (on && !confirm(`TẮT "Ngừng mở mới khi lỗ trong ngày" trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\nBot sẽ tiếp tục mở lệnh mới dù hôm nay đã lỗ bao nhiêu (chỉ còn các giới hạn an toàn chung: ký quỹ, tổng giá trị lệnh, sụt từ đỉnh).`)) return;
+    $$("#scForm [data-scld]").forEach((b) => (b.onclick = async () => { rd(); const on = C.lv_daily_on !== false;
+      if (on && !(await askOk(`TẮT "Ngừng mở mới khi lỗ trong ngày" trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\nBot sẽ tiếp tục mở lệnh mới dù hôm nay đã lỗ bao nhiêu (chỉ còn các giới hạn an toàn chung: ký quỹ, tổng giá trị lệnh, sụt từ đỉnh).`))) return;
       C.lv_daily_on = !on; dirty(); f(); }));
-    $$("#scForm [data-sclv]").forEach((b) => (b.onclick = () => { rd(); const k = b.dataset.sclv;
-      if (!C[k] && !confirm(`Bật "${k === "lv_u40" ? "Ra ở đỉnh nhịp nảy" : "Tăng cỡ lệnh khi bán tháo mạnh"}" trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\n${k === "lv_u40" ? `Lệnh 🪝 còn lỗ từ phút ${C.hk_u40 || 40} sẽ được đóng bằng lệnh thị trường khi nhịp nảy vừa tạo đỉnh, không chờ hết giờ.` : `Lệnh 🪝 Long sẽ đặt cỡ ×${C.hk_agX || 2} khi nến sốc có ≥ ${nf(C.hk_ag || 72.5, 1)}% khối lượng là bán chủ động. Lời và lỗ của các lệnh đó đều lớn gấp ${C.hk_agX || 2}.`}\n\nMới kiểm chứng trên dữ liệu quá khứ, chưa có số liệu sàn thử. Bấm Lưu thiết lập để áp dụng.`)) return;
+    $$("#scForm [data-sclv]").forEach((b) => (b.onclick = async () => { rd(); const k = b.dataset.sclv;
+      if (!C[k] && !(await askOk(`Bật "${k === "lv_u40" ? "Ra ở đỉnh nhịp nảy" : "Tăng cỡ lệnh khi bán tháo mạnh"}" trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\n${k === "lv_u40" ? `Lệnh 🪝 còn lỗ từ phút ${C.hk_u40 || 40} sẽ được đóng bằng lệnh thị trường khi nhịp nảy vừa tạo đỉnh, không chờ hết giờ.` : `Lệnh 🪝 Long sẽ đặt cỡ ×${C.hk_agX || 2} khi nến sốc có ≥ ${nf(C.hk_ag || 72.5, 1)}% khối lượng là bán chủ động. Lời và lỗ của các lệnh đó đều lớn gấp ${C.hk_agX || 2}.`}\n\nMới kiểm chứng trên dữ liệu quá khứ, chưa có số liệu sàn thử. Bấm Lưu thiết lập để áp dụng.`))) return;
       C[k] = !C[k]; dirty(); f(); }));
-    $$("#scForm [data-scsw]").forEach((b) => (b.onclick = () => {
+    $$("#scForm [data-scsw]").forEach((b) => (b.onclick = async () => {
       rd();
-      if (!C.sw_lv_pump && !confirm(`Bật 🧪 Short coin vừa bơm trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\nKhi có coin tăng ≥ 100%/24h lúc 7:00 sáng, bot Short ${C.sw_lv_sz}% vốn mỗi lệnh (tối thiểu ~5,5 USDT), x1, giữ 7 ngày, KHÔNG cắt lỗ, tối đa ${C.sw_lv_max} lệnh cùng lúc.\nGiá tăng gấp đôi → mất trắng phần tiền của lệnh đó.`)) return;
+      if (!C.sw_lv_pump && !(await askOk(`Bật 🧪 Short coin vừa bơm trên Binance ${LVL ? "TIỀN THẬT" : "Demo"}?\n\nKhi có coin tăng ≥ 100%/24h lúc 7:00 sáng, bot Short ${C.sw_lv_sz}% vốn mỗi lệnh (tối thiểu ~5,5 USDT), x1, giữ 7 ngày, KHÔNG cắt lỗ, tối đa ${C.sw_lv_max} lệnh cùng lúc.\nGiá tăng gấp đôi → mất trắng phần tiền của lệnh đó.`))) return;
       C.sw_lv_pump = !C.sw_lv_pump; dirty(); f();
     }));
     $$("#scForm [data-sca]").forEach((b) => (b.onclick = () => { rd(); C.lv_all = b.dataset.sca === "1"; dirty(); f(); }));
     $$("#scForm [data-scn]").forEach((b) => (b.onclick = () => { rd(); C.lv_small = b.dataset.scn; dirty(); f(); }));
-    $$("#scForm [data-sce]").forEach((b) => (b.onclick = () => {
+    $$("#scForm [data-sce]").forEach((b) => (b.onclick = async () => {
       rd();
       if (b.dataset.sce === "live" && C.lv_env !== "live") {
-        const t = prompt(`Chuyển sang TIỀN THẬT trên Binance?\n\nBot sẽ tự đặt lệnh thật cho phương pháp Bắt râu sập, ${C.lv_all ? "dùng toàn bộ số dư ví futures" : `dùng tối đa ${C.lv_cap} USDT ký quỹ`}, đòn bẩy x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày. Kết quả quá khứ không bảo đảm tương lai; có thể mất tiền.\n\nGõ TIEN THAT để xác nhận:`);
+        const t = (await askText(`Chuyển sang TIỀN THẬT trên Binance?\n\nBot sẽ tự đặt lệnh thật cho phương pháp Bắt râu sập, ${C.lv_all ? "dùng toàn bộ số dư ví futures" : `dùng tối đa ${C.lv_cap} USDT ký quỹ`}, đòn bẩy x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày. Kết quả quá khứ không bảo đảm tương lai; có thể mất tiền.\n\nGõ TIEN THAT để xác nhận:`));
         if ((t || "").trim().toUpperCase() !== "TIEN THAT") { toast("Chưa chuyển – giữ Demo"); return; }
         C.lv_live_ok = new Date().toISOString();
       }
@@ -1830,7 +1830,7 @@ async function viewScalp() {
     $$("#scForm [data-sct]").forEach((b) => (b.onclick = () => { rd(); C[b.dataset.sct] = !C[b.dataset.sct]; if (!C.fut && !C.spot) C[b.dataset.sct] = true; dirty(); f(); }));
     $$("#scForm .field input").forEach((n) => (n.oninput = dirty));
     if ($("#scKey")) $("#scKey").onclick = async () => {
-      if (KEYH && !confirm("Tạo khoá mới? Máy chủ riêng đang dùng khoá cũ sẽ bị ngắt cho tới khi anh dán khoá mới.")) return;
+      if (KEYH && !(await askOk("Tạo khoá mới? Máy chủ riêng đang dùng khoá cũ sẽ bị ngắt cho tới khi anh dán khoá mới."))) return;
       const k = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
       const h = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(k)))].map((x) => x.toString(16).padStart(2, "0")).join("");
       await Store.put("scalpkey", { h, at: new Date().toISOString() });
@@ -1853,7 +1853,7 @@ async function viewScalp() {
         if (+C.hk_size > +ORIG.hk_size) ch.push(`mỗi lần bắt ${ORIG.hk_size}% → ${C.hk_size}%`);
         if (+C.hk_max > +ORIG.hk_max) ch.push(`số lần bắt cùng lúc ${ORIG.hk_max} → ${C.hk_max}`);
         if (+C.hk_stop > +ORIG.hk_stop || (!+C.hk_stop && +ORIG.hk_stop)) ch.push(`cắt lỗ thảm hoạ ${ORIG.hk_stop}% → ${+C.hk_stop ? C.hk_stop + "%" : "TẮT"}`);
-        if (ch.length && !confirm(`Thay đổi trên tài khoản TIỀN THẬT:\n\n• ${ch.join("\n• ")}\n\nLưu và áp dụng?`)) { toast("Chưa lưu"); return; }
+        if (ch.length && !(await askOk(`Thay đổi trên tài khoản TIỀN THẬT:\n\n• ${ch.join("\n• ")}\n\nLưu và áp dụng?`))) { toast("Chưa lưu"); return; }
       }
       if (await Store.put("scalp", C)) { window.__scDirty = false; toast("Đã lưu – bot đọc thiết lập mới trong ≤ 30 giây"); viewScalp(); }
     };
@@ -1887,13 +1887,13 @@ async function viewScalp() {
   const lmKeep = (sc, k) => (sc === "swx" && C.swx?.[k]?.on === false ? { on: false } : {});
   $$("[data-lmsave]").forEach((b) => (b.onclick = async () => {
     const [sc, k] = b.dataset.lmsave.split("|"), { out, top } = lmRead(b.closest(".lm"));
-    if (C.sw_lv_pump && (+top.sw_lv_sz > +C.sw_lv_sz || +top.sw_lv_max > +C.sw_lv_max) && !confirm(`Tăng cỡ Short coin vừa bơm trên Binance ${C.lv_env === "live" ? "TIỀN THẬT" : "Demo"}: ${C.sw_lv_sz}% → ${top.sw_lv_sz}% vốn/lệnh, tối đa ${C.sw_lv_max} → ${top.sw_lv_max} lệnh (x1, không cắt lỗ)?`)) return;
+    if (C.sw_lv_pump && (+top.sw_lv_sz > +C.sw_lv_sz || +top.sw_lv_max > +C.sw_lv_max) && !(await askOk(`Tăng cỡ Short coin vừa bơm trên Binance ${C.lv_env === "live" ? "TIỀN THẬT" : "Demo"}: ${C.sw_lv_sz}% → ${top.sw_lv_sz}% vốn/lệnh, tối đa ${C.sw_lv_max} → ${top.sw_lv_max} lệnh (x1, không cắt lỗ)?`))) return;
     C[sc] = { ...(C[sc] || {}), [k]: { ...lmKeep(sc, k), ...out } }; Object.assign(C, top); delete C.syms;
     if (await Store.put("scalp", C)) { toast(Object.keys(out).length ? `Đã lưu ${Object.keys(out).length} thông số khác chuẩn – áp dụng cho lệnh mới trong ≤ 30 giây` : "Đã lưu – đang dùng mức chuẩn"); viewScalp(); }
   }));
   $$("[data-lmstd]").forEach((b) => (b.onclick = async () => {
     const [sc, k] = b.dataset.lmstd.split("|");
-    if (!confirm("Đưa mọi thông số của phương pháp này về mức chuẩn?")) return;
+    if (!(await askOk("Đưa mọi thông số của phương pháp này về mức chuẩn?"))) return;
     C[sc] = { ...(C[sc] || {}), [k]: lmKeep(sc, k) }; if (sc === "swx" && k === "pump") { C.sw_lv_sz = SCALP_DEF.sw_lv_sz; C.sw_lv_max = SCALP_DEF.sw_lv_max; } delete C.syms;
     if (await Store.put("scalp", C)) { toast("Đã về mức chuẩn"); viewScalp(); }
   }));
@@ -1927,7 +1927,7 @@ async function viewScalp() {
       const PP = m.pp || { n: 0, pnl: 0 }, PMIN = 10, notYet = PP.n < PMIN || !(PP.pnl > 0);
       const warn = !notYet ? "" : `<div class="sc-lvwarn">⚠️ <b>Sàn thử chưa thấy lời</b> – ${PP.n ? `${nf(PP.n, 0)} lệnh đã đóng, tổng <b class="${cls(PP.pnl)}">${PP.pnl >= 0 ? "+" : ""}${usd2(PP.pnl)}</b>${PP.n < PMIN ? ` (chưa đủ ${PMIN} lệnh để biết)` : " – đang lỗ sau phí"}` : "chưa có lệnh nào đã đóng"}. Nên để chạy sàn thử tới khi có ít nhất ${PMIN} lệnh và tổng lời dương rồi mới đánh ${LVLx ? "tiền thật" : "Demo"}.</div>`;
       if (!(await iosSheet({ title: `${notYet ? "⚠️ " : ""}Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: warn + body, ok: notYet ? (LVLx ? "Vẫn tiếp tục" : "Vẫn bật trên Demo") : LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx || notYet, wait: LVLx ? (notYet ? 4000 : 1500) : notYet ? 1500 : 0 }))) return false;
-      if (LVLx && prompt('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:') !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
+      if (LVLx && (await askText('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:')) !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
     }
     if (m.main && m.k === "hook") C.lv_hk = on;
     else if (m.main) { C.lq_sec = on; if (on) C.sec_on = true; }
@@ -2023,10 +2023,10 @@ async function viewScalp() {
   })); if (window.__hzInfo) { const d = $(".hz2 > .sc-i"); if (d) d.open = true; }
   hzTop();
   $("#scOn").onclick = async () => {
-    if (C.enabled && !confirm(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`)) return;
+    if (C.enabled && !(await askOk(`Tắt Bot Phản Xạ?\n\nBot ngừng quét và không mở lệnh mới (cả sàn thử${C.lv_on ? " và Binance " + (C.lv_env === "live" ? "THẬT" : "Demo") : ""}).${C.lv_on ? " Lệnh đang mở trên Binance vẫn có cắt lỗ đặt sẵn trên sàn." : ""}`))) return;
     C.enabled = !C.enabled; $("#scOn")?.setAttribute("aria-checked", String(C.enabled)); delete C.syms; await Store.put("scalp", C); toast(C.enabled ? "Đã bật – máy chủ khởi động bot trong ≤ 1 phút" : "Đã tắt – bot đóng kết nối trong ≤ 30 giây"); viewScalp(); };
-  $("#scReset").onclick = async () => { if (!confirm(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`)) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
-  if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!confirm("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu.")) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
+  $("#scReset").onclick = async () => { if (!(await askOk(`Làm lại tài khoản sàn thử với ${usd(C.capital)} (xoá lịch sử lệnh)? Bộ nhớ học được GIỮ nguyên.`))) return; C.reset_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot làm lại tài khoản trong ≤ 30 giây"); viewScalp(); };
+  if ($("#scWipe")) $("#scWipe").onclick = async () => { if (!(await askOk("Xoá TOÀN BỘ bộ nhớ học (cả bản lưu dùng chung)? Bot sẽ học lại từ đầu và phải chờ thời gian học tối thiểu."))) return; C.wipe_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot xoá bộ nhớ học trong ≤ 30 giây"); viewScalp(); };
   if ($("#scDl")) $("#scDl").onclick = async () => { const r = await Store.get("scalpbrain"); if (!r.data) { toast("Chưa có bộ nhớ học được lưu"); return; } const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(r.data)], { type: "application/json" })); a.download = `mybit-scalp-brain-${String(r.data.at || "").slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
   // ✋ lệnh tay: mở / đóng khung cắt lỗ – chốt lời, nút % nhanh, gửi lệnh (đường nhanh ~1 giây tới máy chủ riêng)
   // ước tính lời / lỗ nếu chạm mức đang gõ (đã trừ phí đóng) · % so với tiền ký quỹ · mức sai phía giá hiện tại → cảnh báo ngay
@@ -2477,13 +2477,13 @@ async function viewBot(sel) {
   const save = async (patch, msg) => { Object.assign(C, patch); Object.assign(B.find((b) => b.id === id), C); await putAll(); toast(msg); viewBot(id); };
   $("#bOn").onclick = () => save({ enabled: !C.enabled }, C.enabled ? "Đã tắt bot – lệnh đang mở vẫn được quản lý tới khi đóng" : "Đã bật bot – bot bắt đầu theo dõi trong vòng 1–2 phút");
   if ($("#bRes")) $("#bRes").onclick = () => save({ resume_at: new Date().toISOString() }, "Bot sẽ chạy lại ở lượt kế tiếp");
-  $("#bClose").onclick = () => { if (confirm("Đóng TẤT CẢ lệnh của bot theo giá thị trường ở lượt chạy kế tiếp?")) save({ close_all_at: new Date().toISOString() }, "Bot sẽ đóng hết lệnh ở lượt kế tiếp"); };
-  $("#bReset").onclick = () => { if (confirm(`Xoá toàn bộ lịch sử bot và bắt đầu lại với ${usd(C.capital)}?`)) save({ reset_at: new Date().toISOString() }, "Bot sẽ khởi tạo lại ở lượt kế tiếp"); };
+  $("#bClose").onclick = async () => { if ((await askOk("Đóng TẤT CẢ lệnh của bot theo giá thị trường ở lượt chạy kế tiếp?"))) save({ close_all_at: new Date().toISOString() }, "Bot sẽ đóng hết lệnh ở lượt kế tiếp"); };
+  $("#bReset").onclick = async () => { if ((await askOk(`Xoá toàn bộ lịch sử bot và bắt đầu lại với ${usd(C.capital)}?`))) save({ reset_at: new Date().toISOString() }, "Bot sẽ khởi tạo lại ở lượt kế tiếp"); };
   const nid = () => { let i = 1; while (B.some((b) => b.id === "b" + i)) i++; return "b" + i; };
-  if ($("#bDel")) $("#bDel").onclick = async () => { if (!confirm(`Xoá bot "${C.name}"? Lịch sử của bot này sẽ mất.`)) return; B = B.filter((b) => b.id !== id); await putAll(); lsSet("botsel", B[0].id); toast("Đã xoá bot"); location.hash = "#/bot/" + B[0].id; };
+  if ($("#bDel")) $("#bDel").onclick = async () => { if (!(await askOk(`Xoá bot "${C.name}"? Lịch sử của bot này sẽ mất.`))) return; B = B.filter((b) => b.id !== id); await putAll(); lsSet("botsel", B[0].id); toast("Đã xoá bot"); location.hash = "#/bot/" + B[0].id; };
   if ($("#bAdd")) $("#bAdd").onclick = async () => { const n = { ...C, id: nid(), name: `${C.name} (bản sao)`, enabled: false, reset_at: null, close_all_at: null, resume_at: null }; B.push(n); await putAll(); toast("Đã thêm bot – chỉnh thiết lập rồi bấm Bật"); location.hash = "#/bot/" + n.id; };
   if ($("#bTrio")) $("#bTrio").onclick = async () => {
-    if (!confirm("Tạo 3 bot Thận trọng / Cân bằng / Mạo hiểm (cùng phạm vi & vốn với bot đang chọn) và bật cả 3?")) return;
+    if (!(await askOk("Tạo 3 bot Thận trọng / Cân bằng / Mạo hiểm (cùng phạm vi & vốn với bot đang chọn) và bật cả 3?"))) return;
     for (const k of ["safe", "bal", "aggr"]) { if (B.length >= 6) break; B.push({ ...C, ...BOT_PRE[k].v, preset: k, id: nid(), name: BOT_PRE[k].t.replace(/^\S+\s/, "") + " – so sánh", enabled: true, reset_at: null, close_all_at: null, resume_at: null }); }
     await putAll(); toast("Đã tạo bộ so sánh – 3 bot bắt đầu trong 1–2 phút"); viewBot(id);
   };
@@ -2589,16 +2589,16 @@ async function viewSup(OUT) {
       <div class="bsave"><button class="btn primary" id="sSave">💾 Lưu</button><small class="faint">Áp dụng từ phút kế tiếp.</small></div>`;
     $$("#sForm [data-mode]").forEach((b) => (b.onclick = () => { rd(); C.mode = b.dataset.mode; f(); }));
     $("#sSave").onclick = async () => { rd(); await Store.put("sup", C); toast("Đã lưu thiết lập bot giám sát"); RE(); };
-    $("#sGoalR").onclick = async () => { if (!confirm("Bắt đầu năm mục tiêu mới từ hôm nay? Lợi nhuận tính lại từ 0%, sàn và đường mục tiêu tính từ hôm nay.")) return; rd(); C.goal_reset_at = new Date().toISOString(); await Store.put("sup", C); toast("Năm mục tiêu mới bắt đầu từ phút kế tiếp"); RE(); };
+    $("#sGoalR").onclick = async () => { if (!(await askOk("Bắt đầu năm mục tiêu mới từ hôm nay? Lợi nhuận tính lại từ 0%, sàn và đường mục tiêu tính từ hôm nay."))) return; rd(); C.goal_reset_at = new Date().toISOString(); await Store.put("sup", C); toast("Năm mục tiêu mới bắt đầu từ phút kế tiếp"); RE(); };
   };
   const rd = () => { ["cut", "rotate", "lessons", "pause_bots", "engine"].forEach((k) => (C[k] = $("#s_" + k).checked)); ["acct_dd", "acct_day", "min_edge", "min_trades", "goal_floor", "goal_x", "goal_x2", "max_risk", "kelly"].forEach((k) => { const v = numIn($("#s_" + k).value); if (isFinite(v)) C[k] = v; }); C.max_risk = Math.min(2, C.max_risk); C.be1 = $("#s_be1").value; };
   f();
   $("#sOn").onclick = async () => { C.enabled = !C.enabled; await Store.put("sup", C); toast(C.enabled ? "Đã bật bot giám sát" : "Đã tắt bot giám sát – các bot tự chạy theo kỷ luật riêng"); RE(); };
-  if ($("#sRes")) $("#sRes").onclick = async () => { if (!confirm("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại.")) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); RE(); };
+  if ($("#sRes")) $("#sRes").onclick = async () => { if (!(await askOk("Mở khoá toàn tài khoản? Đỉnh tài sản chung sẽ đặt lại theo hiện tại."))) return; C.resume_at = new Date().toISOString(); await Store.put("sup", C); toast("Sẽ mở khoá ở phút kế tiếp"); RE(); };
   $$("[data-off]").forEach((b) => (b.onclick = async () => { const id = b.dataset.off; C.off = C.off.includes(id) ? C.off.filter((x) => x !== id) : [...C.off, id]; await Store.put("sup", C); toast("Đã lưu"); RE(); }));
   $$("[data-sug]").forEach((b) => (b.onclick = async () => {
     const [bid, i] = decodeURIComponent(b.dataset.sug).split("|"), s = ss.cards?.[bid]?.sug?.[+i], bot = B.find((x) => x.id === bid);
-    if (!s?.patch || !bot || !confirm(`Áp dụng cho ${bot.name}: ${s.t}?`)) return;
+    if (!s?.patch || !bot || !(await askOk(`Áp dụng cho ${bot.name}: ${s.t}?`))) return;
     Object.assign(bot, s.patch); await Store.put("bot", { v: 2, bots: B }); toast("Đã chỉnh thiết lập bot"); RE();
   }));
   clearInterval(window.__supT);
