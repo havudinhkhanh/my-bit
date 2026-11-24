@@ -9,6 +9,12 @@
    "se": "Dropdowns, date fields and confirmations now use the app's own style instead of the device's.",
    "it": [
     {
+     "c": "fix",
+     "a": "ui",
+     "t": "Menu ô chọn: không còn hiện tiêu đề nhóm trống",
+     "te": "Dropdown menus no longer show empty group headings"
+    },
+    {
      "c": "imp",
      "a": "ui",
      "t": "Ô chọn & ô ngày nhạy hơn: lún nhẹ ngay khi chạm, menu mở tức thì kể cả lúc đang mở bàn phím (trước phải đợi bàn phím cất xong)",

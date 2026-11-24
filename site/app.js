@@ -1420,7 +1420,7 @@ function selMenu(sel, kb = false) {
   };
   let html = "";
   for (const c of sel.children) {
-    if (c.tagName === "OPTGROUP") html += `<div class="ios-menu-h">${esc(c.label)}</div>` + [...c.children].filter((o) => !o.hidden).map(item).join("");
+    if (c.tagName === "OPTGROUP") { const os = [...c.children].filter((o) => !o.hidden); if (os.length) html += `<div class="ios-menu-h">${esc(c.label)}</div>` + os.map(item).join(""); }      // nhóm rỗng: không hiện tiêu đề trơ trọi
     else if (c.tagName === "OPTION" && !c.hidden) html += item(c);
   }
   const hd = sel.dataset.mh || sel.getAttribute("aria-label") || "";
