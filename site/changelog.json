@@ -10,6 +10,17 @@
    "it": [
     {
      "c": "imp",
+     "a": "bot",
+     "f": "bot",
+     "hi": 1,
+     "go": "#/bot/scalp",
+     "t": "🪝 Bắt râu sập: \"ra ở đỉnh nhịp nảy\" chỉ bán khi giá đã bật ≥ 3% từ đáy – nảy nhỏ hơn thì giữ tới hết giờ (sàn thử & Binance thật)",
+     "te": "🪝 Wick catcher: the bounce-peak exit only sells once price has bounced ≥ 3% off the low – smaller bounces hold to the time exit (paper & live)",
+     "d": "Kiểm chứng 02/2025–11/2026 trên ~3.270 lệnh: +156,8% so với +152,1%, sụt tối đa 9,0% so với 9,2%; mọi ngưỡng 2–10% đều nhỉnh hơn. Đóng lệnh khi BTC sập đã thử và bị loại (thua trên dữ liệu 2026). Chỉnh ở Thiết lập › Thử nghiệm, 0 = như cũ.",
+     "de": "Backtest Feb 2025–Nov 2026, ~3,270 trades: +156.8% vs +152.1%, max drawdown 9.0% vs 9.2%. Exiting on BTC crashes was tested and rejected. Adjustable in Settings › Experimental; 0 = old behaviour."
+    },
+    {
+     "c": "imp",
      "a": "mascot",
      "hi": 1,
      "go": "#/settings",

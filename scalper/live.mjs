@@ -408,9 +408,11 @@ export class LiveExec {
   // 🪝 cắt lỗ đuổi (như sàn thử): lời theo giá giữa ≥ hk_tra bps → đóng khi trả lại hk_trg bps từ đỉnh lời. Đỉnh lời tính lại khi khớp thêm mức (giá TB đổi).
   // ghi lời/lỗ (bps) mỗi phút từ lúc khớp; từ phút hk_u40 mà còn lỗ → true khi nhịp nảy vừa tạo đỉnh (đạo hàm bậc 1 đổi từ > 0 sang ≤ 0, bậc 2 < 0) – giống sàn thử (hookPeak)
   peak(ev, m, c, now) {
+    const pr0 = ev.side * (m / ev.pos.ap - 1) * 1e4; if (Number.isFinite(pr0) && !(pr0 >= (ev.plo ?? 0))) ev.plo = pr0;      // đáy lời/lỗ (mọi nhịp giá) – cho ngưỡng bật hk_ub
     const mi = Math.floor((now - ev.pos.t1) / 60000); if (!(mi > (ev.pmi || 0))) return false;
-    const pr = ev.side * (m / ev.pos.ap - 1) * 1e4; ev.pmi = mi; const A = (ev.pm ||= []); A.push(Math.round(pr)); if (A.length > 70) A.shift();
+    const pr = pr0; ev.pmi = mi; const A = (ev.pm ||= []); A.push(Math.round(pr)); if (A.length > 70) A.shift();
     const w = c.hk_uw || 9; if (mi < c.hk_u40 || !(pr < 0) || A.length < w + 1) return false;
+    if (c.hk_ub > 0 && pr - (ev.plo ?? 0) < c.hk_ub) return false;      // vòng 21: chưa bật đủ hk_ub bps từ đáy (vd MON 24/11 mới nảy 0,2%) → giữ tới hết giờ
     const d1 = sgVA(A.slice(-w)), d0 = sgVA(A.slice(-w - 1, -1));
     return d1.v <= 0 && d1.a < 0 && d0.v > 0;
   }

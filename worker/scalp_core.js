@@ -40,7 +40,9 @@ export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true,
   //         khớp parabol trượt hk_uw phút) thay vì chờ hết giờ. Kiểm chứng 22 tháng: +154% so với +146%, sụt 9,2% so với 9,4%. 0 = tắt.
   // hk_ag:  nến sốc có ≥ hk_ag % khối lượng là lệnh CHỦ ĐỘNG cùng chiều cú sốc (bán tháo) → cỡ lệnh Long × hk_agX. Kiểm chứng: nhóm này TB +162 / +336 bps
   //         ở 2 nửa thời gian (các nhóm khác +62…+150), thắng 95–96%; cỡ ×2: +228% so với +141%, sụt như cũ, ngày tệ nhất −5,2% so với −3,3%. 0 = tắt.
-  hk_u40: 40, hk_uw: 9, hk_ag: 72.5, hk_agX: 2,
+  // hk_ub:  luật đỉnh nhịp nảy CHỈ bán khi giá đã bật ≥ hk_ub bps từ đáy lỗ của lệnh (chưa bật đủ → giữ tới hết giờ). Vòng 21 (02/2025–11/2026, ~3.270 lệnh):
+  //         3% → +156,8% so với +152,1%, sụt 9,0% so với 9,2%; mọi ngưỡng 2–10% đều nhỉnh hơn. Jason duyệt 25/11/2026 sau lệnh MON bị bán khi mới nảy 0,2%. 0 = như cũ.
+  hk_u40: 40, hk_uw: 9, hk_ub: 300, hk_ag: 72.5, hk_agX: 2,
   // 💰 công tắc áp 2 mục trên cho TÀI KHOẢN BINANCE (mặc định TẮT – chỉ Jason bật): lv_u40 = ra ở đỉnh nhịp nảy · lv_ag = tăng cỡ lệnh khi bán tháo chủ động
   lv_u40: false, lv_ag: false,
   // 💵 TÀI KHOẢN BINANCE THẬT (chỉ máy chủ riêng, chỉ Bắt râu sập): khoá nằm trong scalper/.env trên máy chủ – xem scalper/live.mjs
@@ -100,7 +102,7 @@ function norm(c) {
   n("hmax", 2, 1800); n("warm", 0, 1440); n("sh_min", 10, 1000); n("day_target", 0, 50); n("cool", 0, 600); n("daily_stop", 0.5, 20); n("max_h", 1, 2000); n("spread_max", 0.2, 100);
   c.mode = ["maker", "taker", "auto"].includes(c.mode) ? c.mode : "auto"; c.day_lock = c.day_lock !== false; c.fut = c.fut !== false; c.spot = c.spot !== false;
   c.where = c.where === "vps" ? "vps" : "cf";
-  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000); n("hk_gmax", 0, 30); c.hk_trm = c.hk_trm === 0 || c.hk_trm === false ? 0 : 1; n("hk_u40", 0, 600); n("hk_uw", 5, 15); if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; n("hk_ag", 0, 100);      /* bản lưu cũ dùng tỷ lệ 0–1 → % */ n("hk_agX", 1, 3);
+  n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000); n("hk_gmax", 0, 30); c.hk_trm = c.hk_trm === 0 || c.hk_trm === false ? 0 : 1; n("hk_u40", 0, 600); n("hk_uw", 5, 15); n("hk_ub", 0, 3000); if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; n("hk_ag", 0, 100);      /* bản lưu cũ dùng tỷ lệ 0–1 → % */ n("hk_agX", 1, 3);
   c.hk_ad = !!c.hk_ad; n("hk_adH", 0, 23); n("hk_adD1", 0, 4); n("hk_adD2", 0, 4); c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.lq_sec = !!c.lq_sec; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_daily_on = c.lv_daily_on !== false; c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.lv_u40 = !!c.lv_u40; c.lv_ag = !!c.lv_ag; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
@@ -886,9 +888,11 @@ export class ScalpCore {
   }
   // 🧪 sàn thử: ghi lời/lỗ (bps) mỗi phút từ lúc khớp; từ phút hk_u40 mà còn lỗ → báo "ra" khi nhịp nảy vừa tạo đỉnh (v đổi từ > 0 sang ≤ 0, a < 0)
   hookPeak(P, pr, now) {
-    const c = this.cfg, mi = Math.floor((now - P.t0) / 60000); if (!(mi > (P.pmi || 0))) return false;
+    const c = this.cfg; if (Number.isFinite(pr) && !(pr >= (P.plo ?? 0))) P.plo = pr;      // đáy lời/lỗ của lệnh (mọi nhịp giá) – cho ngưỡng bật hk_ub
+    const mi = Math.floor((now - P.t0) / 60000); if (!(mi > (P.pmi || 0))) return false;
     P.pmi = mi; const A = (P.pm ||= []); A.push(Math.round(pr)); if (A.length > 70) A.shift();
     const w = c.hk_uw || 9; if (!(c.hk_u40 > 0) || mi < c.hk_u40 || !(pr < 0) || A.length < w + 1) return false;
+    if (c.hk_ub > 0 && pr - (P.plo ?? 0) < c.hk_ub) return false;      // vòng 21: chưa bật đủ hk_ub bps từ đáy → không coi là đỉnh nảy, giữ tiếp
     const d1 = sgVA(A.slice(-w)), d0 = sgVA(A.slice(-w - 1, -1));
     return d1.v <= 0 && d1.a < 0 && d0.v > 0;
   }
