@@ -15,6 +15,13 @@
      "go": "#/settings",
      "t": "Mèo na: mọi cài đặt (bật / ít nói / tắt, tiếng kêu, cỡ, bộ đồ) lưu RIÊNG từng thiết bị – vd máy tính bật cỡ lớn, điện thoại tắt",
      "te": "na: every setting (on / quiet / off, sound, size, outfit) is now per device – e.g. large on desktop, off on phone"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "go": "#/settings",
+     "t": "Thanh bên: ⚙️ Cài đặt thành 1 dòng ngay trên ảnh đại diện, biểu tượng thẳng cột với ảnh; hàng tài khoản & nút Thu gọn luôn dính đáy khi thanh bên dài",
+     "te": "Sidebar: ⚙️ Settings is its own row right above the avatar, icon aligned with it; account row and Collapse stay pinned at the bottom"
     }
    ]
   },

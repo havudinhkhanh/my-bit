@@ -7640,15 +7640,17 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
    Thanh bên tự thu gọn khi mở ra (rê chuột) phải nằm TRÊN nút "Bảng phụ" nổi (z 45) – trước đây nút này đè lên đáy thanh bên. */
 .nav-me-row{display:none}
 @media (min-width:1180px){
-  /* hàng cuối: [ảnh · tên · gói ⌃] [⚙] nằm NGANG (như Discord / Slack) – ⚙ là nút vuông bên phải ảnh đại diện */
-  .tabs .nav-me-row{display:flex;flex-direction:row;align-items:center;gap:4px;margin-top:auto;flex:none;padding-top:8px;border-top:1px solid var(--bd-2)}
-  .tabs .nav-me-row .nav-me{margin-top:0;flex:1 1 auto;min-width:0;width:auto}
-  .tabs .nav-me-row a.nav-set{order:2;flex:none;width:40px;height:40px;padding:0!important;gap:0!important;justify-content:center;align-items:center;border-radius:10px;transform:none!important}
-  .tabs .nav-me-row a.nav-set .nav-t{display:none}
+  /* 2 dòng cuối, thẳng cột: [⚙ Cài đặt] trên, [ảnh · tên · gói ⌃] dưới – biểu tượng ⚙ nằm trong ô 30px đúng bằng ảnh đại diện → canh trái trùng nhau,
+     chữ "Cài đặt" thẳng cột với tên; thanh bên thu gọn vẫn thấy ⚙ ngay trên ảnh đại diện */
+  .tabs .nav-me-row{display:flex;flex-direction:column;align-items:stretch;gap:2px;margin-top:auto;flex:none;padding-top:8px;border-top:1px solid var(--bd-2)}
+  .tabs .nav-me-row .nav-me{margin-top:0;width:100%}
+  .tabs .nav-me-row a.nav-set{display:flex!important;flex-direction:row!important;align-items:center;justify-content:flex-start;gap:10px!important;width:100%;height:auto;margin:0!important;padding:5px 8px!important;border-radius:10px;transform:none!important;color:var(--ink-2)}
+  .tabs .nav-me-row a.nav-set .nav-ic{flex:none;width:30px;height:30px;display:grid;place-items:center}
+  .tabs .nav-me-row a.nav-set svg{width:18px!important;height:18px!important;color:var(--ink-3);transition:transform .3s cubic-bezier(.32,.72,0,1)}
+  .tabs .nav-me-row a.nav-set .nav-t{display:block;font-size:.8125rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .tabs .nav-me-row a.nav-set::before{display:none}
-  .tabs .nav-me-row a.nav-set svg{transition:transform .3s cubic-bezier(.32,.72,0,1)}
+  .tabs .nav-me-row a.nav-set:hover{background:var(--sunk);color:var(--ink)}
   .tabs .nav-me-row a.nav-set:hover svg{transform:rotate(45deg);color:var(--ink)}
-  body.rail-auto .tabs:not(.open) .nav-me-row a.nav-set{opacity:0;pointer-events:none}
   .tabs .nav-me:hover .nav-me-g{transform:translateY(-2px)}
   .tabs .nav-me[aria-expanded="true"] .nav-me-g{transform:rotate(180deg)}
   body.rail-auto .tabs.open{z-index:50}
@@ -7829,3 +7831,8 @@ select[aria-expanded="true"]{outline:2px solid color-mix(in srgb,var(--brand) 50
 select,input[type=date],input[type=datetime-local]{transition:transform .12s var(--ease-out,ease),background-color .12s}
 select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,var(--fill))!important}
 .sel-menu .ios-menu-in{animation-duration:.14s!important}
+@media (min-width:1180px){
+  /* thanh bên dài hơn màn hình (cuộn được): hàng ⚙ Cài đặt + tài khoản và nút Thu gọn luôn dính đáy, không bị đẩy khuất dưới mép màn hình */
+  .tabs .nav-me-row{position:sticky;bottom:28px;z-index:2;background:inherit}
+  .tabs #railPin{position:sticky;bottom:0;z-index:2;background:inherit}
+}
