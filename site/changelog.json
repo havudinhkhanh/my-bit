@@ -9,6 +9,16 @@
    "se": "All na settings are per device.",
    "it": [
     {
+     "c": "fix",
+     "a": "bot",
+     "t": "Sửa lỗi trang Bot Phản Xạ báo \"Cannot access … before initialization\" khi đang có lệnh Binance thật đã tính funding",
+     "te": "Fixed the Reflex Bot page failing with \"Cannot access … before initialization\" while a real Binance trade with funding was open",
+     "d": "Thẻ lệnh Binance hiện dòng funding đã nhận/trả – phần định dạng số được khai báo sau thẻ nên cả trang (Tổng quan, Lệnh…) không vẽ được. Giờ trang mở bình thường và hiện đúng funding.",
+     "de": "The Binance trade card's funding line used a number formatter declared later, so the whole page (Overview, Orders…) failed to render. The page now opens normally and shows funding.",
+     "aud": "admin",
+     "go": "#/bot/scalp"
+    },
+    {
      "c": "imp",
      "a": "bot",
      "f": "bot",
