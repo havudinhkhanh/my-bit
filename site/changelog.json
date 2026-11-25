@@ -2,6 +2,23 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.25",
+   "t": "Mèo na theo từng thiết bị",
+   "te": "Per-device cat",
+   "s": "Bật / tắt mèo na riêng cho từng máy.",
+   "se": "Turn na on or off per device.",
+   "it": [
+    {
+     "c": "imp",
+     "a": "mascot",
+     "hi": 1,
+     "go": "#/settings",
+     "t": "Mèo na bật / ít nói / tắt RIÊNG từng thiết bị – vd máy tính bật, điện thoại tắt; bộ đồ, cỡ, tiếng kêu vẫn đồng bộ",
+     "te": "na on / quiet / off is now per device – e.g. on for desktop, off on phone; outfit, size and sound still sync"
+    }
+   ]
+  },
+  {
    "v": "2026.11.24",
    "t": "Menu, lịch, hộp hỏi lại đồng bộ giao diện",
    "te": "Pickers & dialogs restyled",

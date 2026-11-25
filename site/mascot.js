@@ -627,7 +627,7 @@
     return { id: null, polys: polys.map((q) => mk(q.t, q.p)), eye: eyeMix(m.eA, m.eB, u), eyeK: m.eA && m.eB ? 1 : Math.abs(u - 0.5) * 2, pe: u < 0.5 ? m.pA : m.pB };
   }
   // ================================================================ hành vi
-  const cfgOf = () => { const u = (typeof UIP !== "undefined" && UIP.mun) || {}; const pro = typeof can === "function" ? can("mascot_pro") || (typeof ME !== "undefined" && ME?.eff_plan === "pro") : false;
+  const cfgOf = () => { const u = typeof window.munCfg === "function" ? window.munCfg() : (typeof UIP !== "undefined" && UIP.mun) || {};      // bật / ít nói / tắt theo TỪNG THIẾT BỊ (app.js munCfg) const pro = typeof can === "function" ? can("mascot_pro") || (typeof ME !== "undefined" && ME?.eff_plan === "pro") : false;
     let skin = u.skin || "classic"; if (SKINS.find((x) => x.k === skin)?.tier === "pro" && !pro) skin = "classic"; return { on: u.on !== false, talk: u.talk || "n", skin, size: ["s", "m", "l"].includes(u.size) ? u.size : "l", snd: u.snd !== false }; };
   const SZ = { s: [0.165, 0.2], m: [0.2, 0.24], l: [0.235, 0.28] };
   const mob = () => MOB.matches;      // điện thoại: ngồi yên vẫy đuôi chỉ dùng khung chính 24/giây (đúng nhịp video) → nửa số lần vẽ, đỡ máy
@@ -1348,7 +1348,7 @@
       else if (k === "yarn" || k === "post" || k === "fly") setTimeout(() => toy(k, true), 250);
       else if (k === "sleep") { S.napTill = now() + 30 * 60e3; if (!napping() && !napV()) pose("curl"); clearTimeout(S.tm); S.el.querySelector(".mun-say").hidden = true; }
       else if (k === "quiet") { await setU((u) => (u.talk = S.cfg.talk === "q" ? "n" : "q")); say(S.cfg.talk === "q" ? L("Im thì im.", "Fine. Silent.") : L("na về rồi. Nhớ chứ gì.", "na is back. You missed me."), 3000, 2); }
-      else if (k === "off") { await setU((u) => (u.on = false)); (orig || toast)(L("Đã cất na – bật lại trong Cài đặt › Mèo na", "na is hidden – turn back on in Settings › na")); }
+      else if (k === "off") { if (window.munSetDev) window.munSetDev(false); else await setU((u) => (u.on = false)); MUN.apply(); (orig || toast)(L("Đã cất na trên máy này – bật lại trong Cài đặt › Mèo na", "na is hidden on this device – turn back on in Settings › na")); }
       else if (k === "skin") location.hash = "#/settings";
     }));
     const kd = (e) => { if (e.key === "Escape") { iosMenuClose(); removeEventListener("keydown", kd); } }; addEventListener("keydown", kd);

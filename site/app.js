@@ -8366,16 +8366,21 @@ function uiApply() {
   uiAvStyle($("#meBtn")); uiAvStyle($("#acAv")); uiAvStyle($("#navMeAv"));
   munBoot();
 }
-// 🐈‍⬛ MUN – mèo trợ lý (mascot.js tải sau khi trang đầu đã vẽ xong; tắt / bộ đồ lưu trong UIP.mun → đồng bộ mọi máy)
+// 🐈‍⬛ MUN – mèo trợ lý (mascot.js tải sau khi trang đầu đã vẽ xong). Bộ đồ / cỡ / tiếng kêu lưu trong UIP.mun → đồng bộ mọi máy;
+//    BẬT / ÍT NÓI / TẮT lưu RIÊNG TỪNG THIẾT BỊ (máy tính bật, điện thoại tắt…) – thiết bị chưa chọn lần nào thì theo mức đồng bộ cũ
+const munDev = () => { const d = lsGet("mun_dev", null); return d && typeof d === "object" ? d : null; };
+function munCfg() { const u = (typeof UIP !== "undefined" && UIP.mun) || {}, d = munDev(); return d ? { ...u, on: d.on !== false, talk: d.talk || u.talk } : u; }
+function munSetDev(on, talk) { const d = munDev() || {}; lsSet("mun_dev", { on: !!on, talk: talk || d.talk || (UIP.mun || {}).talk || "n", at: Date.now() }); munBoot(); }
+window.munCfg = munCfg; window.munSetDev = munSetDev;
 function munBoot() {
   clearTimeout(munBoot.t);
-  munBoot.t = setTimeout(() => { const u = UIP.mun || {}; if (u.on === false) { window.MUN?.stop(); return; } lazyJs("mascot.js").then(() => window.MUN?.apply()).catch(() => {}); }, window.MUN ? 0 : 2500);
+  munBoot.t = setTimeout(() => { const u = munCfg(); if (u.on === false) { window.MUN?.stop(); return; } lazyJs("mascot.js").then(() => window.MUN?.apply()).catch(() => {}); }, window.MUN ? 0 : 2500);
 }
 const MUN_SK = [["classic", "Cổ điển", 0], ["shades", "Kính râm", 0], ["fedora", "Mũ phớt", 1]];
 const munPro = () => can("mascot_pro") || ME?.eff_plan === "pro";
 function munPrefHtml() {
-  const u = UIP.mun || {}, md = u.on === false ? "off" : u.talk === "q" ? "q" : "n", pro = munPro(), sk = MUN_SK.find(([k, , p]) => k === (u.skin || "classic") && (!p || pro))?.[0] || "classic";
-  return acRow("🐈‍⬛ Mèo na", "Mèo quý tộc dạo quanh app, nhắc kỷ luật, đọc thông báo thay chuông. Không bao giờ khuyên mua / bán. Chạm · vuốt lông · giữ lâu mở menu",
+  const u = munCfg(), md = u.on === false ? "off" : u.talk === "q" ? "q" : "n", pro = munPro(), sk = MUN_SK.find(([k, , p]) => k === (u.skin || "classic") && (!p || pro))?.[0] || "classic";
+  return acRow("🐈‍⬛ Mèo na · thiết bị này", "Bật / tắt riêng cho máy đang dùng – máy khác giữ lựa chọn của nó. Mèo quý tộc dạo quanh app, nhắc kỷ luật, đọc thông báo thay chuông. Không bao giờ khuyên mua / bán",
     `<div class="bseg" id="munMd">${[["n", "Bật"], ["q", "Ít nói"], ["off", "Tắt"]].map(([k, t]) => `<button type="button" data-munmd="${k}" class="${md === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row")
     + acRow("Tiếng kêu", "na thỉnh thoảng kêu “meo” khi máy đang bật loa", `<div class="bseg" id="munSnd">${[["1", "Bật"], ["0", "Tắt"]].map(([k, t]) => `<button type="button" data-munsnd="${k}" class="${(u.snd !== false) === (k === "1") ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row4")
     + acRow("Cỡ na", "Nhỏ = như bản đầu tiên · Lớn = rõ nhất", `<div class="bseg" id="munSz">${[["s", "Nhỏ"], ["m", "Vừa"], ["l", "Lớn"]].map(([k, t]) => `<button type="button" data-munsz="${k}" class="${(u.size || "l") === k ? "on" : ""}">${t}</button>`).join("")}</div>`, "mun-row3")
@@ -8385,7 +8390,7 @@ function munPrefBind() {
   const re = () => { const a = $(".mun-row"), b = $(".mun-row2"), c = $(".mun-row3"), d = $(".mun-row4"); if (!a || !b) return; const tmp = document.createElement("div"); tmp.innerHTML = munPrefHtml(); b.remove(); c?.remove(); d?.remove(); a.replaceWith(...tmp.children); munPrefBind(); };
   $$("[data-munsnd]").forEach((b) => (b.onclick = async () => { const on = b.dataset.munsnd === "1"; UIP = { ...UIP, mun: { ...(UIP.mun || {}), snd: on } }; await uiSave(); re(); if (on) window.MUN?.meow(2); }));
   $$("[data-munsz]").forEach((b) => (b.onclick = async () => { UIP = { ...UIP, mun: { ...(UIP.mun || {}), size: b.dataset.munsz } }; await uiSave(); re(); }));
-  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd, u = { ...(UIP.mun || {}) }; u.on = k !== "off"; if (k !== "off") u.talk = k; UIP = { ...UIP, mun: u }; await uiSave(); re(); toast(k === "off" ? "Đã cất na" : k === "q" ? "na sẽ ít nói – chỉ đáp khi anh chạm" : "na đã bật"); }));
+  $$("[data-munmd]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munmd; munSetDev(k !== "off", k !== "off" ? k : null); re(); toast(k === "off" ? "Đã cất na trên máy này" : k === "q" ? "na sẽ ít nói trên máy này – chỉ đáp khi anh chạm" : "na đã bật trên máy này"); }));
   $$("[data-munsk]").forEach((b) => (b.onclick = async () => { const k = b.dataset.munsk; if (b.classList.contains("lock")) { toast("🎩 Mũ phớt dành cho gói Pro – na chỉ đội cho khách VIP", { type: "info" }); return; } UIP = { ...UIP, mun: { ...(UIP.mun || {}), skin: k } }; await uiSave(); re(); }));
   lazyJs("mascot.js").then(() => $$("[data-munpv]").forEach((i) => { if (i.firstChild) return; const A = window.MUN_ART, k = i.dataset.munpv, old = () => (i.innerHTML = A.preview(k, "sit"));      // xem trước bộ đồ = mèo video (cùng mèo chính)
     if (!A.mini) return old(); i.innerHTML = '<canvas class="mun-pvc" aria-hidden="true"></canvas>'; A.mini(i.firstChild, k, { still: 1, fail: old }); })).catch(() => {});
@@ -8967,7 +8972,7 @@ function lvwGarden(el, P) {
   const b = el.querySelector(".lvw-body"); if (!b || !el.classList.contains("lvw-mfull")) return;
   let g = b.querySelector(":scope > .lvw-garden"); const last = [...b.children].filter((x) => x !== g && x.offsetParent).pop(), br = b.getBoundingClientRect();
   const used = last ? last.getBoundingClientRect().bottom - br.top + b.scrollTop : 0, free = b.clientHeight - used - 16; if (free < 130) { g?.remove(); return; }      // không đủ chỗ → không có vườn (danh sách lệnh là chính)
-  const mun = (typeof UIP === "undefined" || UIP.mun?.on !== false), skin = (typeof UIP !== "undefined" && UIP.mun?.skin) || "classic";
+  const mun = munCfg().on !== false, skin = (typeof UIP !== "undefined" && UIP.mun?.skin) || "classic";
   if (!LVW.gd) { LVW.gd = document.createElement("div"); LVW.gd.className = "lvw-garden"; LVW.gd.setAttribute("aria-hidden", "false"); LVW.gd.k = 0;
     const fl = (x, c, h) => `<g transform="translate(${x} 0)"><path d="M0 0v-${h}" stroke="var(--lg-stem)" stroke-width="1.6"/><circle cy="-${h}" r="3.4" fill="${c}"/><circle cy="-${h}" r="1.3" fill="#fff8d6"/></g>`;
     LVW.gd.innerHTML = `<svg class="lg-bg" viewBox="0 0 360 60" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60V26C40 18 80 30 120 24S200 14 240 22s80 8 120-2v40Z" fill="var(--lg-g2)"/><path d="M0 60V38c50-8 90 4 140-2s90-10 130-2 60 6 90 0v26Z" fill="var(--lg-g1)"/></svg>
