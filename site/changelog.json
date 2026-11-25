@@ -9,6 +9,71 @@
    "se": "All na settings are per device.",
    "it": [
     {
+     "c": "new",
+     "a": "ui",
+     "t": "Lên kế hoạch lệnh làm lại: 5 cách đánh so sánh cạnh nhau cho 1 coin",
+     "te": "Trade planner rebuilt: compare 5 trading styles side by side",
+     "d": "Chọn coin là thấy ngay Lướt 4h, Swing ngày, SMC dài hạn, Kỹ thuật và Tích luỹ spot – mỗi cách cho biết chiều, trạng thái, R:R và số lần kiểm chứng; bấm 1 cách để ra phiếu lệnh đầy đủ. Trang chia 3 tab: Lên kế hoạch · Đã lưu · Nhật ký.",
+     "de": "Pick a coin to compare five styles; open one for the full ticket. The page now has three tabs: Plan · Saved · Journal.",
+     "go": "#/plan",
+     "hi": 1
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Cách đánh SMC dài hạn theo nến tuần",
+     "te": "Long-term weekly SMC style",
+     "d": "Đọc cấu trúc tuần (BOS / CHoCH), biên độ giao dịch, khối lệnh & vùng OTE, mục tiêu ở thanh khoản đỉnh / đáy cũ, kèm kiểm chứng trên lịch sử của coin và số gộp hơn 450 coin.",
+     "de": "Weekly structure, order blocks/OTE and liquidity targets, back-tested per coin and pooled.",
+     "f": "plan_pro",
+     "go": "#/plan"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Cách đánh Kỹ thuật (EMA · RSI · MACD) và Tích luỹ spot mua dần theo vùng",
+     "te": "Technical (EMA · RSI · MACD) and spot accumulation styles",
+     "d": "Kỹ thuật báo đủ / thiếu từng điều kiện vào; Tích luỹ chia ngân sách 4 mức mua theo vùng đỡ, khả năng khớp từng mức trong 90 ngày, mức ngừng mua và kế hoạch chốt – không đòn bẩy.",
+     "de": "Technical shows each entry condition; Accumulation splits a budget into 4 buy zones with fill odds and a take-profit plan.",
+     "f": "plan_pro",
+     "go": "#/plan"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Kế hoạch đã lưu tự theo dõi giá: tới vùng vào, chạm mục tiêu, cắt lỗ, hết hạn",
+     "te": "Saved plans track themselves",
+     "d": "Mỗi kế hoạch là 1 thẻ có dải giá, trạng thái, ghi chú và nút Đóng; khi có kết quả cuối tự chuyển sang Nhật ký. Tích luỹ hiện số mức đã khớp và giá vốn.",
+     "de": "Each plan card shows live status and moves to the Journal once finished.",
+     "go": "#/plan/saved"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "List coin nhiều nhóm và quét tín hiệu cả list",
+     "te": "Multiple coin lists and list-wide signal scan",
+     "d": "Ngoài ★ Theo dõi, tạo thêm list tự đặt tên (Layer 1, Meme…), xem giá, xu hướng, đánh giá; nút quét cho biết coin nào đang có tín hiệu theo từng cách đánh.",
+     "de": "Create named lists; scan a list across all five styles.",
+     "f": "plan_pro",
+     "go": "#/plan/lists"
+    },
+    {
+     "c": "new",
+     "a": "ui",
+     "t": "Nhật ký: kết quả kế hoạch theo cách đánh + lệnh tay & bài học",
+     "te": "Journal: plan results by style + trades & lessons",
+     "d": "Thống kê thắng / cắt lỗ / R trung bình theo từng cách đánh; ghi lý do vào, cảm xúc, có theo kế hoạch không và bài học cho lệnh đã đóng; gói Pro có thêm thống kê theo cảm xúc và kỷ luật.",
+     "de": "Win rate and average R by style; notes on mood, discipline and lessons for closed trades.",
+     "go": "#/plan/log"
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Sửa ô Chiều (Long / Short) ở trang Lên kế hoạch không có tác dụng",
+     "te": "Fixed the Side selector on the planner having no effect",
+     "go": "#/plan"
+    },
+    {
      "c": "fix",
      "a": "bot",
      "t": "Sửa lỗi trang Bot Phản Xạ báo \"Cannot access … before initialization\" khi đang có lệnh Binance thật đã tính funding",

@@ -101,7 +101,7 @@ function lazyJs(name) {
     document.head.appendChild(el);
   }));
 }
-const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__", "app-wrap.js": "__JSV_WRAP__" };
+const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__", "app-wrap.js": "__JSV_WRAP__", "app-plan.js": "__JSV_APPPLAN__" };
 // công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
 function drawHook(el, c, s, o, dkey) {
   if (!el || !dkey || el.clientHeight < 200) return;
@@ -1102,7 +1102,7 @@ if (LANG === "en" && $("#navMore span")) $("#navMore span").textContent = "More"
 const BOTSEG = [["bothome", "#/bot/home", "🤖", "Tổng quan bot"], ["botscalp", "#/bot/scalp", "⚡", "Bot Phản Xạ"], ["botdays", "#/bot/days", "📒", "Kết quả & sổ lệnh"], ["botbin", "#/bot/binance", "💵", "Tài khoản Binance"], ["bot", "#/bot", "📈", "Bot xu hướng · thử nghiệm"]];
 // ---------------------------------------------------------------- điện thoại: nút thứ 6 TUỲ CHỌN trên thanh dưới (giữ lâu để đổi) – chọn bất kỳ trang nào, kể cả tab con của Bot Phản Xạ
 const CUS_SUB = [["ov", "Tổng quan · Sàn thử"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];
-const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/tax": "Sổ thuế", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/notifications": "Thông báo", "#/account": "Tài khoản", "#/settings": "Cài đặt" };
+const CUS_SHORT = { "#/portfolio": "Danh mục", "#/live": "Bảng giá", "#/futures": "Phái sinh", "#/sectors": "Ngành", "#/radar": "Radar", "#/coins": "Coin", "#/pairs": "Cùng nhịp", "#/tools": "Công cụ", "#/paper": "Lệnh tay", "#/bot/scalp": "Phản Xạ", "#/bot/sup": "Giám sát", "#/bot/days": "Kết quả", "#/bot/journal": "Sổ lệnh", "#/bot/home": "Bot", "#/bot/binance": "Binance", "#/tax": "Sổ thuế", "#/methods": "Cẩm nang", "#/backtest": "Kiểm chứng", "#/bot": "Xu hướng", "#/": "Thị trường", "#/ideas": "Cơ hội", "#/plan": "Lên lệnh", "#/plan/saved": "KH đã lưu", "#/plan/log": "Nhật ký KH", "#/notifications": "Thông báo", "#/account": "Tài khoản", "#/settings": "Cài đặt" };
 // icon riêng cho từng tab con của Bot Phản Xạ trên thanh dưới (trước dùng chung tia sét của nút Bot → nút "Lệnh" trông y hệt nút "Bot")
 const SVG0 = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const SC_SVG = { ov: SVG0('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>'), ord: SVG0('<path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/>'), pm: SVG0('<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>'), log: SVG0('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'), set: SVG0('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>') };
@@ -2242,7 +2242,7 @@ async function route() {
     else if (r === "pairs") { setTab("pairs"); await viewPairs(); }
     else if (r === "sectors") { setTab("sectors"); await viewSectors(); }
     else if (r === "sector" && arg[0]) { setTab("sectors"); await viewSector(arg[0]); }
-    else if (r === "plan") { setTab("plan"); await viewPlan(arg[0] ? arg[0].toUpperCase() : ""); }
+    else if (r === "plan") { setTab("plan"); await viewPlan(arg[0] || ""); }
     else if (r === "ideas") { setTab("ideas"); await viewIdeas(arg[0]); }
     else if (r === "futures") { setTab("futures"); await viewFutures(arg[0]); }
     else if (r === "portfolio") { setTab("portfolio"); await viewPortfolio(); }
@@ -4121,13 +4121,15 @@ function tabPlan(D) {
       ["Funding nếu Short phòng hộ", isNum(fh) ? (fh >= 0 ? `<b class="up">nhận ${nf(fh * 3 * 365, 0)}%/năm</b>` : `<b class="down">trả ${nf(-fh * 3 * 365, 0)}%/năm</b>`) : "—"]])}
     <p class="faint" style="font-size:.75rem">Phòng hộ bằng chính coin: chính xác nhất. Phòng hộ bằng BTC perp (giá trị = vị thế × beta): rẻ & thanh khoản hơn nhưng còn rủi ro riêng của coin (tương quan ${nf(H.corr, 2)}). Dùng <a href="#/tools/hedge">máy tính phòng hộ</a>.</p>` : `<p class="muted">Không có perp để phòng hộ trực tiếp – có thể phòng hộ bằng BTC perp với beta ${nf(H.beta, 2)}.</p>`;
   const tk = (tf) => { const t = makeTicket(D, D._ij, { tf }); if (t.none) t.k = r.k; return ticketCard(t); };
-  return `${panel("🧾 Kế hoạch lệnh (tính theo vốn của anh)", `<div class="seg" id="tkSeg"><button data-tk="auto" class="on">Tự chọn</button><button data-tk="h4">Lướt 4h</button><button data-tk="d">Swing ngày</button></div><div id="tkOut">${tk("auto")}</div>`, `<a href="#/plan/${enc(r.k)}">mở trang Lên lệnh</a>`)}
+  return `${panel("🧾 Kế hoạch lệnh (tính theo vốn của anh)", `<div class="seg" id="tkSeg"><button data-tk="auto" class="on">Tự chọn</button><button data-tk="h4">⚡ Lướt 4h</button><button data-tk="d">📈 Swing ngày</button><button data-tk="smc">🏛 SMC dài hạn${can("plan_pro") ? "" : " <small>★</small>"}</button><button data-tk="tech">📐 Kỹ thuật${can("plan_pro") ? "" : " <small>★</small>"}</button><button data-tk="dca">🧺 Tích luỹ${can("plan_pro") ? "" : " <small>★</small>"}</button></div><div id="tkOut">${tk("auto")}</div>`, `<a href="#/plan/${enc(r.k)}">mở trang Lên lệnh</a>`)}
   <div class="g g2">${panel("📈 Theo xu hướng – khung ngày, đòn bẩy thấp", trendBox)}<div>${panel("⚡ Lướt trong ngày – 4h định hướng, 1h vào lệnh", intraBox)}${panel("🛡️ Phòng hộ spot / basis", hedgeBox)}</div></div>
     <p class="faint disclaimer">Mức giá là gợi ý theo quy tắc kỹ thuật cố định, không phải khuyến nghị. Luôn đặt lệnh cắt lỗ trên sàn; không để giá thanh lý gần hơn điểm cắt lỗ.</p>`;
 }
 BIND.plan = (D) => {
   bindTicketSave($("#tkOut"));
-  $$("#tkSeg button").forEach((b) => b.onclick = () => { $$("#tkSeg button").forEach((x) => x.classList.toggle("on", x === b)); const t = makeTicket(D, D._ij, { tf: b.dataset.tk }); if (t.none) t.k = D.row.k; $("#tkOut").innerHTML = ticketCard(t); bindTicketSave($("#tkOut")); });
+  $$("#tkSeg button").forEach((b) => b.onclick = async () => { $$("#tkSeg button").forEach((x) => x.classList.toggle("on", x === b)); const m = b.dataset.tk;
+    if (["smc", "tech", "dca"].includes(m)) { try { await lazyJs("app-plan.js"); await khCoinTab(D, m, $("#tkOut")); } catch (e) { $("#tkOut").innerHTML = `<p class="muted">${esc(e.message)}</p>`; } return; }      // cách đánh mới: bộ tính ở app-plan.js (dùng chung với trang Lên kế hoạch)
+    const t = makeTicket(D, D._ij, { tf: m }); if (t.none) t.k = D.row.k; $("#tkOut").innerHTML = ticketCard(t); bindTicketSave($("#tkOut")); });
   const e = D.bt?.long?.eq; if (!e || !$("#eqc")) return;
   const ls = D.bt?.ls?.eq;
   $("#eqc").innerHTML = lineSvg([{ name: "Theo xu hướng (Long)", color: css("--brand"), pts: e.map(([d, a]) => ({ x: fmtD(d), y: a })) }, ...(ls ? [{ name: "Long + Short", color: css("--ref"), pts: ls.map(([d, a]) => ({ x: fmtD(d), y: a })) }] : []),
@@ -4336,6 +4338,12 @@ function makeTicket(D, IJ, opt = {}) {
     warn.push("Chưa có thiết lập đã kiểm chứng xuất hiện – đây là kế hoạch tham khảo, nên chờ thiết lập hoặc đánh nhỏ");
   }
   t.tf_bd = t.tf === "d" ? 1 : 1 / 6;
+  return ticketJudge(D, IJ, t, warn, notes);
+}
+// bộ lọc rủi ro + quyết định cho 1 phiếu đã có giá vào / cắt lỗ / mục tiêu – dùng chung cho Lướt, Swing và các cách đánh ở trang Lên kế hoạch (SMC tuần, Kỹ thuật…)
+function ticketJudge(D, IJ, t, warn = [], notes = []) {
+  const r = D.row, T = D.trend || {}, btcUp = IJ ? IJ.btc_up : true, price = BYK?.[r.k]?.p || r.p;
+  if (t.tf_bd == null) t.tf_bd = t.tf === "d" ? 1 : 1 / 6;
   finishTicket(D, t);
   // 3) bộ lọc rủi ro
   const sd = t.side === "long" ? 1 : -1, cr = r.cr || [];
@@ -4356,6 +4364,7 @@ function makeTicket(D, IJ, opt = {}) {
   else if (t.edge || (t.evR > 0.05 && warn.length <= 3)) v = t.order === "limit" || !t.edge ? "limit" : "go";
   else v = "watch";
   if (warn.some((w) => w.startsWith("Có tin xấu")) && v === "go") v = "watch";
+  if (t.forceWatch && (v === "go" || v === "limit")) v = "watch";      // cách đánh chưa có tín hiệu (vd Kỹ thuật chờ RSI cắt lên) → chỉ theo dõi
   if (!(t.q > 0)) { v = "no"; warn.unshift(t.gov?.halt ? `Hệ thống đang DỪNG giao dịch: đã lỗ ${nf(RISK?.day_pct, 1)}% hôm nay – nghỉ tới mai` : "Danh mục đã chạm giới hạn rủi ro của hệ thống – không mở thêm lệnh"); }
   t.verdict = v; t.warn = warn; t.notes = notes; t.price = price; t.k = r.k;
   const now = Date.now();
@@ -4380,12 +4389,27 @@ function ticketCard(t, opts = {}) {
       <div class="tk-b"><h4>⑥ Kỳ vọng</h4><p class="tk-v ${cls(t.evR)}">${t.evR > 0 ? "+" : ""}${nf(t.evR, 2)}R <small>≈ ${usd(t.evUsd)}/lệnh</small></p><small>xác suất chạm MT1 ${nf(t.p1, 0)}%${isNum(t.n) ? ` (trên ${nf(t.n, 0)} lần lịch sử)` : ""} · phí ~${usd(t.feeUsd)}${t.mode === "perp" ? ` · funding ${t.fundUsd >= 0 ? "nhận" : "trả"} ~${usd(Math.abs(t.fundUsd))} trong thời gian giữ` : ""}</small></div>
     </div>
     <details class="tk-gov"><summary>Vì sao hệ thống cho đòn bẩy tối đa x${t.Lmax} và rủi ro ${nf(t.govRisk, 2)}%/lệnh?</summary><ul>${(t.gov?.why || []).map((w) => `<li>${esc(w)}</li>`).join("")}</ul></details>
-    <div class="tk-plan"><b>Cách đánh:</b> ${t.order === "market" ? "Vào" : "Đặt lệnh chờ"} ${qty(t.q)} ${esc(t.k)} ở ${px(t.e)}, đặt sẵn cắt lỗ ${px(t.s)} trên sàn. Chạm ${px(t.t1)} → chốt 50% và dời cắt lỗ về ${px(t.e)} (hoà vốn). Phần còn lại chốt ở ${px(t.t2)}${t.tf === "d" ? " hoặc khi đóng cửa ngày dưới EMA20" : " hoặc khi nến 4h đóng ngược EMA20"}. ${t.order === "limit" ? `Huỷ lệnh chờ nếu giá chạy tới ${px(t.t1)} trước khi khớp.` : ""}</div>
+    <div class="tk-plan"><b>Cách đánh:</b> ${t.how ? t.how : `${t.order === "market" ? "Vào" : "Đặt lệnh chờ"} ${qty(t.q)} ${esc(t.k)} ở ${px(t.e)}, đặt sẵn cắt lỗ ${px(t.s)} trên sàn. Chạm ${px(t.t1)} → chốt 50% và dời cắt lỗ về ${px(t.e)} (hoà vốn). Phần còn lại chốt ở ${px(t.t2)}${t.tf === "d" ? " hoặc khi đóng cửa ngày dưới EMA20" : " hoặc khi nến 4h đóng ngược EMA20"}. ${t.order === "limit" ? `Huỷ lệnh chờ nếu giá chạy tới ${px(t.t1)} trước khi khớp.` : ""}`}</div>
     <small class="muted">Cơ sở: ${esc(t.src)}${t.notes.length ? " · " + t.notes.map((x) => esc(viDec(x))).join(" · ") : ""}</small>
     ${t.warn.length ? `<ul class="tk-w">${t.warn.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
-    ${opts.save !== false ? `<div class="tk-a">${(() => { const J = esc(JSON.stringify({ k: t.k, side: t.side, tf: t.tf, e: t.e, s: t.s, t1: t.t1, t2: t.t2, lev: t.lev, mode: t.mode, q: t.q, eta1: t.eta1, tstop: t.tstop, order: t.order }));
+    ${opts.save !== false ? `<div class="tk-a">${(() => { const J = esc(JSON.stringify({ k: t.k, side: t.side, tf: t.tf, m: t.m || t.tf, lbl: t.tfLabel || "", e: t.e, s: t.s, t1: t.t1, t2: t.t2, lev: t.lev, mode: t.mode, q: t.q, eta1: t.eta1, tstop: t.tstop, order: t.order, r1: t.r1, p1: t.p1 }));
       return `<button class="btn primary" data-tsave='${J}'>Lưu kế hoạch & nhắc tôi</button><button class="btn" data-tpaper='${J}'>🧪 Đặt vào sàn giả lập</button><button class="btn" data-tbx='${J}'>🔗 Đặt lên Binance</button><small class="faint">giả lập: lệnh vào + cắt lỗ + 2 mức chốt lời tự động · Binance: gửi đúng bộ lệnh đó lên tài khoản đã kết nối (Demo / thật)</small><div class="tk-log"></div>`; })()}</div>` : ""}
   </div>`;
+}
+// 📌 KẾ HOẠCH ĐÃ LƯU (PF.plans – máy chủ đọc để nhắc: tới điểm vào / mục tiêu / cắt lỗ / hết thời gian)
+//    kế hoạch đang chờ = chưa có .done · thay kế hoạch cũ cùng coin + chiều + cách đánh · gói Miễn phí giữ tối đa 3 kế hoạch đang chờ
+const PLAN_LIM = { plans: [3, 200], lists: [2, 30], notes: [20, 3000] };
+const planLim = (k) => { const L = ME?.limits || {}; return isNum(L[k]) ? L[k] : (can("plan_pro") ? PLAN_LIM[k][1] : PLAN_LIM[k][0]); };
+const planM = (p) => p.m || p.tf || "d";
+async function planSave(x) {
+  await pfLoad();
+  const old = (PF.plans || []).filter((p) => !p.done && p.k === x.k && p.side === x.side && planM(p) === planM(x));
+  const act = (PF.plans || []).filter((p) => !p.done).length - old.length, lim = planLim("plans");
+  if (act >= lim) { toast(bi(`Gói hiện tại giữ tối đa ${lim} kế hoạch đang chờ – đóng bớt ở Kế hoạch › Đã lưu, hoặc nâng cấp Pro`, `Your plan keeps up to ${lim} active plans – close some or upgrade to Pro`), { type: "warn" }); return false; }
+  PF.plans = (PF.plans || []).filter((p) => !old.includes(p));
+  PF.plans.push({ ...x, id: Date.now().toString(36), created: new Date().toISOString(), status: "chờ" });
+  await pfSave(); toast(bi(`Đã lưu kế hoạch ${x.k} – xem ở Kế hoạch › Đã lưu, hệ thống nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ`, `Saved the ${x.k} plan – see Plans › Saved`));
+  return true;
 }
 function bindTicketSave(root = document) {
   $$("[data-tpaper]", root).forEach((b) => b.onclick = async () => {
@@ -4401,54 +4425,10 @@ function bindTicketSave(root = document) {
     const log = (t) => { lg.innerHTML += `<p>✓ ${esc(t)}</p>`; };
     try { await bxFromTicket(x, log); lg.innerHTML += `<p class="up"><b>Xong.</b> Kiểm tra trên Binance hoặc ở <a href="#/paper/${enc(x.k)}">Sàn giao dịch thử</a>.</p>`; } catch (e) { lg.innerHTML += `<p class="down">✗ ${esc(e.message)}</p>`; b.disabled = false; }
   });
-  $$("[data-tsave]", root).forEach((b) => b.onclick = async () => {
-    const x = JSON.parse(b.dataset.tsave);
-    await pfLoad();
-    PF.plans = (PF.plans || []).filter((p) => !(p.k === x.k && p.side === x.side && p.status !== "done"));
-    PF.plans.push({ ...x, id: Date.now().toString(36), created: new Date().toISOString(), status: "chờ" });
-    await pfSave(); toast(`Đã lưu kế hoạch ${x.k} – xem ở Danh mục`); b.disabled = true; b.textContent = "Đã lưu ✓";
-  });
+  $$("[data-tsave]", root).forEach((b) => b.onclick = async () => { if (await planSave(JSON.parse(b.dataset.tsave))) { b.disabled = true; b.textContent = bi("Đã lưu ✓", "Saved ✓"); } });
 }
-async function viewPlan(k0) {
-  const [IJ] = await Promise.all([load("data/ideas.json"), coins(), loadSettings(), pfLoad().catch(() => null)]);
-  const L = await liveData();
-  const items = ((L && L.ideas && new Date(L.at) > new Date(IJ.at)) ? L.ideas : IJ.items).filter((x) => x.edge).slice(0, 3);      // 3 lệnh đầu – danh sách đầy đủ ở Cơ hội hôm nay
-  const O = { k: k0 || lsGet("plk", ""), tf: lsGet("pltf", "auto"), side: lsGet("plside", "auto") };
-  app().innerHTML = `<div class="ph"><h1>Lên kế hoạch lệnh</h1><span class="meta">Đèn ${LIGHT_VI[govLight()] || ""} · đòn bẩy tối đa x${GOV.base.d[govLight()]} swing, x${GOV.base.h4[govLight()]} lướt · rủi ro ${nf(levGov({ k: "BTC", mc: 2e12 }, "long", "d").risk, 2)}%/lệnh · <a href="#/portfolio">kiểm soát rủi ro →</a></span></div>
-    <section class="panel"><div class="ph"><h2>🧾 Tạo kế hoạch cho một coin</h2></div>
-      <div class="filters"><div class="field"><label>Coin</label><input id="plK" list="plList" value="${esc(O.k)}" placeholder="VD: SOL"></div>
-        <div class="field"><label>Kiểu chơi</label><select id="plTf"><option value="auto">Tự chọn</option><option value="h4" ${O.tf === "h4" ? "selected" : ""}>Lướt (4h, vài giờ – vài ngày)</option><option value="d" ${O.tf === "d" ? "selected" : ""}>Swing (ngày, vài ngày – vài tuần)</option></select></div>
-        <div class="field"><label>Chiều</label><select id="plSide"><option value="auto">Theo hệ thống</option><option value="long" ${O.side === "long" ? "selected" : ""}>Long</option><option value="short" ${O.side === "short" ? "selected" : ""}>Short</option></select></div>
-        <button class="btn primary" id="plGo">Tạo kế hoạch</button></div>
-      <datalist id="plList">${COINS.rows.map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>
-      <div id="plOut"></div></section>
-    <section class="panel"><div class="ph"><h2>🎯 3 lệnh đáng làm nhất lúc này <span class="live-dot"></span></h2><span class="meta"><a href="#/ideas">xem tất cả ở Cơ hội hôm nay →</a> · giá & trạng thái cập nhật từng giây · xác nhận khung 15 phút mỗi phút · danh sách làm mới mỗi 5 phút · đã tính khối lượng, spot hay futures, đòn bẩy theo vốn của anh</span></div><div id="plTop"><p class="muted">Đang tính…</p></div></section>
-    <p class="faint disclaimer">Kế hoạch được tính tự động từ quy tắc cố định & thống kê quá khứ – không phải lời khuyên đầu tư và không đảm bảo kết quả. Đòn bẩy chỉ làm giảm tiền ký quỹ; mức lỗ do khối lượng và điểm cắt lỗ quyết định – luôn đặt cắt lỗ trên sàn.</p>`;
-  const go = async () => {
-    const k = $("#plK").value.trim().toUpperCase(); if (!BYK[k]) { $("#plOut").innerHTML = `<p class="muted">Chọn coin có trong danh sách.</p>`; return; }
-    lsSet("plk", k); lsSet("pltf", $("#plTf").value); lsSet("plside", $("#plsBar").value);
-    $("#plOut").innerHTML = skLines(4);
-    const D = await load(`data/c/${enc(k)}.json`);
-    const t = makeTicket(D, IJ, { tf: $("#plTf").value, side: $("#plsBar").value }); if (t.none) t.k = k;
-    if (t.none) { $("#plOut").innerHTML = ticketCard(t); return; }
-    liveTickets($("#plOut"), [{ t, D }]);
-  };
-  $("#plGo").onclick = go; $("#plK").addEventListener("change", go);
-  if (O.k && BYK[O.k]) go();
-  const build = async (fresh) => {
-    let src = items;
-    if (fresh) { const L2 = await liveData(true); src = ((L2 && L2.ideas && new Date(L2.at) > new Date(IJ.at)) ? L2.ideas : IJ.items).filter((x) => x.edge).slice(0, 3); }
-    const seen = new Set(), tops = [];
-    for (const x of src) { if (seen.has(x.k)) continue; seen.add(x.k); try { const D = await load(`data/c/${enc(x.k)}.json`); D._ij = IJ; D.ideas = [x, ...(D.ideas || []).filter((y) => y.setup !== x.setup)]; const t = makeTicket(D, IJ, { tf: x.tf, side: x.side }); if (!t.none && t.verdict !== "no") tops.push({ t, D }); } catch (e) { /* thiếu dữ liệu */ } }
-    const host = $("#plTop"); if (!host) return;
-    const sig = tops.map((x) => x.t.k + x.t.side + x.t.e).join("|");
-    if (fresh && sig === host.dataset.sig) return;
-    host.dataset.sig = sig;
-    if (!tops.length) { host.innerHTML = `<div class="empty">Hiện không có thiết lập có lợi thế lịch sử. Không vào lệnh cũng là một quyết định tốt – hoặc tự tạo kế hoạch cho coin anh quan tâm ở trên, hoặc xem <a href="#/radar">Radar</a> cho khung ngắn.</div>`; return; }
-    liveTickets(host, tops, { refresh: () => build(true) });
-  };
-  await build(false);
-}
+// trang Lên kế hoạch lệnh (5 cách đánh · Đã lưu · Nhật ký) nằm ở app-plan.js – tải khi mở trang
+async function viewPlan(...a) { await lazyJs("app-plan.js"); return viewPlan(...a); }
 
 // ================================================================ PHIẾU LỆNH TRỰC TIẾP – giá từng giây, trạng thái vào lệnh đổi theo giá
 const FEE_SPOT = 0.001, FEE_FUT_T = 0.0005, FEE_FUT_M = 0.0002;
@@ -4504,6 +4484,7 @@ function binanceSteps(t) {
 function liveSt(t, p) {
   const sd = t.side === "long" ? 1 : -1;
   if (!isNum(p)) return { k: "na", rank: 9, c: "", lbl: "…", txt: "Đang chờ giá" };
+  if (t.forceWatch && sd * (p - t.s) > 0 && sd * (p - t.t1) < 0) return { k: "watch", rank: 4, c: "warn", lbl: bi("CHỜ TÍN HIỆU", "WAIT FOR SIGNAL"), txt: t.waitTxt || bi("Chưa đủ điều kiện vào theo quy tắc của cách đánh này", "Entry conditions not met yet") };
   if (sd * (p - t.s) <= 0) return { k: "dead", rank: 6, c: "sell", lbl: "HUỶ", txt: `Giá đã chạm cắt lỗ ${px(t.s)} – kế hoạch không còn hiệu lực` };
   if (sd * (p - t.t1) >= 0) return { k: "missed", rank: 5, c: "", lbl: "LỠ NHỊP", txt: `Giá đã tới MT1 ${px(t.t1)} – không đuổi theo, chờ cơ hội mới` };
   const rr = Math.abs(t.t1 - p) / Math.abs(p - t.s), gap = (p / t.e - 1) * 100;
@@ -6817,9 +6798,11 @@ async function viewFutures(sub) {
 // ================================================================ THEO DÕI
 const WL = {
   set: new Set(), loaded: false,
-  async load() { if (this.loaded) return; const r = await Store.get("watchlist"); this.set = new Set((r.data?.symbols) || []); this.loaded = true; },
+  lists: [],      // list coin tự đặt tên (trang Kế hoạch › Đã lưu › List coin) – lưu chung khoá watchlist, ★ = symbols như cũ
+  async load(force) { if (this.loaded && !force) return; const r = await Store.get("watchlist"); this.set = new Set((r.data?.symbols) || []); this.lists = Array.isArray(r.data?.lists) ? r.data.lists : []; this.loaded = true; },
+  async save() { await Store.put("watchlist", { symbols: [...this.set], lists: this.lists }); },
   has(k) { return this.set.has(k); },
-  async toggle(k) { await this.load(); if (this.set.has(k)) this.set.delete(k); else { this.set.add(k); hbHit("c", k, 3); } await Store.put("watchlist", { symbols: [...this.set] }); setTimeout(tkRefresh, 300); toast(this.set.has(k) ? `Đã theo dõi ${k}` : `Bỏ theo dõi ${k}`); },
+  async toggle(k) { await this.load(); if (this.set.has(k)) this.set.delete(k); else { this.set.add(k); hbHit("c", k, 3); } await this.save(); setTimeout(tkRefresh, 300); toast(this.set.has(k) ? `Đã theo dõi ${k}` : `Bỏ theo dõi ${k}`); },
 };
 
 // ================================================================ DANH MỤC (spot + futures)
@@ -7003,14 +6986,14 @@ async function viewPortfolio() {
       <div class="filters"><div class="field"><label>Coin</label><input id="fS" list="coinlist" placeholder="ETH"></div><div class="field"><label>Chiều</label><select id="fSide"><option value="long">Long</option><option value="short">Short</option></select></div>
       <div class="field"><label>Giá vào <small>(Binance › Vị thế › Giá vào)</small></label><input id="fE" inputmode="decimal"></div><div class="field"><label>Đòn bẩy</label><input id="fL" inputmode="decimal" value="3"></div><div class="field"><label>Ký quỹ (USDT)</label><input id="fM" inputmode="decimal" placeholder="vd 100"></div><div class="field"><label>hoặc Số lượng (coin)</label><input id="fQ" inputmode="decimal"></div><div class="field"><label>Cắt lỗ (tuỳ chọn)</label><input id="fSL" type="number" step="any"></div><button class="btn primary" id="fAdd">Thêm vị thế</button></div>
       <p class="faint" style="font-size:.75rem">Giá thanh lý ước tính theo ký quỹ isolated, tỉ lệ duy trì 0,5%; sàn thực tế (cross margin, bậc rủi ro) có thể khác. ${BW ? "Bấm 🔄 Cập nhật từ Binance ở trên để lấy vị thế thật; trang này chỉ đọc, không đặt lệnh." : "Hệ thống chỉ theo dõi, không kết nối tài khoản sàn."}</p>`)}
-    ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (PF.plans || []).length ? `<div class="tw"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Giá</th><th>Cắt lỗ</th><th>MT1 / MT2</th><th>Khối lượng</th><th>Hạn MT1</th><th>Trạng thái</th><th></th></tr></thead><tbody>${(PF.plans || []).map((p, i) => {
-      const cur = BYK[p.k]?.p, L = p.side === "long", st = !isNum(cur) ? "—" : (L ? cur <= p.s : cur >= p.s) ? '<b class="down">chạm cắt lỗ</b>' : (L ? cur >= p.t2 : cur <= p.t2) ? '<b class="up">chạm MT2</b>' : (L ? cur >= p.t1 : cur <= p.t1) ? '<b class="up">chạm MT1 – chốt 50%, dời SL</b>' : Date.now() > p.tstop ? '<b class="ref">hết thời gian – cân nhắc thoát</b>' : (L ? cur <= p.e : cur >= p.e) || p.order === "market" ? "đã tới vùng vào" : `chờ (cách ${pct((p.e / cur - 1) * 100, 1)})`;
-      return `<tr><td class="l">${coinLink(p.k, "/plan")}</td><td>${L ? '<b class="up">Long</b>' : '<b class="down">Short</b>'} ${p.mode === "perp" ? "x" + p.lev : "spot"}</td><td>${px(p.e)}</td><td>${px(cur)}</td><td class="down">${px(p.s)}</td><td class="up">${px(p.t1)} / ${px(p.t2)}</td><td>${qty(p.q)}</td><td><small>${dt(p.tstop)}</small></td><td>${st}</td><td><button class="chip" data-dp="${i}">Xoá</button></td></tr>`; }).join("")}</tbody></table></div>` : `<p class="muted">Chưa có kế hoạch. Vào <a href="#/plan">Lên lệnh</a> để tạo, hệ thống sẽ nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.</p>`)}
+    ${PG("Kế hoạch & nhật ký")}${panel("🧾 Kế hoạch đã lưu", (() => { const A = (PF.plans || []).filter((p) => !p.done), Dn = (PF.plans || []).filter((p) => p.done);
+      return A.length ? `<div class="rows">${A.slice(0, 6).map((p) => { const cur = BYK[p.k]?.p, L = p.side !== "short"; return `<div class="kh-mini"><span>${coinLink(p.k, "/plan")} <span class="pill ${L ? "buy" : "sell"}">${p.m === "dca" ? "Spot" : L ? "Long" : "Short"}</span></span><small>vào ${px(p.e)} · cắt lỗ <span class="down">${px(p.s)}</span> · MT1 <span class="up">${px(p.t1)}</span>${isNum(cur) ? ` · giá ${px(cur)}` : ""}</small></div>`; }).join("")}</div><p class="faint">${A.length > 6 ? `+${A.length - 6} kế hoạch · ` : ""}<a href="#/plan/saved">Xem trạng thái từng kế hoạch ở Kế hoạch › Đã lưu →</a>${Dn.length ? ` · <a href="#/plan/log">${Dn.length} kế hoạch đã xong ở Nhật ký</a>` : ""}</p>`
+        : `<p class="muted">Chưa có kế hoạch đang chờ. Vào <a href="#/plan">Lên kế hoạch</a> để tạo – hệ thống nhắc khi giá tới điểm vào / mục tiêu / cắt lỗ.${Dn.length ? ` <a href="#/plan/log">${Dn.length} kế hoạch đã xong ở Nhật ký</a>.` : ""}</p>`; })())}
     ${panel("📒 Sổ lệnh đã đóng", (PF.journal || []).length ? (() => { const J = PF.journal.slice().reverse(), w = J.filter((j) => j.pnl > 0).length, tot = J.reduce((a, j) => a + (j.pnl || 0), 0);
       return `${kpis([["Số lệnh", nf(J.length, 0)], ["Thắng", nf(w / J.length * 100, 0) + "%"], ["Tổng lãi/lỗ", usd(tot), cls(tot)], ["TB mỗi lệnh (R)", (() => { const R = J.filter((j) => isNum(j.r)); return R.length ? nf(R.reduce((a, j) => a + j.r, 0) / R.length, 2) + "R" : "—"; })()]])}
       <div class="tw" style="max-height:320px"><table class="rs"><thead><tr><th class="l">Coin</th><th>Chiều</th><th>Vào</th><th>Ra</th><th>Đòn bẩy</th><th>Lãi/lỗ</th><th>R</th><th>Đóng lúc</th></tr></thead><tbody>${J.slice(0, 60).map((j) => `<tr><td class="l">${coinLink(j.k)}</td><td>${j.side === "short" ? '<b class="down">Short</b>' : j.side === "spot" ? "Spot" : '<b class="up">Long</b>'}</td><td>${px(j.entry)}</td><td>${px(j.exit)}</td><td>x${nf(j.lev || 1, 0)}</td><td class="${cls(j.pnl)}">${usd(j.pnl)}</td><td class="${cls(j.r)}">${isNum(j.r) ? nf(j.r, 2) : "—"}</td><td><small>${new Date(j.closed).toLocaleString(LOC)}</small></td></tr>`).join("")}</tbody></table></div>`; })()
-      : `<p class="muted">Bấm "Đóng" / "Bán hết" ở vị thế để ghi lãi/lỗ thực – hệ thống dùng sổ này để tính lỗ trong ngày và chuỗi thua.</p>`)}
-    ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`)}
+      : `<p class="muted">Bấm "Đóng" / "Bán hết" ở vị thế để ghi lãi/lỗ thực – hệ thống dùng sổ này để tính lỗ trong ngày và chuỗi thua.</p>`, `<a href="#/plan/log">✍️ lý do & bài học ở Nhật ký →</a>`)}
+    ${panel("★ Đang theo dõi", wl.length ? `<div class="rows">${wl.map((k) => coinMini(k, `${tsPill(BYK[k].ts)} ${vdPill(BYK[k].vd)}`)).join("")}</div>` : `<p class="muted">Bấm ★ ở trang coin để theo dõi.</p>`, `<a href="#/plan/lists">${(WL.lists || []).length ? `+${WL.lists.length} list khác · ` : ""}quản lý list coin →</a>`)}
     <datalist id="coinlist">${C.rows.slice(0, 800).map((r) => `<option value="${esc(r.k)}">${esc(r.n)}</option>`).join("")}</datalist>`;
   const num = (id) => Number($(id).value);
   // ---- nhập spot theo số tiền đã bỏ ra (USDT / VND), theo ngày mua, theo giá, hoặc tính từ hôm nay
@@ -7088,7 +7071,6 @@ async function viewPortfolio() {
   };
   $$("[data-dh]").forEach((b) => b.onclick = async () => { PF.holdings.splice(Number(b.dataset.dh), 1); await pfSave(); viewPortfolio(); });
   $$("[data-df]").forEach((b) => b.onclick = async () => { PF.futures.splice(Number(b.dataset.df), 1); await pfSave(); viewPortfolio(); });
-  $$("[data-dp]").forEach((b) => b.onclick = async () => { PF.plans.splice(Number(b.dataset.dp), 1); await pfSave(); viewPortfolio(); });
   // đóng vị thế → ghi sổ lệnh (lãi/lỗ thực), tiền về tiền mặt – để hệ thống tính lỗ ngày/tuần & chuỗi thua
   const askExit = async (k, def) => { const v = (await askText(`Giá thoát ${k} (để trống = giá hiện tại ${px(def)}):`, "")); if (v === null) return null; const x = Number(String(v).replace(",", ".")); return x > 0 ? x : def; };
   $$("[data-cf]").forEach((b) => b.onclick = async () => {
@@ -9338,7 +9320,7 @@ function ksHTML(compact) {
 // Chưa xem → chấm trên menu "Có gì mới" + nhãn Mới trên phiên bản; vừa tự tải bản app mới → toast mời xem.
 const CHG_C = { new: ["✨", "Tính năng mới", "New"], imp: ["⚡", "Cải tiến", "Improved"], fix: ["🔧", "Sửa lỗi", "Fixed"], res: ["🔬", "Nghiên cứu", "Research"] };
 const CHG_A = { bot: ["Bot", "Bots"], live: ["Binance thật", "Live Binance"], chart: ["Biểu đồ", "Charts"], ui: ["Giao diện", "Interface"], notif: ["Thông báo", "Notifications"], port: ["Danh mục & thuế", "Portfolio & tax"], acct: ["Tài khoản", "Account"], perf: ["Tốc độ", "Speed"], mascot: ["Mèo na", "Na"], res: ["Nghiên cứu", "Research"] };
-const CHG_PRO = new Set(["bot", "futures", "backtest", "coin_full", "notify_push", "notify_email", "acct_history", "nlq", "brief", "themes", "wrapped", "sharecard"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
+const CHG_PRO = new Set(["bot", "futures", "backtest", "plan_pro", "coin_full", "notify_push", "notify_email", "acct_history", "nlq", "brief", "themes", "wrapped", "sharecard"]);      // tính năng chỉ có ở gói Pro (functions/_lib/plans.json)
 let CHG_P = null;
 const chgLoad = () => (CHG_P ||= fetch("changelog.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => j?.rel || []).catch(() => { CHG_P = null; return []; }));
 const chgVis = (x) => x.aud !== "admin" || isAdmin();

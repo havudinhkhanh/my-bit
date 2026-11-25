@@ -119,14 +119,26 @@ def items_for(pf: dict, rows: dict, details: dict, light: str | None = None, rst
     for pl in pf.get("plans") or []:
         k = pl.get("k")
         r = rows.get(k)
-        if not r or not r.get("p"):
+        if not r or not r.get("p") or pl.get("done"):      # kế hoạch đã xong / đã đóng (Nhật ký) – thôi nhắc
             continue
         p, L = float(r["p"]), pl.get("side") == "long"
         e, s, t1, t2 = (float(pl.get(x) or 0) for x in ("e", "s", "t1", "t2"))
         pid = pl.get("id") or f"{k}{e}"
-        url = f"#/c/{k}/plan"
+        url = "#/plan/saved"
         side = "Long" if L else "Short"
         ev = None
+        if pl.get("m") == "dca" and isinstance(pl.get("zs"), list):      # tích luỹ spot: nhắc từng mức mua, mức chốt, mức ngừng mua
+            for i, z in enumerate(pl["zs"]):
+                zp = float(z.get("p") or 0)
+                if zp and not z.get("now") and p <= zp * 1.003:
+                    out.append({"key": f"plan:{pid}:z{i}", "kind": "alert", "sev": 2, "sym": k, "url": url,
+                                "title": f"{k}: giá tới mức mua {i + 1} {_p(zp)} (tích luỹ)", "body": f"Giá {_p(p)}. Mua phần {round(float(z.get('w') or 0) * 100)}% ngân sách theo kế hoạch."})
+            if s and p <= s:
+                out.append({"key": f"plan:{pid}:inval", "kind": "stop", "sev": 2, "sym": k, "url": url, "title": f"{k}: giá dưới mức ngừng mua {_p(s)}", "body": f"Giá {_p(p)}. Kế hoạch tích luỹ: đóng tuần dưới mức này thì ngừng mua và xem lại."})
+            for nm, tp in (("t1", t1), ("t2", t2)):
+                if tp and p >= tp:
+                    out.append({"key": f"plan:{pid}:{nm}", "kind": "alert", "sev": 2, "sym": k, "url": url, "title": f"{k}: chạm mức chốt {_p(tp)} (tích luỹ)", "body": f"Giá {_p(p)}. Chốt 1/3 theo kế hoạch."})
+            continue
         if (L and p <= s) or (not L and p >= s):
             ev = ("stop", 3, f"{k}: kế hoạch {side} chạm cắt lỗ {_p(s)}", f"Giá {_p(p)}. Thoát lệnh theo kế hoạch.")
         elif (L and p >= t2) or (not L and p <= t2):

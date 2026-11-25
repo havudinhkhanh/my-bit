@@ -17,7 +17,10 @@
       "limits": {
         "holdings": 15,
         "watch": 30,
-        "alerts": 10
+        "alerts": 10,
+        "plans": 3,
+        "lists": 2,
+        "notes": 20
       }
     },
     "pro": {
@@ -32,6 +35,7 @@
         "coin_full",
         "futures",
         "backtest",
+        "plan_pro",
         "notify_push",
         "notify_email",
         "bot",
@@ -45,7 +49,10 @@
       "limits": {
         "holdings": 200,
         "watch": 500,
-        "alerts": 300
+        "alerts": 300,
+        "plans": 200,
+        "lists": 30,
+        "notes": 3000
       }
     }
   },
@@ -67,7 +74,8 @@
     "brief": "Bản tin & nhận định tự động mỗi ngày",
     "themes": "Thêm 4 màu nhấn cho giao diện",
     "wrapped": "Tổng kết tháng của bot dạng story",
-    "sharecard": "Ảnh kết quả ngày không hình mờ"
+    "sharecard": "Ảnh kết quả ngày không hình mờ",
+    "plan_pro": "Lên kế hoạch nâng cao: SMC tuần, Kỹ thuật, Tích luỹ spot, quét cả list, thống kê nhật ký"
   },
   "paths": [],
   "strip": []
