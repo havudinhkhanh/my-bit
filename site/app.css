@@ -7894,3 +7894,10 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .kh-mini{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px solid var(--bd-2)}.kh-mini:last-child{border-bottom:0}
 .kh-x .kpis{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}.kh-x .kpis dd,.kh-dca .kpis dd{white-space:normal;overflow:visible}
 @media (max-width:640px){.kh-f .bseg{flex-wrap:nowrap}.kh-f .bseg button{flex:1;text-align:center}}
+/* ⏸ tạm dừng bot do anh chọn */
+.pz-f{display:grid;gap:10px}.pz-f .bseg{margin:0}.pz-f .bseg button{flex:1 1 calc(33% - 6px);text-align:center}
+.pz-f .field{gap:4px}.pz-f .field>span{font-size:.75rem;color:var(--ink-2)}
+.pz-f input{width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid var(--bd);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:16px}
+.pz-f p{margin:0;font-size:.75rem}
+.hz2-ic.on{color:var(--brass,#d9a23a)}
+.hz-pause.pz{background:color-mix(in srgb,var(--ref,#d9a23a) 14%,transparent)}

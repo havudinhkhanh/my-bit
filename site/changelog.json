@@ -9,6 +9,17 @@
    "se": "All na settings are per device.",
    "it": [
     {
+     "c": "new",
+     "a": "bot",
+     "t": "Tạm dừng Bot Phản Xạ vài giờ hoặc tới hết ngày – tự chạy lại",
+     "te": "Pause the Reflex Bot for a few hours or until end of day – resumes automatically",
+     "d": "Nút ⏸ cạnh công tắc bot: chọn 1–24 giờ, hết hôm nay hoặc số giờ tuỳ ý. Trong lúc dừng không mở lệnh mới ở mọi phương pháp (cả sàn thử lẫn Binance), lệnh đang mở vẫn được quản lý và đóng theo luật; hết giờ bot tự chạy lại, hoặc bấm Chạy lại ngay.",
+     "de": "⏸ next to the bot switch: 1–24 h, until midnight or custom. No new trades in any method; open trades still managed; resumes automatically.",
+     "f": "bot",
+     "go": "#/bot/scalp",
+     "hi": 1
+    },
+    {
      "c": "fix",
      "a": "chart",
      "t": "Sửa biểu đồ kế hoạch: các mức SL / Vào / MT dồn thành 1 vạch, chữ bị kéo méo và chồng lên nhau",

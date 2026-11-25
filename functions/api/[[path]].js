@@ -5,7 +5,7 @@ import { admin } from "../_lib/admin.js";
 import { auth } from "../_lib/auth.js";
 import { notifyNow } from "../_lib/push.js";
 import {
-  can, ensureSchema, err, getSession, json, limits, nowIso, sameOrigin, sha256Hex, USER_KEYS, vapidPublic, withCookie,
+  can, ensureSchema, err, getSession, json, limits, nowIso, sameOrigin, scalpPause, sha256Hex, USER_KEYS, vapidPublic, withCookie,
 } from "../_lib/core.js";
 
 // ---------------------------------------------------------------- chế độ cũ (một chủ sở hữu)
@@ -176,7 +176,7 @@ async function scalpRunner({ request, env }, sub) {
     if (request.method === "POST") { const t = await request.text(); if (t.length > 1900000) return err("Bộ nhớ học quá lớn", 413); try { JSON.parse(t); } catch (e) { return err("Dữ liệu không hợp lệ"); } await putData(env, u.id, "scalpbrain", t); return json({ ok: true }); }
     return err("Phương thức không hỗ trợ", 405);
   }
-  if (request.method === "GET") return json({ uid: u.id, cfg: await getData(env, u.id, "scalp") });
+  if (request.method === "GET") return json({ uid: u.id, cfg: scalpPause(await getData(env, u.id, "scalp")) });
   if (request.method === "POST") {
     const text = await request.text();
     if (text.length > 1500000) return err("Dữ liệu quá lớn", 413);

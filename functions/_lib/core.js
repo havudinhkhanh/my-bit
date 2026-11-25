@@ -287,5 +287,13 @@ export async function vapidPublic(env) {
 
 export const LEGACY_KEYS = ["portfolio", "assumptions", "groups", "profile", "journal", "watchlist", "views"];
 export const USER_KEYS = new Set([...LEGACY_KEYS, "notify", "ui", "risk", "paper", "bot", "botstate", "botplan", "sup", "supstate", "scalp", "scalpcmd", "scalpstate", "scalpkey", "scalpbrain", "scalpdays", "scalpnotes", "scalpledger", "manalert", "taxbook", "taxbook1", "taxbook2", "taxbook3", "taxbook4", "taxbook5"]);
+// ⏸ bot Phản Xạ tạm dừng do anh chọn (cfg.pz_until, mốc ms): gửi cho máy chủ riêng bản thiết lập đã TẮT mở lệnh mới ở mọi phương pháp
+//    (giống pzApply trong worker/scalp_core.js – áp ở đây để có hiệu lực ngay cả khi máy chủ riêng chưa cập nhật mã). Hết giờ: trả thiết lập gốc → tự chạy lại.
+export function scalpPause(c) {
+  if (!c || typeof c !== "object" || !(+c.pz_until > Date.now())) return c;
+  const o = { ...c, pz_on: true, hk_on: false, sec_on: false, q_on: false, lv_hk: false, lq_sec: false, sw_lv_pump: false };
+  for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) o["lq_" + k] = false;
+  return o;
+}
 export const ownerList = (env) => String(env.OWNER_EMAIL || "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
 export const validEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e || "");

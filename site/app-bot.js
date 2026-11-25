@@ -656,9 +656,10 @@ async function viewScalp() {
       ${chip(fl.length && fl.every((f) => f.ws) ? "ok" : fl.length ? "warn" : "off", Object.entries(FD).map(([t, f]) => `${t === "F" ? "F" : "S"}·${esc(String(f.src || "—").replace(/f$/, ""))}`).join(" ") || bi("sàn —", "feeds —"), Object.entries(FD).map(([t, f]) => `${t === "F" ? "Futures" : "Spot"} ${f.src || "—"}`).join(" · "))}
       ${chip(!C.lv_on ? "off" : LV?.halt ? "bad" : LV?.ready && lvSt.ok ? "ok" : "warn", `${LV?.env === "live" || C.lv_env === "live" ? bi("Thật", "Live") : "Demo"} ${!C.lv_on ? bi("tắt", "off") : LV?.halt ? bi("ngừng", "halted") : lvSt.bal != null ? usd2(lvSt.bal) : "—"}`, lvSt.why || LV?.halt || bi("Tài khoản Binance của bot", "Bot's Binance account"))}
       ${scLiveTag()}</div>
-      <div class="hz2-a"><button type="button" class="ios-sw sm" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
+      <div class="hz2-a">${C.enabled ? `<button type="button" class="hz2-ic${+C.pz_until > Date.now() ? " on" : ""}" id="scPz" aria-label="${bi("Tạm dừng bot vài giờ", "Pause the bot")}" title="${bi("Tạm dừng mở lệnh mới vài giờ / tới hết ngày", "Pause new trades for a while")}"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>` : ""}<button type="button" class="ios-sw sm" id="scOn" role="switch" aria-checked="${!!C.enabled}" aria-label="${C.enabled ? "Tắt bot" : "Bật bot"}" title="${C.enabled ? "Tắt bot" : "Bật bot"}"><i></i></button>
         <button type="button" class="hz2-ic" data-hzinfo aria-label="Chi tiết kỹ thuật" title="Chi tiết kỹ thuật"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.01"/></svg></button>
         <div class="sc-act"><details class="sc-more"><summary class="hz-ic hz2-ic" aria-label="Thêm thao tác"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></summary><div class="sc-menu"><button class="btn" id="scAuto" title="Trang tự cập nhật số liệu – tạm dừng để xem kỹ">${autoOff("scalp") ? "▶ Tự cập nhật trang" : "⏸ Dừng tự cập nhật trang"}</button><button class="btn" id="scReset" title="Tài khoản sàn thử về vốn ban đầu, xoá lịch sử lệnh – GIỮ nguyên bộ nhớ học">↺ Làm lại tài khoản sàn thử</button></div></details></div></div></div>
+    ${+C.pz_until > Date.now() ? `<div class="hz-pause pz"><span>⏸️ ${bi(`<b>Anh đang tạm dừng bot</b> tới ${esc(new Date(+C.pz_until).toLocaleString(LOC, { weekday: "short", hour: "2-digit", minute: "2-digit" }))} (còn ${durVi((+C.pz_until - Date.now()) / 1000)})${C.pz_why ? ` · ${esc(C.pz_why)}` : ""} – không mở lệnh mới ở mọi phương pháp, cả sàn thử lẫn Binance; lệnh đang mở vẫn được quản lý & đóng theo luật`, `<b>Paused</b> until ${esc(new Date(+C.pz_until).toLocaleString(LOC))} – no new trades; open trades are still managed`)}</span><button class="btn sm primary" id="scPzOff">▶ ${bi("Chạy lại ngay", "Resume now")}</button></div>` : ""}
     ${X.pause ? `<div class="hz-pause"><span>⏸ ${esc(X.pause.why)}</span>${C.enabled ? `<button class="btn sm primary" id="scRes" title="Bỏ qua lần nghỉ này, chạy tiếp ngay (≤ 30 giây)">▶ Chạy tiếp</button>` : ""}</div>` : ""}
     ${info(`<div class="sc-fd">${X.at ? `<small id="scAge" data-at="${X.at}" data-noi18n class="faint"></small>` : ""}${feedTxt}${bn}<small class="faint">${esc(st[2])}</small></div>`, "Chi tiết kỹ thuật")}</section>`;
   // ---------------------------------------------------------------- 💰 TỔNG TÀI SẢN BINANCE (máy chủ riêng đọc mỗi 5 phút, chỉ quyền ĐỌC)
@@ -1995,6 +1996,22 @@ async function viewScalp() {
     g.addEventListener("pointermove", mv); g.addEventListener("pointerup", up); g.addEventListener("pointercancel", up);
   }));
   if ($("#lvRes")) $("#lvRes").onclick = async () => { C.lv_resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Tài khoản thật chạy lại trong ≤ 5 phút"); viewScalp(); };
+  // ⏸ tạm dừng do anh chọn: lưu mốc pz_until vào thiết lập – trang API gửi cho máy chủ riêng bản đã TẮT mở lệnh mới tới mốc đó, hết giờ tự chạy lại
+  if ($("#scPz")) $("#scPz").onclick = async () => {
+    const tomorrow = Date.parse(vnToday() + "T00:00:00+07:00") + 864e5, O = [["1", "1 giờ"], ["2", "2 giờ"], ["4", "4 giờ"], ["8", "8 giờ"], ["12", "12 giờ"], ["24", "24 giờ"], ["day", `Hết hôm nay (tới 0:00)`]];
+    const ok = await iosSheet({ title: bi("⏸️ Tạm dừng bot", "⏸️ Pause the bot"), sub: bi("ngày đánh không ăn – nghỉ một lúc rồi tự chạy lại", "take a break – resumes automatically"),
+      body: `<div class="pz-f"><div class="bseg pz-o" role="radiogroup">${O.map(([k, t], i) => `<button type="button" role="radio" data-pzh="${k}" class="${k === "day" ? "on" : ""}" aria-checked="${k === "day"}">${t}</button>`).join("")}</div>
+        <label class="field"><span>${bi("Hoặc số giờ khác", "Or another number of hours")}</span><input id="pzH" inputmode="decimal" placeholder="VD: 6"></label>
+        <label class="field"><span>${bi("Lý do (tuỳ chọn)", "Reason (optional)")}</span><input id="pzW" placeholder="${bi("VD: thị trường giật, đã lỗ 3 lệnh", "e.g. choppy market")}"></label>
+        <p class="faint">${bi(`Trong lúc dừng: không mở lệnh mới ở Bắt râu sập, Lướt giây, Định lượng, Short bơm – cả sàn thử và Binance ${C.lv_env === "live" ? "THẬT" : "Demo"}. Lệnh đang mở vẫn được quản lý và đóng theo luật; lệnh tay anh tự đặt vẫn chạy. Máy chủ áp dụng trong ≤ 30 giây, hết giờ tự chạy lại.`, "No new trades in any method (paper and Binance). Open trades are still managed. Resumes automatically.")}</p></div>`,
+      ok: bi("Tạm dừng", "Pause") });
+    if (!ok) return;
+    const h = numIn(document.querySelector("#pzH")?.value), k = document.querySelector(".pz-o button.on")?.dataset.pzh || "day";
+    const until = h > 0 ? Date.now() + Math.min(h, 24 * 14) * 3600e3 : k === "day" ? tomorrow : Date.now() + +k * 3600e3;
+    C.pz_until = Math.round(until); C.pz_at = new Date().toISOString(); C.pz_why = (document.querySelector("#pzW")?.value || "").trim().slice(0, 120); delete C.syms;
+    if (await Store.put("scalp", C)) { toast(bi(`⏸️ Đã tạm dừng bot tới ${new Date(until).toLocaleString(LOC, { weekday: "short", hour: "2-digit", minute: "2-digit" })} – máy chủ áp dụng trong ≤ 30 giây`, "Paused")); viewScalp(); }
+  };
+  if ($("#scPzOff")) $("#scPzOff").onclick = async () => { C.pz_until = 0; delete C.syms; if (await Store.put("scalp", C)) { toast(bi("▶ Bot chạy lại – máy chủ mở lệnh mới lại trong ≤ 30 giây", "Resumed")); viewScalp(); } };
   if ($("#scRes")) $("#scRes").onclick = async () => { C.resume_at = new Date().toISOString(); delete C.syms; await Store.put("scalp", C); toast("Bot sẽ chạy tiếp trong ≤ 30 giây"); viewScalp(); };
   $("#scAuto").onclick = () => { const off = !autoOff("scalp"); try { localStorage.setItem("mybit_auto_scalp", off ? "0" : "1"); } catch (e) { /* bỏ qua */ } toast(off ? "Đã dừng tự cập nhật – bấm lại để chạy tiếp" : "Trang tự cập nhật lại"); if (off) $("#scAuto").textContent = "▶ Tự cập nhật"; else softRender(() => viewScalp()); };
   lvEqBind(); cmpMark(); fdPlace();
@@ -3417,3 +3434,5 @@ document.addEventListener("click", async (e) => {
   if (b.hasAttribute("data-dwshare")) window.wrapShareDay(D, d);
   else window.wrapMonth(D, (D.days[d0] ? d0 : d).slice(0, 7));
 });
+// ⏸ bảng Tạm dừng bot: chọn 1 mốc thời gian (nút dạng phân đoạn)
+document.addEventListener("click", (e) => { const b = e.target.closest(".pz-o button"); if (!b) return; b.parentElement.querySelectorAll("button").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); const h = document.querySelector("#pzH"); if (h) h.value = ""; });

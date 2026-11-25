@@ -107,6 +107,15 @@ function norm(c) {
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_daily_on = c.lv_daily_on !== false; c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.lv_u40 = !!c.lv_u40; c.lv_ag = !!c.lv_ag; c.sw_lv_pump = !!c.sw_lv_pump; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
   c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
+  return pzApply(c);
+}
+// ⏸ TẠM DỪNG do anh chọn trên trang (pz_until = mốc ms): không mở lệnh MỚI ở mọi phương pháp, cả sàn thử lẫn Binance thật;
+//    lệnh đang mở vẫn được quản lý & đóng theo luật; lệnh tay vẫn đặt được. Hết giờ tự chạy lại (không cần bấm).
+//    (trang API /api/scalp-runner cũng áp đúng hàm này trước khi gửi thiết lập cho máy chủ riêng → có hiệu lực cả khi máy chủ chưa cập nhật mã)
+export function pzApply(c) {
+  if (!c || !(+c.pz_until > Date.now())) return c;
+  c.pz_on = true; c.hk_on = false; c.sec_on = false; c.q_on = false; c.lv_hk = false; c.lq_sec = false; c.sw_lv_pump = false;
+  for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) c["lq_" + k] = false;
   return c;
 }
 function newState(c, now) {
