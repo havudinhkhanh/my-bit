@@ -9,6 +9,14 @@
 // Gói: Miễn phí = Lướt + Swing, 3 kế hoạch đang chờ, 2 list coin, 20 ghi chú · Pro (plan_pro) = thêm SMC tuần, Kỹ thuật, Tích luỹ, quét tín hiệu cả list,
 //      thống kê nhật ký theo cảm xúc / theo kế hoạch. Giới hạn đổi được ở functions/_lib/plans.json (limits.plans / lists / notes).
 
+// biểu đồ kế hoạch: vẽ sau khi chèn vào trang, đúng bề rộng khung (SVG co giãn tự do làm chữ SL / Vào / MT bị kéo méo)
+const KH_CH = new Map(); let KH_CN = 0;
+function khChart(o, x, p) { const id = "khc" + ++KH_CN; KH_CH.set(id, [o, x, p]); if (KH_CH.size > 40) KH_CH.delete(KH_CH.keys().next().value); return `<div class="kh-ch" data-khc="${id}"></div>`; }
+function khChartsDraw(root = document) {
+  $$("[data-khc]", root).forEach((el) => { const a = KH_CH.get(el.dataset.khc); if (!a) return; if (!el.clientWidth) return; const W = Math.max(280, Math.round(el.clientWidth)); if (el._w === W) return; el._w = W; el.innerHTML = oppChart(a[0], a[1], a[2], W, 190, false, { focus: true }); oppPm(el, a[2]); });
+}
+document.addEventListener("toggle", (e) => { if (e.target.tagName === "DETAILS" && e.target.open) khChartsDraw(e.target); }, true);
+addEventListener("resize", () => { clearTimeout(khChartsDraw.t); khChartsDraw.t = setTimeout(() => khChartsDraw(), 200); });
 const KHM = [
   ["h4", "⚡", "Lướt 4h", "vài giờ – vài ngày", 0],
   ["d", "📈", "Swing ngày", "vài ngày – vài tuần", 0],
@@ -157,7 +165,7 @@ function khSmcPlan(D, IJ, W, side) {
   const facts = (P && !P.broken) ? kpis([[bi("Cấu trúc tuần", "Weekly structure"), P.sd === 1 ? `<b class="up">${bi("Tăng", "Bullish")}</b>` : `<b class="down">${bi("Giảm", "Bearish")}</b>`], [bi("Sự kiện gần nhất", "Last event"), evTxt],
     [bi("Biên độ giao dịch", "Dealing range"), `${px(P.lo)} – ${px(P.hi)}`], [bi("Cân bằng 50%", "Equilibrium"), px(P.eq)], [bi("Vị trí giá", "Price position"), (() => { const q = ((p - P.lo) / P.R) * 100; return `${nf(q, 0)}% · ${q < 50 ? bi("vùng rẻ", "discount") : bi("vùng đắt", "premium")}`; })()],
     [bi("Vùng vào", "Entry zone"), `${px(P.z[0])} – ${px(P.z[1])}`, "", P.zs], P.ob ? [bi("Khối lệnh tuần", "Weekly OB"), `${px(P.ob.lo)} – ${px(P.ob.hi)}`] : null, [bi("Thanh khoản mục tiêu", "Liquidity targets"), `${px(P.t1)} → ${px(P.t2)}`]]) : "";
-  const xh = (t) => `${facts}${khBtTxt(bt, bi("tuần", "weeks"), r.k, n)}${P && !P.broken ? `<p class="faint">🌐 ${khPoolTxt("smc", P.sd)}</p>` : ""}<p class="faint">${bi(`Nguồn: ${W.src}. Chỉ xét lại khi ĐÓNG nến tuần (thứ Hai 7:00 giờ VN) – biến động trong tuần không đổi kế hoạch.`, `Source: ${W.src}. Re-check on weekly close only.`)}</p>${t ? `<div class="kh-ch">${oppChart(B, { ...t, tf: "w" }, p, 640, 170)}</div>` : ""}`;
+  const xh = (t) => `${facts}${khBtTxt(bt, bi("tuần", "weeks"), r.k, n)}${P && !P.broken ? `<p class="faint">🌐 ${khPoolTxt("smc", P.sd)}</p>` : ""}<p class="faint">${bi(`Nguồn: ${W.src}. Chỉ xét lại khi ĐÓNG nến tuần (thứ Hai 7:00 giờ VN) – biến động trong tuần không đổi kế hoạch.`, `Source: ${W.src}. Re-check on weekly close only.`)}</p>${t ? khChart(B, { ...t, tf: "w" }, p) : ""}`;
   if (!P) return { none: true, k: r.k, reason: bi("Nến tuần chưa có lần phá cấu trúc nào rõ ràng – SMC dài hạn chưa có kịch bản.", "No clear weekly structure break yet."), extra: xh() };
   if (P.broken) return { none: true, k: r.k, reason: bi(`Cấu trúc tuần vừa gãy: giá đóng tuần ${P.sd === 1 ? `dưới đáy bảo vệ ${px(P.lo)}` : `trên đỉnh bảo vệ ${px(P.hi)}`} – chờ cấu trúc mới (đóng tuần ${P.sd === 1 ? `trên ${px(lastHi?.p)}` : `dưới ${px(lastLo?.p)}`}).`, "Weekly structure just broke – wait for a new one."), extra: xh() };
   const sdW = side === "long" ? 1 : side === "short" ? -1 : 0;
@@ -233,7 +241,7 @@ function khTechPlan(D, IJ, side) {
   const c = C.find((x) => x.sig) || C.find((x) => x.g?.trend);
   const chk = (g, sd) => [[bi(sd === 1 ? "Giá trên EMA200, EMA20 > EMA50 > EMA200" : "Giá dưới EMA200, EMA20 < EMA50 < EMA200", "EMA stack aligned"), g?.trend], [bi(sd === 1 ? "RSI đã hồi về dưới 45 trong 6 phiên" : "RSI đã bật lên trên 55 trong 6 phiên", "RSI pulled back"), g?.dip], [bi(sd === 1 ? "RSI cắt lên 50" : "RSI cắt xuống 50", "RSI crossed 50"), g?.cross], [bi("Histogram MACD đổi chiều cùng hướng", "MACD histogram turning"), g?.mom]];
   const ind = kpis([[bi("Giá / EMA20", "Price / EMA20"), `${px(p)} / ${px(I.e20[j])}`], ["EMA50 / EMA200", `${px(I.e50[j])} / ${px(I.e200[j])}`], ["RSI 14", nf(I.rsi[j], 0), I.rsi[j] >= 70 ? "down" : I.rsi[j] <= 30 ? "up" : ""], [bi("MACD histogram", "MACD histogram"), `${I.h[j] >= 0 ? "+" : ""}${px(I.h[j])} ${I.h[j] > I.h[j - 1] ? "↑" : "↓"}`], [bi("ATR ngày", "Daily ATR"), `${px(I.atr[j])} (${nf((I.atr[j] / p) * 100, 1)}%)`]]);
-  const xh = (t, g, sd) => `${ind}${g ? `<ul class="kh-chk">${chk(g, sd).map(([tx, ok]) => `<li class="${ok ? "ok" : ""}">${ok ? "✓" : "○"} ${tx}</li>`).join("")}</ul>` : ""}${khBtTxt(bt, bi("phiên", "days"), r.k, n)}<p class="faint">🌐 ${khPoolTxt("tech", sd)}</p>${t ? `<div class="kh-ch">${oppChart(B, { ...t, tf: "d" }, p, 640, 170)}</div>` : ""}`;
+  const xh = (t, g, sd) => `${ind}${g ? `<ul class="kh-chk">${chk(g, sd).map(([tx, ok]) => `<li class="${ok ? "ok" : ""}">${ok ? "✓" : "○"} ${tx}</li>`).join("")}</ul>` : ""}${khBtTxt(bt, bi("phiên", "days"), r.k, n)}<p class="faint">🌐 ${khPoolTxt("tech", sd)}</p>${t ? khChart(B, { ...t, tf: "d" }, p) : ""}`;
   if (!c) return { none: true, k: r.k, reason: bi("EMA20 / 50 / 200 khung ngày đang lẫn lộn – chưa có xu hướng xếp lớp để đánh theo kỹ thuật.", "Daily EMAs are mixed – no trend to trade."), extra: xh(null, C[0].g, C[0].sd) };
   const sd = c.sd;
   if (sd === -1 && !r.fx) return { none: true, k: r.k, reason: bi(`Xu hướng ngày đang giảm và ${r.k} không có perp để Short.`, "Downtrend and no perp to short."), extra: xh(null, c.g, sd) };
@@ -301,7 +309,7 @@ function khDcaHtml(x) {
     ${kpis([[bi("Giá vốn TB nếu khớp đủ", "Avg cost if all fill"), px(x.avg)], [bi("Tổng số lượng", "Total qty"), `${qty(x.Q)} ${esc(K)}`], [bi("Ngừng mua & xem lại", "Stop & review"), px(x.inval), "down", bi("đóng nến tuần dưới mức này", "weekly close below")], [bi("Chốt 1/3", "Sell 1/3"), `${px(x.tp1)} <small>${pct((x.tp1 / x.avg - 1) * 100, 0)}</small>`, "up", bi("đỉnh 52 tuần", "52-week high")], [bi("Chốt 1/3 tiếp", "Sell next 1/3"), `${px(x.tp2)} <small>${pct((x.tp2 / x.avg - 1) * 100, 0)}</small>`, "up", bi("đỉnh lịch sử (ATH) / mở rộng", "ATH / extension")], [bi("Biên độ 52 tuần", "52-week range"), `${px(x.lo)} – ${px(x.hi)}`]])}
     ${x.hist.length ? `<p class="faint">📅 ${x.hist.map((h) => bi(`Mua đều mỗi tuần ${h.k} tuần qua: giá vốn ${px(h.avg)} → hiện <b class="${cls(h.dca)}">${pct(h.dca, 0)}</b> (mua 1 lần đầu kỳ: <span class="${cls(h.lump)}">${pct(h.lump, 0)}</span>)`, `Weekly DCA over ${h.k} weeks: avg ${px(h.avg)} → <b class="${cls(h.dca)}">${pct(h.dca, 0)}</b> (lump sum ${pct(h.lump, 0)})`)).join(" · ")}.</p>` : ""}
     <div class="tk-plan"><b>${bi("Cách đánh", "How")}:</b> ${bi(`Chia ${usd(x.budget)} thành ${x.L.length} phần, đặt sẵn lệnh mua giới hạn ở từng mức (${x.L[0].now ? "phần 1 mua ngay" : "chưa mua ngay"}) – giá càng rẻ phần càng lớn. Không dùng đòn bẩy nên không bị thanh lý; nếu đóng nến tuần dưới ${px(x.inval)} thì ngừng mua và xem lại lý do giữ coin (không bán tháo theo cảm xúc). Lên tới ${px(x.tp1)} chốt 1/3, ${px(x.tp2)} chốt thêm 1/3, phần còn lại giữ dài hạn.`, `Split ${usd(x.budget)} into ${x.L.length} limit buys, larger as price falls. Stop adding on a weekly close below ${px(x.inval)}. Sell 1/3 at ${px(x.tp1)}, 1/3 at ${px(x.tp2)}.`)}</div>
-    <div class="kh-ch">${oppChart(Bw0(x), { s: x.inval, e: x.L[0].p, t1: x.tp1, t2: x.tp2, tf: "w" }, x.p, 640, 170)}</div>
+    ${khChart(Bw0(x), { s: x.inval, e: x.L[0].p, t1: x.tp1, t2: x.tp2, tf: "w" }, x.p)}
     <small class="muted">${bi("Cơ sở", "Basis")}: ${bi("biên độ 52 tuần, vùng đỡ hợp lưu, vùng cầu SMC tuần", "52-week range, support confluence, weekly SMC demand")}${x.src ? ` · ${esc(x.src)}` : ""}. ${bi("Vốn đặt ở ô Ngân sách – không tính theo % rủi ro như lệnh đòn bẩy.", "Budget is set in the field above.")}</small>
     <div class="tk-a"><button class="btn primary" data-khdca='${sv}'>${bi("Lưu kế hoạch & nhắc tôi", "Save plan & remind me")}</button><small class="faint">${bi("nhắc khi giá tới từng mức mua, khi chạm mức chốt hoặc mức ngừng mua", "alerts at each buy level, take-profit and stop-adding level")}</small></div>
   </div>`;
@@ -381,11 +389,11 @@ async function khNew(k0) {
     if (!m) { out.innerHTML = `<div class="empty">${bi("Chưa có cách đánh nào ra kế hoạch có lợi thế cho coin này lúc này. Không vào lệnh cũng là một quyết định tốt.", "No style has an edge on this coin right now.")}</div>`; return; }
     if (khLock(m)) { out.innerHTML = khLockBody(m); return; }
     const t = RES[m]; if (!t) { out.innerHTML = skLines(4); return; }
-    if (m === "dca") { out.innerHTML = khDcaHtml(t); $$("[data-khdca]", out).forEach((b) => (b.onclick = async () => { if (await planSave(JSON.parse(b.dataset.khdca))) { b.disabled = true; b.textContent = bi("Đã lưu ✓", "Saved ✓"); khBadge(); } })); const p = BYK[t.k]?.p; $$(".kh-ch", out).forEach((c) => oppPm(c, p)); return; }
-    if (t.none) { out.innerHTML = ticketCard(t) + (t.extra ? `<div class="kh-x">${t.extra}</div>` : ""); return; }
+    if (m === "dca") { out.innerHTML = khDcaHtml(t); $$("[data-khdca]", out).forEach((b) => (b.onclick = async () => { if (await planSave(JSON.parse(b.dataset.khdca))) { b.disabled = true; b.textContent = bi("Đã lưu ✓", "Saved ✓"); khBadge(); } })); khChartsDraw(out); return; }
+    if (t.none) { out.innerHTML = ticketCard(t) + (t.extra ? `<div class="kh-x">${t.extra}</div>` : ""); khChartsDraw(out); return; }
     liveTickets(out, [{ t, D }]);
     if (t.extra) out.insertAdjacentHTML("beforeend", `<details class="kh-x" open><summary>${m === "smc" ? bi("🏛 Cấu trúc tuần & kiểm chứng", "🏛 Weekly structure & back-test") : bi("📐 Chỉ báo, điều kiện & kiểm chứng", "📐 Indicators, conditions & back-test")}</summary>${t.extra}</details>`);
-    $$(".kh-x .kh-ch", out).forEach((c) => oppPm(c, BYK[t.k]?.p));
+    khChartsDraw(out);
     $$("[data-tsave]", out).forEach((b) => b.addEventListener("click", () => setTimeout(khBadge, 400)));
   };
   const pick = (m) => { cur = m; lsSet("pltf", m); strip(); detail(); };
@@ -653,7 +661,7 @@ async function khCoinTab(D, m, out) {
   out.innerHTML = skLines(4);
   const t = await khBuild(D, m, "auto", numIn(lsGet("pldca", "")) || Math.round(setting("acct", 10000) * 0.1));
   if (!out.isConnected) return;
-  if (m === "dca") { out.innerHTML = khDcaHtml(t); $$("[data-khdca]", out).forEach((b) => (b.onclick = async () => { if (await planSave(JSON.parse(b.dataset.khdca))) { b.disabled = true; b.textContent = bi("Đã lưu ✓", "Saved ✓"); } })); $$(".kh-ch", out).forEach((c) => oppPm(c, BYK[D.row.k]?.p)); return; }
+  if (m === "dca") { out.innerHTML = khDcaHtml(t); $$("[data-khdca]", out).forEach((b) => (b.onclick = async () => { if (await planSave(JSON.parse(b.dataset.khdca))) { b.disabled = true; b.textContent = bi("Đã lưu ✓", "Saved ✓"); } })); khChartsDraw(out); return; }
   out.innerHTML = ticketCard(t) + (t.extra ? `<details class="kh-x" open><summary>${m === "smc" ? bi("🏛 Cấu trúc tuần & kiểm chứng", "🏛 Weekly structure & back-test") : bi("📐 Chỉ báo, điều kiện & kiểm chứng", "📐 Indicators & back-test")}</summary>${t.extra}</details>` : "");
-  bindTicketSave(out); $$(".kh-ch", out).forEach((c) => oppPm(c, BYK[D.row.k]?.p));
+  bindTicketSave(out); khChartsDraw(out);
 }

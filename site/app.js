@@ -4573,12 +4573,14 @@ function oppKl(r, tf) {
   KLC.set(key, p); return p;
 }
 // hình kế hoạch: nến + hộp lãi (xanh) / hộp lỗ (đỏ) như công cụ "vị thế" trên TradingView
-function oppChart(o, x, p, W = 320, H = 104, mini = false) {
+function oppChart(o, x, p, W = 320, H = 104, mini = false, fo = {}) {
   if (!o || !o.c?.length) o = { c: [], o: [], h: [], l: [] };
   const N = Math.min(o.c.length, mini ? 45 : x.tf === "d" ? 70 : 90), off = o.c.length - N;
   const lv = [x.s, x.e, x.t1, x.t2, p].filter(isNum);
   let lo = Math.min(...lv), hi = Math.max(...lv);
-  for (let i = off; i < o.c.length; i++) { lo = Math.min(lo, o.l[i]); hi = Math.max(hi, o.h[i]); }
+  // fo.focus: thang giá bám các mức của kế hoạch (± 60% khoảng các mức) – nến cũ ở xa bị cắt khỏi khung, không ép các mức dồn thành 1 vạch
+  const sp = (hi - lo) || hi * 0.05, L0 = fo.focus ? lo - sp * 0.6 : -Infinity, H0 = fo.focus ? hi + sp * 0.6 : Infinity;
+  for (let i = off; i < o.c.length; i++) { lo = Math.min(lo, Math.max(L0, o.l[i])); hi = Math.max(hi, Math.min(H0, o.h[i])); }
   const pad = (hi - lo) * 0.06 || hi * 0.01; lo -= pad; hi += pad;
   const fx = !N ? 0.08 : mini ? 0.8 : 0.74, cw = N ? (W * fx) / N : 0, Y = (v) => +(H - ((v - lo) / (hi - lo)) * H).toFixed(1);
   const up = css("--up"), dn = css("--down"), ink = css("--ink-3");
@@ -4591,7 +4593,11 @@ function oppChart(o, x, p, W = 320, H = 104, mini = false) {
   }
   const x0 = W * fx + 2, bw = W - x0 - (mini ? 1 : 30);
   const box = (a, b, c, op) => `<rect x="${x0}" y="${Math.min(Y(a), Y(b))}" width="${bw}" height="${Math.max(1, Math.abs(Y(a) - Y(b)))}" fill="${c}" opacity="${op}"/>`;
-  const hl = (v, c, t, dash) => `<line x1="0" x2="${x0 + bw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-width="1" ${dash ? 'stroke-dasharray="3 3"' : ""} opacity="${dash ? 0.55 : 0.9}"/>` + (mini ? "" : `<text x="${W - 1}" y="${Y(v) + 3}" text-anchor="end" fill="${c}">${t}</text>`);
+  // nhãn mức giá: đẩy cho cách nhau ≥ 10 px (trước: SL / Vào / MT1 / MT2 gần nhau thì chồng lên nhau)
+  const LB = mini ? [] : [[x.t2, up, "MT2"], [x.t1, up, "MT1"], [x.e, ink, "Vào"], [x.s, dn, "SL"]].filter(([v]) => isNum(v)).map(([v, c, t]) => ({ y: Y(v) + 3, c, t })).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < LB.length; i++) if (LB[i].y - LB[i - 1].y < 10) LB[i].y = LB[i - 1].y + 10;
+  for (let i = LB.length - 1; i >= 0; i--) { const mx = i === LB.length - 1 ? H - 1 : LB[i + 1].y - 10; if (LB[i].y > mx) LB[i].y = mx; }
+  const hl = (v, c, t, dash) => `<line x1="0" x2="${x0 + bw}" y1="${Y(v)}" y2="${Y(v)}" stroke="${c}" stroke-width="1" ${dash ? 'stroke-dasharray="3 3"' : ""} opacity="${dash ? 0.55 : 0.9}"/>` + (mini ? "" : (() => { const l = LB.find((q) => q.t === t); return l ? `<text x="${W - 1}" y="${l.y.toFixed(1)}" text-anchor="end" fill="${c}">${t}</text>` : ""; })());
   const pm = `<g data-pm><line x1="0" x2="${x0 + bw}" y1="0" y2="0" stroke="${css("--ink")}" stroke-width=".8" stroke-dasharray="1 2" opacity=".6"/><circle cx="${x0}" cy="0" r="${mini ? 2.2 : 3}" fill="${css("--ink")}" stroke="${css("--surface")}" stroke-width="1.2"/></g>`;
   return `<svg class="oc-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" data-lo="${lo}" data-hi="${hi}" data-h="${H}">${box(x.e, x.t2, up, 0.13)}${box(x.e, x.t1, up, 0.12)}${box(x.e, x.s, dn, 0.18)}${g}
     ${hl(x.t2, up, "MT2", true)}${hl(x.t1, up, "MT1")}${hl(x.e, ink, "Vào")}${hl(x.s, dn, "SL")}${pm}</svg>`;

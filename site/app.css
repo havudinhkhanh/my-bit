@@ -7856,7 +7856,7 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .kh-x>summary{cursor:pointer;font-weight:600;font-size:.84375rem;padding:2px 0}
 .kh-x .kpis{margin:8px 0}.kh-x p{margin:6px 0}
 .kh-ch{margin:8px 0;border:1px solid var(--bd-2);border-radius:6px;overflow:hidden;background:var(--sunk)}
-.kh-ch .oc-svg{display:block;width:100%;height:170px}
+.kh-ch{min-height:190px}.kh-ch .oc-svg{display:block;width:100%;height:190px}.kh-ch .oc-svg text{font-size:10px;font-weight:600}
 .kh-chk{display:grid;gap:3px;margin:8px 0;padding:0;list-style:none;font-size:.8125rem;color:var(--ink-3)}
 .kh-chk li.ok{color:var(--up)}
 .kh-lock{margin:8px 0;padding:14px;border:1px dashed var(--brand);border-radius:10px;background:color-mix(in srgb,var(--brand) 6%,transparent)}

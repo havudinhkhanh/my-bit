@@ -9,6 +9,15 @@
    "se": "All na settings are per device.",
    "it": [
     {
+     "c": "fix",
+     "a": "chart",
+     "t": "Sửa biểu đồ kế hoạch: các mức SL / Vào / MT dồn thành 1 vạch, chữ bị kéo méo và chồng lên nhau",
+     "te": "Fixed plan charts: levels squashed into one line, stretched and overlapping labels",
+     "d": "Thang giá giờ bám các mức của kế hoạch (nến cũ ở xa bị cắt khỏi khung), biểu đồ vẽ đúng bề rộng màn hình nên chữ không bị kéo, nhãn tự giãn ra khi các mức gần nhau – áp cả cho thẻ ở Cơ hội hôm nay.",
+     "de": "The price scale now follows the plan's levels, the chart is drawn at the real width and labels no longer overlap – also on idea cards.",
+     "go": "#/plan"
+    },
+    {
      "c": "new",
      "a": "ui",
      "t": "Lên kế hoạch lệnh làm lại: 5 cách đánh so sánh cạnh nhau cho 1 coin",
