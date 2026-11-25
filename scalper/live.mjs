@@ -430,7 +430,10 @@ export class LiveExec {
     for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = l.fq > 0 ? "filled" : "cxl"; }
     const F = await this.filters(ev.sym), p = await this.pos(ev.sym), have = Math.abs(p.amt), q = fl(Math.min(have, ev.pos.q - qm), F.step);
     ev.trDone = 1;
-    if (!(q > 0) || q >= have) return this.close(ev, "TRAIL");
+    // chỉ có phần "mua ngay" đã khớp (lệnh chờ chưa khớp) → không có gì để cắt lỗ đuổi: GIỮ phần mua ngay tới hết giờ như sàn thử.
+    // (trước 25/11/2026: q = 0 cũng rơi vào nhánh đóng → đóng CẢ vị thế – BLESS 25/11 bị đóng sau 3 phút trong khi sàn thử vẫn giữ)
+    if (!(q > 0)) { this.say(`🪝 ${ev.sym}: chạm mức cắt lỗ đuổi nhưng chỉ có phần mua ngay – giữ tới hết giờ (như sàn thử)`); this.save(); return; }
+    if (q >= have) return this.close(ev, "TRAIL");
     const m = this.mark(ev.k) || ev.pos.ap;
     const o = await this.req("POST", "/fapi/v1/order", { symbol: ev.sym, side: ev.side > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), reduceOnly: "true", newOrderRespType: "RESULT" });
     const px = +o.avgPrice > 0 ? +o.avgPrice : m, c = this.cfg();

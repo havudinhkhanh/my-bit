@@ -9,6 +9,16 @@
    "se": "All na settings are per device.",
    "it": [
     {
+     "c": "fix",
+     "a": "live",
+     "t": "Binance thật: lệnh Bắt râu chỉ có phần \"mua ngay\" không còn bị cắt lỗ đuổi đóng sớm",
+     "te": "Live: wick-catch trades holding only the market leg are no longer closed early by the trailing stop",
+     "d": "Khi lệnh chờ chưa khớp mà chỉ phần mua ngay khớp, cắt lỗ đuổi trước đây đóng cả vị thế (BLESS 25/11 đóng sau 3 phút) trong khi sàn thử giữ đủ 60 phút như luật đã kiểm chứng. Giờ tài khoản thật giữ giống sàn thử. Cần cập nhật máy chủ riêng.",
+     "de": "Live now holds the market leg to time like paper. Requires a VPS update.",
+     "aud": "admin",
+     "go": "#/bot/scalp"
+    },
+    {
      "c": "new",
      "a": "bot",
      "t": "Tạm dừng Bot Phản Xạ vài giờ hoặc tới hết ngày – tự chạy lại",
