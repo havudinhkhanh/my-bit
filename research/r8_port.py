@@ -6,7 +6,7 @@ P = sys.argv[1] if len(sys.argv) > 1 else "research_out/round8.json.gz"
 CAP = int(sys.argv[2]) if len(sys.argv) > 2 else 8
 DST = float(sys.argv[3]) if len(sys.argv) > 3 else 3.0
 ev = json.load(gzip.open(P, "rt"))
-E = pd.DataFrame([{k: v for k, v in e.items() if k != "res"} | {"res": e["res"]} for e in ev]).sort_values("T").reset_index(drop=True)
+E = pd.DataFrame([{k: v for k, v in e.items() if k != "res"} | {"res": e["res"]} for e in ev]).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 E["ts"] = pd.to_datetime(E["T"] * 60, unit="s", utc=True)
 E["vnday"] = (E.ts + pd.Timedelta(hours=7)).dt.strftime("%Y-%m-%d")
 E["half"] = E.ts.dt.year.astype(str) + np.where(E.ts.dt.month <= 6, "H1", "H2")

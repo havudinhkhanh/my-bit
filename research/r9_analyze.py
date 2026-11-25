@@ -55,7 +55,7 @@ def sim(r, X_, mode, rv=None):
 
 
 def run(name, sel, X_, mode, rv=None, SZ=0.025):
-    S = X[sel].sort_values("T")
+    S = X[sel].sort_values(["T", "s"], kind="mergesort")
     res = [sim(r, X_, mode, rv) for r in S.itertuples()]
     v = np.array([a for a, _ in res]); why = pd.Series([b for _, b in res]).value_counts()
     eq = np.cumprod(1 + v / 1e4 * SZ); dd = (1 - eq / np.maximum.accumulate(eq)).max() * 100

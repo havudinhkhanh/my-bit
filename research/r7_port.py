@@ -5,7 +5,7 @@ import numpy as np, pandas as pd
 P = sys.argv[1] if len(sys.argv) > 1 else "research_out/round7.json.gz"
 EX = sys.argv[2] if len(sys.argv) > 2 else "t60"
 ev = json.load(gzip.open(P, "rt"))
-E = pd.DataFrame([{k: v for k, v in e.items() if k != "res"} | {"res": e["res"]} for e in ev]).sort_values("T").reset_index(drop=True)
+E = pd.DataFrame([{k: v for k, v in e.items() if k != "res"} | {"res": e["res"]} for e in ev]).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 TT = E["T"].values; SS = E["s"].values
 # độ rộng: số coin KHÁC có cú sốc trong 10 phút trước (tính cả phút này) – chỉ dùng dữ liệu đã biết
 lo = np.searchsorted(TT, TT - 10, "left"); hi = np.searchsorted(TT, TT, "right")

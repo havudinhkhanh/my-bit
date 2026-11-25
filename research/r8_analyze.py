@@ -45,7 +45,7 @@ def run(levels, W, ex):
     fills = (~np.isnan(M)).sum(0)
     g = np.nansum(M, 0) / 1e4 * SZ                            # lời/lỗ theo phần tài sản của từng cú sốc
     m = fills > 0
-    x = pd.DataFrame({"g": g[m], "T": E["T"].values[m], "half": E["half"].values[m], "b": np.nansum(M, 0)[m] / fills[m]}).sort_values("T")
+    x = pd.DataFrame({"g": g[m], "T": E["T"].values[m], "half": E["half"].values[m], "b": np.nansum(M, 0)[m] / fills[m]}).sort_values(["T", "s"], kind="mergesort")
     if not len(x):
         return None
     eq = np.cumprod(1 + x.g.values); dd = (1 - eq / np.maximum.accumulate(eq)).max() * 100

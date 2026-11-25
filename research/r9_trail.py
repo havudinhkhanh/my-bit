@@ -13,7 +13,7 @@ def sim(r,tra=150,trg=100,slip=0):
     return o[H]-cin-OUT_T
 # note: slip shifts entry price worse by slip bps: pnl path relative to worse entry = path - slip
 def run(sel,**kw):
-    S=X[sel].sort_values("T"); v=np.array([sim(r,**kw) for r in S.itertuples()])
+    S=X[sel].sort_values(["T", "s"], kind="mergesort"); v=np.array([sim(r,**kw) for r in S.itertuples()])
     eq=np.cumprod(1+v/1e4*0.025); dd=(1-eq/np.maximum.accumulate(eq)).max()*100
     return f"{len(v):5} lệnh {len(v)/DAYS:4.2f}/ngày · TB {v.mean():+6.1f} · thắng {(v>0).mean()*100:4.1f}% · {v.sum()/DAYS:+6.0f} bps/ngày · tổng {(eq[-1]-1)*100:+6.1f}% · sụt {dd:4.1f}%"
 mkE=X.groupby("T").D.transform(lambda s:(s=="0.0").any())

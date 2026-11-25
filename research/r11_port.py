@@ -10,7 +10,7 @@ EX = sys.argv[2] if len(sys.argv) > 2 else "tr150"
 SZ = float(sys.argv[3]) / 100 if len(sys.argv) > 3 else 0.075
 CAP = int(sys.argv[4]) if len(sys.argv) > 4 else 9
 ev = json.load(gzip.open(P, "rt"))
-E = pd.DataFrame(ev).sort_values("T").reset_index(drop=True)
+E = pd.DataFrame(ev).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 E["ts"] = pd.to_datetime(E["T"] * 60, unit="s", utc=True)
 E["vnday"] = (E.ts + pd.Timedelta(hours=7)).dt.strftime("%Y-%m-%d")
 E["half"] = E.ts.dt.year.astype(str) + np.where(E.ts.dt.month <= 6, "H1", "H2")

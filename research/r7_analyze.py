@@ -21,7 +21,7 @@ d = pd.DataFrame(rows)
 d["ts"] = pd.to_datetime(d["T"] * 60, unit="s", utc=True)
 d["half"] = d.ts.dt.year.astype(str) + np.where(d.ts.dt.month <= 6, "H1", "H2")
 d["yr"] = d.ts.dt.year
-d = d.sort_values("T").reset_index(drop=True)
+d = d.sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 DAYS = (d["T"].max() - d["T"].min()) / 1440
 d["pnl"] = d[EX]
 F = {"vol8": d.vx >= 8, "f6": d.prior6 == 0, "r15": d.r15 <= 100, "knife": d.r4h > -1000}
@@ -88,7 +88,7 @@ for sd, lab in ((1, "Long (mua cú sập)"), (-1, "Short (bán cú vọt)")):
 
 print("\n== 3. Theo từng coin: cú sốc lặp lại trên cùng coin – chặn tất cả (như bây giờ) hay chỉ chặn khi lần trước LỖ?")
 C = d[V8 & F["r15"] & F["knife"]].copy()
-evk = C.groupby(["s", "T"])["pnl"].mean().reset_index().sort_values("T")
+evk = C.groupby(["s", "T"])["pnl"].mean().reset_index().sort_values(["T", "s"], kind="mergesort")
 prev = {}
 info = []
 for s, T, p in evk.itertuples(index=False):
@@ -104,7 +104,7 @@ sel = lambda m: C[m]  # noqa: E731
 
 
 def cline(name, m):
-    x = C[m].sort_values("T")
+    x = C[m].sort_values(["T", "s"], kind="mergesort")
     g = 1 + x["pnl"].values / 1e4 * SZ; eq = np.cumprod(g); dd = (1 - eq / np.maximum.accumulate(eq)).max() * 100 if len(g) else 0
     per = x.assign(g=g).groupby("half")["g"].prod().sub(1).mul(100).round(0).to_dict()
     print(f"  {name:<58} {len(x):>5} lệnh · TB {x['pnl'].mean():+6.1f} · thắng {(x['pnl'] > 0).mean() * 100:4.1f}% · TỔNG {(eq[-1] - 1) * 100 if len(g) else 0:+7.1f}% · sụt {dd:5.1f}% · " + " ".join(f"{k}:{v:+.0f}%" for k, v in per.items()))

@@ -4,7 +4,7 @@ B) Phương pháp mới: bps ròng / lệnh theo tháng, nửa năm, 12 tuần g
 import gzip, json, os, sys
 import numpy as np, pandas as pd
 D0 = sys.argv[1] if len(sys.argv) > 1 else "research_out"
-E = pd.DataFrame(json.load(gzip.open(os.path.join(D0, "round22.json.gz"), "rt"))).sort_values("T").reset_index(drop=True)
+E = pd.DataFrame(json.load(gzip.open(os.path.join(D0, "round22.json.gz"), "rt"))).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 E["ts"] = pd.to_datetime(E["T"] * 60, unit="s", utc=True); vn = E.ts + pd.Timedelta(hours=7)
 E["vnday"] = vn.dt.strftime("%Y-%m-%d")
 ALLD = pd.date_range(vn.min().normalize(), vn.max().normalize(), freq="D").strftime("%Y-%m-%d")

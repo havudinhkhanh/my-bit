@@ -44,7 +44,7 @@ MAIN = "xuyên L · trượt 20"
 
 # ---------------------------------------------------------------- dữ liệu
 def load_events():
-    D = pd.DataFrame(json.load(gzip.open(SRC, "rt"))).sort_values("T").reset_index(drop=True)
+    D = pd.DataFrame(json.load(gzip.open(SRC, "rt"))).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
     D["ts"] = pd.to_datetime(D["T"] * 60, unit="s", utc=True); vn = D.ts + pd.Timedelta(hours=7)
     D["vnday"] = vn.dt.strftime("%Y-%m-%d"); D["half"] = D.ts.dt.year.astype(str) + np.where(D.ts.dt.month <= 6, "H1", "H2")
     for c in ("p1_dn", "brd"):

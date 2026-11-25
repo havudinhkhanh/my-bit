@@ -7,7 +7,7 @@ import gzip, json, sys
 import numpy as np, pandas as pd
 P = sys.argv[1] if len(sys.argv) > 1 else "research_out/round13.json.gz"
 EX, SZ, CAP, W = "tr150", 0.075, 9, 8
-E = pd.DataFrame(json.load(gzip.open(P, "rt"))).sort_values("T").reset_index(drop=True)
+E = pd.DataFrame(json.load(gzip.open(P, "rt"))).sort_values(["T", "s"], kind="mergesort").reset_index(drop=True)
 E["ts"] = pd.to_datetime(E["T"] * 60, unit="s", utc=True)
 vn = E.ts + pd.Timedelta(hours=7)
 E["vnday"] = vn.dt.strftime("%Y-%m-%d"); E["vnh"] = vn.dt.hour + vn.dt.minute / 60
