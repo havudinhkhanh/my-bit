@@ -22,6 +22,12 @@
      "go": "#/settings",
      "t": "Thanh bên: ⚙️ Cài đặt thành 1 dòng ngay trên ảnh đại diện, biểu tượng thẳng cột với ảnh; hàng tài khoản & nút Thu gọn luôn dính đáy khi thanh bên dài",
      "te": "Sidebar: ⚙️ Settings is its own row right above the avatar, icon aligned with it; account row and Collapse stay pinned at the bottom"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Nhật ký bot: khi nối lại nguồn giá mà nến đã có sẵn, không còn báo \"Nạp nến 0/520\" gây hiểu lầm",
+     "te": "Bot log: no more misleading \"0/520 candles loaded\" on reconnect when candles are already there"
     }
    ]
   },

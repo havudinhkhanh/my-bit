@@ -535,10 +535,10 @@ export class ScalpCore {
   }
   // khởi động lại không phải chờ 15–30 phút: tải ngay 62 nến 1 phút gần nhất của từng coin (8 yêu cầu song song, nhẹ nhàng với giới hạn của sàn)
   async backfill(f, id) {
-    const L = [...f.list], url = SRC[id].bars; let ok = 0, i = 0;
+    const L = [...f.list], url = SRC[id].bars; let ok = 0, i = 0, had = 0;
     const work = async () => {
       while (i < L.length) {
-        const u = L[i++], x = this.M[u.id]; if (!x || x.m1.length >= 32) continue;
+        const u = L[i++], x = this.M[u.id]; if (!x) continue; if (x.m1.length >= 32) { had++; continue; }
         try {
           const r = await fetch(url(u.sym), { signal: AbortSignal.timeout(10000) }); if (!r.ok) continue;
           const K = await r.json(); if (!Array.isArray(K) || K.length < 2) continue;
@@ -550,7 +550,7 @@ export class ScalpCore {
       }
     };
     await Promise.all(Array.from({ length: 8 }, work));
-    this.say(Date.now(), `Nạp nến 1 phút cho ${ok}/${L.length} thị trường ${f.t === "F" ? "futures" : "spot"} – biết ngay xu hướng 15 phút & vùng giá 60 phút, không phải chờ`, "info");
+    if (ok || !had) this.say(Date.now(), `Nạp nến 1 phút cho ${ok}/${L.length - had} thị trường ${f.t === "F" ? "futures" : "spot"}${had ? ` (${had} đã có sẵn)` : ""} – biết ngay xu hướng 15 phút & vùng giá 60 phút, không phải chờ`, "info");      // nối lại khi nến đã có đủ → không báo "0/520" gây hiểu lầm
   }
   async probeBinance() {     // Binance chặn máy chủ Cloudflare (HTTP 403) – thử lại mỗi giờ, ghi kết quả để biết khi nào dùng lại được
     if (this.bn && Date.now() - Date.parse(this.bn.at + "Z") < 3600e3) return;
