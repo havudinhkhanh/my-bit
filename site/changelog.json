@@ -5,16 +5,16 @@
    "v": "2026.11.25",
    "t": "Mèo na theo từng thiết bị",
    "te": "Per-device cat",
-   "s": "Bật / tắt mèo na riêng cho từng máy.",
-   "se": "Turn na on or off per device.",
+   "s": "Mọi cài đặt của mèo na lưu riêng cho từng máy.",
+   "se": "All na settings are per device.",
    "it": [
     {
      "c": "imp",
      "a": "mascot",
      "hi": 1,
      "go": "#/settings",
-     "t": "Mèo na bật / ít nói / tắt RIÊNG từng thiết bị – vd máy tính bật, điện thoại tắt; bộ đồ, cỡ, tiếng kêu vẫn đồng bộ",
-     "te": "na on / quiet / off is now per device – e.g. on for desktop, off on phone; outfit, size and sound still sync"
+     "t": "Mèo na: mọi cài đặt (bật / ít nói / tắt, tiếng kêu, cỡ, bộ đồ) lưu RIÊNG từng thiết bị – vd máy tính bật cỡ lớn, điện thoại tắt",
+     "te": "na: every setting (on / quiet / off, sound, size, outfit) is now per device – e.g. large on desktop, off on phone"
     }
    ]
   },

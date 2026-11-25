@@ -1333,7 +1333,7 @@
       ${it("off", "🙈", L("Cất na đi", "Hide na"), L("bật lại trong Tài khoản", "turn back on in Account"))}</div>`;
     document.body.appendChild(m);
     m.querySelector("[data-x]").onclick = () => iosMenuClose();
-    const setU = async (f) => { const u = { ...(UIP.mun || {}) }; f(u); UIP = { ...UIP, mun: u }; await uiSave(); MUN.apply(); };
+    const setU = async (f) => { if (window.munPatch) { const u = {}; f(u); window.munPatch(u); MUN.apply(); return; } const u = { ...(UIP.mun || {}) }; f(u); UIP = { ...UIP, mun: u }; await uiSave(); MUN.apply(); };      // cài đặt na lưu riêng từng thiết bị
     m.querySelectorAll("[data-mun]").forEach((b) => (b.onclick = async () => { const k = b.dataset.mun; iosMenuClose();
       if (k === "size") await setU((u) => (u.size = { s: "m", m: "l", l: "s" }[S.cfg.size || "l"]));
       else if (k === "snd") { await setU((u) => (u.snd = !S.cfg.snd)); if (S.cfg.snd) { unlock(); setTimeout(() => meow(2), 120); } else say(L("Hừ. Im thì im.", "Hmph. Silent it is."), 2500, 2); }
