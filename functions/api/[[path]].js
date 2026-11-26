@@ -310,6 +310,7 @@ export async function onRequest(ctx) {
           ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, c0: e.c0, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
           swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp, t0: p.t0 })),
           qp: (L.qp?.open || []).map((p) => ({ id: p.id, k: p.k, name: p.name, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.ap ?? l.e, stop: l.stop })), upnl: p.upnl, t0: p.t0 })),
+          mp: (L.man && L.man.env === E ? L.man.pend || [] : []).map((p) => ({ id: p.id, sym: p.sym, sd: p.sd, px: p.px, q: p.q, usd: p.usd, kind: p.kind, t0: p.t0, vd: p.vd })),      // 📍 lệnh anh HẸN giá (chờ khớp) – hiện ở ô lệnh nổi cùng lệnh bot
           man: (() => {      // ✋ lệnh tay anh tự mở trên Binance (bỏ mã bot đang có lệnh) – từ máy chủ riêng (20 giây/lần) hoặc ví (5 phút/lần)
             const bot = new Set([...(L.ev || []).map((e) => e.sym), ...(L.qp?.open || []).flatMap((p) => (p.legs || []).map((l) => l.sym)), ...(L.swp?.open || []).map((p) => p.sym)]);
             if (L.man && L.man.env === E) return (L.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => { const O = L.man.ord?.[p.sym] || [], sd = p.amt > 0 ? 1 : -1, sl = O.filter((o) => /^STOP/.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || null;

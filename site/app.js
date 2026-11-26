@@ -8723,6 +8723,7 @@ function lvwItems(D) {
   for (const p of L?.swp || []) out.live.push({ acc, st: "open", sym: String(p.sym).replace(/USDT$/, ""), side: -1, strat: "pump", e: p.ap, q: p.q, N: p.N, upnl: p.upnl, m: p.m, a: lvwMs(p.t0), b: lvwMs(p.exp), t: lvwMs(p.t0) });
   for (const p of L?.qp || []) { const g = p.legs?.[0]; if (g) out.live.push({ acc, st: "open", sym: String(g.sym).replace(/USDT$/, ""), side: g.side, strat: p.name || p.k, e: g.e, stop: g.stop, upnl: p.upnl, a: lvwMs(p.t0), t: lvwMs(p.t0) }); }
   for (const p of L?.man || []) { const lk = p.lk || null; out.live.push({ acc, st: "open", man: 1, sym: String(p.sym).replace(/USDT$/, ""), side: p.amt > 0 ? 1 : -1, strat: "man", e: p.ep, q: Math.abs(p.amt), upnl: p.up, m: p.mk, stop: p.sl, a: lk?.exp ? lk.at : null, b: lk?.exp || null, t: lk?.at || Date.now() }); }
+  for (const p of L?.mp || []) out.live.push({ acc, st: "wait", man: 1, sym: String(p.sym).replace(/USDT$/, ""), side: p.sd, strat: "man", lv: [{ px: p.px, q: p.q }], usd: p.usd, a: p.t0 || null, b: p.vd || null, t: p.t0 || Date.now() });      // 📍 lệnh anh hẹn giá, đang chờ khớp
   for (const h of P?.hkL || []) out.paper.push({ acc: "paper", st: "wait", sym: h.k.split(":")[0], side: h.side, strat: "hook", R: h.R, lv: (h.lv || []).filter((l) => !l.f).map((l) => ({ px: l.px })), a: lvwMs(h.t0), b: lvwMs(h.exp), t: lvwMs(h.t0) });
   for (const p of P?.posL || []) out.paper.push({ acc: "paper", st: "open", sym: p.k.split(":")[0], side: p.side, strat: p.strat, e: p.e, q: p.q, stop: p.sl, a: lvwMs(p.t0), b: lvwMs(p.t0) + (p.h || 0) * 1000, t: lvwMs(p.t0) });
   for (const p of P?.swL || []) out.paper.push({ acc: "paper", st: "open", sym: String(p.sym).replace(/USDT$/, ""), side: -1, strat: p.k, e: p.e, q: p.q, N: p.N, upnl: p.upnl, m: p.m, a: lvwMs(p.t0), b: lvwMs(p.t1), t: lvwMs(p.t0) });
@@ -8743,11 +8744,11 @@ function lvwRow(x) {
       <div class="lvw-r2"><span>${px(x.e)} → <b>${isNum(m) ? px(m) : "…"}</b></span>${x.stop ? `<span class="down">SL ${px(x.stop)}</span>` : ""}</div>${bar}<div class="lvw-r3">${left || (x.man ? bi("anh tự quản lý · chưa hẹn đóng", "managed by you · no auto-close") : "")}</div></a>`;
   }
   const near = (x.lv || []).map((l) => ({ ...l, d: isNum(mk) ? Math.abs(mk / l.px - 1) * 100 : null })).sort((a, b) => (a.d ?? 1e9) - (b.d ?? 1e9))[0];
-  return `<a class="lvw-it wait" href="${href}"><div class="lvw-r1"><span>${LVW_NM[x.strat] || "📐"} <b>${esc(x.sym)}</b> ${sd}${x.R ? ` <small class="faint">${bi("sốc", "shock")} ${nf(Math.abs(x.R) / 100, 1)}%</small>` : ""}</span><span class="lvw-tag">⏳ ${bi("chờ khớp", "pending")}</span></div>
+  return `<a class="lvw-it wait" href="${x.man ? "#/bot/scalp" : href}"${x.man ? ' data-lvw-go="live"' : ""}><div class="lvw-r1"><span>${x.man ? "📍" : LVW_NM[x.strat] || "📐"} <b>${esc(x.sym)}</b> ${sd}${x.R ? ` <small class="faint">${bi("sốc", "shock")} ${nf(Math.abs(x.R) / 100, 1)}%</small>` : ""}${x.man ? ` <small class="faint">${bi("anh hẹn giá", "your limit")}${x.usd ? ` · ${nf(x.usd, 0)} USDT` : ""}</small>` : ""}</span><span class="lvw-tag">⏳ ${bi("chờ khớp", "pending")}</span></div>
     <div class="lvw-r2"><span>${(x.lv || []).map((l) => px(l.px)).join(" · ")}</span>${near?.d != null ? `<span>${bi("còn cách", "away")} <b>${nf(near.d, 2)}%</b></span>` : ""}</div>${bar}<div class="lvw-r3">${left}</div></a>`;
 }
 function lvwParts(D) {
-  const L = D.live, I = lvwItems(D), liveOn = !!(L && (L.on || L.ev?.length || L.swp?.length || L.qp?.length || L.man?.length));
+  const L = D.live, I = lvwItems(D), liveOn = !!(L && (L.on || L.ev?.length || L.swp?.length || L.qp?.length || L.man?.length || L.mp?.length));
   const tab = LVW.tab === "paper" || !liveOn ? "paper" : "live", A = tab === "live" ? I.live : I.paper, last = tab === "live" ? I.lastL : I.lastP;
   const nW = (X) => X.filter((x) => x.st === "wait").length, nO = (X) => X.filter((x) => x.st === "open").length;
   const fresh = Date.now() - lvsT(D.at) < 150e3, st = !fresh ? "off" : L?.halt && tab === "live" ? "warn" : (nO(A) || nW(A)) ? "hot" : "on";

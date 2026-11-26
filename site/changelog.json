@@ -10,6 +10,21 @@
    "it": [
     {
      "c": "new",
+     "a": "chart",
+     "t": "Thước đo trên biểu đồ tính luôn lời/lỗ sau phí và trượt giá",
+     "te": "Chart ruler now shows profit/loss after fees and slippage",
+     "d": "Chọn Thước đo trong công cụ vẽ rồi kéo từ điểm vào tới điểm ra: kéo lên là Long, kéo xuống là Short. Hiện % ròng sau phí spot 2 chiều (0,1% mỗi chiều) và trượt giá 2 chiều (0,05% mỗi chiều), kèm số tiền trên mỗi 1.000 USDT.",
+     "de": "Pick the Ruler in the drawing tools and drag from entry to exit: up is Long, down is Short. Shows net % after spot fees (0.1% per side) and slippage (0.05% per side), plus the amount per 1,000 USDT."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Ô lệnh nổi hiện cả lệnh anh hẹn giá đang chờ khớp",
+     "te": "The floating trades box now lists your pending limit orders",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
      "a": "bot",
      "t": "Cột Kiểm chứng theo tuần: 6 lần chạy gần nhất, bấm xem cấu hình & các mã",
      "te": "Weekly validation: last 6 runs per method, tap for settings and symbols",

@@ -15,7 +15,7 @@
     ["vline", "Đường dọc (1 điểm) – đánh dấu ngày / sự kiện", ic('<path d="M12 3v18"/><circle cx="12" cy="12" r="1.6"/>')],
     ["fib", "Fibonacci thoái lui (kéo từ đáy lên đỉnh hoặc ngược lại)", ic('<path d="M3 5h18M3 9.5h18M3 13h18M3 19h18"/><path d="M5 19 19 5" stroke-dasharray="2 2"/>')],
     ["rect", "Vùng giá (hình chữ nhật)", ic('<rect x="4" y="6" width="16" height="12" rx="1"/>')],
-    ["measure", "Thước đo – % thay đổi, số nến", ic('<path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/>')],
+    ["measure", "Thước đo – kéo từ điểm vào tới điểm ra: % thay đổi, số nến, lời/lỗ sau phí + trượt giá (lên = Long, xuống = Short)", ic('<path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/>')],
     ["pen", "Bút vẽ tự do", ic('<path d="M4 20c3-1 4-5 7-6s4 3 6 2 2-6 3-8"/>')],
     ["text", "Ghi chú chữ", ic('<path d="M5 6V4h14v2M12 4v16M9 20h6"/>')],
   ];
@@ -235,7 +235,15 @@
           el2("rect", { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y), fill: cc, "fill-opacity": 0.13, stroke: cc, "stroke-width": 1 }, g);
           el2("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: cc, "stroke-width": 1, "stroke-dasharray": "4 3" }, g);
           const bars = Math.round(t2l(d.p[1].t) - t2l(d.p[0].t)), ch = (d.p[1].p / d.p[0].p - 1) * 100;
-          lbl(g, (a.x + b.x) / 2, (up ? Math.min(a.y, b.y) : Math.max(a.y, b.y)) + (up ? -12 : 12), `${nfp(ch)} · ${fmt(d.p[1].p - d.p[0].p)} · ${Math.abs(bars)} nến`, cc, "middle");
+          const yl = (up ? Math.min(a.y, b.y) : Math.max(a.y, b.y)) + (up ? -12 : 12);
+          lbl(g, (a.x + b.x) / 2, yl, `${nfp(ch)} · ${fmt(d.p[1].p - d.p[0].p)} · ${Math.abs(bars)} nến`, cc, "middle");
+          // 💰 lời/lỗ nếu vào ở điểm đầu, ra ở điểm cuối (11/2026, Jason): kéo LÊN = Long, kéo XUỐNG = Short; trừ phí spot 2 chiều + trượt giá 2 chiều
+          // (vào bị trượt bất lợi, ra bị trượt bất lợi). Phí / trượt mỗi chiều (%) đổi được: cfg.cost hoặc khoá ms_fee / ms_slip.
+          { const f = (cfg.cost?.fee ?? cfg.get?.("ms_fee", 0.1) ?? 0.1) / 100, sp = (cfg.cost?.slip ?? cfg.get?.("ms_slip", 0.05) ?? 0.05) / 100, p0 = d.p[0].p, p1 = d.p[1].p;
+            if (p0 > 0 && p1 > 0 && p0 !== p1) {
+              const net = up ? (p1 * (1 - sp) * (1 - f)) / (p0 * (1 + sp) * (1 + f)) - 1 : (p0 * (1 - sp) * (1 - f) - p1 * (1 + sp) * (1 + f)) / p0, nc = net >= 0 ? "#2FBF71" : "#F0525F";
+              const n2 = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ",");
+              lbl(g, (a.x + b.x) / 2, yl + (up ? -17 : 17), `${up ? "Long" : "Short"} · ròng ${n2(net * 100)}% sau phí ${((f * 200).toFixed(2)).replace(".", ",")}% + trượt ${((sp * 200).toFixed(2)).replace(".", ",")}% · ${n2(net * 1000)} USDT / 1.000`, nc, "middle"); } }
         } else if (d.k === "pen") {
           el2("polyline", { points: pts.map((q) => `${q.x},${q.y}`).join(" "), fill: "none", stroke: col, "stroke-width": W + 0.4 }, g);
         } else if (d.k === "text") {
