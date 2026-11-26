@@ -62,7 +62,8 @@ export class SwingLab {
       // list: 24–30 giờ sau giờ niêm yết (lần đầu chạy không vào bù coin đã quá 30 giờ)
       for (const [sym, ob] of Object.entries(this.ob)) {
         const age = now - ob;
-        if (ob > 0 && age >= 24 * 3600e3 && age < 30 * 3600e3 && !W.list.seen[sym]) { W.list.seen[sym] = iso(now); if (this.R("list").on) this.open("list", W.list, sym, now, `niêm yết ${iso(ob).replace("T", " ")} UTC`); }
+        if (ob > 0 && age >= 24 * 3600e3 && age < 30 * 3600e3 && !W.list.seen[sym]) { W.list.seen[sym] = iso(now); const why = `niêm yết ${iso(ob).replace("T", " ")} UTC`; if (this.R("list").on) this.open("list", W.list, sym, now, why);
+          try { this.core.io.onSwing?.({ k: "list", sym, px: this.px[sym]?.m || 0, hold: this.R("list").hold, why }); } catch (e) { this.core.err("thử nghiệm → tiền thật: " + e.message); } }      // sàn thử tắt → vẫn báo tiền thật (công tắc riêng sw_lv_list)
       }
       // pump: 00:00–00:10 UTC, mỗi ngày 1 lần
       const d = new Date(now), day = d.toISOString().slice(0, 10);

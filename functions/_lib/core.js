@@ -291,7 +291,7 @@ export const USER_KEYS = new Set([...LEGACY_KEYS, "notify", "ui", "risk", "paper
 //    (giống pzApply trong worker/scalp_core.js – áp ở đây để có hiệu lực ngay cả khi máy chủ riêng chưa cập nhật mã). Hết giờ: trả thiết lập gốc → tự chạy lại.
 export function scalpPause(c) {
   if (!c || typeof c !== "object" || !(+c.pz_until > Date.now())) return c;
-  const o = { ...c, pz_on: true, hk_on: false, sec_on: false, q_on: false, lv_hk: false, lq_sec: false, sw_lv_pump: false };
+  const o = { ...c, pz_on: true, hk_on: false, sec_on: false, q_on: false, lv_hk: false, lq_sec: false, sw_lv_pump: false, sw_lv_list: false };
   for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) o["lq_" + k] = false;
   return o;
 }

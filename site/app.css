@@ -7946,4 +7946,24 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .lb2-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0 0 12px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--brand) 25%,var(--bd));border-radius:12px;
   background:color-mix(in srgb,var(--brand) 7%,var(--surface));color:var(--ink);font:inherit;font-size:.8125rem;font-weight:600;text-align:left;cursor:pointer}
 .lb2-bar i{flex:none;font-style:normal;color:var(--brand);font-weight:650}.lb2-bar:hover{background:color-mix(in srgb,var(--brand) 11%,var(--surface))}
+/* ================================================================ 📅 KIỂM CHỨNG THEO TUẦN – 6 ô / kiểu chơi (cột phải = tuần gần nhất), bấm ô xem cấu hình & mã */
+.lbx.vf{--lbc:minmax(0,1fr) 276px minmax(140px,170px) minmax(140px,170px)}
+.lb-ver.vf{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;padding:0!important;text-align:center!important}
+.lb-hr .lb-ver.vf i{font-style:normal;font-size:.625rem;font-weight:600;color:var(--ink-3);font-variant-numeric:tabular-nums}.lb-hr .lb-ver.vf i.now{color:var(--ink)}
+.vf-c{height:30px;min-width:0;padding:0 2px;border:0;border-radius:8px;background:var(--sunk);color:var(--ink-2);font:inherit;font-size:.71875rem;font-weight:650;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap;overflow:hidden;transition:transform .12s ease,filter .12s ease}
+.vf-c:hover{filter:brightness(1.08)}.vf-c:active{transform:scale(.94)}
+.vf-c.up{background:color-mix(in srgb,var(--up) 15%,var(--surface));color:var(--up)}.vf-c.down{background:color-mix(in srgb,var(--down) 14%,var(--surface));color:var(--down)}
+.vf-c.na,.vf-c.z{color:var(--ink-3);font-weight:500;opacity:.75}.vf-c.vbf{opacity:.8}      /* tuần chạy bù: nhạt hơn */
+.vf-c.pend{border:1px dashed color-mix(in srgb,var(--ink-3) 60%,transparent)}
+.lb-ver.vf .vf-c:last-child{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,currentColor 45%,transparent);opacity:1}
+@media (min-width:701px) and (max-width:1180px){.lbx.vf{--lbc:minmax(0,1fr) 184px minmax(130px,160px) minmax(130px,160px)}.lb-ver.vf{grid-template-columns:repeat(4,minmax(0,1fr))}.lb-ver.vf>:nth-child(-n+2){display:none}}
+@media (max-width:700px){.lb-r>.lb-ver.vf{grid-column:1/-1}.lbx.vf .lb-vm{display:none}.vf-c{height:28px}
+  .lbx.vf .lb-hr>.lb-ver.vf{display:none!important}}
+.vf-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:0 0 8px}.vf-k>div{padding:8px;border-radius:10px;background:var(--sunk)}.vf-k dt{font-size:.625rem;font-weight:600;color:var(--ink-3)}.vf-k dd{margin:2px 0 0;font-size:.9375rem;font-weight:700;font-variant-numeric:tabular-nums}
+.vf-k dd.up,.vf-l b.up,.vf-s i.up{color:var(--up)}.vf-k dd.down,.vf-l b.down,.vf-s i.down{color:var(--down)}
+.vf-l{margin:0 0 8px;font-size:.8125rem;line-height:1.5;color:var(--ink-2)}.vf-n{margin:6px 0 0;font-size:.75rem;line-height:1.5;color:var(--ink-3)}
+.vf-h{margin:12px 0 6px;font-size:.8125rem;font-weight:700}.vf-h small{font-weight:500;color:var(--ink-3);margin-left:4px}
+.vf-cfg{margin:0;display:grid;gap:4px;font-size:.78125rem}.vf-cfg>div{display:grid;grid-template-columns:minmax(92px,32%) minmax(0,1fr);gap:8px;padding:6px 8px;border-radius:8px;background:var(--sunk)}.vf-cfg dt{color:var(--ink-3)}.vf-cfg dd{margin:0;color:var(--ink);line-height:1.45}
+.vf-s{display:flex;flex-wrap:wrap;gap:5px}.vf-s span{padding:3px 8px;border-radius:999px;background:var(--sunk);font-size:.75rem}.vf-s i{font-style:normal;font-weight:650;font-variant-numeric:tabular-nums}
+@media (max-width:420px){.vf-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
 

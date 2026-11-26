@@ -11,6 +11,26 @@
     {
      "c": "new",
      "a": "bot",
+     "t": "Cột Kiểm chứng theo tuần: 6 lần chạy gần nhất, bấm xem cấu hình & các mã",
+     "te": "Weekly validation: last 6 runs per method, tap for settings and symbols",
+     "d": "Mỗi thứ Hai máy chạy lại tuần vừa xong cho từng kiểu chơi bằng luật và tham số đang dùng, chỉ lấy số liệu có tại thời điểm vào lệnh. Mỗi lần chạy thêm 1 cột (cột phải là mới nhất), ô đã ghi không tính lại. Bấm 1 ô để xem số lệnh, cấu hình lúc chạy và các mã có lệnh.",
+     "de": "Every Monday each method is re-run on the week just ended with the rules and settings in use, using only data available at entry time. Each run adds one column (newest on the right); recorded cells are never recomputed. Tap a cell for trade count, settings and symbols.",
+     "f": "bot",
+     "go": "#/bot/scalp/lab",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Short coin mới niêm yết: mở được công tắc tiền thật (xác nhận 2 bước)",
+     "te": "New-listing short: the live switch can now be turned on (two-step confirmation)",
+     "d": "Trước đây công tắc này hiện mà không bấm được. Giờ bấm được, kèm bảng cảnh báo rủi ro và gõ xác nhận. Cần cập nhật máy chủ riêng thì mới có lệnh.",
+     "de": "The switch used to be visible but locked. It now works, with a risk warning and typed confirmation. Requires the private server to be updated.",
+     "aud": "admin"
+    },
+    {
+     "c": "new",
+     "a": "bot",
      "t": "Phòng thử nghiệm phương pháp: tự tìm & chấm phương pháp mới mỗi 4 ngày",
      "te": "Method lab: finds and scores new methods every 4 days",
      "d": "Mỗi 4 ngày tìm phương pháp mới có nguồn, chấm trên dữ liệu Binance thật (đã trừ phí, trượt giá, funding), cái nào qua thì theo dõi tiếp trên giấy. Có phương pháp mới hoặc đổi trạng thái là có thông báo. Máy chỉ đo – không tự bật gì trong bot.",

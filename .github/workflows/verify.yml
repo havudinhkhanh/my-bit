@@ -1,0 +1,67 @@
+name: Kiểm chứng hằng tuần
+# Mỗi thứ Hai: chạy lại TUẦN VỪA XONG cho từng kiểu chơi của bot bằng luật & tham số đang nằm trong mã (research/verify.py), chỉ dùng số liệu có tại
+# thời điểm vào lệnh; ghi thêm 1 cột vào site/verify.json (web: Bot Phản Xạ › Phương pháp – cột Kiểm chứng) rồi đăng web. Chỉ ĐO – không đổi gì trong bot.
+run-name: "Kiểm chứng hằng tuần"
+
+on:
+  schedule:
+    - cron: "37 2 * * 1"
+  workflow_dispatch:
+    inputs:
+      weeks:
+        description: "Số tuần gần nhất cần chạy (lần đầu: 6 để chạy bù)"
+        default: "1"
+
+concurrency:
+  group: verify
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  STATUS_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+  STATUS_SSH_KEY: ${{ secrets.STATUS_SSH_KEY }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install numpy pandas numba
+      - name: Bộ đệm nến 1 giờ (dùng chung với phòng thử nghiệm)
+        uses: actions/cache/restore@v4
+        with:
+          path: lab_cache
+          key: lab-${{ github.run_id }}
+          restore-keys: lab-
+      - name: Kiểm chứng
+        env:
+          VERIFY_WEEKS: ${{ inputs.weeks || '1' }}
+        run: |
+          mkdir -p research_out && (python research/verify.py 2>&1 | tail -c 400000 > research_out/verify_stdout.txt); tail -60 research_out/verify_stdout.txt
+      - name: Ghi kết quả vào web
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "mybit-lab"; git config user.email "lab@users.noreply.github.com"
+          git add site/verify.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Không có gì mới"; exit 0; fi
+          git commit -qm "Kiểm chứng hằng tuần: $(date -u +%F)"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:main && break; git pull -q --rebase origin main; sleep 5; done
+          gh workflow run web.yml --ref main
+      - name: Lưu log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify_out
+          path: research_out
+          retention-days: 30

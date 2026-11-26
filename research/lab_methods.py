@@ -98,11 +98,41 @@ def seas2123(D):
                 note=f"Trước phí: {g[D.ev0:].mean() * 100:+.3f}%/ngày; phí 2 chiều 0,12%/ngày.", note_en=f"Before costs: {g[D.ev0:].mean() * 100:+.3f}%/day; round-trip cost 0.12%/day.")
 
 
+def _basket(D, n=10):
+    """Rổ n coin khối lượng lớn nhất, chia đều (tổng 1× vốn) – dùng cho các phép thử theo LỊCH (thứ trong tuần, cuối tuần)."""
+    return np.where(D.rank < n, 1.0 / n, 0.0)
+
+
+def wkend(D):
+    return _out(D, _basket(D) * np.isin(D.wd, (5, 6))[:, None])      # chỉ giữ thứ Bảy + Chủ nhật (mở cửa 00:00 UTC thứ Bảy → 00:00 UTC thứ Hai)
+
+
+def wkday(D):
+    return _out(D, _basket(D) * (D.wd < 5)[:, None])      # chỉ giữ thứ Hai → thứ Sáu
+
+
+def dowwf(D):
+    """Thứ trong tuần, KHÔNG biết trước: đầu mỗi tháng xem 365 ngày vừa qua, thứ nào rổ coin tăng rõ (t ≥ 2) thì tháng này Long vào thứ đó, giảm rõ (t ≤ −2) thì Short."""
+    B = _basket(D); b = (B * D.R).sum(1); mon = (D.dates.year * 12 + D.dates.month).values; pick = np.zeros(7); cur = None; W = np.zeros((D.nd, D.S))
+    for d in range(D.nd):
+        if mon[d] != cur:
+            cur = mon[d]; pick = np.zeros(7); a = max(0, d - 365)
+            if d - a >= 200:
+                for w in range(7):
+                    x = b[a:d][D.wd[a:d] == w]
+                    if len(x) >= 25 and x.std() > 0:
+                        t = x.mean() / x.std() * np.sqrt(len(x)); pick[w] = 1.0 if t >= 2 else -1.0 if t <= -2 else 0.0
+        W[d] = B[d] * pick[D.wd[d]]
+    return _out(D, W)
+
+
 SRC = dict(coa=dict(t="Cryptocurrency as an Investable Asset Class: Coming of Age (arXiv 2510.14435)", u="https://arxiv.org/abs/2510.14435"),
            at=dict(t="Systematic Trend-Following with Adaptive Portfolio Construction (arXiv 2602.11708)", u="https://arxiv.org/abs/2602.11708"),
            cct=dict(t="Catching Crypto Trends – Zarattini, Pagani, Barbon", u="https://abarbon.com/papers/catching-crypto-trends"),
            qp=dict(t="Quantpedia – Are There Seasonal Intraday or Overnight Anomalies in Bitcoin?", u="https://quantpedia.com/are-there-seasonal-intraday-or-overnight-anomalies-in-bitcoin/"),
            fpf=dict(t="Fundamentals of Perpetual Futures (arXiv 2212.06888)", u="https://arxiv.org/abs/2212.06888"),
+           sb=dict(t="Quantpedia – The Seasonality of Bitcoin", u="https://quantpedia.com/the-seasonality-of-bitcoin/"),
+           ny=dict(t="NYDIG – The Temporalities of Bitcoin Returns", u="https://nydig.com/research/the-temporalities-of-bitcoin-returns"),
            kr=dict(t="Keyrock – What 16,000+ Token Unlocks Teach Us", u="https://keyrock.com/from-locked-to-liquidity-what-16000-token-unlocks-teach-us/"))
 
 METHODS = [
@@ -121,6 +151,15 @@ METHODS = [
     dict(id="xrev1", fn=xrev1, name="Đảo chiều 1 ngày giữa các coin", name_en="1-day cross-sectional reversal", hold="đổi danh mục mỗi ngày · Long + Short", hold_en="rebalanced daily · long + short",
          desc="Trong 40 coin lớn: mua 8 coin giảm mạnh nhất hôm qua, bán khống 8 coin tăng mạnh nhất, giữ 1 ngày.",
          desc_en="Among the top 40 coins: long yesterday's 8 biggest losers, short the 8 biggest winners, hold one day.", src=[SRC["coa"]]),
+    dict(id="wkend", fn=wkend, name="Chỉ đánh cuối tuần (thứ Bảy + Chủ nhật)", name_en="Weekends only (Sat + Sun)", hold="giữ 2 ngày mỗi tuần · chỉ Long", hold_en="holds 2 days a week · long only",
+         desc="Giữ rổ 10 coin lớn nhất chỉ trong thứ Bảy và Chủ nhật, các ngày khác đứng ngoài. Để xem cuối tuần có khác trong tuần không.",
+         desc_en="Hold the 10 largest coins only on Saturday and Sunday, flat otherwise – tests whether weekends differ from weekdays.", src=[SRC["sb"], SRC["ny"]]),
+    dict(id="wkday", fn=wkday, name="Chỉ đánh trong tuần (thứ Hai → thứ Sáu)", name_en="Weekdays only (Mon → Fri)", hold="giữ 5 ngày mỗi tuần · chỉ Long", hold_en="holds 5 days a week · long only",
+         desc="Giữ rổ 10 coin lớn nhất từ thứ Hai tới thứ Sáu, nghỉ cuối tuần. Cặp so sánh với phương pháp chỉ đánh cuối tuần.",
+         desc_en="Hold the 10 largest coins Monday to Friday, flat on weekends – the mirror test of the weekend-only method.", src=[SRC["sb"], SRC["ny"]]),
+    dict(id="dowwf", fn=dowwf, name="Thứ tốt / thứ xấu trong tuần (tự chọn lại mỗi tháng)", name_en="Good / bad weekdays (re-picked monthly)", hold="giữ 1 ngày · Long + Short", hold_en="holds 1 day · long + short",
+         desc="Đầu mỗi tháng nhìn 365 ngày vừa qua: thứ nào rổ 10 coin lớn tăng rõ thì tháng này mua vào thứ đó, thứ nào giảm rõ thì bán khống. Chỉ dùng số liệu đã có tại lúc chọn.",
+         desc_en="Each month look back 365 days: go long on weekdays where the top-10 basket clearly rose, short where it clearly fell. Uses only data available at pick time.", src=[SRC["sb"], SRC["ny"]]),
     dict(id="seas2123", fn=seas2123, name="BTC khung giờ 04:00–06:00 sáng (giờ VN)", name_en="BTC 21:00–23:00 UTC window", hold="giữ 2 giờ mỗi ngày · chỉ Long", hold_en="holds 2 hours daily · long only",
          desc="Mua BTC lúc 04:00 sáng và bán lúc 06:00 sáng giờ Việt Nam, ngày nào cũng làm. Nghiên cứu cũ (2015–2022) thấy BTC hay tăng ở khung giờ này.",
          desc_en="Buy BTC at 21:00 UTC and sell at 23:00 UTC every day. Older research (2015–2022) found BTC tends to rise in this window.", src=[SRC["qp"]]),
