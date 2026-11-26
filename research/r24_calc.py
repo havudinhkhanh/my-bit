@@ -33,7 +33,7 @@ print("TB bps ròng / lệnh – phân bố trên mọi biến thể: " + " · "
 print("## 2. 15 biến thể tốt nhất khi CHỌN trên 2024–2025 (rồi xem 2026 & 21 ngày gần nhất)\n"); print(cols)
 for _, r in S.sort_values("ins", ascending=False).head(15).iterrows(): print(line(r))
 print("\n## 3. Theo từng yếu tố (TB bps ròng / lệnh, trung bình các biến thể)\n")
-P = S.var.str.split("|", expand=True); P.columns = ["K", "X", "dir", "T", "S", "tp", "lat", "slip"]; S2 = pd.concat([S, P], axis=1)
+P = S["var"].str.split("|", expand=True); P.columns = ["K", "X", "dir", "T", "S", "tp", "lat", "slip"]; S2 = pd.concat([S, P], axis=1)
 for c, nm in (("dir", "hướng"), ("tp", "kiểu chốt"), ("lat", "độ trễ ms"), ("slip", "trượt"), ("T", "mục tiêu T"), ("S", "cắt lỗ S"), ("K", "bội khối lượng K"), ("X", "giá 2 giây X")):
     g = S2.groupby(c)[["avg", "ins", "oos", "rec"]].mean(); print(f"- **{nm}**: " + " · ".join(f"{i}: cả kỳ {r.avg:+.1f} / 24–25 {r.ins:+.1f} / 2026 {r.oos:+.1f} / 21 ngày {r.rec:+.1f}" for i, r in g.iterrows()))
 print("\n## 4. Quy ra % tài sản mỗi lệnh (mục tiêu 0,05% = 5 bps tài sản): lời / lệnh = TB bps × đòn bẩy (giá trị lệnh / tài sản)\n")
