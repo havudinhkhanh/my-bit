@@ -7982,4 +7982,4 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .lb2-hist{margin-top:8px}.lb2-hist>summary{cursor:pointer;font-size:.75rem;font-weight:600;color:var(--ink-2)}.lb2-hist .tw{margin-top:6px;max-height:240px;overflow:auto}
 .lb2-c.flash{animation:lb2Flash 1.2s ease}@keyframes lb2Flash{0%,60%{box-shadow:0 0 0 2px var(--brand)}100%{box-shadow:0 0 0 0 transparent}}
 @media (prefers-reduced-motion:reduce){.lb2-c.flash{animation:none}}
-
+.lb2-warn{margin:0;padding:8px 10px;border-radius:10px;border:1px solid color-mix(in srgb,var(--brass,#d9a23a) 45%,var(--bd));background:color-mix(in srgb,var(--brass,#d9a23a) 9%,var(--surface));font-size:.78125rem;line-height:1.5;color:var(--ink-2)}

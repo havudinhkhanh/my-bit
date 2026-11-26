@@ -98,6 +98,38 @@ def seas2123(D):
                 note=f"Trước phí: {g[D.ev0:].mean() * 100:+.3f}%/ngày; phí 2 chiều 0,12%/ngày.", note_en=f"Before costs: {g[D.ev0:].mean() * 100:+.3f}%/day; round-trip cost 0.12%/day.")
 
 
+def _tradfi(D):
+    """Mã KHÔNG phải crypto (cổ phiếu, ETF, vàng, dầu… Binance niêm yết dạng futures USDT từ 2026): cuối tuần thị trường gốc đóng cửa nên khối lượng & biên độ
+    thứ Bảy–Chủ nhật rất thấp. Là đặc tính cố định của mã (loại tài sản), không phải tín hiệu giao dịch. (Bản gốc + danh sách soát bằng mắt: research/lab_diag.py)"""
+    we = D.wd >= 5; ok = np.isfinite(D.C) & np.isfinite(D.O); q = np.where(ok, np.nan_to_num(D.Q), 0.0); a = np.where(ok, np.abs(D.R), np.nan)
+    vs = q[we].sum(0) / np.maximum(q.sum(0), 1e-9); n = ok.sum(0)
+    with np.errstate(all="ignore"): rr = np.nanmean(a[we], 0) / np.nanmean(a[~we], 0)
+    return (n >= 28) & (vs < 0.12) & (rr < 0.45)
+
+
+def xmomr(D):
+    """Bản BỀN của "mạnh mua – yếu bán" – đăng ký trước, KHÔNG dò tham số (rà soát độc lập 26/11/2026 đề xuất, xem lab_log.md):
+    · chỉ coin (bỏ hợp đồng cổ phiếu / hàng hoá) · điểm = trung bình thứ hạng lợi suất 7, 14 và 28 ngày (không chọn riêng 14) · vốn chia 7 phần, mỗi phần đổi danh mục
+    1 thứ khác nhau (hết may rủi chọn thứ) · tỉ trọng nghịch với biến động 30 ngày · mỗi mã tối đa 5% vốn."""
+    tf = _tradfi(D); q = pd.DataFrame(D.Q).where(np.isfinite(D.C)); v30 = q.rolling(30, min_periods=20).mean().shift(1).values
+    el = D.elig & ~tf; rk = np.argsort(np.argsort(-np.where(el, v30, -1), 1), 1).astype(float); rk[~el] = np.inf
+    C = pd.DataFrame(D.C); U = rk < 40
+    R3 = [(C.shift(1) / C.shift(lb + 1) - 1).where(U).rank(axis=1, pct=True) for lb in (7, 14, 28)]
+    sig = ((R3[0] + R3[1] + R3[2]) / 3).values      # thiếu 1 trong 3 → NaN → không xét
+    vol = (C / C.shift(1) - 1).rolling(30, min_periods=14).std().shift(1).values; iv = np.where(np.isfinite(vol), 1 / np.maximum(vol, 0.01), 1 / 0.08)
+    W = np.zeros((D.nd, D.S))
+    for k in range(7):
+        w = np.zeros(D.S)
+        for d in range(1, D.nd):
+            if D.wd[d] == k:
+                ok = np.nonzero(np.isfinite(sig[d]))[0]
+                if len(ok) >= 10:
+                    n = max(1, len(ok) // 5); o = ok[np.argsort(sig[d][ok])]; hi, lo = o[-n:], o[:n]; w = np.zeros(D.S)
+                    w[hi] = 0.5 * iv[d, hi] / iv[d, hi].sum(); w[lo] = -0.5 * iv[d, lo] / iv[d, lo].sum()
+            w = np.where(np.isfinite(D.O[d]), w, 0.0); W[d] += w / 7
+    return _out(D, np.clip(W, -0.05, 0.05))
+
+
 def _basket(D, n=10):
     """Rổ n coin khối lượng lớn nhất, chia đều (tổng 1× vốn) – dùng cho các phép thử theo LỊCH (thứ trong tuần, cuối tuần)."""
     return np.where(D.rank < n, 1.0 / n, 0.0)
@@ -142,9 +174,14 @@ METHODS = [
     dict(id="dcens", fn=dcens, name="Bám xu hướng nhiều khung (9 kênh Donchian)", name_en="Multi-horizon trend (9 Donchian channels)", hold="giữ vài tuần · chỉ Long", hold_en="holds weeks · long only",
          desc="20 coin lớn nhất. Giá vượt đỉnh 5 … 360 ngày thì mua từng phần, mỗi kênh tự thoát khi giá thủng đường giữa kênh. Coin càng biến động thì lệnh càng nhỏ.",
          desc_en="Top 20 coins. Scale in as price breaks 5…360-day highs; each channel exits below its mid-line. More volatile coins get smaller size.", src=[SRC["cct"]]),
+    dict(id="xmomr", fn=xmomr, name="Mạnh mua – yếu bán, bản bền (chỉ coin, chia 7 phần)", name_en="Cross-sectional momentum, robust version (crypto only, 7 tranches)", hold="mỗi ngày đổi 1/7 danh mục · Long + Short", hold_en="1/7 rebalanced daily · long + short",
+         desc="Trong 40 coin lớn (bỏ hợp đồng cổ phiếu, vàng, dầu): mua nhóm mạnh nhất và bán khống nhóm yếu nhất theo điểm gộp 7, 14 và 28 ngày. Vốn chia 7 phần đổi vào 7 thứ khác nhau, coin càng giật thì lệnh càng nhỏ, mỗi coin tối đa 5% vốn. Luật được chốt trước khi chấm, không chỉnh cho đẹp.",
+         desc_en="Among the top 40 coins (stock, gold and oil contracts excluded): long the strongest and short the weakest by a blended 7/14/28-day score. Capital is split into 7 tranches rebalanced on different weekdays, jumpier coins get smaller size, max 5% per coin. Rules fixed before scoring.", src=[SRC["coa"]]),
     dict(id="xmom14", fn=xmom14, name="Mạnh mua – yếu bán, 2 tuần", name_en="2-week cross-sectional momentum", hold="đổi danh mục mỗi thứ Hai · Long + Short", hold_en="rebalanced Mondays · long + short",
-         desc="Trong 40 coin lớn: mua 8 coin tăng mạnh nhất 14 ngày qua, bán khống 8 coin yếu nhất, hai bên bằng tiền nhau nên ít phụ thuộc thị trường lên hay xuống.",
-         desc_en="Among the top 40 coins: long the 8 strongest over 14 days, short the 8 weakest, equal money each side so market direction matters less.", src=[SRC["coa"]]),
+         desc="Trong 40 mã khối lượng lớn nhất (từ 2026 gồm cả hợp đồng cổ phiếu, vàng, dầu trên Binance): mua 8 mã tăng mạnh nhất 14 ngày qua, bán khống 8 mã yếu nhất, hai bên bằng tiền nhau nên ít phụ thuộc thị trường lên hay xuống.",
+         desc_en="Among the 40 most-traded contracts (since 2026 this includes stock, gold and oil contracts on Binance): long the 8 strongest over 14 days, short the 8 weakest, equal money each side.", src=[SRC["coa"]],
+         warn="Rà soát độc lập 26/11/2026: con số này phần lớn là may. Cùng luật nhưng đổi danh mục vào thứ khác thì 12 tháng qua chỉ từ −42% tới +66% (thứ Hai: +167%); 5 mã đóng góp 65% tổng lời; bỏ 20 ngày tốt nhất là hết lời. Kỳ vọng hợp lý chỉ khoảng +10–20%/năm ở 1× vốn, sụt 25–45%. Xem bản bền (xmomr).",
+         warn_en="Independent review 26 Nov 2026: this number is mostly luck. The same rule rebalanced on other weekdays made −42% to +66% over the last 12 months (Monday: +167%); 5 symbols are 65% of the profit; without the 20 best days nothing is left. A fair expectation is about +10–20%/yr at 1×, with 25–45% drawdowns. See the robust version (xmomr)."),
     dict(id="xcarry", fn=xcarry, name="Ăn chênh funding giữa các coin", name_en="Cross-sectional funding carry", hold="đổi danh mục mỗi thứ Hai · Long + Short", hold_en="rebalanced Mondays · long + short",
          desc="Trong 40 coin lớn: mua 8 coin funding thấp nhất (được trả phí), bán khống 8 coin funding cao nhất (cũng được trả phí). Lời = phí nhận được ± chênh giá hai nhóm.",
          desc_en="Among the top 40 coins: long the 8 lowest-funding coins and short the 8 highest – both sides collect funding. P&L = funding received ± the price spread.", src=[SRC["fpf"]]),

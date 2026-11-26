@@ -514,6 +514,7 @@ function scCandHtml(L, info, V, N) {
       <div class="lb2-sp">${spark(m.eq, { w: 320, h: 46 })}</div>
       <p class="lb2-y">${Object.entries(b.by || {}).map(([y, v]) => `<span>${y} <b class="${cl(v)}">${sp(v, 0)}</b></span>`).join("")}<span title="${bi("Độ đều của lợi nhuận: > 1 là tốt", "Consistency of returns: > 1 is good")}">Sharpe <b>${isNum(b.sharpe) ? nf(b.sharpe, 2) : "—"}</b></span></p>
       ${perT}
+      ${bi(m.warn, m.warn_en) ? `<p class="lb2-warn">🔎 ${esc(bi(m.warn, m.warn_en))}</p>` : ""}
       ${why?.length ? `<ul class="lb2-why">${why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
       ${m.status === "watch" || m.status === "pass" ? `<p class="lb2-fw">📍 ${bi(`Theo dõi trên giấy từ ${dm(m.added)}`, `Paper-tracked since ${dm(m.added)}`)}: ${fw.days ? `<b>${fw.days}</b> ${bi("ngày", "days")} · <b class="${cl(fw.sum)}">${sp(fw.sum, 2)}</b> · ${bi("sụt", "drawdown")} ${nf(fw.dd || 0, 1)}%` : bi("chưa có ngày mới nào – số sẽ có ở lượt chấm kế", "no new days yet – numbers arrive with the next run")}
         <small>${bi(`Đạt khi đủ ${G.fw_days || 45} ngày mới mà vẫn lời đều (Sharpe ≥ ${G.fw_sharpe || 1}).`, `Passes after ${G.fw_days || 45} new days if still consistently profitable (Sharpe ≥ ${G.fw_sharpe || 1}).`)}</small></p>` : ""}

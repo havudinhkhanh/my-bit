@@ -233,7 +233,7 @@ def evaluate(D, M, prev):
     fwx = net[a0:]; fw = dict(days=len(fwx), sum=round(float((1 + fwx).prod() - 1) * 100, 2) if len(fwx) else 0.0,
                               sharpe=round(fwx.mean() / (fwx.std(ddof=1) or 1e-12) * np.sqrt(365), 2) if len(fwx) > 5 else None, dd=round(_dd(fwx) * 100, 1) if len(fwx) else 0.0)
     G = GATES; was = (prev or {}).get("status")
-    if why and was not in ("watch", "pass"): status = "fail"
+    if why: status = "drop" if was == "drop" else "fail"      # trượt cổng kiểm lịch sử → loại (kể cả đang theo dõi / đã đạt); vẫn được chấm lại mỗi lượt, qua lại cổng thì quay về theo dõi
     elif fw["days"] >= G["fw_days"] and fw["sum"] > 0 and (fw["sharpe"] or 0) >= G["fw_sharpe"] and not why: status = "pass"
     elif fw["days"] >= 30 and (fw["dd"] > 1.5 * max(st["dd"], 3) or (fw["days"] >= G["fw_fail_days"] and fw["sum"] <= 0)): status = "drop"
     elif was == "drop" and not (not why and st["d90"] > 0): status = "drop"
@@ -258,7 +258,7 @@ def evaluate(D, M, prev):
     info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq, wk=wk, per=per, hist=hist[-120:],
                 eq_from=str(dates[max(0, len(net) - 160 * 7)].date()), to=str(dates[-1].date()), expo=round(float(np.mean(out["expo"][sl])) * 100), turn=round(float(np.mean(out["turn"][sl])) * 100, 1),
                 cost=round(float(c[sl].mean()) * 100, 4), fund=round(float(f[sl].mean()) * 100, 4), gross=round(float(g[sl].mean()) * 100, 4),
-                lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""))
+                lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""), warn=M.get("warn", ""), warn_en=M.get("warn_en", ""))
     return info
 
 
