@@ -7983,3 +7983,13 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .lb2-c.flash{animation:lb2Flash 1.2s ease}@keyframes lb2Flash{0%,60%{box-shadow:0 0 0 2px var(--brand)}100%{box-shadow:0 0 0 0 transparent}}
 @media (prefers-reduced-motion:reduce){.lb2-c.flash{animation:none}}
 .lb2-warn{margin:0;padding:8px 10px;border-radius:10px;border:1px solid color-mix(in srgb,var(--brass,#d9a23a) 45%,var(--bd));background:color-mix(in srgb,var(--brass,#d9a23a) 9%,var(--surface));font-size:.78125rem;line-height:1.5;color:var(--ink-2)}
+/* ⌨️ BÀN PHÍM ĐIỆN THOẠI che bảng trượt (11/2026, Jason: bảng gõ "TIEN THAT" không đẩy lên, bàn phím che luôn nút).
+   iPhone mở bàn phím KHÔNG thu nhỏ khung trang → lớp cố định (inset:0) vẫn dài tới đáy màn hình, phần dưới nằm sau bàn phím.
+   → khi đang gõ (body.kb-on): mọi bảng trượt / hộp thoại bám theo VÙNG ĐANG THẤY (--vvt, --vvh do app.js cập nhật theo visualViewport) → đáy bảng nằm ngay trên bàn phím. */
+@media (pointer:coarse){
+  body.kb-on .ios-sheet,body.kb-on .msheet:not([hidden]),body.kb-on .lb-dr,body.kb-on .ntpk{top:var(--vvt,0px)!important;bottom:auto!important;height:var(--vvh,100dvh)!important;transition:height .18s ease,top .18s ease}
+  body.kb-on .ios-sheet-w{max-height:calc(var(--vvh,100dvh) - 8px)!important;padding-bottom:8px!important}
+  body.kb-on .ios-sheet-c{min-height:0}
+  body.kb-on .msheet-in,body.kb-on .msheet .ms-in,body.kb-on .lb-dr-p{max-height:calc(var(--vvh,100dvh) - 8px)!important;padding-bottom:8px!important}
+}
+

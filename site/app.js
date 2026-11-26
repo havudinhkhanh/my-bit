@@ -8592,7 +8592,8 @@ function initAccountUI() {
   const fit = () => {
     if (vv) { rsv("--vvh", Math.round(vv.height) + "px"); rsv("--vvt", Math.round(vv.offsetTop) + "px"); }      // --vvt: iOS đẩy vùng thấy lên khi mở bàn phím → bảng cố định bám theo
     const a = document.activeElement;
-    if (isTxt(a) && !a.closest(".cmdk,.pal,.top")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* bỏ qua */ } }, 80); }
+    if (isTxt(a) && a.closest("#iosSheet,.msheet,.lb-dr,.ntpk")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "nearest" }); } catch (e) { /* bỏ qua */ } }, 120); }      // ô gõ nằm trong bảng trượt: bảng đã bám vùng thấy (CSS body.kb-on) → chỉ cuộn TRONG bảng, không kéo trang phía sau
+    else if (isTxt(a) && !a.closest(".cmdk,.pal,.top")) { clearTimeout(tm); tm = setTimeout(() => { try { a.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { /* bỏ qua */ } }, 80); }
   };
   document.addEventListener("focusin", (e) => { if (isTxt(e.target)) { document.body.classList.add("kb-on"); setTimeout(fit, 350); } });
   // 📱 thanh tab dưới treo GIỮA màn hình: iOS / trình duyệt trong app (Zalo, Messenger…) đóng bàn phím xong đôi khi giữ khung nhìn cũ → lớp cố định (position:fixed) nằm ở đáy khung CŨ tới khi cuộn.

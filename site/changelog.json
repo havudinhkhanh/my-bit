@@ -9,6 +9,12 @@
    "se": "Instant fills, tick-level prices for held coins, warm connection to the exchange.",
    "it": [
     {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: bàn phím không còn che bảng xác nhận và các bảng trượt có ô gõ",
+     "te": "Phone: the keyboard no longer covers confirmation sheets and other sheets with inputs"
+    },
+    {
      "c": "imp",
      "a": "bot",
      "t": "Phòng thử nghiệm: bày hết mọi phương pháp theo từng giai đoạn, kèm lịch sử các lần chấm",
