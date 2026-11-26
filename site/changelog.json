@@ -9,6 +9,29 @@
    "se": "Instant fills, tick-level prices for held coins, warm connection to the exchange.",
    "it": [
     {
+     "c": "new",
+     "a": "ui",
+     "t": "Bấm vào ô tìm là hiện coin vừa tìm",
+     "te": "Tap the search box to see recent searches",
+     "d": "Hiện các coin anh vừa tìm (bỏ từng cái bằng ×, hoặc Xoá hết), rồi tới coin anh hay xem và coin lớn.",
+     "de": "Shows coins you searched recently (remove one with ×, or Clear all), then coins you often view and top coins.",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Bản đồ tương quan hiện hết, không phải cuộn trong khung",
+     "te": "Correlation map shows in full – no scrolling inside the card",
+     "go": "#/pairs"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Chip ⚡ đường nhanh không còn bị ẩn khi thanh trên chật",
+     "te": "The ⚡ fast-path chip stays visible when the top bar is tight",
+     "aud": "admin"
+    },
+    {
      "c": "imp",
      "a": "ui",
      "t": "Ô tìm nằm giữa thanh trên cùng như Safari",

@@ -7265,14 +7265,32 @@ function initSearch() {
   window.addEventListener("hashchange", () => { if ($("#cmdk") && !$("#cmdk").hidden) cmdk(false); });
   if (qk) { if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) qk.innerHTML = "<kbd>⌘</kbd><kbd>K</kbd>"; qk.onclick = () => cmdk(true); q.addEventListener("input", () => qk.classList.toggle("off", !!q.value)); }
   let sel = 0, list = [];
-  const pick = (s) => { box.hidden = true; q.value = ""; location.hash = `#/c/${s}`; };
+  // 🕘 TÌM GẦN ĐÂY (như Safari / app tìm kiếm): bấm vào ô tìm khi chưa gõ → coin anh vừa tìm (bỏ từng cái bằng ×, hoặc Xoá hết) · coin hay xem · coin lớn
+  const qrec = () => (lsGet("qrec", []) || []).filter((k) => typeof k === "string").slice(0, 8);
+  const qrecAdd = (k) => { if (!k) return; lsSet("qrec", [k, ...qrec().filter((x) => x !== k)].slice(0, 8)); };
+  const pick = (s) => { box.hidden = true; q.value = ""; qrecAdd(s); location.hash = `#/c/${s}`; };
+  const row = (r, i, x, pad) => `<a href="#/c/${r.k}" data-k="${esc(r.k)}" class="${i === 0 ? "on" : ""}">${pad ? '<span class="sg-ic"></span>' : ""}${x ? '<span class="sg-ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>' : ""}<b>${r.k}</b><span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${esc(r.n || "")}</span><span style="margin-left:auto">${px(r.p)}</span><small class="${cls(r.r1)}">${pct(r.r1, 1)}</small>${x ? `<span class="sg-x" role="button" tabindex="-1" data-qx="${esc(r.k)}" title="${bi("Bỏ khỏi tìm gần đây", "Remove from recent")}" aria-label="${bi("Bỏ khỏi tìm gần đây", "Remove from recent")}">×</span>` : pad ? '<span class="sg-x" aria-hidden="true"></span>' : ""}</a>`;      // pad: các dòng còn lại chừa chỗ biểu tượng & × → giá thẳng cột
+  const recent = async () => {
+    const C = await coins(); if (q.value.trim() || document.activeElement !== q) return;
+    const by = (k) => C.rows.find((r) => r.k === k), R = qrec().map(by).filter(Boolean).slice(0, 6), seen = new Set(R.map((r) => r.k));
+    const H = hbTop("c", 8).map(by).filter((r) => r && !seen.has(r.k)).slice(0, Math.max(0, 6 - R.length)); H.forEach((r) => seen.add(r.k));
+    const P = R.length + H.length < 4 ? C.rows.slice().sort((a, b) => (b.mc || 0) - (a.mc || 0)).filter((r) => !seen.has(r.k)).slice(0, 5 - R.length - H.length) : [];
+    list = [...R, ...H, ...P]; sel = 0; let i = 0;
+    const hd = (t, x) => `<div class="sg-h"><span>${t}</span>${x || ""}</div>`;
+    box.innerHTML = (R.length ? hd(bi("Tìm gần đây", "Recent searches"), `<button type="button" class="sg-clr" data-qclr>${bi("Xoá", "Clear")}</button>`) + R.map((r) => row(r, i++, 1)).join("") : "")
+      + (H.length ? hd(bi("Anh hay xem", "You often view")) + H.map((r) => row(r, i++, 0, R.length)).join("") : "")
+      + (P.length ? hd(bi("Coin lớn", "Top coins")) + P.map((r) => row(r, i++, 0, R.length)).join("") : "");
+    box.hidden = !list.length;
+  };
+  q.addEventListener("focus", () => { if (!q.value.trim()) recent(); });
+  q.addEventListener("click", () => { if (!q.value.trim() && box.hidden) recent(); });
   q.addEventListener("input", async () => {
     const t = q.value.trim().toUpperCase();
-    if (!t) { box.hidden = true; return; }
+    if (!t) { recent(); return; }
     const C = await coins();
     list = C.rows.filter((r) => r.k.startsWith(t) || String(r.n || "").toUpperCase().includes(t)).sort((a, b) => (b.k === t) - (a.k === t) || (b.k.startsWith(t) - a.k.startsWith(t)) || (b.mc || 0) - (a.mc || 0)).slice(0, 8);
     sel = 0;
-    box.innerHTML = list.map((r, i) => `<a href="#/c/${r.k}" class="${i === 0 ? "on" : ""}"><b>${r.k}</b><span class="muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.75rem">${esc(r.n || "")}</span><span style="margin-left:auto">${px(r.p)}</span><small class="${cls(r.r1)}">${pct(r.r1, 1)}</small></a>`).join("") || `<div class="muted" style="padding:10px">Không thấy coin</div>`;
+    box.innerHTML = list.map((r, i) => row(r, i)).join("") || `<div class="muted" style="padding:10px">Không thấy coin</div>`;
     box.hidden = false;
   });
   q.addEventListener("keydown", (e) => {
@@ -7282,7 +7300,12 @@ function initSearch() {
     if (e.key === "Escape") box.hidden = true;
   });
   document.addEventListener("click", (e) => { if (!e.target.closest(".search")) box.hidden = true; });
-  box.addEventListener("click", () => { box.hidden = true; q.value = ""; });
+  box.addEventListener("mousedown", (e) => { if (e.target.closest("[data-qx], [data-qclr]")) e.preventDefault(); });      // bấm × / Xoá: ô tìm vẫn giữ con trỏ, bảng không đóng
+  box.addEventListener("click", (e) => {
+    const x = e.target.closest("[data-qx]"); if (x) { e.preventDefault(); e.stopPropagation(); lsSet("qrec", qrec().filter((k) => k !== x.dataset.qx)); recent(); return; }
+    if (e.target.closest("[data-qclr]")) { e.preventDefault(); lsSet("qrec", []); recent(); return; }
+    const a = e.target.closest("a[data-k]"); if (a) qrecAdd(a.dataset.k);
+    box.hidden = true; q.value = ""; q.blur(); });
   document.addEventListener("keydown", (e) => {
     const typing = /input|textarea|select/i.test(document.activeElement.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); cmdk($("#cmdk")?.hidden !== false); return; }
