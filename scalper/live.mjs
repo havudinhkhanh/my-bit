@@ -81,8 +81,10 @@ export class LiveExec {
     const K = this.keys(env); if (signed && !K) throw new Error("chưa có khoá API trên máy chủ");
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
     if (signed) { q.set("recvWindow", "5000"); q.set("timestamp", String(Date.now() + this.off)); q.set("signature", crypto.createHmac("sha256", K.s).update(q.toString()).digest("hex")); }
+    const t0 = performance.now();
     const r = await fetch(`${base}${p}${q.toString() ? "?" + q : ""}`, { method, headers: K ? { "X-MBX-APIKEY": K.k } : {}, signal: AbortSignal.timeout(10000) });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch (e) { /* không phải JSON */ }
+    if (method !== "GET" && /\/order$/.test(p)) this.fastRtt(performance.now() - t0);      // ⚡ đo thời gian gửi lệnh → trả lời của sàn
     if (!r.ok || (j && j.code && j.code < 0)) { const e = new Error(`${j?.code ?? r.status} ${j?.msg || t.slice(0, 160)}`); e.code = j?.code; throw e; }
     return j;
   }
@@ -191,7 +193,65 @@ export class LiveExec {
     }
     return this.fx[sym] || null;
   }
-  mark(id) { const x = this.core.M?.[id]; return x?.bid && x?.ask ? (x.bid + x.ask) / 2 : null; }
+  mark(id) {
+    const b = this.fx2?.bt?.[id]; if (b && Date.now() - b.t < 3000) return (b.bid + b.ask) / 2;      // ⚡ giá mua/bán tốt nhất cập nhật tức thì (bookTicker) cho coin bot đang giữ
+    const x = this.core.M?.[id]; return x?.bid && x?.ask ? (x.bid + x.ask) / 2 : null;
+  }
+  // ---------------------------------------------------------------- ⚡ ĐƯỜNG NHANH (26/11/2026)
+  // 1) Luồng tài khoản (User Data Stream): sàn ĐẨY báo khớp / huỷ / cắt lỗ ngay khi xảy ra → kiểm lệnh & xử lý NGAY (trước: hỏi sàn mỗi ~4 giây)
+  // 2) bookTicker riêng cho coin đang có lệnh: giá mua / bán tốt nhất từng nhịp (trước: sổ lệnh chụp 100–500 ms) → cắt lỗ đuổi / đóng chính xác hơn
+  // 3) Giữ kết nối HTTPS tới sàn luôn "ấm" khi có lệnh (hỏi giờ sàn mỗi 3 giây) → gửi lệnh không mất 100–300 ms bắt tay TLS; đồng bộ giờ sàn theo độ trễ thật
+  // Lỗi / mất luồng → tự quay về cách cũ (hỏi sàn định kỳ) và tự nối lại; không đổi luật vào / ra lệnh nào.
+  fastRtt(ms) { const F = (this.fx2 ||= {}); F.rtt = F.rtt == null ? ms : F.rtt * 0.8 + ms * 0.2; F.rttN = (F.rttN || 0) + 1; }
+  kick() { if (this.busy) { this.again = true; return; } setTimeout(() => this.tick().catch(() => {}), 0); }
+  async fast() {
+    const F = (this.fx2 ||= {}), env = this.env(), now = Date.now(), A = this.active(); F.bt ||= {};
+    if (!this.keys(env) || process.env.MYBIT_FAST === "0") return;
+    // (1) luồng tài khoản
+    const want = this.cfg().lv_on || A.length;
+    if (want && (!F.uds || F.udsEnv !== env) && !(F.udsNext > now)) {
+      F.udsNext = now + 30e3;
+      try {
+        if (F.uds) { try { F.uds.close(); } catch (e) { /* bỏ qua */ } F.uds = null; }
+        const j = await this.req("POST", "/fapi/v1/listenKey", {}, false); F.lk = j.listenKey; F.lkAt = now; F.udsEnv = env;
+        const url = (env === "live" ? "wss://fstream.binance.com/ws/" : process.env.MYBIT_DEMO_WS || "wss://fstream.binancefuture.com/ws/") + F.lk;
+        const ws = new WebSocket(url); F.uds = ws;
+        ws.addEventListener("open", () => { F.udsOk = true; F.udsAt = Date.now(); if (!F.udsSaid) { F.udsSaid = 1; this.log("⚡ luồng tài khoản Binance: đã nối – báo khớp lệnh tức thì"); } });
+        ws.addEventListener("message", (m) => { try { this.onUds(JSON.parse(m.data)); } catch (e) { /* bỏ qua */ } });
+        ws.addEventListener("close", () => { if (F.uds === ws) { F.uds = null; F.udsOk = false; F.udsNext = Date.now() + 5000; } });
+        ws.addEventListener("error", () => { /* close sẽ tới sau */ });
+      } catch (e) { F.udsOk = false; if (!F.udsErrAt || now - F.udsErrAt > 1800e3) { F.udsErrAt = now; this.log(`⚡ luồng tài khoản chưa nối được (${e.message}) – dùng cách cũ: hỏi sàn mỗi ~4 giây`); } }
+    }
+    if (F.uds && F.lk && now - (F.lkAt || 0) > 25 * 60e3) { F.lkAt = now; this.req("PUT", "/fapi/v1/listenKey", {}, false).catch(() => { try { F.uds?.close(); } catch (e) { /* bỏ qua */ } }); }      // gia hạn mỗi 25 phút (sàn huỷ sau 60)
+    // (2) bookTicker cho coin đang có lệnh
+    const syms = [...new Set(A.map((e) => e.sym))].sort(), key = syms.join(",");
+    F.k2s = Object.fromEntries(A.map((e) => [e.k || coin(e.sym) + ":F", e.sym]));
+    if (key !== F.btKey) {
+      F.btKey = key; try { F.btWs?.close(); } catch (e) { /* bỏ qua */ } F.btWs = null;
+      if (syms.length) {
+        const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${syms.map((s) => s.toLowerCase() + "@bookTicker").join("/")}`); F.btWs = ws;
+        const s2k = Object.fromEntries(Object.entries(F.k2s).map(([k, s]) => [s, k]));
+        ws.addEventListener("message", (m) => { try { const d = JSON.parse(m.data).data; const k = s2k[d.s]; if (k) F.bt[k] = { bid: +d.b, ask: +d.a, t: Date.now() }; } catch (e) { /* bỏ qua */ } });
+        ws.addEventListener("close", () => { if (F.btWs === ws) { F.btWs = null; F.btKey = null; } });
+      }
+    }
+    // (3) giữ kết nối ấm + đồng bộ giờ sàn khi đang có lệnh
+    if (A.length && !(now - (F.pingAt || 0) < 3000)) {
+      F.pingAt = now; const t0 = Date.now();
+      this.req("GET", "/fapi/v1/time", {}, false).then((t) => { const rt = Date.now() - t0; if (rt < 1500) this.off = t.serverTime + rt / 2 - Date.now(); F.ping = rt; }).catch(() => {});
+    }
+  }
+  onUds(d) {
+    const F = this.fx2;
+    if (d.e === "ORDER_TRADE_UPDATE" && d.o) {
+      const o = d.o; F.lastEv = Date.now();
+      for (const ev of this.active()) {
+        if (ev.sym !== o.s) continue;
+        if (ev.lv?.some((l) => l.cid === o.c) || o.ot === "STOP_MARKET" || o.o === "STOP_MARKET" || o.R === true) { ev.qAt = 0; ev.pAt = 0; this.kick(); }
+      }
+    } else if (d.e === "ACCOUNT_UPDATE") { for (const ev of this.active()) ev.pAt = 0; this.kick(); }
+    else if (d.e === "listenKeyExpired") { try { F.uds?.close(); } catch (e) { /* bỏ qua */ } }
+  }
   // ⏰ SẮP TỚI GIỜ TỰ ĐÓNG MÀ LỆNH ĐANG LỖ → thông báo hỏi anh làm gì tiếp (để bot đóng / gia hạn / ra ở đỉnh nhịp nảy / về hoà vốn / đóng ngay).
   //    1 lần cho mỗi mốc giờ đóng (gia hạn → mốc mới → có thể hỏi lại). Lệnh anh đã chọn giữ / gia hạn kiểu khác (xm) thì không hỏi. Không tự đổi gì.
   askNear(o, kind, id, sym, end, hold, upnl, pr) {
@@ -315,7 +375,8 @@ export class LiveExec {
   }
   async tick() {
     try { this.remindKept(); } catch (e) { /* bỏ qua */ }
-    if (this.busy) return; this.busy = true;
+    if (this.busy) { this.again = true; return; } this.busy = true; this.again = false;
+    try { await this.fast(); } catch (e) { /* đường nhanh lỗi → cách cũ vẫn chạy */ }
     try {
       while (this.q.length) { const h = this.q.shift(); try { await this.place(h); } catch (e) { this.err(`đặt lệnh ${h.id}`, e); } }
       while (this.qm?.length) await this.runCmd(this.qm.shift());
@@ -336,7 +397,7 @@ export class LiveExec {
       await this.mFund().catch((e) => { if (!this.mfErrAt || Date.now() - this.mfErrAt > 900e3) { this.mfErrAt = Date.now(); this.err("đọc funding lệnh tay đang mở", e); } });
       const d = vnDay(Date.now()); if (this.S.day.d !== d) { this.S.day = { d, pnl: 0 }; if (/hôm nay/.test(this.S.halt || "")) this.S.halt = null; }
       if (/hôm nay/.test(this.S.halt || "") && !this.dayLoss()) { this.S.halt = null; this.say("▶️ Bỏ ngừng do lỗ trong ngày (anh đã tắt / nới giới hạn) – bot mở lệnh mới lại", "info"); this.save(); }
-    } finally { this.busy = false; }
+    } finally { this.busy = false; if (this.again) { this.again = false; setTimeout(() => this.tick().catch(() => {}), 50); } }
   }
   async manage(ev) {
     const now = Date.now(), c = this.cfg();
@@ -1252,7 +1313,8 @@ export class LiveExec {
   summary() {
     const c = this.cfg();
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
-    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
+    const FX = this.fx2 || {};
+    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, fast: { uds: !!FX.udsOk, bt: Object.keys(FX.bt || {}).length, rtt: FX.rtt != null ? Math.round(FX.rtt) : null, ping: FX.ping ?? null }, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
       qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq", "sec"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
         open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, ux: p.ux || null, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
