@@ -7971,4 +7971,4 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .lb2-wt .vf-c{display:inline-grid;place-items:center;min-width:58px;height:26px;padding:0 6px;cursor:default}.lb2-wt .vf-c:active{transform:none}
 .lb2-wn{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--bd);font-size:.8125rem;line-height:1.55;color:var(--ink-2)}.lb2-wn p{margin:4px 0 0}.lb2-wn ul{margin:6px 0 0;padding-left:18px}
 .lb2-tg b.up{color:var(--up)}.lb2-tg b.down{color:var(--down)}
-
+.lb2-wn>summary{cursor:pointer;list-style:none}.lb2-wn>summary::-webkit-details-marker{display:none}.lb2-wn>summary::after{content:"▾";margin-left:6px;color:var(--ink-3)}.lb2-wn[open]>summary::after{content:"▴"}

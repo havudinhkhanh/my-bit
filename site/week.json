@@ -1,1 +1,33 @@
-{"v":1,"notes":[]}
+{
+ "v": 1,
+ "notes": [
+  {
+   "wk": "2026-11-02",
+   "at": "2026-11-26T11:40:00Z",
+   "sum": "Rổ 10 coin lớn giảm khoảng 13% (trong tuần −10,3%, cuối tuần −3,4%). Có lời: Mạnh mua – yếu bán 2 tuần +4,7%; Short coin mới niêm yết +4,2%/lệnh (3 lệnh). Lỗ: Short coin vừa bơm TB −16%/lệnh vì 1 trong 3 lệnh (AIN) tăng gấp đôi, mất trắng; Funding âm → Long −778 bps/lệnh; ORB −101 bps/lệnh. Bắt râu sập theo mô hình +19 bps/lệnh nhưng tính theo tài khoản ≈ −0,7% do 2 lệnh lỗ lớn (UAI, MAGMA).",
+   "ideas": [
+    "Tuần thị trường giảm đều: mọi cách chỉ Long đều lỗ; cách trung tính (mua mạnh / bán yếu) và Short có chọn lọc thì lời.",
+    "Một lệnh mất trắng (AIN) xoá hết lời của 2 lệnh Short bơm còn lại – kết quả phụ thuộc cỡ lệnh nhỏ và đều."
+   ]
+  },
+  {
+   "wk": "2026-11-09",
+   "at": "2026-11-26T11:40:00Z",
+   "sum": "Rổ 10 coin lớn gần như đi ngang (−1,7%). Có lời: Short coin mới niêm yết +4,9%/lệnh (11 lệnh, thắng 64%); Short coin vừa bơm +47,5% (1 lệnh, ESPORTS). Lỗ nặng: Mạnh mua – yếu bán 2 tuần −17,3% (coin yếu bật mạnh, coin mạnh xì hơi); RSI(2) bản Short −428 bps/lệnh vì 1 lệnh AKE lỗ hơn 100% (AKE tăng gấp đôi, không cắt lỗ). Bắt râu sập theo mô hình +27 bps/lệnh, thắng 85%, nhưng ≈ −0,4% tài khoản vì 1 lệnh RARE chạm cắt lỗ thảm hoạ.",
+   "ideas": [
+    "Ở cả RSI(2), Short bơm và Bắt râu sập, 1 lệnh lỗ rất lớn (AKE, RARE) quyết định cả tuần → giả thuyết cần kiểm: chặn lỗ tối đa mỗi lệnh thấp hơn có cải thiện kết quả dài hạn không.",
+    "Mạnh mua – yếu bán thua đậm đúng tuần thị trường đảo nhịp – phương pháp này dao động mạnh theo tuần (đang theo dõi trên giấy)."
+   ]
+  },
+  {
+   "wk": "2026-11-16",
+   "at": "2026-11-26T11:40:00Z",
+   "sum": "Rổ 10 coin lớn giảm khoảng 21% (trong tuần −24,5%, cuối tuần +3,9%). Có lời: Short coin vừa bơm +65%/lệnh (JCT, AGT, AKE – cả 3 đều lời); Bắt râu sập theo mô hình +137 bps/lệnh, thắng 88%, ≈ +2,9% tài khoản; Mạnh mua – yếu bán +2,3%; Cặp coin +5 bps/lệnh. Lỗ: ORB −179 bps/lệnh; RSI(2) −547 bps/lệnh (IRYS). Lưu ý: Bắt râu sập ở đây là mô hình nến 1 phút, thường đẹp hơn khớp lệnh thật.",
+   "ideas": [
+    "Tuần cả thị trường sập mạnh là tuần Bắt râu sập (mô hình) và Short coin vừa bơm lời nhất – khớp với kết quả vòng 23: cú sốc khi nhiều coin cùng sập lời hơn cú sập lẻ.",
+    "Giả thuyết để lượt nhìn lại kế tiếp đưa vào máy chấm: chỉ bắt cú sập khi có nhiều coin cùng sốc trong 60 phút; bỏ cú sập lẻ một mã.",
+    "ORB lỗ cả 3 tuần (−101, +1, −179 bps/lệnh); Funding âm → Long lỗ nặng ở tuần có dữ liệu – hai kiểu này chưa thấy lý do để bật."
+   ]
+  }
+ ]
+}

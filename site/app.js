@@ -2538,7 +2538,7 @@ async function sbPage(r, a) {
     const vd = x.vd ? `<span class="pill ${VD_CLS[x.vd] || ""}">${esc(x.vd)}</span>` : "—";
     return `<div class="sbcoin"><b>${esc(K)}</b><small>${esc(x.n || "")}</small><span>${sbPx(K)}</span></div>
       ${sbRow("7 / 30 ngày", `<span class="${cls(x.r7)}">${pct(x.r7, 0)}</span> / <span class="${cls(x.r30)}">${pct(x.r30, 0)}</span>`)}
-      ${sbRow("Nhóm", x.g ? `<a href="#/sector/${enc(x.g)}">${esc(x.g)}</a>` : "—")}${sbRow("Định giá", vd, "", `#/c/${enc(K)}/val`)}
+      ${sbRow("Nhóm", x.g ? `<a href="#/sector/${enc(x.g)}">${esc(x.g)}</a>` : "—")}
       ${sbRow("Điểm kỹ thuật", isNum(x.tsc) ? `${nf(x.tsc, 0)}/100` : "—", x.ts === 1 ? "xu hướng tăng" : x.ts === -1 ? "xu hướng giảm" : "", `#/c/${enc(K)}/tech`)}
       ${x.fx ? sbRow("Funding · OI 7n", `<span class="${f8c(x.f8)}">${f8s(x.f8)}</span> · <span class="${cls(x.oi7)}">${pct(x.oi7, 0)}</span>`, "", `#/c/${enc(K)}/fut`) : ""}
       ${sbRow("Biến động ngày", isNum(x.atr) ? nf(x.atr, 1) + "%" : "—", isNum(x.beta) ? `beta ${nf(x.beta, 1)}` : "")}
@@ -3053,7 +3053,7 @@ async function viewCoins(view0) {
 }
 
 // ================================================================ CHI TIẾT COIN
-const SUBT = [["", "Tổng quan"], ["smc", "SMC & vào lệnh"], ["val", "Định giá"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
+const SUBT = [["", "Tổng quan"], ["smc", "SMC & vào lệnh"], ["val", "Nguồn cung & dòng tiền"], ["lv", "Mức giá & thời gian"], ["fut", "Futures"], ["plan", "Kế hoạch giao dịch"], ["tech", "Kỹ thuật"]];
 async function viewCoin(key, sub = "") {
   await coins();
   const D = await tryLoad(`data/c/${enc(key)}.json`);
@@ -3996,7 +3996,7 @@ function tabOverview(D) {
       ${panel("⚡ Vào lệnh lúc này? – đánh giá thời gian thực", rtBox(), `theo khung đang xem · <a href="#/c/${enc(r.k)}/smc">SMC chi tiết</a>`)}
       ${planSummary(D)}</div></div>
     <div class="g g2w cv-below"><div class="col">
-      ${panel("Tóm tắt", `${kpis([["Định giá", vdPill(V.verdict)], ["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
+      ${panel("Tóm tắt", `${kpis([["Xu hướng ngày", tsPill(T.state, T.days)], ["Điểm kỹ thuật", scoreCell(D.tech?.score)],
         ["Vốn hoá", usd(r.mc)], ["FDV", usd(r.fdv), "", "Vốn hoá nếu toàn bộ tổng cung lưu hành"], ["Lưu hành", isNum(V.float_pct) ? nf(V.float_pct, 0) + "%" : "—", V.float_pct < 35 ? "down" : ""],
         ["KL 24h", usd(r.vol)], ["Từ đỉnh", pct(r.ath, 0), "down", cg.ath_date ? `Đỉnh ${px(cg.ath)} ngày ${fmtD(cg.ath_date)}` : ""],
         ["7 / 30 ngày", `<span class="${cls(r.r7)}">${pct(r.r7, 0)}</span> / <span class="${cls(r.r30)}">${pct(r.r30, 0)}</span>`], ["1 năm", pct(r.r365, 0), cls(r.r365)],
@@ -4049,10 +4049,10 @@ function tabVal(D) {
     ${us.length > 3 ? lineSvg([{ name: "Lượng đã mở khoá (lịch DefiLlama)", color: css("--ref"), pts: us.map(([t, v]) => ({ x: fmtT(t).slice(3), y: v })) }], { h: 150, fmt: (v) => qty(v), hlines: [] }) : ""}
     ${(D.sup || []).length > 5 ? lineSvg([{ name: "Lượng lưu hành thực tế (CoinGecko)", color: css("--brand"), pts: D.sup.map(([d, v]) => ({ x: fmtD(d), y: v })) }], { h: 130, fmt: (v) => qty(v) }) : ""}
     ${nxt ? `<h3>Đợt mở khoá sắp tới</h3><div class="tw"><table><thead><tr><th class="l">Ngày</th><th>% lưu hành</th><th>Giá trị</th><th class="l">Hạng mục</th></tr></thead><tbody>${nxt}</tbody></table></div>` : `<p class="muted">${U.file ? "Không có đợt mở khoá đáng kể sắp tới." : "DefiLlama chưa có lịch mở khoá cho token này."}</p>`}`;
-  return `<div class="g g2">
-    ${panel(`Kết luận định giá: ${vdPill(V.verdict)}`, `<ul class="why">${(V.why || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>${multBox}`, "dòng tiền thật · áp lực cung · thị trường ngầm định")}
-    <div>${panel("Dòng tiền on-chain", cfBox)}${panel("Nguồn cung & mở khoá", supBox)}</div></div>
-    <p class="faint disclaimer">Cách đọc: crypto không có báo cáo tài chính chuẩn. Hệ thống dùng phí/doanh thu on-chain thật (DefiLlama), so với nhóm cùng ngành, rồi hỏi ngược: "giá hiện tại đòi hỏi dòng tiền tăng bao nhiêu?". Coin không có dòng tiền được gắn nhãn Đầu cơ – không có nghĩa là xấu, mà là không định giá được bằng tiền thật.</p>`;
+  // 11/2026 (Jason): bỏ phần ĐỊNH GIÁ (kết luận rẻ/đắt, P/S, giá "hợp lý") – coin không định giá như cổ phiếu. Tab chỉ còn dữ kiện: nguồn cung / mở khoá và phí – doanh thu on-chain.
+  void multBox;
+  return `<div class="g g2">${panel("Nguồn cung & mở khoá", supBox)}${panel("Phí & doanh thu on-chain", cfBox)}</div>
+    <p class="faint disclaimer">Số liệu thật từ DefiLlama (phí, doanh thu, lịch mở khoá) và CoinGecko (lượng lưu hành). Chỉ là dữ kiện về cung và dòng tiền của dự án – không phải nhận định giá rẻ hay đắt.</p>`;
 }
 
 function tabFut(D) {
@@ -7395,7 +7395,7 @@ function nlq(q) {
     const C = (sub, lab, info, right = "") => add(`${lab} · ${K}`, info, () => { location.hash = `#/c/${K}${sub ? "/" + sub : ""}`; }, right);
     if (has(/ funding | phai sinh | oi | open interest | long ?short | basis | futures /)) C("fut", bi("Funding & phái sinh", "Funding & derivatives"), R?.fx ? `funding 8h ${f8s(R.f8)}` : bi("chưa có futures trên sàn theo dõi", "no futures on tracked exchanges"), R?.fx ? `<span class="${f8c(R.f8)}">${f8s(R.f8)}</span>` : "");
     if (has(/ ho tro | khang cu | support | resistance | muc gia | vung gia | dinh | day /)) C("lv", bi("Mức giá: hỗ trợ / kháng cự", "Levels: support / resistance"), bi("các vùng giá quan trọng & thời gian", "key price zones & timing"));
-    if (has(/ dinh gia | re hay dat | valuation | mvrv | dat khong | re khong /)) C("val", bi("Định giá", "Valuation"), R?.vd ? `${bi("hiện:", "now:")} ${R.vd}` : "");
+    if (has(/ dinh gia | re hay dat | valuation | mvrv | dat khong | re khong /)) C("val", bi("Nguồn cung & dòng tiền", "Supply & cash flows"), "");
     if (has(/ ky thuat | rsi | macd | chi bao | indicator | ema | ma200 /)) C("tech", bi("Kỹ thuật & chỉ báo", "Technicals & indicators"), "");
     if (has(/ smc | vao lenh | diem vao | entry | setup /)) C("smc", bi("SMC & điểm vào lệnh", "SMC & entries"), "");
     if (has(/ ke hoach | plan | tinh lenh | khoi luong | size | don bay /)) add(`${bi("Lên kế hoạch lệnh", "Plan a trade")} · ${K}`, bi("tính khối lượng, đòn bẩy, cắt lỗ theo vốn của anh", "size, leverage and stop from your capital"), () => { location.hash = `#/plan/${K}`; });

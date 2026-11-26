@@ -9,6 +9,14 @@
    "se": "Instant fills, tick-level prices for held coins, warm connection to the exchange.",
    "it": [
     {
+     "c": "imp",
+     "a": "ui",
+     "t": "Trang coin: bỏ phần Định giá, tab còn Nguồn cung & dòng tiền",
+     "te": "Coin page: valuation removed; the tab is now Supply & cash flows",
+     "d": "Bỏ kết luận rẻ/đắt, các bội số P/S và giá \"hợp lý\". Giữ lại dữ kiện: nguồn cung, lịch mở khoá, phí và doanh thu on-chain.",
+     "de": "Removed the cheap/expensive verdict, P/S multiples and \"fair\" prices. Kept the facts: supply, unlock schedule, on-chain fees and revenue."
+    },
+    {
      "c": "new",
      "a": "bot",
      "t": "Nhìn lại từng tuần: tuần đó đánh cách nào thì lời",
