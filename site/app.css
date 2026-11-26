@@ -7971,4 +7971,15 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .lb2-wt .vf-c{display:inline-grid;place-items:center;min-width:58px;height:26px;padding:0 6px;cursor:default}.lb2-wt .vf-c:active{transform:none}
 .lb2-wn{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--bd);font-size:.8125rem;line-height:1.55;color:var(--ink-2)}.lb2-wn p{margin:4px 0 0}.lb2-wn ul{margin:6px 0 0;padding-left:18px}
 .lb2-tg b.up{color:var(--up)}.lb2-tg b.down{color:var(--down)}
-.lb2-wn>summary{cursor:pointer;list-style:none}.lb2-wn>summary::-webkit-details-marker{display:none}.lb2-wn>summary::after{content:"▾";margin-left:6px;color:var(--ink-3)}.lb2-wn[open]>summary::after{content:"▴"}
+.lb2-wn>summary{cursor:pointer;list-style:none;display:block}.lb2-wn>summary::before{display:none!important;content:none!important}.lb2-wn>summary::-webkit-details-marker{display:none}.lb2-wn>summary::after{content:"▾";margin-left:6px;color:var(--ink-3)}.lb2-wn[open]>summary::after{content:"▴"}
+/* 📋 bảng tổng mọi phương pháp theo giai đoạn + bảng giai đoạn / lịch sử chấm trong thẻ */
+.lb2-at td,.lb2-at th{padding:7px 8px!important;text-align:right;vertical-align:middle;white-space:nowrap}.lb2-at td.l,.lb2-at th.l{text-align:left;white-space:normal;min-width:210px}
+.lb2-at td b{display:block;font-size:.875rem;font-variant-numeric:tabular-nums}.lb2-at td small{display:block;font-size:.6875rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lb2-at b.up,.lb2-pt .up{color:var(--up)}.lb2-at b.down,.lb2-pt .down{color:var(--down)}
+.lb2-at tr.lb2-gr td{padding:10px 8px 4px!important;background:transparent!important;font-size:.75rem;font-weight:700;color:var(--ink-2)}.lb2-at tr.lb2-gr small{display:inline;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--sunk)}
+.lb2-go{border:0;background:none;padding:0;font:inherit;font-weight:650;color:var(--ink);text-align:left;cursor:pointer}.lb2-go:hover{color:var(--brand);text-decoration:underline}
+.lb2-pt{font-size:.71875rem;width:100%}.lb2-pt td,.lb2-pt th{padding:4px 4px!important;white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.lb2-pt td.l,.lb2-pt th.l{text-align:left}
+.lb2-hist{margin-top:8px}.lb2-hist>summary{cursor:pointer;font-size:.75rem;font-weight:600;color:var(--ink-2)}.lb2-hist .tw{margin-top:6px;max-height:240px;overflow:auto}
+.lb2-c.flash{animation:lb2Flash 1.2s ease}@keyframes lb2Flash{0%,60%{box-shadow:0 0 0 2px var(--brand)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.lb2-c.flash{animation:none}}
+

@@ -10,6 +10,16 @@
    "it": [
     {
      "c": "imp",
+     "a": "bot",
+     "t": "Phòng thử nghiệm: bày hết mọi phương pháp theo từng giai đoạn, kèm lịch sử các lần chấm",
+     "te": "Method lab: every method by period, with the history of each scoring run",
+     "d": "Bảng tổng liệt kê mọi phương pháp đã tìm và thử, kể cả cái đã loại: lời/lỗ từ 07/2023, 1 năm, 1 quý, 1 tháng, 1 tuần qua. Phương pháp đã loại vẫn được chấm lại mỗi lượt và tự quay về diện theo dõi nếu qua lại cổng kiểm. Mỗi thẻ có bảng từng giai đoạn và lịch sử từng lần chấm.",
+     "de": "One table lists every method found and tested, including rejected ones: returns since 07/2023 and over the last year, quarter, month and week. Rejected methods are still re-scored every run and return to tracking if they pass the gate again. Each card has a period table and its scoring history.",
+     "f": "bot",
+     "go": "#/bot/scalp/cand"
+    },
+    {
+     "c": "imp",
      "a": "ui",
      "t": "Trang coin: bỏ phần Định giá, tab còn Nguồn cung & dòng tiền",
      "te": "Coin page: valuation removed; the tab is now Supply & cash flows",

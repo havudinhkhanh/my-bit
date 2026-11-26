@@ -236,15 +236,26 @@ def evaluate(D, M, prev):
     if why and was not in ("watch", "pass"): status = "fail"
     elif fw["days"] >= G["fw_days"] and fw["sum"] > 0 and (fw["sharpe"] or 0) >= G["fw_sharpe"] and not why: status = "pass"
     elif fw["days"] >= 30 and (fw["dd"] > 1.5 * max(st["dd"], 3) or (fw["days"] >= G["fw_fail_days"] and fw["sum"] <= 0)): status = "drop"
-    elif was == "drop": status = "drop"
+    elif was == "drop" and not (not why and st["d90"] > 0): status = "drop"
     else: status = "watch"
+    if status == "watch" and was in ("fail", "drop"):      # phương pháp đã loại nay qua lại cổng kiểm → theo dõi trên giấy LẠI TỪ ĐẦU (tính từ hôm nay)
+        added = str(TODAY); fw = dict(days=0, sum=0.0, sharpe=None, dd=0.0)
     if status == "drop" and not why: why = [(f"Theo dõi {fw['days']} ngày: {fw['sum']:+.1f}%, sụt {fw['dd']}% – xấu hơn lịch sử", f"Forward {fw['days']} days: {fw['sum']:+.1f}%, drawdown {fw['dd']}% – worse than history")]
     eqw = np.cumprod(1 + net)[::7]; eq = [round(float(v), 4) for v in eqw[-160:]]
     # 🔁 NHÌN LẠI TỪNG TUẦN (thứ Hai → Chủ nhật, UTC): lời/lỗ % của 26 tuần đủ ngày gần nhất – web xếp hạng "tuần đó cách nào lời"
     sw = pd.Series(net, index=dates); wk0 = sw.index - pd.to_timedelta(sw.index.weekday, unit="D")
     wk = [[str(k.date()), round(float((1 + v).prod() - 1) * 100, 2)] for k, v in sw.groupby(wk0) if len(v) == 7][-26:]
+    # 📋 TỪNG GIAI ĐOẠN (Jason 26/11/2026: "kiểm nghiệm từ 2023 tới giờ, năm rồi, quý rồi, tháng rồi, tuần rồi – bày hết ra"): cùng 1 chuỗi lời/lỗ ngày, cắt theo độ dài
+    def seg(x):
+        if len(x) < 2: return None
+        sd = x.std(ddof=1) or 1e-12
+        return dict(n=len(x), ret=round(float((1 + x).prod() - 1) * 100, 2), day=round(float(x.mean()) * 100, 4), sharpe=round(float(x.mean() / sd * np.sqrt(365)), 2), dd=round(_dd(x) * 100, 1), win=round(float((x > 0).mean()) * 100), worst=round(float(x.min()) * 100, 2))
+    per = dict(all=seg(net), y1=seg(net[-365:]), q1=seg(net[-90:]), m1=seg(net[-30:]), w1=seg(net[-7:]))
+    # 🗒 LỊCH SỬ CÁC LẦN CHẤM: mỗi lần chạy ghi 1 dòng (trạng thái + lời/lỗ từng giai đoạn) – không xoá, giữ 120 lần gần nhất
+    hist = [h for h in (prev or {}).get("hist", []) if h.get("at") != str(TODAY)]
+    hist.append(dict(at=str(TODAY), to=str(dates[-1].date()), st=status, yr=st.get("yr"), sharpe=st.get("sharpe"), dd=st.get("dd"), y1=(per["y1"] or {}).get("ret"), q1=(per["q1"] or {}).get("ret"), m1=(per["m1"] or {}).get("ret"), w1=(per["w1"] or {}).get("ret")))
     info = {k: M[k] for k in ("id", "name", "name_en", "desc", "desc_en", "hold", "hold_en", "src")}
-    info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq, wk=wk,
+    info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq, wk=wk, per=per, hist=hist[-120:],
                 eq_from=str(dates[max(0, len(net) - 160 * 7)].date()), to=str(dates[-1].date()), expo=round(float(np.mean(out["expo"][sl])) * 100), turn=round(float(np.mean(out["turn"][sl])) * 100, 1),
                 cost=round(float(c[sl].mean()) * 100, 4), fund=round(float(f[sl].mean()) * 100, 4), gross=round(float(g[sl].mean()) * 100, 4),
                 lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""))
