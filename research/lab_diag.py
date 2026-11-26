@@ -3,7 +3,8 @@ Dùng ĐÚNG bộ nạp dữ liệu + khung tính lời/lỗ của lab.py (cùng
   0. kiểm dữ liệu (lỗ hổng, funding, danh mục hiện tại)   1. chân Long / chân Short so với thị trường (có phải chỉ là "bán khống altcoin lúc alt giảm"?)
   2. độ nhạy tham số (số ngày nhìn lại × số mã × cách chia nhóm × thứ đổi danh mục), phí ×2 ×3, khớp trễ 1 ngày, giữ nguyên cả tuần
   3. độ tập trung (mã nào, ngày nào làm ra lời; bỏ 5 mã tốt nhất; bỏ ngày có mã chạy > ±60%)   4. độ bền theo quý, Sharpe 180 ngày
-  5. sức chứa (khối lượng của các mã đang giữ)   6. so với danh mục chọn NGẪU NHIÊN (mức nhiễu).
+  5. sức chứa (khối lượng của các mã đang giữ)   6. lời còn không khi bỏ phần may rủi: bỏ mã không phải crypto
+  (cổ phiếu / vàng / dầu niêm yết 2026), chia 7 phần theo thứ, lệnh nhỏ cho mã giật mạnh   7. so với danh mục chọn NGẪU NHIÊN (mức nhiễu).
 Không đổi tham số của phương pháp, không đặt lệnh. Chạy: python research/lab_diag.py   (máy không có mạng: python research/lab_diag.py --synthetic)"""
 import os
 import sys
@@ -39,14 +40,16 @@ def sig_of(D, lb):
     C = pd.DataFrame(D.C); return (C.shift(1) / C.shift(lb + 1) - 1).values      # lợi suất lb ngày tính tới hôm trước (lb = 14 → đúng xmom14)
 
 
-def ls_w(D, sig, reb, top=40, q=5, k=None):
-    """Như lab_methods._ls, thêm k = số mã CỐ ĐỊNH mỗi bên (k=None → chia q nhóm như bản gốc)."""
+def ls_w(D, sig, reb, top=40, q=5, k=None, iv=None):
+    """Như lab_methods._ls, thêm k = số mã CỐ ĐỊNH mỗi bên (k=None → chia q nhóm như bản gốc); iv[ngày, mã] = 1/biến động → mã càng giật thì lệnh càng nhỏ (iv=None: chia đều)."""
     W = np.zeros((D.nd, D.S)); w = np.zeros(D.S)
     for d in range(1, D.nd):
         if reb[d]:
             s = np.where((D.rank[d] < top) & np.isfinite(sig[d]), sig[d], np.nan); ok = np.nonzero(np.isfinite(s))[0]
             if len(ok) >= (2 * k if k else 2 * q):
-                n = k or max(1, len(ok) // q); o = ok[np.argsort(s[ok])]; w = np.zeros(D.S); w[o[-n:]] = 0.5 / n; w[o[:n]] = -0.5 / n
+                n = k or max(1, len(ok) // q); o = ok[np.argsort(s[ok])]; w = np.zeros(D.S); hi, lo = o[-n:], o[:n]
+                if iv is None: w[hi] = 0.5 / n; w[lo] = -0.5 / n
+                else: w[hi] = 0.5 * iv[d, hi] / iv[d, hi].sum(); w[lo] = -0.5 * iv[d, lo] / iv[d, lo].sum()
         w = np.where(np.isfinite(D.O[d]), w, 0.0); W[d] = w
     return W
 
@@ -69,6 +72,27 @@ def hold(D, W, reb):
         h = h * (1 + D.R[d]); eq *= 1 + r
         if eq <= 0: break
     return out[D.ev0:], expo[D.ev0:]
+
+
+def v30_of(D):
+    return pd.DataFrame(D.Q).where(np.isfinite(D.C)).rolling(30, min_periods=20).mean().shift(1).values      # như lab.finish
+
+
+def sub(D, drop):
+    """Bản sao của D với rổ đã BỎ các mã `drop` – xếp hạng khối lượng + mức phí tính lại đúng như lab.finish."""
+    import copy
+    D2 = copy.copy(D); v30 = v30_of(D); D2.elig = D.elig & ~drop
+    D2.rank = np.argsort(np.argsort(-np.where(D2.elig, v30, -1), 1), 1).astype(float); D2.rank[~D2.elig] = np.inf; D2.cost = np.where(D2.rank < 10, 0.0006, 0.0010)
+    return D2
+
+
+def tradfi(D):
+    """Mã KHÔNG phải crypto (cổ phiếu, ETF, vàng, dầu… niêm yết dạng futures USDT từ 2026): cuối tuần thị trường gốc đóng cửa nên khối lượng & biên độ
+    thứ Bảy–Chủ nhật rất thấp. Nhận diện bằng số liệu (đặc tính cố định của mã, không phải tín hiệu giao dịch) – danh sách được in ra để soát bằng mắt."""
+    we = D.wd >= 5; ok = np.isfinite(D.C) & np.isfinite(D.O); q = np.where(ok, np.nan_to_num(D.Q), 0.0); a = np.where(ok, np.abs(D.R), np.nan)
+    vs = q[we].sum(0) / np.maximum(q.sum(0), 1e-9); n = ok.sum(0)
+    with np.errstate(all="ignore"): rr = np.nanmean(a[we], 0) / np.nanmean(a[~we], 0)
+    return (n >= 28) & (vs < 0.12) & (rr < 0.45), vs, rr
 
 
 def st(x):
@@ -126,6 +150,11 @@ def report(D):
     P("- Funding có số liệu cho " + " · ".join(f"{y}: {fc[yrs == y][hm[yrs == y]].mean() * 100:.0f}%" for y in Y if hm[yrs == y].any()) + f" số (mã × ngày) đang giữ; funding tới {D.dates[max(D.fund_until, 0)].date()} (sau đó coi = 0)")
     ex = (np.abs(R) > 0.6) & np.isfinite(D.O); ex[:ev] = False
     P(f"- Số lần 1 mã chạy > ±60% trong 1 ngày (mở → mở): {int(ex.sum())} trên mọi mã, {int((ex & (D.rank < 40)).sum())} trong 40 mã lớn, {int((ex & (W != 0)).sum())} khi xmom14 đang giữ")
+    Nn = (W * R - L.trades(D, W) * D.cost - W * F)[ev:]; gone = last < D.nd - 40; lw = (np.arange(D.nd)[:, None] > last[None, :] - 7)[ev:] & gone[None, :]; hw = W[ev:]
+    P(f"- Mã đã HUỶ niêm yết (hết dữ liệu trước cuối kỳ > 40 ngày): {int(gone.sum())} mã, xmom14 từng giữ {int((gone & held).sum())}; lời/lỗ trong 7 ngày CUỐI trước khi huỷ: "
+      f"bên Long {(Nn * lw * (hw > 0)).sum() * 100:+.1f} điểm ({int((lw & (hw > 0)).any(0).sum())} mã) · bên Short {(Nn * lw * (hw < 0)).sum() * 100:+.1f} điểm ({int((lw & (hw < 0)).any(0).sum())} mã)")
+    bd = D.fund_until + 1
+    if 0 < bd < D.nd: P(f"- Chỗ nối tệp tháng → tệp ngày ({D.dates[bd].date()}): {int(np.isfinite(D.O[bd - 1]).sum())} → {int(np.isfinite(D.O[bd]).sum())} mã; {int(((W[bd - 1] != 0) & ~np.isfinite(D.O[bd])).sum())} vị thế đang giữ bị cắt vì mã không nằm trong nhóm tải tệp ngày")
     dl = [d for d in range(D.nd - 1, 0, -1) if reb[d]][:1]
     if dl:
         d = dl[0]; P(f"- Danh mục lần đổi gần nhất {D.dates[d].date()}: MUA " + " ".join(D.syms[j].replace("USDT", "") for j in np.nonzero(W[d] > 0)[0]) + " · BÁN " + " ".join(D.syms[j].replace("USDT", "") for j in np.nonzero(W[d] < 0)[0]))
@@ -214,6 +243,11 @@ def report(D):
         P("Các lần mã đang giữ chạy > ±60%/ngày (nghi lỗi dữ liệu / đổi mệnh giá nếu không phải bơm-xả thật):")
         tbl(["ngày", "mã", "bên", "giá %", "đóng góp (điểm %)"], [[dates[i].date(), D.syms[j], "L" if W[ev + i, j] > 0 else "S", f"{R[ev + i, j] * 100:+.0f}", f"{N[i, j] * 100:+.1f}"] for i, j in evs])
 
+    up = ((R > 0.6) & np.isfinite(D.O))[ev:]; dn = ((R < -0.6) & np.isfinite(D.O))[ev:]; hl = W[ev:] > 0; hs = W[ev:] < 0
+    P(f"Cân đối may rủi: mã TĂNG > 60%/ngày rơi vào bên Long {int((up & hl).sum())} lần ({(N * (up & hl)).sum() * 100:+.0f} điểm) · bên Short {int((up & hs).sum())} lần ({(N * (up & hs)).sum() * 100:+.0f} điểm); "
+      f"mã GIẢM > 60%/ngày: bên Long {int((dn & hl).sum())} lần ({(N * (dn & hl)).sum() * 100:+.0f} điểm) · bên Short {int((dn & hs).sum())} lần ({(N * (dn & hs)).sum() * 100:+.0f} điểm). "
+      f"1 mã bên Short tăng +1.600% trong 1 ngày = mất 100% vốn (mỗi mã {0.5 / 8 * 100:.2f}% vốn).\n")
+
     # ---------- 4. độ bền theo thời gian
     P("## 4. Độ bền theo thời gian")
     s = pd.Series(net, index=dates); qk = [f"{y}Q{q}" for y, q in zip(dates.year, dates.quarter)]; qs = sorted(set(qk)); qa = np.array(qk)
@@ -232,7 +266,7 @@ def report(D):
 
     # ---------- 5. sức chứa
     P("## 5. Sức chứa")
-    q_ = pd.DataFrame(D.Q).where(np.isfinite(D.C)); v30 = q_.rolling(30, min_periods=20).mean().shift(1).values; rd = [d for d in range(ev, D.nd) if reb[d] and (W[d] != 0).any()]
+    v30 = v30_of(D); rd = [d for d in range(ev, D.nd) if reb[d] and (W[d] != 0).any()]
     if rd:
         for nm, sgn in (("Long", 1), ("Short", -1)):
             med = np.array([np.nanmedian(v30[d][W[d] * sgn > 0]) for d in rd]); mn = np.array([np.nanmin(v30[d][W[d] * sgn > 0]) for d in rd]); k = np.median([(W[d] * sgn > 0).sum() for d in rd])
@@ -240,8 +274,31 @@ def report(D):
               f"~{k:.0f} mã/bên → vốn tối đa để mỗi lệnh ≤ 1% khối lượng ngày của mã nhỏ nhất (mức 10% thấp): {0.01 * np.percentile(mn, 10) / (0.5 / k) / 1e6:,.1f} triệu USD")
     P("")
 
-    # ---------- 6. mức nhiễu
-    P("## 6. So với danh mục chọn NGẪU NHIÊN (cùng rổ 40 mã, cùng lịch thứ Hai, 8 mua / 8 bán)")
+    # ---------- 6. bản "cứng"
+    P("## 6. Lời có còn không khi bỏ phần may rủi? (chỉ để CHẨN ĐOÁN – không phải phương pháp mới)")
+    tf, vs, rr = tradfi(D); tj = np.nonzero(tf)[0]; tj = tj[np.argsort(-np.nansum(np.where(tf, np.nan_to_num(D.Q), 0), 0)[tj])]
+    assert np.array_equal(sub(D, np.zeros(S, bool)).rank, D.rank), "sub() lệch lab.finish"
+    P(f"- {len(tj)} mã bị coi là KHÔNG phải crypto (khối lượng cuối tuần < 12% cả tuần và biên độ cuối tuần < 45% ngày thường): " + " ".join(f"{D.syms[j].replace('USDT', '')}({vs[j] * 100:.0f}%/{rr[j]:.2f})" for j in tj[:60]))
+    inT = (inU & tf)[ev:]; P("- Số mã không-crypto trong 40 mã lớn (trung bình mỗi ngày): " + " · ".join(f"{y}: {inT[yrs == y].sum(1).mean():.1f}" for y in Y)
+                              + " | đóng góp của các mã đó vào lời xmom14 (điểm %): " + " · ".join(f"{y}: {N[yrs == y][:, tf].sum() * 100:+.1f}" for y in Y))
+    Dc = sub(D, tf); Cc = pd.DataFrame(D.C); vol = (Cc / Cc.shift(1) - 1).rolling(30, min_periods=14).std().shift(1).values; iv = np.where(np.isfinite(vol), 1 / np.maximum(vol, 0.01), 1 / 0.08)
+    def tranche(DD, lagk=0, fund=1.0, **kw):
+        return np.mean([net_of(DD, lag(DD, ls_w(DD, sig, DD.wd == k, **kw), lagk) if lagk else ls_w(DD, sig, DD.wd == k, **kw), fund=fund) for k in range(7)], 0)
+    wk = lambda DD: " / ".join(f"{st(net_of(DD, ls_w(DD, sig, DD.wd == k)))['sh']:+.1f}" for k in range(7))  # noqa: E731
+    x7 = tranche(D); xc = net_of(Dc, ls_w(Dc, sig, reb)); xc7 = tranche(Dc); xr = tranche(Dc, iv=iv); rows = [
+        ["A. cơ sở (thứ Hai, mọi mã)", cells(net), shp(net)] + ysum(net),
+        ["B. cơ sở nhưng chia vốn 7 phần, mỗi phần đổi danh mục 1 thứ (hết may rủi về thứ)", cells(x7), shp(x7)] + ysum(x7),
+        ["C. chỉ crypto (bỏ mã không-crypto), thứ Hai", cells(xc), shp(xc)] + ysum(xc),
+        ["D. chỉ crypto + 7 phần", cells(xc7), shp(xc7)] + ysum(xc7),
+        ["E. D + lệnh nhỏ hơn cho mã giật mạnh (tỉ trọng nghịch biến động 30 ngày)", cells(xr), shp(xr)] + ysum(xr)]
+    for nm, x in (("F. E + khớp trễ 1 ngày", tranche(Dc, lagk=1, iv=iv)), ("G. E không tính funding", tranche(Dc, fund=0.0, iv=iv))): rows.append([nm, cells(x), shp(x)] + ysum(x))
+    Rc = D.R; D.R = Dc.R = np.clip(Rc, -0.3, 0.3); x = tranche(Dc, iv=iv); rows.append(["H. E + cắt biến động ngày của 1 mã về ±30%", cells(x), shp(x)] + ysum(x)); D.R = Dc.R = Rc
+    tbl(["bản", "Sharpe | %/năm | sụt % | 365 ngày %", "Sharpe ≤2024 | ≥2025"] + [f"{y} (cộng %)" for y in Y], rows)
+    P(f"- Sharpe theo thứ đổi danh mục T2…CN: mọi mã {wk(D)} · chỉ crypto {wk(Dc)}")
+    k20 = np.sort(xr)[:-20]; P(f"- Bản E: ngày xấu nhất {xr.min() * 100:+.1f}% · ngày tốt nhất {xr.max() * 100:+.1f}% · bỏ 20 ngày tốt nhất còn {k20.mean() * 36500:+.0f}%/năm · t = {xr.mean() / (xr.std(ddof=1) or 1e-12) * np.sqrt(len(xr)):.2f}\n")
+
+    # ---------- 7. mức nhiễu
+    P("## 7. So với danh mục chọn NGẪU NHIÊN (cùng rổ 40 mã, cùng lịch thứ Hai, 8 mua / 8 bán)")
     rng = np.random.default_rng(11); pg = []; py = []
     for _ in range(200):
         gr = L.pnl(D, ls_w(D, rng.normal(size=(D.nd, S)), reb), drift=False)[0][ev:]; pg.append(st(gr)["sh"]); py.append(gr.mean() * 36500)
