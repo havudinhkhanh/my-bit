@@ -9,6 +9,17 @@
    "se": "Instant fills, tick-level prices for held coins, warm connection to the exchange.",
    "it": [
     {
+     "c": "fix",
+     "a": "live",
+     "t": "Sửa lỗi \"-1102 timestamp\" làm tài khoản Binance thật ngừng mở lệnh mới",
+     "te": "Fixed the \"-1102 timestamp\" error that halted the live Binance account",
+     "d": "Bản đường nhanh đồng bộ giờ sàn theo độ trễ đo được nhưng để lẻ nửa mili-giây → sàn từ chối các lệnh có chữ ký xen kẽ, đủ 5 lỗi liên tiếp thì bot ngừng mở mới. Giờ đã làm tròn. Cần cập nhật máy chủ riêng rồi bấm Chạy lại.",
+     "de": "Time-sync offset is now rounded to whole milliseconds. Requires a VPS update, then press Resume.",
+     "aud": "admin",
+     "go": "#/bot/scalp",
+     "hi": 1
+    },
+    {
      "c": "imp",
      "a": "live",
      "t": "⚡ Đặt / huỷ lệnh Binance thật qua WebSocket API – nhanh hơn REST",

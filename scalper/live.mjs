@@ -85,7 +85,7 @@ export class LiveExec {
       try { return await this.wsOrder(method, params, K); } catch (e) { if (!e.wsFallback) throw e; }
     }
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
-    if (signed) { q.set("recvWindow", "5000"); q.set("timestamp", String(Date.now() + this.off)); q.set("signature", crypto.createHmac("sha256", K.s).update(q.toString()).digest("hex")); }
+    if (signed) { q.set("recvWindow", "5000"); q.set("timestamp", String(Math.round(Date.now() + this.off))); q.set("signature", crypto.createHmac("sha256", K.s).update(q.toString()).digest("hex")); }
     const t0 = performance.now();
     const r = await fetch(`${base}${p}${q.toString() ? "?" + q : ""}`, { method, headers: K ? { "X-MBX-APIKEY": K.k } : {}, signal: AbortSignal.timeout(10000) });
     const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch (e) { /* không phải JSON */ }
@@ -211,7 +211,7 @@ export class LiveExec {
     const F = this.fx2, M = { POST: "order.place", DELETE: "order.cancel", GET: "order.status" }[method];
     const P = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
     if (method === "POST" && !P.newClientOrderId) P.newClientOrderId = `mbw${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;      // có mã riêng → nếu mất trả lời vẫn hỏi lại được, không đặt trùng
-    P.apiKey = K.k; P.recvWindow = "5000"; P.timestamp = String(Date.now() + this.off);
+    P.apiKey = K.k; P.recvWindow = "5000"; P.timestamp = String(Math.round(Date.now() + this.off));
     P.signature = crypto.createHmac("sha256", K.s).update(Object.keys(P).sort().map((k) => `${k}=${P[k]}`).join("&")).digest("hex");
     const id = `w${++F.apiSeq}`, t0 = performance.now();
     const r = await new Promise((res, rej) => {
@@ -282,7 +282,7 @@ export class LiveExec {
     // (3) giữ kết nối ấm + đồng bộ giờ sàn khi đang có lệnh
     if (A.length && !(now - (F.pingAt || 0) < 3000)) {
       F.pingAt = now; const t0 = Date.now();
-      this.req("GET", "/fapi/v1/time", {}, false).then((t) => { const rt = Date.now() - t0; if (rt < 1500) this.off = t.serverTime + rt / 2 - Date.now(); F.ping = rt; }).catch(() => {});
+      this.req("GET", "/fapi/v1/time", {}, false).then((t) => { const rt = Date.now() - t0; if (rt < 1500) this.off = Math.round(t.serverTime + rt / 2 - Date.now()); /* làm tròn: timestamp lẻ (.5) → sàn báo -1102 */ F.ping = rt; }).catch(() => {});
     }
   }
   onUds(d) {
