@@ -478,7 +478,26 @@ function vfSheet(m, r) {
 const LAB_ST = { pass: ["ok", "Đạt – chờ anh quyết", "Passed – your call"], watch: ["warn", "Đang theo dõi trên giấy", "Paper-tracking"], drop: ["bad", "Đã loại khi theo dõi", "Dropped in tracking"], fail: ["off", "Không đạt – đã loại", "Rejected"] };
 const labKey = (n) => `${n.at}|${n.id}|${n.kind}`;
 const labUnseen = (L) => { const seen = new Set(lsGet("labseen", []) || []); return (L?.news || []).filter((n) => !seen.has(labKey(n))); };
-function scCandHtml(L, info) {
+// 🔁 NHÌN LẠI TỪNG TUẦN: tuần đó cách nào lời (xếp hạng sau khi tuần đã xong) + phép thử "cách thắng tuần trước, tuần sau còn thắng không"
+function scWeekHtml(L, V, N) {
+  const M = (L?.methods || []).filter((m) => (m.wk || []).length), rows = M.map((m) => ({ name: bi(m.name, m.name_en), st: m.status, w: Object.fromEntries(m.wk) }));
+  const hk = Object.fromEntries((V?.runs || []).filter((r) => isNum(r.m?.hook?.acct) && !r.m.hook.pend).map((r) => [r.wk, r.m.hook.acct]));
+  if (Object.keys(hk).length) rows.push({ name: bi("🪝 Bắt râu sập (mô hình nến 1 phút, 7,5% vốn/lệnh)", "🪝 Wick catcher (1-min model, 7.5% per trade)"), st: "bot", w: hk });
+  const all = [...new Set(M.flatMap((m) => m.wk.map((x) => x[0])))].sort(), W = all.slice(-6); if (!rows.length || !W.length) return "";
+  const d2 = (iso) => { const d = new Date(iso + "T00:00:00Z"); return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
+  const best = (w) => rows.filter((r) => isNum(r.w[w])).sort((a, b) => b.w[w] - a.w[w])[0];
+  let ok = 0, n = 0, sum = 0; for (let i = 1; i < all.length; i++) { const b = best(all[i - 1]), v = b?.w[all[i]]; if (b && b.w[all[i - 1]] > 0 && isNum(v)) { n++; sum += v; if (v > 0) ok++; } }
+  const last = W[W.length - 1]; rows.sort((a, b) => (b.w[last] ?? -1e9) - (a.w[last] ?? -1e9));
+  const cell = (r, w) => { const v = r.w[w]; return !isNum(v) ? '<td><span class="vf-c na">·</span></td>' : `<td><span class="vf-c ${v > 0 ? "up" : v < 0 ? "down" : ""}">${best(w) === r && v > 0 ? "★ " : ""}${v > 0 ? "+" : ""}${nf(v, 1)}%</span></td>`; };
+  const note = (N?.notes || []).slice(-1)[0];
+  return panel(bi("🔁 Nhìn lại từng tuần – tuần đó đánh cách nào thì lời", "🔁 Week in review – what would have made money"), `
+    <p class="lb2-lead">${bi("Sau khi tuần đã xong, xếp hạng mọi cách đánh theo lời/lỗ của chính tuần đó (% vốn, 1× vốn, đã trừ phí). ★ = cách lời nhất tuần. Đây là nhìn lại – biết kết quả rồi mới xếp – nên dùng để tìm ý tưởng, chưa phải bằng chứng.", "After each week ends, every method is ranked by that week's own P&L (% of capital at 1×, after costs). ★ = the week's best. This is hindsight – useful for ideas, not proof.")}</p>
+    <div class="tw"><table class="rs keep lb2-wt"><thead><tr><th class="l">${bi("Cách đánh", "Method")}</th>${W.map((w) => `<th>${d2(w)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr><td class="l">${esc(r.name)}${r.st === "watch" ? ' <small class="faint">· đang theo dõi</small>' : ""}</td>${W.map((w) => cell(r, w)).join("")}</tr>`).join("")}</tbody></table></div>
+    ${n >= 6 ? `<p class="lb2-tg">${bi(`Phép thử qua ${n} tuần: lấy cách <b>lời nhất tuần trước</b> đem đánh <b>tuần sau</b> → có lời <b>${ok}/${n}</b> tuần, trung bình <b class="${sum / n > 0 ? "up" : "down"}">${sum / n > 0 ? "+" : ""}${nf(sum / n, 2)}%/tuần</b>. ${ok / n < 0.55 ? "Tức là cách thắng tuần này không báo trước được tuần sau – phải qua theo dõi trên giấy mới tin được." : "Có dấu hiệu lặp lại, cần theo dõi thêm."}`,
+      `Test over ${n} weeks: trade <b>last week's winner</b> the <b>following week</b> → profitable <b>${ok}/${n}</b> weeks, average <b>${nf(sum / n, 2)}%/week</b>.`)}</p>` : ""}
+    ${note ? `<div class="lb2-wn"><b>📝 ${bi("Nhận xét tuần", "Notes for week of")} ${d2(note.wk)}</b>${note.sum ? `<p>${esc(note.sum)}</p>` : ""}${(note.ideas || []).length ? `<ul>${note.ideas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>` : ""}`);
+}
+function scCandHtml(L, info, V, N) {
   if (!L?.methods) return panel(bi("🔬 Ứng viên mới", "🔬 New candidates"), `<p class="sc-empty">${bi("Phòng thử nghiệm chưa có kết quả – lượt chấm đầu tiên đang chạy.", "No lab results yet – the first run is in progress.")}</p>`);
   const sp = (v, d = 2) => (!isNum(v) ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${nf(Math.abs(v), d)}%`), cl = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
   const dm = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString(LOC, { day: "2-digit", month: "2-digit", year: "numeric" }); };
@@ -513,6 +532,7 @@ function scCandHtml(L, info) {
       `<p><b>History gate</b> (same for every method): consistent (Sharpe ≥ ${G.sharpe}); last 12 months positive; at least ${G.halves}/4 recent half-years positive; still positive without the 5 best days; still positive if costs rise 50%.</p>
       <p><b>Paper-tracking</b>: data after the add date has never been seen by the method. After ${G.fw_days} such days, still consistently profitable → <b>Passed</b>. Worse than history → <b>Dropped</b>.</p>
       <p>All numbers are paper P&L at ≤ 1× gross exposure, market orders, filled at the next period's open. The lab only measures – <b>it never switches anything on in the bot</b>. Past results do not guarantee the future.</p>`), bi("ⓘ Cách chấm", "ⓘ How scoring works"))}`)}
+    ${scWeekHtml(L, V, N)}
     ${sec(["pass"], bi("✅ Đạt – chờ anh quyết", "✅ Passed"))}${sec(["watch"], bi("👀 Đang theo dõi trên giấy", "👀 Paper-tracking"))}${sec(["fail", "drop"], bi("🗂 Đã thử và loại", "🗂 Tested and rejected"))}
     ${(L.queue || []).length ? panel(bi("⏳ Ý tưởng chờ dữ liệu", "⏳ Ideas waiting for data"), `<ul class="lb2-q">${L.queue.map((q) => `<li><b>${esc(bi(q.name, q.name_en))}</b> – ${esc(bi(q.why, q.why_en))}${(q.src || []).map((x) => ` <a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">↗</a>`).join("")}</li>`).join("")}</ul>`) : ""}`;
 }
@@ -528,7 +548,8 @@ async function viewScalp() {
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
   const LABD = await (window.__labP || (window.__labP = tryLoad("lab.json")));
-  const VFY = await (window.__vfyP || (window.__vfyP = tryLoad("verify.json")));      // 📅 kiểm chứng hằng tuần từng kiểu chơi (research/verify.py)      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
+  const VFY = await (window.__vfyP || (window.__vfyP = tryLoad("verify.json")));
+  const WKN = await (window.__wknP || (window.__wknP = tryLoad("week.json")));      // 📝 nhận xét "nhìn lại tuần" (lượt nhìn lại hằng tuần ghi)      // 📅 kiểm chứng hằng tuần từng kiểu chơi (research/verify.py)      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
   mCondApply(rv?.data);      // mốc cắt lỗ / chốt vừa gửi mà máy chủ chưa báo về → vẫn hiện mốc mới (⏳), không hiện lại mốc cũ
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần
   const KEYH = rk.data?.h ? rk.data : null;
@@ -1712,7 +1733,7 @@ async function viewScalp() {
   }
   const labN = TB === "ov" ? labUnseen(LABD).slice(-1)[0] : null;      // 📰 tin phòng thử nghiệm chưa xem → 1 dòng ở Tổng quan, bấm là mở Ứng viên mới
   const labBar = labN ? `<button type="button" class="lb2-bar" data-scpm="cand"><span>${esc(bi(labN.t, labN.te))}</span><i>${bi("Xem", "View")} →</i></button>` : "";
-  if (TB === "cand") { body = scCandHtml(LABD, info); if (LABD?.news) lsSet("labseen", LABD.news.map(labKey)); }
+  if (TB === "cand") { body = scCandHtml(LABD, info, VFY, WKN); if (LABD?.news) lsSet("labseen", LABD.news.map(labKey)); }
   else if (TB === "learn") body = `${EN ? learnPanelEN : learnPanel}${panel("🧪 Kiểm nghiệm bằng lệnh ảo – chỉ đánh thật cái đã chứng minh có lời", shPanel(X.sh, C), X.sh ? `${nf(X.sh.open, 0)} lệnh ảo đang chạy` : "")}
       ${panel("🧪 Bộ học trực tuyến – học gộp theo nhóm thanh khoản", `${learn}${info(`<p>Mỗi giây, trên mọi thị trường, bot ghi tín hiệu rồi đo giá đi bao xa theo hướng tín hiệu sau 2 giây tới 15 phút – tính bằng <b>số lần dao động mỗi giây của chính coin đó</b>, nên coin lớn và coin nhỏ học chung được trong cùng nhóm thanh khoản. Kỳ vọng (bps) của một coin = số trong bảng × dao động của coin × √thời gian giữ, rồi co dần về số liệu riêng của coin khi coin có đủ mẫu. <b class="up">Ô xanh</b> = lợi thế rõ; ô mờ = chưa đủ số mẫu tối thiểu <b>${nf(C.min_n, 0)}</b>.</p>`)}
         <div class="sc-br"><p><b>🧠 Bộ nhớ học</b> – lưu lên MyBit khoảng 10 phút một lần, máy mới / cài lại không phải học lại từ đầu.</p>

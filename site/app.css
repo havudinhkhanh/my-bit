@@ -7966,4 +7966,9 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .vf-cfg{margin:0;display:grid;gap:4px;font-size:.78125rem}.vf-cfg>div{display:grid;grid-template-columns:minmax(92px,32%) minmax(0,1fr);gap:8px;padding:6px 8px;border-radius:8px;background:var(--sunk)}.vf-cfg dt{color:var(--ink-3)}.vf-cfg dd{margin:0;color:var(--ink);line-height:1.45}
 .vf-s{display:flex;flex-wrap:wrap;gap:5px}.vf-s span{padding:3px 8px;border-radius:999px;background:var(--sunk);font-size:.75rem}.vf-s i{font-style:normal;font-weight:650;font-variant-numeric:tabular-nums}
 @media (max-width:420px){.vf-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 🔁 nhìn lại từng tuần */
+.lb2-wt td,.lb2-wt th{padding:4px 3px!important;text-align:center}.lb2-wt td.l,.lb2-wt th.l{text-align:left;padding-left:8px!important;white-space:normal;min-width:150px}
+.lb2-wt .vf-c{display:inline-grid;place-items:center;min-width:58px;height:26px;padding:0 6px;cursor:default}.lb2-wt .vf-c:active{transform:none}
+.lb2-wn{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--bd);font-size:.8125rem;line-height:1.55;color:var(--ink-2)}.lb2-wn p{margin:4px 0 0}.lb2-wn ul{margin:6px 0 0;padding-left:18px}
+.lb2-tg b.up{color:var(--up)}.lb2-tg b.down{color:var(--down)}
 

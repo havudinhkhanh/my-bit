@@ -10,6 +10,16 @@
    "it": [
     {
      "c": "new",
+     "a": "bot",
+     "t": "Nhìn lại từng tuần: tuần đó đánh cách nào thì lời",
+     "te": "Week in review: what would have made money each week",
+     "d": "Mỗi thứ Hai xếp hạng mọi cách đánh theo lời/lỗ của tuần vừa xong, kèm phép thử \"cách thắng tuần trước, tuần sau còn thắng không\" và nhận xét của tuần. Là nhìn lại để tìm ý tưởng – ý nào đáng thì đưa vào phòng thử nghiệm.",
+     "de": "Every Monday all methods are ranked by last week's P&L, with a test of whether last week's winner keeps winning, plus weekly notes. Hindsight for ideas – promising ones go into the lab.",
+     "f": "bot",
+     "go": "#/bot/scalp/cand"
+    },
+    {
+     "c": "new",
      "a": "chart",
      "t": "Thước đo trên biểu đồ tính luôn lời/lỗ sau phí và trượt giá",
      "te": "Chart ruler now shows profit/loss after fees and slippage",

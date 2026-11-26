@@ -240,8 +240,11 @@ def evaluate(D, M, prev):
     else: status = "watch"
     if status == "drop" and not why: why = [(f"Theo dõi {fw['days']} ngày: {fw['sum']:+.1f}%, sụt {fw['dd']}% – xấu hơn lịch sử", f"Forward {fw['days']} days: {fw['sum']:+.1f}%, drawdown {fw['dd']}% – worse than history")]
     eqw = np.cumprod(1 + net)[::7]; eq = [round(float(v), 4) for v in eqw[-160:]]
+    # 🔁 NHÌN LẠI TỪNG TUẦN (thứ Hai → Chủ nhật, UTC): lời/lỗ % của 26 tuần đủ ngày gần nhất – web xếp hạng "tuần đó cách nào lời"
+    sw = pd.Series(net, index=dates); wk0 = sw.index - pd.to_timedelta(sw.index.weekday, unit="D")
+    wk = [[str(k.date()), round(float((1 + v).prod() - 1) * 100, 2)] for k, v in sw.groupby(wk0) if len(v) == 7][-26:]
     info = {k: M[k] for k in ("id", "name", "name_en", "desc", "desc_en", "hold", "hold_en", "src")}
-    info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq,
+    info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq, wk=wk,
                 eq_from=str(dates[max(0, len(net) - 160 * 7)].date()), to=str(dates[-1].date()), expo=round(float(np.mean(out["expo"][sl])) * 100), turn=round(float(np.mean(out["turn"][sl])) * 100, 1),
                 cost=round(float(c[sl].mean()) * 100, 4), fund=round(float(f[sl].mean()) * 100, 4), gross=round(float(g[sl].mean()) * 100, 4),
                 lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""))
