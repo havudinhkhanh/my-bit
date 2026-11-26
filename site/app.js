@@ -953,7 +953,7 @@ function navDecor(r) {
   // ← → như trình duyệt: quay lại / tiến tới trang vừa xem (không phải trang trước/sau theo thứ tự menu)
   const NV = window.navigation, can = (d) => (NV && "canGoBack" in NV ? (d < 0 ? NV.canGoBack : NV.canGoForward) : d < 0 ? history.length > 1 : true);
   const nb = (d) => `<button type="button" class="cr-nv" data-crn="${d}"${can(d) ? "" : " disabled"} title="${d < 0 ? bi("Quay lại trang vừa xem (Alt+←)", "Back (Alt+←)") : bi("Tiến tới (Alt+→)", "Forward (Alt+→)")}" aria-label="${d < 0 ? bi("Quay lại", "Back") : bi("Tiến tới", "Forward")}">${chev(d)}</button>`;
-  const crumb = `<div class="crumb" data-nd><span class="cr-nav">${nb(-1)}${nb(1)}</span><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button></div>`;
+  const crumb = `<div class="crumb" data-nd><button type="button" class="cr-b" data-crg aria-haspopup="menu" title="${bi("Bản đồ mọi trang", "Map of every page")}"><i>${X.cur.gi}</i>${esc(gname)}${dn}</button><span>›</span><button type="button" class="cr-b cr-cur" data-crs aria-haspopup="menu" title="${bi(`Các trang trong nhóm ${gname}`, `Pages in ${gname}`)}">${esc(name)}${dn}</button><span class="cr-nav">${nb(-1)}${nb(1)}</span></div>`;      // 11/2026 (Jason): tên trang trước, ‹ › sau
   if (ph && ph.parentElement === app_) ph.insertAdjacentHTML("beforebegin", crumb); else app_.insertAdjacentHTML("afterbegin", crumb);      // luôn là con trực tiếp của #app → dính được suốt trang (tiêu đề nằm trong khung con thì đặt lên đầu trang)
   crDock(); requestAnimationFrame(() => { stickH(); try { topFit(); } catch (e) { /* bỏ qua */ } });
   try { lvsDraw(); } catch (e) { /* bỏ qua */ }
@@ -8837,8 +8837,23 @@ function tctBind() {
 function topFit() {
   const T = document.querySelector(".top-in"); if (!T) return; const R = document.documentElement;
   for (let k = 1; k <= 9; k++) if (R.classList.contains("tf" + k)) R.classList.remove("tf" + k);      // chỉ gỡ khi có: iPhone cuộn = thanh địa chỉ co giãn = "resize" liên tục → ghi lại lớp của <html> mỗi lần là tính lại kiểu cả trang
+  if (R.classList.contains("tfq")) R.classList.remove("tfq");
+  const Q = T.querySelector(":scope > .search"), tk = T.querySelector(":scope > .ticker"); if (tk) tk.style.maxWidth = "";
   if (!matchMedia("(min-width:980px)").matches) return;
-  for (let k = 1; k <= 9 && T.scrollWidth > T.clientWidth + 1; k++) R.classList.add("tf" + k);
+  // 🧭 ô tìm Ở GIỮA như Safari (≥ 1180px): ô tìm canh giữa cả thanh; trái = tên trang + băng giá (băng giá co lại vừa chỗ), phải = bot + 🔔 – chạm ô tìm thì gọn bớt từng bậc như trước
+  const mid = () => Q && getComputedStyle(Q).position === "absolute";
+  const fit = () => { if (!mid() || !tk || getComputedStyle(tk).display === "none") return true;
+    const q = Q.getBoundingClientRect(), t = tk.getBoundingClientRect(), u = T.querySelector(":scope > .upd"), uw = u && u.offsetWidth ? u.offsetWidth + 8 : 0;
+    const w = Math.floor(q.left - 12 - t.left - uw); tk.style.maxWidth = Math.max(0, w) + "px"; return w >= 140; };
+  const over = () => { if (!fit() || T.scrollWidth > T.clientWidth + 1) return true; if (!mid()) return false;
+    const q = Q.getBoundingClientRect();
+    for (const el of T.children) { if (el === Q || el === tk) continue; const r = el.getBoundingClientRect(); if (r.width && r.right > q.left - 10 && r.left < q.right + 10) return true; }
+    return false; };
+  let k = 1; for (; k <= 9 && over(); k++) R.classList.add("tf" + k);
+  if (k > 9 && over()) {      // vẫn chật: ô tìm về lại hàng như cũ (không đè lên nút)
+    for (let j = 1; j <= 9; j++) R.classList.remove("tf" + j); R.classList.add("tfq"); if (tk) tk.style.maxWidth = "";
+    for (let j = 1; j <= 9 && T.scrollWidth > T.clientWidth + 1; j++) R.classList.add("tf" + j);
+  }
 }
 addEventListener("resize", () => { clearTimeout(topFit._t); topFit._t = setTimeout(topFit, 120); });
 // dải trạng thái bot / viên ghim đổi bề rộng (số liệu mới, chip hiện / ẩn) → co lại ngay trong khung hình kế tiếp, không để thanh trên tràn ngang thoáng qua

@@ -9,6 +9,20 @@
    "se": "Instant fills, tick-level prices for held coins, warm connection to the exchange.",
    "it": [
     {
+     "c": "imp",
+     "a": "ui",
+     "t": "Ô tìm nằm giữa thanh trên cùng như Safari",
+     "te": "Search box centred in the top bar, Safari-style",
+     "d": "Máy tính màn rộng: ô tìm canh giữa; bên trái là tên trang và băng giá, bên phải là trạng thái bot và thông báo. Màn chật thì các phần tự gọn lại.",
+     "de": "Wide screens: the search box sits in the middle; page name and price tape on the left, bot status and notifications on the right. Narrow screens tidy up automatically."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Tên trang đứng trước nút ‹ ›",
+     "te": "Page name now comes before the ‹ › buttons"
+    },
+    {
      "c": "fix",
      "a": "live",
      "t": "Sửa lỗi \"-1102 timestamp\" làm tài khoản Binance thật ngừng mở lệnh mới",

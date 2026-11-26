@@ -5024,7 +5024,7 @@ td.hk-td{text-align:left!important;padding-left:0!important;padding-right:0!impo
 .top{top:0!important;padding-top:env(safe-area-inset-top,0px)}
 /* thanh vị trí dùng được: ‹ › trang trước/sau · nhóm ▾ = bản đồ mọi trang · tên trang ▾ = trang cùng nhóm */
 .crumb[data-nd]{gap:4px}
-.crumb .cr-nav{display:inline-flex;gap:2px;margin-right:4px}
+.crumb .cr-nav{display:inline-flex;gap:2px;margin-left:4px}      /* ‹ › nằm SAU tên trang */
 .crumb .cr-nv{display:inline-grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:7px;background:var(--fill);color:var(--ink-2);cursor:pointer;transition:background-color .14s ease,color .14s ease}
 .crumb .cr-nv:hover:not(:disabled){background:var(--fill-h);color:var(--ink)}
 .crumb .cr-nv:disabled{opacity:.35;cursor:default}
@@ -7425,7 +7425,7 @@ html.tf2 .topst .hz2-lv{display:none!important}
 html.tf3 .topst .hz2-c:nth-of-type(3){display:none!important}      /* sàn */
 html.tf4 .topst .hz2-c{display:none!important}      /* dữ liệu, Thật … */
 html.tf5 .top-in .search{flex:0 1 210px!important;width:210px!important;min-width:150px!important}
-html.tf6 .topnav .cr-b[data-crg],html.tf6 .topnav .crumb>span:not(.cr-nav){display:none!important}      /* đường dẫn: chỉ còn ‹ › + tên trang */
+html.tf6 .topnav .cr-b[data-crg],html.tf6 .topnav .crumb>span:not(.cr-nav){display:none!important}      /* đường dẫn: chỉ còn tên trang + ‹ › */
 html.tf7 .top-in .search{flex:0 1 150px!important;width:150px!important;min-width:120px!important}
 html.tf8 .top-in>.ticker{display:none!important}      /* rất chật: bỏ băng giá */
 html.tf9 .topst .hz2-s b{display:none!important}      /* chật nữa: trạng thái bot chỉ còn đèn + công tắc */
@@ -7513,7 +7513,7 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
   html.has-topnav .topnav{display:flex;align-items:center;flex:none;min-width:0;padding-right:10px;margin-right:2px;position:relative}
   html.has-topnav .topnav::after{content:"";position:absolute;right:0;top:50%;width:1px;height:20px;transform:translateY(-50%);background:var(--bd)}
   .topnav .crumb{position:static!important;margin:0!important;padding:0!important;height:34px;gap:2px!important;flex-wrap:nowrap!important;background:none!important;box-shadow:none!important;border:0!important;font-size:.8125rem;top:auto!important}
-  .topnav .crumb .cr-nav{gap:2px;margin-right:4px}
+  .topnav .crumb .cr-nav{gap:2px;margin-left:6px}
   .topnav .crumb .cr-nv{width:30px;height:30px;border-radius:9px;background:transparent;color:var(--ink-2)}
   .topnav .crumb .cr-nv:hover:not(:disabled){background:var(--sunk)}
   .topnav .crumb .cr-b{height:30px;padding:0 9px;border-radius:9px;font-size:.8125rem;color:var(--ink-3)}
@@ -7901,3 +7901,12 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .pz-f p{margin:0;font-size:.75rem}
 .hz2-ic.on{color:var(--brass,#d9a23a)}
 .hz-pause.pz{background:color-mix(in srgb,var(--ref,#d9a23a) 14%,transparent)}
+/* 11/2026 (Jason): 🧭 ô tìm Ở GIỮA thanh trên như Safari (≥ 1180px). [tên trang ‹ ›] [băng giá ── giờ]  ⟨ ô tìm ⟩  [trạng thái bot] [lệnh bot] [🔔]
+   Ô tìm nằm đúng giữa cả bề ngang; băng giá co lại vừa chỗ (topFit đặt max-width), phần bot đẩy hết sang phải. Chật quá → topFit thêm html.tfq: ô tìm về lại hàng như cũ. */
+@media (min-width:1180px){
+  .top-in{position:relative}
+  html:not(.tfq) .top-in>.search{position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);width:clamp(280px,30vw,460px)!important;flex:none!important;margin:0!important;z-index:2}
+  html:not(.tfq) .top-in>.ticker{min-width:0}
+  html.tf5:not(.tfq) .top-in>.search{width:240px!important}html.tf7:not(.tfq) .top-in>.search{width:200px!important}
+  html:not(.tfq) .top-in::after{content:"";order:3;flex:1 1 0;min-width:0}      /* khoảng trống giữa: nằm dưới ô tìm, đẩy phần bot sang phải */
+}
