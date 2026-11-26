@@ -79,6 +79,11 @@ export class LiveExec {
   // ---------------------------------------------------------------- gọi API Binance (ký HMAC-SHA256)
   async req(method, p, params = {}, signed = true, base = BASE[this.env()], env = this.env()) {
     const K = this.keys(env); if (signed && !K) throw new Error("chưa có khoá API trên máy chủ");
+    // ⚡ đặt / huỷ / hỏi lệnh qua WebSocket API (kết nối luôn mở, không mở yêu cầu HTTP mới) – chỉ tài khoản thật; lỗi kết nối → tự dùng REST như cũ
+    if (base === BASE.live + "/") base = BASE.live;      // (hỏi lại sau khi WebSocket API mất trả lời: ép đi REST)
+    else if (signed && p === "/fapi/v1/order" && env === "live" && base === BASE.live && this.fx2?.apiOk && process.env.MYBIT_WSAPI !== "0") {
+      try { return await this.wsOrder(method, params, K); } catch (e) { if (!e.wsFallback) throw e; }
+    }
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
     if (signed) { q.set("recvWindow", "5000"); q.set("timestamp", String(Date.now() + this.off)); q.set("signature", crypto.createHmac("sha256", K.s).update(q.toString()).digest("hex")); }
     const t0 = performance.now();
@@ -202,6 +207,34 @@ export class LiveExec {
   // 2) bookTicker riêng cho coin đang có lệnh: giá mua / bán tốt nhất từng nhịp (trước: sổ lệnh chụp 100–500 ms) → cắt lỗ đuổi / đóng chính xác hơn
   // 3) Giữ kết nối HTTPS tới sàn luôn "ấm" khi có lệnh (hỏi giờ sàn mỗi 3 giây) → gửi lệnh không mất 100–300 ms bắt tay TLS; đồng bộ giờ sàn theo độ trễ thật
   // Lỗi / mất luồng → tự quay về cách cũ (hỏi sàn định kỳ) và tự nối lại; không đổi luật vào / ra lệnh nào.
+  async wsOrder(method, params, K) {
+    const F = this.fx2, M = { POST: "order.place", DELETE: "order.cancel", GET: "order.status" }[method];
+    const P = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined && v !== null).map(([k, v]) => [k, String(v)]));
+    if (method === "POST" && !P.newClientOrderId) P.newClientOrderId = `mbw${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;      // có mã riêng → nếu mất trả lời vẫn hỏi lại được, không đặt trùng
+    P.apiKey = K.k; P.recvWindow = "5000"; P.timestamp = String(Date.now() + this.off);
+    P.signature = crypto.createHmac("sha256", K.s).update(Object.keys(P).sort().map((k) => `${k}=${P[k]}`).join("&")).digest("hex");
+    const id = `w${++F.apiSeq}`, t0 = performance.now();
+    const r = await new Promise((res, rej) => {
+      const tm = setTimeout(() => { delete F.pend[id]; const e = new Error("WebSocket API không trả lời"); e.timeout = true; rej(e); }, 2500);
+      F.pend[id] = { res: (x) => { clearTimeout(tm); res(x); }, rej: (e) => { clearTimeout(tm); rej(e); } };
+      try { F.api.send(JSON.stringify({ id, method: M, params: P })); } catch (e) { clearTimeout(tm); delete F.pend[id]; e.wsFallback = true; rej(e); }
+    }).catch(async (e) => {
+      if (!e.timeout) throw e;
+      if (method !== "POST") { e.wsFallback = true; throw e; }
+      // đặt lệnh mà mất trả lời: hỏi lại bằng REST theo mã lệnh – có rồi thì dùng, chưa có mới gửi lại bằng REST (cùng mã)
+      const o = await this.req("GET", "/fapi/v1/order", { symbol: P.symbol, origClientOrderId: P.newClientOrderId }, true, BASE.live + "/", "live").catch(() => null);
+      if (o && o.orderId) return { status: 200, result: o };
+      const e2 = new Error("WebSocket API mất trả lời – gửi lại bằng REST"); e2.wsFallback = true; params.newClientOrderId = P.newClientOrderId; throw e2;
+    });
+    if (method !== "GET") this.fastRtt(performance.now() - t0, "ws");
+    if (r.status !== 200 || r.error) {
+      const e = new Error(`${r.error?.code ?? r.status} ${r.error?.msg || "lỗi WebSocket API"}`); e.code = r.error?.code;
+      // lỗi chữ ký / khoá / giờ / phương thức của riêng cổng WebSocket → tắt cổng này, gửi lại lệnh bằng REST (lệnh chưa tới sàn nên không trùng)
+      if ([-1021, -1022, -2014, -2015, -1000, -1102, -1101, -1100, -1003].includes(e.code)) { F.apiOk = false; F.apiNext = Date.now() + 3600e3; try { F.api?.close(); } catch (x) { /* bỏ qua */ } this.log(`⚡ WebSocket API lỗi ${e.message} – tạm dùng REST 1 giờ`); e.wsFallback = true; }
+      throw e;
+    }
+    return r.result;
+  }
   fastRtt(ms) { const F = (this.fx2 ||= {}); F.rtt = F.rtt == null ? ms : F.rtt * 0.8 + ms * 0.2; F.rttN = (F.rttN || 0) + 1; }
   kick() { if (this.busy) { this.again = true; return; } setTimeout(() => this.tick().catch(() => {}), 0); }
   async fast() {
@@ -223,6 +256,17 @@ export class LiveExec {
       } catch (e) { F.udsOk = false; if (!F.udsErrAt || now - F.udsErrAt > 1800e3) { F.udsErrAt = now; this.log(`⚡ luồng tài khoản chưa nối được (${e.message}) – dùng cách cũ: hỏi sàn mỗi ~4 giây`); } }
     }
     if (F.uds && F.lk && now - (F.lkAt || 0) > 25 * 60e3) { F.lkAt = now; this.req("PUT", "/fapi/v1/listenKey", {}, false).catch(() => { try { F.uds?.close(); } catch (e) { /* bỏ qua */ } }); }      // gia hạn mỗi 25 phút (sàn huỷ sau 60)
+    // (1b) WebSocket API để gửi lệnh (tài khoản thật)
+    if (want && env === "live" && process.env.MYBIT_WSAPI !== "0" && !F.api && !(F.apiNext > now)) {
+      F.apiNext = now + 30e3; F.pend ||= {}; F.apiSeq ||= 0;
+      try {
+        const ws = new WebSocket(process.env.MYBIT_WSAPI_URL || "wss://ws-fapi.binance.com/ws-fapi/v1"); F.api = ws;
+        ws.addEventListener("open", () => { F.apiOk = true; if (!F.apiSaid) { F.apiSaid = 1; this.log("⚡ WebSocket API Binance: đã nối – đặt / huỷ lệnh qua kết nối luôn mở"); } });
+        ws.addEventListener("message", (m) => { try { const d = JSON.parse(m.data); const P = F.pend[d.id]; if (P) { delete F.pend[d.id]; P.res(d); } } catch (e) { /* bỏ qua */ } });
+        ws.addEventListener("close", () => { if (F.api !== ws) return; F.api = null; F.apiOk = false; F.apiNext = Date.now() + 5000; for (const [k, P] of Object.entries(F.pend)) { delete F.pend[k]; const e = new Error("WebSocket API đóng"); e.timeout = true; P.rej(e); } });
+        ws.addEventListener("error", () => { /* close sẽ tới sau */ });
+      } catch (e) { F.apiOk = false; }
+    }
     // (2) bookTicker cho coin đang có lệnh
     const syms = [...new Set(A.map((e) => e.sym))].sort(), key = syms.join(",");
     F.k2s = Object.fromEntries(A.map((e) => [e.k || coin(e.sym) + ":F", e.sym]));
@@ -1314,7 +1358,7 @@ export class LiveExec {
     const c = this.cfg();
     const B = this.base(), full = B * c.hk_size / 100 / 2 >= 5.5 && B * c.hk_mkS / 100 >= 5.5;
     const FX = this.fx2 || {};
-    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, fast: { uds: !!FX.udsOk, bt: Object.keys(FX.bt || {}).length, rtt: FX.rtt != null ? Math.round(FX.rtt) : null, ping: FX.ping ?? null }, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
+    return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, fast: { uds: !!FX.udsOk, ws: !!FX.apiOk, bt: Object.keys(FX.bt || {}).length, rtt: FX.rtt != null ? Math.round(FX.rtt) : null, ping: FX.ping ?? null }, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
       qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq", "sec"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
         open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, ux: p.ux || null, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },

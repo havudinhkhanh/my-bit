@@ -11,6 +11,16 @@
     {
      "c": "imp",
      "a": "live",
+     "t": "⚡ Đặt / huỷ lệnh Binance thật qua WebSocket API – nhanh hơn REST",
+     "te": "⚡ Live Binance orders via the WebSocket API – faster than REST",
+     "d": "Lệnh đặt, huỷ và hỏi trạng thái đi qua kết nối WebSocket luôn mở với sàn thay vì mở yêu cầu HTTP mới mỗi lần. Mất trả lời thì hỏi lại theo mã lệnh trước khi gửi lại bằng REST (không đặt trùng); lỗi chữ ký / kết nối thì tự dùng REST. Cần cập nhật máy chủ riêng.",
+     "de": "Place / cancel / query via a persistent WebSocket connection; safe REST fallback without duplicate orders. Requires a VPS update.",
+     "aud": "admin",
+     "go": "#/bot/scalp"
+    },
+    {
+     "c": "imp",
+     "a": "live",
      "t": "⚡ Đường nhanh cho lệnh Binance: báo khớp tức thì, giá từng nhịp, gửi lệnh nhanh hơn",
      "te": "⚡ Fast path for Binance orders: instant fills, tick prices, faster order sending",
      "d": "Máy chủ riêng nghe luồng tài khoản Binance nên biết lệnh khớp / cắt lỗ chạy ngay (trước: hỏi sàn mỗi ~4 giây); coin đang có lệnh có giá mua / bán tốt nhất từng nhịp (trước: 100–500 ms); giữ kết nối ấm với sàn để gửi lệnh không mất thời gian bắt tay, đồng bộ giờ sàn theo độ trễ thật. Trang hiện ⚡ kèm thời gian gửi lệnh trung bình. Mất luồng thì tự quay về cách cũ. Cần cập nhật máy chủ riêng.",
