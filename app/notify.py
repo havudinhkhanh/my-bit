@@ -2,10 +2,12 @@
 mở khoá token lớn, đèn thị trường đổi màu. Ghi vào chuông web (D1) + đẩy/email theo cài đặt; Telegram cho chủ sở hữu nếu có."""
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import requests
 
@@ -177,6 +179,27 @@ def telegram(text: str) -> bool:
         return False
 
 
+def lab_news() -> list[dict]:
+    """🔬 Phòng thử nghiệm phương pháp (research/lab.py → site/lab.json): tin "có phương pháp mới / đổi trạng thái" trong 5 ngày gần nhất.
+    Khoá theo (phương pháp, loại tin, ngày) → mỗi tin chỉ báo 1 lần. Chỉ người có tính năng bot mới nhận (xem run)."""
+    try:
+        lab = json.loads((Path(__file__).resolve().parent.parent / "site" / "lab.json").read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return []
+    by = {m.get("id"): m for m in lab.get("methods", [])}
+    lim = (datetime.now(timezone.utc) - timedelta(days=5)).strftime("%Y-%m-%d")
+    out = []
+    for n in lab.get("news", []):
+        if str(n.get("at", "")) < lim:
+            continue
+        b = (by.get(n.get("id")) or {}).get("bt") or {}
+        body = (f"Kiểm trên dữ liệu thật, đã trừ phí: {b.get('day', 0):+.3f}%/ngày, sụt tối đa {b.get('dd', 0)}%, 12 tháng gần nhất {b.get('d365', 0):+.1f}%. "
+                "Chỉ là kết quả kiểm chứng – bot chưa đổi gì.") if b.get("days") else "Xem chi tiết ở Bot Phản Xạ › Phương pháp › Ứng viên mới."
+        out.append({"key": f"lab:{n.get('id')}:{n.get('kind')}:{n.get('at')}", "kind": "botw", "sev": 1 if n.get("kind") in ("new_fail", "fail") else 2,
+                    "url": "#/bot/scalp/lab", "title": n.get("t", "Phòng thử nghiệm có tin mới"), "body": body})
+    return out
+
+
 def run(market: dict, rows: list[dict], details: dict) -> dict:
     by = {r["k"]: r for r in rows}
     meta = store.meta()
@@ -191,12 +214,13 @@ def run(market: dict, rows: list[dict], details: dict) -> dict:
     out = {"users": 0, "new": 0}
     be = users.backend()
     us = users.load(be) if be else None
+    labn = lab_news()
     if us:
         cfg = users.config(be)
         for u in us:
             pf = (u.get("data") or {}).get("portfolio") or {}
             rst = track(be, u, pf, lambda k: (by.get(k) or {}).get("p"))
-            items = common + items_for(pf, by, details, light, rst)
+            items = common + (labn if "bot" in users.features(u) else []) + items_for(pf, by, details, light, rst)
             try:
                 res = users.deliver(be, cfg, u, items, "MyBit – cảnh báo")
                 out["users"] += 1

@@ -5,6 +5,7 @@
 function scNormTab(k) {
   if (["hook", "sec"].includes(k)) { window.__scPm = k; lsSet("scpm", k); return "pm"; }
   if (k === "lab" || k === "q" || k === "sw") { window.__scPm = "lab"; lsSet("scpm", "lab"); return "pm"; }      // 🧪 Thử nghiệm: 1 bảng kéo-thả cho mọi phương pháp thử nghiệm
+  if (k === "cand") { window.__scPm = "cand"; lsSet("scpm", "cand"); return "pm"; }      // 🔬 Ứng viên mới (phòng thử nghiệm phương pháp)
   if (k === "ev" || k === "learn") { window.__scLog = k; lsSet("sclog", k); return "log"; }
   if (k === "live") { window.__scEnv = "live"; lsSet("scenv", "live"); return "ov"; }      // tab "Binance thật" cũ → Tổng quan, lọc Binance
   return k;
@@ -458,6 +459,49 @@ function scSig(X, tab) {
       ["pump", "list"].map((k) => (sw[k]?.pos || []).map((p) => p.id + ":" + (sw[k]?.hist || []).length)), L.halt, L.on, L.env, X.pause, X.cfg?.enabled, tab === "ov" ? last(L.log)?.t : 0, tab === "ov" ? (X.log || [])[0]?.t : 0]);
   } catch (e) { return String(Math.random()); }
 }
+// ================================================================ 🔬 ỨNG VIÊN MỚI – phòng thử nghiệm phương pháp (research/lab.py chấm 4 ngày/lần → lab.json)
+//    Phương pháp mới do lượt tìm định kỳ thêm vào; ở đây CHỈ hiện kết quả kiểm chứng (không bật / tắt gì trong bot, không khuyên mua bán).
+const LAB_ST = { pass: ["ok", "Đạt – chờ anh quyết", "Passed – your call"], watch: ["warn", "Đang theo dõi trên giấy", "Paper-tracking"], drop: ["bad", "Đã loại khi theo dõi", "Dropped in tracking"], fail: ["off", "Không đạt – đã loại", "Rejected"] };
+const labKey = (n) => `${n.at}|${n.id}|${n.kind}`;
+const labUnseen = (L) => { const seen = new Set(lsGet("labseen", []) || []); return (L?.news || []).filter((n) => !seen.has(labKey(n))); };
+function scCandHtml(L, info) {
+  if (!L?.methods) return panel(bi("🔬 Ứng viên mới", "🔬 New candidates"), `<p class="sc-empty">${bi("Phòng thử nghiệm chưa có kết quả – lượt chấm đầu tiên đang chạy.", "No lab results yet – the first run is in progress.")}</p>`);
+  const sp = (v, d = 2) => (!isNum(v) ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${nf(Math.abs(v), d)}%`), cl = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
+  const dm = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString(LOC, { day: "2-digit", month: "2-digit", year: "numeric" }); };
+  const M = L.methods, n = (k) => M.filter((m) => m.status === k).length, G = L.gates || {};
+  const card = (m) => { const S = LAB_ST[m.status] || LAB_ST.fail, b = m.bt || {}, fw = m.fw || {}, why = EN ? m.why_en : m.why, lv = m.lev05;
+    return `<article class="lb2-c s-${m.status}">
+      <header><span class="lb2-st ${S[0]}"><i></i>${bi(S[1], S[2])}</span><small>${esc(bi(m.hold, m.hold_en) || "")}</small></header>
+      <h3>${esc(bi(m.name, m.name_en))}</h3><p class="lb2-d">${esc(bi(m.desc, m.desc_en))}</p>
+      <dl class="lb2-k"><div><dt>${bi("TB / ngày", "Avg / day")}</dt><dd class="${cl(b.day)}">${sp(b.day, 3)}</dd></div><div><dt>${bi("Quy ra năm", "Per year")}</dt><dd class="${cl(b.yr)}">${sp(b.yr, 0)}</dd></div>
+        <div><dt>${bi("Sụt tối đa", "Max drawdown")}</dt><dd>${isNum(b.dd) ? nf(b.dd, 0) + "%" : "—"}</dd></div><div><dt>${bi("12 tháng", "12 months")}</dt><dd class="${cl(b.d365)}">${sp(b.d365, 0)}</dd></div></dl>
+      <div class="lb2-sp">${spark(m.eq, { w: 320, h: 46 })}</div>
+      <p class="lb2-y">${Object.entries(b.by || {}).map(([y, v]) => `<span>${y} <b class="${cl(v)}">${sp(v, 0)}</b></span>`).join("")}<span title="${bi("Độ đều của lợi nhuận: > 1 là tốt", "Consistency of returns: > 1 is good")}">Sharpe <b>${isNum(b.sharpe) ? nf(b.sharpe, 2) : "—"}</b></span></p>
+      ${why?.length ? `<ul class="lb2-why">${why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}
+      ${m.status === "watch" || m.status === "pass" ? `<p class="lb2-fw">📍 ${bi(`Theo dõi trên giấy từ ${dm(m.added)}`, `Paper-tracked since ${dm(m.added)}`)}: ${fw.days ? `<b>${fw.days}</b> ${bi("ngày", "days")} · <b class="${cl(fw.sum)}">${sp(fw.sum, 2)}</b> · ${bi("sụt", "drawdown")} ${nf(fw.dd || 0, 1)}%` : bi("chưa có ngày mới nào – số sẽ có ở lượt chấm kế", "no new days yet – numbers arrive with the next run")}
+        <small>${bi(`Đạt khi đủ ${G.fw_days || 45} ngày mới mà vẫn lời đều (Sharpe ≥ ${G.fw_sharpe || 1}).`, `Passes after ${G.fw_days || 45} new days if still consistently profitable (Sharpe ≥ ${G.fw_sharpe || 1}).`)}</small></p>` : ""}
+      <p class="lb2-lv">${lv ? bi(`Muốn trung bình 0,5%/ngày thì phải đánh gấp <b>${nf(lv.lev, 1)}×</b> vốn → ${lv.dd == null ? "<b class=\"down\">từng có ngày cháy tài khoản</b>" : `sụt tối đa lịch sử <b class="${lv.dd >= 50 ? "down" : ""}">${nf(lv.dd, 0)}%</b>`}.`, `To average 0.5%/day you would need <b>${nf(lv.lev, 1)}×</b> size → ${lv.dd == null ? "<b class=\"down\">a wipe-out day in history</b>" : `historical max drawdown <b class="${lv.dd >= 50 ? "down" : ""}">${nf(lv.dd, 0)}%</b>`}.`) : bi("Sau phí đang lỗ → không có mức đòn bẩy nào đưa lên 0,5%/ngày.", "Negative after costs → no leverage gets it to 0.5%/day.")}</p>
+      <p class="lb2-f">${bi("Vị thế TB", "Avg exposure")} ${nf(m.expo, 0)}% · ${bi("phí + trượt", "costs")} ${nf(m.cost, 3)}%/${bi("ngày", "day")}${m.fund ? ` · funding ${sp(m.fund, 3)}/${bi("ngày", "day")}` : ""} · ${bi("tới", "to")} ${dm(m.to)}${bi(m.note, m.note_en) ? `<br>${esc(bi(m.note, m.note_en))}` : ""}
+        ${(m.src || []).map((x) => `<br><a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">↗ ${esc(x.t)}</a>`).join("")}</p></article>`; };
+  const news = (L.news || []).slice(-4).reverse();
+  const sec = (k, t) => { const X = M.filter((m) => k.includes(m.status)); return X.length ? `<h3 class="lb2-h">${t} <small>${X.length}</small></h3><div class="lb2-g">${X.map(card).join("")}</div>` : ""; };
+  const best = M.filter((m) => isNum(m.bt?.day)).sort((a, b) => b.bt.day - a.bt.day)[0];
+  return `${panel(bi("🔬 Phòng thử nghiệm phương pháp", "🔬 Method lab"), `
+    <p class="lb2-lead">${bi(`Cứ 4 ngày: tìm phương pháp mới trên mạng (có nguồn, có số liệu) → viết thành luật → chấm trên dữ liệu Binance thật từ ${dm(L.start)} tới ${dm(L.to)}, đã trừ phí, trượt giá và funding → cái nào qua thì theo dõi tiếp trên giấy với số liệu nó chưa từng thấy.`,
+      `Every 4 days: find new methods online (sourced, with numbers) → turn them into rules → score on real Binance data from ${dm(L.start)} to ${dm(L.to)} after fees, slippage and funding → survivors are paper-tracked on data they have never seen.`)}</p>
+    <p class="lb2-sum"><span class="lb2-st ok"><i></i>${n("pass")} ${bi("đạt", "passed")}</span><span class="lb2-st warn"><i></i>${n("watch")} ${bi("đang theo dõi", "tracking")}</span><span class="lb2-st off"><i></i>${n("fail") + n("drop")} ${bi("đã loại", "rejected")}</span><small>${bi("Chấm lần cuối", "Last scored")} ${dm(L.at)}</small></p>
+    ${best ? `<p class="lb2-tg">${bi(`Mốc anh đặt là 0,5–1%/ngày. Phương pháp tốt nhất ở đây đang đạt <b class="${cl(best.bt.day)}">${sp(best.bt.day, 3)}/ngày</b> ở mức 1× vốn (${esc(best.name)}). Mỗi thẻ ghi rõ muốn lên 0,5%/ngày thì phải nhân vị thế lên bao nhiêu lần và khi đó sụt bao nhiêu.`,
+      `Your target is 0.5–1%/day. The best method here makes <b class="${cl(best.bt.day)}">${sp(best.bt.day, 3)}/day</b> at 1× capital (${esc(best.name_en)}). Each card shows the leverage needed for 0.5%/day and the drawdown that comes with it.`)}</p>` : ""}
+    ${news.length ? `<ul class="lb2-nw">${news.map((x) => `<li><small>${dm(x.at)}</small>${esc(bi(x.t, x.te))}</li>`).join("")}</ul>` : ""}
+    ${info(bi(`<p><b>Cổng kiểm lịch sử</b> (giống nhau cho mọi phương pháp): lời đều (Sharpe ≥ ${G.sharpe}); 12 tháng gần nhất vẫn lời; ít nhất ${G.halves}/4 nửa năm gần nhất có lời; bỏ 5 ngày tốt nhất vẫn lời; phí + trượt tăng 50% vẫn lời.</p>
+      <p><b>Theo dõi trên giấy</b>: từ ngày được thêm trở đi là số liệu phương pháp chưa từng thấy. Đủ ${G.fw_days} ngày mà vẫn lời đều → <b>Đạt</b>. Xấu hơn lịch sử → <b>Loại</b>.</p>
+      <p>Mọi con số là lời/lỗ trên giấy ở mức tổng vị thế ≤ 1× vốn, lệnh thị trường, khớp ở giá mở cửa kỳ kế tiếp. Máy này chỉ đo – <b>không tự bật gì trong bot</b>; phương pháp nào Đạt thì anh quyết có đưa vào đánh thử hay không. Kết quả quá khứ không bảo đảm tương lai.</p>`,
+      `<p><b>History gate</b> (same for every method): consistent (Sharpe ≥ ${G.sharpe}); last 12 months positive; at least ${G.halves}/4 recent half-years positive; still positive without the 5 best days; still positive if costs rise 50%.</p>
+      <p><b>Paper-tracking</b>: data after the add date has never been seen by the method. After ${G.fw_days} such days, still consistently profitable → <b>Passed</b>. Worse than history → <b>Dropped</b>.</p>
+      <p>All numbers are paper P&L at ≤ 1× gross exposure, market orders, filled at the next period's open. The lab only measures – <b>it never switches anything on in the bot</b>. Past results do not guarantee the future.</p>`), bi("ⓘ Cách chấm", "ⓘ How scoring works"))}`)}
+    ${sec(["pass"], bi("✅ Đạt – chờ anh quyết", "✅ Passed"))}${sec(["watch"], bi("👀 Đang theo dõi trên giấy", "👀 Paper-tracking"))}${sec(["fail", "drop"], bi("🗂 Đã thử và loại", "🗂 Tested and rejected"))}
+    ${(L.queue || []).length ? panel(bi("⏳ Ý tưởng chờ dữ liệu", "⏳ Ideas waiting for data"), `<ul class="lb2-q">${L.queue.map((q) => `<li><b>${esc(bi(q.name, q.name_en))}</b> – ${esc(bi(q.why, q.why_en))}${(q.src || []).map((x) => ` <a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">↗</a>`).join("")}</li>`).join("")}</ul>`) : ""}`;
+}
 async function viewScalp() {
   window.__scDirty = false;
   // 🔔 tới từ thông báo (#/bot/scalp?do=…&k=<ref>): mở tab Lệnh, đúng sàn, bỏ bộ lọc – rồi cuối hàm làm việc được yêu cầu (ntDoRun)
@@ -469,6 +513,7 @@ async function viewScalp() {
   if (useC && Date.now() - cc.t > 4000) window.__scLast = 0;
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
+  const LABD = await (window.__labP || (window.__labP = tryLoad("lab.json")));      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
   mCondApply(rv?.data);      // mốc cắt lỗ / chốt vừa gửi mà máy chủ chưa báo về → vẫn hiện mốc mới (⏳), không hiện lại mốc cũ
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần
   const KEYH = rk.data?.h ? rk.data : null;
@@ -583,7 +628,7 @@ async function viewScalp() {
   const TABS = [["ov", "Tổng quan"], ["ord", "Lệnh"], ["pm", "Phương pháp"], ["log", "Hoạt động"], ["set", "Thiết lập"]];      // 11/2026: Lệnh lên thứ 2 (dùng nhiều nhất); "Nhật ký" → "Hoạt động" (sự kiện bot) cho khỏi lẫn với Sổ lệnh
   const ENV = (window.__scEnv ?? (C.lv_on ? "live" : "paper")) === "live" ? "live" : "paper"; window.__scEnv = ENV;      // mở app: có tài khoản Binance thì luôn xem Binance trước; chọn tay giữ trong phiên
   let TOP = scNormTab(window.__scTab ?? lsGet("sctab", "ov")); if (!TABS.some(([k]) => k === TOP)) TOP = "ov"; window.__scTab = TOP; if (window.__scNavT !== TOP) { window.__scNavT = TOP; setTimeout(() => { try { cusDraw(); } catch (e) { /* bỏ qua */ } }, 0); }      // thanh dưới: nút lối tắt trỏ đúng tab con này sáng lên ngay lần vào đầu
-  const PMS0 = window.__scPm ?? lsGet("scpm", "lab"), PMS = PMS0 === "hook" ? "hook" : PMS0 === "sec" ? "sec" : "lab", LOGS = (window.__scLog ?? lsGet("sclog", "ev")) === "learn" ? "learn" : "ev";
+  const PMS0 = window.__scPm ?? lsGet("scpm", "lab"), PMS = PMS0 === "hook" ? "hook" : PMS0 === "sec" ? "sec" : PMS0 === "cand" ? "cand" : "lab", LOGS = (window.__scLog ?? lsGet("sclog", "ev")) === "learn" ? "learn" : "ev";
   const TB = TOP === "pm" ? PMS : TOP === "log" ? LOGS : TOP;
   let LB = null;      // 🧪 bảng thử nghiệm: danh sách phương pháp (để các nút / kéo-thả bên dưới dùng)
   const POS = Object.entries(X.pos || {}), posH = POS.filter(([, p]) => p.strat === "hook"), posS = POS.filter(([, p]) => p.strat !== "hook");
@@ -594,7 +639,7 @@ async function viewScalp() {
   const badge = { ord: nLive + nPaper };      // số lệnh đang mở của CẢ 2 sàn – không đổi khi bấm công tắc sàn (từng sàn: số trên nút Binance / Sàn thử)
   const tabBar = `<nav class="sc-tabs" role="tablist" aria-label="Các phần của bot">${TABS.map(([k, t, sep]) => `<button type="button" role="tab" aria-selected="${k === TOP}" data-sctab="${k}" class="${k === TOP ? "on" : ""}">${t}${badge[k] ? `<i class="sc-bdg">${badge[k]}</i>` : ""}</button>${sep ? '<i class="sc-tsep" aria-hidden="true"></i>' : ""}`).join("")}</nav>`;
   const cnt = (n) => (n ? ` <i class="sc-bdg">${n}</i>` : "");
-  const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "10 kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
+  const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "10 kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"], ["cand", `${bi("Ứng viên mới", "New candidates")}${cnt(labUnseen(LABD).length)}`, bi("tự tìm mỗi 4 ngày · đã kiểm chứng", "found every 4 days · back-tested")]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
     : TOP === "log" ? `<div class="sc-sub2" role="tablist" aria-label="Hoạt động">${[["ev", "Sự kiện", "mọi việc bot làm"], ["learn", "Học & kiểm chứng", "bot học được gì"]].map(([k, t, s]) => `<button type="button" role="tab" data-sclog="${k}" class="${LOGS === k ? "on" : ""}" aria-selected="${LOGS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>` : "";
   const info = (html, lab = "ⓘ Giải thích") => `<details class="sc-i"><summary>${lab}</summary><div class="sc-ib">${html}</div></details>`;
   const empty = (t) => `<p class="sc-empty">${t}</p>`;
@@ -1638,6 +1683,9 @@ async function viewScalp() {
         ${board}${drawer}
         ${panel("📌 Lệnh đang mở – sàn thử", posT, `${OP.length} lệnh`)}${lvT ? panel(C.lv_env === "live" ? "💰 Lệnh đang mở – TIỀN THẬT" : "🟡 Lệnh đang mở – Binance Demo", lvT) : ""}${histT ? panel("🧾 Lệnh đã đóng – sàn thử", histT, `${HI.length} gần nhất`) : ""}`;
   }
+  const labN = TB === "ov" ? labUnseen(LABD).slice(-1)[0] : null;      // 📰 tin phòng thử nghiệm chưa xem → 1 dòng ở Tổng quan, bấm là mở Ứng viên mới
+  const labBar = labN ? `<button type="button" class="lb2-bar" data-scpm="cand"><span>${esc(bi(labN.t, labN.te))}</span><i>${bi("Xem", "View")} →</i></button>` : "";
+  if (TB === "cand") { body = scCandHtml(LABD, info); if (LABD?.news) lsSet("labseen", LABD.news.map(labKey)); }
   else if (TB === "learn") body = `${EN ? learnPanelEN : learnPanel}${panel("🧪 Kiểm nghiệm bằng lệnh ảo – chỉ đánh thật cái đã chứng minh có lời", shPanel(X.sh, C), X.sh ? `${nf(X.sh.open, 0)} lệnh ảo đang chạy` : "")}
       ${panel("🧪 Bộ học trực tuyến – học gộp theo nhóm thanh khoản", `${learn}${info(`<p>Mỗi giây, trên mọi thị trường, bot ghi tín hiệu rồi đo giá đi bao xa theo hướng tín hiệu sau 2 giây tới 15 phút – tính bằng <b>số lần dao động mỗi giây của chính coin đó</b>, nên coin lớn và coin nhỏ học chung được trong cùng nhóm thanh khoản. Kỳ vọng (bps) của một coin = số trong bảng × dao động của coin × √thời gian giữ, rồi co dần về số liệu riêng của coin khi coin có đủ mẫu. <b class="up">Ô xanh</b> = lợi thế rõ; ô mờ = chưa đủ số mẫu tối thiểu <b>${nf(C.min_n, 0)}</b>.</p>`)}
         <div class="sc-br"><p><b>🧠 Bộ nhớ học</b> – lưu lên MyBit khoảng 10 phút một lần, máy mới / cài lại không phải học lại từ đầu.</p>
@@ -1659,7 +1707,7 @@ async function viewScalp() {
     return;
   }
   app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
-    ${hero}<div class="sc-tbar">${tabBar}${envSeg ? envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') : ""}</div><div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
+    ${hero}<div class="sc-tbar">${tabBar}${envSeg ? envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') : ""}</div><div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${labBar}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
   try { if (typeof CUR_TAB !== "undefined" && CUR_TAB && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB); } catch (e) { /* bỏ qua */ }      // đường dẫn trang vẽ NGAY cùng nội dung – không chèn trễ làm cả trang nhảy xuống
   $$("[data-sctab]").forEach((b) => (b.onclick = async () => { if (window.__scDirty && window.__scTab === "set" && !(await askOk("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?"))) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
   $$("[data-scenv]").forEach((b) => (b.onclick = async () => {      // đổi sàn: giữ nguyên chỗ đang xem (không giật trang)

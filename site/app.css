@@ -7918,4 +7918,32 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .sugg .sg-x{display:inline-grid;place-items:center;width:22px;height:22px;flex:none;border-radius:6px;color:var(--ink-3);font-size:1rem;line-height:1;opacity:0;margin-left:-2px}
 .sugg a:hover .sg-x,.sugg a.on .sg-x{opacity:1}.sugg .sg-x:hover{background:var(--fill-h,var(--bd));color:var(--ink)}
 @media (pointer:coarse){.sugg .sg-x{opacity:1}}
+/* ================================================================ 🔬 ỨNG VIÊN MỚI – phòng thử nghiệm phương pháp (Bot Phản Xạ › Phương pháp) */
+.lb2-lead{margin:0 0 10px;font-size:.84375rem;line-height:1.55;color:var(--ink-2)}
+.lb2-sum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px}.lb2-sum small{margin-left:auto;color:var(--ink-3);font-size:.75rem}
+.lb2-st{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:var(--sunk);font-size:.75rem;font-weight:650;color:var(--ink-2);white-space:nowrap}
+.lb2-st i{width:7px;height:7px;border-radius:50%;background:var(--ink-3)}.lb2-st.ok i{background:var(--up)}.lb2-st.warn i{background:var(--brass,#d9a23a)}.lb2-st.bad i{background:var(--down)}
+.lb2-tg{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--sunk);font-size:.8125rem;line-height:1.55;color:var(--ink-2)}
+.lb2-nw{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:4px;font-size:.8125rem;color:var(--ink-2)}.lb2-nw small{display:inline-block;min-width:78px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lb2-h{margin:16px 2px 8px;font-size:.875rem;font-weight:700;color:var(--ink)}.lb2-h small{margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--sunk);font-size:.6875rem;color:var(--ink-3)}
+.lb2-g{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}
+.lb2-c{display:flex;flex-direction:column;gap:8px;padding:14px 14px 12px;border-radius:var(--r,14px);background:var(--surface);border:1px solid var(--bd);min-width:0}
+.lb2-c.s-fail,.lb2-c.s-drop{background:color-mix(in srgb,var(--surface) 60%,var(--sunk))}
+.lb2-c header{display:flex;align-items:center;justify-content:space-between;gap:8px}.lb2-c header small{color:var(--ink-3);font-size:.6875rem;text-align:right}
+.lb2-c h3{margin:0;font-size:.9375rem;font-weight:700;line-height:1.3;color:var(--ink)}
+.lb2-d{margin:0;font-size:.8125rem;line-height:1.5;color:var(--ink-2)}
+.lb2-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:2px 0 0}.lb2-k>div{padding:7px 8px;border-radius:10px;background:var(--sunk);min-width:0}
+.lb2-k dt{font-size:.625rem;font-weight:600;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lb2-k dd{margin:2px 0 0;font-size:.9375rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink)}
+.lb2-k dd.up,.lb2-c b.up{color:var(--up)}.lb2-k dd.down,.lb2-c b.down{color:var(--down)}
+@media (max-width:420px){.lb2-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lb2-sp .spk{display:block;width:100%;height:46px}
+.lb2-y{display:flex;flex-wrap:wrap;gap:4px 12px;margin:0;font-size:.75rem;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.lb2-why{margin:0;padding:8px 10px 8px 26px;border-radius:10px;background:color-mix(in srgb,var(--down) 7%,var(--surface));font-size:.78125rem;line-height:1.5;color:var(--ink-2)}
+.lb2-fw{margin:0;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--brass,#d9a23a) 10%,var(--surface));font-size:.78125rem;line-height:1.5;color:var(--ink-2)}.lb2-fw small{display:block;color:var(--ink-3);font-size:.6875rem}
+.lb2-lv{margin:0;font-size:.78125rem;line-height:1.5;color:var(--ink-2)}
+.lb2-f{margin:auto 0 0;padding-top:8px;border-top:1px solid var(--bd);font-size:.6875rem;line-height:1.6;color:var(--ink-3)}.lb2-f a{color:var(--ink-2)}
+.lb2-q{margin:0;padding-left:18px;display:grid;gap:6px;font-size:.8125rem;line-height:1.5;color:var(--ink-2)}
+.lb2-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;margin:0 0 12px;padding:10px 14px;border:1px solid color-mix(in srgb,var(--brand) 25%,var(--bd));border-radius:12px;
+  background:color-mix(in srgb,var(--brand) 7%,var(--surface));color:var(--ink);font:inherit;font-size:.8125rem;font-weight:600;text-align:left;cursor:pointer}
+.lb2-bar i{flex:none;font-style:normal;color:var(--brand);font-weight:650}.lb2-bar:hover{background:color-mix(in srgb,var(--brand) 11%,var(--surface))}
 

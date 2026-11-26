@@ -1,0 +1,55 @@
+name: Phòng thử nghiệm phương pháp
+# 4 ngày / lần: chấm lại MỌI phương pháp ứng viên (research/lab_methods.py) trên dữ liệu Binance mới nhất, cập nhật phần "theo dõi tiếp trên giấy",
+# ghi site/lab.json (web: Bot Phản Xạ › Phương pháp › Ứng viên mới) rồi đăng web. Phương pháp MỚI do lượt tìm trên Claude thêm vào lab_methods.py.
+# Máy này chỉ ĐO – không bật / tắt gì trong bot, không đặt lệnh.
+run-name: "Phòng thử nghiệm phương pháp"
+
+on:
+  schedule:
+    - cron: "17 1 */4 * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: lab
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+env:
+  STATUS_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
+  STATUS_SSH_KEY: ${{ secrets.STATUS_SSH_KEY }}
+
+jobs:
+  lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install numpy pandas
+      - name: Bộ đệm nến 1 giờ (các tháng đã đóng)
+        uses: actions/cache@v4
+        with:
+          path: lab_cache
+          key: lab-${{ github.run_id }}
+          restore-keys: lab-
+      - name: Chấm điểm
+        run: |
+          mkdir -p research_out && (python research/lab.py 2>&1 | tail -c 400000 > research_out/stdout.txt); tail -40 research_out/stdout.txt
+      - name: Ghi kết quả vào web
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "mybit-lab"; git config user.email "lab@users.noreply.github.com"
+          git add site/lab.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "Không có gì mới"; exit 0; fi
+          git commit -qm "Phòng thử nghiệm: cập nhật kết quả $(date -u +%F)"
+          for i in 1 2 3 4 5; do git push -q origin HEAD:main && break; git pull -q --rebase origin main; sleep 5; done
+          gh workflow run web.yml --ref main      # đẩy bằng token của Actions không tự kích hoạt lượt đăng web → gọi tay
+      - name: Đẩy kết quả lên nhánh status
+        if: always()
+        run: bash scripts/publish_status.sh research research_out

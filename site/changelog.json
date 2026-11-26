@@ -10,6 +10,17 @@
    "it": [
     {
      "c": "new",
+     "a": "bot",
+     "t": "Phòng thử nghiệm phương pháp: tự tìm & chấm phương pháp mới mỗi 4 ngày",
+     "te": "Method lab: finds and scores new methods every 4 days",
+     "d": "Mỗi 4 ngày tìm phương pháp mới có nguồn, chấm trên dữ liệu Binance thật (đã trừ phí, trượt giá, funding), cái nào qua thì theo dõi tiếp trên giấy. Có phương pháp mới hoặc đổi trạng thái là có thông báo. Máy chỉ đo – không tự bật gì trong bot.",
+     "de": "Every 4 days it looks for new sourced methods, scores them on real Binance data (after fees, slippage, funding) and paper-tracks the survivors. You get a notification when a method is added or changes status. It only measures – nothing is switched on in the bot.",
+     "f": "bot",
+     "go": "#/bot/scalp/cand",
+     "hi": 1
+    },
+    {
+     "c": "new",
      "a": "ui",
      "t": "Bấm vào ô tìm là hiện coin vừa tìm",
      "te": "Tap the search box to see recent searches",
