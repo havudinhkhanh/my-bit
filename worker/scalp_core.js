@@ -18,6 +18,7 @@
 
 import { SwingLab } from "./swing.js";
 import { QuantLab, QS } from "./quant.js";
+import { LabPort } from "./labx.js";
 
 export const SCALP_DEF = { enabled: false, capital: 1000, fut: true, spot: true, min_vol: 2, max_mk: 800, lev: 5, risk: 0.25, max_pos: 6, mode: "taker",
   fee_m: 0.02, fee_t: 0.05, fee_ms: 0.1, fee_ts: 0.1, min_net: 1.0, k: 1.3, min_n: 300, warm: 60, hmax: 60, cool: 20, sh_min: 30, day_target: 2, day_lock: true, daily_stop: 3, max_h: 120, spread_max: 10, max_side: 3, burst: 4, bx_mode: "auto", bx_z: 4, bx_r: 30, bx_min: 30,
@@ -105,7 +106,7 @@ function norm(c) {
   n("max_side", 1, 30); n("bx_z", 2, 20); n("bx_r", 5, 500); n("bx_min", 10, 500); c.bx_mode = ["auto", "on", "off"].includes(c.bx_mode) ? c.bx_mode : "auto"; n("burst", 1, 60); n("hk_f6", 0, 48); n("hk_r15", 0, 5000); n("hk_fund", 0, 1000); n("hk_knife", 0, 100); n("hk_size", 0.5, 50); n("hk_z", 2, 30); n("hk_r", 50, 5000); n("hk_v", 1, 50); n("hk_d1", 0, 5); n("hk_d2", 0, 5); n("hk_mk15", 50, 5000); n("hk_mkS", 0, 20); n("hk_w", 1, 120); n("hk_h", 1, 600); n("hk_stop", 0, 95); n("hk_max", 1, 30); n("hk_tra", 0, 5000); n("hk_trg", 10, 5000); n("hk_gmax", 0, 30); c.hk_trm = c.hk_trm === 0 || c.hk_trm === false ? 0 : 1; n("hk_u40", 0, 600); n("hk_uw", 5, 15); n("hk_ub", 0, 3000); if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; if (c.hk_ag > 0 && c.hk_ag <= 1) c.hk_ag *= 100; n("hk_ag", 0, 100);      /* bản lưu cũ dùng tỷ lệ 0–1 → % */ n("hk_agX", 1, 3);
   c.hk_ad = !!c.hk_ad; n("hk_adH", 0, 23); n("hk_adD1", 0, 4); n("hk_adD2", 0, 4); c.hk_on = c.hk_on !== false; c.sec_on = c.sec_on !== false; c.lv_hk = c.lv_hk !== false; c.lq_sec = !!c.lq_sec; c.hk_spot = !!c.hk_spot; c.hk_r15L = !!c.hk_r15L; c.hk_mk = c.hk_mk !== false;
   n("lv_cap", 10, 1e7); n("lv_lev", 1, 5); n("lv_daily", 1, 50); c.lv_daily_on = c.lv_daily_on !== false; c.lv_on = !!c.lv_on; c.lv_all = !!c.lv_all; c.lv_u40 = !!c.lv_u40; c.lv_ag = !!c.lv_ag; c.sw_lv_pump = !!c.sw_lv_pump; c.sw_lv_list = !!c.sw_lv_list; n("sw_lv_sz", 1, 25); n("sw_lv_max", 1, 5); c.lv_env = c.lv_env === "live" ? "live" : "demo"; c.lv_small = c.lv_small === "far" ? "far" : "near";
-  c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
+  c.q_on = c.q_on !== false; for (const k of ["ou", "rsi2", "fund", "orb", "vwap", "liq"]) { c["q_" + k] = c["q_" + k] !== false; c["lq_" + k] = !!c["lq_" + k]; } n("lq_sz", 1, 25); n("lq_max", 1, 5); for (const k of ["qx", "swx", "lx"]) c[k] = c[k] && typeof c[k] === "object" && !Array.isArray(c[k]) ? c[k] : {};      // tham số từng phương pháp thử nghiệm (kiểm tra ở quant.js / swing.js)
   if (!c.fut && !c.spot) c.fut = true;
   return pzApply(c);
 }
@@ -294,6 +295,7 @@ export class ScalpCore {
     this.notes = [];      // thông báo chờ gửi (chuông + đẩy điện thoại)
     this.lastSec = 0; this.diag = { err: [], conn: 0 }; this.bn = null; this.live = {}; this.cnt = {};
     this.sw = new SwingLab(this);      // 🧪 thử nghiệm giữ nhiều ngày (short coin mới niêm yết / vừa bơm) – sàn thử, sổ riêng
+    this.lx = new LabPort(this);       // 🔬 danh mục của các phương pháp phòng thử nghiệm (tỉ trọng mục tiêu từ lab_targets.json) – sàn thử; tiền thật theo công tắc riêng
     this.q = new QuantLab(this);       // 📐 6 phương pháp định lượng – sàn thử (mặc định bật), tiền thật theo công tắc từng phương pháp
   }
   err(m) { this.diag.err = [...this.diag.err.slice(-11), `${new Date().toISOString().slice(11, 19)} ${String(m).slice(0, 140)}`]; }
@@ -590,7 +592,7 @@ export class ScalpCore {
     }
     for (const f of Object.values(this.F)) { f.rate = (f.n - f.n0) / 10; f.n0 = f.n; if (SRC[f.src]?.ping) for (const w of f.wss || []) { try { w.send(SRC[f.src].ping); } catch (e) { /* bỏ qua */ } } }
     if (this.where === "cf") await this.probeBinance().catch(() => {});
-    if (this.S) this.sw.tick(Date.now()).catch((e) => this.err("thử nghiệm " + e.message));     // không chờ: gọi REST chậm không làm trễ vòng chính
+    if (this.S) this.sw.tick(Date.now()).catch((e) => this.err("thử nghiệm " + e.message)); if (this.S) this.lx.tick(Date.now()).catch((e) => this.err("phòng thử nghiệm " + e.message));     // không chờ: gọi REST chậm không làm trễ vòng chính
     await this.snapshot();
     return true;
   }
@@ -620,7 +622,7 @@ export class ScalpCore {
       const D = S.dstat; if (D && D.d === S.day.d && (D.n || D.sh)) this.note(`day:${D.d}`, 2, `📊 Bot Phản Xạ – tổng kết ${D.d}`, `${D.n} lệnh thật · ${(eqNow / S.day.eq0 - 1) * 100 >= 0 ? "+" : ""}${((eqNow / S.day.eq0 - 1) * 100).toFixed(2)}% · ròng ${D.net >= 0 ? "+" : ""}${D.net.toFixed(2)} USDT · phí ${D.fees.toFixed(2)} · thắng ${D.n ? Math.round(D.win / D.n * 100) : 0}%`);
       S.dstat = { d: day, n: 0, net: 0, fees: 0, win: 0 };
       if (S.days) { const P = this.dayRec(0, S.day.d); P.eq0 ??= r2(S.day.eq0, 2); P.eq1 = r2(eqNow, 2); }
-      S.day = { d: day, eq0: eqNow, sw0: this.sw.upnl() + this.q.upnl() }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
+      S.day = { d: day, eq0: eqNow, sw0: this.sw.upnl() + this.q.upnl() + this.lx.upnl() }; if (S.pause?.kind === "day" || S.pause?.kind === "target") { S.pause = null; this.say(now, "Sang ngày mới – chạy lại"); }
     }
     S.peak = Math.max(S.peak, eqNow);
     const m1 = Math.floor(now / 60000);
@@ -633,7 +635,7 @@ export class ScalpCore {
     }
     try { this.fundTick(now); } catch (e) { this.err("funding " + e.message); }
     try { this.hkvTick(now); } catch (e) { this.err("kiểm chứng bộ lọc " + e.message); }
-    const swU = this.sw.upnl() + this.q.upnl();
+    const swU = this.sw.upnl() + this.q.upnl() + this.lx.upnl();
     const dayPct = ((eqNow - (swU - (S.day.sw0 ?? swU))) / S.day.eq0 - 1) * 100;     // cầu dao ngày: bỏ phần lời/lỗ ĐANG MỞ của 🧪 và 📐 (giữ nhiều giờ / ngày)
     S.day.sw0 ??= swU;
     if (!S.pause && dayPct <= -c.daily_stop) { S.pause = { kind: "day", why: `lỗ ${dayPct.toFixed(2)}% hôm nay (giới hạn ${c.daily_stop}%)`, until: null }; this.say(now, `⛔ Dừng tới hết ngày: ${S.pause.why}`, "stop"); this.note(`stop:${day}`, 2, "⛔ Bot Phản Xạ dừng tới hết ngày", S.pause.why); }
@@ -845,7 +847,7 @@ export class ScalpCore {
   tradesLastHour(now) { let n = 0; for (let i = this.S.trades.length - 1; i >= 0 && now - Date.parse(this.S.trades[i].t1 + "Z") < 3600e3; i--) n++; return n; }
 
   // ---------------------------------------------------------------- vào / ra lệnh (sàn thử, khớp theo sổ lệnh thật)
-  used() { let u = (this.sw ? this.sw.margin() : 0) + (this.q ? this.q.margin() : 0); for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
+  used() { let u = (this.sw ? this.sw.margin() : 0) + (this.q ? this.q.margin() : 0) + (this.lx ? this.lx.margin() : 0); for (const P of [...Object.values(this.S.pos), ...Object.values(this.S.ord)]) u += P.q * (P.e || P.px) / (P.t === "F" ? this.cfg.lev : 1); return u; }
   enter(x, side, best, cost, vol, now, mode) {
     if (this.cfg?.sec_on === false) return;      // ⚡ lướt giây tắt trên sàn thử (công tắc ở 🎯 Phương pháp)
     const c = this.cfg, S = this.S, eq = this.equity(), lev = x.t === "F" ? c.lev : 1;
@@ -1327,7 +1329,7 @@ export class ScalpCore {
     if (x.sh.some((o) => o.done)) x.sh = x.sh.filter((o) => !o.done);
   }
   equity() {
-    const S = this.S; let e = S.cash + (this.sw ? this.sw.upnl() : 0) + (this.q ? this.q.upnl() : 0);      // gồm lời/lỗ đang mở của 🧪 thử nghiệm (cùng tài sản sàn thử)
+    const S = this.S; let e = S.cash + (this.sw ? this.sw.upnl() : 0) + (this.q ? this.q.upnl() : 0) + (this.lx ? this.lx.upnl() : 0);      // gồm lời/lỗ đang mở của 🧪 thử nghiệm (cùng tài sản sàn thử)
     for (const [k, P] of Object.entries(S.pos || {})) { const x = this.M[k]; const m = x?.bid ? (P.side > 0 ? x.bid : x.ask) : P.e; e += P.side * P.q * (m - P.e); }
     return e;
   }
@@ -1347,7 +1349,7 @@ export class ScalpCore {
       last50: last.length ? { n: last.length, net: r2(last.reduce((a, t) => a + t.net, 0) / last.length, 2), gross: r2(last.reduce((a, t) => a + t.gross, 0) / last.length, 2), fee: r2(last.reduce((a, t) => a + t.fee, 0) / last.length, 2), win: r2(last.filter((t) => t.net > 0).length / last.length * 100, 0) } : null,
       radar, pos: S.pos, ord: S.ord, hk: S.hk || {}, miss: (S.hkMiss || []).slice(-40), byS: S.byS || {}, today: S.days ? { d: vnDay(now), ...this.dayRec(now) } : null, bx: { ...this.bxStat(), act: this.bxActive(), mode: this.cfg.bx_mode, last: S.bxEv || null }, guard: { ent5: (S.ent || []).filter((t) => now - t < 300e3).length, rq: (() => { const b = this.book(); return b.ids.length ? r2(this.corrRisk(b.ids, b.sides, now), 2) : 0; })(), nb: Object.keys(S.pos).length, L: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side > 0).length, S: Object.values(S.pos).filter((p) => p.strat !== "hook" && p.side < 0).length, brk: S.brk ? iso(S.brk) : null, brk2: S.brk2 ? iso(S.brk2) : null }, hkStat: this.hkStat || null, hkv: { S: S.hkvS || {}, L: (S.hkvL || []).slice(-30), open: Object.keys(S.hkv || {}).length }, trades: T.slice(-80),
       LP: Object.fromEntries(Object.entries(S.LP).map(([g, Lg]) => [g, Lg.map((row) => row.map((q) => [q[0], r2(q[1], 3), r2(Math.sqrt(q[2]), 2)]))])),
-      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-200), cfg: this.cfg, sw: this.sw.out(), q: this.q.out() };
+      sh: this.shSummary(), why: this.whyAgg(), HS, BW, TIERS, CTX, brain: S.brainAt ? { at: S.brainAt, n: S.brainN, coins: S.brainCoins } : null, eqs: S.eq.slice(-720), log: S.log.slice(-200), cfg: this.cfg, sw: this.sw.out(), q: this.q.out(), lx: this.lx.out() };
     try { await this.io.writeState(this.uid, out); } catch (e) { this.err("lưu trạng thái " + e.message); }
     if (this.notes.length && this.io.notify) { const L = this.notes.splice(0); try { await this.io.notify(this.uid, L); } catch (e) { this.err("thông báo " + e.message); } }
     this.dirty++;

@@ -2,6 +2,37 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.27",
+   "t": "Phương pháp có lời là có công tắc",
+   "te": "Profitable methods get their switches",
+   "s": "Phương pháp nào của phòng thử nghiệm kiểm chứng có lời là tự có công tắc sàn thử và tiền thật; phòng thử nghiệm chấm lại mỗi ngày.",
+   "se": "Any lab method that tests profitable automatically gets paper and real-money switches; the lab now re-scores every day.",
+   "it": [
+    {
+     "c": "new",
+     "a": "bot",
+     "t": "Phương pháp phòng thử nghiệm có lời: tự có công tắc 🧪 sàn thử và 💰 tiền thật",
+     "te": "Profitable lab methods automatically get 🧪 paper and 💰 real-money switches",
+     "d": "Phương pháp nào kiểm chứng cả giai đoạn có lời (kể cả cái chưa qua hết cổng kiểm) đều hiện ở bảng Phương pháp › Tất cả và ngay trên thẻ Ứng viên mới với 2 công tắc. Bật sàn thử: bot giữ đúng danh mục phòng thử nghiệm công bố mỗi ngày bằng tiền ảo. Bật tiền thật (xác nhận 2 bước): giữ cùng danh mục trên Binance với cỡ lệnh nhỏ nhất sàn cho phép, ký quỹ cô lập, cắt lỗ −20% đặt sẵn trên sàn, trong giới hạn an toàn chung của tài khoản; bảng xác nhận ước tính số lệnh và tổng vị thế so với số dư. Tắt công tắc là đóng hết vị thế của phương pháp đó. Phương pháp hết lời trong kiểm chứng hoặc phòng thử nghiệm ngừng công bố quá 4 ngày thì bot tự đóng vị thế thật. Phương pháp mới tìm được sau này cũng tự có công tắc, không cần làm gì thêm.",
+     "de": "Any method whose full-period test is profitable (even if it has not cleared every gate) appears on Methods › All and on its candidate card with two switches. Paper: the bot holds the portfolio the lab publishes each day with virtual money. Real money (two-step confirmation): the same portfolio on Binance at the exchange's minimum order size, isolated margin, a −20% stop resting on the exchange, inside the account's shared safety limits; the confirmation sheet estimates order count and total exposure against the balance. Turning a switch off closes that method's positions. If a method stops being profitable in testing, or the lab publishes nothing for 4 days, real positions are closed automatically. Methods found later get switches with no extra work.",
+     "f": "bot",
+     "aud": "admin",
+     "go": "#/bot/scalp/lab",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "bot",
+     "t": "Phòng thử nghiệm chấm lại mọi phương pháp mỗi ngày (trước: 4 ngày/lần)",
+     "te": "The method lab now re-scores every method daily (was every 4 days)",
+     "d": "Số liệu từng giai đoạn và danh mục của mỗi phương pháp được cập nhật hằng ngày khi Binance công bố số liệu ngày hôm trước. Việc tìm phương pháp mới vẫn 4 ngày một lần.",
+     "de": "Per-period figures and each method's portfolio update daily once Binance publishes the previous day's data. The search for new methods still runs every 4 days.",
+     "f": "bot",
+     "go": "#/bot/scalp/cand"
+    }
+   ]
+  },
+  {
    "v": "2026.11.26",
    "t": "Đường nhanh cho lệnh thật",
    "te": "Fast path for live orders",

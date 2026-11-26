@@ -152,6 +152,17 @@ def finish(D):
     D.ev0 = int(np.searchsorted(D.dates.values, np.datetime64(EVAL_FROM)))
 
 
+def extend(D):
+    """Thêm 1 NGÀY KẾ TIẾP chưa có dữ liệu (giá mở = giá đóng cuối, còn lại NaN) → mỗi phương pháp tự tính luôn tỉ trọng MỤC TIÊU cho ngày đó (W[D.nreal]),
+    chỉ bằng số liệu tới hết ngày cuối có dữ liệu. Phần chấm điểm chỉ dùng D.nreal ngày thật. Tỉ trọng này ghi ra site/lab_targets.json cho bot (sàn thử / tiền thật)."""
+    nd, S = D.nd, D.S; nan = lambda n: np.full((n, S), np.nan, np.float32)  # noqa: E731
+    D.nreal = nd; D.O = np.vstack([D.O, D.C[-1:]]); D.H = np.vstack([D.H, nan(1)]); D.L = np.vstack([D.L, nan(1)]); D.C = np.vstack([D.C, nan(1)]); D.Q = np.vstack([D.Q, nan(1)])
+    for k in ("O6", "H6", "L6", "C6"): setattr(D, k, np.vstack([getattr(D, k), nan(4)]))
+    D.F = np.vstack([D.F, nan(1)]); D.btc_oh = np.vstack([D.btc_oh, np.full((1, 24), np.nan)])
+    D.nd = nd + 1; D.dates = D.dates.append(pd.DatetimeIndex([D.dates[-1] + pd.Timedelta(days=1)])); D.wd = (D.day0 + np.arange(D.nd) + 3) % 7
+    ev0 = D.ev0; finish(D); D.ev0 = ev0; return D
+
+
 def synthetic(nd=900, S=60, seed=3):
     rng = np.random.default_rng(seed); D = Data(); D.syms = ["BTCUSDT", "ETHUSDT"] + [f"C{i}USDT" for i in range(S - 2)]; D.ix = {s: j for j, s in enumerate(D.syms)}
     D.S, D.nd, D.day0 = S, nd, 19358; D.dates = pd.to_datetime((D.day0 + np.arange(nd)) * 86400, unit="s"); D.wd = (D.day0 + np.arange(nd) + 3) % 7
@@ -227,7 +238,7 @@ def lev_for(x, target):
 
 def evaluate(D, M, prev):
     out = M["fn"](D); g, c, f = (np.asarray(out[k], float) for k in ("g", "c", "f"))
-    end = out.get("end", D.nd); sl = slice(D.ev0, end); net = (g - c + f)[sl]; dates = D.dates[sl]
+    NR = getattr(D, "nreal", D.nd); end = min(out.get("end", NR), NR); sl = slice(D.ev0, end); net = (g - c + f)[sl]; dates = D.dates[sl]
     st = stats(net, dates); st15 = stats((g - 1.5 * c + f)[sl], dates); why = judge(st, st15)
     added = (prev or {}).get("added") or str(TODAY); a0 = int(np.searchsorted(dates.values, np.datetime64(added)))
     fwx = net[a0:]; fw = dict(days=len(fwx), sum=round(float((1 + fwx).prod() - 1) * 100, 2) if len(fwx) else 0.0,
@@ -254,11 +265,14 @@ def evaluate(D, M, prev):
     # 🗒 LỊCH SỬ CÁC LẦN CHẤM: mỗi lần chạy ghi 1 dòng (trạng thái + lời/lỗ từng giai đoạn) – không xoá, giữ 120 lần gần nhất
     hist = [h for h in (prev or {}).get("hist", []) if h.get("at") != str(TODAY)]
     hist.append(dict(at=str(TODAY), to=str(dates[-1].date()), st=status, yr=st.get("yr"), sharpe=st.get("sharpe"), dd=st.get("dd"), y1=(per["y1"] or {}).get("ret"), q1=(per["q1"] or {}).get("ret"), m1=(per["m1"] or {}).get("ret"), w1=(per["w1"] or {}).get("ret")))
+    tgt = None      # 🎯 tỉ trọng mục tiêu cho NGÀY KẾ TIẾP (bot đọc): chỉ khi phương pháp trả về ma trận W và số liệu của nó tới ngày cuối
+    if out.get("W") is not None and NR < D.nd and end == NR:
+        w = np.nan_to_num(np.asarray(out["W"], float)[NR]); tgt = {D.syms[j]: round(float(w[j]), 4) for j in np.nonzero(np.abs(w) >= 0.002)[0]}
     info = {k: M[k] for k in ("id", "name", "name_en", "desc", "desc_en", "hold", "hold_en", "src")}
     info.update(added=added, status=status, why=[w[0] for w in why], why_en=[w[1] for w in why], bt=st, bt15=dict(day=st15["day"], sharpe=st15["sharpe"]), fw=fw, eq=eq, wk=wk, per=per, hist=hist[-120:],
                 eq_from=str(dates[max(0, len(net) - 160 * 7)].date()), to=str(dates[-1].date()), expo=round(float(np.mean(out["expo"][sl])) * 100), turn=round(float(np.mean(out["turn"][sl])) * 100, 1),
                 cost=round(float(c[sl].mean()) * 100, 4), fund=round(float(f[sl].mean()) * 100, 4), gross=round(float(g[sl].mean()) * 100, 4),
-                lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""), warn=M.get("warn", ""), warn_en=M.get("warn_en", ""))
+                lev05=lev_for(net, 0.5), note=out.get("note", ""), note_en=out.get("note_en", ""), warn=M.get("warn", ""), warn_en=M.get("warn_en", ""), trade=tgt is not None, _tgt=tgt)
     return info
 
 
@@ -272,7 +286,7 @@ NEWS = {"new_watch": ("🔬 Phương pháp mới qua kiểm lịch sử: {n} –
 def main():
     import lab_methods as LM
     syn = "--synthetic" in sys.argv
-    if syn: D = synthetic()
+    if syn: D = extend(synthetic())
     else:
         syms = [s for s in E.list_symbols() if s not in SKIP]; log(f"{len(syms)} mã futures USDT · {START} → {TODAY}")
         parts, top = [], None
@@ -281,8 +295,8 @@ def main():
             if p[4]:      # tháng đầy đủ → nhóm 160 mã khối lượng lớn nhất của tháng đó dùng cho các tháng chưa có tệp tháng
                 v = np.nansum(p[1]["q"], 0); top = [p[0][j] for j in np.argsort(-v)[:160]]
             log(f"  {m}: {len(p[0])} mã{'' if p[4] else ' (tệp ngày)'}"); parts.append(p)
-        D = build(parts)
-    log(f"dữ liệu: {D.nd} ngày × {D.S} mã · {D.dates[0].date()} → {D.dates[-1].date()} · funding tới {D.dates[max(D.fund_until, 0)].date()}")
+        D = extend(build(parts))
+    log(f"dữ liệu: {D.nreal} ngày × {D.S} mã · {D.dates[0].date()} → {D.dates[D.nreal - 1].date()} · funding tới {D.dates[max(D.fund_until, 0)].date()}")
     try: prev = json.load(open(SITE_JSON))
     except Exception: prev = {}  # noqa: BLE001
     pm = {m["id"]: m for m in prev.get("methods", [])}; news = list(prev.get("news", [])); res = []
@@ -299,9 +313,16 @@ def main():
         b = r["bt"]; log(f"{M['id']:10s} {r['status']:6s} ngày {b.get('day')}% · năm {b.get('yr')}% · Sharpe {b.get('sharpe')} · sụt {b.get('dd')}% · 365 ngày {b.get('d365')}% · theo năm {b.get('by')} · {'; '.join(r['why'])}")
         res.append(r)
     order = {"pass": 0, "watch": 1, "drop": 2, "fail": 3}; res.sort(key=lambda r: (order.get(r["status"], 9), -(r["bt"].get("sharpe") or -9)))
-    out = dict(v=1, at=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), start=EVAL_FROM, to=str(D.dates[-1].date()), gates=GATES, methods=res, queue=LM.QUEUE, news=news[-40:])
+    # 🎯 site/lab_targets.json – bot (máy chủ riêng) đọc để giữ đúng danh mục của từng phương pháp trên sàn thử / tiền thật (công tắc riêng từng phương pháp)
+    TG = dict(v=1, at=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), asof=str(D.dates[D.nreal - 1].date()), day=str(D.dates[D.nreal].date()),
+              m={r["id"]: dict(name=r["name"], w=r["_tgt"], gross=round(sum(abs(v) for v in r["_tgt"].values()), 3), ok=bool((r.get("per") or {}).get("all") and r["per"]["all"]["ret"] > 0)) for r in res if r.get("_tgt") is not None})
+    for r in res: r.pop("_tgt", None)
+    out = dict(v=1, at=dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), start=EVAL_FROM, to=str(D.dates[D.nreal - 1].date()), gates=GATES, methods=res, queue=LM.QUEUE, news=news[-40:])
     os.makedirs(E.OUT, exist_ok=True); json.dump(out, open(os.path.join(E.OUT, "lab.json"), "w"), ensure_ascii=False, indent=1)
-    if not syn: json.dump(out, open(SITE_JSON, "w"), ensure_ascii=False, separators=(",", ":"))
+    json.dump(TG, open(os.path.join(E.OUT, "lab_targets.json"), "w"), ensure_ascii=False, indent=1)
+    if not syn:
+        json.dump(out, open(SITE_JSON, "w"), ensure_ascii=False, separators=(",", ":"))
+        json.dump(TG, open(os.path.join(os.path.dirname(SITE_JSON), "lab_targets.json"), "w"), ensure_ascii=False, separators=(",", ":"))
     log(f"xong: {sum(r['status'] == 'watch' for r in res)} theo dõi · {sum(r['status'] == 'pass' for r in res)} đạt · {sum(r['status'] in ('fail', 'drop') for r in res)} loại")
 
 

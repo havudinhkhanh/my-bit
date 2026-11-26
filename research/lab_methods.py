@@ -14,7 +14,7 @@ import lab as L
 
 
 def _out(D, W, **kw):
-    g, c, f, expo, turn = L.pnl(D, W); return dict(g=g, c=c, f=f, expo=expo, turn=turn, **kw)
+    g, c, f, expo, turn = L.pnl(D, W); return dict(g=g, c=c, f=f, expo=expo, turn=turn, W=W, **kw)
 
 
 def _ls(D, sig, reb, top=40, q=5):

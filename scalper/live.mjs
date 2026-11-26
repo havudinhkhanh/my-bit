@@ -12,6 +12,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { sgVA, extSet, extExit, extRemind } from "../worker/scalp_core.js";
+import { LXW, lxStale } from "../worker/labx.js";
 
 const BASE = { live: "https://fapi.binance.com", demo: process.env.MYBIT_DEMO_BASE || "https://demo-fapi.binance.com" };     // MYBIT_DEMO_BASE: chỉ để kiểm thử với sàn giả lập
 const SAPI = process.env.MYBIT_SAPI || "https://api.binance.com";      // MYBIT_SAPI: chỉ để kiểm thử
@@ -415,7 +416,7 @@ export class LiveExec {
     const hit = (o, m) => o.ux && isFinite(m) && m > 0 && (o.ux.dir > 0 ? m >= o.ux.px : m <= o.ux.px);
     for (const ev of this.active()) if (ev.pos?.q > 0 && hit(ev, this.mark(coin(ev.sym) + ":F"))) { this.say(`🏁 ${ev.sym}: giá chạm mức anh hẹn ${ev.ux.px} → đóng lệnh`, "info"); delete ev.ux; await this.close(ev, "UX"); }
     for (const p of this.swOpen()) if (hit(p, this.core.sw?.px?.[p.sym]?.m)) { this.say(`🏁 ${p.sym}: giá chạm mức anh hẹn ${p.ux.px} → đóng lệnh`, "info"); delete p.ux; await this.swClose(p, "UX"); }
-    for (const p of this.qOpen()) if ((p.legs || []).length === 1 && hit(p, this.core.q?.mid?.(p.legs[0].sym))) { this.say(`🏁 ${p.legs[0].sym}: giá chạm mức anh hẹn ${p.ux.px} → đóng lệnh`, "info"); delete p.ux; await this.qClose(p, "UX"); }
+    for (const p of this.qOpen()) if ((p.legs || []).length === 1 && hit(p, this.qmid(p.legs[0].sym))) { this.say(`🏁 ${p.legs[0].sym}: giá chạm mức anh hẹn ${p.ux.px} → đóng lệnh`, "info"); delete p.ux; await this.qClose(p, "UX"); }
   }
   async tick() {
     try { this.remindKept(); } catch (e) { /* bỏ qua */ }
@@ -429,6 +430,7 @@ export class LiveExec {
       await this.swManage();
       while (this.qq?.length) { const x = this.qq.shift(); try { if (x.act === "open") await this.qPlace(x); else await this.qExit(x.id, x.why); } catch (e) { this.err(`📐 ${x.k || ""} ${x.act}`, e); } }
       await this.qManage();
+      try { await this.lxSync(); } catch (e) { this.err("🔬 danh mục phòng thử nghiệm", e); }
       for (const ev of this.active()) { try { await this.manage(ev); } catch (e) { this.err(`quản lý ${ev.sym}`, e); } }
       await this.uxCheck().catch((e) => this.err("hẹn đóng theo giá", e));
       await this.accrue();
@@ -1111,22 +1113,55 @@ export class LiveExec {
   // Ký quỹ CÔ LẬP x lv_lev. Cắt lỗ trên sàn (STOP_MARKET đóng toàn bộ): lệnh có cắt lỗ → đặt xa hơn mức của phương pháp 0,3% (bot đóng trước, sàn là dự phòng);
   // lệnh không cắt lỗ (cặp coin, RSI2, funding) → cắt lỗ thảm hoạ −20% phòng máy chủ mất kết nối. Cỡ: lq_sz % vốn (mỗi chân ≥ lệnh nhỏ nhất của sàn), ≤ 25% vốn/lệnh,
   // tối đa lq_max lệnh mỗi phương pháp, và luôn trong 🛡️ giới hạn an toàn chung.
+  qmid(sym) { return this.core.q?.mid?.(sym) || this.core.sw?.px?.[sym]?.m || 0; }      // giá giữa: sổ lệnh của 📐 định lượng, không có thì giá đánh dấu (🔬 phòng thử nghiệm giữ mã ngoài danh sách quét)
   onQuant(x) { (this.qq ||= []).push(x); }
+  // ---------------------------------------------------------------- 🔬 PHƯƠNG PHÁP PHÒNG THỬ NGHIỆM bằng tiền thật / Demo (công tắc riêng: cfg.lx[<id>].live)
+  // Mỗi ngày phòng thử nghiệm công bố tỉ trọng mục tiêu (lab_targets.json → worker/labx.js → onLab). Ở đây giữ danh mục đó trên Binance bằng CÙNG máy của 📐 định lượng
+  // (qPlace / qClose: lệnh thị trường, ký quỹ CÔ LẬP x lv_lev, cắt lỗ thảm hoạ −20% đặt sẵn trên sàn, trong 🛡️ giới hạn an toàn chung):
+  //   · chỉ vào mã có |tỉ trọng| ≥ 3% · cỡ = tỉ trọng × (lsz % số dư), nhỏ hơn lệnh nhỏ nhất của sàn thì dùng mức nhỏ nhất · tối đa 40 vị thế / phương pháp
+  //   · có mục tiêu của ngày mới: đóng mã rời danh mục / đổi chiều, mở mã mới (mã đang giữ đúng chiều thì để nguyên – không chỉnh cỡ, đỡ phí)
+  //   · tắt công tắc → đóng hết vị thế của phương pháp đó · anh tạm dừng bot / tài khoản đang ngừng → không mở mới, chờ
+  onLab(T) { this.lxT = T; this.lxAt = 0; }
+  async lxSync() {
+    const now = Date.now(); if (now - (this.lxAt || 0) < 30e3) return; this.lxAt = now;
+    const c = this.cfg(), T = this.lxT, env = this.env(), open = this.qOpen().filter((p) => p.lab);
+    for (const k of new Set([...open.map((p) => p.lab), ...Object.keys(c.lx || {}).filter((id) => c.lx[id]?.live)])) {
+      const on = !!c.lx?.[k]?.live, mine = open.filter((p) => p.lab === k), tg = T?.m?.[k];
+      if (!on) { for (const p of mine) { try { await this.qClose(p, "OFF"); } catch (e) { this.err(`🔬 đóng ${p.legs[0]?.sym}`, e); } } if (this.S.lxA?.[k]) { delete this.S.lxA[k]; this.save(); } continue; }
+      const A = (this.S.lxA ||= {}), key = `${T?.day}|${env}`;
+      // 🛑 danh mục quá 4 ngày tuổi (phòng thử nghiệm đang hỏng) hoặc phương pháp không còn lời trong kiểm chứng → KHÔNG giữ tiền thật theo số liệu cũ: đóng hết, công tắc vẫn bật, có danh mục tốt lại thì vào lại
+      const bad = T && (lxStale(T, now) ? "phòng thử nghiệm chưa công bố danh mục mới quá 4 ngày" : tg && tg.ok === false ? "kiểm chứng từ 2023 không còn lời" : "");
+      if (bad) { if (mine.length) { for (const p of mine) { try { await this.qClose(p, "X"); } catch (e) { this.err(`🔬 đóng ${p.legs[0]?.sym}`, e); } } this.say(`🔬 ${tg?.name || k}: ${bad} – đã đóng ${mine.length} vị thế thật, chờ danh mục mới`, "warn"); } if (A[k]) { delete A[k]; this.save(); } continue; }
+      if (!tg?.w || !T.day || A[k] === key) continue;
+      if (c.pz_on || this.S.halt || !this.enabled() || !this.st.ok) continue;      // chưa sẵn sàng → lượt sau thử lại
+      const B = this.base(), cap = B * Math.max(10, Math.min(300, +c.lx[k].lsz || 100)) / 100, want = new Map(Object.entries(tg.w).filter(([, w]) => Math.abs(w) >= LXW));
+      for (const p of mine) { const L = p.legs[0], w = want.get(L.sym); if (!w || Math.sign(w) !== L.side) { try { await this.qClose(p, "X"); } catch (e) { this.err(`🔬 đóng ${L.sym}`, e); } } }
+      const held = new Set(this.qOpen().filter((p) => p.lab === k).map((p) => p.legs[0].sym)); let n0 = held.size;
+      for (const [sym, w] of [...want].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))) {
+        if (held.has(sym)) continue; const px = this.core.sw?.px?.[sym]?.m; if (!(px > 0)) continue;
+        try { await this.qPlace({ act: "open", k: "lab", lab: k, name: tg.name || k, id: `lab:${k}:${sym}`, legs: [{ sym, side: Math.sign(w), w: 1, px }], N: Math.abs(w) * cap, exp: now + 400 * 864e5, why: `tỉ trọng mục tiêu ${(w * 100).toFixed(1)}% · danh mục ngày ${T.day}` }); }
+        catch (e) { this.err(`🔬 ${tg.name || k} mở ${sym}`, e); }
+      }
+      A[k] = key; this.save();
+      const n1 = this.qOpen().filter((p) => p.lab === k).length;
+      this.say(`🔬 ${tg.name || k}: đã theo danh mục ngày ${T.day} – đang giữ ${n1}/${want.size} vị thế (mới mở ${Math.max(0, n1 - n0)})`, "info");
+    }
+  }
   qOpen() { return Object.values(this.S.qp || {}).filter((p) => !p.done && p.env === this.env()); }
   async qPlace(x) {
     const c = this.cfg(), env = this.env(), nm = `${x.k === "sec" ? "⚡" : "📐"} ${x.name || x.k}`, base = x.legs.map((L) => coin(L.sym)).join("/"), skip = (w) => this.say(`${nm} ${base}: bỏ qua lệnh thật – ${w}`, "skip");
-    if (!c["lq_" + x.k]) return;
+    if (x.lab ? !c.lx?.[x.lab]?.live : !c["lq_" + x.k]) return;      // 🔬 phòng thử nghiệm: công tắc riêng từng phương pháp (cfg.lx[id].live)
     if (!this.enabled()) return skip("tài khoản Binance của bot đang tắt");
     if (!this.st.ok) return skip(`tài khoản chưa sẵn sàng – ${this.st.why}`);
     if (this.S.halt) return skip(`đang ngừng mở mới – ${this.S.halt}`);
-    const O = this.qOpen(), max = Math.max(1, Math.min(5, +c.lq_max || 2));
-    if (O.filter((p) => p.k === x.k).length >= max) return skip(`đã có ${max} lệnh thật của phương pháp này`);
+    const O = this.qOpen(), max = x.lab ? 40 : Math.max(1, Math.min(5, +c.lq_max || 2));
+    if (O.filter((p) => (x.lab ? p.lab === x.lab : p.k === x.k && !p.lab)).length >= max) return skip(`đã có ${max} lệnh thật của phương pháp này`);
     const busy = new Set([...this.active().map((e) => e.sym), ...this.swOpen().map((p) => p.sym), ...O.flatMap((p) => p.legs.map((L) => L.sym))]);
     if (x.legs.some((L) => busy.has(L.sym))) return skip("đang có lệnh khác của bot trên coin này");
     const FS = []; for (const L of x.legs) { const F = await this.filters(L.sym); if (!F) return skip(`${L.sym} không giao dịch được trên ${env === "live" ? "Binance" : "Binance Demo"}`); FS.push(F); }
     for (const L of x.legs) { const pr = await this.pos(L.sym); if (Math.abs(pr.amt) > 0) return skip(`anh đang có vị thế ${L.sym} – bot không đụng vào`); if (this.mPendSyms().has(L.sym)) return skip(`anh đang có 📍 lệnh chờ giá ${L.sym} – bot không đụng vào`); }
     const B = this.base(), lev = Math.max(1, Math.min(5, +c.lv_lev || 2));
-    let N = B * Math.max(1, Math.min(25, +c.lq_sz || 5)) / 100;
+    let N = x.lab ? Math.max(0, +x.N || 0) : B * Math.max(1, Math.min(25, +c.lq_sz || 5)) / 100;      // 🔬: cỡ = tỉ trọng mục tiêu × vốn (nhỏ hơn lệnh nhỏ nhất của sàn → nâng lên mức nhỏ nhất)
     x.legs.forEach((L, i) => { N = Math.max(N, FS[i].minN * 1.1 / L.w); });      // mỗi chân ≥ lệnh nhỏ nhất của sàn
     if (N > B * 0.25) return skip(`lệnh nhỏ nhất có thể ${N.toFixed(2)} USDT lớn hơn 25% vốn ${B.toFixed(2)} USDT`);
     const one = x.legs.length === 1, px0 = x.legs[0].px, worst = one && x.sl ? Math.abs(x.sl / px0 - 1) + 0.008 : 0.2;
@@ -1138,7 +1173,7 @@ export class LiveExec {
       try {
         await this.req("POST", "/fapi/v1/marginType", { symbol: L.sym, marginType: "ISOLATED" }).catch((e) => { if (e.code !== -4046) throw e; });
         await this.req("POST", "/fapi/v1/leverage", { symbol: L.sym, leverage: lev }); this.lev[L.sym] = lev;
-        const ref = this.core.q?.mid?.(L.sym) || L.px, q = Math.max(fl(N * L.w / ref, F.step), ce(F.minN * 1.02 / ref, F.step));
+        const ref = this.qmid(L.sym) || L.px, q = Math.max(fl(N * L.w / ref, F.step), ce(F.minN * 1.02 / ref, F.step));
         const o = await this.req("POST", "/fapi/v1/order", { symbol: L.sym, side: L.side > 0 ? "BUY" : "SELL", type: "MARKET", quantity: q.toFixed(F.sd), newOrderRespType: "RESULT" });
         legs.push({ sym: L.sym, side: L.side, q: +o.executedQty > 0 ? +o.executedQty : q, ap: +o.avgPrice > 0 ? +o.avgPrice : ref, stop: null });
       } catch (e) {
@@ -1147,7 +1182,7 @@ export class LiveExec {
         return;
       }
     }
-    const p = { id, pid: x.id, k: x.k, name: x.name || x.k, env, legs, N: +legs.reduce((a, L) => a + L.q * L.ap, 0).toFixed(4), lev, worst, sl: x.sl ?? null, t0: now, exp: (x.exp || now + 72 * 3600e3) + 3600e3, why: x.why, done: false, fees: legs.reduce((a, L) => a + L.q * L.ap * c.fee_t / 100, 0), chk: 0 };
+    const p = { id, pid: x.id, k: x.k, lab: x.lab || undefined, name: x.name || x.k, env, legs, N: +legs.reduce((a, L) => a + L.q * L.ap, 0).toFixed(4), lev, worst, sl: x.sl ?? null, t0: now, exp: (x.exp || now + 72 * 3600e3) + 3600e3, why: x.why, done: false, fees: legs.reduce((a, L) => a + L.q * L.ap * c.fee_t / 100, 0), chk: 0 };
     (this.S.qp ||= {})[id] = p; this.S.errs = 0; this.save();
     for (const L of legs) {      // cắt lỗ trên sàn: mức của phương pháp (+0,3% đệm) hoặc thảm hoạ −20%
       const F = await this.filters(L.sym), raw = one && x.sl ? x.sl * (1 - L.side * 0.003) : L.ap * (1 - L.side * 0.2), pxs = (L.side > 0 ? ce(raw, F.tick) : fl(raw, F.tick)).toFixed(F.td);
@@ -1166,7 +1201,7 @@ export class LiveExec {
     for (const p of this.qOpen()) {
       try {
         if (!p.keep && now >= p.exp) { await this.qClose(p, "TIME"); continue; }
-        { let u = 0, ok = true; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym); if (!(m > 0)) { ok = false; break; } u += L.side * L.q * (m - L.ap); } if (ok && p.N > 0) this.askNear(p, "lq", p.id, p.legs[0]?.sym, p.exp, p.exp - p.t0, u, u / p.N * 100); }
+        { let u = 0, ok = true; for (const L of p.legs) { const m = this.qmid(L.sym); if (!(m > 0)) { ok = false; break; } u += L.side * L.q * (m - L.ap); } if (ok && p.N > 0) this.askNear(p, "lq", p.id, p.legs[0]?.sym, p.exp, p.exp - p.t0, u, u / p.N * 100); }
         if (now - (p.chk || 0) < 5 * 60e3) continue; p.chk = now;
         let gone = 0; for (const L of p.legs) { const pr = await this.pos(L.sym); if (!pr.amt) gone++; }
         if (gone) await this.qClose(p, gone === p.legs.length ? "GONE" : "LEG");      // sàn đã cắt lỗ / anh tự đóng trên Binance → đóng nốt phần còn lại
@@ -1179,7 +1214,7 @@ export class LiveExec {
       if (L.stop?.id) { if (L.stop.kind === "algo") await this.req("DELETE", "/fapi/v1/algoOrder", { algoId: L.stop.id }).catch(() => {}); else await this.req("DELETE", "/fapi/v1/order", { symbol: L.sym, orderId: L.stop.id }).catch(() => {}); }
       const pr = await this.pos(L.sym), q = Math.abs(pr.amt); let px = null;
       if (q > 0 && Math.sign(pr.amt) === L.side) { const F = await this.filters(L.sym), o = await this.req("POST", "/fapi/v1/order", { symbol: L.sym, side: L.side > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), reduceOnly: "true", newOrderRespType: "RESULT" }); if (+o.avgPrice > 0) px = +o.avgPrice; }
-      if (!px) px = this.core.q?.mid?.(L.sym) || L.stop?.px || L.ap;
+      if (!px) px = this.qmid(L.sym) || L.stop?.px || L.ap;
       L.x = px;
       const I = await this.income({ sym: L.sym, t0: p.t0 });
       let g = L.side * L.q * (px - L.ap), f = L.q * px * c.fee_t / 100;
@@ -1363,7 +1398,7 @@ export class LiveExec {
     return { on: !!c.lv_on, ready: this.enabled(), env: this.env(), st: this.st, fast: { uds: !!FX.udsOk, ws: !!FX.apiOk, bt: Object.keys(FX.bt || {}).length, rtt: FX.rtt != null ? Math.round(FX.rtt) : null, ping: FX.ping ?? null }, size: { base: +B.toFixed(2), mode: this.env() !== "live" || full ? "pct" : B * 0.25 >= 16.5 ? "min3" : B * 0.25 >= 11 ? "min2" : "min1", dayLim: +(B * c.lv_daily / 100).toFixed(2) }, halt: this.S.halt, day: { d: this.S.day.d, pnl: +this.S.day.pnl.toFixed(2) },
       risk: (() => { const r = this.riskNow(); return { B: +r.B.toFixed(2), N: +r.N.toFixed(2), M: +r.M.toFixed(2), W: +r.W.toFixed(2), lim: RISK, peak: this.S.peak?.[this.env()] || null }; })(),
       qp: { on: Object.fromEntries(["ou", "rsi2", "fund", "orb", "vwap", "liq", "sec"].map((k) => [k, !!this.cfg()["lq_" + k]])), sz: this.cfg().lq_sz, max: this.cfg().lq_max,
-        open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.core.q?.mid?.(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, ux: p.ux || null, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, pid: p.pid, k: p.k, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.core.q?.mid?.(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
+        open: this.qOpen().map((p) => { let u = 0; for (const L of p.legs) { const m = this.qmid(L.sym) || L.ap; u += L.side * L.q * (m - L.ap); } return { id: p.id, ux: p.ux || null, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, pid: p.pid, k: p.k, lab: p.lab || null, name: p.name, legs: p.legs.map((L) => ({ sym: L.sym, side: L.side, q: L.q, ap: L.ap, stop: L.stop?.px || null, m: this.qmid(L.sym) || null })), N: p.N, upnl: +u.toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +p.fees.toFixed(4) }; }) },
       swp: { on: !!this.cfg().sw_lv_pump, onl: !!this.cfg().sw_lv_list, sz: this.cfg().sw_lv_sz, max: this.cfg().sw_lv_max, open: this.swOpen().map((p) => { const m = this.core.sw?.px?.[p.sym]?.m || p.ap; return { id: p.id, k: p.k || "pump", ux: p.ux || null, keep: p.keep ? 1 : 0, xm: p.xm || null, xs: p.xs || null, x0: p.x0 || null, sym: p.sym, q: p.q, ap: p.ap, N: p.N, m, upnl: +(-p.q * (m - p.ap)).toFixed(4), t0: iso(p.t0), exp: iso(p.exp), why: p.why, fees: +(p.feeA ?? p.fees ?? 0).toFixed(4), fund: p.fundA ?? null }; }) },
       totE: Object.fromEntries(Object.entries(this.S.totE || {}).map(([k, T]) => [k, { ...T, pnl: +T.pnl.toFixed(2), fees: +T.fees.toFixed(2) }])),
       dayE: Object.fromEntries(Object.entries(this.S.dayE || {}).map(([k, D]) => [k, { d: vnDay(Date.now()), pnl: D.d === vnDay(Date.now()) ? +D.pnl.toFixed(2) : 0 }])),      // sang ngày mới chưa có lệnh đóng → 0, không hiện lời ngày cũ tot: { ...this.S.tot, pnl: +this.S.tot.pnl.toFixed(2), fees: +this.S.tot.fees.toFixed(2) },

@@ -7993,3 +7993,12 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
   body.kb-on .msheet-in,body.kb-on .msheet .ms-in,body.kb-on .lb-dr-p{max-height:calc(var(--vvh,100dvh) - 8px)!important;padding-bottom:8px!important}
 }
 
+
+/* 🔬 Phương pháp phòng thử nghiệm có công tắc (27/11/2026): 2 cần gạt trên thẻ Ứng viên mới · danh mục đang giữ trong ngăn kéo · chip danh mục dưới bảng lệnh */
+.lb2-sw{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:2px 0}
+.lb2-nosw{margin:0;padding:8px 10px;border-radius:10px;background:var(--sunk);font-size:.75rem;line-height:1.45;color:var(--ink-3)}
+.lm-lx{display:grid;gap:6px;margin:10px 2px 0;padding:10px 12px;border-radius:12px;background:var(--sunk);font-size:.8125rem;line-height:1.6}
+.lm-lx p{margin:0;overflow-wrap:anywhere}.lm-lx p>b{margin-right:6px}.lm-lx small{font-size:.75rem;font-variant-numeric:tabular-nums}
+.lm-lxw{display:block;margin-top:8px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--brass,#d9a23a) 12%,transparent);font-size:.75rem;line-height:1.5;color:var(--ink-2)}
+.lb-lxp{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:10px 2px 0;font-size:.8125rem;color:var(--ink-2)}
+.lb-lxp .chip{cursor:pointer}

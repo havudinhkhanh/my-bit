@@ -161,6 +161,7 @@ live = new LiveExec({ core, dir: DIR, log });
 { let t = 0; live.onCmd = () => { clearTimeout(t); t = setTimeout(() => { if (core.here()) core.snapshot().catch(() => {}); }, 700); }; }      // lệnh tay / lệnh chờ / đóng từ trang → trang thấy sau ~1 giây thay vì tới 10 giây
 core.io.onHook = (h) => live.onHook(h);
 core.io.onSwing = (s) => live.onSwing(s);
+core.io.labUrl = `${SITE}/lab_targets.json`; core.io.onLab = (T) => live.onLab(T);      // 🔬 tỉ trọng mục tiêu của các phương pháp phòng thử nghiệm (sàn thử: worker/labx.js · tiền thật: live.lxSync)
 core.io.onQuant = (x) => live.onQuant(x);      // 📐 định lượng: sàn thử mở/đóng → lệnh thật theo công tắc từng phương pháp
 core.io.onTrade = (t) => { try { ledAdd(t); } catch (e) { log("📒", e.message); } };
 let walBusy = 0; core.io.onWalReq = () => { if (Date.now() - walBusy < 20e3) return; walBusy = Date.now(); live.wallets().then(() => core.snapshot?.()).catch((e) => log("💵 đọc ví:", e.message)); };      // 🔄 Danh mục: đọc ví ngay

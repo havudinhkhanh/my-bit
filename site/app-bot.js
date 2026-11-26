@@ -473,7 +473,7 @@ function vfSheet(m, r) {
     <p class="vf-n">Luật chạy: mọi quyết định vào lệnh chỉ dùng số liệu có trước thời điểm đó (nến đã đóng, vào ở giá mở nến kế tiếp). Ô đã ghi không tính lại. Đây là kiểm chứng trên dữ liệu, không phải lệnh thật.</p>`;
   iosSheet({ title: `${m.ico || ""} ${esc(m.name)} · tuần ${d(r.wk)} – ${d(r.to)}`, body, ok: "Đóng" });
 }
-// ================================================================ 🔬 ỨNG VIÊN MỚI – phòng thử nghiệm phương pháp (research/lab.py chấm 4 ngày/lần → lab.json)
+// ================================================================ 🔬 ỨNG VIÊN MỚI – phòng thử nghiệm phương pháp (research/lab.py chấm mỗi ngày → lab.json + lab_targets.json; tìm phương pháp MỚI: 4 ngày/lần)
 //    Phương pháp mới do lượt tìm định kỳ thêm vào; ở đây CHỈ hiện kết quả kiểm chứng (không bật / tắt gì trong bot, không khuyên mua bán).
 const LAB_ST = { pass: ["ok", "Đạt – chờ anh quyết", "Passed – your call"], watch: ["warn", "Đang theo dõi trên giấy", "Paper-tracking"], drop: ["bad", "Đã loại khi theo dõi", "Dropped in tracking"], fail: ["off", "Không đạt – đã loại", "Rejected"] };
 const labKey = (n) => `${n.at}|${n.id}|${n.kind}`;
@@ -497,7 +497,7 @@ function scWeekHtml(L, V, N) {
       `Test over ${n} weeks: trade <b>last week's winner</b> the <b>following week</b> → profitable <b>${ok}/${n}</b> weeks, average <b>${nf(sum / n, 2)}%/week</b>.`)}</p>` : ""}
     ${notes.map((note, i) => `<details class="lb2-wn"${i === 0 ? " open" : ""}><summary><b>📝 ${bi("Nhìn lại tuần", "Review of week")} ${d3(note.wk)}</b></summary>${note.sum ? `<p>${esc(note.sum)}</p>` : ""}${(note.ideas || []).length ? `<ul>${note.ideas.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</details>`).join("")}`);
 }
-function scCandHtml(L, info, V, N) {
+function scCandHtml(L, info, V, N, sw) {
   if (!L?.methods) return panel(bi("🔬 Ứng viên mới", "🔬 New candidates"), `<p class="sc-empty">${bi("Phòng thử nghiệm chưa có kết quả – lượt chấm đầu tiên đang chạy.", "No lab results yet – the first run is in progress.")}</p>`);
   const sp = (v, d = 2) => (!isNum(v) ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${nf(Math.abs(v), d)}%`), cl = (v) => (v > 0 ? "up" : v < 0 ? "down" : "");
   const dm = (iso) => { const d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString(LOC, { day: "2-digit", month: "2-digit", year: "numeric" }); };
@@ -509,6 +509,7 @@ function scCandHtml(L, info, V, N) {
     return `<article class="lb2-c s-${m.status}" id="lb2-${esc(m.id)}">
       <header><span class="lb2-st ${S[0]}"><i></i>${bi(S[1], S[2])}</span><small>${esc(bi(m.hold, m.hold_en) || "")}</small></header>
       <h3>${esc(bi(m.name, m.name_en))}</h3><p class="lb2-d">${esc(bi(m.desc, m.desc_en))}</p>
+      ${(sw && sw(m.id)) || (m.per?.all && !(m.per.all.ret > 0) ? `<p class="lb2-nosw">${bi("Chưa có công tắc sàn thử / tiền thật: kiểm chứng cả giai đoạn đang lỗ. Có lời lại là công tắc tự hiện.", "No paper / real-money switch: the full-period test is negative. Switches appear automatically once it turns positive.")}</p>` : "")}
       <dl class="lb2-k"><div><dt>${bi("TB / ngày", "Avg / day")}</dt><dd class="${cl(b.day)}">${sp(b.day, 3)}</dd></div><div><dt>${bi("Quy ra năm", "Per year")}</dt><dd class="${cl(b.yr)}">${sp(b.yr, 0)}</dd></div>
         <div><dt>${bi("Sụt tối đa", "Max drawdown")}</dt><dd>${isNum(b.dd) ? nf(b.dd, 0) + "%" : "—"}</dd></div><div><dt>${bi("12 tháng", "12 months")}</dt><dd class="${cl(b.d365)}">${sp(b.d365, 0)}</dd></div></dl>
       <div class="lb2-sp">${spark(m.eq, { w: 320, h: 46 })}</div>
@@ -525,8 +526,8 @@ function scCandHtml(L, info, V, N) {
   const GRP = [[["pass"], bi("✅ Đạt – chờ anh quyết", "✅ Passed")], [["watch"], bi("👀 Đang theo dõi trên giấy", "👀 Paper-tracking")], [["fail", "drop"], bi("🗂 Đã loại (vẫn chấm lại mỗi lượt)", "🗂 Rejected (still re-scored every run)")]];
   const pc = (x, dp = 1) => (!x ? "<td>—</td>" : `<td><b class="${cl(x.ret)}">${sp(x.ret, Math.abs(x.ret) >= 100 ? 0 : dp)}</b><small>${x.day > 0 ? "+" : x.day < 0 ? "−" : ""}${nf(Math.abs(x.day), 2)}%/${bi("ngày", "d")}</small></td>`);
   const allT = M.some((m) => m.per) ? panel(bi("📋 Tất cả phương pháp – từng giai đoạn", "📋 All methods – by period"), `
-    <p class="lb2-lead">${bi(`Mọi phương pháp đã tìm và thử đều nằm ở đây, kể cả cái đã loại. Mỗi lượt chấm (4 ngày/lần) đều chấm lại <b>tất cả</b>; phương pháp đã loại mà qua lại được cổng kiểm thì tự quay về diện theo dõi. Số to = lời/lỗ cả giai đoạn (lãi kép, 1× vốn, sau phí), số nhỏ = trung bình mỗi ngày.`,
-      `Every method found and tested is listed, including rejected ones. Each run (every 4 days) re-scores <b>all</b> of them; a rejected method that passes the gate again returns to tracking. Big number = return over the period (compounded, 1× capital, after costs), small = average per day.`)}</p>
+    <p class="lb2-lead">${bi(`Mọi phương pháp đã tìm và thử đều nằm ở đây, kể cả cái đã loại. Mỗi ngày đều chấm lại <b>tất cả</b>; phương pháp đã loại mà qua lại được cổng kiểm thì tự quay về diện theo dõi. <b>Phương pháp nào cả giai đoạn có lời là tự có công tắc 🧪 sàn thử và 💰 tiền thật</b> ngay trên thẻ và ở bảng Tất cả. Số to = lời/lỗ cả giai đoạn (lãi kép, 1× vốn, sau phí), số nhỏ = trung bình mỗi ngày.`,
+      `Every method found and tested is listed, including rejected ones. Every day <b>all</b> of them are re-scored; a rejected method that passes the gate again returns to tracking. <b>Any method that is profitable over the full period automatically gets 🧪 paper and 💰 real-money switches.</b> Big number = return over the period (compounded, 1× capital, after costs), small = average per day.`)}</p>
     <div class="tw"><table class="rs keep lb2-at"><thead><tr><th class="l">${bi("Phương pháp", "Method")}</th><th>${bi(`Từ ${dm(L.start)}`, `Since ${dm(L.start)}`)}</th><th>${bi("1 năm qua", "1 year")}</th><th>${bi("1 quý qua", "1 quarter")}</th><th>${bi("1 tháng qua", "1 month")}</th><th>${bi("1 tuần qua", "1 week")}</th><th>Sharpe</th><th>${bi("Sụt tối đa", "Max DD")}</th><th>${bi("Lần chấm", "Runs")}</th></tr></thead><tbody>
       ${GRP.map(([ks, t]) => { const X = M.filter((m) => ks.includes(m.status)); return X.length ? `<tr class="lb2-gr"><td class="l" colspan="9">${t} <small>${X.length}</small></td></tr>${X.map((m) => `<tr><td class="l"><button type="button" class="lb2-go" data-lb2go="${esc(m.id)}">${esc(bi(m.name, m.name_en))}</button><small>${esc(bi(m.hold, m.hold_en) || "")}</small></td>${pc(m.per?.all, 0)}${pc(m.per?.y1)}${pc(m.per?.q1)}${pc(m.per?.m1)}${pc(m.per?.w1)}<td>${isNum(m.bt?.sharpe) ? nf(m.bt.sharpe, 2) : "—"}</td><td>${isNum(m.bt?.dd) ? nf(m.bt.dd, 0) + "%" : "—"}</td><td>${(m.hist || []).length || "—"}</td></tr>`).join("")}` : ""; }).join("")}
     </tbody></table></div><p class="lb2-f" style="border:0;padding:6px 0 0">${bi(`Số liệu tới ${dm(L.to)} · chấm lần cuối ${dm(L.at)} · bấm tên phương pháp để xem thẻ chi tiết (luật, lý do loại, lịch sử từng lần chấm).`, `Data to ${dm(L.to)} · last scored ${dm(L.at)} · tap a name for its card.`)}</p>`) : "";
@@ -689,7 +690,7 @@ async function viewScalp() {
   const badge = { ord: nLive + nPaper };      // số lệnh đang mở của CẢ 2 sàn – không đổi khi bấm công tắc sàn (từng sàn: số trên nút Binance / Sàn thử)
   const tabBar = `<nav class="sc-tabs" role="tablist" aria-label="Các phần của bot">${TABS.map(([k, t, sep]) => `<button type="button" role="tab" aria-selected="${k === TOP}" data-sctab="${k}" class="${k === TOP ? "on" : ""}">${t}${badge[k] ? `<i class="sc-bdg">${badge[k]}</i>` : ""}</button>${sep ? '<i class="sc-tsep" aria-hidden="true"></i>' : ""}`).join("")}</nav>`;
   const cnt = (n) => (n ? ` <i class="sc-bdg">${n}</i>` : "");
-  const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "10 kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"], ["cand", `${bi("Ứng viên mới", "New candidates")}${cnt(labUnseen(LABD).length)}`, bi("tự tìm mỗi 4 ngày · đã kiểm chứng", "found every 4 days · back-tested")]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
+  const subSeg = TOP === "pm" ? `<div class="sc-sub2" role="tablist" aria-label="Phương pháp">${[["lab", `Tất cả · bật/tắt${cnt(nHook + posS.length + swPos + qPos)}`, "mọi kiểu chơi · sàn thử & tiền thật"], ["hook", `Bắt râu sập${cnt(nHook)}`, "chi tiết · lệnh chờ · kiểm chứng"], ["sec", `Lướt giây${cnt(posS.length)}`, "chi tiết · lệnh đang mở"], ["cand", `${bi("Ứng viên mới", "New candidates")}${cnt(labUnseen(LABD).length)}`, bi("tự tìm mỗi 4 ngày · đã kiểm chứng", "found every 4 days · back-tested")]].map(([k, t, s]) => `<button type="button" role="tab" data-scpm="${k}" class="${PMS === k ? "on" : ""}" aria-selected="${PMS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>`
     : TOP === "log" ? `<div class="sc-sub2" role="tablist" aria-label="Hoạt động">${[["ev", "Sự kiện", "mọi việc bot làm"], ["learn", "Học & kiểm chứng", "bot học được gì"]].map(([k, t, s]) => `<button type="button" role="tab" data-sclog="${k}" class="${LOGS === k ? "on" : ""}" aria-selected="${LOGS === k}"><span>${t}</span><small>${s}</small></button>`).join("")}</div>` : "";
   const info = (html, lab = "ⓘ Giải thích") => `<details class="sc-i"><summary>${lab}</summary><div class="sc-ib">${html}</div></details>`;
   const empty = (t) => `<p class="sc-empty">${t}</p>`;
@@ -719,7 +720,7 @@ async function viewScalp() {
         <div class="lm-sw"><h4 class="sc-gt">Bật / tắt</h4><div class="sc-rows">
           <div class="sc-row"><div class="sc-rl"><b>🧪 Sàn thử</b><small>${m.paper.note}</small></div><div class="sc-rc"><button type="button" class="sc-sw${m.paper.on ? " on" : ""}" ${m.paper.attr} role="switch" aria-checked="${m.paper.on}"><i></i><span>${m.paper.on ? "Bật" : "Tắt"}</span></button></div></div>
           ${live}</div>${m.mech ? `<p class="lm-mech">${m.mech}</p>` : ""}</div>
-      </div>
+      </div>${m.extra || ""}
       <details class="lm-par" data-lmo="p-${m.k}" ${window.__lmO?.["p-" + m.k] ? "open" : ""}><summary>⚙️ Thông số <small class="${nchg ? "warn" : "faint"}">${nchg ? `${nchg} mục đang khác chuẩn` : "đang dùng mức chuẩn"}</small></summary>
         ${groups.map((g) => `<div class="sc-grp">${g ? `<h4 class="sc-gt">${g}</h4>` : ""}<div class="sc-rows">${grpP(g)}</div></div>`).join("")}
         <div class="lm-bar"><span class="faint lm-dm">Áp dụng cho lệnh MỚI · lệnh đang mở giữ nguyên.</span><button type="button" class="btn" data-lmstd="${m.sc}|${m.k}">↺ Về chuẩn</button><button type="button" class="btn primary" data-lmsave="${m.sc}|${m.k}" disabled>💾 Lưu</button></div>
@@ -1568,7 +1569,8 @@ async function viewScalp() {
         ${info(`<p>Xếp theo lợi thế ròng sau phí / √thời gian giữ. Mỗi giây bot chấm điểm mọi thị trường, nhưng chỉ vào tối đa 1 lệnh – cơ hội tốt nhất – và chỉ khi lợi thế kỳ vọng ≥ <b>${nf(C.k + (X.kadd || 0), 1)}×</b> chi phí và ròng sau phí ≥ <b>${nf(C.min_net, 1)} bps</b>. Spot chỉ được Long.</p>`)}`, "đánh giá lại mỗi giây")}
       ${panel("🔍 Kiểm tra: kỳ vọng lúc vào lệnh vs kết quả thực", audit, "80 lệnh gần nhất")}
       ${panel("⚖️ Futures vs Spot", `<div class="tw"><table><thead><tr><th class="l">Loại</th><th>Số lệnh</th><th>Thắng</th><th>Ròng sau phí</th><th>Phí</th></tr></thead><tbody>${byRow("F", "Futures")}${byRow("S", "Spot")}</tbody></table></div>`)}`;
-  if (TB === "lab" || TB === "ov") {      // bảng bật/tắt mọi phương pháp: tab Phương pháp › Tất cả VÀ ngay trên Tổng quan (1 chạm từ nút Bot)
+  let lxSeg = null;      // 🔬 2 công tắc (sàn thử | tiền thật) của 1 phương pháp phòng thử nghiệm – dùng lại ở thẻ Ứng viên mới
+  if (TB === "lab" || TB === "ov" || TB === "cand") {      // bảng bật/tắt mọi phương pháp: tab Phương pháp › Tất cả VÀ ngay trên Tổng quan (1 chạm từ nút Bot)
     // 🧪 THỬ NGHIỆM – 1 bảng 3 cột kéo-thả: 📚 tất cả kiểu chơi | 🧪 đang đánh sàn thử | 💰 đang đánh tiền thật (Demo / thật)
     // 8 phương pháp: 6 📐 định lượng (worker/quant.js) + 2 🗓️ giữ nhiều ngày (worker/swing.js). Bấm thẻ → ngăn kéo: làm gì, kết quả, bật/tắt, ⚙️ thông số, luật.
     const sg = (v, d = 2) => `${v >= 0 ? "+" : ""}${nf(v, d)}`;
@@ -1686,7 +1688,49 @@ async function viewScalp() {
         paper: { on: paperOn }, live: { on: liveOn, note: H ? "" : "đi theo lệnh sàn thử · chưa có lợi thế" },
         tot: B?.net || 0, nOpen: open + pend, nlv, edge: H, pp: { n, pnl: B?.net || 0 } };
     };
-    const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : [])], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
+    // ---------- 🔬 phòng thử nghiệm (research/lab.py): phương pháp nào kiểm chứng CẢ GIAI ĐOẠN có lời là tự có 2 công tắc ở đây – không viết thêm mã cho từng phương pháp (Jason 27/11/2026)
+    // danh mục mục tiêu mỗi ngày: lab_targets.json → máy chủ riêng (worker/labx.js sàn thử · scalper/live.mjs tiền thật). Cấu hình: C.lx[id] = { paper, live, sz, lsz }
+    const LXS = X.lx || null, LXD = LXS?.DEF || { sz: 10, lsz: 100 }, LXRES = new Set(["hook", "sec", "pump", "list", ...QK]);
+    const lxPc = (v, d = 1) => (!isNum(v) ? "—" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${nf(Math.abs(v), d)}%`);
+    const lxEst = (m) => {      // ước tính tiền thật: số lệnh × cỡ (không nhỏ hơn mức tối thiểu của sàn) so với số dư và 🛡️ giới hạn an toàn
+      const bal = +lvSt.bal || 0, lev = Math.max(1, +C.lv_lev || 2), n = m.tgN, lim = LV?.risk?.lim || { margin: 0.8, notional: 2, worst: 0.35 }; if (!(bal > 0) || !n) return null;
+      const each = Math.max(5.5, bal * m.lsz / 100 * (m.tgG || 1) / n), N = each * n, cap = bal * Math.min(lim.notional, lim.margin * lev, lim.worst / 0.2);
+      return { bal, lev, n, each, N, cap, fit: Math.max(0, Math.floor(cap / each)), x: N / bal };
+    };
+    const lxM = (L) => {
+      const k = L.id, c = C.lx?.[k] || {}, B = LXS?.m?.[k] || null, st = B?.st || { n: 0, pnl: 0 }, pos = B?.pos || [], open = B?.upnl || 0, A = L.per?.all || {}, b = L.bt || {}, tg = B?.tg || null;
+      const paperOn = !!c.paper, lvOn = !!c.live, nlv = lvOpen.filter((p) => p.lab === k).length, srvOld = !LXS, okNow = A.ret > 0, sz = +c.sz || LXD.sz, lsz = +c.lsz || LXD.lsz;
+      const stS = LAB_ST[L.status] || LAB_ST.fail, tot = (st.pnl || 0) + open, from = (LABD.start || "2023").slice(0, 4), wmin = nf((LXS?.WMIN || 0.03) * 100, 0);
+      const P = [{ g: "🧪 Sàn thử", f: "sz", type: "n", label: "Vốn cho danh mục này", unit: "% tài sản", dp: 0, def: LXD.sz, desc: "tổng vị thế ảo = chừng này % tài sản sàn thử (x1, không đòn bẩy)", tip: "1–50% · mỗi phương pháp một phần riêng" },
+        { g: "💰 Tiền thật", f: "lsz", type: "n", label: "Tổng vị thế mục tiêu", unit: "% số dư", dp: 0, def: LXD.lsz, desc: "100% = đúng 1× số dư như kiểm chứng · mã nào ra lệnh nhỏ hơn mức tối thiểu của sàn thì nâng lên mức tối thiểu", tip: "10–300% · trên 100% là thêm đòn bẩy" }];
+      P.forEach((p) => (p.sc = "lx", p.k = k));
+      const side = (sd) => pos.filter((p) => p.side === sd).map((p) => `${esc(p.sym.replace(/USDT$/, ""))} <small class="${cls(p.upnl)}">${sg(p.pct || 0, 1)}%</small>`).join(" · ");
+      const extra = pos.length ? `<div class="lm-lx"><p><b class="up">Long ${pos.filter((p) => p.side > 0).length}</b> ${side(1) || "—"}</p><p><b class="down">Short ${pos.filter((p) => p.side < 0).length}</b> ${side(-1) || "—"}</p><small class="faint">Danh mục sàn thử ngày ${esc(B.id || "")} · % = lời/lỗ từng mã từ lúc vào</small></div>` : "";
+      const tgS = srvOld ? "máy chủ riêng chưa có bản này" : !tg ? "phòng thử nghiệm chưa công bố" : tg.stale ? "quá 4 ngày chưa có danh mục mới" : `ngày ${esc(LXS.day || "")} · số liệu tới ${esc(LXS.asof || "")}`;
+      const M = { sc: "lx", k, lab: L, ico: "🔬", name: L.name, kind: "🔬 Phòng thử nghiệm · danh mục đổi theo ngày", grp: "lx", wkM: Object.fromEntries(L.wk || []), lsz, wmin, tgN: tg?.nl || 0, tgG: tg?.gross || 0, okNow,
+        verdict: `<span class="pill ${stS[0] === "ok" ? "buy" : stS[0] === "warn" ? "warn" : ""}">${stS[1]}</span>${okNow ? "" : `<span class="pill sell">hết lời trong kiểm chứng</span>`}`,
+        what: `${esc(L.desc || "")}${L.warn ? `<span class="lm-lxw">🔎 ${esc(L.warn)}</span>` : ""}`, short: esc(L.hold || ""),
+        paper: { on: paperOn, srvOld, attr: `data-lbt="paper|${k}"`, note: srvOld ? "chờ máy chủ riêng cập nhật bản mới" : `tiền ảo · ${nf(sz, 0)}% tài sản sàn thử · theo đúng danh mục phòng thử nghiệm công bố mỗi ngày` },
+        live: { on: lvOn, srvOld, attr: `data-lbt="live|${k}"`, risk: `kiểm chứng từng sụt ${nf(b.dd || 0, 0)}% ở 1× vốn`,
+          note: srvOld && lvOn ? "chờ máy chủ riêng cập nhật bản mới" : lvOn ? `${nf(lsz, 0)}% số dư · ${nlv} vị thế đang giữ · cắt lỗ −20% đặt sẵn trên sàn` : "lệnh thị trường · cỡ nhỏ nhất sàn cho phép · ký quỹ cô lập · cắt lỗ −20% trên sàn" },
+        mech: `Hai công tắc chạy <b>riêng</b>: sàn thử giữ danh mục bằng tiền ảo, tiền thật giữ cùng danh mục trên Binance (chỉ mã có tỉ trọng ≥ ${wmin}%). Mỗi ngày có danh mục mới: mã rời danh mục thì đóng, mã mới thì mở; mã mà anh hoặc kiểu chơi khác của bot đang giữ thì bỏ qua. <b>Tắt công tắc = đóng hết vị thế</b> của phương pháp này. Phương pháp hết lời trong kiểm chứng, hoặc quá 4 ngày không có danh mục mới → bot tự đóng vị thế thật.`,
+        ver: `<b class="${cls(b.yr)}">${lxPc(b.yr, 0)}</b>/năm`, vs: [stS[0] === "ok" ? "ok" : okNow ? "warn" : "bad", `${lxPc(b.yr, 0)}/năm`, `Kiểm chứng từ ${from}: ${lxPc(A.ret, 0)} · TB ${lxPc(b.day, 3)}/ngày · Sharpe ${nf(b.sharpe || 0, 2)} · sụt tối đa ${nf(b.dd || 0, 0)}% (1× vốn, sau phí)`], tot, nOpen: pos.length, nlv,
+        stats: [[`Kiểm chứng từ ${from}`, `<span class="${cls(b.yr)}">${lxPc(b.yr, 0)}/năm</span>`, `TB ${lxPc(b.day, 3)}/ngày · Sharpe ${nf(b.sharpe || 0, 2)} · sụt tối đa ${nf(b.dd || 0, 0)}% · 1× vốn, sau phí`],
+          ["Gần đây", `<span class="${cls(L.per?.y1?.ret)}">${lxPc(L.per?.y1?.ret, 0)}</span> 1 năm`, `1 quý ${lxPc(L.per?.q1?.ret)} · 1 tháng ${lxPc(L.per?.m1?.ret)} · 1 tuần ${lxPc(L.per?.w1?.ret)}`],
+          ["Sàn thử – đã đóng", st.n ? `<span class="${cls(st.pnl)}">${sg(st.pnl)} USDT</span>` : "chưa có", st.n ? `${st.n} lượt đóng mã · phí ${nf(st.fee || 0, 2)} · funding ${sg(st.fund || 0)}` : paperOn ? "chờ đổi danh mục" : "đang tắt"],
+          ["Sàn thử – đang giữ", `${pos.length} mã`, pos.length ? `<span class="${cls(open)}">${sg(open)} USDT</span> · ${nf(B.gross || 0, 0)} USDT vị thế` : ""],
+          [C.lv_env === "live" ? "Tiền thật" : "Binance Demo", lvOn ? `${nlv} vị thế` : "tắt", lvOn ? `${nf(lsz, 0)}% số dư` : ""],
+          ["Danh mục mục tiêu", tg ? `${tg.n} mã` : "—", tgS]],
+        pp: { n: st.n || 0, pnl: st.pnl || 0 }, extra,
+        res: st.n || pos.length ? `<b class="${cls(tot)}">${sg(tot)}</b> <small class="faint">USDT · ${pos.length} mã đang giữ</small>` : `<span class="faint">chưa có lệnh</span>`,
+        params: P, rule: `<p>${esc(L.desc || "")}</p><p><b>Cách bot đánh:</b> phòng thử nghiệm chấm lại mỗi ngày bằng số liệu tới hết hôm trước và công bố tỉ trọng từng mã cho ngày kế tiếp; máy chủ riêng đọc 10 phút/lần. Kiểm chứng giả định vào đúng giá mở cửa 00:00 UTC – bot vào trễ vài giờ (chờ Binance công bố số liệu ngày) nên kết quả thật sẽ lệch so với kiểm chứng.</p>
+          <p><b>Kiểm chứng từ ${from}</b> (1× vốn, đã trừ phí + trượt giá + funding): ${lxPc(A.ret, 0)}, TB ${lxPc(b.day, 3)}/ngày, Sharpe ${nf(b.sharpe || 0, 2)}, sụt tối đa ${nf(b.dd || 0, 0)}%, ngày tệ nhất ${lxPc(b.worst, 1)}. Từng năm: ${Object.entries(b.by || {}).map(([y, v]) => `${y} ${lxPc(v, 0)}`).join(" · ")}.</p>
+          ${(L.why || []).length ? `<p><b>Cổng kiểm chưa đạt:</b></p><ul>${L.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>` : ""}${L.warn ? `<p>🔎 ${esc(L.warn)}</p>` : ""}
+          <p><button type="button" class="btn sm" data-lxgo="${esc(k)}">Xem thẻ kiểm chứng đầy đủ →</button></p>` };
+      M.est = lxEst(M); return M;
+    };
+    const LXL = (LABD?.methods || []).filter((L) => L.per?.all && !LXRES.has(L.id) && (L.per.all.ret > 0 || C.lx?.[L.id]?.paper || C.lx?.[L.id]?.live || LXS?.m?.[L.id]?.n));
+    const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : []), ...LXL.map(lxM)], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
     LB = { ML, MM };
     const nchgOf = (m) => m.params.filter((p) => String(p.top ? (C[p.f] ?? p.def) : lmV(p, p.def)) !== String(p.def)).length;
     // ---------- DANH SÁCH 1 CỘT: mỗi kiểu chơi = 1 thanh; cuối thanh chia 2 khúc = 2 cần gạt (🧪 sàn thử | 💰 tiền thật)
@@ -1699,9 +1743,9 @@ async function viewScalp() {
     const LVT = C.lv_env === "live" ? "Tiền thật" : "Demo", LVI = C.lv_env === "live" ? "💰" : "🟡";
     const seg = (m, w) => {
       const P = w === "paper", on = P ? m.paper.on : m.live.on, none = !P && m.live.none, lock = !P && !none && !C.lv_on;
-      const val = P ? (on ? (m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>${m.nOpen ? ` · ${m.nOpen} mở` : ""}` : "chờ tín hiệu") : m.nOpen || m.tot ? bi(`đã ${sg(m.tot)}`, `total ${sg(m.tot)}`) : "đang tắt")
-        : none ? "không hỗ trợ" : lock ? "chưa bật Binance" : on ? (m.live.srvOld ? "chờ cập nhật máy chủ" : m.nlv ? `<b>${m.nlv}</b> lệnh mở` : "chờ tín hiệu") : "đang tắt";
-      const tip = none ? m.live.none : lock ? "Tài khoản Binance của bot đang tắt – bật ở ⚙️ Thiết lập → 💵 trước" : `${on ? "Tắt" : "Bật"} ${m.name} trên ${P ? "sàn thử" : LVT === "Demo" ? "Binance Demo" : "tiền thật"}`;
+      const val = P ? (on ? (m.paper.srvOld ? "chờ máy chủ" : m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>${m.nOpen ? ` · ${m.nOpen} mở` : ""}` : m.sc === "lx" ? "chờ danh mục" : "chờ tín hiệu") : m.nOpen || m.tot ? bi(`đã ${sg(m.tot)}`, `total ${sg(m.tot)}`) : "đang tắt")
+        : none ? "không hỗ trợ" : lock ? "chưa bật Binance" : on ? (m.live.srvOld ? "chờ máy chủ" : m.nlv ? `<b>${m.nlv}</b> lệnh mở` : m.sc === "lx" ? "chờ danh mục" : "chờ tín hiệu") : "đang tắt";
+      const tip = on && (P ? m.paper.srvOld : m.live.srvOld) ? `${m.name}: đã bật nhưng máy chủ riêng chưa có bản mới – cập nhật máy chủ thì mới có lệnh` : none ? m.live.none : lock ? "Tài khoản Binance của bot đang tắt – bật ở ⚙️ Thiết lập → 💵 trước" : `${on ? "Tắt" : "Bật"} ${m.name} trên ${P ? "sàn thử" : LVT === "Demo" ? "Binance Demo" : "tiền thật"}`;
       return `<button type="button" class="lb-seg ${P ? "p" : "l"}${on ? " on" : ""}${none || lock ? " dis" : ""}" ${none ? "disabled" : `data-lbt="${w}|${m.k}"`} role="switch" aria-checked="${on}" title="${esc(tip)}">
         <i class="lb-sw" aria-hidden="true"></i><span class="lb-st"><b>${P ? "Sàn thử" : LVT}</b><small>${val}</small></span></button>`;
     };
@@ -1709,6 +1753,7 @@ async function viewScalp() {
     const VR = (VFY?.runs || []).slice(-6), dmS = (iso) => { const d = new Date(iso + "T00:00:00Z"); return `${String(d.getUTCDate()).padStart(2, "0")}/${String(d.getUTCMonth() + 1).padStart(2, "0")}`; };
     const vfV = (c) => (c.u === "%" ? `${c.mean > 0 ? "+" : ""}${nf(c.mean, Math.abs(c.mean) >= 10 ? 0 : 1)}%` : `${c.mean > 0 ? "+" : ""}${nf(c.mean, 0)}`);
     const vfCell = (m, r) => { const c = r.m?.[m.k], wk = `${dmS(r.wk)}–${dmS(r.to)}`;
+      if (m.sc === "lx") { const v = m.wkM[r.wk]; return !isNum(v) ? `<button type="button" class="vf-c na" data-lxgo="${esc(m.k)}" title="${esc(`Tuần ${wk}: chưa có số`)}">·</button>` : `<button type="button" class="vf-c ${v > 0 ? "up" : v < 0 ? "down" : ""}" data-lxgo="${esc(m.k)}" title="${esc(`Tuần ${wk}: ${lxPc(v, 2)} trên vốn (1× vốn, sau phí) – bấm xem thẻ kiểm chứng`)}">${v > 0 ? "+" : ""}${nf(v, Math.abs(v) >= 10 ? 0 : 1)}%</button>`; }
       if (!c || c.na) return `<button type="button" class="vf-c na" data-vfy="${m.k}|${r.wk}" title="${esc(`Tuần ${wk}: ${c?.na || "chưa có kiểm chứng cho kiểu chơi này"}`)}">·</button>`;
       if (!c.n) return `<button type="button" class="vf-c z${c.pend ? " pend" : ""}" data-vfy="${m.k}|${r.wk}" title="${esc(`Tuần ${wk}: ${c.pend ? "chưa đủ dữ liệu" : "không có lệnh nào"}`)}">${c.pend ? "…" : "0"}</button>`;
       return `<button type="button" class="vf-c ${c.mean > 0 ? "up" : c.mean < 0 ? "down" : ""}${r.bf ? " vbf" : ""}${c.pend ? " pend" : ""}" data-vfy="${m.k}|${r.wk}" title="${esc(`Tuần ${wk}: ${c.n} lệnh · TB ${vfV(c)}${c.u === "bps" ? " bps" : ""}/lệnh · thắng ${c.win}%${r.bf ? " · chạy bù" : ""}`)}">${vfV(c)}</button>`; };
@@ -1716,9 +1761,10 @@ async function viewScalp() {
         <button type="button" class="lb-nm" ${m.main ? `data-scpm="${m.k}" title="Mở trang ${esc(m.name)}"` : `data-lbopen="${m.k}" title="Bấm xem chi tiết & chỉnh thông số"`}><i class="lb-vd ${m.vs[0]}" title="${esc(m.vs[2])}"></i><span class="lb-ic">${m.ico}</span>
           <span class="lb-tx"><b>${esc(nmOf(m))}${n ? ` <span class="lb-chg" title="${n} thông số khác chuẩn">⚙️${n}</span>` : ""}</b><small><span class="lb-vm">${m.vs[1]} · </span>${m.short}</small></span><span class="lb-go" aria-hidden="true">›</span></button>
         ${VR.length ? `<span class="lb-ver vf">${VR.map((r) => vfCell(m, r)).join("")}</span>` : `<span class="lb-ver" title="${esc(m.vs[2])}">${m.vs[1]}</span>`}${seg(m, "paper")}${seg(m, "live")}</div>`; };
-    const GR = [["main", "Phương pháp chính"], ["q", "Định lượng · thử nghiệm"], ["sw", "Giữ nhiều ngày · thử nghiệm"]].map(([g, t]) => [t, ML.filter((m) => m.grp === g)]).filter(([, L]) => L.length);
+    const GR = [["main", "Phương pháp chính"], ["q", "Định lượng · thử nghiệm"], ["sw", "Giữ nhiều ngày · thử nghiệm"], ["lx", "Phòng thử nghiệm · có lời trong kiểm chứng"]].map(([g, t]) => [t, ML.filter((m) => m.grp === g)]).filter(([, L]) => L.length);
+    lxSeg = (id) => (MM[id]?.sc === "lx" ? `<div class="lb2-sw">${seg(MM[id], "paper")}${seg(MM[id], "live")}</div>` : "");
     const board = `<div class="lbx${VR.length ? " vf" : ""}" id="lb">
-        <div class="lb-hr"><span>Kiểu chơi <small>${ML.length}</small></span>${VR.length ? `<span class="lb-ver vf" title="Kiểm chứng lại mỗi tuần bằng luật & tham số đang chạy, chỉ dùng số liệu có tại thời điểm vào lệnh. Số = lời TB mỗi lệnh sau phí (bps; Short nhiều ngày: %). Cột phải là tuần gần nhất. Bấm 1 ô để xem cấu hình và các mã.">${VR.map((r, i) => `<i class="${i === VR.length - 1 ? "now" : ""}">${dmS(r.wk)}</i>`).join("")}</span>` : `<span class="lb-ver">Kiểm chứng</span>`}
+        <div class="lb-hr"><span>Kiểu chơi <small>${ML.length}</small></span>${VR.length ? `<span class="lb-ver vf" title="Kiểm chứng lại mỗi tuần bằng luật & tham số đang chạy, chỉ dùng số liệu có tại thời điểm vào lệnh. Số = lời TB mỗi lệnh sau phí (bps; Short nhiều ngày: %; 🔬 phòng thử nghiệm: % trên vốn cả tuần). Cột phải là tuần gần nhất. Bấm 1 ô để xem cấu hình và các mã.">${VR.map((r, i) => `<i class="${i === VR.length - 1 ? "now" : ""}">${dmS(r.wk)}</i>`).join("")}</span>` : `<span class="lb-ver">Kiểm chứng</span>`}
           <span class="lb-hs p">Sàn thử <small>${pOn.length} bật</small>${pOn.length ? `<b class="${cls(pSum)}">${sg(pSum)}</b>` : ""}</span>
           <span class="lb-hs l">${LVT} <small>${lOn.length} bật${lvN ? ` · ${lvN} mở` : ""}</small>${C.lv_on ? "" : `<button type="button" class="lb-lockb" data-sctab="set">🔒 bật Binance</button>`}</span></div>
         ${GR.map(([t, L]) => `<div class="lb-gh"><span>${t}</span><small>${L.length}</small></div>${L.map(row).join("")}`).join("")}
@@ -1743,11 +1789,11 @@ async function viewScalp() {
       : `<div class="lb-top">${ctx}
           ${oldSrv ? `<p class="lm-warn">⚠️ Máy chủ riêng đang chạy bản cũ – thông số và công tắc sàn thử của 🗓️ giữ nhiều ngày chỉ có tác dụng sau khi chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>.</p>` : ""}</div>
         ${board}${drawer}
-        ${panel("📌 Lệnh đang mở – sàn thử", posT, `${OP.length} lệnh`)}${lvT ? panel(C.lv_env === "live" ? "💰 Lệnh đang mở – TIỀN THẬT" : "🟡 Lệnh đang mở – Binance Demo", lvT) : ""}${histT ? panel("🧾 Lệnh đã đóng – sàn thử", histT, `${HI.length} gần nhất`) : ""}`;
+        ${panel("📌 Lệnh đang mở – sàn thử", posT + (ML.some((m) => m.sc === "lx" && m.nOpen) ? `<p class="lb-lxp">🔬 Danh mục phòng thử nghiệm: ${ML.filter((m) => m.sc === "lx" && m.nOpen).map((m) => `<button type="button" class="chip" data-lbopen="${esc(m.k)}">${esc(m.name)} · ${m.nOpen} mã · <b class="${cls(m.tot)}">${sg(m.tot)}</b></button>`).join(" ")}</p>` : ""), `${OP.length} lệnh`)}${lvT ? panel(C.lv_env === "live" ? "💰 Lệnh đang mở – TIỀN THẬT" : "🟡 Lệnh đang mở – Binance Demo", lvT) : ""}${histT ? panel("🧾 Lệnh đã đóng – sàn thử", histT, `${HI.length} gần nhất`) : ""}`;
   }
   const labN = TB === "ov" ? labUnseen(LABD).slice(-1)[0] : null;      // 📰 tin phòng thử nghiệm chưa xem → 1 dòng ở Tổng quan, bấm là mở Ứng viên mới
   const labBar = labN ? `<button type="button" class="lb2-bar" data-scpm="cand"><span>${esc(bi(labN.t, labN.te))}</span><i>${bi("Xem", "View")} →</i></button>` : "";
-  if (TB === "cand") { body = scCandHtml(LABD, info, VFY, WKN); if (LABD?.news) lsSet("labseen", LABD.news.map(labKey)); }
+  if (TB === "cand") { body = scCandHtml(LABD, info, VFY, WKN, lxSeg); if (LABD?.news) lsSet("labseen", LABD.news.map(labKey)); }
   else if (TB === "learn") body = `${EN ? learnPanelEN : learnPanel}${panel("🧪 Kiểm nghiệm bằng lệnh ảo – chỉ đánh thật cái đã chứng minh có lời", shPanel(X.sh, C), X.sh ? `${nf(X.sh.open, 0)} lệnh ảo đang chạy` : "")}
       ${panel("🧪 Bộ học trực tuyến – học gộp theo nhóm thanh khoản", `${learn}${info(`<p>Mỗi giây, trên mọi thị trường, bot ghi tín hiệu rồi đo giá đi bao xa theo hướng tín hiệu sau 2 giây tới 15 phút – tính bằng <b>số lần dao động mỗi giây của chính coin đó</b>, nên coin lớn và coin nhỏ học chung được trong cùng nhóm thanh khoản. Kỳ vọng (bps) của một coin = số trong bảng × dao động của coin × √thời gian giữ, rồi co dần về số liệu riêng của coin khi coin có đủ mẫu. <b class="up">Ô xanh</b> = lợi thế rõ; ô mờ = chưa đủ số mẫu tối thiểu <b>${nf(C.min_n, 0)}</b>.</p>`)}
         <div class="sc-br"><p><b>🧠 Bộ nhớ học</b> – lưu lên MyBit khoảng 10 phút một lần, máy mới / cài lại không phải học lại từ đầu.</p>
@@ -1998,10 +2044,11 @@ async function viewScalp() {
     });
     return { out, top };
   };
-  const lmKeep = (sc, k) => (sc === "swx" && C.swx?.[k]?.on === false ? { on: false } : {});
+  const lmKeep = (sc, k) => (sc === "swx" && C.swx?.[k]?.on === false ? { on: false } : sc === "lx" ? { ...(C.lx?.[k]?.paper ? { paper: true } : {}), ...(C.lx?.[k]?.live ? { live: true } : {}) } : {});
   $$("[data-lmsave]").forEach((b) => (b.onclick = async () => {
     const [sc, k] = b.dataset.lmsave.split("|"), { out, top } = lmRead(b.closest(".lm"));
     if (C.sw_lv_pump && (+top.sw_lv_sz > +C.sw_lv_sz || +top.sw_lv_max > +C.sw_lv_max) && !(await askOk(`Tăng cỡ Short coin vừa bơm trên Binance ${C.lv_env === "live" ? "TIỀN THẬT" : "Demo"}: ${C.sw_lv_sz}% → ${top.sw_lv_sz}% vốn/lệnh, tối đa ${C.sw_lv_max} → ${top.sw_lv_max} lệnh (x1, không cắt lỗ)?`))) return;
+    if (sc === "lx" && C.lx?.[k]?.live && +out.lsz > (+C.lx[k].lsz || 100) && !(await askOk(`Tăng tổng vị thế mục tiêu của danh mục này trên Binance ${C.lv_env === "live" ? "TIỀN THẬT" : "Demo"}: ${+C.lx[k].lsz || 100}% → ${out.lsz}% số dư? Áp dụng từ lần đổi danh mục kế tiếp.`))) return;
     C[sc] = { ...(C[sc] || {}), [k]: { ...lmKeep(sc, k), ...out } }; Object.assign(C, top); delete C.syms;
     if (await Store.put("scalp", C)) { toast(Object.keys(out).length ? `Đã lưu ${Object.keys(out).length} thông số khác chuẩn – áp dụng cho lệnh mới trong ≤ 30 giây` : "Đã lưu – đang dùng mức chuẩn"); viewScalp(); }
   }));
@@ -2021,34 +2068,40 @@ async function viewScalp() {
       C[m.k === "hook" ? "hk_on" : "sec_on"] = on; if (!on && m.k === "sec") C.lq_sec = false;      // tiền thật lướt giây đi theo sàn thử
       return lbSave(on ? `Đã bật ${m.name} trên sàn thử` : `Đã tắt ${m.name} trên sàn thử`, on ? `paper|${m.k}` : "");
     }
-    if (!on && !(await iosSheet({ title: `Tắt ${m.ico} ${esc(m.name)} trên sàn thử?`, body: m.sc === "qx" ? `Lệnh sàn thử đang mở của kiểu chơi này sẽ được đóng.${m.live.on ? `<br><b>Tiền thật đi theo sàn thử nên ${lbEnv()} cũng tắt</b> (lệnh thật đang mở vẫn được quản lý tới khi đóng).` : ""}` : "Chỉ ngừng mở lệnh mới – lệnh đang mở vẫn giữ tới khi hết giờ (hoặc anh đóng tay).", ok: "Tắt", danger: true }))) return false;
+    if (!on && !(await iosSheet({ title: `Tắt ${m.ico} ${esc(m.name)} trên sàn thử?`, body: m.sc === "qx" ? `Lệnh sàn thử đang mở của kiểu chơi này sẽ được đóng.${m.live.on ? `<br><b>Tiền thật đi theo sàn thử nên ${lbEnv()} cũng tắt</b> (lệnh thật đang mở vẫn được quản lý tới khi đóng).` : ""}` : m.sc === "lx" ? `Bot đóng hết ${m.nOpen || 0} vị thế ảo của danh mục này ở giá thị trường (đã tính phí).${m.live.on ? `<br><b>Khúc ${lbEnv()} chạy riêng nên vẫn bật</b> – muốn tắt thì gạt khúc bên cạnh.` : ""}` : "Chỉ ngừng mở lệnh mới – lệnh đang mở vẫn giữ tới khi hết giờ (hoặc anh đóng tay).", ok: "Tắt", danger: true }))) return false;
     if (m.sc === "qx") {
       if (on && C.q_on === false) { QK.forEach((x) => (C["q_" + x] = false)); C.q_on = true; }      // công tắc tổng cũ đang tắt → chỉ bật đúng cái này
       C["q_" + m.k] = on; if (!on) C["lq_" + m.k] = false;
-    } else { const o = { ...(C.swx?.[m.k] || {}) }; if (on) delete o.on; else o.on = false; C.swx = { ...(C.swx || {}), [m.k]: o }; }
-    return lbSave(on ? `Đã bật ${m.name} trên sàn thử – bot đọc trong ≤ 30 giây` : `Đã tắt ${m.name} trên sàn thử`, on ? `paper|${m.k}` : "");
+    } else if (m.sc === "lx") C.lx = { ...(C.lx || {}), [m.k]: { ...(C.lx?.[m.k] || {}), paper: on } };
+    else { const o = { ...(C.swx?.[m.k] || {}) }; if (on) delete o.on; else o.on = false; C.swx = { ...(C.swx || {}), [m.k]: o }; }
+    return lbSave(on ? (m.paper.srvOld ? `Đã bật ${m.name} trên sàn thử – có lệnh sau khi máy chủ riêng cập nhật bản mới` : `Đã bật ${m.name} trên sàn thử – bot đọc trong ≤ 30 giây`) : `Đã tắt ${m.name} trên sàn thử`, on ? `paper|${m.k}` : "");
   };
   const lbLive = async (m, on) => {
     if (m.live.none) { toast(`${m.name}: không hỗ trợ tiền thật – ${m.live.none}`); return false; }
     if (m.live.on === on) return false;
     const LVLx = C.lv_env === "live";
+    if (!on && m.sc === "lx" && m.nlv && !(await iosSheet({ title: `Tắt ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: `Bot đóng hết <b>${m.nlv} vị thế</b> của danh mục này trên Binance bằng lệnh thị trường trong khoảng 1 phút.`, ok: "Tắt & đóng hết", danger: true }))) return false;
     if (on) {
       if (!C.lv_on) { if (await iosSheet({ title: "Tài khoản Binance của bot đang tắt", body: `Muốn đánh ${esc(m.name)} trên Binance thì bật tài khoản trước ở ⚙️ Thiết lập → 💵 Binance (chọn Demo hoặc tiền thật, hạn mức, đòn bẩy), rồi quay lại gạt công tắc này.`, ok: "Mở Thiết lập" })) scTabGo("set"); return false; }
       const R = m.R, body = m.main && m.k === "sec" ? `Mỗi lệnh lướt giây trên sàn thử → bot vào lệnh thị trường y hệt trên Binance (${C.lq_sz || 5}% vốn, ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc) và đóng cùng lúc với sàn thử.${C.sec_on === false ? " <b>Sàn thử lướt giây sẽ được bật cùng</b> (tiền thật đi theo sàn thử)." : ""}<br><br><b class="down">Lướt giây trên sàn thử đang lỗ sau phí${bsec?.n ? ` (${nf(bsec.bps / bsec.n, 0)} bps/lệnh, ${bsec.n} lệnh)` : ""}</b>; lệnh thật vào/ra trễ hơn sàn thử ~0,5–1 giây nên thường còn tệ hơn. Chỉ nên bật Demo để thử.` : m.main ? `Bot đặt lệnh Bắt râu sập trên tài khoản Binance theo thiết lập ở ⚙️ Thiết lập → 💵 Binance (${C.lv_all ? "toàn bộ số dư" : `tối đa ${C.lv_cap} USDT`}, x${C.lv_lev}, ngừng khi lỗ ${C.lv_daily}% trong ngày).${LVLx && !C.lv_live_ok ? "<br><b>Chưa xác nhận tiền thật</b> – vào ⚙️ Thiết lập → 💵 để gõ xác nhận trước." : ""}` : m.sc === "qx"
         ? `Mỗi tín hiệu: lệnh thị trường <b>${C.lq_sz || 5}% vốn</b> (mỗi chân ≥ ~5,5 USDT), ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ đặt sẵn trên sàn, tối đa ${C.lq_max || 2} lệnh cùng lúc. Lệnh thật đi theo đúng lệnh sàn thử${m.paper.on ? "" : " – <b>sàn thử sẽ được bật cùng</b>"}.<br><br>${R?.n ? `Kiểm chứng ngoài mẫu: ${R.n} lệnh, thắng ${R.win}%, TB ${R.mean >= 0 ? "+" : ""}${R.mean} bps/lệnh sau phí.` : "Chưa có kết quả kiểm chứng ngoài mẫu."}${m.edge ? "" : " <b class=\"down\">Chưa có lợi thế sau phí.</b>"} Quá khứ không bảo đảm tương lai.`
+        : m.sc === "lx" ? (() => { const E = m.est;
+          return `<div class="sc-lvwarn">🚨 <b>Giữ nhiều vị thế cùng lúc</b> – ${esc(m.live.risk)}${m.lab.warn ? "; rà soát độc lập cho thấy con số quá khứ cao hơn nhiều so với kỳ vọng thực tế" : ""}.${m.okNow ? "" : " <b>Kiểm chứng cả giai đoạn đang lỗ – bot sẽ không mở vị thế cho tới khi có lời lại.</b>"}</div>Mỗi ngày phòng thử nghiệm công bố danh mục → bot đặt lệnh thị trường trên Binance cho các mã có tỉ trọng ≥ ${m.wmin}%: cỡ mỗi mã = tỉ trọng × <b>${nf(m.lsz, 0)}% số dư</b>, <b>nhỏ hơn lệnh nhỏ nhất của sàn (~5–6 USDT) thì nâng lên đúng mức nhỏ nhất</b>; ký quỹ cô lập x${C.lv_lev || 2}, cắt lỗ −20% đặt sẵn trên sàn cho từng mã. Mã rời danh mục thì đóng, mã mới thì mở; <b>tắt công tắc = đóng hết</b>.${E ? `<br><br>Ước tính với danh mục hôm nay: <b>${E.n} lệnh</b> × ~${nf(E.each, 1)} USDT ≈ <b>${nf(E.N, 0)} USDT</b> vị thế trên số dư <b>${nf(E.bal, 0)} USDT</b> (≈ ${nf(E.x, 1)}× số dư, ký quỹ ≈ ${nf(E.N / E.lev, 0)} USDT).${E.N > E.cap ? ` <b class="down">Vượt 🛡️ giới hạn an toàn của tài khoản (tối đa ≈ ${nf(E.cap, 0)} USDT vị thế) → bot chỉ mở được khoảng ${Math.min(E.n, E.fit)}/${E.n} mã, ưu tiên tỉ trọng lớn, phần còn lại bỏ qua</b> – kết quả sẽ lệch so với kiểm chứng.` : ""}` : ""}<br><br>🛡️ Giới hạn an toàn dùng chung cả tài khoản: đang giữ danh mục này thì Bắt râu sập và các kiểu khác còn ít chỗ để vào lệnh hơn.${m.live.srvOld ? "<br><br><b>Máy chủ riêng chưa có bản này</b> – bật xong cần cập nhật máy chủ (<code>sudo bash /opt/my-bit/scalper/install.sh</code>) thì mới có lệnh." : ""}`; })()
         : m.k === "list" ? `<div class="sc-lvwarn">🚨 <b>Kiểu chơi rủi ro cao</b> – ${esc(m.live.risk)}. Coin mới niêm yết có thể tăng gấp nhiều lần trong vài ngày; mỗi lệnh có thể <b>mất trắng</b> phần tiền của lệnh đó.</div>24–30 giờ sau khi một coin lên Binance futures → Short <b>${C.sw_lv_sz}% vốn</b> mỗi lệnh (tối thiểu ~5,5 USDT), ký quỹ cô lập x1, giữ ${(X.sw?.list?.hold || 336) / 24} ngày, <b>không cắt lỗ</b>, tối đa ${C.sw_lv_max} lệnh cùng lúc (tính chung với Short coin vừa bơm).<br>Giá tăng gấp đôi → sàn thanh lý, mất đúng phần tiền của lệnh đó, không hơn.${m.live.srvOld ? "<br><br><b>Máy chủ riêng chưa có bản này</b> – bật xong cần cập nhật máy chủ (<code>sudo bash /opt/my-bit/scalper/install.sh</code>) thì mới có lệnh." : ""}`
         : `Lúc 7:00 sáng, coin tăng ≥ ${X.sw?.pump?.chg || 100}%/24h → Short <b>${C.sw_lv_sz}% vốn</b> mỗi lệnh (tối thiểu ~5,5 USDT), x1, giữ ${(X.sw?.pump?.hold || 168) / 24} ngày, <b>không cắt lỗ</b>, tối đa ${C.sw_lv_max} lệnh cùng lúc.<br>Giá tăng gấp đôi → mất trắng phần tiền của lệnh đó.`;
       // ⚠️ sàn thử chưa chứng minh có lời (Jason 07/11/2026): < 10 lệnh đã đóng hoặc tổng lời/lỗ ≤ 0 → cảnh báo đỏ ở đầu bảng xác nhận, nút bấm chờ lâu hơn
       const PP = m.pp || { n: 0, pnl: 0 }, PMIN = 10, notYet = PP.n < PMIN || !(PP.pnl > 0);
       const warn = !notYet ? "" : `<div class="sc-lvwarn">⚠️ <b>Sàn thử chưa thấy lời</b> – ${PP.n ? `${nf(PP.n, 0)} lệnh đã đóng, tổng <b class="${cls(PP.pnl)}">${PP.pnl >= 0 ? "+" : ""}${usd2(PP.pnl)}</b>${PP.n < PMIN ? ` (chưa đủ ${PMIN} lệnh để biết)` : " – đang lỗ sau phí"}` : "chưa có lệnh nào đã đóng"}. Nên để chạy sàn thử tới khi có ít nhất ${PMIN} lệnh và tổng lời dương rồi mới đánh ${LVLx ? "tiền thật" : "Demo"}.</div>`;
-      if (!(await iosSheet({ title: `${notYet ? "⚠️ " : ""}Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: warn + body, ok: notYet ? (LVLx ? "Vẫn tiếp tục" : "Vẫn bật trên Demo") : LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx || notYet || m.k === "list", wait: m.k === "list" && LVLx ? 5000 : LVLx ? (notYet ? 4000 : 1500) : notYet ? 1500 : 0 }))) return false;
+      if (!(await iosSheet({ title: `${notYet ? "⚠️ " : ""}Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: warn + body, ok: notYet ? (LVLx ? "Vẫn tiếp tục" : "Vẫn bật trên Demo") : LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx || notYet || m.k === "list" || m.sc === "lx", wait: (m.k === "list" || m.sc === "lx") && LVLx ? 5000 : LVLx ? (notYet ? 4000 : 1500) : notYet ? 1500 : 0 }))) return false;
       if (LVLx && (await askText('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:')) !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
     }
     if (m.main && m.k === "hook") C.lv_hk = on;
     else if (m.main) { C.lq_sec = on; if (on) C.sec_on = true; }
     else if (m.sc === "qx") { if (on) { if (C.q_on === false) { QK.forEach((x) => (C["q_" + x] = false)); C.q_on = true; } C["q_" + m.k] = true; } C["lq_" + m.k] = on; }
+    else if (m.sc === "lx") C.lx = { ...(C.lx || {}), [m.k]: { ...(C.lx?.[m.k] || {}), live: on } };
     else if (m.k === "list") C.sw_lv_list = on;
     else C.sw_lv_pump = on;
+    if (m.sc === "lx") return lbSave(on ? `Đã bật ${m.name} trên ${lbEnv()} – bot vào danh mục trong vài phút` : `Đã tắt ${m.name} trên ${lbEnv()} – bot đang đóng các vị thế của danh mục này`, on ? `live|${m.k}` : "");
     return lbSave(on ? `Đã bật ${m.name} trên ${lbEnv()} – áp dụng cho tín hiệu MỚI` : `Đã tắt ${m.name} trên ${lbEnv()} – lệnh đang mở vẫn được quản lý tới khi đóng`, on ? `live|${m.k}` : "");
   };
   const lbMove = async (k, from, to) => {      // kéo-thả: lib → paper / live = bật · paper → live = bật tiền thật · live → paper = tắt tiền thật · → lib = tắt nơi kéo ra
@@ -2058,6 +2111,8 @@ async function viewScalp() {
     if (to === "lib") return from === "live" ? lbLive(m, false) : from === "paper" ? lbPaper(m, false) : null;
   };
   $$("[data-lb2go]").forEach((b) => (b.onclick = () => { const c = document.getElementById("lb2-" + b.dataset.lb2go); if (!c) return; c.scrollIntoView({ behavior: "smooth", block: "center" }); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); }));
+  $$("[data-lxgo]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); window.__lmOpen = null; window.__lb2Go = b.dataset.lxgo; if (window.__scTab !== "pm") { scTabGo("cand"); return; } window.__scPm = "cand"; lsSet("scpm", "cand"); window.__scUseCache = true; viewScalp(); }));
+  if (window.__lb2Go) { const c = document.getElementById("lb2-" + window.__lb2Go); if (c) { window.__lb2Go = null; requestAnimationFrame(() => { c.scrollIntoView({ block: "center" }); c.classList.remove("flash"); void c.offsetWidth; c.classList.add("flash"); }); } }
   $$("[data-vfy]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [k, wk] = b.dataset.vfy.split("|"); vfSheet(LB?.MM[k], (VFY?.runs || []).find((r) => r.wk === wk)); }));
   $$("[data-lbt]").forEach((b) => (b.onclick = (e) => { e.stopPropagation(); const [w, k] = b.dataset.lbt.split("|"), m = LB?.MM[k]; if (!m) return; if (w === "paper") lbPaper(m, !m.paper.on); else lbLive(m, !m.live.on); }));
   // ngăn kéo chi tiết: bên phải (máy tính) / trượt từ dưới (điện thoại); giữ mở sau khi lưu

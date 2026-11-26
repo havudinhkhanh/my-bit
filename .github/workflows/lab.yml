@@ -1,12 +1,13 @@
 name: Phòng thử nghiệm phương pháp
-# 4 ngày / lần: chấm lại MỌI phương pháp ứng viên (research/lab_methods.py) trên dữ liệu Binance mới nhất, cập nhật phần "theo dõi tiếp trên giấy",
-# ghi site/lab.json (web: Bot Phản Xạ › Phương pháp › Ứng viên mới) rồi đăng web. Phương pháp MỚI do lượt tìm trên Claude thêm vào lab_methods.py.
-# Máy này chỉ ĐO – không bật / tắt gì trong bot, không đặt lệnh.
+# MỖI NGÀY (3 lượt, lượt nào thấy Binance đã công bố số liệu ngày hôm trước thì ghi): chấm lại MỌI phương pháp ứng viên (research/lab_methods.py),
+# cập nhật phần "theo dõi tiếp trên giấy", ghi site/lab.json (web: Bot Phản Xạ › Phương pháp › Ứng viên mới) và site/lab_targets.json
+# (tỉ trọng mục tiêu cho ngày kế tiếp – máy chủ riêng đọc để giữ danh mục trên sàn thử / tiền thật theo công tắc của anh) rồi đăng web.
+# Phương pháp MỚI do lượt tìm trên Claude (4 ngày/lần) thêm vào lab_methods.py. Máy này chỉ ĐO và CÔNG BỐ danh mục – không bật / tắt gì trong bot, không đặt lệnh.
 run-name: "Phòng thử nghiệm phương pháp"
 
 on:
   schedule:
-    - cron: "17 1 */4 * *"
+    - cron: "20 2,8,14 * * *"
   workflow_dispatch: {}
 
 concurrency:
@@ -45,7 +46,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "mybit-lab"; git config user.email "lab@users.noreply.github.com"
-          git add site/lab.json 2>/dev/null || true
+          # lượt theo lịch mà chưa có ngày số liệu mới (Binance chưa công bố) → không ghi, không đăng web (đỡ 2 lượt đăng thừa mỗi ngày)
+          old=$(git show HEAD:site/lab.json 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin).get('to',''))" 2>/dev/null || true)
+          new=$(python3 -c "import json; print(json.load(open('site/lab.json')).get('to',''))" 2>/dev/null || true)
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -n "$new" ] && [ "$old" = "$new" ] && git cat-file -e HEAD:site/lab_targets.json 2>/dev/null; then echo "Chưa có ngày số liệu mới ($new) – bỏ qua"; git checkout -q -- site/lab.json site/lab_targets.json 2>/dev/null || true; exit 0; fi
+          git add site/lab.json site/lab_targets.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "Không có gì mới"; exit 0; fi
           git commit -qm "Phòng thử nghiệm: cập nhật kết quả $(date -u +%F)"
           for i in 1 2 3 4 5; do git push -q origin HEAD:main && break; git pull -q --rebase origin main; sleep 5; done
