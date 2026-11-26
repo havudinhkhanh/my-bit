@@ -166,12 +166,22 @@ def synthetic(nd=900, S=60, seed=3):
 
 
 # ---------------------------------------------------------------- khung chấm điểm chung
-def pnl(D, W):
-    """W[ngày, mã] = tỉ trọng giữ TRONG ngày đó (quyết định bằng số liệu tới hết hôm trước, vào ở giá mở cửa). → (gộp, phí, funding) theo ngày"""
-    W = np.nan_to_num(W); g = (W * D.R).sum(1)
-    c = (np.abs(np.diff(W, axis=0, prepend=np.zeros((1, D.S)))) * D.cost).sum(1)
+def trades(D, W, drift=True):
+    """Lượng phải giao dịch mỗi sáng (|tỉ trọng|, theo mã) để có W[d]. drift=True: sau 1 ngày giá chạy, tỉ trọng hôm qua đã TRÔI thành
+    W[d−1]·(1+R)/(1+lời danh mục) – muốn giữ đúng W thì phải mua bán phần lệch đó (bản cũ bỏ qua → tính thiếu phí giữa hai lần đổi danh mục)."""
+    W = np.nan_to_num(W); P = np.zeros_like(W)
+    if drift: P[1:] = W[:-1] * (1 + D.R[:-1]) / np.maximum(1 + (W[:-1] * D.R[:-1]).sum(1), 0.05)[:, None]
+    else: P[1:] = W[:-1]
+    return np.abs(W - P)
+
+
+def pnl(D, W, drift=True):
+    """W[ngày, mã] = tỉ trọng giữ TRONG ngày đó (quyết định bằng số liệu tới hết hôm trước, vào ở giá mở cửa). → (gộp, phí, funding) theo ngày.
+    Phí tính trên lượng giao dịch THẬT, kể cả phần kéo tỉ trọng đã trôi về lại W (xem trades)."""
+    W = np.nan_to_num(W); g = (W * D.R).sum(1); tr = trades(D, W, drift)
+    c = (tr * D.cost).sum(1)
     f = -(W * np.nan_to_num(D.F)).sum(1)
-    return g, c, f, np.abs(W).sum(1), np.abs(np.diff(W, axis=0, prepend=np.zeros((1, D.S)))).sum(1)
+    return g, c, f, np.abs(W).sum(1), tr.sum(1)
 
 
 def _dd(x):
