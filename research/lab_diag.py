@@ -4,7 +4,8 @@ Dùng ĐÚNG bộ nạp dữ liệu + khung tính lời/lỗ của lab.py (cùng
   2. độ nhạy tham số (số ngày nhìn lại × số mã × cách chia nhóm × thứ đổi danh mục), phí ×2 ×3, khớp trễ 1 ngày, giữ nguyên cả tuần
   3. độ tập trung (mã nào, ngày nào làm ra lời; bỏ 5 mã tốt nhất; bỏ ngày có mã chạy > ±60%)   4. độ bền theo quý, Sharpe 180 ngày
   5. sức chứa (khối lượng của các mã đang giữ)   6. lời còn không khi bỏ phần may rủi: bỏ mã không phải crypto
-  (cổ phiếu / vàng / dầu niêm yết 2026), chia 7 phần theo thứ, lệnh nhỏ cho mã giật mạnh   7. so với danh mục chọn NGẪU NHIÊN (mức nhiễu).
+  (cổ phiếu / vàng / dầu niêm yết 2026), chia 7 phần theo thứ, lệnh nhỏ cho mã giật mạnh   7. so với danh mục chọn NGẪU NHIÊN (mức nhiễu)   8. soi kỹ bản "cứng" (ứng viên id mới).
+Kiểm NGOÀI MẪU LÙI: đặt LAB_START=2021-01 và LAB_EVAL=2021-07-01 → báo cáo thêm giai đoạn trước 07/2023 (xmom14 được chọn trên 07/2023 → nay).
 Không đổi tham số của phương pháp, không đặt lệnh. Chạy: python research/lab_diag.py   (máy không có mạng: python research/lab_diag.py --synthetic)"""
 import os
 import sys
@@ -117,6 +118,42 @@ def ols(y, X):
     A = np.column_stack([np.ones(len(y)), X]); b, *_ = np.linalg.lstsq(A, y, rcond=None); e = y - A @ b
     s2 = e @ e / max(1, len(y) - A.shape[1]); cov = s2 * np.linalg.pinv(A.T @ A); r2 = 1 - e.var() / (y.var() or 1e-12)
     return b[0], b[1:], b[0] / (np.sqrt(cov[0, 0]) or 1e-12), r2
+
+
+def book(D, sig, top=40, q=5, iv=None):
+    """Danh mục 7 PHẦN: mỗi phần 1/7 vốn, đổi danh mục vào 1 thứ khác nhau → mỗi ngày chỉ thay ~1/7, kết quả không còn phụ thuộc may rủi chọn thứ."""
+    return np.mean([ls_w(D, sig, D.wd == k, top=top, q=q, iv=iv) for k in range(7)], 0)
+
+
+def mini(D, W, mk, title):
+    """Soi 1 danh mục W trên dữ liệu D (rổ đã lọc): theo năm / quý, hai chân, tập trung, đuôi, phí, trễ, funding. mk(lb, top) → danh mục cùng cách dựng với tham số khác."""
+    ev = D.ev0; dates = D.dates[ev:]; yrs = dates.year.values; Y = sorted(set(yrs)); R = D.R; F = np.nan_to_num(D.F); S = D.S
+    ysum = lambda x: " · ".join(f"{y}: {x[yrs == y].sum() * 100:+.0f}" for y in Y)  # noqa: E731
+    pre = yrs < 2025; shp = lambda x: f"{st(x[pre])['sh']:+.2f} | {st(x[~pre])['sh']:+.2f}" if pre.sum() > 5 and (~pre).sum() > 5 else "– | –"  # noqa: E731
+    g, c, f, expo, turn = L.pnl(D, W); net = (g - c + f)[ev:]; b = st(net); Cm = L.trades(D, W) * D.cost; N = (W * R - Cm - W * F)[ev:]; sg = np.sign(W); sgc = np.where(sg != 0, sg, np.vstack([np.zeros((1, S)), sg[:-1]]))[ev:]
+    P(f"\n## 8. Soi kỹ {title}")
+    P(f"- {b['day']:+.4f}%/ngày · {b['yr']:+.1f}%/năm · Sharpe {b['sh']:.2f} · sụt {b['dd']:.1f}% · 365 ngày {b['d365']:+.1f}% · t = {net.mean() / (net.std(ddof=1) or 1e-12) * np.sqrt(len(net)):.2f} · "
+      f"gộp {g[ev:].mean() * 100:+.4f} · phí {c[ev:].mean() * 100:.4f} · funding {f[ev:].mean() * 100:+.4f} %/ngày · xoay vòng {turn[ev:].mean() * 100:.1f}%/ngày · vị thế gộp {expo[ev:].mean() * 100:.0f}%")
+    P(f"- Theo năm (cộng %): {ysum(net)} | chân Long: {ysum((N * (sgc > 0)).sum(1))} | chân Short: {ysum((N * (sgc < 0)).sum(1))} | funding: {ysum(f[ev:])}")
+    inU = D.rank < 40; mkt = ((R * inU).sum(1) / np.maximum(inU.sum(1), 1))[ev:]; a, be, ta, r2 = ols(g[ev:], mkt[:, None])
+    P(f"- Beta với thị trường {be[0]:+.2f} (tương quan {np.corrcoef(g[ev:], mkt)[0, 1]:+.2f}) · alpha gộp {a * 36500:+.0f}%/năm (t = {ta:.2f})")
+    s = pd.Series(net, index=dates); qa = np.array([f"{y}Q{q}" for y, q in zip(dates.year, dates.quarter)]); qs = sorted(set(qa)); qr = [float((1 + net[qa == q]).prod() - 1) * 100 for q in qs]
+    P(f"- Theo quý (ròng %, {sum(r > 0 for r in qr)}/{len(qs)} quý lời): " + " · ".join(f"{q[2:]} {r:+.0f}" for q, r in zip(qs, qr)))
+    rs = (s.rolling(180).mean() / s.rolling(180).std() * np.sqrt(365)).dropna().values
+    if len(rs): P(f"- Sharpe trượt 180 ngày: thấp nhất {rs.min():+.2f} · 10% thấp {np.percentile(rs, 10):+.2f} · trung vị {np.median(rs):+.2f} · {(rs < 0).mean() * 100:.0f}% cửa sổ âm | ngày xấu nhất {net.min() * 100:+.1f}% · tuần {s.rolling(7).sum().min() * 100:+.1f}% · tháng {s.rolling(30).sum().min() * 100:+.1f}%")
+    tot = N.sum() or 1e-12; cs = N.sum(0); o = np.argsort(-cs); ex = (np.abs(R) > 0.6) & np.isfinite(D.O); up = (R > 0.6)[ev:]; hw = W[ev:]
+    P(f"- Tập trung: {int((hw != 0).any(0).sum())} mã từng giữ · 5 mã tốt nhất = {cs[o[:5]].sum() / tot * 100:.0f}% tổng lời · 15 mã = {cs[o[:15]].sum() / tot * 100:.0f}% · " + " · ".join(f"{D.syms[j].replace('USDT', '')} {cs[j] * 100:+.0f}" for j in o[:8])
+      + " | lỗ nhất: " + " · ".join(f"{D.syms[j].replace('USDT', '')} {cs[j] * 100:+.0f}" for j in o[::-1][:4]))
+    P(f"- Mã tăng > 60%/ngày: bên Long {int((up & (hw > 0)).sum())} lần ({(N * (up & (hw > 0))).sum() * 100:+.0f} điểm) · bên Short {int((up & (hw < 0)).sum())} lần ({(N * (up & (hw < 0))).sum() * 100:+.0f} điểm) · cú lỗ lớn nhất của 1 mã trong 1 ngày {N.min() * 100:+.1f} điểm")
+    Wz = W.copy(); Wz[:, o[:5]] = 0; d1 = ~(ex & (W != 0)).any(1)[ev:]; k20 = np.sort(net)[:-20]; rows = [["bản này", cells(net), shp(net)], ["xoá vị thế ở 5 mã tốt nhất", cells(net_of(D, Wz)), shp(net_of(D, Wz))],
+        [f"bỏ {int((~d1).sum())} ngày có mã đang giữ chạy > ±60%", cells(net[d1]), "– | –"], ["bỏ 20 ngày tốt nhất", f"– | {k20.mean() * 36500:+.0f} | – | –", "– | –"]]
+    rows += [[f"phí × {k}", cells(x), shp(x)] for k in (2, 3) for x in [net_of(D, W, cm=k)]] + [[f"khớp trễ {k} ngày", cells(x), shp(x)] for k in (1, 2) for x in [net_of(D, lag(D, W, k))]]
+    x = net_of(D, W, fund=0.0); rows.append(["không tính funding", cells(x), shp(x)]); Rc = D.R; D.R = np.clip(Rc, -0.3, 0.3); x = net_of(D, W); D.R = Rc; rows.append(["cắt biến động ngày của 1 mã về ±30%", cells(x), shp(x)])
+    for lb, top in ((7, 40), (10, 40), (21, 40), (28, 40), (14, 20), (14, 60)): x = net_of(D, mk(lb, top)); rows.append([f"cùng cách dựng, nhìn lại {lb} ngày, {top} mã", cells(x), shp(x)])
+    tbl(["thử", "Sharpe | %/năm | sụt % | 365 ngày %", "Sharpe ≤2024 | ≥2025"], rows)
+    rng = np.random.default_rng(5); pg = np.array([st(L.pnl(D, mk(None, 40, rng.normal(size=(D.nd, S))), drift=False)[0][ev:])["sh"] for _ in range(40)]); bg = st(g[ev:])["sh"]
+    P(f"- So với 40 danh mục NGẪU NHIÊN cùng cách dựng: Sharpe gộp TB {pg.mean():+.2f}, độ lệch chuẩn {pg.std():.2f}, cao nhất {pg.max():+.2f} → bản này {bg:+.2f} (z = {(bg - pg.mean()) / (pg.std() or 1e-12):+.1f})")
+    return net
 
 
 # ---------------------------------------------------------------- báo cáo
@@ -296,6 +333,15 @@ def report(D):
     tbl(["bản", "Sharpe | %/năm | sụt % | 365 ngày %", "Sharpe ≤2024 | ≥2025"] + [f"{y} (cộng %)" for y in Y], rows)
     P(f"- Sharpe theo thứ đổi danh mục T2…CN: mọi mã {wk(D)} · chỉ crypto {wk(Dc)}")
     k20 = np.sort(xr)[:-20]; P(f"- Bản E: ngày xấu nhất {xr.min() * 100:+.1f}% · ngày tốt nhất {xr.max() * 100:+.1f}% · bỏ 20 ngày tốt nhất còn {k20.mean() * 36500:+.0f}%/năm · t = {xr.mean() / (xr.std(ddof=1) or 1e-12) * np.sqrt(len(xr)):.2f}\n")
+
+    oos = dates < np.datetime64("2023-07-01")
+    if oos.sum() >= 100:
+        P(f"**Ngoài mẫu LÙI ({dates[0].date()} → 2023-06-30, {int(oos.sum())} ngày – giai đoạn phòng thử nghiệm CHƯA từng dùng để chọn xmom14)** – Sharpe | %/năm | sụt % | 365 ngày cuối đoạn %:")
+        for nm, x in (("A. cơ sở thứ Hai", net), ("B. 7 phần", x7), ("D. chỉ crypto + 7 phần", xc7), ("E. + nghịch biến động", xr)): P(f"- {nm}: {cells(x[oos])} · theo năm " + " · ".join(f"{y}: {x[oos & (yrs == y)].sum() * 100:+.0f}" for y in Y if (oos & (yrs == y)).any()))
+        P(f"- Trong mẫu (từ 2023-07-01): A {cells(net[~oos])} · E {cells(xr[~oos])}\n")
+    mk = lambda lb, top, sg_=None: book(Dc, sig_of(D, lb) if sg_ is None else sg_, top=top, iv=iv)  # noqa: E731
+    mini(Dc, book(Dc, sig, iv=iv), mk, "bản E (chỉ crypto · 7 phần theo thứ · tỉ trọng nghịch biến động) – ứng viên cho 1 id MỚI, không phải sửa xmom14")
+    P("")
 
     # ---------- 7. mức nhiễu
     P("## 7. So với danh mục chọn NGẪU NHIÊN (cùng rổ 40 mã, cùng lịch thứ Hai, 8 mua / 8 bán)")
