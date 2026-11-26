@@ -3,6 +3,9 @@
 THÊM PHƯƠNG PHÁP MỚI (người hoặc lượt tìm tự động mỗi 4 ngày):
   1. viết 1 hàm  f(D) -> dict(g=…, c=…, f=…, expo=…, turn=…[, end=…, note=…, note_en=…])  – cách dễ nhất: dựng ma trận tỉ trọng W[ngày, mã]
      (giữ TRONG ngày d, chỉ dùng số liệu tới hết ngày d−1; tổng |W| ≤ 1) rồi `return _out(D, W)`;
+     ⚠️ LUÔN đi qua `_out(D, W)` khi phương pháp diễn đạt được bằng tỉ trọng theo ngày: có W thì lab.py công bố tỉ trọng mục tiêu mỗi ngày (site/lab_targets.json)
+     và phương pháp nào cả giai đoạn có lời là web TỰ có công tắc 🧪 sàn thử + 💰 tiền thật (worker/labx.js, scalper/live.mjs) – không phải viết thêm gì.
+     Phương pháp không có W (vào/ra trong ngày) mà có lời → ghi rõ ở note / note_en là "chưa có công tắc, cần cầu nối riêng";
   2. thêm 1 mục vào METHODS (id không đổi về sau – web & phần theo dõi tiếp bám theo id), ghi NGUỒN (bài nghiên cứu / bài viết) vào src;
   3. KHÔNG sửa tham số của phương pháp đã có để "cho đẹp" – muốn thử tham số khác thì thêm id mới (v2). Phương pháp đã loại vẫn giữ lại để khỏi thử lại.
 Dữ liệu D (lab.py): D.O/H/L/C/Q[ngày, mã] nến ngày UTC · D.F funding cộng theo ngày · D.O6/H6/L6/C6 nến 6 giờ · D.btc_oh[ngày, giờ] giá mở từng giờ của BTC ·
