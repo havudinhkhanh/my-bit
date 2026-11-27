@@ -306,7 +306,7 @@
       if (h !== qLast) { qLast = h; qc.innerHTML = h; qc.hidden = !h; }
       if (h && d) {      // thẻ nằm ở đáy; điểm đo chạm vùng đáy thì thẻ nhảy lên đầu (không che chỗ đang đo)
         const y0 = Y(d.p[0].p), y1 = Y(d.p[1].p), H = pane().h, ch = qc.offsetHeight || 76, lo = Math.max(y0, y1), hi = Math.min(y0, y1), T0 = qc.classList.contains("qm-t");
-        const cb = lo > H - ch - (T0 ? 4 : 16), ct = hi < (el.classList.contains("has-pxp") ? 78 : 66) + ch + (T0 ? 16 : 4), top = cb && !ct ? true : !cb ? false : y1 > H / 2; if (top !== T0) qc.classList.toggle("qm-t", top);      // cả 2 đầu đều vướng → tránh điểm RA (chỗ ngón tay)
+        const cb = lo > H - ch - (T0 ? 4 : 16), ct = hi < ((parseFloat(getComputedStyle(el).getPropertyValue("--clgb")) || (el.classList.contains("has-pxp") ? 38 : 26)) + (el.classList.contains("cd-row1") ? 8 : 40)) + ch + (T0 ? 16 : 4), top = cb && !ct ? true : !cb ? false : y1 > H / 2; if (top !== T0) qc.classList.toggle("qm-t", top);      // cả 2 đầu đều vướng → tránh điểm RA (chỗ ngón tay)
       } else if (!d) qc.classList.remove("qm-t");
     };
     const measure = (b) => { if (b) qBtn = b; if (st.quick && !st.draft) { setTool("cur"); return; } QM = null; setTool("measure"); st.quick = true; OPEN_TB = inst; req(); };      // bấm lần nữa khi đang chờ điểm đầu = thôi đo
