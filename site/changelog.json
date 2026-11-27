@@ -2,6 +2,23 @@
  "v": 1,
  "rel": [
   {
+   "v": "2026.11.28",
+   "t": "Gọn hơn trên điện thoại",
+   "te": "Tidier on phones",
+   "s": "Danh sách lệnh đã đóng trên điện thoại cuộn theo trang, bỏ thanh chia trang.",
+   "se": "Closed-trades list on phones scrolls with the page, no pager.",
+   "it": [
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Điện thoại: lệnh đã đóng cuộn theo trang, bỏ thanh 'Mỗi trang' và khung cuộn lồng",
+     "te": "Phones: closed trades scroll with the page – no 'Per page' bar or nested scroll box",
+     "d": "Chia trang chỉ còn trên máy tính; điện thoại xem thêm ngày cũ bằng nút 'Xem thêm 7 ngày cũ hơn'.",
+     "de": "Paging stays on desktop; on phones use 'Show 7 older days'."
+    }
+   ]
+  },
+  {
    "v": "2026.11.27",
    "t": "Phương pháp có lời là có công tắc",
    "te": "Profitable methods get their switches",

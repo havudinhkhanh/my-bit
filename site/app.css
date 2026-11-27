@@ -7936,3 +7936,5 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
    → nút cao chẵn 30px, chữ căn giữa bằng flex, không đệm trên/dưới; số dùng màu nhạt thay opacity (không tạo lớp vẽ riêng) */
 .nt-c:not(#_n){display:inline-flex;align-items:center;height:30px;padding:0 12px;line-height:1;box-sizing:border-box}
 .nt-c i:not(#_n){opacity:1!important;color:color-mix(in srgb,currentColor 62%,transparent)!important;margin-left:4px}
+/* điện thoại: danh sách lệnh đã đóng chạy theo cuộn TRANG (không khung cuộn lồng bên trong, không chia trang) – xem thêm ngày cũ bằng nút "Xem thêm 7 ngày" */
+@media (max-width:760px){.sc-hl.lvt:not(#_f):not(#_g){max-height:none!important;overflow:visible!important}}
