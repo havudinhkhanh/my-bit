@@ -2035,6 +2035,7 @@ function sclApply() {
     const c = el.querySelector(".cur"), f = el.querySelector(".fill"), L = a.toFixed(1) + "%"; if (c && c.style.left !== L) c.style.left = L;
     if (f) { f.style.left = Math.min(a, b).toFixed(1) + "%"; f.style.width = Math.abs(a - b).toFixed(1) + "%"; }
     el.classList.toggle("win", +el.dataset.sd * (m - e) >= 0); el.classList.toggle("out", m < lo || m > hi);
+    ladSweep(el, m, P);
   });
   document.querySelectorAll("[data-held]").forEach((el) => setT(el, durMs(now - +el.dataset.held)));
   document.querySelectorAll("[data-fnt]").forEach((el) => setT(el, durMs(+el.dataset.fnt - now)));
@@ -3381,6 +3382,69 @@ function ocOpen(I) {
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   ocDraw(); ocFund(I);
   m.querySelector("#occMkD")?.addEventListener("toggle", (e) => { if (e.target.open) ocMkt(I); });
+}
+// ================================================================ 📏 THANG GIÁ TRÊN THẺ LỆNH (27/11/2026, Jason):
+//   · ĐƯỜNG MỜ = đoạn giá đã quét qua từ lúc vào lệnh (nến Binance từ giờ vào + giá trực tiếp), chấm nhỏ ở mức lời nhất / lỗ nhất từng chạm
+//   · rê chuột (máy tính) → vạch dò + giá ở chỗ đó, % so với giá hiện tại, lời/lỗ ước tính nếu đóng ở đó, giá đã từng tới đó chưa
+//   · chuột phải / giữ lâu (điện thoại) → đúng menu như chuột phải trên biểu đồ tại mức giá đó (cắt lỗ / chốt lời / hẹn đóng / hoà vốn…)
+const LADSW = {};
+function ladSweep(el, m, P) {
+  const k = el.dataset.lad, t0 = +el.dataset.t0, id = `${k}|${t0 || 0}`; let s = LADSW[id];
+  if (!s) s = LADSW[id] = { lo: m, hi: m, at: 0, busy: false, ok: !t0 };
+  if (m > 0) { s.lo = Math.min(s.lo, m); s.hi = Math.max(s.hi, m); }
+  if (t0 > 0 && !s.busy && Date.now() - s.at > 180e3) {      // nến từ giờ vào lệnh (3 phút/lần): khung nhỏ nhất đủ phủ thời gian đã giữ trong 1.000 nến
+    s.busy = true; s.at = Date.now(); const age = (Date.now() - t0) / 6e4, iv = age <= 990 ? ["1m", 1] : age <= 4950 ? ["5m", 5] : age <= 14850 ? ["15m", 15] : ["1h", 60], base = k.split(":")[0], spot = /:S$/.test(k);
+    const url = spot ? `https://api.binance.com/api/v3/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${Math.floor(t0 / (iv[1] * 6e4)) * iv[1] * 6e4}&limit=1000` : `https://fapi.binance.com/fapi/v1/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${Math.floor(t0 / (iv[1] * 6e4)) * iv[1] * 6e4}&limit=1000`;
+    fetchJ(url, 8000).then((K) => { if (Array.isArray(K) && K.length) { for (const r of K) { const h = +r[2], l = +r[3]; if (h > 0) s.hi = Math.max(s.hi, h); if (l > 0) s.lo = Math.min(s.lo, l); } s.ok = true; } })
+      .catch(() => { /* không tải được nến → chỉ dùng giá trực tiếp từ lúc mở trang */ }).finally(() => { s.busy = false; });
+  }
+  const sw = el.querySelector(".sw"); if (!sw || !(s.hi > 0)) return;
+  const a = P(s.lo), b = P(s.hi), L = a.toFixed(1) + "%", W = Math.max(0.6, b - a).toFixed(1) + "%";
+  if (sw.hidden) sw.hidden = false; if (sw.style.left !== L) sw.style.left = L; if (sw.style.width !== W) sw.style.width = W;
+  sw.classList.toggle("cl", +el.dataset.lo > s.lo); sw.classList.toggle("cr", +el.dataset.hi < s.hi);      // quét vượt ra ngoài thang → mép mờ dần
+  el.__sw = s;
+  const sd = +el.dataset.sd, best = sd > 0 ? s.hi : s.lo, worst = sd > 0 ? s.lo : s.hi;
+  for (const [c, v] of [["bx", best], ["wx", worst]]) { let i = el.querySelector(`.${c}`); if (!i) { i = document.createElement("i"); i.className = c; el.appendChild(i); } const x = P(v).toFixed(1) + "%"; if (i.style.left !== x) i.style.left = x; i.title = `${c === "bx" ? bi("Lời nhất từng chạm", "Best price reached") : bi("Lỗ nhất từng chạm", "Worst price reached")} ${px(v)}${s.ok ? "" : bi(" (từ lúc mở trang)", " (since page open)")}`; }
+}
+function ladAt(el, cx) {      // giá ở toạ độ x trên thang + thông tin để ước tính
+  const r = el.getBoundingClientRect(), f = Math.max(0, Math.min(1, (cx - r.left) / r.width)), lo = +el.dataset.lo, hi = +el.dataset.hi;
+  return { p: lo + f * (hi - lo), f, r };
+}
+function ladEst(card, p) {
+  const d = card?.querySelector("[data-lpnl]")?.dataset; if (!d) return null; const e = +d.e, q = +d.q, sd = +d.sd; if (!(e > 0 && q > 0 && sd)) return null;
+  const fr = isNum(+d.fr) ? +d.fr : 0.05, f0 = +d.f0 > 0 ? +d.f0 : q * e * fr / 100, SLP = Math.max(0, +lsGet("pxSlip", 0.1) || 0);
+  const usd = sd * q * (p - e) - f0 - q * p * (fr + SLP) / 100 + (+d.fund || 0); return { usd, pct: usd / (q * e) * 100 };
+}
+function ladMenu(el, cx, cy) {
+  const card = el.closest(".sc-oc"); if (!card || typeof pxMenu !== "function") return; const { p, r } = ladAt(el, cx), I = ocInfo(card), k = el.dataset.lad, cur = SCL.px[k] || null;
+  const C = { base: I.base, man: I.man ? I.base + "USDT" : null, side: I.side, e: I.e, q: I.q, f0: I.f0, fr: I.fr, fund: I.fund, fut: I.fut, uxRef: I.uxRef, ux: I.ux, cur, near: [] };
+  const [SL, TP] = (el.dataset.mk || "").split("|").map(Number), lo = +el.dataset.lo, hi = +el.dataset.hi, X = (v) => r.left + (v - lo) / (hi - lo) * r.width;
+  if (I.man) { if (SL > 0 && Math.abs(X(SL) - cx) <= 9) C.near.push({ k: "sl", px: SL }); if (TP > 0 && Math.abs(X(TP) - cx) <= 9) C.near.push({ k: "tp", px: TP }); }      // bấm sát vạch cắt lỗ / chốt → có "Bỏ cắt lỗ / chốt"
+  if (C.ux && C.uxRef && Math.abs(X(C.ux) - cx) <= 9) C.near.unshift({ k: "ux", px: C.ux });
+  ladTip(null); pxMenu(cx, cy, p, C, null);
+}
+function ladTip(el, cx) {
+  let t = document.getElementById("ladTip");
+  if (!el) { if (t) t.hidden = true; document.querySelectorAll(".sc-lad .hv").forEach((x) => x.remove()); return; }
+  const { p, f, r } = ladAt(el, cx), card = el.closest(".sc-oc"), cur = SCL.px[el.dataset.lad], s = el.__sw, E = ladEst(card, p), d = cur ? (p / cur - 1) * 100 : null;
+  const seen = s && s.hi > 0 && p >= s.lo && p <= s.hi;
+  if (!t) { t = document.createElement("div"); t.id = "ladTip"; t.className = "lad-tip"; t.setAttribute("role", "tooltip"); document.body.appendChild(t); }
+  t.innerHTML = `<b>${px(p)}</b>${isNum(d) ? ` <small>${d >= 0 ? "+" : ""}${nf(d, 2)}% ${bi("so với bây giờ", "vs now")}</small>` : ""}${E ? `<span class="${E.usd >= 0 ? "up" : "down"}">≈ ${E.usd >= 0 ? "+" : "-"}${usd2(Math.abs(E.usd))} · ${E.pct >= 0 ? "+" : ""}${nf(E.pct, 2)}% <small>${bi("nếu đóng ở đây", "if closed here")}</small></span>` : ""}<small>${seen ? bi("● giá đã từng quét qua mức này", "● price has traded here") : bi("○ giá chưa tới mức này từ lúc vào", "○ not reached since entry")} · ${bi("chuột phải để đặt", "right-click to set")}</small>`;
+  t.hidden = false; const tw = t.offsetWidth, th = t.offsetHeight; t.style.left = Math.max(8, Math.min(innerWidth - tw - 8, cx - tw / 2)) + "px"; t.style.top = Math.max(8, r.top - th - 10) + "px";
+  let v = el.querySelector(".hv"); if (!v) { v = document.createElement("i"); v.className = "hv"; el.appendChild(v); } v.style.left = (f * 100).toFixed(2) + "%";
+}
+if (!window.__ladEv) {
+  window.__ladEv = 1;
+  document.addEventListener("contextmenu", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el) return; e.preventDefault(); e.stopPropagation(); ladMenu(el, e.clientX, e.clientY); }, true);
+  document.addEventListener("pointermove", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.(".sc-lad"); if (el) ladTip(el, e.clientX); else if (document.getElementById("ladTip")?.hidden === false) ladTip(null); }, { passive: true });
+  let lpT = 0, lp0 = null, LADLP = 0;      // điện thoại: giữ ngón ~0,5 giây trên thang → menu (rung nhẹ); kéo đi thì huỷ
+  document.addEventListener("touchstart", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el || e.touches.length !== 1) return; const t = e.touches[0]; lp0 = { el, x: t.clientX, y: t.clientY };
+    clearTimeout(lpT); lpT = setTimeout(() => { if (!lp0) return; try { navigator.vibrate?.(8); } catch (x) { /* bỏ qua */ } LADLP = Date.now(); ladMenu(lp0.el, lp0.x, lp0.y); lp0 = null; }, 480); }, { passive: true });
+  document.addEventListener("touchmove", (e) => { if (!lp0) return; const t = e.touches[0]; if (Math.hypot(t.clientX - lp0.x, t.clientY - lp0.y) > 10) { clearTimeout(lpT); lp0 = null; } }, { passive: true });
+  document.addEventListener("touchend", () => { clearTimeout(lpT); lp0 = null; }, { passive: true });
+  // nhấc ngón sau khi giữ lâu: trình duyệt bắn "click" vào chỗ ngón tay – lúc đó là nền mờ của menu vừa mở → nuốt đúng 1 cú click này (không thì menu đóng ngay / mở biểu đồ lệnh)
+  const eat = (e) => { if (Date.now() - LADLP < 900) { e.preventDefault(); e.stopPropagation(); if (e.type === "click") LADLP = 0; } };
+  for (const t of ["click", "pointerup", "mouseup"]) document.addEventListener(t, eat, true);
 }
 // ================================================================ 📍 CHUỘT PHẢI (máy tính) / GIỮ LÂU (điện thoại) TRÊN BIỂU ĐỒ → menu tại đúng mức giá đó:
 //   Long / Short khi giá về mức này (lệnh chờ đặt sẵn trên Binance qua máy chủ riêng) · với lệnh tay đang mở: đặt cắt lỗ / chốt lời ở mức này · chép giá

@@ -10,6 +10,16 @@
    "it": [
     {
      "c": "new",
+     "a": "bot",
+     "t": "Thang giá trên thẻ lệnh: đường mờ chỗ giá đã quét qua, rê chuột xem giá & lời/lỗ ước tính, chuột phải (giữ lâu trên điện thoại) để đặt cắt lỗ / chốt / hẹn đóng ngay tại mức đó",
+     "te": "Price ladder on trade cards: a faded band where price has already traded, hover for price & estimated P&L, right-click (long-press on phones) to set stop / target / close-at right there",
+     "d": "Đoạn mờ trên thang là vùng giá đã chạy qua từ lúc vào lệnh (lấy nến Binance từ giờ vào + giá trực tiếp), hai chấm nhỏ đánh dấu mức lời nhất và lỗ nhất từng chạm. Rê chuột lên thang hiện giá ở chỗ đó, % so với giá hiện tại, lời/lỗ ước tính nếu đóng ở đó (sau phí, funding, trượt giá) và cho biết giá đã từng tới đó chưa. Chuột phải (máy tính) hoặc giữ lâu (điện thoại) mở cùng menu như trên biểu đồ: đặt cắt lỗ / chốt lời ở giá này, đóng khi giá tới mức này, dời cắt lỗ về hoà vốn, đặt lệnh chờ – mỗi lựa chọn kèm lời/lỗ ước tính; bấm sát vạch cắt lỗ / chốt để bỏ nó.",
+     "de": "The faded band shows where price has traded since entry (Binance candles from the entry time plus live prices), with small dots at the best and worst prices reached. Hovering shows the price at that point, % vs now, estimated P&L if closed there (after fees, funding, slippage) and whether price has been there. Right-click (desktop) or long-press (phone) opens the same menu as on the chart: stop / target here, close when price reaches this level, move stop to breakeven, place an order – each with the estimated P&L; click right on the stop/target mark to remove it.",
+     "f": "bot",
+     "hi": 1
+    },
+    {
+     "c": "new",
      "a": "chart",
      "t": "Đo lời/lỗ nhanh trên biểu đồ – dùng được trên điện thoại: bấm nút thước, chạm điểm vào rồi kéo tới điểm ra",
      "te": "Quick P&L ruler on charts, phone-friendly: tap the ruler, touch the entry point and drag to the exit",

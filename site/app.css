@@ -8018,3 +8018,17 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .cd-qm>button{flex:none;width:28px;height:28px;margin:-2px 0;border:0;border-radius:8px;background:var(--fill,var(--sunk));color:var(--ink-2);font-size:.8125rem;cursor:pointer;pointer-events:auto}
 .cd-qm-h small{font-size:.75rem;color:var(--ink-3)}
 @media (max-width:700px){.cd-qm{left:8px;right:8px;transform:none;max-width:none;justify-content:space-between;padding:6px 6px 6px 10px}.cd-qm>button{width:32px;height:32px;align-self:center}.cd-qm-r small{display:none}}
+
+/* 📏 thang giá trên thẻ lệnh (27/11/2026): đường mờ = đoạn giá đã quét qua từ lúc vào · chấm lời nhất / lỗ nhất · vạch dò khi rê chuột · chuột phải / giữ lâu = menu giá */
+.sc-lad{cursor:crosshair;touch-action:pan-y;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.sc-lad .sw{position:absolute;top:50%;height:10px;margin-top:-5px;border-radius:5px;background:color-mix(in srgb,var(--ink) 22%,transparent);transition:left .3s,width .3s;pointer-events:none}
+.sc-lad .sw.cl{border-top-left-radius:0;border-bottom-left-radius:0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px);mask-image:linear-gradient(90deg,transparent,#000 14px)}
+.sc-lad .sw.cr{border-top-right-radius:0;border-bottom-right-radius:0;-webkit-mask-image:linear-gradient(270deg,transparent,#000 14px);mask-image:linear-gradient(270deg,transparent,#000 14px)}
+.sc-lad .sw.cl.cr{-webkit-mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(90deg,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+.sc-lad .bx,.sc-lad .wx{position:absolute;top:50%;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;border-radius:50%;background:var(--up);opacity:.8;transition:left .3s}
+.sc-lad .wx{background:var(--down)}
+.sc-lad .hv{position:absolute;top:50%;width:1px;height:18px;margin-top:-9px;background:var(--brass,var(--brand));pointer-events:none;z-index:2}
+.lad-tip{position:fixed;z-index:1300;display:grid;gap:2px;max-width:280px;padding:7px 10px;border-radius:10px;background:var(--surface);color:var(--ink);font-size:.78rem;line-height:1.35;
+  box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent),0 10px 26px -8px rgba(0,0,0,.35);pointer-events:none;font-variant-numeric:tabular-nums}
+.lad-tip[hidden]{display:none}.lad-tip small{color:var(--ink-3);font-size:.6875rem}.lad-tip .up{color:var(--up)}.lad-tip .down{color:var(--down)}.lad-tip span small{color:inherit;opacity:.75}
+@media (hover:none){.sc-lad{cursor:default}}
