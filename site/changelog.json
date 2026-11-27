@@ -11,6 +11,12 @@
     {
      "c": "imp",
      "a": "ui",
+     "t": "Số đếm trên tab Bot Phản Xạ (Lệnh 5…) đậm, nền đặc giống số trên công tắc sàn",
+     "te": "Reflex Bot tab counts (Orders 5…) are bold and filled like the venue switch counts"
+    },
+    {
+     "c": "imp",
+     "a": "ui",
      "t": "Sàn thử / Tiền thật dùng biểu tượng đơn sắc (bình thí nghiệm / đồng xu) ở mọi chỗ",
      "te": "Paper / Live use monochrome icons (flask / coin) everywhere",
      "d": "Công tắc trong biểu đồ lệnh, nhãn trên thẻ lệnh, dòng mô tả dưới giá, viên lệnh trên cùng, bảng lệnh nổi và thanh chọn sàn của Bot Phản Xạ: thay chữ + emoji màu 🧪 💵 💰 🟡 bằng biểu tượng nét theo màu chữ – gọn, hợp nền sáng / tối.",
@@ -29,8 +35,8 @@
      "a": "live",
      "t": "Viên lệnh & bảng lệnh nổi hiện lời/lỗ RÒNG giống thẻ lệnh (đã gồm phí + funding)",
      "te": "Live pill & floating panel now show NET P&L like the trade card (fees + funding included)",
-     "d": "Trước: viên trên cùng và bảng 'Lệnh bot · trực tiếp' chỉ tính chênh giá (ví dụ −$0,61 · −10,2%) trong khi thẻ lệnh tính cả funding đã nhận và phí đóng (−$0,51 · −8,5%). Giờ mọi chỗ dùng chung một công thức: lời/lỗ nếu đóng ngay, % trên giá trị lệnh.",
-     "de": "Before, the top pill and floating panel showed only the price move while the card included funding and closing fees. All places now use one formula: P&L if closed now, % of position size."
+     "d": "Trước: viên trên cùng và bảng 'Lệnh bot · trực tiếp' chỉ tính chênh giá (ví dụ −$0,61 · −10,2%) trong khi thẻ lệnh tính cả funding đã nhận và phí đóng (−$0,51 · −8,5%). Giờ mọi chỗ dùng chung một công thức: lời/lỗ nếu đóng ngay, % trên giá trị lệnh. Bổ sung: máy chủ trang giờ gửi kèm funding và phí của từng lệnh cho viên / bảng nổi (trước thiếu nên viên vẫn lệch thẻ).",
+     "de": "Before, the top pill and floating panel showed only the price move while the card included funding and closing fees. All places now use one formula: P&L if closed now, % of position size. Follow-up: the site server now sends each trade's funding and fees to the pill / floating panel (they were missing, so the pill still differed)."
     },
     {
      "c": "fix",

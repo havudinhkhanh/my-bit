@@ -297,24 +297,24 @@ export async function onRequest(ctx) {
       const X = await getData(env, uid, "scalpstate");
       if (!X || !X.at) return json({ at: null });
       const L = X.live || null, E = L?.env || "demo";
-      const sw = ["pump", "list"].flatMap((k) => (X.sw?.[k]?.pos || []).map((p) => ({ k, sym: p.sym, e: p.e, m: p.m, q: p.q, N: p.N, upnl: p.upnl, t0: p.t0, t1: p.t1 })));
-      const qo = Object.entries(X.q || {}).flatMap(([k, B]) => (B?.pos || []).map((p) => ({ k, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.e, m: l.m })), upnl: p.upnl, pct: p.pct, t0: p.t0, exp: p.exp })));
+      const sw = ["pump", "list"].flatMap((k) => (X.sw?.[k]?.pos || []).map((p) => ({ k, sym: p.sym, e: p.e, m: p.m, q: p.q, N: p.N, upnl: p.upnl, t0: p.t0, t1: p.t1, fee: p.fee || 0, fund: p.fund || 0 })));
+      const qo = Object.entries(X.q || {}).flatMap(([k, B]) => (B?.pos || []).map((p) => ({ k, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.e, m: l.m, q: l.q })), upnl: p.upnl, pct: p.pct, t0: p.t0, exp: p.exp, fee: p.fee || 0, fund: p.fund || 0 })));
       return json({ at: X.at, paper: { hk: Object.keys(X.hk || {}).length, pos: Object.keys(X.pos || {}).length + sw.length + qo.length, eq: X.eq ?? null, start: X.start ?? null, day: X.today?.usd ?? null,      // lệnh từng cái cho ô trạng thái nổi (góc màn hình)
           hkL: Object.entries(X.hk || {}).map(([k, h]) => ({ k, side: h.side, R: h.R, c0: h.c0, t0: h.t0, exp: h.exp, lv: (h.lv || []).map((l) => ({ px: l.px, f: l.f ? 1 : 0 })) })),
-          posL: Object.entries(X.pos || {}).map(([k, p]) => ({ k, side: p.side, e: p.e, q: p.q, t0: p.t0, h: p.h, sl: p.sl, strat: p.strat || "sec" })), swL: sw, qL: qo,
+          posL: Object.entries(X.pos || {}).map(([k, p]) => ({ k, side: p.side, e: p.e, q: p.q, t0: p.t0, h: p.h, sl: p.sl, strat: p.strat || "sec", fee: p.fee || 0, fund: p.fund || 0 })), swL: sw, qL: qo,
           last: (X.trades || []).slice(-5).reverse().map((t) => ({ k: t.k, side: t.side, usd: t.usd, net: t.net, t1: t.t1, why: t.why, strat: t.strat || "sec" })) },
         live: L ? { on: !!L.on, ready: !!L.ready, env: E, halt: L.halt || null, bal: L.st?.bal ?? null, day: (() => {      // hôm nay (giờ VN) = lệnh bot + ✋ lệnh tay đã đóng hôm nay
             const td = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), vd = (t) => new Date(Date.parse(String(t).slice(0, 19) + "Z") + 7 * 3600e3).toISOString().slice(0, 10);
             const b = L.dayE?.[E] ? (L.dayE[E].d === td ? L.dayE[E].pnl : 0) : null, m = (L.mh || []).filter((h) => (h.env || "live") === E && h.t2 && vd(h.t2) === td).reduce((a, h) => a + (+h.pnl || 0), 0);
             return b == null && !m ? null : +((b || 0) + m).toFixed(4); })(),      // chỉ lời/lỗ HÔM NAY (giờ VN) – ngày cũ chưa có lệnh đóng thì = 0
-          ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, c0: e.c0, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
-          swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp, t0: p.t0 })),
-          qp: (L.qp?.open || []).map((p) => ({ id: p.id, k: p.k, name: p.name, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.ap ?? l.e, stop: l.stop })), upnl: p.upnl, t0: p.t0 })),
+          ev: (L.ev || []).map((e) => ({ id: e.id, k: e.k, sym: e.sym, side: e.side, R: e.R, c0: e.c0, t0: e.t0, exp: e.exp, hold: e.hold, stop: e.stop, pos: e.pos, fees: e.fees || 0, fund: e.fund || 0, lv: (e.lv || []).map((l) => ({ px: l.px, q: l.q, st: l.st, fq: l.fq })) })),
+          swp: (L.swp?.open || []).map((p) => ({ id: p.id, sym: p.sym, q: p.q, ap: p.ap, m: p.m, N: p.N, upnl: p.upnl, exp: p.exp, t0: p.t0, fee: p.fee || 0, fund: p.fund || 0 })),
+          qp: (L.qp?.open || []).map((p) => ({ id: p.id, k: p.k, name: p.name, legs: (p.legs || []).map((l) => ({ sym: l.sym, side: l.side, e: l.ap ?? l.e, q: l.q, stop: l.stop })), upnl: p.upnl, t0: p.t0, fee: p.fee || 0, fund: p.fund || 0 })),
           mp: (L.man && L.man.env === E ? L.man.pend || [] : []).map((p) => ({ id: p.id, sym: p.sym, sd: p.sd, px: p.px, q: p.q, usd: p.usd, kind: p.kind, t0: p.t0, vd: p.vd })),      // 📍 lệnh anh HẸN giá (chờ khớp) – hiện ở ô lệnh nổi cùng lệnh bot
           man: (() => {      // ✋ lệnh tay anh tự mở trên Binance (bỏ mã bot đang có lệnh) – từ máy chủ riêng (20 giây/lần) hoặc ví (5 phút/lần)
             const bot = new Set([...(L.ev || []).map((e) => e.sym), ...(L.qp?.open || []).flatMap((p) => (p.legs || []).map((l) => l.sym)), ...(L.swp?.open || []).map((p) => p.sym)]);
             if (L.man && L.man.env === E) return (L.man.pos || []).filter((p) => !p.bot && !bot.has(p.sym)).map((p) => { const O = L.man.ord?.[p.sym] || [], sd = p.amt > 0 ? 1 : -1, sl = O.filter((o) => /^STOP/.test(o.type || "")).sort((a, b) => (sd > 0 ? b.px - a.px : a.px - b.px))[0]?.px || null;
-              return { sym: p.sym, amt: p.amt, ep: p.ep, mk: p.mk, up: p.up, lev: p.lev, sl, lk: L.man.lk?.[p.sym] || null }; });
+              return { sym: p.sym, amt: p.amt, ep: p.ep, mk: p.mk, up: p.up, lev: p.lev, sl, lk: L.man.lk?.[p.sym] || null, fund: Number.isFinite(+p.fund) ? +p.fund : 0 }; });      // funding đã nhận / trả → ô lệnh nổi tính lời/lỗ ròng khớp thẻ lệnh
             return (L.wal?.[E]?.pos || []).filter((x) => !bot.has(x[0])).map(([sym, amt, ep, mk, lev, up]) => ({ sym, amt, ep, mk, up, lev, sl: null, lk: null }));
           })(),
           last: [...(L.hist || []).filter((h) => (h.env || "demo") === E), ...(L.mh || []).filter((h) => (h.env || "live") === E)].sort((a, b) => (String(a.t2) < String(b.t2) ? -1 : 1)).slice(-5).reverse().map((h) => ({ sym: h.sym, side: h.side, pnl: h.pnl, net: h.net, t2: h.t2, why: h.why, strat: h.strat || "hook" })) } : null });

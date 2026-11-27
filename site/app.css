@@ -7930,3 +7930,5 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .occ-env .eic{width:16px;height:16px;margin:0;vertical-align:middle}
 .occ-what .eic{width:13px;height:13px;vertical-align:-2px;margin-right:4px}
 .sc-env .ei .eic{width:15px;height:15px;margin:0;vertical-align:-3px}
+/* số trên tab Bot Phản Xạ (Lệnh 5…) = cùng kiểu với số trên công tắc sàn (đậm, nền đặc) – trước: tab đang chọn ra ô xám nhạt, chìm */
+.sc-tabs>button .sc-bdg:not(#_b),.sc-tabs>button.on .sc-bdg:not(#_b){background:var(--sel)!important;color:var(--sel-ink)!important;font-weight:600;height:18px;min-width:18px;font-size:11px;border-radius:9px;margin:-2px 0 -2px 5px;font-variant-numeric:tabular-nums}
