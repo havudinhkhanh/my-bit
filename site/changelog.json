@@ -9,6 +9,17 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "new",
+     "a": "res",
+     "hi": 1,
+     "t": "🧪 Phương pháp đã loại vẫn bật được SÀN THỬ để theo dõi thực tế (tiền thật vẫn khoá)",
+     "te": "🧪 Rejected methods can now run on PAPER for live tracking (real money stays locked)",
+     "d": "Thẻ kiểm chứng của mọi phương pháp có danh mục hằng ngày giờ có công tắc 🧪 sàn thử, kể cả cách đang lỗ trong kiểm chứng – tiền ảo, để xem nó chạy từ hôm nay ra sao. Công tắc tiền thật ghi 'cần có lời' và chỉ mở khi kiểm chứng cả giai đoạn có lời lại. 'Ăn chênh funding giữa các coin' trước thiếu funding tháng đang chạy (Binance chỉ công bố theo tháng) nên không ra được danh mục – giờ bù bằng funding OKX cùng mã.",
+     "de": "Every method with a daily portfolio now has a 🧪 paper switch on its card, including ones that lose in testing – virtual money to see how it behaves from today. The real-money switch says 'needs profit' and unlocks only when the full-period test turns positive again. Funding carry previously lacked this month's funding (Binance publishes monthly files) – now filled from OKX.",
+     "go": "#/bot/scalp/cand",
+     "aud": "admin"
+    },
+    {
      "c": "fix",
      "a": "notif",
      "t": "Thẻ lọc trong bảng Thông báo không còn 2 vạch mảnh ngang chữ trên iPhone",

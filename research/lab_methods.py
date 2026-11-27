@@ -45,7 +45,10 @@ def xrev1(D):
 def xcarry(D):
     F = pd.DataFrame(D.F); sig = -F.rolling(7, min_periods=5).mean().shift(1).values      # funding 7 ngày thấp nhất → mua (được trả phí), cao nhất → bán
     end = D.fund_until + 1
-    return _out(D, _ls(D, sig, D.wd == 0), end=end, note="Funding chỉ có theo tệp tháng → số liệu tới hết tháng trước.", note_en="Funding data is monthly → figures run to the end of last month.")
+    ff = getattr(D, "fund_fill", None)      # tháng đang chạy: Binance chưa có tệp funding → lab.py bù bằng funding OKX cùng mã (fill_funding)
+    note = (f"Funding từ {ff} lấy từ OKX (Binance chỉ công bố theo tệp tháng) – xếp hạng coin gần như trùng, mức funding có thể lệch chút.", f"Funding since {ff} comes from OKX (Binance publishes monthly files only).") if ff \
+        else ("Funding chỉ có theo tệp tháng → số liệu tới hết tháng trước.", "Funding data is monthly → figures run to the end of last month.")
+    return _out(D, _ls(D, sig, D.wd == 0), end=end, note=note[0], note_en=note[1])
 
 
 def dcens(D):

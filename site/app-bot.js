@@ -509,7 +509,8 @@ function scCandHtml(L, info, V, N, sw) {
     return `<article class="lb2-c s-${m.status}" id="lb2-${esc(m.id)}">
       <header><span class="lb2-st ${S[0]}"><i></i>${bi(S[1], S[2])}</span><small>${esc(bi(m.hold, m.hold_en) || "")}</small></header>
       <h3>${esc(bi(m.name, m.name_en))}</h3><p class="lb2-d">${esc(bi(m.desc, m.desc_en))}</p>
-      ${(sw && sw(m.id)) || (m.per?.all && !(m.per.all.ret > 0) ? `<p class="lb2-nosw">${bi("Chưa có công tắc sàn thử / tiền thật: kiểm chứng cả giai đoạn đang lỗ. Có lời lại là công tắc tự hiện.", "No paper / real-money switch: the full-period test is negative. Switches appear automatically once it turns positive.")}</p>` : "")}
+      ${((x) => (x ? x + (m.per?.all && !(m.per.all.ret > 0) ? `<p class="lb2-nosw">${bi("Kiểm chứng cả giai đoạn đang lỗ → chỉ bật được sàn thử (tiền ảo) để theo dõi thực tế; tiền thật tự mở khi kiểm chứng có lời lại.", "Full-period test is negative → paper only (virtual money) for live tracking; real money unlocks once the test turns positive.")}</p>` : "")
+        : m.per?.all && !m.trade ? `<p class="lb2-nosw">${bi("Chưa có công tắc: phương pháp chưa công bố được danh mục hằng ngày (thiếu số liệu tới hôm qua).", "No switch yet: the method can't publish a daily portfolio (data not up to yesterday).")}</p>` : ""))(sw && sw(m.id))}
       <dl class="lb2-k"><div><dt>${bi("TB / ngày", "Avg / day")}</dt><dd class="${cl(b.day)}">${sp(b.day, 3)}</dd></div><div><dt>${bi("Quy ra năm", "Per year")}</dt><dd class="${cl(b.yr)}">${sp(b.yr, 0)}</dd></div>
         <div><dt>${bi("Sụt tối đa", "Max drawdown")}</dt><dd>${isNum(b.dd) ? nf(b.dd, 0) + "%" : "—"}</dd></div><div><dt>${bi("12 tháng", "12 months")}</dt><dd class="${cl(b.d365)}">${sp(b.d365, 0)}</dd></div></dl>
       <div class="lb2-sp">${spark(m.eq, { w: 320, h: 46 })}</div>
@@ -1730,6 +1731,7 @@ async function viewScalp() { const H0 = location.hash;
         what: `${esc(L.desc || "")}${L.warn ? `<span class="lm-lxw">🔎 ${esc(L.warn)}</span>` : ""}`, short: esc(L.hold || ""),
         paper: { on: paperOn, srvOld, attr: `data-lbt="paper|${k}"`, note: srvOld ? "chờ máy chủ riêng cập nhật bản mới" : `tiền ảo · ${nf(sz, 0)}% tài sản sàn thử · theo đúng danh mục phòng thử nghiệm công bố mỗi ngày` },
         live: { on: lvOn, srvOld, attr: `data-lbt="live|${k}"`, risk: `kiểm chứng từng sụt ${nf(b.dd || 0, 0)}% ở 1× vốn`,
+          ...(!okNow && !lvOn ? { none: `${L.name}: tiền thật chỉ mở khi kiểm chứng cả giai đoạn có lời (hiện ${lxPc(A.ret, 0)}) – sàn thử bật được ngay`, noneT: "cần có lời" } : {}),
           note: srvOld && lvOn ? "chờ máy chủ riêng cập nhật bản mới" : lvOn ? `${nf(lsz, 0)}% số dư · ${nlv} vị thế đang giữ · cắt lỗ −20% đặt sẵn trên sàn` : "lệnh thị trường · cỡ nhỏ nhất sàn cho phép · ký quỹ cô lập · cắt lỗ −20% trên sàn" },
         mech: `Hai công tắc chạy <b>riêng</b>: sàn thử giữ danh mục bằng tiền ảo, tiền thật giữ cùng danh mục trên Binance (chỉ mã có tỉ trọng ≥ ${wmin}%). Mỗi ngày có danh mục mới: mã rời danh mục thì đóng, mã mới thì mở; mã mà anh hoặc kiểu chơi khác của bot đang giữ thì bỏ qua. <b>Tắt công tắc = đóng hết vị thế</b> của phương pháp này. Phương pháp hết lời trong kiểm chứng, hoặc quá 4 ngày không có danh mục mới → bot tự đóng vị thế thật.`,
         ver: `<b class="${cls(b.yr)}">${lxPc(b.yr, 0)}</b>/năm`, vs: [stS[0] === "ok" ? "ok" : okNow ? "warn" : "bad", `${lxPc(b.yr, 0)}/năm`, `Kiểm chứng từ ${from}: ${lxPc(A.ret, 0)} · TB ${lxPc(b.day, 3)}/ngày · Sharpe ${nf(b.sharpe || 0, 2)} · sụt tối đa ${nf(b.dd || 0, 0)}% (1× vốn, sau phí)`], tot, nOpen: pos.length, nlv,
@@ -1749,6 +1751,9 @@ async function viewScalp() { const H0 = location.hash;
     };
     const LXL = (LABD?.methods || []).filter((L) => L.per?.all && !LXRES.has(L.id) && (L.per.all.ret > 0 || C.lx?.[L.id]?.paper || C.lx?.[L.id]?.live || LXS?.m?.[L.id]?.n));
     const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : []), ...LXL.map(lxM)], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
+    // 🧪 Jason 27/11/2026: phương pháp ĐÃ LOẠI (kiểm chứng cả giai đoạn lỗ) vẫn có công tắc SÀN THỬ trên thẻ kiểm chứng – tiền ảo, để theo dõi thực tế từ hôm nay;
+    //    tiền thật vẫn khoá tới khi kiểm chứng cả giai đoạn có lời. Chỉ phương pháp có công bố danh mục hằng ngày (trade) mới có công tắc; bật sàn thử là vào danh sách chính.
+    for (const L of (LABD?.methods || []).filter((L) => L.per?.all && L.trade && !LXRES.has(L.id) && !MM[L.id])) MM[L.id] = lxM(L);
     LB = { ML, MM };
     const nchgOf = (m) => m.params.filter((p) => String(p.top ? (C[p.f] ?? p.def) : lmV(p, p.def)) !== String(p.def)).length;
     // ---------- DANH SÁCH 1 CỘT: mỗi kiểu chơi = 1 thanh; cuối thanh chia 2 khúc = 2 cần gạt (🧪 sàn thử | 💰 tiền thật)
@@ -1762,7 +1767,7 @@ async function viewScalp() { const H0 = location.hash;
     const seg = (m, w) => {
       const P = w === "paper", on = P ? m.paper.on : m.live.on, none = !P && m.live.none, lock = !P && !none && !C.lv_on;
       const val = P ? (on ? (m.paper.srvOld ? "chờ máy chủ" : m.nOpen || m.tot ? `<b class="${cls(m.tot)}">${sg(m.tot)}</b>${m.nOpen ? ` · ${m.nOpen} mở` : ""}` : m.sc === "lx" ? "chờ danh mục" : "chờ tín hiệu") : m.nOpen || m.tot ? bi(`đã ${sg(m.tot)}`, `total ${sg(m.tot)}`) : "đang tắt")
-        : none ? "không hỗ trợ" : lock ? "chưa bật Binance" : on ? (m.live.srvOld ? "chờ máy chủ" : m.nlv ? `<b>${m.nlv}</b> lệnh mở` : m.sc === "lx" ? "chờ danh mục" : "chờ tín hiệu") : "đang tắt";
+        : none ? (m.live.noneT || "không hỗ trợ") : lock ? "chưa bật Binance" : on ? (m.live.srvOld ? "chờ máy chủ" : m.nlv ? `<b>${m.nlv}</b> lệnh mở` : m.sc === "lx" ? "chờ danh mục" : "chờ tín hiệu") : "đang tắt";
       const tip = on && (P ? m.paper.srvOld : m.live.srvOld) ? `${m.name}: đã bật nhưng máy chủ riêng chưa có bản mới – cập nhật máy chủ thì mới có lệnh` : none ? m.live.none : lock ? "Tài khoản Binance của bot đang tắt – bật ở ⚙️ Thiết lập → 💵 trước" : `${on ? "Tắt" : "Bật"} ${m.name} trên ${P ? "sàn thử" : LVT === "Demo" ? "Binance Demo" : "tiền thật"}`;
       return `<button type="button" class="lb-seg ${P ? "p" : "l"}${on ? " on" : ""}${none || lock ? " dis" : ""}" ${none ? "disabled" : `data-lbt="${w}|${m.k}"`} role="switch" aria-checked="${on}" title="${esc(tip)}">
         <i class="lb-sw" aria-hidden="true"></i><span class="lb-st"><b>${P ? "Sàn thử" : LVT}</b><small>${val}</small></span></button>`;

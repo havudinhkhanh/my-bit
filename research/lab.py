@@ -152,6 +152,47 @@ def finish(D):
     D.ev0 = int(np.searchsorted(D.dates.values, np.datetime64(EVAL_FROM)))
 
 
+def _okx_fund(sym, days=45):
+    """Funding từng kỳ (8 giờ / 4 giờ) của 1 mã trên OKX – Binance chỉ có tệp THÁNG nên tháng đang chạy thiếu funding. [(ngày UTC, tỉ lệ)]"""
+    import urllib.request
+    b = sym[:-4]
+    for p in ("1000000", "10000", "1000"):
+        if b.startswith(p) and len(b) > len(p): b = b[len(p):]; break
+    out, after, t_min = [], "", (dt.datetime.now(dt.timezone.utc).timestamp() - days * 86400) * 1000
+    for _ in range(3):
+        url = f"https://www.okx.com/api/v5/public/funding-rate-history?instId={b}-USDT-SWAP&limit=100" + (f"&after={after}" if after else "")
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "my-bit-lab"}), timeout=15) as r: j = json.loads(r.read()).get("data") or []
+        except Exception: return out  # noqa: BLE001
+        if not j: break
+        for x in j: out.append((int(x["fundingTime"]) // 86400000, float(x.get("realizedRate") or x["fundingRate"])))
+        after = j[-1]["fundingTime"]
+        if int(after) < t_min: break
+    return out
+
+
+def fill_funding(D, top=60):
+    """Bù funding những ngày SAU tệp tháng cuối của Binance (tháng đang chạy) bằng funding OKX cùng mã → các phương pháp dùng funding (ăn chênh funding)
+    có số liệu tới hôm qua, công bố được danh mục mục tiêu hằng ngày. Chỉ bù ô đang trống; mã OKX không có thì để trống như cũ."""
+    NR = getattr(D, "nreal", D.nd); a = D.fund_until + 1
+    if a >= NR: return 0
+    js = sorted({int(j) for d in range(a, NR + 1) for j in np.nonzero(D.rank[min(d, D.nd - 1)] < top)[0]})
+    with cf.ThreadPoolExecutor(16) as ex: got = dict(zip(js, ex.map(lambda j: _okx_fund(D.syms[j]), js)))
+    ok = 0
+    for j, L in got.items():
+        acc = {}
+        for day, r in L:
+            d = day - D.day0
+            if a <= d < NR: acc[d] = acc.get(d, 0.0) + r
+        for d, v in acc.items():
+            if np.isnan(D.F[d, j]): D.F[d, j] = v
+        ok += bool(acc)
+    need = [j for j in js if D.rank[NR - 1, j] < 40]; have = sum(1 for j in need if np.isfinite(D.F[NR - 1, j]))
+    if need and have >= 0.8 * len(need): D.fund_until = NR - 1; D.fund_fill = str(D.dates[a].date())
+    log(f"funding OKX bù từ {D.dates[a].date()}: {ok}/{len(js)} mã có số liệu · top 40 hôm qua đủ {have}/{len(need)}")
+    return ok
+
+
 def extend(D):
     """Thêm 1 NGÀY KẾ TIẾP chưa có dữ liệu (giá mở = giá đóng cuối, còn lại NaN) → mỗi phương pháp tự tính luôn tỉ trọng MỤC TIÊU cho ngày đó (W[D.nreal]),
     chỉ bằng số liệu tới hết ngày cuối có dữ liệu. Phần chấm điểm chỉ dùng D.nreal ngày thật. Tỉ trọng này ghi ra site/lab_targets.json cho bot (sàn thử / tiền thật)."""
@@ -296,6 +337,8 @@ def main():
                 v = np.nansum(p[1]["q"], 0); top = [p[0][j] for j in np.argsort(-v)[:160]]
             log(f"  {m}: {len(p[0])} mã{'' if p[4] else ' (tệp ngày)'}"); parts.append(p)
         D = extend(build(parts))
+        try: fill_funding(D)
+        except Exception as e: log(f"bù funding OKX lỗi: {e}")  # noqa: BLE001
     log(f"dữ liệu: {D.nreal} ngày × {D.S} mã · {D.dates[0].date()} → {D.dates[D.nreal - 1].date()} · funding tới {D.dates[max(D.fund_until, 0)].date()}")
     try: prev = json.load(open(SITE_JSON))
     except Exception: prev = {}  # noqa: BLE001
