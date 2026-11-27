@@ -8241,3 +8241,10 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .pn-grip:hover{background:color-mix(in srgb,var(--ink) 6%,transparent);color:var(--ink)}
 .pn-grip:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
 .pnfly-c .pn-cus-r .ios-sw{pointer-events:auto;flex:none}
+/* ▶ clip xem lại nằm NGAY CẠNH nút 📈 biểu đồ (dòng lệnh đã đóng + thẻ lệnh đang mở) */
+.lvt-cs{display:inline-flex;align-items:center;gap:4px;grid-column:3;grid-row:1/3;align-self:start;justify-self:end}
+.lvt .lvt-cs{grid-column:4;grid-row:1}
+.lvt-cs .lvt-c{grid-column:auto!important;grid-row:auto!important;display:inline-grid;place-items:center}
+.lvt-p{color:var(--brand)}.lvt-p svg{width:13px;height:13px}
+.lvt-p:hover{background:color-mix(in srgb,var(--brand) 12%,transparent);border-color:color-mix(in srgb,var(--brand) 40%,var(--bd))}
+.oc-clip{margin-left:4px!important;color:var(--brand)}.oc-clip svg{width:12px!important;height:12px!important}

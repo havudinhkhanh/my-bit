@@ -1385,6 +1385,7 @@ async function viewScalp() {
       if (isNum(x.pk)) a.push(`${bi("đỉnh", "peak")} ${pctB(x.pk)}`); if (isNum(x.sl) && Math.abs(x.sl) >= 1) a.push(`${bi("trượt", "slip")} <span class="${cls(x.sl)}">${pctB(x.sl, Math.abs(x.sl) < 10 ? 3 : 2)}</span>`);
       return a.length ? ` <span class="faint" title="${bi("Theo giá giữa mua–bán: đỉnh lời / đáy lỗ, giá khớp đóng so với giá giữa lúc bot quyết định đóng", "By mid price: peak gain / worst loss, exit fill vs mid at decision")}${isNum(x.mn) ? ` · ${bi("đáy", "low")} ${bps(x.mn, 0)} bps` : ""}${isNum(x.lag) ? ` · ${bi("bot thấy khớp sau", "fill seen after")} ${nf(x.lag, 1)}s` : ""}">· ${a.join(" · ")}</span>` : ""; };
     const why = (h) => (h.whyL || lvWhy(h.why)) + dxT(h), go = (h) => `#/t/${env}/${enc(clSym(h))}/${Date.parse(String(h.t2).slice(0, 19) + "Z")}`;
+    const clB = (h) => `<button type="button" class="lvt-c lvt-p" data-clipat="${env}|${esc(clSym(h))}|${Date.parse(String(h.t2).slice(0, 19) + "Z")}" title="${bi("Clip xem lại: giá chạy từ lúc chờ khớp tới 5 giây sau khi đóng", "Replay clip")}" aria-label="${bi("Clip xem lại", "Replay clip")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></button>`;
     const cb = (h) => (h.ch ? `<button type="button" class="lvt-c" data-${h.ch[0]}="${h.ch[1]}" aria-label="${bi("Xem biểu đồ", "Show chart")}">📈</button>` : ""), cbox = (h) => (h.ch ? `<div class="sc-hc" id="${h.ch[0].replace(/^data-/, "")}${h.ch[1]}" hidden></div>` : "");
     // dòng TỔNG NGÀY thẳng cột với bảng: tỉ lệ thắng (thanh) · tổng giá trị · giữ TB · lý do đóng hay gặp · bps TB · lời/lỗ ngày + % · mũi tên thu/mở
     const dRow = (d, r) => { const H = r.map(([h]) => h), n = H.length, w = H.filter((h) => h.pnl > 0).length, u = H.reduce((a, h) => a + (h.pnl || 0), 0);
@@ -1404,14 +1405,14 @@ async function viewScalp() {
     const sig = (() => { let h = 0; const str = `${env}|${dLim}|${lvWide ? 1 : 0}|${EN ? 1 : 0}|${Object.keys(COL).filter((k) => k.startsWith(env + ":")).sort().join(";")}|` + R.map((h0) => `${h0.id || ""}:${h0.t2}:${h0.pnl}:${h0.ch ? 1 : 0}`).join(","); for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + R.length; })();
     return (lvWide
       ? `<div class="tw lvt-tw" data-sig="cl:${sig}"><table class="lvt-t keep"><thead><tr><th class="l">${bi("Đóng lúc", "Closed")}</th><th class="l">Coin</th><th>${bi("Vào → ra", "Entry → exit")}</th><th>${bi("Giá trị", "Size")}</th><th>${bi("Giữ", "Held")}</th><th class="l">${bi("Lý do đóng", "Exit")}</th><th>%</th><th>${bi("Lời/lỗ", "P/L")}</th><th></th></tr></thead><tbody>${days.map(({ d, r }, di) => `<tr class="lvt-dh lvt-dh2 clg-h${isC(d) ? " clg-x" : ""}" data-cd="${CK(d)}" role="button" tabindex="0" aria-expanded="${!isC(d)}" style="--z:${10 + di * 2}">${dRow(d, r)}</tr>${r.map(([h]) => { const q = pctF(h), mv = h.e > 0 && isNum(h.x) ? h.side * (h.x / h.e - 1) * 100 : null;
-        return `<tr data-omk="${omkOf(h)}" data-cdd="${CK(d)}" class="${cc(d).trim()}"><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${clIco(h)} <a class="tr-go" href="${go(h)}" title="${bi("Chi tiết lệnh: biểu đồ, giá vào/ra, lý do", "Trade detail")}"><b>${clSym(h)}</b></a><a class="tr-clip" href="${go(h)}" data-clip title="${bi("Clip xem lại: giá chạy từ lúc chờ khớp tới 5 giây sau khi đóng", "Replay clip")}" aria-label="${bi("Clip xem lại", "Replay clip")}">▶</a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</td>
+        return `<tr data-omk="${omkOf(h)}" data-cdd="${CK(d)}" class="${cc(d).trim()}"><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${clIco(h)} <a class="tr-go" href="${go(h)}" title="${bi("Chi tiết lệnh: biểu đồ, giá vào/ra, lý do", "Trade detail")}"><b>${clSym(h)}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</td>
           <td>${px(h.e)} → ${px(h.x)}${isNum(mv) ? ` <small class="${cls(mv)}">${mv >= 0 ? "+" : ""}${nf(mv, 2)}%</small>` : ""}</td><td>${clSz(h)}${clLv(h) ? `<small class="faint"> · ${clLv(h)}</small>` : ""}</td><td><small>${lvHold(h)}</small></td>
           <td class="l lvt-why"><small>${why(h)}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}<span class="lvt-xc"><span class="lvt-xd"> · </span>${bi("giữ", "held")} ${lvHold(h)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${pctB(h.net)}</span>` : ""}</span></small></td><td class="${cls(h.net)}"><small>${isNum(h.net) ? pctB(h.net) : "—"}</small></td>
-          <td class="lvt-pl"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? ` <small class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</small>` : ""}</td><td>${cb(h)}</td></tr>
+          <td class="lvt-pl"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? ` <small class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</small>` : ""}</td><td><span class="lvt-cs">${cb(h)}${clB(h)}</span></td></tr>
           ${h.ch ? `<tr class="lvt-cr${cc(d)}" data-cdd="${CK(d)}"><td colspan="99" class="hk-td">${cbox(h)}</td></tr>` : ""}`; }).join("")}`).join("")}</tbody></table></div>`
       : `<div class="sc-hl lvt" data-sig="cl:${sig}">${days.map(({ d, r }) => `<div class="lvt-dhm clg-h${isC(d) ? " clg-x" : ""}" data-cd="${CK(d)}" role="button" tabindex="0" aria-expanded="${!isC(d)}"><b>${lvDLab(d)}</b>${lvDSum(r)}<i class="clg-ch" aria-hidden="true"></i></div>${r.map(([h]) => { const q = pctF(h);
-        return `<div class="sc-ht${cc(d)}" data-omk="${omkOf(h)}" data-cdd="${CK(d)}"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${clIco(h)} <a class="tr-go" href="${go(h)}"><b>${clSym(h)}</b></a><a class="tr-clip" href="${go(h)}" data-clip aria-label="${bi("Clip xem lại", "Replay clip")}">▶</a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? `<em class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
-          <small class="lvt-b faint">${px(h.e)} → ${px(h.x)}${clSz(h) !== "—" ? ` · ${bi("giá trị", "size")} ${clSz(h)}` : ""} · ${bi("giữ", "held")} ${lvHold(h)} · ${why(h)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${pctB(h.net)}</span>` : ""}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}</small>${cb(h) || "<span></span>"}</div>${cbox(h)}</div>`; }).join("")}`).join("")}</div>`) + moreB;
+        return `<div class="sc-ht${cc(d)}" data-omk="${omkOf(h)}" data-cdd="${CK(d)}"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${clIco(h)} <a class="tr-go" href="${go(h)}"><b>${clSym(h)}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? `<em class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
+          <small class="lvt-b faint">${px(h.e)} → ${px(h.x)}${clSz(h) !== "—" ? ` · ${bi("giá trị", "size")} ${clSz(h)}` : ""} · ${bi("giữ", "held")} ${lvHold(h)} · ${why(h)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${pctB(h.net)}</span>` : ""}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}</small><span class="lvt-cs">${cb(h)}${clB(h)}</span></div>${cbox(h)}</div>`; }).join("")}`).join("")}</div>`) + moreB;
   };
   if (!window.__cdBound) { window.__cdBound = 1;
     const lockW = (el) => { const t = el.closest?.("table") || el.closest?.(".panel")?.querySelector("table.lvt-t"); if (!t || t.dataset.wl) return; t.dataset.wl = 1;   // giữ nguyên độ rộng cột khi thu / mở (không thì cột nhảy theo hàng còn hiện)
@@ -3620,23 +3621,35 @@ const trcRGBA = (c, a) => { c = String(c || "").trim(); let m = c.match(/^#([0-9
   m = c.match(/^rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).slice(0, 3); return `rgba(${p.join(",")},${a})`; } return c || `rgba(128,128,128,${a})`; };
 async function trcData(sym, env, a, b, dense) {
   const bases = env === "demo" ? ["https://demo-fapi.binance.com", "https://fapi.binance.com"] : ["https://fapi.binance.com"];
-  const J = async (p) => { for (const B of bases) { try { const q = await fetch(B + p); if (q.ok) { const j = await q.json(); if (Array.isArray(j)) return j; } } catch (e) { /* thử sàn khác */ } } return null; };
-  const P = [], cov = []; let pages = 0;
-  for (const [s, e] of dense) {
-    let A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&startTime=${Math.floor(s)}&endTime=${Math.floor(Math.min(e, s + 3599e3))}&limit=1000`), n = 0, last = s;
-    while (A && A.length) { for (const x of A) { if (x.T > e) break; P.push([x.T, +x.p]); last = x.T; } pages++; n++; const L = A[A.length - 1];
+  let why = "";
+  const J = async (p, bs = bases) => { for (const B of bs) { try { const q = await fetch(B + p); const j = await q.json().catch(() => null); if (q.ok && Array.isArray(j)) return j; why = `${q.status}${j?.msg ? " " + j.msg : ""}`; } catch (e) { why = e.message || "mạng"; } } return null; };
+  const P = [], cov = []; let pages = 0, src = "";
+  const agg = async (s, e) => {      // từng giao dịch futures: thử kèm endTime, không được thì chỉ startTime
+    let A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&startTime=${Math.floor(s)}&endTime=${Math.floor(Math.min(e, s + 3599e3))}&limit=1000`);
+    if (!A) A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&startTime=${Math.floor(s)}&limit=1000`);
+    if (!A) return false; let n = 0, last = s;
+    while (A && A.length) { for (const x of A) { if (x.T > e) break; if (x.T >= s) { P.push([x.T, +x.p, 0]); last = x.T; } } pages++; n++; const L = A[A.length - 1];
       if (L.T >= e || A.length < 1000 || n >= 14 || pages >= 32) { if (L.T >= e || A.length < 1000) last = e; break; }
       A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&fromId=${L.a + 1}&limit=1000`); }
-    if (A) cov.push([s, last]);
-  }
+    cov.push([s, last]); src ||= "agg"; return true;
+  };
+  const sec = async (s, e) => {      // dự phòng: nến 1 GIÂY của sàn spot (cùng mã) – giá spot sát giá futures
+    let t = Math.floor(s / 1000) * 1000, ok = false;
+    for (let n = 0; t < e && n < 8; n++) { const K = await J(`/api/v3/klines?symbol=${sym}USDT&interval=1s&startTime=${t}&endTime=${Math.floor(Math.min(e, t + 999e3))}&limit=1000`, ["https://api.binance.com"]);
+      if (!K) break; ok = true; if (!K.length) { t += 1000e3; continue; }
+      for (const k of K) { const t0 = +k[0]; P.push([t0, +k[1], 0]); if (+k[2] !== +k[3]) { const up = +k[4] >= +k[1]; P.push([t0 + 300, up ? +k[3] : +k[2], 0], [t0 + 650, up ? +k[2] : +k[3], 0]); } P.push([t0 + 999, +k[4], 0]); }
+      t = +K[K.length - 1][0] + 1000; if (K.length < 1000) break; }
+    if (ok) { cov.push([s, Math.min(e, t)]); src ||= "spot1s"; } return ok;
+  };
+  for (const [s, e] of dense) { if (!(await agg(s, e))) await sec(s, e); }
   const span = (b - a) / 6e4, IV = span <= 1400 ? ["1m", 1] : span <= 7000 ? ["5m", 5] : span <= 21000 ? ["15m", 15] : ["1h", 60], im = IV[1] * 6e4;      // lệnh giữ cả tuần: nến to hơn (≤ 1.500 nến)
   const K = (await J(`/fapi/v1/klines?symbol=${sym}USDT&interval=${IV[0]}&startTime=${Math.floor(a / im) * im}&endTime=${Math.floor(b)}&limit=1500`)) || [];
   const inCov = (t) => cov.some(([s, e]) => t >= s && t <= e);
-  let syn = 0;
   for (const k of K) { const t = +k[0], o = +k[1], h = +k[2], l = +k[3], c = +k[4], up = c >= o;
-    for (const [dt, p] of [[0, o], [im * 0.3, up ? l : h], [im * 0.66, up ? h : l], [im - 1e3, c]]) if (!inCov(t + dt) && t + dt >= a - im && t + dt <= b) { P.push([t + dt, p]); if (t + dt >= a) syn++; } }
+    for (const [dt, p] of [[0, o], [im * 0.3, up ? l : h], [im * 0.66, up ? h : l], [im - 1e3, c]]) if (!inCov(t + dt) && t + dt >= a - im && t + dt <= b) P.push([t + dt, p, 1]); }
   P.sort((x, y) => x[0] - y[0]);
-  return { P, syn, real: P.length - syn, cov };
+  const inAB = P.filter((x) => x[0] >= a && x[0] <= b);
+  return { P, syn: inAB.filter((x) => x[2]).length, real: inAB.filter((x) => !x[2]).length, cov, src, why, iv: IV[0] };
 }
 function trcPlan(r) {
   const now = Date.now(), tS = r.tS ?? null, tF = r.tF ?? null, tX = r.tX ?? null;
@@ -3657,7 +3670,7 @@ async function trClip(r, env, sym) {
   const NMS = { hook: bi("Bắt râu sập", "Wick Catcher"), sec: bi("Lướt giây", "Scalp"), pump: bi("Short coin vừa bơm", "Short pumped"), list: bi("Short coin mới niêm yết", "Short listing"), man: bi("Lệnh tay", "Manual") };
   document.body.insertAdjacentHTML("beforeend", `<div id="trClip" class="trc" role="dialog" aria-modal="true" aria-label="${bi("Clip xem lại lệnh", "Trade replay")}"><div class="trc-bg" data-trcx></div>
     <div class="trc-in"><header class="trc-h"><div><b>🎬 ${esc(sym)} <span class="${side > 0 ? "up" : "down"}">${side > 0 ? "Long" : "Short"}</span> · ${esc(NMS[r.strat] || r.strat || "")}</b>
-      <small>${E[0]} ${E[1]} · ${bi("giá thật từng giao dịch Binance Futures · tua nhanh theo từng đoạn", "real Binance Futures trades · fast-forward per phase")}</small></div><button type="button" class="trc-x" data-trcx aria-label="${bi("Đóng", "Close")}">✕</button></header>
+      <small>${E[0]} ${E[1]} · ${bi("giá thật Binance · tua nhanh theo từng đoạn", "real Binance prices · fast-forward per phase")}</small></div><button type="button" class="trc-x" data-trcx aria-label="${bi("Đóng", "Close")}">✕</button></header>
       <div class="trc-cv"><canvas width="1280" height="720"></canvas><div class="trc-ld"><i class="spin"></i>${bi("Đang tải giá từng giao dịch…", "Loading trades…")}</div></div>
       <div class="trc-ctl"><button type="button" class="trc-b trc-pp" aria-label="${bi("Phát / dừng", "Play / pause")}" disabled>▶</button><button type="button" class="trc-b trc-rs" aria-label="${bi("Xem lại từ đầu", "Restart")}" title="${bi("Xem lại từ đầu", "Restart")}" disabled>↺</button>
         <input type="range" class="trc-sc" min="0" max="1000" value="0" step="1" aria-label="${bi("Tua", "Seek")}" disabled><span class="trc-t">0:00</span>
@@ -3681,10 +3694,12 @@ async function trClip(r, env, sym) {
   if (st.dead) return;
   if (!D || D.P.length < 2) { box.querySelector(".trc-ld").textContent = bi("Không lấy được giá từ Binance cho khoảng này.", "Couldn't load prices for this period."); return; }
   box.querySelector(".trc-ld").remove();
-  box.querySelector(".trc-note").textContent = D.syn ? bi(`Đoạn có ⋯ là lấp bằng nến 1 phút (quá nhiều giao dịch để tải hết) · ${nf(D.real, 0)} giao dịch thật`, `Dotted parts use 1-minute candles · ${nf(D.real, 0)} real trades`) : bi(`${nf(D.real, 0)} giao dịch thật`, `${nf(D.real, 0)} real trades`);
+  const srcT = D.src === "spot1s" ? bi("giá spot từng giây", "spot 1-second prices") : bi("giao dịch futures thật", "real futures trades");
+  box.querySelector(".trc-note").textContent = !D.real ? bi(`Binance không trả giá từng nhịp cho lệnh này${D.why ? ` (${D.why})` : ""} – cả clip vẽ theo nến ${D.iv} (nét đứt, nối thẳng giữa mở / đáy / đỉnh / đóng).`, `No tick data from Binance${D.why ? ` (${D.why})` : ""} – drawn from ${D.iv} candles (dashed).`)
+    : D.syn ? bi(`${nf(D.real, 0)} điểm ${srcT} quanh lúc vào & lúc đóng · đoạn nét đứt ở giữa vẽ theo nến ${D.iv} (giữ lâu, quá nhiều giao dịch để tải hết)`, `${nf(D.real, 0)} ${srcT} around entry & exit · dashed middle from ${D.iv} candles`) : bi(`${nf(D.real, 0)} điểm ${srcT}`, `${nf(D.real, 0)} ${srcT}`);
   const P = D.P, TT = P.map((x) => x[0]);
   const idx = (t) => { let lo = 0, hi = TT.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (TT[m] <= t) { k = m; lo = m + 1; } else hi = m - 1; } return k; };
-  const pAt = (t) => { const k = idx(t); return k < 0 ? P[0][1] : P[k][1]; };
+  const pAt = (t) => { const k = idx(t); if (k < 0) return P[0][1]; const A = P[k], B = P[k + 1]; if (B && (A[2] || B[2]) && B[0] > A[0]) return A[1] + (B[1] - A[1]) * Math.min(1, (t - A[0]) / (B[0] - A[0])); return A[1]; };
   const toReal = (c) => { let s = L.S[0]; for (const x of L.S) if (c >= x.c0) s = x; return Math.min(s.b, s.a + (Math.max(0, c - s.c0)) * s.k2 * 1000); };
   const toClip = (t) => { for (const s of L.S) if (t <= s.b) return s.c0 + Math.max(0, t - s.a) / 1000 / s.k2; return L.T; };
   const segAt = (c) => { let s = L.S[0]; for (const x of L.S) if (c >= x.c0) s = x; return s; };
@@ -3700,8 +3715,10 @@ async function trClip(r, env, sym) {
   // từng cột điểm ảnh: thấp / cao / cuối (vẽ dải dao động + đường giá) – tính sẵn 1 lần
   const NC = Math.ceil(cw), cMin = new Float64Array(NC), cMax = new Float64Array(NC), cLast = new Float64Array(NC), cSyn = new Uint8Array(NC);
   { let prev = pAt(L.a); for (let i = 0; i < NC; i++) { const t1 = toReal((i / NC) * L.T), t2 = toReal(((i + 1) / NC) * L.T); let a1 = idx(t1) + 1, a2 = idx(t2), mn = prev, mx = prev;
+      const sy = D.cov.some(([s, e]) => t2 >= s && t1 <= e) ? 0 : 1;
+      if (sy) { prev = pAt(t2); cMin[i] = cMax[i] = cLast[i] = prev; cSyn[i] = 1; continue; }      // đoạn nến: nối thẳng, không vẽ dải dao động
       for (let k = Math.max(0, a1); k <= a2; k++) { const p = P[k][1]; if (p < mn) mn = p; if (p > mx) mx = p; prev = p; }
-      cMin[i] = mn; cMax[i] = mx; cLast[i] = prev; cSyn[i] = D.cov.some(([s, e]) => t2 >= s && t1 <= e) ? 0 : 1; } }
+      cMin[i] = mn; cMax[i] = mx; cLast[i] = prev; cSyn[i] = 0; } }
   const font = (w, s) => `${w} ${s}px "Be Vietnam Pro", system-ui, sans-serif`;
   const tag = (x, y, txt, col, al = "left") => { g.font = font(700, 17); const w = g.measureText(txt).width + 16; const xx = al === "right" ? x - w : al === "center" ? x - w / 2 : x; g.fillStyle = col; g.beginPath(); g.roundRect(xx, y - 14, w, 28, 8); g.fill(); g.fillStyle = "#fff"; g.textBaseline = "middle"; g.fillText(txt, xx + 8, y + 1); };
   const hline = (p, col, dash, label, wdt = 1.5, x1 = X1, x0 = X0) => { if (!(p > 0)) return; const y = yOf(p); if (y < Y0 - 4 || y > Y1 + 4) return; g.save(); g.strokeStyle = col; g.lineWidth = wdt; g.setLineDash(dash); g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.restore();
@@ -3785,4 +3802,13 @@ async function trClip(r, env, sym) {
   st.play = true; st.raf = requestAnimationFrame(loop);
 }
 window.trClip = trClip;
-document.addEventListener("click", (e) => { if (e.target.closest?.("a[data-clip]")) window.__tClip = 1; }, true);
+document.addEventListener("click", (e) => { if (e.target.closest?.("a[data-clip]")) window.__tClip = 1;
+  const b = e.target.closest?.("[data-clipat]"); if (b) { e.preventDefault(); e.stopPropagation(); const [env, sym, ms] = b.dataset.clipat.split("|"); trClipAt(env, sym, +ms); } }, true);
+// mở clip ngay tại chỗ (không chuyển trang): tìm lệnh gần mốc rồi phát
+async function trClipAt(env, sym, ms) {
+  env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, "");
+  try { const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null }))]);
+    const C = { ...SCALP_DEF, ...scMig(rq.data) }, r = tPick(tRecs(rs.data || {}, rl.data || null, C, env, sym), ms || Date.now());
+    if (!r) { toast(bi("Không còn dữ liệu lệnh này để dựng clip.", "No data for this trade.")); return; } trClip(r, env, sym); } catch (e) { toast(bi("Chưa tải được dữ liệu lệnh.", "Couldn't load the trade.")); }
+}
+window.trClipAt = trClipAt;

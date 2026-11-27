@@ -3349,10 +3349,13 @@ function ocInfo0(card, n) { const g = (sel, a) => card.querySelector(sel)?.datas
 function ocDeco(root = document) {
   root.querySelectorAll?.(".sc-oc:not([data-occ])").forEach((c) => {
     c.dataset.occ = 1; const sp = c.querySelector(".r1 > span"); if (!sp) return;
-    sp.insertAdjacentHTML("beforeend", `<button type="button" class="oc-ch" data-nd data-occh title="${bi("Mở biểu đồ: xu hướng, khung 1 giây … năm, giá vào / cắt lỗ / chốt lời", "Open chart: trend, 1s … 1y, entry / stop / target")}" aria-label="${bi("Biểu đồ", "Chart")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></button>`);
+    sp.insertAdjacentHTML("beforeend", `<button type="button" class="oc-ch" data-nd data-occh title="${bi("Mở biểu đồ: xu hướng, khung 1 giây … năm, giá vào / cắt lỗ / chốt lời", "Open chart: trend, 1s … 1y, entry / stop / target")}" aria-label="${bi("Biểu đồ", "Chart")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg></button><button type="button" class="oc-ch oc-clip" data-nd data-occlip title="${bi("Clip xem lại: giá chạy từ lúc chờ khớp tới bây giờ", "Replay clip")}" aria-label="${bi("Clip xem lại", "Replay clip")}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></button>`);
   });
 }
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occlip]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (!c) return;
+  const I = ocInfo(c), env = ocEnv(c) === "paper" ? "paper" : window.__scCache?.d?.[1]?.data?.live?.env || "live", lt = c.querySelector("[data-lt0]")?.dataset.lt0, t = isFinite(+lt) && +lt > 0 ? (+lt < 1e11 ? +lt * 1000 : +lt) : Date.parse(lt ? (/Z$/.test(lt) ? lt : lt + "Z") : "") || Date.now();
+  lazyJs("app-bot.js").then(() => window.trClipAt?.(env, I.base, t)); }, true);
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) { const I = ocInfo(c); I.env = ocEnv(c); ocOpen(I); } }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn

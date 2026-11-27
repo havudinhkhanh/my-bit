@@ -17,6 +17,14 @@
      "de": "Drag ⠿ in the customise sheet to reorder each group; “Reset” restores defaults."
     },
     {
+     "c": "fix",
+     "a": "bot",
+     "t": "Clip: hết đoạn gạch ngang bậc thang",
+     "te": "Clip: no more staircase dashes",
+     "d": "Khi Binance không trả giá từng giao dịch, clip lấy giá spot từng giây; không có nữa thì vẽ theo nến nhưng nối thẳng (không còn bậc thang). Dòng chú thích dưới clip nói rõ nguồn giá và lý do.",
+     "de": "Falls back to spot 1-second prices, then to candles drawn as straight segments; the note under the clip says which source was used."
+    },
+    {
      "c": "imp",
      "a": "ui",
      "t": "Tiêu đề trang nhỏ dần rồi ẩn khi cuộn",
@@ -45,7 +53,7 @@
      "a": "bot",
      "t": "🎬 Clip xem lại từng lệnh",
      "te": "🎬 Replay clip for every trade",
-     "d": "Bấm ▶ cạnh mỗi lệnh đã đóng (hoặc nút “Clip xem lại lệnh” trong trang chi tiết lệnh): giá chạy từ lúc chờ khớp → khớp → đóng → thêm 5 giây, dựng từ từng giao dịch thật của Binance Futures. Mỗi clip ≤ 10 giây kể cả lệnh giữ cả tuần (tua nhanh theo đoạn, số × ghi trên clip), nút ⏩ 2× / 4×. Sau khi khớp, vùng giữa giá vào và đường giá tô xanh/đỏ theo lời/lỗ, trục trái quy từng mức giá ra $ và bps. Lưu video để gửi.",
+     "d": "Bấm ▶ ngay cạnh nút 📈 biểu đồ ở mỗi lệnh (đang mở hay đã đóng, mở tại chỗ – không chuyển trang) hoặc nút “Clip xem lại lệnh” trong trang chi tiết lệnh: giá chạy từ lúc chờ khớp → khớp → đóng → thêm 5 giây, dựng từ từng giao dịch thật của Binance Futures. Mỗi clip ≤ 10 giây kể cả lệnh giữ cả tuần (tua nhanh theo đoạn, số × ghi trên clip), nút ⏩ 2× / 4×. Sau khi khớp, vùng giữa giá vào và đường giá tô xanh/đỏ theo lời/lỗ, trục trái quy từng mức giá ra $ và bps. Lưu video để gửi.",
      "de": "Tap ▶ next to a closed trade: waiting → fill → close → +5 s from real Binance Futures trades, ≤ 10 s per clip, ⏩ 2×/4×, P&L shading and $/bps axis. Save as video.",
      "hi": 1,
      "f": "bot",
