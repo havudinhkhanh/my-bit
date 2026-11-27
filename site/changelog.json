@@ -9,6 +9,14 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "imp",
+     "a": "ui",
+     "t": "Bảng phụ trên máy tính thành cột cố định cạnh thanh điều hướng, có vạch ngăn – không còn là thẻ nổi",
+     "te": "On desktop the side panel is now a fixed column next to the navigation, with dividers – no longer a floating card",
+     "d": "Bảng phụ chạy suốt chiều cao như thanh điều hướng bên trái, nền phẳng, có vạch ngăn với thanh điều hướng và với nội dung. Thanh tab dính của trang (Tổng quan, Lệnh…) giờ chạm vạch ngăn y như khi không mở Bảng phụ, không còn dính vào mép thẻ nổi.",
+     "de": "The side panel runs full height like the left navigation, flat background, with dividers against the navigation and the content. The page's sticky tab bar now meets the divider exactly as when the panel is closed, instead of butting against a floating card."
+    },
+    {
      "c": "fix",
      "a": "live",
      "t": "Bắt râu sập tiền thật: đóng mức 1 sớm thì mức chờ 2 vẫn giữ trên sàn tới hết giờ chờ, như sàn thử",
