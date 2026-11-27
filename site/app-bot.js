@@ -3198,6 +3198,9 @@ function tRecs(X, LG, C, env, sym) {
   return R.map((r) => ({ ...r, t0: r.tS ?? r.tF ?? r.tX, t1: r.tX ?? r.tXe ?? (r.tF && r.hold ? r.tF + r.hold * 60e3 : null) ?? r.tW ?? r.tS }));
 }
 function tPick(R, ms) {      // lệnh gần mốc nhất: mốc nằm trong [bắt đầu − 3 phút, kết thúc + 15 phút] → khoảng cách 0
+  // mốc TRÙNG một thời điểm của lệnh (giờ đóng / khớp / sốc, lệch ≤ 3 giây) → chọn đúng lệnh đó. Trước: nhiều lệnh cùng coin gần nhau thì lấy nhầm lệnh trước
+  //   (vd bấm ▶ lệnh AKE lỗ lại mở clip lệnh AKE lời đóng vài phút trước đó)
+  { let ex = null, ed = 3001; for (const r of R) for (const t of [r.tX, r.tF, r.tS]) if (isNum(t) && Math.abs(t - ms) < ed) { ed = Math.abs(t - ms); ex = r; } if (ex) return ex; }
   let best = null, bd = Infinity;
   for (const r of R) { const a = (r.t0 ?? 0) - 3 * 60e3, b = (r.t1 ?? r.t0 ?? 0) + 15 * 60e3, d = ms >= a && ms <= b ? 0 : Math.min(Math.abs(ms - a), Math.abs(ms - b)); const w = d + (r.src === "led" ? 1 : 0); if (w < bd) { bd = w; best = r; } }
   return bd < 36 * 3600e3 ? best : null;

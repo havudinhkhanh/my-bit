@@ -8248,3 +8248,5 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .lvt-p{color:var(--brand)}.lvt-p svg{width:13px;height:13px}
 .lvt-p:hover{background:color-mix(in srgb,var(--brand) 12%,transparent);border-color:color-mix(in srgb,var(--brand) 40%,var(--bd))}
 .oc-clip{margin-left:4px!important;color:var(--brand)}.oc-clip svg{width:12px!important;height:12px!important}
+/* Sổ thuế – nhập dữ liệu: điện thoại hẹp thì 1 cột (ô rộng "span 2" từng đẩy form tràn ra ngoài màn hình) */
+@media (max-width:420px){.tx-add{grid-template-columns:minmax(0,1fr)!important}.tx-add label.w{grid-column:auto!important}}

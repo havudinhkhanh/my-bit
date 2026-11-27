@@ -19,6 +19,14 @@
     {
      "c": "fix",
      "a": "bot",
+     "t": "Bấm ▶ / mở chi tiết lệnh: luôn đúng lệnh anh bấm",
+     "te": "Replay / trade detail always opens the trade you tapped",
+     "d": "Nhiều lệnh cùng coin đóng gần nhau thì trước đây có lúc mở nhầm lệnh trước đó (vd bấm lệnh AKE lỗ lại ra clip lệnh AKE lời). Giờ khớp đúng theo giờ đóng / khớp của lệnh.",
+     "de": "Several trades on one coin close together no longer open the wrong one."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
      "t": "Clip: hết đoạn gạch ngang bậc thang",
      "te": "Clip: no more staircase dashes",
      "d": "Khi Binance không trả giá từng giao dịch, clip lấy giá spot từng giây; không có nữa thì vẽ theo nến nhưng nối thẳng (không còn bậc thang). Dòng chú thích dưới clip nói rõ nguồn giá và lý do.",
