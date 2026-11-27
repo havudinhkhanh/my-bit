@@ -112,11 +112,15 @@ function drawHook(el, c, s, o, dkey) {
   if (getComputedStyle(el).position === "static") el.style.position = "relative";
   const b2 = document.createElement("button"); b2.type = "button"; b2.className = "cd-tg cd-tg2"; b2.title = "Mẫu hình đã xảy ra: Fibonacci, tam giác / nêm, Elliott trên dữ liệu cũ – kèm đúng / sai";
   b2.setAttribute("aria-label", "Mẫu hình đã xảy ra"); b2.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 9 8l4 7 3-5 5 10"/><path d="M3 20h18"/></svg>`;
-  el.querySelector(":scope > .cd-tg2")?.remove();
-  el.append(b, b2);
-  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, btn2: b2, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => { toast(e.message); return null; });
+  // 📏 đo nhanh lời/lỗ (1 chạm, dùng được trên điện thoại): chạm điểm vào → kéo tới điểm ra → Long/Short, ròng sau phí + trượt giá
+  const b3 = document.createElement("button"); b3.type = "button"; b3.className = "cd-tg cd-tg3"; b3.title = "Đo lời/lỗ: chạm điểm vào rồi kéo tới điểm ra – kéo lên = Long, kéo xuống = Short, đã trừ phí + trượt giá";
+  b3.setAttribute("aria-label", "Đo lời/lỗ giữa 2 điểm"); b3.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/></svg>`;
+  el.querySelector(":scope > .cd-tg2")?.remove(); el.querySelector(":scope > .cd-tg3")?.remove();
+  el.append(b, b2, b3);
+  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, btn2: b2, btn3: b3, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => { toast(e.message); return null; });
   b.onclick = (e) => { e.stopPropagation(); go(true); };
   b2.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.ap()); };
+  b3.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.measure(b3)); };
   if (lsGet("draw_ap", false)) go(false).then((x) => x && x.ap(true));
   else if ((lsGet(key, []) || []).length) { b.classList.add("has"); go(false); }
 }
@@ -3385,7 +3389,7 @@ function chartPxMenu(el, ch, ctx) {
   if (!el.querySelector(":scope > .pxp-b")) { if (getComputedStyle(el).position === "static") el.style.position = "relative";
     const b = document.createElement("button"); b.type = "button"; b.className = "pxp-b"; b.title = bi("Chọn giá bằng thanh kéo – đặt cắt lỗ / chốt lời / vào thêm / lệnh chờ", "Pick a price with a draggable line – stop / target / add / limit");
     b.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4M3 12h4M17 12h4"/></svg><span>${bi("Chọn giá", "Pick price")}</span>`;
-    b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); el.__pxPick?.(); }); el.appendChild(b); }
+    b.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); el.__pxPick?.(); }); el.appendChild(b); el.classList.add("has-pxp"); }      // has-pxp: các nút vẽ / đo dời xuống dưới nút này (trước đây đè nhau 6px)
   if (el.__pxm) return; el.__pxm = 1;
   const CS = () => el.__pxCh.cs;
   const priceAt = (cy) => { const r = el.getBoundingClientRect(), y = cy - r.top; if (y < 0 || y > r.height - 26) return null; const p = CS().coordinateToPrice(y); return isNum(p) && p > 0 ? p : null; };
@@ -3891,7 +3895,7 @@ async function ocDraw(keep) {
   try { OCC.ob?.(); } catch (e) { /* bỏ qua */ } OCC.ob = null;
   try { el._ptStop?.(); } catch (e) { /* bỏ qua */ } chartDrop(OCC.ch?.c); chartDrop(OCC.rcC); OCC.rcC = null; OCC.ch = null;      // biểu đồ cũ (khung giờ trước / trước khi bật tắt EMA·KL·RSI) gỡ hẳn
   el.innerHTML = "";
-  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)] }); OCC.ch = ch; OCC.chTf = tf;
+  const ch = candleChart(el, o, { ma: ocOpt("ema") ? [["ema", 20, css("--brand")], ["ema", 50, css("--ref")]] : [], volume: ocOpt("vol"), lines, from: o.t[Math.max(0, n - show)], dkey: I.base }); OCC.ch = ch; OCC.chTf = tf;      // dkey: biểu đồ lệnh cũng có bút vẽ + 📏 đo lời/lỗ (hình vẽ dùng chung với trang coin)
   if (KV) { try { if (KV.lr) ch.c.timeScale().setVisibleLogicalRange(KV.lr); if (KV.pr && !KV.auto) { ch.c.priceScale("right").applyOptions({ autoScale: false }); ch.c.priceScale("right").setVisibleRange?.(KV.pr); } } catch (e) { /* bỏ qua */ } }
   { const lg = document.querySelector("#ocChart .occ-lg"), lq = lines.find((l) => l.price === I.liq); lg?.querySelector(".occ-l.lq")?.remove(); if (lg && lq) lg.querySelector("#occOb")?.insertAdjacentHTML("beforebegin", `<span class="occ-l lq"><i></i>${bi("Thanh lý", "Liq.")} <b>${px(I.liq)}</b></span>`); }      // thanh lý chỉ ghi chú khi đường có trên biểu đồ
   ch.c.applyOptions({ crosshair: { mode: 1 }, handleScale: { axisPressedMouseMove: { time: true, price: true } } });

@@ -5,9 +5,32 @@
    "v": "2026.11.27",
    "t": "Phương pháp có lời là có công tắc",
    "te": "Profitable methods get their switches",
-   "s": "Phương pháp nào của phòng thử nghiệm kiểm chứng có lời là tự có công tắc sàn thử và tiền thật; phòng thử nghiệm chấm lại mỗi ngày.",
-   "se": "Any lab method that tests profitable automatically gets paper and real-money switches; the lab now re-scores every day.",
+   "s": "Phương pháp nào của phòng thử nghiệm kiểm chứng có lời là tự có công tắc sàn thử và tiền thật; đo lời/lỗ nhanh trên biểu đồ bằng một nút, dùng được trên điện thoại.",
+   "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Đo lời/lỗ nhanh trên biểu đồ – dùng được trên điện thoại: bấm nút thước, chạm điểm vào rồi kéo tới điểm ra",
+     "te": "Quick P&L ruler on charts, phone-friendly: tap the ruler, touch the entry point and drag to the exit",
+     "d": "Cạnh nút bút vẽ có thêm nút thước 📏. Bấm một lần, rồi chạm điểm vào và kéo tới điểm ra (hoặc chạm 2 điểm): kéo lên là Long, kéo xuống là Short. Thẻ kết quả chữ to hiện % giá thay đổi, số nến, lời/lỗ ròng sau phí 2 chiều và trượt giá 2 chiều, quy ra USDT trên mỗi 1.000 USDT; thẻ tự né chỗ đang đo. Không lưu lại, đo lần mới thay lần cũ, bấm ✕ để xoá. Có ở biểu đồ trang coin và biểu đồ lệnh.",
+     "de": "A ruler button 📏 sits next to the pencil. Tap it once, then touch the entry point and drag to the exit (or tap two points): up is Long, down is Short. A large result card shows the price change, bar count and net P&L after two-way fees and slippage, per 1,000 USDT; it moves out of the way of what you are measuring. Nothing is saved; a new measurement replaces the old one, ✕ clears it. Available on the coin chart and the order chart.",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "chart",
+     "t": "Biểu đồ lệnh có bút vẽ, mẫu hình và thước đo như trang coin",
+     "te": "The order chart now has the drawing tools, patterns and ruler like the coin page",
+     "d": "Hình vẽ dùng chung với trang coin của cùng mã.",
+     "de": "Drawings are shared with the same coin's page."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Nút vẽ không còn đè lên nút Chọn giá; nhãn thước đo không tràn khỏi biểu đồ hẹp",
+     "te": "Drawing buttons no longer overlap the Pick-price button; ruler labels stay inside narrow charts"
+    },
     {
      "c": "new",
      "a": "bot",

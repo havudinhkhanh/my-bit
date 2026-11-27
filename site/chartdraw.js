@@ -15,7 +15,7 @@
     ["vline", "Đường dọc (1 điểm) – đánh dấu ngày / sự kiện", ic('<path d="M12 3v18"/><circle cx="12" cy="12" r="1.6"/>')],
     ["fib", "Fibonacci thoái lui (kéo từ đáy lên đỉnh hoặc ngược lại)", ic('<path d="M3 5h18M3 9.5h18M3 13h18M3 19h18"/><path d="M5 19 19 5" stroke-dasharray="2 2"/>')],
     ["rect", "Vùng giá (hình chữ nhật)", ic('<rect x="4" y="6" width="16" height="12" rx="1"/>')],
-    ["measure", "Thước đo – kéo từ điểm vào tới điểm ra: % thay đổi, số nến, lời/lỗ sau phí + trượt giá (lên = Long, xuống = Short)", ic('<path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/>')],
+    ["measure", "Thước đo – kéo từ điểm vào tới điểm ra: % thay đổi, số nến, lời/lỗ sau phí + trượt giá", ic('<path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/>')],
     ["pen", "Bút vẽ tự do", ic('<path d="M4 20c3-1 4-5 7-6s4 3 6 2 2-6 3-8"/>')],
     ["text", "Ghi chú chữ", ic('<path d="M5 6V4h14v2M12 4v16M9 20h6"/>')],
   ];
@@ -193,9 +193,22 @@
       if (snap && st.mag && o.h) { const i = Math.round(L); if (i >= 0 && i < o.t.length) { let best = null, bd = 14; for (const q of [o.o?.[i], o.h[i], o.l[i], o.c[i]]) { if (q == null) continue; const d = Math.abs(Y(q) - y); if (d < bd) { bd = d; best = q; } } if (best != null) { p = best; L = i; } } }
       return { t: l2t(L), p: +p, x, y };
     };
+    // ---- 💰 thước đo: lời/lỗ nếu vào ở điểm đầu, ra ở điểm cuối – kéo LÊN = Long, kéo XUỐNG = Short; trừ phí 2 chiều + trượt giá 2 chiều (vào & ra đều trượt bất lợi)
+    const n2 = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ","), c2 = (v) => v.toFixed(2).replace(".", ",");
+    // cfg.cost (tuỳ trang): fee = phí mỗi chiều %, sell = phí/thuế THÊM ở chiều ra %, slip = trượt giá mỗi chiều %, short = false nếu thị trường không bán khống được
+    // (khi đó kéo xuống = mua ở điểm đầu, bán ở điểm cuối → lỗ), amt + unit = quy ra tiền ("USDT trên 1.000").
+    const MC = { fee: cfg.cost?.fee ?? cfg.get?.("ms_fee", 0.1) ?? 0.1, sell: cfg.cost?.sell ?? 0, slip: cfg.cost?.slip ?? cfg.get?.("ms_slip", 0.05) ?? 0.05, short: cfg.cost?.short !== false, amt: cfg.cost?.amt || 1000, unit: cfg.cost?.unit || "USDT trên 1.000", unitS: cfg.cost?.unitS || "USDT / 1.000" };
+    const msCalc = (p0, p1) => {
+      if (!(p0 > 0 && p1 > 0) || p0 === p1) return null;
+      const f = MC.fee / 100, fx = (MC.fee + MC.sell) / 100, sp = MC.slip / 100, up = p1 > p0, long = up || !MC.short;
+      const net = long ? (p1 * (1 - sp) * (1 - fx)) / (p0 * (1 + sp) * (1 + f)) - 1 : (p0 * (1 - sp) * (1 - f) - p1 * (1 + sp) * (1 + fx)) / p0;
+      return { up, long, net, ch: (p1 / p0 - 1) * 100, lab: !MC.short ? "Mua → bán" : up ? "Long" : "Short", fee2: MC.fee * 2 + MC.sell, slip2: MC.slip * 2, amt: net * MC.amt };
+    };
+    const msHint = MC.short ? "lên = Long, xuống = Short" : "mua ở điểm đầu, bán ở điểm cuối";
     // ---- vẽ
-    const lbl = (g, x, y, txt, col, anchor = "start", bg = true) => {
+    const lbl = (g, x, y, txt, col, anchor = "start", bg = true, maxW = 0) => {
       const t = el2("text", { x, y, fill: col, "font-size": 10.5, "text-anchor": anchor, "dominant-baseline": "middle", class: "cd-lb" }, g); t.textContent = txt;
+      if (maxW) { try { const b = t.getBBox(); if (b.x < 5) t.setAttribute("x", x + 5 - b.x); else if (b.x + b.width > maxW - 5) t.setAttribute("x", x - (b.x + b.width - maxW + 5)); } catch (e) { /* chưa hiển thị */ } }      // nhãn dài (thước đo) không tràn khỏi khung – nhất là trên điện thoại
       if (bg) { try { const b = t.getBBox(); g.insertBefore(el2("rect", { x: b.x - 3, y: b.y - 1, width: b.width + 6, height: b.height + 2, rx: 3, class: "cd-lbg" }), t); } catch (e) { /* chưa hiển thị */ } }
     };
     const render = () => {
@@ -205,7 +218,8 @@
       const defs = el2("defs", {}, svg), cp = el2("clipPath", { id: "cdc" + uid }, defs); el2("rect", { x: 0, y: 0, width: P.w, height: P.h }, cp);
       const root = el2("g", { "clip-path": `url(#cdc${uid})` }, svg);
       if (AP.on && AP.R) drawAP(root, P);
-      const list = st.hide ? [] : D.slice(); if (st.draft) list.push(st.draft);
+      const list = st.hide ? [] : D.slice(); if (QM) list.push(QM); if (st.draft) list.push(st.draft);
+      qSync();
       for (const d of list) {
         const g = el2("g", { class: "cd-o" + (d === st.sel ? " sel" : "") }, root), col = d.c || COLORS[0], W = d === st.sel ? 2 : 1.4;
         const pts = d.p.map((q) => ({ x: X(q.t), y: Y(q.p) }));
@@ -235,15 +249,14 @@
           el2("rect", { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y), fill: cc, "fill-opacity": 0.13, stroke: cc, "stroke-width": 1 }, g);
           el2("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: cc, "stroke-width": 1, "stroke-dasharray": "4 3" }, g);
           const bars = Math.round(t2l(d.p[1].t) - t2l(d.p[0].t)), ch = (d.p[1].p / d.p[0].p - 1) * 100;
-          const yl = (up ? Math.min(a.y, b.y) : Math.max(a.y, b.y)) + (up ? -12 : 12);
-          lbl(g, (a.x + b.x) / 2, yl, `${nfp(ch)} · ${fmt(d.p[1].p - d.p[0].p)} · ${Math.abs(bars)} nến`, cc, "middle");
+          el2("circle", { cx: a.x, cy: a.y, r: 3.2, fill: cc, stroke: "var(--surface)", "stroke-width": 1.2 }, g); el2("circle", { cx: b.x, cy: b.y, r: 3.2, fill: "var(--surface)", stroke: cc, "stroke-width": 1.6 }, g);      // ● vào · ○ ra
+          if (d.q) continue;      // 📏 đo nhanh: số liệu nằm ở thẻ kết quả (chữ to, đọc được trên điện thoại) – không vẽ nhãn nhỏ
+          const top = Math.min(a.y, b.y), bot = Math.max(a.y, b.y), dir = up ? (top - 29 < 8 ? 1 : -1) : (bot + 29 > P.h - 8 ? -1 : 1), yl = (up ? top : bot) + dir * 12;      // sát mép trên / dưới thì lật nhãn vào trong
+          lbl(g, (a.x + b.x) / 2, yl, `${nfp(ch)} · ${fmt(d.p[1].p - d.p[0].p)} · ${Math.abs(bars)} nến`, cc, "middle", true, P.w);
           // 💰 lời/lỗ nếu vào ở điểm đầu, ra ở điểm cuối (11/2026, Jason): kéo LÊN = Long, kéo XUỐNG = Short; trừ phí spot 2 chiều + trượt giá 2 chiều
           // (vào bị trượt bất lợi, ra bị trượt bất lợi). Phí / trượt mỗi chiều (%) đổi được: cfg.cost hoặc khoá ms_fee / ms_slip.
-          { const f = (cfg.cost?.fee ?? cfg.get?.("ms_fee", 0.1) ?? 0.1) / 100, sp = (cfg.cost?.slip ?? cfg.get?.("ms_slip", 0.05) ?? 0.05) / 100, p0 = d.p[0].p, p1 = d.p[1].p;
-            if (p0 > 0 && p1 > 0 && p0 !== p1) {
-              const net = up ? (p1 * (1 - sp) * (1 - f)) / (p0 * (1 + sp) * (1 + f)) - 1 : (p0 * (1 - sp) * (1 - f) - p1 * (1 + sp) * (1 + f)) / p0, nc = net >= 0 ? "#2FBF71" : "#F0525F";
-              const n2 = (v) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(2).replace(".", ",");
-              lbl(g, (a.x + b.x) / 2, yl + (up ? -17 : 17), `${up ? "Long" : "Short"} · ròng ${n2(net * 100)}% sau phí ${((f * 200).toFixed(2)).replace(".", ",")}% + trượt ${((sp * 200).toFixed(2)).replace(".", ",")}% · ${n2(net * 1000)} USDT / 1.000`, nc, "middle"); } }
+          { const M = msCalc(d.p[0].p, d.p[1].p);
+            if (M) lbl(g, (a.x + b.x) / 2, yl + dir * 17, P.w < 300 ? `${M.lab} ròng ${n2(M.net * 100)}% · ${n2(M.amt)}` : P.w < 520 ? `${M.lab} · ròng ${n2(M.net * 100)}% · ${n2(M.amt)} ${MC.unitS}` : `${M.lab} · ròng ${n2(M.net * 100)}% sau phí ${c2(M.fee2)}% + trượt ${c2(M.slip2)}% · ${n2(M.amt)} ${MC.unitS}`, M.net >= 0 ? "#2FBF71" : "#F0525F", "middle", true, P.w); }
         } else if (d.k === "pen") {
           el2("polyline", { points: pts.map((q) => `${q.x},${q.y}`).join(" "), fill: "none", stroke: col, "stroke-width": W + 0.4 }, g);
         } else if (d.k === "text") {
@@ -253,7 +266,7 @@
       }
     };
     const uid = Math.random().toString(36).slice(2, 8);
-    const draw = () => { try { render(); } catch (e) { cleanup(); svg.remove(); tb.remove(); AP.box?.remove(); } };
+    const draw = () => { try { render(); } catch (e) { cleanup(); svg.remove(); tb.remove(); qc.remove(); AP.box?.remove(); } };
     let rq = 0; const req = () => { if (!rq && !dead) rq = requestAnimationFrame(() => { rq = 0; draw(); }); };
     let pumpT = 0; const pump = (ms = 450) => { const end = performance.now() + ms; pumpT = Math.max(pumpT, end); const f = () => { if (dead) return; draw(); if (performance.now() < pumpT) requestAnimationFrame(f); }; requestAnimationFrame(f); };
     // ---- chọn hình
@@ -276,9 +289,30 @@
       }
       return null;
     };
-    const setTool = (k) => { st.tool = k; st.draft = null; $$b("[data-t]").forEach((b) => b.classList.toggle("on", b.dataset.t === k)); svg.classList.toggle("on", k !== "cur"); req(); };
+    // ---- 📏 ĐO NHANH (11/2026, Jason – dùng được trên điện thoại): bấm nút thước cạnh nút bút → chạm điểm vào, giữ và kéo tới điểm ra (hoặc chạm 2 điểm)
+    //      → thẻ kết quả chữ to: Long/Short, % thay đổi, số nến, ròng sau phí + trượt, lời/lỗ trên 1.000 USDT. Không lưu; đo lần mới thay lần cũ; ✕ để xoá.
+    let QM = null, qBtn = cfg.btn3 || null;
+    const qc = document.createElement("div"); qc.className = "cd-qm"; qc.hidden = true; el.appendChild(qc);
+    qc.addEventListener("pointerdown", (e) => e.stopPropagation());
+    qc.addEventListener("click", (e) => { if (!e.target.closest("[data-qx]")) return; e.stopPropagation(); QM = null; if (st.quick) setTool("cur"); req(); });
+    let qLast = "";
+    const qSync = () => {
+      const d = st.draft?.q ? st.draft : QM, on = !!(st.quick || QM); if (qBtn) qBtn.classList.toggle("on", on);
+      let h = "";
+      if (on) { const M = d ? msCalc(d.p[0].p, d.p[1].p) : null, X_ = `<button type="button" data-qx aria-label="Đóng thước đo">✕</button>`;
+        if (!M) h = `<div class="cd-qm-h">📏 <b>Chạm điểm vào</b>, giữ và <b>kéo tới điểm ra</b> · ${msHint} <small>· đã trừ phí ${c2(MC.fee * 2 + MC.sell)}% + trượt ${c2(MC.slip * 2)}%</small></div>${X_}`;
+        else { const bars = Math.abs(Math.round(t2l(d.p[1].t) - t2l(d.p[0].t))), cl = M.net >= 0 ? "up" : "down";
+          h = `<div class="cd-qm-r"><span><b class="cd-qm-s ${M.up ? "up" : "down"}">${M.lab}</b> giá ${esc(nfp(M.ch))} · ${bars} nến</span><span>Ròng <b class="${cl}">${n2(M.net * 100)}%</b> · <b class="${cl}">${n2(M.amt)}</b> ${esc(MC.unit)}</span><small>${esc(fmt(d.p[0].p))} → ${esc(fmt(d.p[1].p))} · đã trừ phí ${c2(M.fee2)}% + trượt ${c2(M.slip2)}%</small></div>${X_}`; } }
+      if (h !== qLast) { qLast = h; qc.innerHTML = h; qc.hidden = !h; }
+      if (h && d) {      // thẻ nằm ở đáy; điểm đo chạm vùng đáy thì thẻ nhảy lên đầu (không che chỗ đang đo)
+        const y0 = Y(d.p[0].p), y1 = Y(d.p[1].p), H = pane().h, ch = qc.offsetHeight || 76, lo = Math.max(y0, y1), hi = Math.min(y0, y1), T0 = qc.classList.contains("qm-t");
+        const cb = lo > H - ch - (T0 ? 4 : 16), ct = hi < (el.classList.contains("has-pxp") ? 78 : 66) + ch + (T0 ? 16 : 4), top = cb && !ct ? true : !cb ? false : y1 > H / 2; if (top !== T0) qc.classList.toggle("qm-t", top);      // cả 2 đầu đều vướng → tránh điểm RA (chỗ ngón tay)
+      } else if (!d) qc.classList.remove("qm-t");
+    };
+    const measure = (b) => { if (b) qBtn = b; if (st.quick && !st.draft) { setTool("cur"); return; } QM = null; setTool("measure"); st.quick = true; OPEN_TB = inst; req(); };      // bấm lần nữa khi đang chờ điểm đầu = thôi đo
+    const setTool = (k) => { st.tool = k; st.draft = null; st.quick = false; $$b("[data-t]").forEach((b) => b.classList.toggle("on", b.dataset.t === k)); svg.classList.toggle("on", k !== "cur"); req(); };
     const $$b = (q) => [...tb.querySelectorAll(q)];
-    const finish = (d) => { st.draft = null; if (d) { D.push(d); st.sel = d; save(); } if (btn) btn.classList.toggle("has", D.length > 0); setTool("cur"); };
+    const finish = (d) => { st.draft = null; if (d && d.q) { QM = d; setTool("cur"); return; } if (d) { D.push(d); st.sel = d; save(); } if (btn) btn.classList.toggle("has", D.length > 0); setTool("cur"); };
     // ---- bút vẽ khi đang chọn công cụ (lớp phủ nhận chuột)
     svg.addEventListener("pointerdown", (ev) => {
       if (st.tool === "cur") return;
@@ -289,7 +323,7 @@
       if (st.tool === "text") return textAt(q);
       if (st.tool === "pen") { st.draft = { k: "pen", p: [P0], c: st.color }; st.drag = { pen: true, lx: q.x, ly: q.y }; svg.setPointerCapture(ev.pointerId); return req(); }
       if (st.draft) { st.draft.p[1] = P0; return finish(st.draft); }
-      st.draft = { k: st.tool, p: [P0, { ...P0 }], c: st.color }; st.drag = { two: true, x0: q.x, y0: q.y }; svg.setPointerCapture(ev.pointerId); req();
+      st.draft = { k: st.tool, p: [P0, { ...P0 }], c: st.color, ...(st.quick ? { q: 1 } : {}) }; st.drag = { two: true, x0: q.x, y0: q.y }; svg.setPointerCapture(ev.pointerId); req();
     });
     svg.addEventListener("pointermove", (ev) => {
       if (st.tool === "cur" || !st.draft) return;
@@ -304,6 +338,7 @@
       if (st.draft.k === "pen") return finish(st.draft.p.length > 1 ? st.draft : null);
       if (dr && dr.two) { const q = ptAt(ev); if (q && Math.hypot(q.x - dr.x0, q.y - dr.y0) > 6) { st.draft.p[1] = { t: q.t, p: q.p }; finish(st.draft); } }   // kéo-thả xong; bấm-bấm thì chờ điểm 2
     });
+    svg.addEventListener("pointercancel", () => { if (st.draft && st.drag) { st.drag = null; st.draft = null; req(); } });
     const textAt = (q) => {
       const inp = document.createElement("input"); inp.className = "cd-in"; inp.placeholder = "Ghi chú… (Enter)";
       const R = svg.getBoundingClientRect(), E = el.getBoundingClientRect();
@@ -354,7 +389,7 @@
     });
     const key = (e) => {
       if (OPEN_TB !== inst || !el.isConnected || /input|textarea|select/i.test(document.activeElement?.tagName || "")) return;
-      if (e.key === "Escape") { if (st.draft || st.tool !== "cur") { setTool("cur"); e.stopPropagation(); } else if (st.sel) { st.sel = null; req(); } }
+      if (e.key === "Escape") { if (st.draft || st.tool !== "cur") { setTool("cur"); e.stopPropagation(); } else if (QM) { QM = null; req(); } else if (st.sel) { st.sel = null; req(); } }
       if ((e.key === "Delete" || e.key === "Backspace") && st.sel) { D = D.filter((d) => d !== st.sel); st.sel = null; save(); if (btn) btn.classList.toggle("has", D.length > 0); req(); e.preventDefault(); }
     };
     document.addEventListener("keydown", key, true);
@@ -452,7 +487,7 @@
     }
     let dead = false;
     function cleanup() { if (dead) return; dead = true; AP.box?.remove(); el.removeEventListener("pointerdown", down, true); el.removeEventListener("mousedown", block, true); el.removeEventListener("touchstart", block, true); try { ro.disconnect(); ts.unsubscribeVisibleLogicalRangeChange(onRange); c.unsubscribeCrosshairMove(onCross); } catch (e) { /* biểu đồ đã huỷ */ } document.removeEventListener("keydown", key, true); if (OPEN_TB === inst) OPEN_TB = null; }
-    const inst = { c, toggle, render: req, alive: () => svg.isConnected, destroy: () => { cleanup(); svg.remove(); tb.remove(); AP.box?.remove(); }, ap: (v) => apOn(v ?? !AP.on), get count() { return D.length; } };
+    const inst = { c, toggle, render: req, alive: () => svg.isConnected, destroy: () => { cleanup(); svg.remove(); tb.remove(); qc.remove(); AP.box?.remove(); }, measure, ap: (v) => apOn(v ?? !AP.on), get count() { return D.length; } };
     el._cd = inst;
     setTool("cur"); draw(); setTimeout(req, 60); setTimeout(req, 400);
     if (cfg.open) openTb(true);
