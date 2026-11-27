@@ -3820,7 +3820,8 @@ async function trClipAt(env, sym, ms, open) {
   env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, "");
   try { const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null }))]);
     const C = { ...SCALP_DEF, ...scMig(rq.data) }, A = tRecs(rs.data || {}, rl.data || null, C, env, sym);
-    const r = tPick(open ? A.filter((x) => x.status === "open" || x.status === "wait") : A, ms || Date.now());      // mở từ thẻ lệnh ĐANG MỞ → chỉ chọn lệnh đang mở / chờ (trước: lấy nhầm lệnh cùng coin đã đóng)
+    const OP = A.filter((x) => x.status === "open" || x.status === "wait");
+    const r = open ? (OP.length <= 1 ? OP[0] : OP.reduce((m, x) => (Math.abs((x.t0 || 0) - ms) < Math.abs((m.t0 || 0) - ms) ? x : m))) : tPick(A, ms || Date.now());      // lệnh đang mở giữ lâu (vài ngày) vẫn tìm được      // mở từ thẻ lệnh ĐANG MỞ → chỉ chọn lệnh đang mở / chờ (trước: lấy nhầm lệnh cùng coin đã đóng)
     if (!r) { toast(bi("Không còn dữ liệu lệnh này để dựng clip.", "No data for this trade.")); return; } trClip(r, env, sym); } catch (e) { toast(bi("Chưa tải được dữ liệu lệnh.", "Couldn't load the trade.")); }
 }
 window.trClipAt = trClipAt;

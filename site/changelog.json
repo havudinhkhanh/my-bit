@@ -13,8 +13,16 @@
      "a": "bot",
      "t": "Clip lệnh đang mở: không còn ra lệnh cũ đã đóng",
      "te": "Replay of an open trade no longer shows an old closed one",
-     "d": "Bấm ▶ trên thẻ lệnh đang mở (kể cả lệnh tay ✋) giờ chỉ chọn đúng lệnh đang mở đó – phát từ lúc khớp tới hiện tại; trước có lúc lấy nhầm lệnh cùng coin đã đóng.",
+     "d": "Bấm ▶ trên thẻ lệnh đang mở (kể cả lệnh tay ✋) giờ chỉ chọn đúng lệnh đang mở đó – phát từ lúc khớp tới hiện tại; trước có lúc lấy nhầm lệnh cùng coin đã đóng. Lệnh giữ nhiều ngày cũng tìm được.",
      "de": "▶ on an open trade card (manual too) plays that open trade up to now."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "2 thanh dính không còn mất nền khi trang tự làm mới",
+     "te": "Pinned bars keep their background on auto-refresh",
+     "d": "Trang Bot tự làm mới / đổi tab con thì xét lại ngay trạng thái dính – không còn cảnh thanh tab và hàng lọc trong suốt, chữ đè lên nội dung.",
+     "de": "Sticky state is re-checked after each refresh, so the bars never turn transparent."
     },
     {
      "c": "imp",

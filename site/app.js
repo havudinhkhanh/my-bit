@@ -9038,7 +9038,9 @@ const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
       for (const k of ["--sbL", "--sbR"]) { const x = tb.style.getPropertyValue(k); if (x && H.style.getPropertyValue(k + "0") !== x) H.style.setProperty(k + "0", x); } }
     const os = !!of && of.getBoundingClientRect().top <= (parseFloat(H.style.getPropertyValue("--oflt")) || 0) + 0.5 && scrollY > 0;
     if (of && of.classList.contains("stuck") !== os) of.classList.toggle("stuck", os); if (H.classList.contains("ofl-stuck") !== os) H.classList.toggle("ofl-stuck", os); };
-  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("resize", () => { if (!q) q = requestAnimationFrame(chk); }); addEventListener("hashchange", () => setTimeout(chk, 300)); }
+  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("resize", () => { if (!q) q = requestAnimationFrame(chk); }); addEventListener("hashchange", () => setTimeout(chk, 300));
+  // trang tự làm mới / đổi tab con (vẽ lại hàng lọc, thanh tab) → xét lại ngay trạng thái "đang dính" (không chờ lần cuộn kế) – trước: đứng yên thì 2 thanh dính mất nền, chữ đè lên nhau
+  const ap = document.getElementById("app"); if (ap) new MutationObserver(() => { if (!q && scrollY > 0) q = requestAnimationFrame(chk); }).observe(ap, { childList: true, subtree: true }); }
 // cuộn khỏi đầu trang → thanh trên có viền tóc + bóng nhẹ (chỉ đổi lớp khi qua ngưỡng, không làm gì mỗi khung cuộn)
 { let on = false, q = 0; addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; const v = scrollY > 6; if (v !== on) { on = v; document.documentElement.classList.toggle("top-sc", v); } }); }, { passive: true }); }
 // 🧱 #app tách lớp vẽ (isolation – xem app.css) → menu thả xuống trong trang không nổi lên trên thanh tab / viên lệnh được.
