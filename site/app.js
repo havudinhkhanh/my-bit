@@ -2312,7 +2312,7 @@ function pnRoute(r, arg) {
 // ---- bảng phụ: 4 thẻ cố định trên mọi trang – Tóm tắt (trang này nói gì) · Đi tới (mục lục + lọc) · Của tôi (theo dõi, vị thế, bot) · Tính lệnh
 function pnTab(t, quiet) {
   const nav = $("#pnav"); if (!nav) return;
-  if (t === "toc" && $('#pnav [data-t="toc"]')?.hidden) t = "sum";
+  if ((t === "toc" && $('#pnav [data-t="toc"]')?.hidden) || (t !== "sum" && pnHid()[t])) t = "sum";
   PN.tab = t; if (!quiet) pnLS("tab", t);
   nav.dataset.tab = t;
   $$("#pnav [data-t]").forEach((b) => { const on = b.dataset.t === t; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
@@ -2481,11 +2481,14 @@ if (!window.__crSc) { window.__crSc = 1; addEventListener("hashchange", () => se
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
 // ⚙ Tuỳ chỉnh bảng phụ: anh chọn phần nào hiện (lưu trên máy này). Mặc định hiện hết; bot phút đang tắt luôn gom thành 1 dòng thu gọn
 const PNH_L = [["dock", "📈 Biểu đồ lời/lỗ Binance", "Trang Bot Phản Xạ – hiện khi cuộn qua biểu đồ lớn"], ["pulse", "Nhịp thị trường", "Đèn · BTC · tâm lý · funding"],
-  ["tabs", "Thanh Tóm tắt · Đi tới · Của tôi · Tính lệnh", "Tắt → chỉ còn phần Tóm tắt"], ["mbot", "🤖 Bot phút", "Bot đang tắt luôn được gom thành 1 dòng"], ["al", "⚠️ Cảnh báo thị trường", ""], ["cpt", "📚 Thuật ngữ trên trang", ""]];
-const pnHid = () => SB.hid || (SB.hid = pnLS("hid") || {});
+  ["toc", "Thẻ Đi tới", "Mục lục & lọc dòng trong trang (phím /)"], ["me", "Thẻ Của tôi", "Coin theo dõi · sàn thử · bot"], ["calc", "Thẻ Tính lệnh", "Khối lượng theo vốn & cắt lỗ"], ["mbot", "🤖 Bot phút", "Bot đang tắt luôn được gom thành 1 dòng"], ["al", "⚠️ Cảnh báo thị trường", ""], ["cpt", "📚 Thuật ngữ trên trang", ""]];
+// mặc định ẩn thẻ "Đi tới" (ít dùng); tắt cả 3 thẻ → bỏ hẳn thanh thẻ, chỉ còn Tóm tắt
+const pnHid = () => { if (SB.hid) return SB.hid; let H = pnLS("hid"); if (!H || typeof H !== "object") H = { toc: true }; if (H.tabs) { H.toc = H.me = H.calc = true; delete H.tabs; } return (SB.hid = H); };
 function pnHApply() {
   const nav = $("#pnav"); if (!nav) return; const H = pnHid();
   for (const [k] of PNH_L) if (nav.classList.contains("h-" + k) !== !!H[k]) nav.classList.toggle("h-" + k, !!H[k]);
+  const all = H.toc && H.me && H.calc; if (nav.classList.contains("h-tabs") !== !!all) nav.classList.toggle("h-tabs", !!all);
+  if (H[PN.tab]) pnTab("sum", true);
 }
 function pnCus(open) {
   const el = $("#pnCus"), b = $("#pnCusB"); if (!el) return;
@@ -2503,11 +2506,11 @@ function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
   stickH(); pnHApply();
   $("#pnCusB")?.addEventListener("click", (e) => { e.stopPropagation(); pnCus(); });
-  nav.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall],[data-pncus]"); if (!t) return; e.preventDefault();
-    if (t.dataset.pncus != null) { pnCus(true); $("#pnav .pn-scroll").scrollTop = 0; return; }
+  $("#pnColl")?.addEventListener("click", () => pnOpen(false));
+  nav.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall]"); if (!t) return; e.preventDefault();
     if (t.dataset.pnhall != null) return pnHSet("*");
     pnHSet(t.dataset.pnh, !pnHid()[t.dataset.pnh]); });
-  document.addEventListener("click", (e) => { const el = $("#pnCus"); if (el && !el.hidden && e.target.isConnected && !e.target.closest("#pnCus,#pnCusB,[data-pncus]")) pnCus(false); });
+  document.addEventListener("click", (e) => { const el = $("#pnCus"); if (el && !el.hidden && e.target.isConnected && !e.target.closest("#pnCus,#pnCusB")) pnCus(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#pnCus")?.hidden) pnCus(false); });
   $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
   let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
@@ -2754,7 +2757,7 @@ async function sbRender() {
     const cp = sbConcepts(r);
     bot.innerHTML = (r !== "market" && r !== "futures" && al ? `<details class="sb" data-b="al" ${sbOpen().al === true ? "open" : ""}><summary><span>⚠️ Cảnh báo thị trường</span><em>${(M.alerts || []).length}</em></summary><div class="sb-b">${al}</div></details>` : "")
       + (cp ? `<details class="sb" data-b="cpt" ${sbOpen().cpt === true ? "open" : ""}><summary><span>📚 Thuật ngữ trên trang</span></summary><div class="sb-b">${cp}</div></details>` : "")
-      + `<button type="button" class="pn-cusl" data-pncus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Tuỳ chỉnh bảng phụ</button>`;
+;
     // Của tôi: theo dõi → xem gần đây → vị thế sàn thử → bot
     const rc = sbRecent(), pp = sbPaper();
     low.innerHTML = `<h4 class="pn-h">★ Đang theo dõi <em>${WL.set.size || ""}</em></h4>${wl}`
@@ -7468,7 +7471,7 @@ function initSearch() {
   document.addEventListener("keydown", (e) => {
     const typing = /input|textarea|select/i.test(document.activeElement.tagName);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); cmdk($("#cmdk")?.hidden !== false); return; }
-    if (e.key === "/" && !typing) { e.preventDefault(); const p = $("#mq") || (!$("#pnav").hidden && $("#pnq")); if (p) { if (p.id === "pnq") { pnOpen(true); pnTab("toc"); } p.focus(); } else q.focus(); }
+    if (e.key === "/" && !typing) { e.preventDefault(); const p = $("#mq") || (!$("#pnav").hidden && !pnHid().toc && $("#pnq")); if (p) { if (p.id === "pnq") { pnOpen(true); pnTab("toc"); } p.focus(); } else q.focus(); }
   });
 }
 // ================================================================ MENU THẢ XUỐNG ĐỒNG NHẤT – thay bảng gợi ý của <datalist> và hộp chọn mặc định của trình duyệt
@@ -9317,7 +9320,7 @@ function dragEdge(el, o) {
       get: () => (document.body.classList.contains("rail-auto") ? 64 : parseFloat(getComputedStyle(D).getPropertyValue("--rail-w")) || 224),
       set: (w, live) => { if (w < 120) { if (!live) { $("#railPin")?.click?.(); } return; } const v = Math.round(Math.max(180, Math.min(340, w))); if (document.body.classList.contains("rail-auto") && !live) $("#railPin")?.click?.(); D.style.setProperty("--rail-w", v + "px"); if (!live) { lsSet("railw", v); dispatchEvent(new Event("resize")); } },
       reset: () => { D.style.removeProperty("--rail-w"); lsSet("railw", null); dispatchEvent(new Event("resize")); } });
-    dragEdge(pn, { cls: "eg-pn", title: "Kéo để đổi độ rộng bảng phụ · kéo hẳn sang trái để ẩn · nhấp đúp = mặc định", btn: "‹", btnTitle: "Thu gọn bảng phụ", btnRun: () => pnOpen(false),
+    dragEdge(pn, { cls: "eg-pn", title: "Kéo để đổi độ rộng bảng phụ · kéo hẳn sang trái để ẩn · nhấp đúp = mặc định", 
       get: () => pn.getBoundingClientRect().width || 300,
       set: (w, live) => { if (w < 190) { if (!live) pnOpen(false); return; } const v = Math.round(Math.max(240, Math.min(560, w))); D.style.setProperty("--pnw", v + "px"); if (!live) { lsSet("pnw", v); dispatchEvent(new Event("resize")); } },
       reset: () => { D.style.removeProperty("--pnw"); lsSet("pnw", null); dispatchEvent(new Event("resize")); } });

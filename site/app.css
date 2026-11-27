@@ -8136,3 +8136,20 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
 .sc-lad .cur{width:12px;height:12px;border:2.5px solid var(--down);background:var(--surface);box-shadow:0 1px 3px rgba(15,23,42,.28),0 0 0 3px color-mix(in srgb,var(--down) 14%,transparent)}
 .sc-lad.win .cur{border-color:var(--up);box-shadow:0 1px 3px rgba(15,23,42,.28),0 0 0 3px color-mix(in srgb,var(--up) 14%,transparent)}
 .sc-lad.out .cur{background:var(--down);border-color:var(--surface)}
+/* chân Bảng phụ: [⇥ Thu gọn bảng phụ  P] … [⚙] – cùng kiểu & cùng tầm với "Thu gọn thanh bên [" ở chân thanh trái (thay nút ‹ lơ lửng ở mép) */
+.pn-foot{position:relative;flex:none;display:flex;align-items:center;gap:4px;margin:8px 0 0;padding:8px 0 0;border-top:1px solid var(--pnb,var(--bd-2))}
+.pn-fb{border:0;background:transparent;color:var(--ink-3);cursor:pointer;border-radius:10px;transition:background-color .15s,color .15s}
+.pn-fb:hover,.pn-fb[aria-expanded="true"]{background:var(--pnh,var(--sunk));color:var(--ink)}
+.pn-fb:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.pn-coll{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:9px 10px;font:500 .8rem/1.1 "Be Vietnam Pro",system-ui,sans-serif;white-space:nowrap;text-align:left}
+.pn-coll svg{width:18px;height:18px;flex:none}
+.pn-coll span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pn-coll kbd{flex:none;margin-left:auto;font:600 .66rem/1 ui-monospace,monospace;padding:2px 5px;border-radius:4px;border:1px solid var(--bd);background:transparent;color:var(--ink-3)}
+.pn-foot .pn-cusb{width:36px;height:36px;margin:0;border-radius:10px}
+.pn-foot .pn-cusb svg{width:18px;height:18px}
+.pn-foot .pn-cus{position:absolute;z-index:6;left:0;right:0;bottom:calc(100% + 6px);margin:0;max-height:min(70vh,520px);overflow:auto;box-shadow:0 18px 40px -18px rgba(15,23,42,.45),0 2px 8px rgba(15,23,42,.08);animation-name:pnCusUp}
+@keyframes pnCusUp{from{opacity:0;transform:translateY(6px)}}
+body.pn-sheet .pn-coll{visibility:hidden}      /* tấm trượt (điện thoại) đã có ✕ */
+@media (hover:none){.pn-coll kbd{display:none}}
+.pn-in{overflow:visible}
+#pnav.h-toc .pn-tabs2 [data-t="toc"],#pnav.h-me .pn-tabs2 [data-t="me"],#pnav.h-calc .pn-tabs2 [data-t="calc"]{display:none!important}
