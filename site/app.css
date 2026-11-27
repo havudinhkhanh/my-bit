@@ -8285,3 +8285,6 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 @media (max-width:640px){.clp{gap:8px}.clp-s{margin-left:0}.clp-n{width:100%;justify-content:center}}
 /* dòng mô tả dưới tên mã trên thẻ lệnh (phương pháp · lý do vào): xuống dòng đọc hết chữ, tối đa 3 dòng (trước: 1 dòng cắt "…") */
 .sc-oc .r1s{white-space:normal!important;overflow:hidden;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;line-height:1.4}
+/* thẻ lệnh phương pháp thử nghiệm: TÊN PHƯƠNG PHÁP nổi bật (đậm, màu chữ chính) – lý do vào nhạt phía sau */
+.sc-oc .r1s .oc-mth{color:var(--ink);font-weight:650}
+.sc-oc .r1s .oc-why{color:var(--ink-3)}
