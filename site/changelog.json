@@ -10,11 +10,43 @@
    "it": [
     {
      "c": "new",
+     "a": "ui",
+     "t": "Kéo thả để sắp xếp bảng phụ",
+     "te": "Drag to reorder the side panel",
+     "d": "Trong tấm Tuỳ chỉnh bảng phụ (⚙), kéo nút ⠿ để đổi thứ tự trong từng nhóm: biểu đồ / nhịp thị trường, các thẻ, bot phút / cảnh báo / thuật ngữ (bàn phím: ↑ ↓ trên nút ⠿). Nút “Về mặc định” trả lại thứ tự gốc.",
+     "de": "Drag ⠿ in the customise sheet to reorder each group; “Reset” restores defaults."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Tiêu đề trang nhỏ dần rồi ẩn khi cuộn",
+     "te": "Large page title shrinks on scroll",
+     "d": "Kiểu tiêu đề lớn của iPhone: cuộn xuống thì “Bot Phản Xạ” co lại và mờ dần, cuộn về đầu thì hiện lại.",
+     "de": "iOS-style large title that shrinks and fades as you scroll."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "2 nút thu gọn cùng hàng, bỏ ô phím tắt",
+     "te": "Collapse buttons aligned",
+     "d": "“Thu gọn thanh bên” và “Thu gọn bảng phụ” cùng chiều cao, cùng đáy; bỏ ô “[” / “P” (phím tắt vẫn dùng được).",
+     "de": "Both collapse buttons share height and baseline; key hints removed."
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "Điện thoại: thanh tab dưới không còn trôi lên giữa màn hình khi cuộn",
+     "te": "Phone: bottom tab bar no longer drifts up while scrolling",
+     "d": "Đo vị trí thật của thanh sau mỗi lần cuộn; lệch khỏi đáy là tự kéo về.",
+     "de": "The bar's real position is checked after each scroll and snapped back if it drifts."
+    },
+    {
+     "c": "new",
      "a": "bot",
      "t": "🎬 Clip xem lại từng lệnh",
      "te": "🎬 Replay clip for every trade",
-     "d": "Bấm ▶ cạnh mỗi lệnh đã đóng (hoặc nút “Clip xem lại lệnh” trong trang chi tiết lệnh): giá chạy từ lúc chờ khớp → khớp → đóng → thêm 5 giây, dựng từ từng giao dịch thật của Binance Futures. Tua nhanh theo từng đoạn (số × ghi trên clip), có mức chờ, giá vào, cắt lỗ, lời/lỗ tạm tính theo từng nhịp. Tua, đổi tốc độ, và Lưu video để gửi.",
-     "de": "Tap ▶ next to a closed trade: price from waiting → fill → close → +5 s, from real Binance Futures trades, with per-phase fast-forward, levels, entry, live P&L. Seek, change speed, save as video.",
+     "d": "Bấm ▶ cạnh mỗi lệnh đã đóng (hoặc nút “Clip xem lại lệnh” trong trang chi tiết lệnh): giá chạy từ lúc chờ khớp → khớp → đóng → thêm 5 giây, dựng từ từng giao dịch thật của Binance Futures. Mỗi clip ≤ 10 giây kể cả lệnh giữ cả tuần (tua nhanh theo đoạn, số × ghi trên clip), nút ⏩ 2× / 4×. Sau khi khớp, vùng giữa giá vào và đường giá tô xanh/đỏ theo lời/lỗ, trục trái quy từng mức giá ra $ và bps. Lưu video để gửi.",
+     "de": "Tap ▶ next to a closed trade: waiting → fill → close → +5 s from real Binance Futures trades, ≤ 10 s per clip, ⏩ 2×/4×, P&L shading and $/bps axis. Save as video.",
      "hi": 1,
      "f": "bot",
      "go": "#/bot/scalp"

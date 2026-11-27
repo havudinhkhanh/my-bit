@@ -2491,11 +2491,29 @@ function pnHApply() {
   if (H[PN.tab]) pnTab("sum", true);
 }
 // ⚙ Tuỳ chỉnh = tấm trượt ra từ mép PHẢI màn hình (có lớp mờ phía sau) – không chen vào trong bảng phụ; bật/tắt thấy ngay ở bảng phụ bên trái
-const PNH_G = [["Trên cùng", ["dock", "pulse"]], ["Các thẻ", ["toc", "me", "calc"]], ["Trong phần Tóm tắt", ["mbot", "al", "cpt"]]];
+const PNH_G = [["top", "Trên cùng", ["dock", "pulse"]], ["tabs", "Các thẻ", ["toc", "me", "calc"]], ["sum", "Trong phần Tóm tắt", ["mbot", "al", "cpt"]]];
+// ↕ thứ tự trong từng nhóm (kéo thả trong tấm Tuỳ chỉnh) – lưu trên máy này; áp bằng biến CSS order (--o-<khoá>) nên không phải dựng lại bảng phụ
+const pnOrd = () => { const O = pnLS("ord") || {}; return Object.fromEntries(PNH_G.map(([g, , ks]) => { const a = (O[g] || []).filter((k) => ks.includes(k)); return [g, [...a, ...ks.filter((k) => !a.includes(k))]]; })); };
+function pnOApply() { const nav = $("#pnav"); if (!nav) return; const O = pnOrd(); for (const [g] of PNH_G) O[g].forEach((k, i) => { const v = String(i + 1); if (nav.style.getPropertyValue("--o-" + k) !== v) nav.style.setProperty("--o-" + k, v); }); }
 function pnCusBody() {
-  const H = pnHid(), L = Object.fromEntries(PNH_L.map((x) => [x[0], x]));
-  return PNH_G.map(([g, ks]) => `<p class="pnfly-g">${T(g)}</p><div class="pnfly-c">${ks.map((k) => { const [, t, d] = L[k]; return `<button type="button" class="pn-cus-r" role="switch" aria-checked="${!H[k]}" data-pnh="${k}"><span><b>${T(t)}</b>${d ? `<small>${T(d)}</small>` : ""}</span><i class="ios-sw sm" aria-checked="${!H[k]}"><i></i></i></button>`; }).join("")}</div>`).join("")
-    + `<button type="button" class="pnfly-reset" data-pnhall ${Object.values(H).some(Boolean) ? "" : "disabled"}>${T("Hiện lại tất cả")}</button>`;
+  const H = pnHid(), L = Object.fromEntries(PNH_L.map((x) => [x[0], x])), O = pnOrd();
+  return PNH_G.map(([g, gt]) => `<p class="pnfly-g">${T(gt)}<small>${T("kéo ⠿ để đổi thứ tự")}</small></p><div class="pnfly-c" data-pngrp="${g}">${O[g].map((k) => { const [, t, d] = L[k];
+    return `<div class="pn-cus-r" data-pnk="${k}"><button type="button" class="pn-grip" data-pngrip aria-label="${T("Kéo để đổi thứ tự")}: ${esc(T(t))} (${T("phím ↑ ↓")})"><svg viewBox="0 0 12 18" aria-hidden="true"><circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/><circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/><circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/></svg></button>`
+      + `<span class="pn-cus-l"><b>${T(t)}</b>${d ? `<small>${T(d)}</small>` : ""}</span><button type="button" class="ios-sw sm" role="switch" aria-checked="${!H[k]}" aria-label="${esc(T(t))}" data-pnh="${k}"><i></i></button></div>`; }).join("")}</div>`).join("")
+    + `<button type="button" class="pnfly-reset" data-pnhall ${Object.values(H).some(Boolean) || pnLS("ord") ? "" : "disabled"}>${T("Về mặc định (hiện tất cả, thứ tự gốc)")}</button>`;
+}
+function pnOSave(grp) { const c = document.querySelector(`#pnFly [data-pngrp="${grp}"]`); if (!c) return; const O = pnLS("ord") || {}; O[grp] = [...c.querySelectorAll("[data-pnk]")].map((x) => x.dataset.pnk); pnLS("ord", O); pnOApply(); const b = $("#pnFly .pnfly-reset"); if (b) b.disabled = false; }
+// kéo thả bằng con trỏ / ngón tay trên nút ⠿ (dòng đi theo tay, các dòng khác dạt ra); bàn phím: ↑ ↓ trên nút ⠿
+function pnDrag(e, grip) {
+  const row = grip.closest("[data-pnk]"), box = row.parentElement, rows = [...box.children], h = row.offsetHeight, y0 = e.clientY, i0 = rows.indexOf(row);
+  const tops = rows.map((r) => r.offsetTop); let to = i0;
+  row.classList.add("drag"); box.classList.add("dragging"); grip.setPointerCapture?.(e.pointerId);
+  const mv = (ev) => { const dy = ev.clientY - y0, mid = tops[i0] + dy + h / 2; to = Math.max(0, Math.min(rows.length - 1, tops.findIndex((t, i) => mid < t + rows[i].offsetHeight) < 0 ? rows.length - 1 : tops.findIndex((t, i) => mid < t + rows[i].offsetHeight)));
+    row.style.transform = `translateY(${dy}px)`; rows.forEach((r, i) => { if (r === row) return; const sh = i0 < to && i > i0 && i <= to ? -h : i0 > to && i < i0 && i >= to ? h : 0; r.style.transform = sh ? `translateY(${sh}px)` : ""; }); };
+  const up = () => { grip.removeEventListener("pointermove", mv); grip.removeEventListener("pointerup", up); grip.removeEventListener("pointercancel", up);
+    rows.forEach((r) => (r.style.transform = "")); row.classList.remove("drag"); box.classList.remove("dragging");
+    if (to !== i0) { box.insertBefore(row, to > i0 ? rows[to].nextSibling : rows[to]); pnOSave(box.dataset.pngrp); } };
+  grip.addEventListener("pointermove", mv); grip.addEventListener("pointerup", up); grip.addEventListener("pointercancel", up);
 }
 function pnCus(open) {
   let el = $("#pnFly"); const b = $("#pnCusB");
@@ -2506,10 +2524,13 @@ function pnCus(open) {
       <header class="pnfly-h"><div><b id="pnFlyT">${T("Tuỳ chỉnh bảng phụ")}</b><small>${T("Chọn phần hiện trong bảng phụ · lưu trên máy này")}</small></div><button type="button" class="pnfly-x" data-pnx aria-label="${T("Đóng")}">✕</button></header>
       <div class="pnfly-b" id="pnFlyB"></div></aside></div>`);
     el = $("#pnFly");
-    el.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall],[data-pnx]"); if (!t) return; e.preventDefault();
+    el.addEventListener("click", (e) => { if (e.target.closest("[data-pngrip]")) return; const t = e.target.closest("[data-pnh],[data-pnhall],[data-pnx],[data-pnk]"); if (!t) return; e.preventDefault();
       if (t.dataset.pnx != null) return pnCus(false);
-      if (t.dataset.pnhall != null) return pnHSet("*");
-      pnHSet(t.dataset.pnh, !pnHid()[t.dataset.pnh]); });
+      if (t.dataset.pnhall != null) { pnLS("ord", null); pnOApply(); return pnHSet("*"); }
+      const k = t.dataset.pnh || t.dataset.pnk; pnHSet(k, !pnHid()[k]); });
+    el.addEventListener("pointerdown", (e) => { const g = e.target.closest("[data-pngrip]"); if (!g || (e.pointerType === "mouse" && e.button !== 0)) return; e.preventDefault(); pnDrag(e, g); });
+    el.addEventListener("keydown", (e) => { const g = e.target.closest("[data-pngrip]"); if (!g || !/^Arrow(Up|Down)$/.test(e.key)) return; e.preventDefault(); const row = g.closest("[data-pnk]"), box = row.parentElement;
+      const sib = e.key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling; if (!sib) return; box.insertBefore(row, e.key === "ArrowUp" ? sib : sib.nextSibling); g.focus(); pnOSave(box.dataset.pngrp); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#pnFly")?.hidden) pnCus(false); });
   }
   b?.setAttribute("aria-expanded", String(!!open));
@@ -2518,13 +2539,13 @@ function pnCus(open) {
 }
 function pnHSet(k, hide) {
   const H = pnHid(); if (k === "*") { for (const [x] of PNH_L) delete H[x]; } else if (hide) H[k] = true; else delete H[k];
-  pnLS("hid", H); pnHApply(); const B = $("#pnFlyB"); if (B) B.innerHTML = pnCusBody();
+  pnLS("hid", H); pnHApply(); const B = $("#pnFlyB"); if (B) { const f = document.activeElement?.closest?.("[data-pnk]")?.dataset.pnk; B.innerHTML = pnCusBody(); if (f) B.querySelector(`[data-pnk="${f}"] [data-pnh]`)?.focus({ preventScroll: true }); }
   if (k === "*" || k === "mbot") { SB.bot = null; sbRender(); }
   if (k === "dock" || k === "*") window.lvDock?.();
 }
 function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
-  stickH(); pnHApply();
+  stickH(); pnHApply(); pnOApply();
   $("#pnCusB")?.addEventListener("click", (e) => { e.stopPropagation(); pnCus(); });
   $("#pnColl")?.addEventListener("click", () => pnOpen(false));
   $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
@@ -2634,7 +2655,7 @@ async function sbPage(r, a) {
         ${X.live?.on ? sbRow("Binance " + (X.live.env === "live" ? "thật" : "Demo"), `<span class="${cls(X.live.day?.pnl)}">${X.live.day?.pnl >= 0 ? "+" : ""}${usd2(X.live.day?.pnl || 0)}</span>`, "lời/lỗ hôm nay", "#/bot/scalp") : ""}
         ${X.pause ? `<p class="sbtip">⏸ ${esc(X.pause.why || "đang tạm dừng")}</p>` : ""}</div>`;
     }
-    const mb = !bt ? "" : SB.mbOn ? `<div class="pn-card"><p class="sbh">🤖 Bot phút</p>${bt}</div>` : bt;
+    const mb = !bt ? "" : SB.mbOn ? `<div class="pn-card" data-ord="mbot"><p class="sbh">🤖 Bot phút</p>${bt}</div>` : `<div data-ord="mbot">${bt}</div>`;
     return bt || sc ? sc + mb : `<p class="sbp">Chưa có bot nào chạy. Bật bot ở trang Đội bot hoặc Bot Phản Xạ – bot chạy trên máy chủ kể cả khi tắt trình duyệt.</p>`;
   }
   if (r === "paper") {
@@ -8790,8 +8811,19 @@ function initAccountUI() {
       if (SA && screen?.height) { const sh = innerWidth < innerHeight ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height), g = Math.round(sh - innerHeight); if (g > 100 && g < sh * 0.6) d = g; }
       if (!d && vv) { const g = Math.round(vv.offsetTop + vv.height - innerHeight); if (g > 6 && g < innerHeight * 0.6) d = g; }
     }
-    if (root.style.getPropertyValue("--vvd") !== d + "px") root.style.setProperty("--vvd", d + "px");
+    d += NX.x; if (root.style.getPropertyValue("--vvd") !== d + "px") root.style.setProperty("--vvd", d + "px");
   };
+  // 🩹 đo THẬT vị trí thanh tab dưới (27/11): iPhone có lúc để lớp cố định trôi lên giữa màn hình khi cuộn (thanh "bị kéo lên").
+  //    Lúc bình thường ghi lại khoảng hở đáy (thanh nổi cách đáy bao nhiêu); cuộn xong mà hở nhiều hơn > 24px → ép tính lại vị trí; còn lệch thì dời xuống đúng phần lệch
+  const NX = { g0: null, x: 0, t: 0 };
+  const navGap = () => { if (!tb || getComputedStyle(tb).position !== "fixed") return null; const r = tb.getBoundingClientRect(); if (!r.height) return null; return Math.round((vv ? vv.offsetTop + vv.height : innerHeight) - r.bottom); };
+  const navOk = () => !document.body.classList.contains("kb-on") && !isTxt(document.activeElement) && Math.abs((vv?.scale || 1) - 1) < 0.01;
+  const navChk = () => { if (!navOk()) return; const g = navGap(); if (g == null) return;
+    if (NX.g0 == null || (NX.x === 0 && g < NX.g0)) { NX.g0 = Math.max(0, g); return; }
+    const off = g - NX.g0; if (off > 24 && off < innerHeight * 0.7) { reanchor(); requestAnimationFrame(() => { const g2 = navGap(); if (g2 != null && g2 - NX.g0 > 24) { NX.x += g2 - NX.g0; vvd(); } }); }
+    else if (NX.x && off < -4) { NX.x = Math.max(0, NX.x + off); vvd(); } };
+  addEventListener("scroll", () => { clearTimeout(NX.t); NX.t = setTimeout(navChk, 220); }, { passive: true });
+  setTimeout(navChk, 1200); addEventListener("resize", () => { NX.g0 = null; NX.x = 0; setTimeout(navChk, 400); });
   setInterval(() => { if (!document.hidden) vvd(); }, 1500);      // canh chừng: thanh tab lệch (do trình duyệt) tự về chỗ trong ≤ 1,5 giây
   const reanchor = () => {
     if (!tb || document.body.classList.contains("kb-on") || isTxt(document.activeElement)) return;
@@ -9961,3 +9993,9 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
     later(); };
   go();
 })();
+// 🔠 tiêu đề lớn của trang (vd "Bot Phản Xạ") nhỏ dần + mờ dần khi cuộn lên rồi biến mất (kiểu tiêu đề lớn iOS); cuộn về đầu thì to lại
+{ let q = 0, last = -1; const R = matchMedia("(prefers-reduced-motion:reduce)");
+  const run = () => { q = 0; const ph = document.querySelector("#app > .ph"); if (!ph) return; const h = ph.offsetHeight || 60;
+    const k = R.matches ? 0 : Math.round(Math.max(0, Math.min(1, scrollY / (h + 10))) * 50) / 50; if (k === last && ph.style.getPropertyValue("--tk") !== "") return; last = k;
+    const v = String(k); if (ph.style.getPropertyValue("--tk") !== v) ph.style.setProperty("--tk", v); };
+  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(run); }, { passive: true }); addEventListener("hashchange", () => { last = -1; setTimeout(run, 60); }); }

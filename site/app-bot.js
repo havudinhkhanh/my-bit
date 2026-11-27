@@ -3613,8 +3613,8 @@ document.addEventListener("click", (e) => { const b = e.target.closest(".pz-o bu
 
 // ================================================================ 🎬 CLIP XEM LẠI 1 LỆNH: giá chạy thế nào từ lúc chờ khớp → khớp → đóng → thêm 5 giây
 // Giá: TỪNG GIAO DỊCH thật của Binance Futures (aggTrades, công khai) quanh lúc chờ/khớp và lúc đóng; đoạn giữa dài thì lấp bằng nến 1 phút (ghi rõ).
-// Thời gian tua nhanh theo từng đoạn (chờ ≤ 8 giây clip, giữ ≤ 14 giây, 5 giây sau khi đóng chạy đúng tốc độ thật) – số × hiện trên clip.
-const TRC = { cap: { wait: 8, hold: 14, post: 5 } };
+// Thời gian tua nhanh theo từng đoạn (chờ ≤ 3 giây clip, giữ ≤ 5 giây, 5 giây sau khi đóng ≤ 2 giây) – số × hiện trên clip; nút ⏩ 2× / 4× xem nhanh hơn nữa.
+const TRC = { cap: { wait: 3, hold: 5, post: 2 } };      // 1 clip ≤ 10 giây dù lệnh giữ cả tuần (tua nhanh ×… ghi rõ trên clip)
 const trcRGBA = (c, a) => { c = String(c || "").trim(); let m = c.match(/^#([0-9a-f]{3})$/i); if (m) c = "#" + m[1].split("").map((x) => x + x).join("");
   m = c.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); if (m) return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})`;
   m = c.match(/^rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).slice(0, 3); return `rgba(${p.join(",")},${a})`; } return c || `rgba(128,128,128,${a})`; };
@@ -3629,11 +3629,12 @@ async function trcData(sym, env, a, b, dense) {
       A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&fromId=${L.a + 1}&limit=1000`); }
     if (A) cov.push([s, last]);
   }
-  const K = (await J(`/fapi/v1/klines?symbol=${sym}USDT&interval=1m&startTime=${Math.floor(a / 6e4) * 6e4}&endTime=${Math.floor(b)}&limit=1500`)) || [];
+  const span = (b - a) / 6e4, IV = span <= 1400 ? ["1m", 1] : span <= 7000 ? ["5m", 5] : span <= 21000 ? ["15m", 15] : ["1h", 60], im = IV[1] * 6e4;      // lệnh giữ cả tuần: nến to hơn (≤ 1.500 nến)
+  const K = (await J(`/fapi/v1/klines?symbol=${sym}USDT&interval=${IV[0]}&startTime=${Math.floor(a / im) * im}&endTime=${Math.floor(b)}&limit=1500`)) || [];
   const inCov = (t) => cov.some(([s, e]) => t >= s && t <= e);
   let syn = 0;
   for (const k of K) { const t = +k[0], o = +k[1], h = +k[2], l = +k[3], c = +k[4], up = c >= o;
-    for (const [dt, p] of [[0, o], [18e3, up ? l : h], [40e3, up ? h : l], [59e3, c]]) if (!inCov(t + dt) && t + dt >= a - 6e4 && t + dt <= b) { P.push([t + dt, p]); if (t + dt >= a) syn++; } }
+    for (const [dt, p] of [[0, o], [im * 0.3, up ? l : h], [im * 0.66, up ? h : l], [im - 1e3, c]]) if (!inCov(t + dt) && t + dt >= a - im && t + dt <= b) { P.push([t + dt, p]); if (t + dt >= a) syn++; } }
   P.sort((x, y) => x[0] - y[0]);
   return { P, syn, real: P.length - syn, cov };
 }
@@ -3660,7 +3661,7 @@ async function trClip(r, env, sym) {
       <div class="trc-cv"><canvas width="1280" height="720"></canvas><div class="trc-ld"><i class="spin"></i>${bi("Đang tải giá từng giao dịch…", "Loading trades…")}</div></div>
       <div class="trc-ctl"><button type="button" class="trc-b trc-pp" aria-label="${bi("Phát / dừng", "Play / pause")}" disabled>▶</button><button type="button" class="trc-b trc-rs" aria-label="${bi("Xem lại từ đầu", "Restart")}" title="${bi("Xem lại từ đầu", "Restart")}" disabled>↺</button>
         <input type="range" class="trc-sc" min="0" max="1000" value="0" step="1" aria-label="${bi("Tua", "Seek")}" disabled><span class="trc-t">0:00</span>
-        <div class="bseg trc-sp" role="group" aria-label="${bi("Tốc độ", "Speed")}"><button type="button" data-sp="0.5">0.5×</button><button type="button" data-sp="1" class="on">1×</button><button type="button" data-sp="2">2×</button></div>
+        <div class="bseg trc-sp" role="group" aria-label="${bi("Tua nhanh", "Fast-forward")}"><button type="button" data-sp="1" class="on">1×</button><button type="button" data-sp="2">⏩ 2×</button><button type="button" data-sp="4">⏩ 4×</button></div>
         <button type="button" class="btn sm trc-rec" disabled title="${bi("Ghi lại clip thành video để lưu / gửi", "Record as a video file")}">⤓ ${bi("Lưu video", "Save video")}</button></div>
       <p class="trc-note faint"></p></div></div>`);
   const box = document.getElementById("trClip"), cv = box.querySelector("canvas"), g = cv.getContext("2d"), W = cv.width, H = cv.height;
@@ -3723,6 +3724,12 @@ async function trClip(r, env, sym) {
     if (r.stop > 0) hline(r.stop, trcRGBA(C0.dn, 0.8), [7, 6], `${bi("cắt lỗ", "stop")} ${fx(r.stop)}`, 1.5);
     lvs.forEach((l, i) => { if (!(filled && r.e && Math.abs(l.px / r.e - 1) < 1e-6)) hline(l.px, filled ? trcRGBA(C0.br, 0.45) : trcRGBA(C0.ink3, 0.95), [7, 6], `${bi("mức", "lvl")} ${i + 1} ${fx(l.px)}`, 1.5); else hline(l.px, trcRGBA(C0.br, 0.45), [7, 6], "", 1.5); });
     if (r.c0) hline(r.c0, trcRGBA(C0.bs, 0.9), [2, 5], bi("sau sốc ", "post-shock ") + fx(r.c0), 1.5);
+    // 💵 lời/lỗ theo từng giá (sau khi khớp): tô vùng giữa giá vào và đường giá – xanh khi có lời, đỏ khi lỗ; trục trái quy mỗi mức giá ra $ và bps
+    if (filled && r.e) { const ye = yOf(r.e), i0 = Math.max(0, Math.floor((toClip(r.tF) / L.T) * NC)), i1 = closed ? Math.min(xi, Math.floor((toClip(r.tX) / L.T) * NC)) : xi;
+      for (let i = i0; i <= i1; i++) { const p = i === xi ? px0 : cLast[i], y = yOf(p), win = side * (p - r.e) >= 0; g.fillStyle = trcRGBA(win ? C0.up : C0.dn, 0.16); g.fillRect(X0 + i, Math.min(y, ye), 1, Math.abs(y - ye)); }
+      g.font = font(600, 13); g.textBaseline = "middle"; g.textAlign = "left";
+      for (let i = 0; i <= 4; i++) { const p = lo + (hi - lo) * (i / 4), y = yOf(p), bp = side * (p / r.e - 1) * 1e4, u = r.q ? side * (p - r.e) * r.q : null;
+        g.fillStyle = trcRGBA(bp >= 0 ? C0.up : C0.dn, 0.85); g.fillText(`${u != null ? j$(u) + " · " : ""}${bp >= 0 ? "+" : ""}${nf(bp, 0)} bps`, X0 + 6, y - 9); } }
     // dải dao động + đường giá tới đầu phát
     g.fillStyle = trcRGBA(C0.ink, 0.13); for (let i = 0; i < xi; i++) { const ya = yOf(cMax[i]), yb = yOf(cMin[i]); if (yb - ya > 1.5) g.fillRect(X0 + i, ya, 1, yb - ya); }
     g.lineWidth = 2.2; g.lineJoin = "round"; let syn = -1;
