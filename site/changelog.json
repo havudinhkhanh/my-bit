@@ -9,6 +9,14 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "bot",
+     "t": "Thẻ lệnh: đọc được hết dòng mô tả",
+     "te": "Trade cards: full description line",
+     "d": "Dòng phương pháp · lý do vào dưới tên mã (vd “Funding âm → Long · funding −0,0084%/kỳ …”) xuống dòng thay vì bị cắt “…”; rê chuột thấy đủ.",
+     "de": "The method/reason line wraps instead of being cut off."
+    },
+    {
      "c": "new",
      "a": "bot",
      "t": "Lệnh đã đóng: chia trang",
