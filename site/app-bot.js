@@ -223,7 +223,7 @@ document.addEventListener("click", (e) => {
   addEventListener("scroll", (e) => { if (cur && (e.target === document || e.target.contains?.(cur))) put(); }, { passive: true, capture: true });      // trang / khung chứa dòng cuộn → hộp đi theo dòng (ra khỏi màn hình thì ẩn) document.addEventListener("click", hide, true);
 })();
 const durVi = (sec) => (sec < 90 ? `${nf(sec, 0)} giây` : sec < 5400 ? `${nf(sec / 60, 0)} phút` : sec < 172800 ? `${nf(sec / 3600, 0)} giờ` : `${nf(sec / 86400, 0)} ngày`);
-const cmpMark = () => { const f = window.__cmpF || "all"; $$("[data-cmpf]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cmpf === f))); $$(".cmp-l").forEach((l) => (l.dataset.f = f)); };
+const cmpMark = () => { const f = window.__cmpF || "all"; $$("[data-cmpf]").forEach((b) => { const v = String(b.dataset.cmpf === f); if (b.getAttribute("aria-pressed") !== v) b.setAttribute("aria-pressed", v); }); $$(".cmp-l").forEach((l) => { if (l.dataset.f !== f) l.dataset.f = f; }); };      // chỉ ghi khi đổi (ghi lại y hệt vẫn đánh thức các bộ theo dõi DOM)
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-cmpf]"); if (!b) return; const f = b.dataset.cmpf; window.__cmpF = f === "all" || window.__cmpF === f ? "all" : f; cmpMark(); });
 // nút Gọn / Vừa / Đầy đủ: đặt lên hàng tiêu đề của khung sự kiện (cùng dòng với tên khung) cho đỡ tốn chỗ
 function fdPlace() { $$("#app .fd-sz").forEach((c) => { const h = c.closest(".panel")?.querySelector(":scope > .ph"); if (h && c.parentElement !== h) { h.appendChild(c); h.classList.add("ph-fd"); } }); }
@@ -1858,7 +1858,7 @@ async function viewScalp() {
   // 📈 nến quanh lệnh: gắn nút, và mở lại các biểu đồ anh đang xem trước lần tự làm mới (dùng nến đã tải, không nháy)
   const bindCh = (root = document) => [...$$("[data-hkc]", root).map((b) => [b, HT[+b.dataset.hkc], "#hkc" + b.dataset.hkc]),
    ...$$("[data-lvc]", root).filter((b) => !b.closest("#lvEqBox")).map((b) => { const h = LHr[+b.dataset.lvc]; return [b, h && { k: lvk(h), t0: h.t1, t1: h.t2, e: h.e, x: h.x, usd: h.pnl, ts: h.ts, c0: h.c0, lvp: h.lvp, net: h.net, base: lvBase, side: h.side, nl: h.nl, R: h.R, man: h.strat === "man" }, "#lvc" + b.dataset.lvc]; })]
-    .forEach(([b, t, sel]) => { if (!t) return; const box = $(sel); if (box) box.dataset.hkbox = hkKey(t); b.onclick = () => hkChartOpen(t, $(sel)); if (HKO.has(hkKey(t))) hkChartOpen(t, box, true); });
+    .forEach(([b, t, sel]) => { if (!t) return; const box = $(sel); if (box && box.dataset.hkbox !== hkKey(t)) box.dataset.hkbox = hkKey(t); b.onclick = () => hkChartOpen(t, $(sel)); if (HKO.has(hkKey(t))) hkChartOpen(t, box, true); });
   bindCh(); window.__clBindCh = bindCh;
   rsTables($("#app"));
   if (ND) { window.__ntDo = null; setTimeout(() => ntDoRun(ND), 120); }

@@ -19,6 +19,14 @@
      "hi": 1
     },
     {
+     "c": "imp",
+     "a": "perf",
+     "t": "Trang Bot mượt hơn: thang giá và các thẻ lệnh không còn ghi lại giao diện khi không có gì đổi",
+     "te": "Smoother Bot page: the price ladder and trade cards no longer rewrite the page when nothing changed",
+     "d": "Rê chuột trên thang giá trước đây dựng lại khung ước tính mỗi lần chuột nhích, và mỗi nhịp giá đều ghi lại chú thích các chấm lời/lỗ; mỗi lần tự làm mới, trang còn ghi lại y hệt thuộc tính của từng biểu đồ lệnh đã đóng. Mỗi lần ghi như vậy đánh thức các bộ theo dõi giao diện của trang. Giờ chỉ ghi khi thật sự đổi; số lần trang bị khuấy khi rê chuột giảm khoảng 7 lần.",
+     "de": "Hovering the price ladder used to rebuild the estimate box on every mouse move, each price tick rewrote the best/worst dot labels, and each refresh rewrote identical attributes on every closed-trade chart. Each write woke the page's layout observers. Writes now happen only when something changes; page churn while hovering is about 7× lower."
+    },
+    {
      "c": "new",
      "a": "chart",
      "t": "Đo lời/lỗ nhanh trên biểu đồ – dùng được trên điện thoại: bấm nút thước, chạm điểm vào rồi kéo tới điểm ra",

@@ -3391,20 +3391,25 @@ const LADSW = {};
 function ladSweep(el, m, P) {
   const k = el.dataset.lad, t0 = +el.dataset.t0, id = `${k}|${t0 || 0}`; let s = LADSW[id];
   if (!s) s = LADSW[id] = { lo: m, hi: m, at: 0, busy: false, ok: !t0 };
-  if (m > 0) { s.lo = Math.min(s.lo, m); s.hi = Math.max(s.hi, m); }
+  if (m > 0) { if (m < s.lo) s.lo = m; if (m > s.hi) s.hi = m; }
   if (t0 > 0 && !s.busy && Date.now() - s.at > 180e3) {      // nến từ giờ vào lệnh (3 phút/lần): khung nhỏ nhất đủ phủ thời gian đã giữ trong 1.000 nến
     s.busy = true; s.at = Date.now(); const age = (Date.now() - t0) / 6e4, iv = age <= 990 ? ["1m", 1] : age <= 4950 ? ["5m", 5] : age <= 14850 ? ["15m", 15] : ["1h", 60], base = k.split(":")[0], spot = /:S$/.test(k);
-    const url = spot ? `https://api.binance.com/api/v3/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${Math.floor(t0 / (iv[1] * 6e4)) * iv[1] * 6e4}&limit=1000` : `https://fapi.binance.com/fapi/v1/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${Math.floor(t0 / (iv[1] * 6e4)) * iv[1] * 6e4}&limit=1000`;
-    fetchJ(url, 8000).then((K) => { if (Array.isArray(K) && K.length) { for (const r of K) { const h = +r[2], l = +r[3]; if (h > 0) s.hi = Math.max(s.hi, h); if (l > 0) s.lo = Math.min(s.lo, l); } s.ok = true; } })
+    const st = Math.floor(t0 / (iv[1] * 6e4)) * iv[1] * 6e4, url = spot ? `https://api.binance.com/api/v3/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${st}&limit=1000` : `https://fapi.binance.com/fapi/v1/klines?symbol=${base}USDT&interval=${iv[0]}&startTime=${st}&limit=1000`;
+    fetchJ(url, 8000).then((K) => { if (Array.isArray(K) && K.length) { for (const r of K) { const h = +r[2], l = +r[3]; if (h > s.hi) s.hi = h; if (l > 0 && l < s.lo) s.lo = l; } s.ok = true; } })
       .catch(() => { /* không tải được nến → chỉ dùng giá trực tiếp từ lúc mở trang */ }).finally(() => { s.busy = false; });
   }
-  const sw = el.querySelector(".sw"); if (!sw || !(s.hi > 0)) return;
-  const a = P(s.lo), b = P(s.hi), L = a.toFixed(1) + "%", W = Math.max(0.6, b - a).toFixed(1) + "%";
-  if (sw.hidden) sw.hidden = false; if (sw.style.left !== L) sw.style.left = L; if (sw.style.width !== W) sw.style.width = W;
-  sw.classList.toggle("cl", +el.dataset.lo > s.lo); sw.classList.toggle("cr", +el.dataset.hi < s.hi);      // quét vượt ra ngoài thang → mép mờ dần
   el.__sw = s;
-  const sd = +el.dataset.sd, best = sd > 0 ? s.hi : s.lo, worst = sd > 0 ? s.lo : s.hi;
-  for (const [c, v] of [["bx", best], ["wx", worst]]) { let i = el.querySelector(`.${c}`); if (!i) { i = document.createElement("i"); i.className = c; el.appendChild(i); } const x = P(v).toFixed(1) + "%"; if (i.style.left !== x) i.style.left = x; i.title = `${c === "bx" ? bi("Lời nhất từng chạm", "Best price reached") : bi("Lỗ nhất từng chạm", "Worst price reached")} ${px(v)}${s.ok ? "" : bi(" (từ lúc mở trang)", " (since page open)")}`; }
+  // ⚡ CHỈ GHI DOM KHI ĐỔI (trang có ~10 bộ theo dõi thay đổi giao diện: mỗi lần ghi thuộc tính / chữ – kể cả ghi lại y hệt – đều đánh thức chúng → giật)
+  const lo = +el.dataset.lo, hi = +el.dataset.hi, sig = `${s.lo}|${s.hi}|${lo}|${hi}|${s.ok ? 1 : 0}`; if (el.__swSig === sig && el.querySelector(".bx")) return; el.__swSig = sig;
+  const sw = el.querySelector(".sw"); if (!sw || !(s.hi > 0)) return;
+  const a = P(s.lo), b = P(s.hi);
+  sw.style.cssText = `left:${a.toFixed(1)}%;width:${Math.max(0.6, b - a).toFixed(1)}%`; if (sw.hidden) sw.hidden = false;
+  const cl = lo > s.lo, cr = hi < s.hi; if (sw.classList.contains("cl") !== cl) sw.classList.toggle("cl", cl); if (sw.classList.contains("cr") !== cr) sw.classList.toggle("cr", cr);
+  const sd = +el.dataset.sd;
+  for (const [c, v] of [["bx", sd > 0 ? s.hi : s.lo], ["wx", sd > 0 ? s.lo : s.hi]]) {
+    let i = el.querySelector(`.${c}`); if (!i) { i = document.createElement("i"); i.className = c; el.appendChild(i); }
+    i.style.left = P(v).toFixed(1) + "%"; i.dataset.v = v;      // chú thích (giá) đọc khi rê chuột – không ghi title mỗi nhịp
+  }
 }
 function ladAt(el, cx) {      // giá ở toạ độ x trên thang + thông tin để ước tính
   const r = el.getBoundingClientRect(), f = Math.max(0, Math.min(1, (cx - r.left) / r.width)), lo = +el.dataset.lo, hi = +el.dataset.hi;
@@ -3423,20 +3428,34 @@ function ladMenu(el, cx, cy) {
   if (C.ux && C.uxRef && Math.abs(X(C.ux) - cx) <= 9) C.near.unshift({ k: "ux", px: C.ux });
   ladTip(null); pxMenu(cx, cy, p, C, null);
 }
+// khung ước tính khi rê chuột: dựng 1 LẦN, gắn thẳng vào <html> (ngoài <body> – các bộ theo dõi giao diện không thấy), mỗi lần di chuột chỉ đổi chữ & vị trí (transform)
+let LADT = null, LADR = 0, LADQ = null;
+function ladTipEl() {
+  if (LADT) return LADT; const t = document.createElement("div"); t.className = "lad-tip"; t.setAttribute("role", "tooltip"); t.hidden = true;
+  t.innerHTML = '<b></b><small class="d"></small><span><i></i> <small></small></span><small class="s"></small>'; const v = document.createElement("div"); v.className = "lad-hv"; v.hidden = true;
+  document.documentElement.append(t, v); const q = (x) => t.querySelector(x);
+  return (LADT = { t, v, p: q("b"), d: q(".d"), sp: q("span"), u: q("span i"), uc: q("span small"), sn: q(".s"), last: {} });
+}
+const ladSet = (T, key, node, val) => { if (T.last[key] !== val) { T.last[key] = val; node.textContent = val; } };
 function ladTip(el, cx) {
-  let t = document.getElementById("ladTip");
-  if (!el) { if (t) t.hidden = true; document.querySelectorAll(".sc-lad .hv").forEach((x) => x.remove()); return; }
-  const { p, f, r } = ladAt(el, cx), card = el.closest(".sc-oc"), cur = SCL.px[el.dataset.lad], s = el.__sw, E = ladEst(card, p), d = cur ? (p / cur - 1) * 100 : null;
+  const T = ladTipEl();
+  if (!el) { if (!T.t.hidden) { T.t.hidden = true; T.v.hidden = true; } return; }
+  const { p, r } = ladAt(el, cx), card = el.closest(".sc-oc"), cur = SCL.px[el.dataset.lad], s = el.__sw, E = ladEst(card, p), d = cur ? (p / cur - 1) * 100 : null;
   const seen = s && s.hi > 0 && p >= s.lo && p <= s.hi;
-  if (!t) { t = document.createElement("div"); t.id = "ladTip"; t.className = "lad-tip"; t.setAttribute("role", "tooltip"); document.body.appendChild(t); }
-  t.innerHTML = `<b>${px(p)}</b>${isNum(d) ? ` <small>${d >= 0 ? "+" : ""}${nf(d, 2)}% ${bi("so với bây giờ", "vs now")}</small>` : ""}${E ? `<span class="${E.usd >= 0 ? "up" : "down"}">≈ ${E.usd >= 0 ? "+" : "-"}${usd2(Math.abs(E.usd))} · ${E.pct >= 0 ? "+" : ""}${nf(E.pct, 2)}% <small>${bi("nếu đóng ở đây", "if closed here")}</small></span>` : ""}<small>${seen ? bi("● giá đã từng quét qua mức này", "● price has traded here") : bi("○ giá chưa tới mức này từ lúc vào", "○ not reached since entry")} · ${bi("chuột phải để đặt", "right-click to set")}</small>`;
-  t.hidden = false; const tw = t.offsetWidth, th = t.offsetHeight; t.style.left = Math.max(8, Math.min(innerWidth - tw - 8, cx - tw / 2)) + "px"; t.style.top = Math.max(8, r.top - th - 10) + "px";
-  let v = el.querySelector(".hv"); if (!v) { v = document.createElement("i"); v.className = "hv"; el.appendChild(v); } v.style.left = (f * 100).toFixed(2) + "%";
+  ladSet(T, "p", T.p, px(p)); ladSet(T, "d", T.d, isNum(d) ? `${d >= 0 ? "+" : ""}${nf(d, 2)}% ${bi("so với bây giờ", "vs now")}` : "");
+  ladSet(T, "u", T.u, E ? `≈ ${E.usd >= 0 ? "+" : "-"}${usd2(Math.abs(E.usd))} · ${E.pct >= 0 ? "+" : ""}${nf(E.pct, 2)}%` : ""); ladSet(T, "uc", T.uc, E ? bi("nếu đóng ở đây", "if closed here") : "");
+  const c = E ? (E.usd >= 0 ? "up" : "down") : ""; if (T.last.c !== c) { T.last.c = c; T.sp.className = c; T.sp.hidden = !E; }
+  ladSet(T, "s", T.sn, `${seen ? bi("● giá đã từng quét qua mức này", "● price has traded here") : bi("○ giá chưa tới mức này từ lúc vào", "○ not reached since entry")} · ${bi("chuột phải để đặt", "right-click to set")}`);
+  if (T.t.hidden) { T.t.hidden = false; T.v.hidden = false; }
+  const tw = T.t.offsetWidth || 220, th = T.t.offsetHeight || 70, x = Math.max(8, Math.min(innerWidth - tw - 8, cx - tw / 2)), y = Math.max(8, r.top - th - 10);
+  T.t.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`; T.v.style.transform = `translate(${Math.round(cx)}px,${Math.round(r.top + r.height / 2 - 9)}px)`;
 }
 if (!window.__ladEv) {
   window.__ladEv = 1;
   document.addEventListener("contextmenu", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el) return; e.preventDefault(); e.stopPropagation(); ladMenu(el, e.clientX, e.clientY); }, true);
-  document.addEventListener("pointermove", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.(".sc-lad"); if (el) ladTip(el, e.clientX); else if (document.getElementById("ladTip")?.hidden === false) ladTip(null); }, { passive: true });
+  document.addEventListener("pointermove", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.(".sc-lad"); if (!el && (!LADT || LADT.t.hidden)) return;      // gộp theo khung hình: tối đa 1 lần vẽ / khung
+    LADQ = el ? [el, e.clientX] : null; if (!LADR) LADR = requestAnimationFrame(() => { LADR = 0; ladTip(LADQ?.[0] || null, LADQ?.[1]); }); }, { passive: true });
+  addEventListener("scroll", () => { if (LADT && !LADT.t.hidden) ladTip(null); }, { passive: true, capture: true });
   let lpT = 0, lp0 = null, LADLP = 0;      // điện thoại: giữ ngón ~0,5 giây trên thang → menu (rung nhẹ); kéo đi thì huỷ
   document.addEventListener("touchstart", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el || e.touches.length !== 1) return; const t = e.touches[0]; lp0 = { el, x: t.clientX, y: t.clientY };
     clearTimeout(lpT); lpT = setTimeout(() => { if (!lp0) return; try { navigator.vibrate?.(8); } catch (x) { /* bỏ qua */ } LADLP = Date.now(); ladMenu(lp0.el, lp0.x, lp0.y); lp0 = null; }, 480); }, { passive: true });
