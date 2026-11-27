@@ -3183,6 +3183,9 @@ function tRecs(X, LG, C, env, sym) {
     if ((LV.env || C.lv_env) === env) for (const e of LV.ev || []) if (same(e.sym)) R.push({ src: "ev", strat: "hook", status: e.pos?.q > 0 ? "open" : "wait", side: e.side, tS: T(e.t0), c0: e.c0, R: e.R, lv: (e.lv || []).map((l) => ({ px: l.px, st: l.st === "filled" || l.fq > 0 ? "f" : l.st === "cxl" ? "x" : "w", q: l.q })), tW: T(e.exp), tF: T(e.pos?.t1), e: e.pos?.ap || null, q: e.pos?.q || 0, hold: e.hold, stop: e.stop, stopKind: e.stopKind, id: e.id });
     for (const h of LV.hist || []) if ((h.env || "demo") === env && same(h.sym)) R.push({ src: "hist", strat: h.strat === "pump" ? (h.kk === "list" ? "list" : "pump") : "hook", status: "closed", side: h.side, tS: T(h.ts), c0: h.c0, R: h.R, lv: (h.lvp || []).map((px) => ({ px, st: "m" })), tF: T(h.t1 || h.ts), e: h.e, tX: T(h.t2), x: h.x, why: h.why, pnl: h.pnl, net: h.net, q: h.q, fee: h.fee, fund: h.fund, nl: h.nl, tot: h.tot, hold: C.hk_h });
     for (const m of LV.miss || []) if ((m.env || LV.env) === env && same(m.k)) R.push({ src: "miss", strat: "hook", status: "miss", side: m.side, tS: T(m.t0), R: m.R, lv: m.lvl ? [{ px: m.lvl, st: "x" }] : [], reach: m.reach, gap: m.gap, what: m.what, why: m.why, real: m.real, tW: T(m.t0) + (C.hk_w || 8) * 60e3 });
+    { const MN = LV.man; if (MN && (MN.env || LV.env || C.lv_env) === env) for (const p of MN.pos || []) if (same(p.sym) && +p.amt) {      // ✋ lệnh tay đang mở trên Binance
+      const O = MN.ord?.[p.sym] || [], px0 = (re) => +(O.find((o) => re.test(o.type || ""))?.px) || null;
+      R.push({ src: "man", strat: "man", status: "open", side: +p.amt > 0 ? 1 : -1, tF: T(p.t1), e: +p.ep, q: Math.abs(+p.amt), stop: px0(/STOP/), tp: px0(/TAKE_PROFIT/), upnl: +p.up, hold: null }); } }
     for (const p of LV.swp?.open || []) if (same(p.sym)) R.push({ src: "swp", strat: p.k === "list" ? "list" : "pump", status: "open", side: -1, tF: T(p.t0), e: p.ap, q: p.q, N: p.N, tXe: T(p.exp), why0: p.why, upnl: p.upnl });
     for (const p of LV.qp?.open || []) if ((p.legs || []).some((l) => same(l.sym))) { const L = p.legs.find((l) => same(l.sym)); R.push({ src: "qp", strat: p.k || "q", name: p.name, status: "open", side: L.side, tF: T(p.t0), e: L.ap ?? L.e, stop: L.stop, why0: p.why, upnl: p.upnl }); }
   } else {
@@ -3813,10 +3816,11 @@ window.trClip = trClip;
 document.addEventListener("click", (e) => { if (e.target.closest?.("a[data-clip]")) window.__tClip = 1;
   const b = e.target.closest?.("[data-clipat]"); if (b) { e.preventDefault(); e.stopPropagation(); const [env, sym, ms] = b.dataset.clipat.split("|"); trClipAt(env, sym, +ms); } }, true);
 // mở clip ngay tại chỗ (không chuyển trang): tìm lệnh gần mốc rồi phát
-async function trClipAt(env, sym, ms) {
+async function trClipAt(env, sym, ms, open) {
   env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, "");
   try { const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null }))]);
-    const C = { ...SCALP_DEF, ...scMig(rq.data) }, r = tPick(tRecs(rs.data || {}, rl.data || null, C, env, sym), ms || Date.now());
+    const C = { ...SCALP_DEF, ...scMig(rq.data) }, A = tRecs(rs.data || {}, rl.data || null, C, env, sym);
+    const r = tPick(open ? A.filter((x) => x.status === "open" || x.status === "wait") : A, ms || Date.now());      // mở từ thẻ lệnh ĐANG MỞ → chỉ chọn lệnh đang mở / chờ (trước: lấy nhầm lệnh cùng coin đã đóng)
     if (!r) { toast(bi("Không còn dữ liệu lệnh này để dựng clip.", "No data for this trade.")); return; } trClip(r, env, sym); } catch (e) { toast(bi("Chưa tải được dữ liệu lệnh.", "Couldn't load the trade.")); }
 }
 window.trClipAt = trClipAt;

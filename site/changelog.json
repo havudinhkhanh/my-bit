@@ -9,6 +9,14 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "bot",
+     "t": "Clip lệnh đang mở: không còn ra lệnh cũ đã đóng",
+     "te": "Replay of an open trade no longer shows an old closed one",
+     "d": "Bấm ▶ trên thẻ lệnh đang mở (kể cả lệnh tay ✋) giờ chỉ chọn đúng lệnh đang mở đó – phát từ lúc khớp tới hiện tại; trước có lúc lấy nhầm lệnh cùng coin đã đóng.",
+     "de": "▶ on an open trade card (manual too) plays that open trade up to now."
+    },
+    {
      "c": "imp",
      "a": "bot",
      "t": "Hàng lọc lệnh dính theo khi cuộn",

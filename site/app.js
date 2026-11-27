@@ -3357,7 +3357,7 @@ function ocDeco(root = document) {
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occlip]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (!c) return;
   const I = ocInfo(c), env = ocEnv(c) === "paper" ? "paper" : window.__scCache?.d?.[1]?.data?.live?.env || "live", lt = c.querySelector("[data-lt0]")?.dataset.lt0, t = isFinite(+lt) && +lt > 0 ? (+lt < 1e11 ? +lt * 1000 : +lt) : Date.parse(lt ? (/Z$/.test(lt) ? lt : lt + "Z") : "") || Date.now();
-  lazyJs("app-bot.js").then(() => window.trClipAt?.(env, I.base, t)); }, true);
+  lazyJs("app-bot.js").then(() => window.trClipAt?.(env, I.base, t, !c.closest(".sc-hist,.lvt"))); }, true);
 document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) { const I = ocInfo(c); I.env = ocEnv(c); ocOpen(I); } }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
