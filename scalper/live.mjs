@@ -599,10 +599,23 @@ export class LiveExec {
       catch (e) { this.err(`huỷ lệnh chờ sót ${o.symbol}`, e); }
     }
   }
+  // 27/11/2026 (BLUR: sàn thử khớp 2 mức, tiền thật 1): đóng phần đã khớp bằng cắt lỗ đuổi / đỉnh nhịp / cắt lỗ khi CÒN TRONG GIỜ CHỜ → mức chờ chưa khớp
+  // KHÔNG huỷ mà chuyển sang 1 lần bắt mới (cùng cú sốc, cùng hạn chờ) – như sàn thử và kiểm chứng (mỗi mức là 1 lệnh riêng). Trước: huỷ luôn → mất mức 2.
+  rearm(ev, why) {
+    if (!["TRAIL", "PEAK", "SL"].includes(why) || Date.now() >= ev.exp || ev.ivE || ev.xm === "man") return;
+    const rest = ev.lv.filter((l) => !l.mk && (l.st === "open" || l.st === "wait")); if (!rest.length) return;
+    const id = `${this.S.seq++}`, ch = { id, k: ev.k, sym: ev.sym, side: ev.side, t0: ev.t0, exp: ev.exp, hold: ev.hold, stopPct: ev.stopPct, R: ev.R, c0: ev.c0, grp: ev.grp, brd: ev.brd ?? null, env: ev.env, done: false,
+      pos: { q: 0, ap: 0, t1: null }, stop: null, fees: 0, par: ev.id, lv: rest.map((l) => ({ ...l })) };
+    for (const l of rest) { l.st = l.fq > 0 ? "filled" : "cxl"; l.mv = id; }      // lần bắt cũ thôi quản lý mức này (lệnh vẫn nằm trên sàn, lần bắt mới theo dõi bằng cùng mã lệnh)
+    this.S.ev[id] = ch; this.save();
+    this.say(`🪝 ${ev.sym}: đã đóng phần khớp – mức chờ còn lại ${rest.map((l) => l.px).join(" / ")} vẫn giữ trên sàn tới hết giờ chờ (${Math.max(0, Math.round((ev.exp - Date.now()) / 60e3))} phút nữa), như sàn thử`, "info");
+  }
   async close(ev, why) {
     { const m = this.mark(ev.k); ev.dxm = m || null; ev.dxt = Date.now(); ev.dxp = m && ev.pos.ap > 0 ? ev.side * (m / ev.pos.ap - 1) * 1e4 : null; }      // 🔬 giá giữa lúc quyết định đóng
+    this.rearm(ev, why);
     for (const l of ev.lv) if (l.st === "open") { await this.cxlLv(ev, l); l.st = l.fq > 0 ? "filled" : "cxl"; }
-    const p = await this.pos(ev.sym), q = Math.abs(p.amt), F = await this.filters(ev.sym);
+    const p = await this.pos(ev.sym), F = await this.filters(ev.sym), mv = ev.lv.some((l) => l.mv);
+    const q = mv && ev.pos.q > 0 ? Math.min(Math.abs(p.amt), fl(ev.pos.q, F.step)) : Math.abs(p.amt);      // còn mức chờ chuyển sang lần bắt mới → chỉ đóng đúng phần của lần này (mức kia có thể vừa khớp)
     let px = this.mark(ev.k) || ev.pos.ap;
     if (q > 0) {
       const o = await this.req("POST", "/fapi/v1/order", { symbol: ev.sym, side: ev.side > 0 ? "SELL" : "BUY", type: "MARKET", quantity: q.toFixed(F.sd), reduceOnly: "true", newOrderRespType: "RESULT" });

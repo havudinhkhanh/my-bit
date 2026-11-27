@@ -9,6 +9,25 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "live",
+     "t": "Bắt râu sập tiền thật: đóng mức 1 sớm thì mức chờ 2 vẫn giữ trên sàn tới hết giờ chờ, như sàn thử",
+     "te": "Live Wick Catcher: after level 1 exits early, level 2 stays on the exchange until the wait window ends, like paper",
+     "d": "Trước đây khi phần đã khớp đóng bằng cắt lỗ đuổi (hoặc cắt lỗ, đỉnh nhịp nảy) trong lúc còn giờ chờ, bot tiền thật huỷ luôn mức chờ còn lại; sàn thử và kiểm chứng thì giữ. Vd BLUR 27/11: sàn thử khớp cả 2 mức (mức 2 lời +4,7%), tiền thật chỉ có mức 1. Giờ mức còn lại thành một lần bắt mới, cùng hạn chờ, và bot chỉ đóng đúng phần đã khớp của lần trước. Anh tự đóng thì vẫn huỷ hết như cũ.",
+     "de": "When the filled part exited early (trailing stop, stop or bounce peak) while the wait window was still open, the live bot cancelled the remaining level; paper and the back-test kept it. E.g. BLUR on 27 Nov: paper filled both levels (level 2 made +4.7%), real only level 1. The remaining level now becomes a new attempt with the same deadline, and the bot closes only the filled part. Closing by hand still cancels everything.",
+     "aud": "admin",
+     "f": "bot"
+    },
+    {
+     "c": "new",
+     "a": "chart",
+     "t": "Biểu đồ lệnh: công tắc Sàn thử | Tiền thật – xem lệnh cùng mã của cả hai sàn trên một biểu đồ",
+     "te": "Trade chart: a Paper | Real switch – see both venues' trades for the coin on one chart",
+     "d": "Mở biểu đồ từ thẻ lệnh nào cũng có công tắc ở đầu biểu đồ. Bấm sang sàn kia: đường vào, cắt lỗ, chốt, lệnh chờ, thanh lý, lời/lỗ, funding và menu chuột phải đổi theo lệnh cùng mã của sàn đó; khung giờ và khung đang xem giữ nguyên. Sàn kia không có lệnh mã đó thì ghi \"trống\".",
+     "de": "Every trade chart has a switch at the top. Flip to the other venue and the entry, stop, target, pending, liquidation lines, P&L, funding and right-click menu change to that venue's trade for the same coin; timeframe and view stay. If the other venue has no trade for the coin it shows \"none\".",
+     "f": "bot"
+    },
+    {
      "c": "new",
      "a": "bot",
      "t": "Thang giá trên thẻ lệnh: đường mờ chỗ giá đã quét qua, rê chuột xem giá & lời/lỗ ước tính, chuột phải (giữ lâu trên điện thoại) để đặt cắt lỗ / chốt / hẹn đóng ngay tại mức đó",

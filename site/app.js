@@ -3282,7 +3282,7 @@ function ocDeco(root = document) {
   });
 }
 new MutationObserver((M) => { for (const m of M) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches?.(".sc-oc")) ocDeco(n.parentElement || document); else if (n.querySelector?.(".sc-oc")) ocDeco(n); } }).observe(document.documentElement, { childList: true, subtree: true });
-document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) ocOpen(ocInfo(c)); }, true);
+document.addEventListener("click", (e) => { const b = e.target.closest?.("[data-occh]"); if (!b) return; e.preventDefault(); e.stopPropagation(); const c = b.closest(".sc-oc"); if (c) { const I = ocInfo(c); I.env = ocEnv(c); ocOpen(I); } }, true);
 const intraTf = (tf) => /^(\d+[smh])$/.test(tf);
 // biểu đồ bật ra: mở = trượt lên + mờ nền mượt (vẽ nến SAU khi trượt xong để không giật khung hình) · đóng = rút xuống nhanh rồi mới gỡ khoá cuộn
 // ⛶ biểu đồ lệnh TOÀN MÀN HÌNH (nút ⛶ hoặc kéo vạch trên cùng lên) · 🔄 XOAY NGANG (khoá ngang thật nếu máy cho, không thì xoay CSS cả khung)
@@ -3347,22 +3347,59 @@ function ocFundChips(chip) {
   else if (isNum(F.lg) && isNum(F.sh)) out.push(chip(bi("Long / Short", "Long / Short"), `<span class="up">${nf(F.lg, 0)}%</span> / <span class="down">${nf(F.sh, 0)}%</span>`, "", bi(`Trong mọi tài khoản đang có lệnh ${I.base} trên Binance futures (5 phút gần nhất): ${nf(F.lg, 1)}% Long · ${nf(F.sh, 1)}% Short. Đông một phía chưa chắc giá đi phía đó – phe đông dễ bị quét thanh lý.`, `Of all Binance futures accounts holding ${I.base} (last 5 min): ${nf(F.lg, 1)}% long · ${nf(F.sh, 1)}% short. A crowded side isn't a direction call – crowded sides get liquidation-swept.`)));
   return out.join("");
 }
+// 🔀 SÀN THỬ | TIỀN THẬT trên CÙNG một biểu đồ (27/11/2026, Jason: "đừng làm 2 biểu đồ riêng rời"): công tắc ở đầu biểu đồ lệnh đổi toàn bộ đường lệnh,
+//   thông số, nút & menu chuột phải sang lệnh CÙNG MÃ của sàn kia; giữ nguyên khung giờ, khung đang xem. Thẻ của sàn kia đọc từ window.__ocCards (bot dựng cả 2 sàn mỗi lần làm mới).
+const ocEnv = (card) => (card?.classList.contains("lv") || card?.classList.contains("man") ? "live" : "paper");
+function ocAlt(base, env, I0) {
+  const H = window.__ocCards?.[env]; let J = null;
+  if (H) { const T = document.createElement("template"); T.innerHTML = H;
+    const cs = [...T.content.querySelectorAll(".sc-oc")].map((c) => ({ c, I: ocInfo(c) })).filter((x) => x.I.base === base && x.I.fut === I0.fut);
+    const pick = cs.find((x) => x.I.e) || cs[0]; if (pick) { J = pick.I; J.env = env; J.acts = []; J.alt = 1; J.ncard = cs.length; } }      // nút trên thẻ của sàn kia không nằm trong trang → không chép sang
+  return J || { base, k: I0.k, fut: I0.fut, side: I0.side, lv: [], lf: [], acts: [], env, none: true, what: "" };
+}
+function ocEnvLbl(env) { const lv = window.__scCache?.d?.[1]?.data?.live?.env || window.__scCache?.d?.[0]?.data?.cfg?.lv_env; return env === "paper" ? bi("🧪 Sàn thử", "🧪 Paper") : lv === "demo" ? bi("🟡 Binance Demo", "🟡 Binance Demo") : bi("💰 Tiền thật", "💰 Real"); }
+function ocEnvSw() {
+  const A = OCC.alt || {}, cur = OCC.info?.env || "paper";
+  return `<span class="seg occ-env" role="tablist" aria-label="${bi("Xem lệnh của sàn", "Show trades from")}">${["paper", "live"].map((v) => { const J = A[v], has = J && !J.none;
+    return `<button type="button" role="tab" data-ocenv="${v}" aria-selected="${v === cur}" class="${v === cur ? "on" : ""}${has ? "" : " no"}" title="${esc(has ? bi(`Xem lệnh ${OCC.info?.base} trên ${ocEnvLbl(v)}`, `Show ${OCC.info?.base} on ${ocEnvLbl(v)}`) : bi(`${ocEnvLbl(v)} không có lệnh ${OCC.info?.base} đang mở`, `No open ${OCC.info?.base} trade on ${ocEnvLbl(v)}`))}">${ocEnvLbl(v)}${has ? "" : `<small>${bi("trống", "none")}</small>`}</button>`; }).join("")}</span>`;
+}
+function ocLgHtml(I) { const lab = (t, v, c) => (v ? `<span class="occ-l ${c}"><i></i>${t} <b>${px(v)}</b></span>` : "");
+  return `${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${(I.lv || []).filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<span id="occOb"></span><span id="occPos"></span>`; }
+function ocWhat(I) { return I.none ? bi(`${ocEnvLbl(I.env)} không có lệnh ${I.base} đang mở – biểu đồ chỉ hiện giá`, `No open ${I.base} trade on ${ocEnvLbl(I.env)} – price only`) : I.alt && !I.e ? bi(`${ocEnvLbl(I.env)}: lệnh chờ khớp`, `${ocEnvLbl(I.env)}: pending`) + (I.what ? ` · ${I.what}` : "") : I.what || ""; }
+function ocActsHtml(I) { return (I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : I.alt && !I.none ? `<p class="occ-altn faint">${bi(`Đóng / gia hạn: ở thẻ lệnh ${ocEnvLbl(I.env)} · chuột phải (giữ lâu) trên biểu đồ để đặt cắt lỗ / chốt / hẹn đóng`, `Close / extend: on the ${ocEnvLbl(I.env)} card · right-click (long-press) the chart for stop / target / close-at`)}</p>` : ""; }
+function ocActsBind(m, I) { m.querySelectorAll("[data-occa]").forEach((x) => (x.onclick = () => { const a = I.acts[+x.dataset.occa], t = a && [...document.querySelectorAll(a.sel)].find((b) => !b.closest("#ocChart,.occ") && !b.disabled);
+    if (!t) { toast(bi("Lệnh này vừa thay đổi (đã đóng / khớp) – xem lại ở thẻ lệnh", "This trade just changed – check its card"), { type: "warn" }); return; } t.click(); })); }
+function ocSwitch(env) {
+  const m = document.getElementById("ocChart"), I0 = OCC.I0; if (!m || !I0 || OCC.info?.env === env) return;
+  const I = env === I0.env ? I0 : (OCC.alt?.[env] || ocAlt(I0.base, env, I0));
+  if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }
+  OCC.info = I; lsSet("ocEnvLast", env);
+  const sd = m.querySelector(".occ-sd"); if (sd) { sd.className = `occ-sd ${I.side > 0 ? "up" : "down"}`; sd.textContent = I.none ? "" : I.side > 0 ? "Long" : "Short"; }
+  const w = m.querySelector(".occ-what"); if (w) { w.textContent = ocWhat(I); w.hidden = !w.textContent; }
+  const r2 = m.querySelector(".occ-r2"); if (r2) { r2.querySelector(".occ-act,.occ-altn")?.remove(); r2.insertAdjacentHTML("afterbegin", ocActsHtml(I)); ocActsBind(m, I); }
+  const lg = m.querySelector(".occ-lg"); if (lg) lg.innerHTML = ocLgHtml(I);
+  m.querySelectorAll("[data-ocenv]").forEach((b) => { const on = b.dataset.ocenv === env; b.classList.toggle("on", on); b.setAttribute("aria-selected", on); });
+  m.querySelector(".occ-p")?.classList.toggle("occ-alt", env !== I0.env);
+  ocDraw(true); ocFund(I);      // giữ khung giờ & khung đang xem – chỉ vẽ lại đường lệnh của sàn vừa chọn
+}
 function ocOpen(I) {
   if (I.man && typeof mCondPend === "function") { I.slP = mCondPend(I.base + "USDT", "sl"); I.tpP = mCondPend(I.base + "USDT", "tp"); }      // mốc vừa gửi, máy chủ chưa báo về → nhãn ⏳
-  ocClose(); OCC.info = I; OCC.tf = lsGet("ocTf", "5m");
+  ocClose(); I.env ||= "paper"; OCC.info = I; OCC.I0 = I; OCC.tf = lsGet("ocTf", "5m");
+  OCC.alt = { [I.env]: I, [I.env === "paper" ? "live" : "paper"]: ocAlt(I.base, I.env === "paper" ? "live" : "paper", I) };
   const sec = /s$/.test(OCC.tf); if (sec && !BYK?.[I.base]?.sp) OCC.tf = "1m";
   const m = document.createElement("div"); m.id = "ocChart"; m.className = "occ"; document.body.classList.add("occ-on");      // lớp thay cho body:has(.occ) trong CSS
   const lab = (t, v, c) => (v ? `<span class="occ-l ${c}"><i></i>${t} <b>${px(v)}</b></span>` : "");
   m.innerHTML = `<div class="occ-bg" data-occx></div><div class="occ-p" role="dialog" aria-modal="true" aria-label="${bi("Biểu đồ", "Chart")} ${esc(I.base)}">
-    <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
+    <div class="occ-h"><div class="occ-t"><b>${esc(I.base)}</b> <span class="sc-t ${I.fut ? "f" : "s"}">${I.fut ? "Futures" : "Spot"}</span> <span class="occ-sd ${I.side > 0 ? "up" : "down"}">${I.side > 0 ? "Long" : "Short"}</span> <b class="occ-px" id="occPx">—</b></div>
       <a class="occ-go" href="#/c/${enc(I.base.replace(/^1000+/, ""))}" title="${bi("Mở trang phân tích coin", "Open coin analysis")}"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M7 15l4-4 3 3 5-6"/></svg>${bi("Phân tích", "Analysis")}</a><button type="button" class="occ-x" data-occx aria-label="${bi("Đóng", "Close")}">✕</button></div>
-    ${I.what ? `<div class="occ-what faint">${esc(I.what)}</div>` : ""}
-    <div class="occ-st" id="occSt"></div><div class="occ-r2">${(I.acts || []).length ? `<div class="occ-act sc-mxr">${I.acts.map((a, i) => `<button type="button" class="${esc(a.cls)}" data-occa="${i}"${a.dis ? " disabled" : ""}>${a.html}</button>`).join("")}</div>` : ""}${I.fut ? `<details class="occ-mk" id="occMkD"><summary>📊 ${bi("Phe đông 3 ngày qua", "Crowding, last 3 days")} <small>funding · Long/Short · ${bi("hợp đồng mở (OI)", "open interest")}</small>${can("futures") ? "" : ' <span class="lk">★ Pro</span>'}</summary><div id="occMk"></div></details>` : ""}</div>
+    <div class="occ-envr">${ocEnvSw()}</div>
+    <div class="occ-what faint"${ocWhat(I) ? "" : " hidden"}>${esc(ocWhat(I))}</div>
+    <div class="occ-st" id="occSt"></div><div class="occ-r2">${ocActsHtml(I)}${I.fut ? `<details class="occ-mk" id="occMkD"><summary>📊 ${bi("Phe đông 3 ngày qua", "Crowding, last 3 days")} <small>funding · Long/Short · ${bi("hợp đồng mở (OI)", "open interest")}</small>${can("futures") ? "" : ' <span class="lk">★ Pro</span>'}</summary><div id="occMk"></div></details>` : ""}</div>
     <div class="occ-bar"><span class="seg tfseg occ-tf">${TFS.map(([k, n]) => `<button type="button" data-octf="${k}" class="${k === OCC.tf ? "on" : ""}">${n}</button>`).join("")}</span>
       <span class="occ-tg">${[["ema", "EMA 20/50"], ["vol", bi("Khối lượng", "Volume")], ["rsi", "RSI"], ["ob", bi("Tường lệnh", "Order walls")], ...(I.fut ? [["pos", bi("Long/Short còn giữ", "Open L/S")], ["lqn", bi("Thanh lý gần", "Liq. near")], ["lqf", bi("Thanh lý xa", "Liq. far")]] : [])].map(([k, t]) => { const ly = OCL.includes(k), lk = ly && !can("futures"), v = k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k);
         const tip = { pos: esc(POS_TIP()), ob: bi("Khối lệnh chờ lớn trên sổ lệnh Binance (±12% quanh giá) – làm mới 10 giây/lần", "Large resting orders on the Binance book (±12%) – refreshed every 10 s"), lqn: bi("ƯỚC TÍNH vùng nhiều vị thế đòn bẩy bị thanh lý trong ±8% quanh giá – theo khối lượng 3 ngày & đòn bẩy phổ biến, không phải dữ liệu sàn", "ESTIMATED liquidation clusters within ±8% – from 3-day volume & common leverage, not exchange data"), lqf: bi("ƯỚC TÍNH vùng thanh lý xa (8–30% từ giá) – ngoài khung đang xem thì hiện nhãn ở mép trên / dưới", "ESTIMATED far liquidation clusters (8–30%) – shown as edge labels when off-screen") }[k];
         return `<button type="button" data-octg="${k}" class="${v && !lk ? "on" : ""}${lk ? " lk" : ""}"${tip ? ` title="${tip}"` : ""}>${t}${lk ? " <small>★ Pro</small>" : ""}</button>`; }).join("")}</span><span class="occ-fsw"><button type="button" class="cv-fsb" data-ocfs title="${bi("Toàn màn hình · kéo vạch trên cùng lên cũng được", "Full screen · or drag the top handle up")}" aria-label="${bi("Toàn màn hình", "Full screen")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button><button type="button" class="cv-fsb occ-rotb" data-ocrot title="${bi("Xoay ngang biểu đồ (không cần mở khoá xoay màn hình)", "Rotate chart to landscape")}" aria-label="${bi("Xoay ngang", "Landscape")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="13" height="10" rx="2"/><path d="M13 3.5a7 7 0 0 1 7 7"/><path d="M20.5 6.5v4h-4"/></svg></button></span></div>
-    <div class="occ-lg">${lab(bi("Vào", "Entry"), I.e, "e")}${lab(bi("Cắt lỗ", "Stop"), I.sl, "sl")}${lab(bi("Chốt lời", "Target"), I.tp, "tp")}${I.lv.filter((v) => !I.e || Math.abs(v / I.e - 1) > 1e-4).map((v) => lab(bi("Chờ", "Limit"), v, "lv")).join("")}${I.e ? "" : (I.lf || []).map((v) => lab(bi("Đã khớp", "Filled"), v, "lf")).join("")}<span id="occOb"></span><span id="occPos"></span></div>
+    <div class="occ-lg">${ocLgHtml(I)}</div>
     <div class="occ-c" id="occC"></div><div class="occ-foot"><div class="occ-ohlc" id="occO"></div><small class="faint" id="occSrc"></small></div><div class="occ-rsi" id="occR"></div></div>`;
   document.body.appendChild(m);
   // chặn cuộn trang phía sau bằng sự kiện (KHÔNG đổi overflow của trang: đổi overflow = trình duyệt tính lại bố cục cả trang ~70ms → khựng ngay khung đầu của hiệu ứng mở)
@@ -3372,8 +3409,8 @@ function ocOpen(I) {
   void m.offsetWidth; requestAnimationFrame(() => m.classList.add("on"));
   m.querySelectorAll("[data-occx]").forEach((x) => (x.onclick = ocClose));
   // nút trên biểu đồ = bấm đúng nút đó trên thẻ lệnh (thẻ vẽ lại 20 giây / lần → tìm lại theo thuộc tính); bảng xác nhận nổi lên trên biểu đồ
-  m.querySelectorAll("[data-occa]").forEach((x) => (x.onclick = () => { const a = I.acts[+x.dataset.occa], t = a && [...document.querySelectorAll(a.sel)].find((b) => !b.closest("#ocChart,.occ") && !b.disabled);
-    if (!t) { toast(bi("Lệnh này vừa thay đổi (đã đóng / khớp) – xem lại ở thẻ lệnh", "This trade just changed – check its card"), { type: "warn" }); return; } t.click(); }));
+  ocActsBind(m, I);
+  m.querySelectorAll("[data-ocenv]").forEach((b) => (b.onclick = () => ocSwitch(b.dataset.ocenv)));
   m.querySelector(".occ-go").onclick = () => ocClose();
   m.querySelectorAll("[data-octg]").forEach((b) => (b.onclick = () => { const k = b.dataset.octg; if (b.classList.contains("lk")) { toast(bi("Tường lệnh, vùng Long/Short còn giữ & vùng thanh lý thuộc gói Pro", "Order walls, open L/S zones & liquidation zones are in Pro"), { type: "warn" }); return; }
     const v = !(k === "lqf" ? lsGet("oc_lqf", false) : ocOpt(k)); lsSet("oc_" + k, v); b.classList.toggle("on", v); if (OCL.includes(k)) OCC.mkLayer?.(); else ocDraw(true); }));      // lớp vẽ: chỉ gắn / gỡ lớp · EMA / KL / RSI: dựng lại nhưng giữ khung đang xem
@@ -3381,7 +3418,7 @@ function ocOpen(I) {
   m.querySelectorAll("[data-octf]").forEach((b) => (b.onclick = () => { OCC.tf = b.dataset.octf; lsSet("ocTf", OCC.tf); m.querySelectorAll("[data-octf]").forEach((x) => x.classList.toggle("on", x === b)); ocDraw(); }));
   m.querySelector(".occ-tf .on")?.scrollIntoView({ inline: "center", block: "nearest" });
   ocDraw(); ocFund(I);
-  m.querySelector("#occMkD")?.addEventListener("toggle", (e) => { if (e.target.open) ocMkt(I); });
+  m.querySelector("#occMkD")?.addEventListener("toggle", (e) => { if (e.target.open) ocMkt(OCC.info || I); });
 }
 // ================================================================ 📏 THANG GIÁ TRÊN THẺ LỆNH (27/11/2026, Jason):
 //   · ĐƯỜNG MỜ = đoạn giá đã quét qua từ lúc vào lệnh (nến Binance từ giờ vào + giá trực tiếp), chấm nhỏ ở mức lời nhất / lỗ nhất từng chạm

@@ -8032,3 +8032,10 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
   box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 14%,transparent),0 10px 26px -8px rgba(0,0,0,.35);pointer-events:none;font-variant-numeric:tabular-nums}
 .lad-tip[hidden]{display:none}.lad-tip small{color:var(--ink-3);font-size:.6875rem}.lad-tip .up{color:var(--up)}.lad-tip .down{color:var(--down)}.lad-tip span small{color:inherit;opacity:.75}
 @media (hover:none){.sc-lad{cursor:default}}
+
+/* 🔀 biểu đồ lệnh: công tắc Sàn thử | Tiền thật (cùng 1 biểu đồ) */
+.occ-envr{margin:-2px 0 8px}
+.occ-env{display:inline-flex}.occ-env button{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.occ-env button small{font-size:.6875rem;opacity:.6;font-weight:500}
+.occ-env button.no:not(.on){opacity:.65}
+.occ-altn{margin:0 0 6px;font-size:.75rem;line-height:1.45}
