@@ -35,6 +35,7 @@ const LTAG = (env) => (env === "live" ? "💰 TIỀN THẬT" : "🟡 DEMO"), coi
 //   notional– tổng giá trị lệnh ≤ 2× số dư
 //   worst   – nếu MỌI lệnh đang mở cùng chạm cắt lỗ / bị thanh lý cùng lúc, mất tối đa 35% số dư
 //   dd      – số dư thấp hơn đỉnh cao nhất 30% → ngừng mở mới tới khi anh bấm "Chạy lại" trên trang
+const QNAME = { ou: "Cặp coin O-U", rsi2: "RSI(2) Connors", fund: "Funding âm → Long", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý" };      // tên 📐 định lượng như trên web
 const RISK = { margin: 0.8, notional: 2, worst: 0.35, dd: 0.3 };
 export class LiveExec {
   constructor({ core, dir, log }) {
@@ -729,7 +730,7 @@ export class LiveExec {
     if (t === "q") return !!S.q?.[a]?.pos?.[b];
     return true;
   }
-  pkName(pk) { const [t, a, b] = String(pk).split(":"); return t === "pp" ? `🧪 ${coin(a)} (sàn thử)` : t === "sw" ? `🧪 ${a === "pump" ? "Short coin vừa bơm" : "Short coin mới niêm yết"} #${b}` : t === "q" ? `🧪 định lượng ${a} #${b}` : pk; }
+  pkName(pk) { const [t, a, b] = String(pk).split(":"); return t === "pp" ? `🧪 ${coin(a)} (sàn thử)` : t === "sw" ? `🧪 ${a === "pump" ? "Short coin vừa bơm" : "Short coin mới niêm yết"}` : t === "q" ? `🧪 ${QNAME[a] || a}` : pk; }      // tên kiểu chơi cho người đọc – không in mã nội bộ của lệnh (trước: "định lượng fund #fund694463184")
   mLink(sym, sd, exp, pk) {
     const L = (this.S.mlk ||= {});
     if (!exp && !pk) { if (L[sym]) { delete L[sym]; this.say(`⏱ Huỷ hẹn đóng lệnh tay ${coin(sym)}`, "info"); } return; }
@@ -864,7 +865,7 @@ export class LiveExec {
   // 📋 CHÉP 1 lệnh sàn thử sang Binance (anh bấm trên trang): vào bằng lệnh thị trường, ký quỹ CÔ LẬP, đòn bẩy anh chọn; rồi đặt cắt lỗ / chốt lời trên sàn
   // và hẹn đóng đúng giờ của lệnh sàn thử (+ đóng ngay khi sàn thử đóng lệnh đó). Sau đó là 1 lệnh tay bình thường (thẻ ✋ trên trang).
   async mCopy(sym, sd, usd, lev, sl, tp, exp, pk, tag0 = "") {
-    const tag = tag0 || `📋 Chép ${pk ? this.pkName(pk) : "lệnh sàn thử"} → ${coin(sym)} ${sd > 0 ? "Long" : "Short"}`;
+    const tag = tag0 || `📋 Chép lệnh sàn thử ${coin(sym)} ${sd > 0 ? "Long" : "Short"}${pk ? ` (${this.pkName(pk)})` : ""}`;
     if (this.env() !== "live" && this.env() !== "demo") return;
     if (this.botSyms().has(sym)) { this.say(`${tag}: bot đang có lệnh trên mã này – không chép (Binance gộp chung vị thế)`, "no"); return; }
     const F = await this.filters(sym); if (!F) { this.say(`${tag}: mã không giao dịch futures được`, "no"); return; }

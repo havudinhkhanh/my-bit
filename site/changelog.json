@@ -52,6 +52,22 @@
      "de": "Per-period figures and each method's portfolio update daily once Binance publishes the previous day's data. The search for new methods still runs every 4 days.",
      "f": "bot",
      "go": "#/bot/scalp/cand"
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Sàn thử Bắt râu sập: cắt lỗ và cắt lỗ đuổi chạy lại khi Lướt giây đang tắt",
+     "te": "Paper Wick Catcher: stop and trailing stop work again while Second-scalping is off",
+     "d": "Từ khi có chế độ chỉ Bắt râu sập (07/11), lệnh ảo đang mở không được xét cắt lỗ, cắt lỗ đuổi hay giá hẹn mà chỉ đóng khi hết giờ, nên kết quả sàn thử lệch với tiền thật. Giờ lệnh ảo được xét ở từng giá khớp như trước. Kết quả sàn thử Bắt râu sập từ 07/11 tới 27/11 vì vậy là kết quả giữ tới hết giờ.",
+     "de": "Since hook-only mode (7 Nov) open paper trades were not checked for stop, trailing stop or target; they only closed on time, so paper results drifted from real ones. They are checked on every trade print again. Paper Wick Catcher results from 7 to 27 Nov are therefore hold-to-time results.",
+     "f": "bot"
+    },
+    {
+     "c": "fix",
+     "a": "live",
+     "t": "Tin chép lệnh sàn thử ghi tên kiểu chơi thay cho mã nội bộ",
+     "te": "Copy-trade messages show the method name instead of an internal code",
+     "aud": "admin"
     }
    ]
   },

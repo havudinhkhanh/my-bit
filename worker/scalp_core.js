@@ -604,7 +604,10 @@ export class ScalpCore {
     SRC[f.src].parse(m, f, {
       book: (x, b, bq, a, aq, b1, a1) => { if (b) { x.bid = b; if (bq != null) { x.bq = bq; x.b1q = b1 ?? bq; } } if (a) { x.ask = a; if (aq != null) { x.aq = aq; x.a1q = a1 ?? aq; } } x.tb = now; if (x.bid && x.ask) this.onBook(x, now); },
       trade: (x, p, q, side) => { if (!(p > 0 && q > 0)) return; if (side > 0) x.sec.buy += q * p; else x.sec.sell += q * p;
-        if (f.noBook) { x.bid = x.ask = p; x.tb = now; }      // không có sổ lệnh: dùng giá khớp cuối làm giá mua/bán (nến 1 phút, đóng lệnh sàn thử)
+        if (f.noBook) { x.bid = x.ask = p; x.tb = now;      // không có sổ lệnh: dùng giá khớp cuối làm giá mua/bán (nến 1 phút, đóng lệnh sàn thử)
+          // 27/11/2026: chế độ này trước đây KHÔNG gọi onBook → lệnh sàn thử đang mở không được xét cắt lỗ / cắt lỗ đuổi / giá hẹn / gia hạn, chỉ đóng khi hết giờ
+          // (từ 07/11 sàn thử Bắt râu sập toàn đóng "hết giờ" trong khi tiền thật đóng bằng cắt lỗ đuổi – vd BIGTIME 27/11). Mã đang có lệnh ảo → xét ở từng giá khớp.
+          if (this.S?.pos?.[x.id] || x.sh?.length) this.onBook(x, now); }
         const mv = Math.floor(now / 60000); if (!x.vm || x.vm[0] !== mv) { x.vmp = x.vm; x.vm = [mv, 0, 0]; } x.vm[1] += q * p * (x.ct || 1); if (side > 0) x.vm[2] += q * p * (x.ct || 1);      // khối lượng (USDT) từng phút
         this.onTrade(x, p, q, side, now); },
     });
