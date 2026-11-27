@@ -7903,3 +7903,20 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
   .occ-go{margin-right:0;padding:0 9px}.occ-go .occ-gt{display:none}}
 @media (max-width:520px){.occ-h .occ-env button{font-size:.75rem;padding:0 7px}.occ-h .occ-t .sc-t{display:none}}
 .cd-ap.cd-ov:not(.mini) .cd-fs-sum{display:none}
+/* 📐 cửa sổ biểu đồ lệnh trên điện thoại (27/11/2026): nút & chữ mỏng hơn để nhường chỗ cho biểu đồ (~70px) */
+@media (max-width:760px){
+  #ocChart .occ-p:not(.rot90){padding:10px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+  #ocChart .occ-h{margin-bottom:2px;gap:6px}#ocChart .occ-t{font-size:.9375rem;gap:2px 7px;line-height:1.2}
+  #ocChart .occ-x,#ocChart .occ-go,#ocChart .occ-h .occ-env button{height:28px}#ocChart .occ-x{width:28px}
+  #ocChart .occ-h .occ-envr .seg{padding:2px}
+  #ocChart .occ-what{font-size:.6875rem;margin:0 0 4px;line-height:1.3}
+  #ocChart .occ-st{margin-bottom:5px}#ocChart .occ-k{padding:3px 8px;border-radius:7px}#ocChart .occ-k>small{font-size:.65rem}#ocChart .occ-k>b{font-size:.78rem}
+  #ocChart .occ-r2{gap:5px;margin-bottom:5px}
+  #ocChart .occ-act{gap:5px}#ocChart .occ-act .sc-mx{font-size:.75rem;padding:5px 10px;border-radius:8px;min-height:0}
+  #ocChart .occ-r2>.occ-mk>summary{padding:4px 10px;font-size:.75rem}
+  #ocChart .occ-bar{margin-bottom:4px}#ocChart .occ-tf{padding:2px!important}
+  #ocChart .occ-tf>button:not(#_t){height:24px!important;min-height:24px!important;font-size:.72rem!important;padding:0 8px!important}
+  #ocChart .occ-fsw{gap:4px;margin-left:6px}#ocChart .occ-fsw .cv-fsb{width:28px;height:28px}
+  #ocChart .occ-lg{gap:1px 10px;margin-bottom:3px;font-size:.6875rem;line-height:1.35}
+  #ocChart .occ-ohlc{font-size:.6875rem;padding-top:3px;gap:2px 10px;min-height:0}
+}

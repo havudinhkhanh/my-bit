@@ -9,6 +9,14 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "imp",
+     "a": "chart",
+     "t": "Cửa sổ biểu đồ lệnh trên điện thoại: nút & chữ mỏng hơn, biểu đồ cao thêm ~85px",
+     "te": "Trade chart on phones: slimmer buttons & text, chart ~85px taller",
+     "d": "Hàng tiêu đề, dải số, nút Vào thêm / Đóng, chọn khung thời gian, chú thích và dòng giá dưới cùng đều gọn lại – nhường chỗ cho nến.",
+     "de": "Header, stats strip, action buttons, timeframe picker, legend and footer are all tighter to give the candles more room."
+    },
+    {
      "c": "fix",
      "a": "live",
      "t": "Viên lệnh & bảng lệnh nổi hiện lời/lỗ RÒNG giống thẻ lệnh (đã gồm phí + funding)",
