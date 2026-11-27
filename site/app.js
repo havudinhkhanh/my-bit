@@ -2490,15 +2490,35 @@ function pnHApply() {
   const all = H.toc && H.me && H.calc; if (nav.classList.contains("h-tabs") !== !!all) nav.classList.toggle("h-tabs", !!all);
   if (H[PN.tab]) pnTab("sum", true);
 }
+// ⚙ Tuỳ chỉnh = tấm trượt ra từ mép PHẢI màn hình (có lớp mờ phía sau) – không chen vào trong bảng phụ; bật/tắt thấy ngay ở bảng phụ bên trái
+const PNH_G = [["Trên cùng", ["dock", "pulse"]], ["Các thẻ", ["toc", "me", "calc"]], ["Trong phần Tóm tắt", ["mbot", "al", "cpt"]]];
+function pnCusBody() {
+  const H = pnHid(), L = Object.fromEntries(PNH_L.map((x) => [x[0], x]));
+  return PNH_G.map(([g, ks]) => `<p class="pnfly-g">${T(g)}</p><div class="pnfly-c">${ks.map((k) => { const [, t, d] = L[k]; return `<button type="button" class="pn-cus-r" role="switch" aria-checked="${!H[k]}" data-pnh="${k}"><span><b>${T(t)}</b>${d ? `<small>${T(d)}</small>` : ""}</span><i class="ios-sw sm" aria-checked="${!H[k]}"><i></i></i></button>`; }).join("")}</div>`).join("")
+    + `<button type="button" class="pnfly-reset" data-pnhall ${Object.values(H).some(Boolean) ? "" : "disabled"}>${T("Hiện lại tất cả")}</button>`;
+}
 function pnCus(open) {
-  const el = $("#pnCus"), b = $("#pnCusB"); if (!el) return;
-  if (open === undefined) open = el.hidden;
-  if (open) { const H = pnHid(); el.innerHTML = `<p class="pn-cus-h">${T("Hiện trong bảng phụ")}</p>${PNH_L.map(([k, t, d]) => `<button type="button" class="pn-cus-r" role="menuitemcheckbox" aria-checked="${!H[k]}" data-pnh="${k}"><span><b>${T(t)}</b>${d ? `<small>${T(d)}</small>` : ""}</span><i class="ios-sw sm" aria-checked="${!H[k]}"><i></i></i></button>`).join("")}${Object.values(H).some(Boolean) ? `<button type="button" class="pn-cus-x" data-pnhall>${T("Hiện lại tất cả")}</button>` : ""}`; }
-  el.hidden = !open; b?.setAttribute("aria-expanded", String(!!open));
+  let el = $("#pnFly"); const b = $("#pnCusB");
+  if (open === undefined) open = !el || el.hidden;
+  if (!el) {
+    if (!open) return;
+    document.body.insertAdjacentHTML("beforeend", `<div id="pnFly" class="pnfly" hidden><div class="pnfly-bg" data-pnx></div><aside class="pnfly-in" role="dialog" aria-modal="true" aria-labelledby="pnFlyT">
+      <header class="pnfly-h"><div><b id="pnFlyT">${T("Tuỳ chỉnh bảng phụ")}</b><small>${T("Chọn phần hiện trong bảng phụ · lưu trên máy này")}</small></div><button type="button" class="pnfly-x" data-pnx aria-label="${T("Đóng")}">✕</button></header>
+      <div class="pnfly-b" id="pnFlyB"></div></aside></div>`);
+    el = $("#pnFly");
+    el.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall],[data-pnx]"); if (!t) return; e.preventDefault();
+      if (t.dataset.pnx != null) return pnCus(false);
+      if (t.dataset.pnhall != null) return pnHSet("*");
+      pnHSet(t.dataset.pnh, !pnHid()[t.dataset.pnh]); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#pnFly")?.hidden) pnCus(false); });
+  }
+  b?.setAttribute("aria-expanded", String(!!open));
+  if (open) { $("#pnFlyB").innerHTML = pnCusBody(); el.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on"))); setTimeout(() => el.querySelector(".pnfly-x")?.focus({ preventScroll: true }), 60); }
+  else if (!el.hidden) { el.classList.remove("on"); clearTimeout(el.__t); el.__t = setTimeout(() => { if (!el.classList.contains("on")) el.hidden = true; }, 320); b?.focus({ preventScroll: true }); }
 }
 function pnHSet(k, hide) {
   const H = pnHid(); if (k === "*") { for (const [x] of PNH_L) delete H[x]; } else if (hide) H[k] = true; else delete H[k];
-  pnLS("hid", H); pnHApply(); pnCus(true);
+  pnLS("hid", H); pnHApply(); const B = $("#pnFlyB"); if (B) B.innerHTML = pnCusBody();
   if (k === "*" || k === "mbot") { SB.bot = null; sbRender(); }
   if (k === "dock" || k === "*") window.lvDock?.();
 }
@@ -2507,11 +2527,6 @@ function pnInit() {
   stickH(); pnHApply();
   $("#pnCusB")?.addEventListener("click", (e) => { e.stopPropagation(); pnCus(); });
   $("#pnColl")?.addEventListener("click", () => pnOpen(false));
-  nav.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall]"); if (!t) return; e.preventDefault();
-    if (t.dataset.pnhall != null) return pnHSet("*");
-    pnHSet(t.dataset.pnh, !pnHid()[t.dataset.pnh]); });
-  document.addEventListener("click", (e) => { const el = $("#pnCus"); if (el && !el.hidden && e.target.isConnected && !e.target.closest("#pnCus,#pnCusB")) pnCus(false); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#pnCus")?.hidden) pnCus(false); });
   $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
   let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };

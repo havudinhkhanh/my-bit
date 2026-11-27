@@ -8153,3 +8153,26 @@ body.pn-sheet .pn-coll{visibility:hidden}      /* tấm trượt (điện thoạ
 @media (hover:none){.pn-coll kbd{display:none}}
 .pn-in{overflow:visible}
 #pnav.h-toc .pn-tabs2 [data-t="toc"],#pnav.h-me .pn-tabs2 [data-t="me"],#pnav.h-calc .pn-tabs2 [data-t="calc"]{display:none!important}
+/* ⚙ Tuỳ chỉnh bảng phụ: tấm trượt từ mép phải (như cài đặt iOS), lớp mờ phía sau; nhóm: Trên cùng · Các thẻ · Trong phần Tóm tắt */
+.pnfly{position:fixed;inset:0;z-index:1400}
+.pnfly[hidden]{display:none}
+.pnfly-bg{position:absolute;inset:0;background:rgba(10,14,20,.28);opacity:0;transition:opacity .28s ease}
+.pnfly-in{position:absolute;top:0;right:0;bottom:0;width:min(380px,92vw);display:flex;flex-direction:column;background:var(--bg);
+  box-shadow:-24px 0 60px -20px rgba(10,14,20,.45);transform:translateX(102%);transition:transform .34s cubic-bezier(.32,.72,0,1);
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.pnfly.on .pnfly-bg{opacity:1}.pnfly.on .pnfly-in{transform:none}
+.pnfly-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 18px 10px}
+.pnfly-h b{display:block;font:700 1.0625rem/1.25 "Be Vietnam Pro",system-ui,sans-serif;color:var(--ink)}
+.pnfly-h small{display:block;margin-top:3px;font-size:.75rem;color:var(--ink-3)}
+.pnfly-x{flex:none;width:32px;height:32px;border:0;border-radius:10px;background:color-mix(in srgb,var(--ink) 6%,transparent);color:var(--ink-2);font-size:.875rem;cursor:pointer}
+.pnfly-x:hover{background:color-mix(in srgb,var(--ink) 10%,transparent);color:var(--ink)}
+.pnfly-b{flex:1;min-height:0;overflow:auto;padding:4px 14px 20px;overscroll-behavior:contain}
+.pnfly-g{margin:14px 6px 6px;font:700 .6875rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.pnfly-c{border-radius:12px;background:var(--surface);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);overflow:hidden}
+.pnfly-c .pn-cus-r{border-radius:0;padding:11px 14px}
+.pnfly-c .pn-cus-r+.pn-cus-r{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ink) 7%,transparent)}
+.pnfly-c .pn-cus-r b{font-size:.84375rem}
+.pnfly-c .pn-cus-r:hover{background:color-mix(in srgb,var(--ink) 3.5%,transparent)}
+.pnfly-reset{display:block;width:100%;margin:18px 0 0;padding:11px;border:0;border-radius:12px;background:var(--surface);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);color:var(--brand);font:600 .8125rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;cursor:pointer}
+.pnfly-reset:disabled{color:var(--ink-3);cursor:default;opacity:.6}
+@media (prefers-reduced-motion:reduce){.pnfly-in,.pnfly-bg{transition:none}}

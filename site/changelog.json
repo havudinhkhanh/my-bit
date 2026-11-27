@@ -13,7 +13,7 @@
      "a": "ui",
      "t": "Bảng phụ làm mới: gọn, 1 tông nền, tự chọn phần hiện",
      "te": "Side panel redesign: cleaner, one tone, choose what shows",
-     "d": "Biểu đồ lời/lỗ Binance lên đầu; nhịp thị trường gom 1 thẻ; thanh thẻ dạng gạch chân gọn. Chân bảng có [Thu gọn bảng phụ · P] (cùng kiểu với “Thu gọn thanh bên” bên trái, thay nút ‹ lơ lửng ở mép) và nút ⚙ để tắt từng phần: biểu đồ, nhịp thị trường, từng thẻ Đi tới / Của tôi / Tính lệnh, bot phút, cảnh báo, thuật ngữ. Thẻ Đi tới ẩn sẵn (bật lại trong ⚙). Bot phút đang tắt gom thành 1 dòng thu gọn.",
+     "d": "Biểu đồ lời/lỗ Binance lên đầu; nhịp thị trường gom 1 thẻ; thanh thẻ dạng gạch chân gọn. Chân bảng có [Thu gọn bảng phụ · P] (cùng kiểu với “Thu gọn thanh bên” bên trái, thay nút ‹ lơ lửng ở mép) và nút ⚙ mở tấm Tuỳ chỉnh trượt ra từ mép phải để tắt từng phần: biểu đồ, nhịp thị trường, từng thẻ Đi tới / Của tôi / Tính lệnh, bot phút, cảnh báo, thuật ngữ. Thẻ Đi tới ẩn sẵn (bật lại trong ⚙). Bot phút đang tắt gom thành 1 dòng thu gọn.",
      "de": "P&L charts on top, market pulse in one card, slim underline tabs. Footer has “Collapse panel · P” (matching the left rail) and ⚙ to hide each part, including individual tabs. “Go to” is hidden by default. Stopped minute bots collapse into one line.",
      "hi": 1
     },
