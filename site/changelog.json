@@ -9,6 +9,30 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "new",
+     "a": "bot",
+     "t": "Lệnh đã đóng: chia trang",
+     "te": "Closed trades: pagination",
+     "d": "Chọn số lệnh mỗi trang (25 / 50 / 100 / Tất cả – nhớ trên máy), sang trang bằng ‹ 1 2 … › dưới bảng thay vì cuộn dài trong khung. Tóm tắt đầu mỗi ngày vẫn tính đủ cả ngày dù ngày đó nằm ở 2 trang.",
+     "de": "Choose 25/50/100/all per page and page through closed trades; day totals stay complete.",
+     "hi": 1
+    },
+    {
+     "c": "imp",
+     "a": "mascot",
+     "t": "Na ngủ sau 2 phút anh không chạm trang",
+     "te": "Na naps after 2 idle minutes",
+     "d": "2 phút không chạm / cuộn / gõ → Na cuộn tròn ngủ và chỉ vẽ ~6 khung/giây (đỡ máy, đỡ pin điện thoại); chạm vào trang là Na dậy.",
+     "de": "After 2 idle minutes Na sleeps and redraws ~6 fps; any touch wakes her."
+    },
+    {
+     "c": "fix",
+     "a": "bot",
+     "t": "Tab Hoạt động không còn hiện khối xám to",
+     "te": "Activity tab no longer shows a big grey block",
+     "de": "Layout fix while content loads."
+    },
+    {
      "c": "imp",
      "a": "bot",
      "t": "Tab Đã đóng: bảng Lệnh đã đóng lên đầu",

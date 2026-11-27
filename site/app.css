@@ -8268,4 +8268,18 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .sc-tbar.stk-now::before,.sc-tbar.stk-now{transition:none!important}
 #app .sc-body>.sc-ofl.stk-now::before{transition:none!important}
 /* đổi tab con lúc thanh tab đang dính: phần nội dung luôn cao ít nhất 1 màn hình dưới thanh → thanh vẫn dính đúng chỗ, tiêu đề "Bot Phản Xạ" không hiện lại đẩy thanh xuống */
-#app>.sc-tbar+.sc-body{min-height:calc(100vh - var(--oflt,130px));min-height:calc(100dvh - var(--oflt,130px))}
+#app>.sc-tbar+.sc-body{min-height:calc(100vh - var(--oflt,130px));min-height:calc(100dvh - var(--oflt,130px));align-content:start}      /* align-content:start: lưới không giãn hàng cho đủ chiều cao (lỗi: tab Hoạt động hiện 1 khối xám to) */
+/* 📄 phân trang Lệnh đã đóng: trang đang xem hiện đủ (không cuộn trong khung), dưới bảng có ‹ 1 2 … › · khoảng lệnh · số lệnh / trang */
+.lvt-tw.clp-on:not(#_f),.sc-hl.lvt.clp-on:not(#_f){max-height:none!important;overflow:visible}
+.lvt-tw.clp-on{overflow-x:auto}
+.clp{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;margin:10px 0 4px}
+.clp-n{display:inline-flex;align-items:center;gap:3px}
+.clp-b{min-width:32px;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font:600 .8125rem/1 "Be Vietnam Pro",system-ui,sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;transition:background-color .15s,color .15s}
+.clp-b:hover:not(:disabled){background:var(--fill-h,color-mix(in srgb,var(--ink) 7%,transparent));color:var(--ink)}
+.clp-b.on{background:var(--sel,var(--ink));color:var(--sel-ink,var(--surface))}
+.clp-b:disabled{opacity:.35;cursor:default}
+.clp-gap{padding:0 2px;color:var(--ink-3)}
+.clp-i{font-size:.75rem;font-variant-numeric:tabular-nums}
+.clp-s{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.clp-s .seg button{padding:4px 9px;font-size:.75rem}
+@media (max-width:640px){.clp{gap:8px}.clp-s{margin-left:0}.clp-n{width:100%;justify-content:center}}

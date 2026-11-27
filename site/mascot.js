@@ -614,6 +614,8 @@
     const dk = S.cfg.skin + (document.documentElement.dataset.theme || "") + S.s, same = !gh && !ops.length && !A.snap && sh === A.dSh && bl === A.dBl && dk === A.dSk;
     if (A.R && !same) { const t0 = performance.now(); cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); const dd = performance.now() - t0; A.dms = A.dms == null ? dd : A.dms * 0.97 + Math.min(dd, 30) * 0.03; A.slow = A.dms > (A.slow ? 2.5 : 4); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }      // 🐢 máy yếu (vẽ 1 hình > 4 ms) → ngồi yên chỉ vẽ khung chính 24/giây như điện thoại
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || A.sw || c.scr;
+    // 😴 đang ngủ (anh ≥ 2 phút không chạm trang): vẽ thưa ~6 khung/giây – chỉ còn thở nhẹ, đỡ máy & pin; chạm / cuộn là mèo dậy, vẽ lại bình thường
+    if (!A.snap && !mv && napping() && now() - (S.act || 0) > 110e3) { nx(160); return; }
     nx(mv || bl > 0 || t + 70 >= A.blT || (A.slowBl && t + 70 >= A.slowBl) || (c.sheet && SHEET[c.sheet]?.pe) ? (ECO && mv && !A.snap ? 33 : 0) : c.loop || c.seq || c.sheet ? (ECO ? 80 : 26) : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
   }
   function morphMap(m, u, keep) {
@@ -838,7 +840,7 @@
     if (S.nextHide && now() > S.nextHide && now() - S.act < 60e3 && mob() && !(typeof userBusy === "function" && userBusy(3000))) { S.nextHide = now() + rnd(10, 20) * 60e3; if (hideSeek()) return; }
     if (S.nextBat && now() > S.nextBat && now() - S.act < 90e3) { S.nextBat = now() + rnd(5, 11) * 60e3; if (batObj()) return; }
     if (S.nextToy && now() > S.nextToy && now() - S.act < 90e3) { S.nextToy = now() + rnd(4, 9) * 60e3; if (toy(["yarn", "post", "fly"][Math.floor(Math.random() * 3)])) return; }
-    if (now() - S.act > 180e3) { if (!napping() && !napV()) play("curl"); sched(idle, 4000); return; }      // 3 phút không đụng tới mới ngủ (trước 80 giây – đang đọc trang là mèo ngủ, im re)
+    if (now() - S.act > 120e3) { if (!napping() && !napV()) play("curl"); sched(idle, 4000); return; }      // 2 phút anh không chạm / cuộn / gõ → mèo đi ngủ, vẽ thưa (Jason 27/11; trước 3 phút)
     talkMaybe(); if (meowMaybe()) return;
     const r = Math.random(), tr = track();
     const still = [["sit", 5, 10], ["lookup", 3, 6], ["loaf", 5, 9], ["groom", 3, 6], ["lickbody", 3, 5], ["licklip", 2, 3.5], ["lie", 5, 10], ["stretch", 2, 3]];
