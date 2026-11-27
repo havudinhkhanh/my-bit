@@ -9,6 +9,16 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "new",
+     "a": "chart",
+     "hi": 1,
+     "t": "🔮 Kịch bản giá tương lai trên biểu đồ: Elliott, Fibonacci, SMC, xu hướng, dải xác suất",
+     "te": "🔮 Future price scenarios on charts: Elliott, Fibonacci, SMC, trend, probability cone",
+     "d": "Nút 🔮 cạnh thước đo: vẽ ra phía trước nến cuối đường giá dự kiến theo cách đếm sóng / cách chơi đang chọn – mục tiêu, mức sai (bỏ kịch bản), vùng chờ vào và mốc thời gian, dùng được ở mọi khung. Kèm kiểm chứng thật: gộp trên hơn 450 coin các cách này chạm mục tiêu ngang mức ngẫu nhiên (minh hoạ có điều kiện, không phải dự báo); dải xác suất khớp 80% / 50% ở khung ngày và 4 giờ. Gói Pro xem thêm tỉ lệ đúng / sai trên chính biểu đồ đang mở.",
+     "de": "The 🔮 button next to the ruler draws the expected path past the last candle for the chosen wave count / method – target, invalidation, wait zone and time, on any timeframe. Backed by real testing: pooled over 450+ coins these methods hit targets at about the random rate (conditional illustration, not a forecast); the cone matches 80% / 50% on daily and 4h. Pro also shows the hit rate on the open chart itself.",
+     "go": "#/c/BTC"
+    },
+    {
      "c": "imp",
      "a": "perf",
      "t": "Dọn tệp giao diện: nhẹ hơn, trình duyệt so khớp ít hơn",

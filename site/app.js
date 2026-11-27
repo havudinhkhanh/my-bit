@@ -102,6 +102,8 @@ function lazyJs(name) {
   }));
 }
 const JSV = { "app-bot.js": "__JSV_APPBOT__", "chartdraw.js": "__JSV_DRAW__", "app-tax.js": "__JSV_APPTAX__", "mascot.js": "__JSV_MASCOT__", "app-wrap.js": "__JSV_WRAP__", "app-plan.js": "__JSV_APPPLAN__" };
+// 🔮 kiểm chứng gộp kịch bản giá tương lai trên mọi coin (cùng hàm vẽ trên biểu đồ, chạy 27/11/2026): trúng = chạm mục tiêu trước mức sai, pl = giả dược cắt ngang (coin khác ngẫu nhiên, CÙNG thời điểm, khoảng cách quy theo ATR%), cone = % giá thật nằm trong dải 80% / 50%
+const SCN_ALL = {"d":{"ell":{"coins":455,"n":60030,"hit":20.8,"pl":19.6,"edge":1.2},"fib":{"coins":457,"n":61291,"hit":39.3,"pl":38.7,"edge":0.6},"smc":{"coins":457,"n":68044,"hit":53,"pl":52.4,"edge":0.7},"trend":{"coins":444,"n":27080,"hit":42.4,"pl":43.2,"edge":-0.8},"cone":{"coins":451,"n":15104,"in80":82,"in50":52.6}},"h4":{"ell":{"coins":212,"n":27010,"hit":23.3,"pl":23,"edge":0.3},"fib":{"coins":212,"n":26315,"hit":37.5,"pl":37.7,"edge":-0.1},"smc":{"coins":212,"n":30225,"hit":54,"pl":52.7,"edge":1.2},"trend":{"coins":212,"n":10228,"hit":67.1,"pl":61.7,"edge":5.4},"cone":{"coins":212,"n":2941,"in80":81.6,"in50":49.1}},"h1":{"ell":{"coins":213,"n":31481,"hit":29.1,"pl":28.7,"edge":0.4},"fib":{"coins":213,"n":31406,"hit":35.9,"pl":35.7,"edge":0.3},"smc":{"coins":213,"n":35962,"hit":55.9,"pl":53.6,"edge":2.3},"trend":{"coins":213,"n":8520,"hit":48.5,"pl":47.8,"edge":0.7},"cone":{"coins":213,"n":1917,"in80":73.6,"in50":48.8}}};
 // công cụ vẽ tay trên biểu đồ nến (đường xu hướng, Fibonacci, vùng, ghi chú…) – mã vẽ tải khi bấm ✏️ hoặc khi mã đã có hình vẽ
 function drawHook(el, c, s, o, dkey) {
   if (!el || !dkey || el.clientHeight < 200) return;
@@ -115,12 +117,18 @@ function drawHook(el, c, s, o, dkey) {
   // 📏 đo nhanh lời/lỗ (1 chạm, dùng được trên điện thoại): chạm điểm vào → kéo tới điểm ra → Long/Short, ròng sau phí + trượt giá
   const b3 = document.createElement("button"); b3.type = "button"; b3.className = "cd-tg cd-tg3"; b3.title = "Đo lời/lỗ: chạm điểm vào rồi kéo tới điểm ra – kéo lên = Long, kéo xuống = Short, đã trừ phí + trượt giá";
   b3.setAttribute("aria-label", "Đo lời/lỗ giữa 2 điểm"); b3.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20 20 4"/><path d="m7 17 2 2M10 14l2 2M13 11l2 2M16 8l2 2"/></svg>`;
-  el.querySelector(":scope > .cd-tg2")?.remove(); el.querySelector(":scope > .cd-tg3")?.remove();
-  el.append(b, b2, b3);
-  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, btn2: b2, btn3: b3, fmt: px, pct: (v) => pct(v, 2), btn: b, open })).catch((e) => { toast(e.message); return null; });
+  // 🔮 kịch bản giá tương lai: Elliott / Fibonacci / SMC / xu hướng / dải xác suất vẽ ra phía trước nến cuối (mục tiêu, mức sai, đường đi dự kiến) + kiểm chứng
+  const b4 = document.createElement("button"); b4.type = "button"; b4.className = "cd-tg cd-tg4"; b4.title = "Kịch bản giá tương lai: Elliott, Fibonacci, SMC, xu hướng, dải xác suất – vẽ đường đi dự kiến, mục tiêu, mức sai (minh hoạ, không phải dự báo)";
+  b4.setAttribute("aria-label", "Kịch bản giá tương lai"); b4.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18l5-5 4 3 3-4"/><path d="M15 12l5-5" stroke-dasharray="2 2.2"/><path d="M16.5 6.5H20.5v4"/></svg>`;
+  el.querySelector(":scope > .cd-tg2")?.remove(); el.querySelector(":scope > .cd-tg3")?.remove(); el.querySelector(":scope > .cd-tg4")?.remove();
+  el.append(b, b2, b3, b4);
+  const go = (open) => lazyJs("chartdraw.js").then(() => window.CDRAW.attach({ el, c, s, o, key, get: lsGet, set: lsSet, btn2: b2, btn3: b3, btn4: b4, fmt: px, pct: (v) => pct(v, 2), btn: b, open,
+    can: (f) => can(f), smc: (x) => TA.smc(x), scg: SCN_ALL })).catch((e) => { toast(e.message); return null; });
   b.onclick = (e) => { e.stopPropagation(); go(true); };
   b2.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.ap()); };
   b3.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.measure(b3)); };
+  b4.onclick = (e) => { e.stopPropagation(); go(false).then((x) => x && x.fs()); };
+  if (lsGet("draw_fs", false)) go(false).then((x) => x && x.fs(true));
   if (lsGet("draw_ap", false)) go(false).then((x) => x && x.ap(true));
   else if ((lsGet(key, []) || []).length) { b.classList.add("has"); go(false); }
 }

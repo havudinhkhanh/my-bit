@@ -7870,3 +7870,22 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 /* thẻ lệnh phương pháp thử nghiệm: TÊN PHƯƠNG PHÁP nổi bật (đậm, màu chữ chính) – lý do vào nhạt phía sau */
 .sc-oc .r1s .oc-mth{color:var(--ink);font-weight:650}
 .sc-oc .r1s .oc-why{color:var(--ink-3)}
+
+/* 🔮 Kịch bản giá tương lai trên biểu đồ (27/11/2026): nút thứ 4 cạnh thước đo + đường đi dự kiến, mục tiêu, mức sai + bảng kiểm chứng */
+.cd-tg4{left:102px}.cd-tg4.on{border-color:var(--brass,var(--brand))}
+.cd-fs-g text{font-weight:600;font-size:.6875rem}
+.cd-fs-fut{fill:var(--ink);fill-opacity:.035}.cd-fs-now{stroke:var(--ink-3);stroke-opacity:.55;stroke-dasharray:2 4}
+.cd-chip.off{opacity:.5}.cd-chip.off::before{opacity:.2}
+.cd-fs-w{margin:2px 0 0;color:var(--ink-2)}.cd-fs-w b{color:var(--ink);margin-right:4px}
+.cd-fs-k{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;margin:8px 0}
+.cd-fs-k span{display:grid;gap:1px;min-width:0;padding:6px 9px;border-radius:8px;background:var(--surface)}
+.cd-fs-k small{color:var(--ink-3);font-size:.6875rem}.cd-fs-k b{font-size:.8125rem;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cd-fs-k b small{color:var(--ink-3);font-weight:500;margin-left:2px}.cd-fs-k b.up{color:var(--up)}.cd-fs-k b.down{color:var(--down)}
+.cd-fs-v{margin:4px 0;line-height:1.55}.cd-fs-v b.up{color:var(--up)}.cd-fs-v b.down{color:var(--down)}.cd-fs-n{margin:4px 0 2px;font-size:.6875rem}
+.cd-fs-p{display:inline-block;margin-left:4px;padding:0 7px;border-radius:999px;font-size:.6875rem;font-weight:600;background:var(--fill,color-mix(in srgb,var(--ink) 8%,transparent));color:var(--ink-2)}
+.cd-fs-p.ok{background:color-mix(in srgb,var(--up) 16%,transparent);color:var(--up)}.cd-fs-p.bad{background:color-mix(in srgb,var(--down) 16%,transparent);color:var(--down)}
+.cd-fs-lk{display:inline-block;padding:3px 9px;border-radius:8px;background:color-mix(in srgb,var(--brass,#d9a23a) 12%,transparent);color:var(--ink-2);font-size:.75rem}
+.cd-fs-t{width:100%;margin:6px 0 4px;border-collapse:collapse;font-size:.75rem;font-variant-numeric:tabular-nums}
+.cd-fs-t th,.cd-fs-t td{padding:4px 6px;border-bottom:1px solid var(--bd-2);text-align:right}.cd-fs-t th:first-child,.cd-fs-t td:first-child,.cd-fs-t th:last-child,.cd-fs-t td:last-child{text-align:left}
+.cd-fs-t th{color:var(--ink-3);font-weight:500}.cd-fs-t td.up{color:var(--up)}.cd-fs-t td.down{color:var(--down)}
+.cd-fs-m{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
