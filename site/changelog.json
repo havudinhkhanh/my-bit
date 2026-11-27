@@ -9,6 +9,17 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "new",
+     "a": "bot",
+     "t": "🎬 Clip xem lại từng lệnh",
+     "te": "🎬 Replay clip for every trade",
+     "d": "Bấm ▶ cạnh mỗi lệnh đã đóng (hoặc nút “Clip xem lại lệnh” trong trang chi tiết lệnh): giá chạy từ lúc chờ khớp → khớp → đóng → thêm 5 giây, dựng từ từng giao dịch thật của Binance Futures. Tua nhanh theo từng đoạn (số × ghi trên clip), có mức chờ, giá vào, cắt lỗ, lời/lỗ tạm tính theo từng nhịp. Tua, đổi tốc độ, và Lưu video để gửi.",
+     "de": "Tap ▶ next to a closed trade: price from waiting → fill → close → +5 s, from real Binance Futures trades, with per-phase fast-forward, levels, entry, live P&L. Seek, change speed, save as video.",
+     "hi": 1,
+     "f": "bot",
+     "go": "#/bot/scalp"
+    },
+    {
      "c": "imp",
      "a": "ui",
      "t": "Bảng phụ làm mới: gọn, 1 tông nền, tự chọn phần hiện",

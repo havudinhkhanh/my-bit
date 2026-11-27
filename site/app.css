@@ -8176,3 +8176,31 @@ body.pn-sheet .pn-coll{visibility:hidden}      /* tấm trượt (điện thoạ
 .pnfly-reset{display:block;width:100%;margin:18px 0 0;padding:11px;border:0;border-radius:12px;background:var(--surface);border:1px solid color-mix(in srgb,var(--ink) 8%,transparent);color:var(--brand);font:600 .8125rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;cursor:pointer}
 .pnfly-reset:disabled{color:var(--ink-3);cursor:default;opacity:.6}
 @media (prefers-reduced-motion:reduce){.pnfly-in,.pnfly-bg{transition:none}}
+/* 🎬 clip xem lại lệnh */
+.trc{position:fixed;inset:0;z-index:1450;display:grid;place-items:center;padding:16px}
+.trc-bg{position:absolute;inset:0;background:rgba(8,12,18,.55);opacity:0;transition:opacity .25s ease}
+.trc-in{position:relative;width:min(1000px,100%);max-height:100%;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:14px 16px 12px;border-radius:16px;background:var(--surface);
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.5);transform:translateY(14px) scale(.98);opacity:0;transition:transform .3s cubic-bezier(.32,.72,0,1),opacity .2s ease}
+.trc.on .trc-bg{opacity:1}.trc.on .trc-in{transform:none;opacity:1}
+.trc-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.trc-h b{display:block;font-size:1rem}.trc-h small{display:block;margin-top:2px;font-size:.75rem;color:var(--ink-3)}
+.trc-x{flex:none;width:32px;height:32px;border:0;border-radius:10px;background:color-mix(in srgb,var(--ink) 6%,transparent);color:var(--ink-2);cursor:pointer}
+.trc-cv{position:relative;border-radius:12px;overflow:hidden;border:1px solid color-mix(in srgb,var(--ink) 8%,transparent)}
+.trc-cv canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:var(--surface)}
+.trc-ld{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:10px;color:var(--ink-3);font-size:.84375rem;background:var(--surface)}
+.trc-ld .spin{width:22px;height:22px;border-radius:50%;border:2.5px solid color-mix(in srgb,var(--ink) 12%,transparent);border-top-color:var(--brand);animation:trcSpin .8s linear infinite}
+@keyframes trcSpin{to{transform:rotate(360deg)}}
+.trc-ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.trc-b{flex:none;width:36px;height:36px;border:0;border-radius:10px;background:color-mix(in srgb,var(--ink) 6%,transparent);color:var(--ink);font-size:.9375rem;cursor:pointer}
+.trc-b:hover:not(:disabled){background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.trc-pp{background:var(--brand);color:var(--brand-ink,#fff)}.trc-pp:hover:not(:disabled){background:color-mix(in srgb,var(--brand) 88%,#000)}
+.trc-sc{flex:1 1 160px;min-width:120px;accent-color:var(--brand)}
+.trc-t{flex:none;font:600 .75rem/1 var(--num,inherit);color:var(--ink-2);font-variant-numeric:tabular-nums;min-width:74px}
+.trc-sp button{padding:5px 9px;font-size:.75rem}
+.trc.rec .trc-rec{color:var(--down);border-color:color-mix(in srgb,var(--down) 40%,transparent)}
+.trc-note{margin:0;font-size:.6875rem}
+@media (max-width:640px){.trc{padding:0;place-items:end stretch}.trc-in{border-radius:16px 16px 0 0;padding:12px 10px calc(10px + env(safe-area-inset-bottom,0px))}.trc-rec{width:100%}}
+.tr-clipb{margin:0 8px 8px 0}
+a.tr-clip{display:inline-grid;place-items:center;width:20px;height:20px;margin-left:4px;border-radius:6px;background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--brand);font-size:.5625rem;text-decoration:none!important;vertical-align:1px;transition:background-color .15s}
+a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
+@media (prefers-reduced-motion:reduce){.trc-in,.trc-bg{transition:none}}

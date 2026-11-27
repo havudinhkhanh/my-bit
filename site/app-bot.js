@@ -1404,13 +1404,13 @@ async function viewScalp() {
     const sig = (() => { let h = 0; const str = `${env}|${dLim}|${lvWide ? 1 : 0}|${EN ? 1 : 0}|${Object.keys(COL).filter((k) => k.startsWith(env + ":")).sort().join(";")}|` + R.map((h0) => `${h0.id || ""}:${h0.t2}:${h0.pnl}:${h0.ch ? 1 : 0}`).join(","); for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + R.length; })();
     return (lvWide
       ? `<div class="tw lvt-tw" data-sig="cl:${sig}"><table class="lvt-t keep"><thead><tr><th class="l">${bi("Đóng lúc", "Closed")}</th><th class="l">Coin</th><th>${bi("Vào → ra", "Entry → exit")}</th><th>${bi("Giá trị", "Size")}</th><th>${bi("Giữ", "Held")}</th><th class="l">${bi("Lý do đóng", "Exit")}</th><th>%</th><th>${bi("Lời/lỗ", "P/L")}</th><th></th></tr></thead><tbody>${days.map(({ d, r }, di) => `<tr class="lvt-dh lvt-dh2 clg-h${isC(d) ? " clg-x" : ""}" data-cd="${CK(d)}" role="button" tabindex="0" aria-expanded="${!isC(d)}" style="--z:${10 + di * 2}">${dRow(d, r)}</tr>${r.map(([h]) => { const q = pctF(h), mv = h.e > 0 && isNum(h.x) ? h.side * (h.x / h.e - 1) * 100 : null;
-        return `<tr data-omk="${omkOf(h)}" data-cdd="${CK(d)}" class="${cc(d).trim()}"><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${clIco(h)} <a class="tr-go" href="${go(h)}" title="${bi("Chi tiết lệnh: biểu đồ, giá vào/ra, lý do", "Trade detail")}"><b>${clSym(h)}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</td>
+        return `<tr data-omk="${omkOf(h)}" data-cdd="${CK(d)}" class="${cc(d).trim()}"><td class="l"><small>${hms(h.t2)}</small></td><td class="l">${clIco(h)} <a class="tr-go" href="${go(h)}" title="${bi("Chi tiết lệnh: biểu đồ, giá vào/ra, lý do", "Trade detail")}"><b>${clSym(h)}</b></a><a class="tr-clip" href="${go(h)}" data-clip title="${bi("Clip xem lại: giá chạy từ lúc chờ khớp tới 5 giây sau khi đóng", "Replay clip")}" aria-label="${bi("Clip xem lại", "Replay clip")}">▶</a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</td>
           <td>${px(h.e)} → ${px(h.x)}${isNum(mv) ? ` <small class="${cls(mv)}">${mv >= 0 ? "+" : ""}${nf(mv, 2)}%</small>` : ""}</td><td>${clSz(h)}${clLv(h) ? `<small class="faint"> · ${clLv(h)}</small>` : ""}</td><td><small>${lvHold(h)}</small></td>
           <td class="l lvt-why"><small>${why(h)}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}<span class="lvt-xc"><span class="lvt-xd"> · </span>${bi("giữ", "held")} ${lvHold(h)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${pctB(h.net)}</span>` : ""}</span></small></td><td class="${cls(h.net)}"><small>${isNum(h.net) ? pctB(h.net) : "—"}</small></td>
           <td class="lvt-pl"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? ` <small class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</small>` : ""}</td><td>${cb(h)}</td></tr>
           ${h.ch ? `<tr class="lvt-cr${cc(d)}" data-cdd="${CK(d)}"><td colspan="99" class="hk-td">${cbox(h)}</td></tr>` : ""}`; }).join("")}`).join("")}</tbody></table></div>`
       : `<div class="sc-hl lvt" data-sig="cl:${sig}">${days.map(({ d, r }) => `<div class="lvt-dhm clg-h${isC(d) ? " clg-x" : ""}" data-cd="${CK(d)}" role="button" tabindex="0" aria-expanded="${!isC(d)}"><b>${lvDLab(d)}</b>${lvDSum(r)}<i class="clg-ch" aria-hidden="true"></i></div>${r.map(([h]) => { const q = pctF(h);
-        return `<div class="sc-ht${cc(d)}" data-omk="${omkOf(h)}" data-cdd="${CK(d)}"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${clIco(h)} <a class="tr-go" href="${go(h)}"><b>${clSym(h)}</b></a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? `<em class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
+        return `<div class="sc-ht${cc(d)}" data-omk="${omkOf(h)}" data-cdd="${CK(d)}"><div class="lvt-r"><span class="lvt-a"><small class="faint">${hms(h.t2).slice(0, 5)}</small> ${clIco(h)} <a class="tr-go" href="${go(h)}"><b>${clSym(h)}</b></a><a class="tr-clip" href="${go(h)}" data-clip aria-label="${bi("Clip xem lại", "Replay clip")}">▶</a> <span class="${h.side > 0 ? "up" : "down"}">${h.side > 0 ? "Long" : "Short"}</span> ${grpTag(h.k || h.sym)}</span><span class="lvt-v"><b class="${cls(h.pnl)}">${sg$(h.pnl || 0)}</b>${q != null ? `<em class="${cls(q)}" title="${pctTip}">${q >= 0 ? "+" : ""}${nf(q, 2)}%</em>` : ""}</span>
           <small class="lvt-b faint">${px(h.e)} → ${px(h.x)}${clSz(h) !== "—" ? ` · ${bi("giá trị", "size")} ${clSz(h)}` : ""} · ${bi("giữ", "held")} ${lvHold(h)} · ${why(h)}${isNum(h.net) ? ` · <span class="${cls(h.net)}">${pctB(h.net)}</span>` : ""}${h.fund ? ` · funding ${sg$(h.fund)}` : ""}</small>${cb(h) || "<span></span>"}</div>${cbox(h)}</div>`; }).join("")}`).join("")}</div>`) + moreB;
   };
   if (!window.__cdBound) { window.__cdBound = 1;
@@ -3240,10 +3240,12 @@ async function viewTrade(env, sym, ms) {
   const others = ALLR.filter((x) => x !== r && x.t0).sort((a, b) => b.t0 - a.t0).slice(0, 8);
   const othP = others.length ? panel(bi(`Lệnh ${sym} khác`, `Other ${sym} trades`), `<div class="tr-oth">${others.map((x) => `<a href="#/t/${env}/${enc(sym)}/${x.t0}" class="tr-o"><small class="faint">${tm(x.t0)}</small><span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span><span>${esc(NM[x.strat] || x.strat)}</span>${x.status === "closed" ? `<b class="${cls(x.pnl)}">${j$(x.pnl || 0)}</b>` : `<small>${{ wait: bi("chờ khớp", "waiting"), open: bi("đang giữ", "open"), miss: bi("hụt", "missed") }[x.status]}</small>`}</a>`).join("")}</div>`) : "";
   app().innerHTML = `${head(`<span class="pill ${ST[1]}">${ST[0]}</span>${r.status === "closed" ? ` <b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b>` : ""}`)}
-    <section class="panel tr-ch"><div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}<span class="tr-lg"><i class="l-lv"></i>${bi("mức chờ", "levels")}<i class="l-e"></i>${bi("giá vào", "entry")}<i class="l-sl"></i>${bi("cắt lỗ", "stop")}<i class="l-x"></i>${bi("giá ra", "exit")}</span></div><div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
+    <section class="panel tr-ch">${r.tS || r.tF ? `<button type="button" class="btn sm primary tr-clipb" data-trclip>▶ ${bi("Clip xem lại lệnh", "Replay clip")}</button>` : ""}<div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}<span class="tr-lg"><i class="l-lv"></i>${bi("mức chờ", "levels")}<i class="l-e"></i>${bi("giá vào", "entry")}<i class="l-sl"></i>${bi("cắt lỗ", "stop")}<i class="l-x"></i>${bi("giá ra", "exit")}</span></div><div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
     <div class="g g2w"><div>${panel(bi("Lý do & kế hoạch", "Why & plan"), `<p class="tr-why">${why}</p>${plan}`)}</div><div>${logP}${othP}</div></div>
     <p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`;
   $$("[data-sctab-go]").forEach((a) => (a.onclick = () => { window.__scEnv = env === "paper" ? "paper" : "live"; lsSet("scenv", window.__scEnv); window.__scTab = "ord"; lsSet("sctab", "ord"); }));
+  $("[data-trclip]")?.addEventListener("click", () => trClip(r, env, sym));
+  if (window.__tClip) { window.__tClip = 0; setTimeout(() => trClip(r, env, sym), 50); }
   $$("[data-ttf]").forEach((b) => (b.onclick = () => { window.__tTf = b.dataset.ttf; $$("[data-ttf]").forEach((x) => x.classList.toggle("on", x === b)); tChart(); }));
   // ---- biểu đồ: nến Binance futures + đường giá + mốc thời gian (giờ máy anh)
   const tChart = async () => {
@@ -3608,3 +3610,172 @@ document.addEventListener("click", async (e) => {
 });
 // ⏸ bảng Tạm dừng bot: chọn 1 mốc thời gian (nút dạng phân đoạn)
 document.addEventListener("click", (e) => { const b = e.target.closest(".pz-o button"); if (!b) return; b.parentElement.querySelectorAll("button").forEach((x) => { x.classList.toggle("on", x === b); x.setAttribute("aria-checked", x === b); }); const h = document.querySelector("#pzH"); if (h) h.value = ""; });
+
+// ================================================================ 🎬 CLIP XEM LẠI 1 LỆNH: giá chạy thế nào từ lúc chờ khớp → khớp → đóng → thêm 5 giây
+// Giá: TỪNG GIAO DỊCH thật của Binance Futures (aggTrades, công khai) quanh lúc chờ/khớp và lúc đóng; đoạn giữa dài thì lấp bằng nến 1 phút (ghi rõ).
+// Thời gian tua nhanh theo từng đoạn (chờ ≤ 8 giây clip, giữ ≤ 14 giây, 5 giây sau khi đóng chạy đúng tốc độ thật) – số × hiện trên clip.
+const TRC = { cap: { wait: 8, hold: 14, post: 5 } };
+const trcRGBA = (c, a) => { c = String(c || "").trim(); let m = c.match(/^#([0-9a-f]{3})$/i); if (m) c = "#" + m[1].split("").map((x) => x + x).join("");
+  m = c.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); if (m) return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})`;
+  m = c.match(/^rgba?\(([^)]+)\)/); if (m) { const p = m[1].split(/[ ,/]+/).filter(Boolean).slice(0, 3); return `rgba(${p.join(",")},${a})`; } return c || `rgba(128,128,128,${a})`; };
+async function trcData(sym, env, a, b, dense) {
+  const bases = env === "demo" ? ["https://demo-fapi.binance.com", "https://fapi.binance.com"] : ["https://fapi.binance.com"];
+  const J = async (p) => { for (const B of bases) { try { const q = await fetch(B + p); if (q.ok) { const j = await q.json(); if (Array.isArray(j)) return j; } } catch (e) { /* thử sàn khác */ } } return null; };
+  const P = [], cov = []; let pages = 0;
+  for (const [s, e] of dense) {
+    let A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&startTime=${Math.floor(s)}&endTime=${Math.floor(Math.min(e, s + 3599e3))}&limit=1000`), n = 0, last = s;
+    while (A && A.length) { for (const x of A) { if (x.T > e) break; P.push([x.T, +x.p]); last = x.T; } pages++; n++; const L = A[A.length - 1];
+      if (L.T >= e || A.length < 1000 || n >= 14 || pages >= 32) { if (L.T >= e || A.length < 1000) last = e; break; }
+      A = await J(`/fapi/v1/aggTrades?symbol=${sym}USDT&fromId=${L.a + 1}&limit=1000`); }
+    if (A) cov.push([s, last]);
+  }
+  const K = (await J(`/fapi/v1/klines?symbol=${sym}USDT&interval=1m&startTime=${Math.floor(a / 6e4) * 6e4}&endTime=${Math.floor(b)}&limit=1500`)) || [];
+  const inCov = (t) => cov.some(([s, e]) => t >= s && t <= e);
+  let syn = 0;
+  for (const k of K) { const t = +k[0], o = +k[1], h = +k[2], l = +k[3], c = +k[4], up = c >= o;
+    for (const [dt, p] of [[0, o], [18e3, up ? l : h], [40e3, up ? h : l], [59e3, c]]) if (!inCov(t + dt) && t + dt >= a - 6e4 && t + dt <= b) { P.push([t + dt, p]); if (t + dt >= a) syn++; } }
+  P.sort((x, y) => x[0] - y[0]);
+  return { P, syn, real: P.length - syn, cov };
+}
+function trcPlan(r) {
+  const now = Date.now(), tS = r.tS ?? null, tF = r.tF ?? null, tX = r.tX ?? null;
+  const a = (tS ?? (tF ? tF - 30e3 : (tX || now) - 60e3)) - 8e3;
+  const waitEnd = tF ?? (r.status === "miss" ? r.tW ?? (tS ? tS + 8 * 60e3 : now) : Math.min(now, r.tW ?? now));
+  const S = [];
+  if (waitEnd > a) S.push({ k: "wait", a, b: waitEnd });
+  if (tF) S.push({ k: "hold", a: tF, b: Math.min(now, tX ?? now) });
+  const tEnd = tX ?? (r.status === "miss" ? waitEnd : null);
+  if (tEnd && tEnd < now) S.push({ k: "post", a: tEnd, b: Math.min(now, tEnd + 5e3) });
+  let c = 0; for (const s of S) { const real = Math.max(1, s.b - s.a) / 1000; s.cd = Math.max(0.6, Math.min(real, TRC.cap[s.k])); s.c0 = c; c += s.cd; s.k2 = real / s.cd; }
+  return { S: S.filter((s) => s.b > s.a), a, b: S.length ? S[S.length - 1].b : now, T: c };
+}
+async function trClip(r, env, sym) {
+  document.getElementById("trClip")?.remove();
+  const L = trcPlan(r); if (!L.S.length) { toast(bi("Lệnh này chưa có đủ mốc thời gian để dựng clip.", "Not enough timestamps for a clip.")); return; }
+  const side = r.side > 0 ? 1 : -1, E = TENV[env] || ["", env];
+  const NMS = { hook: bi("Bắt râu sập", "Wick Catcher"), sec: bi("Lướt giây", "Scalp"), pump: bi("Short coin vừa bơm", "Short pumped"), list: bi("Short coin mới niêm yết", "Short listing"), man: bi("Lệnh tay", "Manual") };
+  document.body.insertAdjacentHTML("beforeend", `<div id="trClip" class="trc" role="dialog" aria-modal="true" aria-label="${bi("Clip xem lại lệnh", "Trade replay")}"><div class="trc-bg" data-trcx></div>
+    <div class="trc-in"><header class="trc-h"><div><b>🎬 ${esc(sym)} <span class="${side > 0 ? "up" : "down"}">${side > 0 ? "Long" : "Short"}</span> · ${esc(NMS[r.strat] || r.strat || "")}</b>
+      <small>${E[0]} ${E[1]} · ${bi("giá thật từng giao dịch Binance Futures · tua nhanh theo từng đoạn", "real Binance Futures trades · fast-forward per phase")}</small></div><button type="button" class="trc-x" data-trcx aria-label="${bi("Đóng", "Close")}">✕</button></header>
+      <div class="trc-cv"><canvas width="1280" height="720"></canvas><div class="trc-ld"><i class="spin"></i>${bi("Đang tải giá từng giao dịch…", "Loading trades…")}</div></div>
+      <div class="trc-ctl"><button type="button" class="trc-b trc-pp" aria-label="${bi("Phát / dừng", "Play / pause")}" disabled>▶</button><button type="button" class="trc-b trc-rs" aria-label="${bi("Xem lại từ đầu", "Restart")}" title="${bi("Xem lại từ đầu", "Restart")}" disabled>↺</button>
+        <input type="range" class="trc-sc" min="0" max="1000" value="0" step="1" aria-label="${bi("Tua", "Seek")}" disabled><span class="trc-t">0:00</span>
+        <div class="bseg trc-sp" role="group" aria-label="${bi("Tốc độ", "Speed")}"><button type="button" data-sp="0.5">0.5×</button><button type="button" data-sp="1" class="on">1×</button><button type="button" data-sp="2">2×</button></div>
+        <button type="button" class="btn sm trc-rec" disabled title="${bi("Ghi lại clip thành video để lưu / gửi", "Record as a video file")}">⤓ ${bi("Lưu video", "Save video")}</button></div>
+      <p class="trc-note faint"></p></div></div>`);
+  const box = document.getElementById("trClip"), cv = box.querySelector("canvas"), g = cv.getContext("2d"), W = cv.width, H = cv.height;
+  requestAnimationFrame(() => box.classList.add("on"));
+  const st = { ct: 0, play: false, sp: 1, raf: 0, last: 0, rec: null, dead: false };
+  const close = () => { st.dead = true; cancelAnimationFrame(st.raf); try { st.rec?.stop(); } catch (e) { /* bỏ qua */ } box.classList.remove("on"); setTimeout(() => box.remove(), 260); removeEventListener("keydown", key, true); };
+  const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } else if (e.key === " " && !/INPUT|BUTTON/.test(e.target.tagName)) { e.preventDefault(); toggle(); } };
+  addEventListener("keydown", key, true);
+  box.addEventListener("click", (e) => { if (e.target.closest("[data-trcx]")) close(); });
+  // ---- dữ liệu: dày (từng giao dịch) ở đoạn chờ + quanh lúc khớp, và quanh lúc đóng; còn lại nến 1 phút
+  const sw = L.S.find((s) => s.k === "wait"), sh = L.S.find((s) => s.k === "hold"), sp = L.S.find((s) => s.k === "post");
+  let dense;
+  if (L.b - L.a <= 20 * 60e3) dense = [[L.a, L.b]];
+  else { dense = []; const w0 = L.a, w1 = sh ? Math.min(sh.b, sh.a + 90e3) : sw ? sw.b : L.a + 120e3; dense.push([w0, Math.min(w1, w0 + 15 * 60e3)]);
+    if (sh && sh.b - 90e3 > dense[0][1]) dense.push([sh.b - 90e3, L.b]); else if (sp) dense.push([Math.max(dense[0][1], sp.a - 60e3), L.b]); }
+  let D; try { D = await trcData(sym, env, L.a, L.b, dense); } catch (e) { D = null; }
+  if (st.dead) return;
+  if (!D || D.P.length < 2) { box.querySelector(".trc-ld").textContent = bi("Không lấy được giá từ Binance cho khoảng này.", "Couldn't load prices for this period."); return; }
+  box.querySelector(".trc-ld").remove();
+  box.querySelector(".trc-note").textContent = D.syn ? bi(`Đoạn có ⋯ là lấp bằng nến 1 phút (quá nhiều giao dịch để tải hết) · ${nf(D.real, 0)} giao dịch thật`, `Dotted parts use 1-minute candles · ${nf(D.real, 0)} real trades`) : bi(`${nf(D.real, 0)} giao dịch thật`, `${nf(D.real, 0)} real trades`);
+  const P = D.P, TT = P.map((x) => x[0]);
+  const idx = (t) => { let lo = 0, hi = TT.length - 1, k = -1; while (lo <= hi) { const m = (lo + hi) >> 1; if (TT[m] <= t) { k = m; lo = m + 1; } else hi = m - 1; } return k; };
+  const pAt = (t) => { const k = idx(t); return k < 0 ? P[0][1] : P[k][1]; };
+  const toReal = (c) => { let s = L.S[0]; for (const x of L.S) if (c >= x.c0) s = x; return Math.min(s.b, s.a + (Math.max(0, c - s.c0)) * s.k2 * 1000); };
+  const toClip = (t) => { for (const s of L.S) if (t <= s.b) return s.c0 + Math.max(0, t - s.a) / 1000 / s.k2; return L.T; };
+  const segAt = (c) => { let s = L.S[0]; for (const x of L.S) if (c >= x.c0) s = x; return s; };
+  // ---- khung vẽ
+  const C0 = { bg: css("--surface") || "#fff", ink: css("--ink") || "#111", ink2: css("--ink-2") || "#555", ink3: css("--ink-3") || "#888", up: css("--up") || "#16a34a", dn: css("--down") || "#dc2626", br: css("--brand") || "#3b82f6", bs: css("--brass") || "#c9a227" };
+  const X0 = 28, X1 = W - 170, Y0 = 118, Y1 = H - 96, cw = X1 - X0;
+  const lvs = (r.lv || []).filter((l) => !l.mk && l.st !== "x" && l.px > 0);
+  const PR = [], kA = Math.max(0, idx(L.a)), kB = Math.max(kA, idx(L.b)); for (let k = kA; k <= kB; k++) PR.push(P[k][1]);
+  let lo = Math.min(...PR), hi = Math.max(...PR); for (const v of [...lvs.map((l) => l.px), r.e, r.x, r.c0].filter((v) => v > 0)) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+  if (r.stop > 0 && Math.abs(r.stop / ((lo + hi) / 2) - 1) < 0.25) { lo = Math.min(lo, r.stop); hi = Math.max(hi, r.stop); }
+  const pad = (hi - lo || hi * 0.002) * 0.1; lo -= pad; hi += pad;
+  const yOf = (p) => Y1 - (p - lo) / (hi - lo) * (Y1 - Y0), xOf = (c) => X0 + c / L.T * cw, dec = pdec(P[P.length - 1][1]), fx = (p) => nf(p, dec);
+  // từng cột điểm ảnh: thấp / cao / cuối (vẽ dải dao động + đường giá) – tính sẵn 1 lần
+  const NC = Math.ceil(cw), cMin = new Float64Array(NC), cMax = new Float64Array(NC), cLast = new Float64Array(NC), cSyn = new Uint8Array(NC);
+  { let prev = pAt(L.a); for (let i = 0; i < NC; i++) { const t1 = toReal((i / NC) * L.T), t2 = toReal(((i + 1) / NC) * L.T); let a1 = idx(t1) + 1, a2 = idx(t2), mn = prev, mx = prev;
+      for (let k = Math.max(0, a1); k <= a2; k++) { const p = P[k][1]; if (p < mn) mn = p; if (p > mx) mx = p; prev = p; }
+      cMin[i] = mn; cMax[i] = mx; cLast[i] = prev; cSyn[i] = D.cov.some(([s, e]) => t2 >= s && t1 <= e) ? 0 : 1; } }
+  const font = (w, s) => `${w} ${s}px "Be Vietnam Pro", system-ui, sans-serif`;
+  const tag = (x, y, txt, col, al = "left") => { g.font = font(700, 17); const w = g.measureText(txt).width + 16; const xx = al === "right" ? x - w : al === "center" ? x - w / 2 : x; g.fillStyle = col; g.beginPath(); g.roundRect(xx, y - 14, w, 28, 8); g.fill(); g.fillStyle = "#fff"; g.textBaseline = "middle"; g.fillText(txt, xx + 8, y + 1); };
+  const hline = (p, col, dash, label, wdt = 1.5, x1 = X1, x0 = X0) => { if (!(p > 0)) return; const y = yOf(p); if (y < Y0 - 4 || y > Y1 + 4) return; g.save(); g.strokeStyle = col; g.lineWidth = wdt; g.setLineDash(dash); g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.restore();
+    if (label) { let ly = y; while (LY.some((v) => Math.abs(v - ly) < 19)) ly += 19; LY.push(ly); g.font = font(600, 15); g.fillStyle = col; g.textBaseline = "middle"; g.fillText(label, X1 + 10, ly); } };
+  let LY = [];
+  const tm = (t) => { const d = new Date(t); return d.toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit", second: "2-digit" }) + "." + Math.floor(d.getMilliseconds() / 100); };
+  const draw = (c) => {
+    const rt = toReal(c), seg = segAt(c), px0 = pAt(rt), xi = Math.min(NC - 1, Math.max(0, Math.floor((c / L.T) * NC))), filled = r.tF && rt >= r.tF, closed = r.tX && rt >= r.tX;
+    g.fillStyle = C0.bg; g.fillRect(0, 0, W, H); LY = [];
+    // nền từng đoạn + nhãn dòng thời gian dưới
+    const SN = { wait: bi("⏳ Chờ khớp", "⏳ Waiting"), hold: bi("● Đang giữ", "● Holding"), post: bi("+5 giây sau", "+5 s after") };
+    for (const s of L.S) { const xa = xOf(s.c0), xb = xOf(s.c0 + s.cd); g.fillStyle = trcRGBA(s.k === "hold" ? C0.br : C0.ink, s.k === "hold" ? 0.05 : 0.025); g.fillRect(xa, Y0 - 8, xb - xa, Y1 - Y0 + 16);
+      g.fillStyle = trcRGBA(C0.ink, s === seg ? 0.85 : 0.4); g.font = font(s === seg ? 700 : 500, 16); g.textBaseline = "top"; g.textAlign = "left";
+      const lb = `${SN[s.k]} · ${s.k2 > 1.05 ? "⏩ ×" + nf(s.k2, s.k2 < 10 ? 1 : 0) : "×1"}`; if (xb - xa > g.measureText(lb).width + 10) g.fillText(lb, xa + 6, Y1 + 30); }
+    // trục giá: 4 vạch
+    g.font = font(500, 14); g.textBaseline = "middle"; for (let i = 0; i <= 4; i++) { const p = lo + (hi - lo) * (i / 4), y = yOf(p); g.strokeStyle = trcRGBA(C0.ink, 0.06); g.lineWidth = 1; g.beginPath(); g.moveTo(X0, y); g.lineTo(X1, y); g.stroke(); }
+    // các mức giá
+    if (filled && r.e) hline(r.e, C0.br, [], `${bi("vào", "entry")} ${fx(r.e)}`, 2, closed ? xOf(toClip(r.tX)) : xOf(c), xOf(toClip(r.tF)));
+    if (closed && r.x) hline(r.x, (r.pnl ?? 0) >= 0 ? C0.up : C0.dn, [3, 4], `${bi("ra", "exit")} ${fx(r.x)}`, 1.5, X1, xOf(toClip(r.tX)));
+    if (r.stop > 0) hline(r.stop, trcRGBA(C0.dn, 0.8), [7, 6], `${bi("cắt lỗ", "stop")} ${fx(r.stop)}`, 1.5);
+    lvs.forEach((l, i) => { if (!(filled && r.e && Math.abs(l.px / r.e - 1) < 1e-6)) hline(l.px, filled ? trcRGBA(C0.br, 0.45) : trcRGBA(C0.ink3, 0.95), [7, 6], `${bi("mức", "lvl")} ${i + 1} ${fx(l.px)}`, 1.5); else hline(l.px, trcRGBA(C0.br, 0.45), [7, 6], "", 1.5); });
+    if (r.c0) hline(r.c0, trcRGBA(C0.bs, 0.9), [2, 5], bi("sau sốc ", "post-shock ") + fx(r.c0), 1.5);
+    // dải dao động + đường giá tới đầu phát
+    g.fillStyle = trcRGBA(C0.ink, 0.13); for (let i = 0; i < xi; i++) { const ya = yOf(cMax[i]), yb = yOf(cMin[i]); if (yb - ya > 1.5) g.fillRect(X0 + i, ya, 1, yb - ya); }
+    g.lineWidth = 2.2; g.lineJoin = "round"; let syn = -1;
+    for (let i = 0; i <= xi; i++) { const s = cSyn[i]; if (s !== syn) { if (syn >= 0) g.stroke(); g.beginPath(); g.setLineDash(s ? [4, 4] : []); g.strokeStyle = closed ? C0.ink2 : C0.ink; g.moveTo(X0 + i, yOf(i ? cLast[i - 1] : cLast[0])); syn = s; } g.lineTo(X0 + i, yOf(i === xi ? px0 : cLast[i])); }
+    g.stroke(); g.setLineDash([]);
+    // mốc khớp / đóng
+    if (filled) { const x = xOf(toClip(r.tF)), y = yOf(r.e || pAt(r.tF)); g.fillStyle = C0.br; g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.strokeStyle = C0.bg; g.lineWidth = 2.5; g.stroke();
+      const fresh = rt - r.tF < 1500 * (seg.k2 || 1); if (fresh) { g.strokeStyle = trcRGBA(C0.br, 0.35); g.lineWidth = 6; g.beginPath(); g.arc(x, y, 16, 0, 7); g.stroke(); }
+      tag(x, y + (side > 0 ? 34 : -34), bi("KHỚP", "FILLED"), C0.br, "center"); }
+    if (closed) { const x = xOf(toClip(r.tX)), y = yOf(r.x || pAt(r.tX)), col = (r.pnl ?? 0) >= 0 ? C0.up : C0.dn; g.fillStyle = col; g.beginPath(); g.arc(x, y, 7, 0, 7); g.fill(); g.strokeStyle = C0.bg; g.lineWidth = 2.5; g.stroke();
+      tag(x, y + (side > 0 ? -34 : 34), `${bi("ĐÓNG", "CLOSED")} · ${(JWHY[r.why] || r.why || "").toString().slice(0, 22)}${isNum(r.pnl) ? " · " + j$(r.pnl) : ""}`, col, x > X1 - 220 ? "right" : "center"); }
+    // đầu phát
+    { const x = X0 + xi, y = yOf(px0); g.fillStyle = trcRGBA(C0.ink, 0.12); g.beginPath(); g.arc(x, y, 11, 0, 7); g.fill(); g.fillStyle = C0.ink; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
+      g.strokeStyle = trcRGBA(C0.ink, 0.25); g.setLineDash([2, 4]); g.lineWidth = 1; g.beginPath(); g.moveTo(x, Y0 - 8); g.lineTo(x, Y1 + 8); g.stroke(); g.setLineDash([]); }
+    // đầu clip: tên · giai đoạn · giờ thật · giá · lời/lỗ tạm tính
+    g.textAlign = "left"; g.textBaseline = "alphabetic"; g.fillStyle = C0.ink; g.font = font(800, 30); g.fillText(`${sym} `, 28, 52); let w = g.measureText(`${sym} `).width;
+    g.fillStyle = side > 0 ? C0.up : C0.dn; g.fillText(side > 0 ? "Long" : "Short", 28 + w, 52); w += g.measureText(side > 0 ? "Long " : "Short ").width;
+    g.font = font(500, 18); g.fillStyle = C0.ink3; g.fillText(`${E[0]} ${E[1]} · ${NMS[r.strat] || r.strat || ""}`, 28 + w + 6, 50);
+    g.font = font(600, 20); g.fillStyle = C0.ink2; g.fillText(`${closed && rt > r.tX ? SN.post : SN[seg.k]}  ·  ${tm(rt)}  ·  ${seg.k2 > 1.05 ? "⏩ ×" + nf(seg.k2, seg.k2 < 10 ? 1 : 0) : bi("tốc độ thật", "real time")}`, 28, 86);
+    g.textAlign = "right"; g.font = font(800, 34); g.fillStyle = C0.ink; g.fillText(fx(px0), W - 28, 52);
+    if (filled && r.e) { const pp = closed && r.x ? r.x : px0, bp = side * (pp / r.e - 1) * 1e4, usd = r.q ? side * (pp - r.e) * r.q : null, col = bp >= 0 ? C0.up : C0.dn;
+      g.font = font(700, 22); g.fillStyle = col; g.fillText(`${closed && isNum(r.pnl) ? j$(r.pnl) + " · " : usd != null ? j$(usd) + " · " : ""}${bp >= 0 ? "+" : ""}${nf(bp, 0)} bps`, W - 28, 86);
+      g.font = font(500, 14); g.fillStyle = C0.ink3; g.fillText(closed ? bi("kết quả (sau phí)", "result (after fees)") : bi("tạm tính, chưa trừ phí", "unrealized, before fees"), W - 28, 108); }
+    else if (lvs.length) { const near = lvs.reduce((m, l) => (Math.abs(l.px - px0) < Math.abs(m.px - px0) ? l : m)); g.font = font(600, 18); g.fillStyle = C0.ink3; g.fillText(`${bi("còn cách mức gần nhất", "to nearest level")} ${nf(Math.abs(near.px / px0 - 1) * 100, 2)}%`, W - 28, 86); }
+    g.textAlign = "left";
+    // thanh tiến độ
+    g.fillStyle = trcRGBA(C0.ink, 0.08); g.fillRect(X0, H - 30, cw, 4); g.fillStyle = C0.br; g.fillRect(X0, H - 30, cw * Math.min(1, c / L.T), 4);
+    g.font = font(500, 13); g.fillStyle = C0.ink3; g.textAlign = "right"; g.fillText("MyBit · " + bi("clip xem lại lệnh", "trade replay"), W - 28, H - 40); g.textAlign = "left";
+  };
+  // ---- điều khiển
+  const pp = box.querySelector(".trc-pp"), sc = box.querySelector(".trc-sc"), tt = box.querySelector(".trc-t"), rec = box.querySelector(".trc-rec");
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const ui = () => { pp.textContent = st.play ? "⏸" : "▶"; sc.value = String(Math.round(st.ct / L.T * 1000)); tt.textContent = `${mmss(st.ct)} / ${mmss(L.T)}`; };
+  const loop = (ts) => { if (st.dead) return; const dt = st.last ? Math.min(0.1, (ts - st.last) / 1000) : 0; st.last = ts;
+    if (st.play) { st.ct = Math.min(L.T, st.ct + dt * st.sp); if (st.ct >= L.T) { st.play = false; if (st.rec) setTimeout(() => st.rec?.state === "recording" && st.rec.stop(), 700); } }
+    draw(st.ct); ui(); st.raf = requestAnimationFrame(loop); };
+  const toggle = () => { if (st.rec) return; if (st.ct >= L.T) st.ct = 0; st.play = !st.play; st.last = 0; };
+  pp.onclick = toggle; box.querySelector(".trc-rs").onclick = () => { if (st.rec) return; st.ct = 0; st.play = true; st.last = 0; };
+  sc.oninput = () => { if (st.rec) return; st.ct = (+sc.value / 1000) * L.T; st.play = false; };
+  box.querySelectorAll("[data-sp]").forEach((b) => (b.onclick = () => { st.sp = +b.dataset.sp; box.querySelectorAll("[data-sp]").forEach((x) => x.classList.toggle("on", x === b)); }));
+  const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((m) => window.MediaRecorder?.isTypeSupported?.(m));
+  if (!mime || !cv.captureStream) rec.hidden = true;
+  rec.onclick = () => { if (st.rec) { st.rec.stop(); return; }
+    const ch = []; const R = new MediaRecorder(cv.captureStream(30), { mimeType: mime, videoBitsPerSecond: 4e6 }); st.rec = R;
+    R.ondataavailable = (e) => e.data.size && ch.push(e.data);
+    R.onstop = () => { st.rec = null; rec.textContent = "⤓ " + bi("Lưu video", "Save video"); box.classList.remove("rec"); if (st.dead || !ch.length) return;
+      const ext = /mp4/.test(mime) ? "mp4" : "webm", url = URL.createObjectURL(new Blob(ch, { type: mime.split(";")[0] })), d = new Date(r.tF || r.tS || L.a);
+      const a = document.createElement("a"); a.href = url; a.download = `${sym}-${side > 0 ? "long" : "short"}-${d.toISOString().slice(0, 16).replace(/[:T]/g, "")}.${ext}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30e3);
+      toast(bi("Đã lưu clip video", "Video saved")); };
+    st.ct = 0; st.sp = 1; box.querySelectorAll("[data-sp]").forEach((x) => x.classList.toggle("on", x.dataset.sp === "1")); st.play = true; st.last = 0; R.start(250);
+    rec.textContent = "■ " + bi("Đang ghi… bấm để dừng", "Recording… tap to stop"); box.classList.add("rec"); };
+  [pp, sc, box.querySelector(".trc-rs"), rec].forEach((b) => (b.disabled = false));
+  st.play = true; st.raf = requestAnimationFrame(loop);
+}
+window.trClip = trClip;
+document.addEventListener("click", (e) => { if (e.target.closest?.("a[data-clip]")) window.__tClip = 1; }, true);
