@@ -828,7 +828,10 @@ function moKids(L, N) {
 function morphHtml(root, html) { const t = document.createElement("template"); t.innerHTML = html; moKids(root, t.content); }
 const IH = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
 let SR_H = null, SR_DUMMY = null, SR_P = null;
-async function softRender(fn) {
+async function softRender(fn, want) {
+  // want: trang mà lượt làm mới này dành cho. Lượt tự làm mới chờ mạng xong thì anh đã sang trang khác → BỎ, không vẽ trang cũ đè lên trang mới
+  //   (lỗi: bấm "Có gì mới" đúng lúc trang Bot đang tải số liệu → màn hình nhảy về Bot Phản Xạ, phải bấm lần nữa)
+  if (want && !want.test(location.hash)) return;
   const root = $("#app"); if (!root) return fn();
   if (SR_H) return;                                  // đang vẽ lại dở → bỏ lượt này
   const h0 = location.hash, tab0 = CUR_TAB;
@@ -2220,7 +2223,11 @@ function skPage(r, a0) {
 try { const a0 = document.getElementById("app"); if (a0?.firstElementChild?.classList.contains("skw")) { const hp = location.hash.replace(/^#\/?/, "").split("?")[0].split("/"); a0.innerHTML = skPage(hp[0], hp[1]); } } catch (e) { /* bỏ qua */ }
 // mốc nhóm cho mục lục bên trái: các mục đứng sau mốc thuộc nhóm đó (o = thứ tự hiển thị nhóm)
 const PG = (t, o = "") => `<i class="pg-mark" data-grp="${esc(t)}"${o !== "" ? ` data-o="${o}"` : ""}></i>`;
-const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
+const app = () => (SR_H && location.hash !== SR_H ? (SR_DUMMY ||= document.createElement("div")) : $("#app"));
+// trang chậm (chờ mạng) mà anh đã bấm sang trang khác → KHÔNG vẽ đè trang mới (lỗi: bấm "Có gì mới" lúc trang Bot đang tải → màn hình nhảy về Bot Phản Xạ, phải bấm lần nữa)
+//   so theo 3 đoạn đầu địa chỉ (#/bot/days/… đổi ngày bằng replaceState vẫn là cùng trang)
+const rKey = (h) => String(h || "").split("?")[0].split("/").slice(0, 3).join("/");
+const rStale = (h0) => rKey(location.hash) !== rKey(h0);     // tự làm mới mà anh đã sang trang khác → vẽ vào chỗ trống, không đè trang mới
 async function route() {
   // trang đang tự làm mới dở (vd Bot Phản Xạ) mà anh bấm sang trang khác → chờ lượt làm mới đó xong (nó vẽ vào chỗ trống) rồi mới vẽ trang mới
   //   trước: trang mới cũng bị coi là "lượt cũ" → vẽ vào chỗ trống → menu đã sáng "Có gì mới" nhưng màn hình vẫn là trang Bot
@@ -10016,4 +10023,5 @@ setTimeout(() => { (window.requestIdleCallback || setTimeout)(() => chgBadge().c
   const run = () => { q = 0; const ph = document.querySelector("#app > .ph"); if (!ph) return; const h = ph.offsetHeight || 60;
     const k = R.matches ? 0 : Math.round(Math.max(0, Math.min(1, scrollY / (h + 10))) * 50) / 50; if (k === last && ph.style.getPropertyValue("--tk") !== "") return; last = k;
     const v = String(k); if (ph.style.getPropertyValue("--tk") !== v) ph.style.setProperty("--tk", v); };
-  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(run); }, { passive: true }); addEventListener("hashchange", () => { last = -1; setTimeout(run, 60); }); }
+  addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(run); }, { passive: true }); addEventListener("hashchange", () => { last = -1; setTimeout(run, 60); });
+  const ap = document.getElementById("app"); if (ap) new MutationObserver(() => { last = -1; run(); }).observe(ap, { childList: true }); }      // trang vẽ lại (đổi tab con) → tiêu đề mới nhận ngay độ co theo vị trí cuộn, không hiện to rồi mới co

@@ -84,7 +84,7 @@ async function scCmd(act, k, at) {
 }
 function mCondRedraw(k) {
   const sym = k.split(":")[1];
-  if (location.hash.startsWith("#/bot/scalp") && window.__scCache) { window.__scUseCache = true; window.__scCache.t = Math.max(window.__scCache.t, Date.now() - 170e3); softRender(() => viewScalp()).then(() => ocRefresh(sym)).catch(() => {}); }
+  if (location.hash.startsWith("#/bot/scalp") && window.__scCache) { window.__scUseCache = true; window.__scCache.t = Math.max(window.__scCache.t, Date.now() - 170e3); softRender(() => viewScalp(), /^#\/bot\/scalp/).then(() => ocRefresh(sym)).catch(() => {}); }
   else ocRefresh(sym);
 }
 function ocRefresh(sym) {      // biểu đồ lệnh đang mở đúng mã này → lấy lại mốc từ thẻ vừa vẽ, giữ nguyên khung đang xem
@@ -551,12 +551,12 @@ function scCandHtml(L, info, V, N, sw) {
     ${sec(["pass"], bi("✅ Đạt – chờ anh quyết", "✅ Passed"))}${sec(["watch"], bi("👀 Đang theo dõi trên giấy", "👀 Paper-tracking"))}${sec(["fail", "drop"], bi("🗂 Đã thử và loại", "🗂 Tested and rejected"))}
     ${(L.queue || []).length ? panel(bi("⏳ Ý tưởng chờ dữ liệu", "⏳ Ideas waiting for data"), `<ul class="lb2-q">${L.queue.map((q) => `<li><b>${esc(bi(q.name, q.name_en))}</b> – ${esc(bi(q.why, q.why_en))}${(q.src || []).map((x) => ` <a href="${esc(x.u)}" target="_blank" rel="noopener noreferrer">↗</a>`).join("")}</li>`).join("")}</ul>`) : ""}`;
 }
-async function viewScalp() {
+async function viewScalp() { const H0 = location.hash;
   window.__scDirty = false;
   // 🔔 tới từ thông báo (#/bot/scalp?do=…&k=<ref>): mở tab Lệnh, đúng sàn, bỏ bộ lọc – rồi cuối hàm làm việc được yêu cầu (ntDoRun)
   const ND = window.__ntDo && Date.now() - window.__ntDo.at < 60e3 ? window.__ntDo : null;
   if (ND) { window.__scTab = "ord"; window.__scEnv = /^(lv|swp|lq):/.test(ND.k) ? "live" : "paper"; window.__scOl = "all"; window.__scOm = "all"; }
-  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
+  if (ME && !can("bot")) { { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>⚡ Bot Phản Xạ</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
   // đổi tab con: dùng lại dữ liệu vừa tải (< 20 giây) → vẽ ngay, không chờ mạng (trang không "giật")
   const cc = window.__scCache, useC = window.__scUseCache && cc && Date.now() - cc.t < 180000; window.__scUseCache = false;      // đổi sàn / đổi thẻ: vẽ ngay từ dữ liệu vừa có (≤ 3 phút), vòng tự cập nhật 3 giây sẽ thay bằng số mới
   if (useC && Date.now() - cc.t > 4000) window.__scLast = 0;
@@ -1807,7 +1807,7 @@ async function viewScalp() {
   else if (TB === "set") body = `<div class="sc-setp" id="scForm"></div>`;
   if (window.__scMode === "acct") {      // 💵 TRANG BINANCE (#/bot/binance): số dư, ví, trạng thái tài khoản bot, kết nối khoá API trên trình duyệt (lệnh tay)
     // 11/2026: trang này = TIỀN (tài sản, ví, an toàn, khoá); hiệu quả & lệnh của bot nằm ở Bot Phản Xạ – không lặp lại thẻ lời/lỗ ở đây
-    app().innerHTML = `<div class="ph"><h1>Tài khoản Binance</h1><span class="meta">${bi("Tài sản · ví · giới hạn an toàn · trạng thái khoá", "Assets · wallets · safety limits · key status")} · <a href="#/bot/scalp" data-scenvgo="1">${bi("Lời/lỗ & lệnh của bot → Bot Phản Xạ", "Bot P/L & trades → Reflex Bot")}</a></span></div>
+    { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>Tài khoản Binance</h1><span class="meta">${bi("Tài sản · ví · giới hạn an toàn · trạng thái khoá", "Assets · wallets · safety limits · key status")} · <a href="#/bot/scalp" data-scenvgo="1">${bi("Lời/lỗ & lệnh của bot → Bot Phản Xạ", "Bot P/L & trades → Reflex Bot")}</a></span></div>
       ${PG(bi("Tài khoản Binance", "Binance account"))}${lvOff ? lvOffP : ""}${walPanel || (lvOff ? "" : lvCards)}${lvRisk}${lvPanel || ""}<section class="panel" id="ahBx"></section><section class="panel" id="pvBx"></section>`;
     $$("[data-sctab-go]").forEach((a) => (a.onclick = () => { window.__scEnv = "live"; lsSet("scenv", "live"); window.__scTab = a.dataset.sctabGo; lsSet("sctab", a.dataset.sctabGo); }));
     $$("[data-scwal]").forEach((b) => (b.onclick = () => { window.__scWal = b.dataset.scwal; viewScalp(); }));
@@ -1818,7 +1818,7 @@ async function viewScalp() {
     ahPanel();
     return;
   }
-  app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
+  { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>Bot Phản Xạ</h1><span class="meta">Bắt râu sập · Lướt giây · <a href="#/bot/days">Kết quả & sổ lệnh →</a></span></div>
     ${hero}<div class="sc-tbar">${tabBar}${envSeg ? envSeg.replace('class="sc-env"', 'class="sc-env sc-env-t"') : ""}</div><div class="sc-body" data-tab="${TB}">${PG(TABS.find(([k]) => k === TOP)[1])}${subSeg}${labBar}${body}</div>`;      // Binance thật | Sàn thử nằm cùng hàng với các tab (đỡ tốn 1 dòng)
   try { if (typeof CUR_TAB !== "undefined" && CUR_TAB && !$("#app .crumb[data-nd]")) navDecor(CUR_TAB); } catch (e) { /* bỏ qua */ }      // đường dẫn trang vẽ NGAY cùng nội dung – không chèn trễ làm cả trang nhảy xuống
   $$("[data-sctab]").forEach((b) => (b.onclick = async () => { if (window.__scDirty && window.__scTab === "set" && !(await askOk("Thiết lập có thay đổi chưa lưu – bỏ thay đổi?"))) return; window.__scDirty = false; if (b.dataset.scenv0) { window.__scEnv = b.dataset.scenv0; lsSet("scenv", b.dataset.scenv0); } scTabGo(b.dataset.sctab); }));
@@ -2471,13 +2471,13 @@ async function viewScalp() {
       const sig = scSig(r.data, window.__scTab), age = Date.now() - (window.__scFull || 0), cap = (window.__scTab === "ord" ? 60e3 : 20e3) * (innerWidth < 980 ? 1.5 : 1);
       window.__scLast = Date.now();
       if (sig === window.__scSigV && age < cap && !fast && !resume) return;
-      await softRender(() => viewScalp()); } } catch (e) { /* bỏ qua */ }
+      await softRender(() => viewScalp(), /^#\/bot\/scalp$/); } } catch (e) { /* bỏ qua */ }
   }, 1000);
 }
 
-async function viewBot(sel) {
+async function viewBot(sel) { const H0 = location.hash;
   const [I, S] = await Promise.all([tryLoad("data/ideas.json"), sectorsData(), coins()]);
-  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
+  if (ME && !can("bot")) { { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>🤖 Bot giao dịch</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
   const [rc, rs, rq, rv] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate")]);
   let B = botsOf(rc.data).map((b, i) => ({ ...BOT_DEF, ...b, id: b.id || "b" + (i + 1) }));
   if (!B.length) B = [{ ...BOT_DEF, id: "b1" }];
@@ -2525,7 +2525,7 @@ async function viewBot(sel) {
       ${(TH.cands || []).length ? `<p class="sbh">Ứng viên bot đang xét (${TH.n} từ máy chủ phân tích)</p><div class="bth-c">${TH.cands.map((t) => { const v = BOT_V[t.v] || [t.v, ""];
           return `<div class="bth-ci"><span class="pill ${v[1]}">${v[0]}</span><b>${t.side === "long" ? "Long" : "Short"} ${esc(t.k)}</b> <small class="faint">${t.tf === "d" ? "ngày" : "4h"} · ${t.mkt === "spot" ? "spot" : "fut"} · thống kê ${nf(t.win1, 0)}% · ${nf(t.avgR, 2)}R</small>${isNum(t.pm) ? ` <span class="pill brand" title="Xác suất chạm MT1 do mô hình học máy ước cho đúng tín hiệu này">🧬 ${nf(t.pm, 0)}%</span>` : ""}${t.play ? ` <span class="pill ${{ prefer: "buy", ok: "", weak: "warn", avoid: "sell" }[t.play] || ""}" title="Sổ tay riêng của mã cho thiết lập này">${{ prefer: "mã hợp", ok: "mã được", weak: "mã yếu", avoid: "mã tránh" }[t.play]}</span>` : ""}<div class="bth-why">${esc(t.why || "")}${isNum(t.p) ? ` <small class="faint">· giá ${px(t.p)} · vào ${px(t.e)} · SL ${px(t.s)} · MT1 ${px(t.t1)}</small>` : ""}</div></div>`; }).join("")}</div>` : ""}`
     : `<p class="muted">Bot chưa chạy phút nào – bật bot và chờ 1–2 phút.</p>`;
-  app().innerHTML = `<div class="ph"><h1>Bot xu hướng</h1><span class="meta">Thử nghiệm · sàn thử · khung ngày/4 giờ · phân tích mỗi 15 phút ${mLink("r")}</span></div>
+  { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>Bot xu hướng</h1><span class="meta">Thử nghiệm · sàn thử · khung ngày/4 giờ · phân tích mỗi 15 phút ${mLink("r")}</span></div>
     ${PG("Bot xu hướng")}${supStrip(rv.data, rq.data)}
     ${panel(`📈 Các bot xu hướng của anh (${B.length}/6)`, fleet)}
     ${cmp}
@@ -2685,11 +2685,11 @@ async function viewBot(sel) {
   window.__botT = setInterval(async () => {
     if (!/^#\/bot(\/(?!scalp|sup|days|home|binance|journal)[^/]*)?$/.test(location.hash)) { clearInterval(window.__botT); return; }     // chỉ trang Đội bot (trước đây cả #/bot/scalp → thỉnh thoảng vẽ trang Đội bot đè lên Bot Phản Xạ)
     if (document.hidden || dirty || userBusy() || document.activeElement?.closest?.("#bForm")) return;
-    try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) softRender(() => viewBot(id)); } catch (e) { /* bỏ qua */ }
+    try { const r = await Store.get("botstate"); const s2 = statesOf(r.data)[id]; if (s2?.last && s2.last !== st?.last) softRender(() => viewBot(id), /^#\/bot(\/(?!scalp|sup|days|home|binance|journal)[^/]*)?$/); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 
-async function viewSup(OUT) {
+async function viewSup(OUT) { const H0 = location.hash;
   const RE = () => (location.hash.startsWith("#/bot/sup") || location.hash.startsWith("#/bot/home") ? viewBotHome(location.hash.startsWith("#/bot/sup") ? "sup" : "") : viewBotHome());      // 11/2026: Rủi ro & giám sát là 1 phần của trang Tổng quan bot (không còn tab riêng)
   OUT = OUT || app();
   if (ME && !can("bot")) { OUT.innerHTML = `<div class="ph"><h1>🛡️ Bot giám sát</h1></div><div class="panel"><p class="muted">🔒 Dành cho gói Pro.</p></div>`; return; }
@@ -2798,7 +2798,7 @@ async function viewSup(OUT) {
   window.__supT = setInterval(async () => {
     if (!/^#\/bot\/(sup|home)$/.test(location.hash)) { clearInterval(window.__supT); return; }
     if (document.hidden || userBusy() || document.activeElement?.closest?.("#sForm")) return;
-    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) softRender(() => RE()); } catch (e) { /* bỏ qua */ }
+    try { const r = await Store.get("supstate"); if (r.data?.at && r.data.at !== ss.at) softRender(() => RE(), /^#\/bot\/(sup|home)$/); } catch (e) { /* bỏ qua */ }
   }, 60000);
 }
 
@@ -2855,7 +2855,7 @@ const ST_NM = { hook: ["🪝 Bắt râu sập", "🪝 Liquidation wick", "🪝 R
 const ST_Q = { ou: "Cặp O-U", rsi2: "RSI(2)", fund: "Funding âm", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý" };
 function stName(k, short) { const k2 = String(k).replace(/^q_/, ""); const N = ST_NM[k] || ST_NM[k2]; if (N) return short ? bi(N[2], N[3]) : bi(N[0], N[1]); return "📐 " + (ST_Q[k2] || k2); }
 try { if (!window.__dSt) window.__dSt = localStorage.getItem("dSt") || "all"; } catch (e) { /* bỏ qua */ }
-async function viewDays(envArg, dateArg, part) {
+async function viewDays(envArg, dateArg, part) { const H0 = location.hash;
   const [rd, rs, rn, rq] = await Promise.all([Store.get("scalpdays"), Store.get("scalpstate"), Store.get("scalpnotes"), Store.get("scalp")]);
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, ALL = rd.data || {}, NOTES = rn.data || {};
   const env = ["paper", "demo", "live"].includes(envArg) ? envArg : window.__dEnv || (C.lv_on ? (C.lv_env === "live" ? "live" : "demo") : "paper"); window.__dEnv = env;      // mặc định xem tài khoản Binance
@@ -2896,7 +2896,7 @@ async function viewDays(envArg, dateArg, part) {
   const head = `<div class="ph"><h1>Kết quả & sổ lệnh</h1><span class="meta">Giờ Việt Nam · bài học tự động từ số liệu ngày</span>${keys.length ? `<span class="dw-acts"><button type="button" class="btn sm" data-dwshare title="${bi("Ảnh đẹp kết quả ngày đang chọn – tải về hoặc chia sẻ, có thể ẩn số tiền", "A shareable image of the selected day – download or share, amounts can be hidden")}">🖼 ${bi("Ảnh kết quả ngày", "Day image")}</button><button type="button" class="btn sm" data-dwwrap title="${bi("Nhìn lại cả tháng dạng story", "Look back at the month as a story")}">✨ ${bi("Tổng kết tháng", "Monthly wrap")}${typeof can === "function" && !can("wrapped") ? ' <small class="chg-pro">★ Pro</small>' : ""}</button></span>` : ""}</div>${djSeg("days", env)}
     <div class="bseg dseg d3">${DENV.map(([e, t, d, ts]) => `<a href="#/bot/days/${e}" class="${e === env ? "on" : ""}" title="${esc(d)}${cnt[e] ? ` · ${cnt[e]} ngày có lệnh` : ""}"><span class="dl">${t}</span><span class="ds">${ts}</span>${cnt[e] ? `<small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>`;
   if (!keys.length) {
-    app().innerHTML = head + panel(DENV.find((x) => x[0] === env)[1], `<p class="muted">${env === "paper" ? "Chưa có số liệu theo ngày – máy chủ riêng bắt đầu lưu sau khi cập nhật (sudo bash /opt/my-bit/scalper/install.sh), dựng lại các ngày cũ từ lịch sử lệnh." : env === "demo" ? "Chưa có lệnh nào trên Binance Demo." : "Chưa chạy trên Binance thật. Khi anh chuyển sang tiền thật, kết quả từng ngày hiện ở đây – tách riêng khỏi sàn thử & Demo."}</p>`);
+    { if (rStale(H0)) return; } app().innerHTML = head + panel(DENV.find((x) => x[0] === env)[1], `<p class="muted">${env === "paper" ? "Chưa có số liệu theo ngày – máy chủ riêng bắt đầu lưu sau khi cập nhật (sudo bash /opt/my-bit/scalper/install.sh), dựng lại các ngày cũ từ lịch sử lệnh." : env === "demo" ? "Chưa có lệnh nào trên Binance Demo." : "Chưa chạy trên Binance thật. Khi anh chuyển sang tiền thật, kết quả từng ngày hiện ở đây – tách riêng khỏi sàn thử & Demo."}</p>`);
     return;
   }
   // tổng hợp khoảng ngày đang xem
@@ -2953,7 +2953,7 @@ async function viewDays(envArg, dateArg, part) {
   const html = head + summ + `<div class="dgw"><div class="dlay" data-nostack><div id="dCal">${calPanel(days, keys, PF, env, sel, TD)}</div><div class="dside"><div id="dDetail">${detail}</div><div id="dCmp">${cmp}</div></div></div></div>` + charts + list;
   // lịch: chọn ngày / đổi tháng → CHỈ thay khung lịch + chi tiết ngày (phần trên trang giữ nguyên → không nhảy, không cuộn)
   if (part && $("#dCal")) { const T = document.createElement("div"); T.innerHTML = html; for (const id of ["dCal", "dDetail", "dCmp", "dCharts"]) { const a = $("#" + id), b = T.querySelector("#" + id); if (a && b) a.replaceWith(b); } }
-  else app().innerHTML = html;
+  else { if (rStale(H0)) return; app().innerHTML = html; }
   // lịch: chọn ngày / đổi tháng → vẽ lại tại chỗ, KHÔNG chuyển trang (không cuộn lên đầu); địa chỉ cập nhật để quay lại đúng ngày
   const calRe = async (d, mon) => { const y0 = scrollY; if (mon) window.__dMon = mon; if (d && d !== sel) history.replaceState(history.state, "", `#/bot/days/${env}/${d}`);
     document.activeElement?.blur?.(); await viewDays(env, d || sel, true); if (Math.abs(scrollY - y0) > 2) scrollTo(0, y0); requestAnimationFrame(() => { if (Math.abs(scrollY - y0) > 2) scrollTo(0, y0); }); };
@@ -3036,7 +3036,7 @@ function jMiss(LG, X) {
   return [...M.values()].sort((a, b) => jT(b.t0) - jT(a.t0));
 }
 const jMissWhy = (m) => (m.what === "nofill" ? `Giá không tới · thiếu <b>${nf(m.gap, 2)}%</b>` : `Bỏ qua · ${esc(m.why || "không rõ lý do")}`);
-async function viewJournal(envArg, mode) {
+async function viewJournal(envArg, mode) { const H0 = location.hash;
   const [rl, rs, rd, rn, rq] = await Promise.all([Store.get("scalpledger"), Store.get("scalpstate"), Store.get("scalpdays"), Store.get("scalpnotes"), Store.get("scalp"), coins().catch(() => null)]);
   const J = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 });
   const C = { ...SCALP_DEF, ...scMig(rq.data) }, X = rs.data || {}, LG = rl.data || null, ALL = rd.data || {}, NOTES = rn.data || {};
@@ -3074,7 +3074,7 @@ async function viewJournal(envArg, mode) {
         <div class="jc2"><span>${jMissWhy(m)}${m.realHit ? ` · <span class="warn">sàn chính đã chạm</span>` : ""}</span>${m.R ? `<span>sốc ${nf(m.R / 100, 1)}%</span>` : ""}</div>
         <div class="jc3">${m.what === "nofill" && m.lvl ? `<small>mức chờ ${px(m.lvl)} · giá xa nhất ${px(m.reach)}${isNum(m.real) && m.env !== "live" ? ` · sàn chính ${px(m.real)}` : ""}</small>` : ""}<small>${P ? `Sàn thử khớp: <b class="${cls(P.pnl)}">${j$(P.pnl)}</b> (${px(P.e)} → ${px(P.x)})` : `<span class="faint">Sàn thử: không khớp</span>`}</small></div></div>`; };
     const list = panel("Từng lần hụt", F.length ? `<div class="jt-m jt-all">${S.map(card).join("")}</div>${F.length > J.lim ? `<button class="btn" id="jMore" style="margin-top:10px">Xem thêm (${F.length - J.lim})</button>` : ""}` : `<p class="muted">Không có lần hụt nào trong khoảng đang xem.</p>`, F.length ? `${Math.min(F.length, J.lim)} / ${F.length}` : "");
-    app().innerHTML = head + summ + list + `<p class="faint" style="font-size:var(--fs-xs)">Lệnh hụt = cú sốc bot đã đặt lệnh chờ trên Binance nhưng giá không tới (tự huỷ, không mất phí), hoặc bỏ qua không đặt. ${LG?.miss ? "" : "Hiện chỉ có 40 lần gần nhất – sau khi anh chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>, máy chủ lưu mãi mọi lần hụt."}</p>`;
+    { if (rStale(H0)) return; } app().innerHTML = head + summ + list + `<p class="faint" style="font-size:var(--fs-xs)">Lệnh hụt = cú sốc bot đã đặt lệnh chờ trên Binance nhưng giá không tới (tự huỷ, không mất phí), hoặc bỏ qua không đặt. ${LG?.miss ? "" : "Hiện chỉ có 40 lần gần nhất – sau khi anh chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>, máy chủ lưu mãi mọi lần hụt."}</p>`;
     const re = () => { J.lim = 100; viewJournal(env, "miss"); };
     bindCommon(re); if ($("#jMore")) $("#jMore").onclick = () => { J.lim += 100; viewJournal(env, "miss"); };
     return;
@@ -3112,7 +3112,7 @@ async function viewJournal(envArg, mode) {
       <div class="jc2"><span>${px(r.e)} → ${px(r.x)} <em class="${cls(r.mv)}">${nz(r.mv, 2) > 0 ? "+" : ""}${nf(r.mv, 2)}%</em></span></div>
       <div class="jc3"><small>${jTm(r.t1)} → ${jTm(r.t2)} · ${jHold(r.hold)}</small><small>KL ${qty(r.q)} · phí ${j$(-r.fee)}${nz(r.fund, 3) ? ` · funding ${j$(r.fund)}` : ""} · ${nf(r.bps, 0)} bps${pT(r)}</small><small class="faint">${esc(JWHY[r.why] || r.why || "")}${r.note ? ` · ${esc(r.note)}` : ""}</small></div></div>`).join("")}</div>`;
   const list = panel("Từng lệnh", n ? `${tbl}${cards}${n > J.lim ? `<button class="btn" id="jMore" style="margin-top:10px">Xem thêm (${n - J.lim} lệnh)</button>` : ""}` : `<p class="muted">Không có lệnh nào khớp bộ lọc.</p>`, n ? `${Math.min(n, J.lim)} / ${n} lệnh <button type="button" class="btn sm" id="jCsv">Tải CSV</button>` : "");
-  app().innerHTML = head + summ + list + lessons + diary + (LG ? "" : `<p class="faint" style="font-size:var(--fs-xs)">Hiện chỉ có các lệnh gần đây (trong trạng thái trực tiếp). Sau khi anh chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>, máy chủ riêng lưu mãi mọi lệnh và dựng lại các lệnh cũ còn trong bộ nhớ.</p>`);
+  { if (rStale(H0)) return; } app().innerHTML = head + summ + list + lessons + diary + (LG ? "" : `<p class="faint" style="font-size:var(--fs-xs)">Hiện chỉ có các lệnh gần đây (trong trạng thái trực tiếp). Sau khi anh chạy <code>sudo bash /opt/my-bit/scalper/install.sh</code>, máy chủ riêng lưu mãi mọi lệnh và dựng lại các lệnh cũ còn trong bộ nhớ.</p>`);
   const re = () => { J.lim = 100; viewJournal(env); };
   bindCommon(re);
   $$("[data-jx]").forEach((b) => (b.onclick = () => { J.res = b.dataset.jx; re(); }));
@@ -3128,8 +3128,8 @@ async function viewJournal(envArg, mode) {
 }
 
 // ================================================================ 🤖 BOT CỦA TÔI – 1 cửa vào cho mọi bot: đang chạy không, lời/lỗ hôm nay, lệnh mở, tiền thật, rủi ro chung
-async function viewBotHome(focus) {
-  if (ME && !can("bot")) { app().innerHTML = `<div class="ph"><h1>🤖 Bot của tôi</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
+async function viewBotHome(focus) { const H0 = location.hash;
+  if (ME && !can("bot")) { { if (rStale(H0)) return; } app().innerHTML = `<div class="ph"><h1>🤖 Bot của tôi</h1></div><div class="panel"><p class="muted">🔒 Bot giao dịch tự động dành cho gói Pro.</p></div>`; return; }
   const [rc, rs, rq, rv, rk, rx] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("sup"), Store.get("supstate"), Store.get("scalp"), Store.get("scalpstate")]);
   const X0 = rx.data || {}, X = X0.v === 2 ? X0 : { at: X0.at }, C = { ...SCALP_DEF, ...(typeof scMig === "function" ? scMig(rk.data) : rk.data || {}) }, LV = X.live || null;
   const age = X.at ? (Date.now() - Date.parse(X.at + "Z")) / 1000 : null, alive = age != null && age < 90;
@@ -3157,7 +3157,7 @@ async function viewBotHome(focus) {
   const resCard = card("#/bot/days", "📒", "Kết quả & sổ lệnh", ["mọi bot", ""], [["Theo ngày", "lãi/lỗ từng ngày, sàn thử & Binance"], ["Sổ lệnh", "mọi lệnh: giá vào/ra, phí, funding"], ["Bài học", "tổng hợp từ lệnh đã đóng"]], "Xem báo cáo");
   const binCard = card("#/bot/binance", "💵", "Tài khoản Binance", C.lv_on ? [LV?.halt ? "⛔ Ngừng mở mới" : `● ${lvEnv}`, LV?.halt ? "sell" : "buy"] : ["Bot chưa nối", ""], [
     ["Số dư futures", isNum(LV?.st?.bal) ? usd2(LV.st.bal) : "—"], ["Hôm nay", C.lv_on ? su(LV?.day?.pnl ?? 0) : "—"], ["Kết nối", "khoá API trên máy chủ · không có quyền rút tiền"]], "Số dư, ví, khoá API · mở");
-  app().innerHTML = `${botHubHead("home")}
+  { if (rStale(H0)) return; } app().innerHTML = `${botHubHead("home")}
     ${PG("Tổng quan bot")}
     <div class="bh-grid">${C.lv_on ? binCard + scCard : scCard + binCard}${resCard}</div>
     <h3 class="bh-sub">🧪 Thử nghiệm</h3><div class="bh-grid">${trCard}</div>
@@ -3210,14 +3210,14 @@ function tPick(R, ms) {      // lệnh gần mốc nhất: mốc nằm trong [b�
   for (const r of R) { const a = (r.t0 ?? 0) - 3 * 60e3, b = (r.t1 ?? r.t0 ?? 0) + 15 * 60e3, d = ms >= a && ms <= b ? 0 : Math.min(Math.abs(ms - a), Math.abs(ms - b)); const w = d + (r.src === "led" ? 1 : 0); if (w < bd) { bd = w; best = r; } }
   return bd < 36 * 3600e3 ? best : null;
 }
-async function viewTrade(env, sym, ms) {
+async function viewTrade(env, sym, ms) { const H0 = location.hash;
   env = TENV[env] ? env : "live"; sym = String(sym || "").toUpperCase().replace(/USDT$/, ""); ms = +ms || Date.now();
   const [rs, rq, rl] = await Promise.all([Store.get("scalpstate"), Store.get("scalp"), Store.get("scalpledger").catch(() => ({ data: null })), coins().catch(() => null)]);
   const X = rs.data || {}, C = { ...SCALP_DEF, ...scMig(rq.data) }, LG = rl.data || null;
   const ALLR = tRecs(X, LG, C, env, sym), r = tPick(ALLR, ms), E = TENV[env];
   const back = `<a href="#/bot/scalp" data-sctab-go="ord" class="btn sm">← ${bi("Lệnh của bot", "Bot trades")}</a>`;
   const head = (st) => `<div class="ph"><h1>${esc(sym)} ${r ? `<span class="${r.side > 0 ? "up" : "down"}">${r.side > 0 ? "Long" : "Short"}</span>` : ""}</h1><span class="meta"><span class="sc-acc ${env}">${E[0]} ${E[1]}</span> ${grpTag(sym)} ${st || ""} · <a href="#/c/${enc(sym)}">${bi("Trang coin", "Coin page")} →</a></span></div>`;
-  if (!r) { app().innerHTML = head("") + panel(bi("Không tìm thấy lệnh", "Trade not found"), `<p class="muted">${bi(`Không còn dữ liệu lệnh ${esc(sym)} quanh ${dt(new Date(ms).toISOString())} trên ${E[1]} (lệnh cũ có thể đã ra khỏi bộ nhớ trực tiếp).`, "No trade data around that time.")}</p><p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`); return; }
+  if (!r) { { if (rStale(H0)) return; } app().innerHTML = head("") + panel(bi("Không tìm thấy lệnh", "Trade not found"), `<p class="muted">${bi(`Không còn dữ liệu lệnh ${esc(sym)} quanh ${dt(new Date(ms).toISOString())} trên ${E[1]} (lệnh cũ có thể đã ra khỏi bộ nhớ trực tiếp).`, "No trade data around that time.")}</p><p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`); return; }
   const NM = { hook: bi("Bắt râu sập", "Wick Catcher"), sec: bi("Lướt giây", "Scalp"), pump: bi("Short coin vừa bơm", "Short pumped coin"), list: bi("Short coin mới niêm yết", "Short new listing"), ou: "Cặp coin O-U", rsi2: "RSI(2) Connors", fund: "Funding âm → Long", orb: "ORB + NR7", vwap: "VWAP ± σ", liq: "Thác thanh lý" };
   const ST = { wait: ["⏳ " + bi("Chờ khớp", "Waiting to fill"), "warn"], open: ["● " + bi("Đang giữ", "Open"), "buy"], closed: [(r.pnl ?? 0) >= 0 ? bi("Đã đóng · lời", "Closed · win") : bi("Đã đóng · lỗ", "Closed · loss"), (r.pnl ?? 0) >= 0 ? "buy" : "sell"], miss: ["✕ " + bi("Hụt – giá không tới", "Missed"), ""] }[r.status];
   const now = Date.now(), tm = (t) => (t ? new Date(t).toLocaleString(LOC, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "—");
@@ -3248,7 +3248,7 @@ async function viewTrade(env, sym, ms) {
   // ---- các lệnh khác cùng coin
   const others = ALLR.filter((x) => x !== r && x.t0).sort((a, b) => b.t0 - a.t0).slice(0, 8);
   const othP = others.length ? panel(bi(`Lệnh ${sym} khác`, `Other ${sym} trades`), `<div class="tr-oth">${others.map((x) => `<a href="#/t/${env}/${enc(sym)}/${x.t0}" class="tr-o"><small class="faint">${tm(x.t0)}</small><span class="${x.side > 0 ? "up" : "down"}">${x.side > 0 ? "Long" : "Short"}</span><span>${esc(NM[x.strat] || x.strat)}</span>${x.status === "closed" ? `<b class="${cls(x.pnl)}">${j$(x.pnl || 0)}</b>` : `<small>${{ wait: bi("chờ khớp", "waiting"), open: bi("đang giữ", "open"), miss: bi("hụt", "missed") }[x.status]}</small>`}</a>`).join("")}</div>`) : "";
-  app().innerHTML = `${head(`<span class="pill ${ST[1]}">${ST[0]}</span>${r.status === "closed" ? ` <b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b>` : ""}`)}
+  { if (rStale(H0)) return; } app().innerHTML = `${head(`<span class="pill ${ST[1]}">${ST[0]}</span>${r.status === "closed" ? ` <b class="${cls(r.pnl)}">${j$(r.pnl || 0)}</b>` : ""}`)}
     <section class="panel tr-ch">${r.tS || r.tF ? `<button type="button" class="btn sm primary tr-clipb" data-trclip>▶ ${bi("Clip xem lại lệnh", "Replay clip")}</button>` : ""}<div class="tr-tfs bseg" role="tablist">${TFS.map(([k]) => `<button type="button" data-ttf="${k}" class="${k === TF ? "on" : ""}">${k}${k === tf0 ? " ★" : ""}</button>`).join("")}<span class="tr-lg"><i class="l-lv"></i>${bi("mức chờ", "levels")}<i class="l-e"></i>${bi("giá vào", "entry")}<i class="l-sl"></i>${bi("cắt lỗ", "stop")}<i class="l-x"></i>${bi("giá ra", "exit")}</span></div><div id="trChart" class="tr-cv"><p class="faint" style="padding:12px">${bi("Đang lấy nến từ Binance…", "Loading candles…")}</p></div></section>
     <div class="g g2w"><div>${panel(bi("Lý do & kế hoạch", "Why & plan"), `<p class="tr-why">${why}</p>${plan}`)}</div><div>${logP}${othP}</div></div>
     <p>${back} <a class="btn sm" href="#/bot/journal/${env}">${bi("Sổ lệnh →", "Trade book →")}</a></p>`;
@@ -3483,7 +3483,7 @@ function scatterSvg(P, o = {}) {
   }, { h: o.h || 220 });
 }
 const MFE_C = (window.__mfeC ||= lsGet("mfe", {}) || {});      // đỉnh lời / sụt sâu nhất (bps) của lệnh tay, đọc từ nến Binance – lưu trên máy để lần sau khỏi đọc lại
-async function viewStats(envArg) {
+async function viewStats(envArg) { const H0 = location.hash;
   const [rl, rs] = await Promise.all([Store.get("scalpledger"), Store.get("scalpstate")]);
   const X = rs.data || {}, LG = rl.data || null, A = jRows(LG, X), J = (window.__J ||= { R: 30, st: "all", res: "all", q: "", lim: 100 });
   const cnt = Object.fromEntries(JENV.map(([e]) => [e, e === "all" ? A.length : A.filter((r) => r.env === e).length]));
@@ -3494,7 +3494,7 @@ async function viewStats(envArg) {
     <div class="bseg dseg">${JENV.map(([e, t, ts]) => `<a href="#/bot/stats/${e}" class="${e === env ? "on" : ""}"><span class="dl">${t}</span><span class="ds">${ts}</span>${cnt[e] ? `<small>${cnt[e]}</small>` : ""}</a>`).join("")}</div>
     <div class="jf">${jRgSeg()}</div>`;
   const bind = () => jRgBind(() => viewStats(env));
-  if (!F.length) { app().innerHTML = head + panel(bi("Phân tích", "Analysis"), `<p class="muted">${bi("Chưa có lệnh đã đóng trong khoảng này.", "No closed trades in this range.")}</p>`); bind(); return; }
+  if (!F.length) { { if (rStale(H0)) return; } app().innerHTML = head + panel(bi("Phân tích", "Analysis"), `<p class="muted">${bi("Chưa có lệnh đã đóng trong khoảng này.", "No closed trades in this range.")}</p>`); bind(); return; }
   const sum = (a, f) => a.reduce((s2, x) => s2 + (f(x) || 0), 0), win = (a) => a.filter((r) => r.pnl > 0).length, pc = (v, d = 2) => `${v > 0 ? "+" : ""}${nf(v, d)}%`;
   const G = ["bot", "man", "ive"].filter((g) => F.some((r) => stGrp(r) === g));
   const dd = (d) => d.slice(8, 10) + "/" + d.slice(5, 7);
@@ -3562,7 +3562,7 @@ async function viewStats(envArg) {
   const p10 = !HK.length ? "" : panel(bi("🪝 Bot Bắt râu sập theo độ lớn cú sốc", "🪝 Wick Catcher by shock size"), lineSvg([{ name: bi("TB / lệnh", "Avg / trade"), bars: true, pts: RB.map((x) => ({ x: x.t, y: +(x.av / 100).toFixed(3), tip: `${x.n} ${bi("lệnh", "trades")} · ${bi("thắng", "won")} ${x.w}/${x.n} · ${j$(x.s)}`, tc: x.av >= 0 ? "up" : "down" })) }], { h: 140, dec: 2, zero: true, fmt: (v) => nf(v, 1) + "%" })
     + tb([bi("Cú sốc", "Shock"), bi("Lệnh", "Trades"), "Long / Short", bi("Thắng", "Won"), bi("TB / lệnh", "Avg / trade"), bi("Tổng", "Total")], RB.map((x) => `<tr><td class="l">${x.t}</td><td>${x.n}</td><td>${x.nL} / ${x.n - x.nL}</td><td>${nf(x.w / x.n * 100, 0)}%</td><td class="${cls(x.av)}">${pctB(x.av)}</td><td class="${cls(x.s)}">${j$(x.s)}</td></tr>`))
     + note(bi("Cú sốc = mức sập / vọt trong 1 phút lúc bot phát hiện. Số lệnh ít thì chưa đủ để kết luận – chỉ đổi ngưỡng bot khi anh quyết định.", "Shock = the 1-minute crash / spike when the bot fired. Small samples aren't conclusive – thresholds change only when you decide.")), `${HK.length} ${bi("lệnh", "trades")}`);
-  app().innerHTML = head + `<div class="st-wrap">${p6}${p3}${p4}${p5}${p7}${p8}${p10}</div>`; bind(); cbMount?.(app());
+  { if (rStale(H0)) return; } app().innerHTML = head + `<div class="st-wrap">${p6}${p3}${p4}${p5}${p7}${p8}${p10}</div>`; bind(); cbMount?.(app());
   // đọc đỉnh lời / sụt sâu nhất của lệnh tay từ nến Binance (tối đa 60 lệnh mỗi lần mở, 3 lệnh cùng lúc), xong thì vẽ lại riêng khung Lời bỏ lỡ
   const Q = F.filter((r) => !pkOf(r) && /:F$/.test(r.k) && r.hold >= 60 && r.hold <= 7 * 86400).slice(-60); if (!Q.length) return;
   const me = location.hash; let done = 0, k = 0;

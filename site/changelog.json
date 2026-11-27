@@ -10,6 +10,15 @@
    "it": [
     {
      "c": "fix",
+     "a": "ui",
+     "t": "Bấm sang trang khác không còn bị nhảy về Bot Phản Xạ",
+     "te": "Navigating away no longer bounces back to Reflex Bot",
+     "d": "Trang Bot đang tải số liệu (mạng chậm / tự làm mới) mà anh bấm sang trang khác (vd Có gì mới) thì lượt tải đó không vẽ đè lên trang mới nữa – trước phải bấm lần thứ 2. Đổi tab con lúc thanh tab đang dính: tiêu đề không hiện lại, thanh không bị đẩy xuống.",
+     "de": "A slow Bot page load no longer overwrites the page you navigated to; switching sub-tabs while pinned keeps the bar in place.",
+     "hi": 1
+    },
+    {
+     "c": "fix",
      "a": "bot",
      "t": "Clip lệnh đang mở: không còn ra lệnh cũ đã đóng",
      "te": "Replay of an open trade no longer shows an old closed one",

@@ -8267,3 +8267,5 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 }
 .sc-tbar.stk-now::before,.sc-tbar.stk-now{transition:none!important}
 #app .sc-body>.sc-ofl.stk-now::before{transition:none!important}
+/* đổi tab con lúc thanh tab đang dính: phần nội dung luôn cao ít nhất 1 màn hình dưới thanh → thanh vẫn dính đúng chỗ, tiêu đề "Bot Phản Xạ" không hiện lại đẩy thanh xuống */
+#app>.sc-tbar+.sc-body{min-height:calc(100vh - var(--oflt,130px));min-height:calc(100dvh - var(--oflt,130px))}
