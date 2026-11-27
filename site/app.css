@@ -7932,3 +7932,7 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .sc-env .ei .eic{width:15px;height:15px;margin:0;vertical-align:-3px}
 /* số trên tab Bot Phản Xạ (Lệnh 5…) = cùng kiểu với số trên công tắc sàn (đậm, nền đặc) – trước: tab đang chọn ra ô xám nhạt, chìm */
 .sc-tabs>button .sc-bdg:not(#_b),.sc-tabs>button.on .sc-bdg:not(#_b){background:var(--sel)!important;color:var(--sel-ink)!important;font-weight:600;height:18px;min-width:18px;font-size:11px;border-radius:9px;margin:-2px 0 -2px 5px;font-variant-numeric:tabular-nums}
+/* thẻ lọc Thông báo (Tất cả 60 · Chưa đọc · Bot…): Safari iPhone vẽ 2 vạch sáng mảnh ngang chữ (đúng mép vùng chữ của nút cao lẻ 30,6px + số mờ bằng opacity)
+   → nút cao chẵn 30px, chữ căn giữa bằng flex, không đệm trên/dưới; số dùng màu nhạt thay opacity (không tạo lớp vẽ riêng) */
+.nt-c:not(#_n){display:inline-flex;align-items:center;height:30px;padding:0 12px;line-height:1;box-sizing:border-box}
+.nt-c i:not(#_n){opacity:1!important;color:color-mix(in srgb,currentColor 62%,transparent)!important;margin-left:4px}

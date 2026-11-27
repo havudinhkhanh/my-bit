@@ -9,6 +9,12 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "notif",
+     "t": "Thẻ lọc trong bảng Thông báo không còn 2 vạch mảnh ngang chữ trên iPhone",
+     "te": "Notification filter chips no longer show two thin lines across the text on iPhone"
+    },
+    {
      "c": "imp",
      "a": "ui",
      "t": "Số đếm trên tab Bot Phản Xạ (Lệnh 5…) đậm, nền đặc giống số trên công tắc sàn",
