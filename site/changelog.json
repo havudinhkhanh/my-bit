@@ -11,10 +11,10 @@
     {
      "c": "imp",
      "a": "ui",
-     "t": "Công tắc Sàn thử / Tiền thật dùng biểu tượng đơn sắc (bình thí nghiệm / đồng xu)",
-     "te": "Paper / Live switch uses monochrome icons (flask / coin)",
-     "d": "Thay chữ + emoji màu bằng biểu tượng nét theo màu chữ – gọn, hợp giao diện sáng / tối; rê chuột hoặc trình đọc màn hình vẫn có tên đầy đủ.",
-     "de": "Replaces text + colour emoji with line icons in the text colour; full names remain on hover and for screen readers."
+     "t": "Sàn thử / Tiền thật dùng biểu tượng đơn sắc (bình thí nghiệm / đồng xu) ở mọi chỗ",
+     "te": "Paper / Live use monochrome icons (flask / coin) everywhere",
+     "d": "Công tắc trong biểu đồ lệnh, nhãn trên thẻ lệnh, dòng mô tả dưới giá, viên lệnh trên cùng, bảng lệnh nổi và thanh chọn sàn của Bot Phản Xạ: thay chữ + emoji màu 🧪 💵 💰 🟡 bằng biểu tượng nét theo màu chữ – gọn, hợp nền sáng / tối.",
+     "de": "Trade-chart switch, card badges, the line under the price, top pill, floating panel and the Reflex Bot venue switch now use line icons in the text colour instead of colour emoji."
     },
     {
      "c": "imp",

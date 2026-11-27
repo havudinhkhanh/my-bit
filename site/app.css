@@ -7925,3 +7925,8 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 #ocChart .occ-env button,.occ-env button{width:38px;padding:0!important;justify-content:center;gap:0}
 .occ-env button svg{display:block;flex:none}.occ-env button.no:not(.on){opacity:.45}
 @media (max-width:760px){#ocChart .occ-h .occ-env button{width:34px}}
+/* biểu tượng tài khoản đơn sắc (bình thí nghiệm / đồng xu) trong nhãn, viên, dòng mô tả */
+.eic{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.17em;margin-right:.28em;flex:none}
+.occ-env .eic{width:16px;height:16px;margin:0;vertical-align:middle}
+.occ-what .eic{width:13px;height:13px;vertical-align:-2px;margin-right:4px}
+.sc-env .ei .eic{width:15px;height:15px;margin:0;vertical-align:-3px}

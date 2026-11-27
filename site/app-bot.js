@@ -424,7 +424,7 @@ function mxAsk(key, name, real, pend) {
   const $v = (v, d) => `${nz(v, d ?? 3) > 0 ? "+" : nz(v, d ?? 3) < 0 ? "−" : ""}$${nf(Math.abs(v), d ?? (Math.abs(v) < 1 ? 3 : 2))}`, cl = (v) => (nz(v, 3) > 0 ? "up" : nz(v, 3) < 0 ? "down" : "");
   const sgP = (v, d) => `${nz(v, d) > 0 ? "+" : nz(v, d) < 0 ? "−" : ""}${nf(Math.abs(v), d)}`;
   const x0 = window.__MXE?.[key], tot = () => (x0?.paper ? window.__MXT?.paper : window.__MXT?.real), nothing = !x0 || x0.nofill || pend;
-  const venue = /^(pp|sw|q):/.test(key) || x0?.paper ? ["paper", bi("🧪 Sàn thử", "🧪 Paper")] : real ? ["real", bi("💵 Tiền thật", "💵 Real money")] : ["demo", "🟡 Demo"];
+  const venue = /^(pp|sw|q):/.test(key) || x0?.paper ? ["paper", EIC.paper + bi("Sàn thử", "Paper")] : real ? ["real", EIC.live + bi("Tiền thật", "Real money")] : ["demo", EIC.live + "Demo"];
   const head = `<div class="cx-id"><span class="cx-nm">${esc(name)}</span><span class="cx-v ${venue[0]}">${venue[1]}</span></div>`;
   const body = () => {
     const x = window.__MXE?.[key] || x0, r = mxCalc(x);
@@ -871,7 +871,7 @@ async function viewScalp() { const H0 = location.hash;
   const lvEst = (e) => (e.pos?.q > 0 ? { pk: e.k || e.sym.replace(/USDT$/, "") + ":F", e: e.pos.ap, q: e.pos.q, sd: e.side, f0: e.fees || 0, fr: C.fee_t, fund: e.fund ?? null, sl: 0.05, pend: e.lv.filter((l) => l.st === "open" || l.st === "wait").length } : { nofill: 1 });
   // đòn bẩy & loại ký quỹ – ở dòng thứ 2 (luôn hiện, tự xuống dòng) thay vì dòng đầu (bị ẩn khi thẻ hẹp)
   const mgT = (lev, iso) => `<span class="sc-acc mg ${iso ? "iso" : "cross"}" title="${iso ? bi("Ký quỹ cô lập: thanh lý chỉ mất ký quỹ của lệnh này", "Isolated margin: liquidation only loses this trade's margin") : bi("Ký quỹ chéo: cả số dư futures dùng chung cho lệnh này", "Cross margin: the whole futures balance backs this trade")}">x${nf(lev || 1, 0)} · ${iso ? bi("cô lập", "isolated") : bi("chéo", "cross")}</span>`;
-  const accT = (a) => `<span class="sc-acc ${a}">${a === "paper" ? bi("Sàn thử", "Paper") : a === "live" ? bi("💵 Tiền thật", "💵 Real") : "Demo"}</span>`;
+  const accT = (a) => `<span class="sc-acc ${a}">${EIC[a === "paper" ? "paper" : "live"]}${a === "paper" ? bi("Sàn thử", "Paper") : a === "live" ? bi("Tiền thật", "Real") : "Demo"}</span>`;      // biểu tượng đơn sắc thay emoji màu
   const lvAcc = () => accT(LV?.env === "live" ? "live" : "demo");
   // 1 mẫu thẻ duy nhất cho lệnh Binance (trang Tổng quan và thẻ Binance dùng chung) – cùng bố cục với thẻ sàn thử
   const sg$ = (v) => (nz(v, 2) > 0 ? "+" : "") + usd2(v);      // khai báo TRƯỚC lvCard (thẻ lệnh Binance có funding dùng ngay khi vẽ – khai sau = lỗi "Cannot access before initialization")
@@ -1496,7 +1496,7 @@ async function viewScalp() { const H0 = location.hash;
   window.__clRe = { [LVE]: lvTrades, paper: paperTrades };      // lọc mã: chỉ dựng lại khung Lệnh đã đóng, không vẽ lại cả trang Bot
   // ---------------------------------------------------------------- nội dung từng tab
   let body = "";
-  const envSeg = TOP === "ov" || TOP === "ord" ? `<div class="sc-env" data-ev="${ENV}" role="tablist" aria-label="${bi("Xem sàn", "Venue")}">${[["live", `<span class="ei">${LVI}</span> <span class="et">${LVN}</span>`, nLive], ["paper", `<span class="ei">🧪</span> <span class="et">${bi("Sàn thử", "Paper")}</span>`, nPaper]].map(([k, t, n]) => `<button type="button" role="tab" data-scenv="${k}" class="${ENV === k ? "on" : ""}" aria-selected="${ENV === k}">${t}${n ? ` <i class="sc-bdg">${n}</i>` : ""}</button>`).join("")}</div>` : "";
+  const envSeg = TOP === "ov" || TOP === "ord" ? `<div class="sc-env" data-ev="${ENV}" role="tablist" aria-label="${bi("Xem sàn", "Venue")}">${[["live", `<span class="ei">${EIC.live}</span> <span class="et">${LVN}</span>`, nLive], ["paper", `<span class="ei">${EIC.paper}</span> <span class="et">${bi("Sàn thử", "Paper")}</span>`, nPaper]].map(([k, t, n]) => `<button type="button" role="tab" data-scenv="${k}" class="${ENV === k ? "on" : ""}" aria-selected="${ENV === k}">${t}${n ? ` <i class="sc-bdg">${n}</i>` : ""}</button>`).join("")}</div>` : "";
   const goOrd = (n, what) => !n ? `<p class="sc-more-l"><button type="button" class="btn sm" data-sctab="ord" data-scenv0="paper">${bi(`Lệnh ${what} đã đóng → tab Lệnh`, `Closed ${what} trades → Trades tab`)}</button></p>` : `<p class="sc-goord"><span>${n ? bi(`${n} lệnh ${what} đang mở / chờ khớp`, `${n} ${what} trades open / pending`) : bi(`Lệnh ${what} (đang mở & đã đóng) nằm ở tab Lệnh`, `${what} trades (open & closed) are in the Trades tab`)}</span><button type="button" class="btn sm" data-sctab="ord" data-scenv0="paper">${bi("Xem lệnh →", "View trades →")}</button></p>`;
   const lvOff = !C.lv_on && !LV?.hist?.length && !LV?.ev?.length && !wEnv;
   const lvOffP = panel("💵 Tài khoản Binance", empty(`Tài khoản Binance đang tắt. Bật trong tab <button type="button" class="btn sm" data-sctab="set">⚙️ Thiết lập</button> → mục 💵 Tiền thật (nên chạy Demo trước).`));
