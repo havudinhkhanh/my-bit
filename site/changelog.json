@@ -21,7 +21,7 @@
      "a": "bot",
      "t": "2 thanh dính không còn mất nền khi trang tự làm mới",
      "te": "Pinned bars keep their background on auto-refresh",
-     "d": "Trang Bot tự làm mới / đổi tab con thì xét lại ngay trạng thái dính – không còn cảnh thanh tab và hàng lọc trong suốt, chữ đè lên nội dung.",
+     "d": "Trang Bot tự làm mới / đổi tab con thì xét lại ngay trạng thái dính – không còn cảnh thanh tab và hàng lọc trong suốt, chữ đè lên nội dung. Đổi tab con (vd Phương pháp → Hoạt động) lúc đang dính thì thanh dính ngay, không còn cảnh thanh tách rời rồi mới giãn ra.",
      "de": "Sticky state is re-checked after each refresh, so the bars never turn transparent."
     },
     {
@@ -37,7 +37,7 @@
      "a": "perf",
      "t": "Rà soát & tối ưu: bớt việc thừa, sửa lỗi nhỏ",
      "te": "Review pass: less wasted work, small fixes",
-     "d": "Đổi màu nền theo nhịp thị trường không còn bắt cả trang tính lại kiểu suốt 2,4 giây; clip dừng vẽ khi đứng yên và tự đóng khi chuyển trang; menu thả xuống không còn để lại trình nghe sau mỗi lần mở; thước đo không ép tính bố cục mỗi khung hình; tiêu đề co & thanh tab dính không bật lại khi trang tự làm mới; viên lệnh bot tự về chỗ khi quay lại app; giữ lâu trên thang giá (Android) không mở menu 2 lần; kết quả phòng thử nghiệm tự tải lại mỗi giờ; ô gõ “TIEN THAT” chấp nhận chữ thường / dư dấu cách; sổ thuế không tràn màn hình điện thoại.",
+     "d": "Đổi màu nền theo nhịp thị trường không còn bắt cả trang tính lại kiểu suốt 2,4 giây; clip dừng vẽ khi đứng yên và tự đóng khi chuyển trang; menu thả xuống không còn để lại trình nghe sau mỗi lần mở; thước đo không ép tính bố cục mỗi khung hình; tiêu đề co & thanh tab dính không bật lại khi trang tự làm mới; viên lệnh bot tự về chỗ khi quay lại app; giữ lâu trên thang giá (Android) không mở menu 2 lần; kết quả phòng thử nghiệm tự tải lại mỗi giờ; ô gõ “TIEN THAT” chấp nhận chữ thường / dư dấu cách; sổ thuế không tràn màn hình điện thoại. Bỏ vài luật giao diện tốn kém (so khớp kiểu :has / rê chuột mọi phần tử).",
      "de": "Mood background no longer restyles the whole page; clip stops drawing when idle and closes on navigation; dropdown listener leak fixed; measure tool avoids forced layouts; sticky/title state survives auto-refresh; live pill re-places on resume; Android long-press opens once; lab results refresh hourly; real-money confirm accepts lowercase; tax form fits phones."
     },
     {

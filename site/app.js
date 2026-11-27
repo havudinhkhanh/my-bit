@@ -270,7 +270,7 @@ function mkChart(el, extra = {}) {
     el.classList.add("lwbox");
     const t = document.createElement("div"); t.className = "cbt"; t.innerHTML = CZ_BTN; t._box = el; el._cbt = t;
     const pd = el.parentElement ? getComputedStyle(el.parentElement).display : "block";
-    if (/flex|grid/.test(pd)) el.appendChild(t); else { t.classList.add("cbt-o"); el.insertAdjacentElement("afterend", t); }      // khung cha xếp hàng ngang → giữ trong biểu đồ (góc dưới trái)
+    if (/flex|grid/.test(pd)) el.appendChild(t); else { t.classList.add("cbt-o"); el.classList.add("cbt-host"); el.insertAdjacentElement("afterend", t); }      // khung cha xếp hàng ngang → giữ trong biểu đồ (góc dưới trái)
     const sz = czSaved(el); if (sz !== "m") czSet(el, sz, false); else { el.dataset.sz = "m"; t.querySelector('[data-cz="m"]').classList.add("on"); t.style.setProperty("--i", 1); }
   }
   return c;
@@ -7655,7 +7655,7 @@ const jellyOK = () => !matchMedia("(prefers-reduced-motion: reduce)").matches &&
 function cmdk(open = true) {
   let el = $("#cmdk");
   if (!open) { if (el && !el.hidden) {
-      const fin = () => { el.hidden = true; el.classList.remove("out"); document.body.classList.remove("cmdk-on", "cmdk-sd"); const I = $(".cmdk-in", el), B = $(".cmdk-bg", el); [I, B].forEach((x) => x && (x.style.transform = x.style.transition = x.style.opacity = "")); };
+      const fin = () => { el.hidden = true; el.classList.remove("out"); document.body.classList.remove("cmdk-on", "cmdk-sd"); document.documentElement.classList.remove("cmdk-on"); const I = $(".cmdk-in", el), B = $(".cmdk-bg", el); [I, B].forEach((x) => x && (x.style.transform = x.style.transition = x.style.opacity = "")); };
       if (el.classList.contains("side") && !matchMedia("(prefers-reduced-motion: reduce)").matches) { document.activeElement?.blur?.(); el.classList.add("out"); setTimeout(fin, 230); } else fin();      // ngăn kéo: trượt ra phải rồi mới ẩn
     } return; }
   if (!el) {
@@ -7690,7 +7690,7 @@ function cmdk(open = true) {
   // 📱 điện thoại / máy tính bảng: tìm nhanh = NGĂN KÉO BÊN PHẢI kiểu Bảng phụ – ô tìm ở trên (ngay chỗ vừa bấm), kết quả xếp xuống dưới, tự co theo bàn phím
   el.classList.toggle("side", matchMedia("(pointer:coarse),(max-width:979px)").matches); el.classList.remove("out"); { const q0 = $("#cmdkQ"); if (q0) { q0.dataset.ph ||= q0.placeholder; q0.placeholder = el.classList.contains("side") ? bi("Tìm coin, trang…", "Coins, pages…") : q0.dataset.ph; } }
   if (!COINS) coins().then(() => !el.hidden && el._draw());
-  el.hidden = false; document.body.classList.add("cmdk-on"); document.body.classList.toggle("cmdk-sd", el.classList.contains("side")); popClose();
+  el.hidden = false; document.body.classList.add("cmdk-on"); document.documentElement.classList.add("cmdk-on"); document.body.classList.toggle("cmdk-sd", el.classList.contains("side")); popClose();
   const q = $("#cmdkQ"); q.value = ""; el._draw(); q.focus();
   if (!el.classList.contains("side") && matchMedia("(pointer:coarse),(max-width:600px)").matches && jellyOK()) {      // (dạng cũ, không còn dùng trên điện thoại) ô tìm nảy lên từ đáy (ngay trên bàn phím), danh sách hiện mờ dần
     $(".cmdk-q", el).animate(springKF(70, 0, (v) => ({ transform: `translateY(${v}px) scale(${1 - v / 900})` })), { duration: 560, easing: "linear" });

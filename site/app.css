@@ -3727,7 +3727,6 @@ html.lb-lock,html.lb-lock body{overflow:hidden}
 .lb-chip .lb-nm b{font-size:.84375rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .lb-ic{flex:none;font-size:.84375rem}
 .lb-chip .lb-ver{flex:none;font-size:.75rem;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.lb-chip.lib:not(:has(~ *)){}
 .lb-l1:not(.lb-on) .lb-chip{background:color-mix(in srgb,var(--surface) 70%,transparent);border-style:dashed}
 .lb-chip.paper{background:color-mix(in srgb,var(--up) 9%,var(--surface));border-color:color-mix(in srgb,var(--up) 35%,var(--bd-2))}
 .lb-chip.live{background:color-mix(in srgb,var(--brand) 12%,var(--surface));border-color:color-mix(in srgb,var(--brand) 45%,var(--bd-2))}
@@ -5342,7 +5341,7 @@ body.tp-pull-on .pnfab{opacity:0;transition:opacity .15s}      /* nút Bảng ph
 @media (max-width:979px){.nt-ab{height:34px;padding:0 14px;font-size:.8125rem}.nt-acts{padding-left:50px}}
 /* tìm nhanh trên điện thoại: iOS dời khung màn hình khi mở bàn phím, thanh ^ ∨ ✓ trong suốt nhìn xuyên xuống → ẩn hẳn trang phía sau, chỗ nào lộ ra cũng chỉ là nền trơn */
 @media (pointer:coarse),(max-width:600px){
-  html:has(body.cmdk-on){background:var(--bg)}
+  html.cmdk-on{background:var(--bg)}      /* lớp do JS gắn cùng lúc với body.cmdk-on (thay :has – đỡ tính lại kiểu cả trang) */
   body.cmdk-on>*:not(#cmdk):not(#toasts):not(script){visibility:hidden!important}
 }
 /* ===== 🔔 banner thông báo trong app (kiểu iOS): thẻ kính nổi trên cùng · vuốt xuống mở rộng (nút làm nhanh) · vuốt lên ẩn ===== */
@@ -5565,7 +5564,7 @@ html.lb-lock{overflow:visible!important;scrollbar-gutter:stable}html.lb-lock bod
 .cbt button:hover{color:var(--ink)!important;background:var(--fill-h)!important}
 .cbt button.on{background:var(--sel)!important;color:var(--sel-ink)!important}
 .cbt.cbt-o{position:static!important;display:flex;width:max-content;margin:4px 0 0 auto;opacity:.6;transition:opacity .15s}
-.cbt.cbt-o:hover,.cbt.cbt-o:focus-within,*:hover+.cbt.cbt-o{opacity:1}
+.cbt.cbt-o:hover,.cbt.cbt-o:focus-within,.cbt-host:hover+.cbt.cbt-o{opacity:1}
 .lwbox>.cbt{top:6px!important;right:auto!important;left:50%;transform:translateX(-50%)}      /* khung cha xếp hàng ngang: giữ trong biểu đồ, ở giữa phía trên, chỉ hiện khi rê chuột */
 .lwbox{transition:height .18s ease}
 @media (hover:none){.cbt.cbt-o{opacity:.85}}
