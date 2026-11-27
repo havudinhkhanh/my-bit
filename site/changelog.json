@@ -9,6 +9,15 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "imp",
+     "a": "perf",
+     "t": "Dọn tệp giao diện: nhẹ hơn, trình duyệt so khớp ít hơn",
+     "te": "Stylesheet cleanup: smaller and faster to match",
+     "d": "Bỏ 242 luật không còn dùng, 1.287 dòng bị ghi đè, 16 luật trùng, 231 khối rỗng (780 → 729 KB mã nguồn; bản tải về 687 → 648 KB). Khi đăng web, các luật kiểu :is(…, …) ở cuối được tách để trình duyệt xếp đúng ngăn – số lần thử khớp giảm ~15% mỗi lần vẽ lại. Đã so kiểu hiển thị của từng phần tử trước / sau trên 40 cảnh × máy tính & điện thoại × sáng & tối (~400.000 lượt phần tử) và 393 điểm rê chuột: không lệch chỗ nào.",
+     "de": "Removed unused/overridden/duplicate CSS; selectors split at deploy for faster style matching. Verified element-by-element across 160 scenes and 393 hover points: no visual change.",
+     "hi": 1
+    },
+    {
      "c": "fix",
      "a": "bot",
      "t": "Thẻ lệnh phương pháp thử nghiệm: rõ tên phương pháp, lời/lỗ chạy theo giá",

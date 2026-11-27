@@ -96,7 +96,30 @@ def stamp_lazy() -> None:
     app.write_text(js, encoding="utf-8")
 
 
+def bucket_css(path: Path) -> None:
+    """Tách :is()/:where() nhiều đối số ở cuối bộ chọn (scripts/css_bucket.cjs) – giữ nguyên độ ưu tiên; lỗi thì giữ bản gốc."""
+    import os
+    tmp = Path("/tmp/cssb")
+    try:
+        if not (tmp / "node_modules" / "postcss-selector-parser").exists():
+            subprocess.run(["npm", "i", "--no-save", "--no-audit", "--no-fund", "--prefix", str(tmp), "postcss@8.5.33", "postcss-selector-parser@7.2.1"],
+                           capture_output=True, text=True, timeout=240)
+        out = path.with_name(path.stem + ".bk" + path.suffix)
+        r = subprocess.run(["node", str(Path(__file__).with_name("css_bucket.cjs")), str(path), str(out)], capture_output=True, text=True, errors="replace",
+                           timeout=240, env={**os.environ, "NODE_PATH": str(tmp / "node_modules")})
+        if r.returncode != 0 or not out.exists() or out.stat().st_size < 0.8 * path.stat().st_size:
+            print(f"bỏ qua tách bộ chọn app.css: {(r.stderr or r.stdout)[-300:]}")
+            out.unlink(missing_ok=True)
+            return
+        shutil.move(out, path)
+        print(r.stdout.strip())
+    except Exception as e:  # noqa: BLE001
+        print(f"bỏ qua tách bộ chọn app.css: {e}")
+
+
 if __name__ == "__main__":
+    if (SITE / "app.css").exists():
+        bucket_css(SITE / "app.css")
     for name, loader in (("app.js", "js"), ("app-bot.js", "js"), ("app-tax.js", "js"), ("app-wrap.js", "js"), ("app-plan.js", "js"), ("chartdraw.js", "js"), ("mascot.js", "js"), ("glossary.js", "js"), ("app.css", "css")):
         if (SITE / name).exists():
             minify(SITE / name, loader)
