@@ -199,7 +199,7 @@
     // (khi đó kéo xuống = mua ở điểm đầu, bán ở điểm cuối → lỗ), amt + unit = quy ra tiền ("USDT trên 1.000").
     const MC = { fee: cfg.cost?.fee ?? cfg.get?.("ms_fee", 0.1) ?? 0.1, sell: cfg.cost?.sell ?? 0, slip: cfg.cost?.slip ?? cfg.get?.("ms_slip", 0.05) ?? 0.05, short: cfg.cost?.short !== false, amt: cfg.cost?.amt || 1000, unit: cfg.cost?.unit || "USDT trên 1.000", unitS: cfg.cost?.unitS || "USDT / 1.000" };
     const msCalc = (p0, p1) => {
-      if (!(p0 > 0 && p1 > 0) || p0 === p1) return null;
+      if (cfg.cost === false || !(p0 > 0 && p1 > 0) || p0 === p1) return null;      // cost: false = biểu đồ không giao dịch được (chỉ số) → chỉ đo %, số nến
       const f = MC.fee / 100, fx = (MC.fee + MC.sell) / 100, sp = MC.slip / 100, up = p1 > p0, long = up || !MC.short;
       const net = long ? (p1 * (1 - sp) * (1 - fx)) / (p0 * (1 + sp) * (1 + f)) - 1 : (p0 * (1 - sp) * (1 - f) - p1 * (1 + sp) * (1 + fx)) / p0;
       return { up, long, net, ch: (p1 / p0 - 1) * 100, lab: !MC.short ? "Mua → bán" : up ? "Long" : "Short", fee2: MC.fee * 2 + MC.sell, slip2: MC.slip * 2, amt: net * MC.amt };
