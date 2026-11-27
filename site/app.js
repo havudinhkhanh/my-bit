@@ -9028,7 +9028,9 @@ function lvwPlace(el, anim = true) {
 }
 const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
 // thanh tab dính (Bot Phản Xạ…) khi ĐANG DÍNH → lớp .stuck: nền che kín khoảng hở phía trên & 2 bên (nội dung cuộn qua không lộ ra) – chỉ đổi lớp khi đổi trạng thái
-{ let q = 0; const chk = () => { q = 0; let any = false; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, r = b.getBoundingClientRect(), st = r.top <= top + 0.5 && scrollY > 0; if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st);
+{ let q = 0; const chk = () => { q = 0; let any = false; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, r = b.getBoundingClientRect(), st = r.top <= top + 0.5 && scrollY > 0;
+    if (!b.__seen) { b.__seen = 1; if (st) { b.classList.add("stk-now"); requestAnimationFrame(() => requestAnimationFrame(() => b.classList.remove("stk-now"))); } }      // thanh vừa vẽ lại (đổi tab con) mà đang dính → dính ngay, không diễn hoạt cảnh "thẻ giãn ra" (trông như thanh bị rời)
+    if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st);
     if (st) { const a = document.getElementById("app")?.getBoundingClientRect(), L = Math.max(0, Math.round(r.left - (a?.left || 0))) + "px", R = Math.max(0, Math.round(document.documentElement.clientWidth - r.right)) + "px";      // tràn hết bề ngang vùng nội dung → như thanh trên thứ 2
       if (b.style.getPropertyValue("--sbL") !== L) b.style.setProperty("--sbL", L); if (b.style.getPropertyValue("--sbR") !== R) b.style.setProperty("--sbR", R); } any ||= st; }
     const H = document.documentElement; if (H.classList.contains("sub-stuck") !== any) H.classList.toggle("sub-stuck", any);
@@ -9037,6 +9039,7 @@ const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
     if (tb) { const v = Math.round((parseFloat(getComputedStyle(tb).top) || 0) + tb.offsetHeight + 8) + "px"; if (H.style.getPropertyValue("--oflt") !== v) H.style.setProperty("--oflt", v);
       for (const k of ["--sbL", "--sbR"]) { const x = tb.style.getPropertyValue(k); if (x && H.style.getPropertyValue(k + "0") !== x) H.style.setProperty(k + "0", x); } }
     const os = !!of && of.getBoundingClientRect().top <= (parseFloat(H.style.getPropertyValue("--oflt")) || 0) + 0.5 && scrollY > 0;
+    if (of && !of.__seen) { of.__seen = 1; if (os) { of.classList.add("stk-now"); requestAnimationFrame(() => requestAnimationFrame(() => of.classList.remove("stk-now"))); } }
     if (of && of.classList.contains("stuck") !== os) of.classList.toggle("stuck", os); if (H.classList.contains("ofl-stuck") !== os) H.classList.toggle("ofl-stuck", os); };
   addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("resize", () => { if (!q) q = requestAnimationFrame(chk); }); addEventListener("hashchange", () => setTimeout(chk, 300));
   // trang tự làm mới / đổi tab con (vẽ lại hàng lọc, thanh tab) → xét lại ngay trạng thái "đang dính" (không chờ lần cuộn kế) – trước: đứng yên thì 2 thanh dính mất nền, chữ đè lên nhau

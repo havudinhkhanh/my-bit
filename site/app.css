@@ -8266,3 +8266,5 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
   #app .sc-body>.sc-ofl>.sc-omdd{flex:none;width:38px;min-height:36px;padding:0!important;justify-content:center;gap:0}
   #app .sc-body>.sc-ofl>.sc-omdd>span,#app .sc-body>.sc-ofl>.sc-omdd>.cr-dn{display:none}
 }
+.sc-tbar.stk-now::before,.sc-tbar.stk-now{transition:none!important}
+#app .sc-body>.sc-ofl.stk-now::before{transition:none!important}
