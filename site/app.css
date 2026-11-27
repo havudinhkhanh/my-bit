@@ -7889,3 +7889,17 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .cd-fs-t th,.cd-fs-t td{padding:4px 6px;border-bottom:1px solid var(--bd-2);text-align:right}.cd-fs-t th:first-child,.cd-fs-t td:first-child,.cd-fs-t th:last-child,.cd-fs-t td:last-child{text-align:left}
 .cd-fs-t th{color:var(--ink-3);font-weight:500}.cd-fs-t td.up{color:var(--up)}.cd-fs-t td.down{color:var(--down)}
 .cd-fs-m{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+/* bảng mẫu hình / kịch bản trong biểu đồ cao cố định (cửa sổ biểu đồ lệnh, toàn màn hình): nổi đè đáy biểu đồ thay vì bóp biểu đồ */
+.cd-ap.cd-ov{position:absolute;left:6px;right:6px;bottom:30px;z-index:7;margin:0;max-height:58%;overflow:auto;overscroll-behavior:contain;box-shadow:0 10px 28px rgba(0,0,0,.28);background:color-mix(in srgb,var(--sunk) 94%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.cd-ap.cd-ov.mini>:not(.cd-ap-h):not(.cd-fs-m):not(.cd-fs-sum){display:none}
+.cd-ap.cd-ov.mini .cd-ap-h{margin-bottom:4px}.cd-ap.cd-ov.mini .cd-fs-m{margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.cd-ap.cd-ov.mini .cd-fs-m::-webkit-scrollbar{display:none}
+.cd-ap.cd-ov.mini .cd-chip{flex:none}
+.cd-ap:not(.cd-ov) .cd-fs-sum{display:none}.cd-fs-sum{margin:6px 0 0;font-variant-numeric:tabular-nums}.cd-fs-sum b.up{color:var(--up)}.cd-fs-sum b.down{color:var(--down)}.cd-fs-sum small{color:var(--ink-3)}
+.cd-ovt{margin-left:auto;border:1px solid var(--bd);border-radius:999px;background:var(--surface);color:var(--ink-2);font:inherit;font-size:.6875rem;padding:1px 9px;cursor:pointer}.cd-ovt+.cd-x{margin-left:4px}
+/* cửa sổ biểu đồ lệnh: công tắc Sàn thử / Tiền thật nằm cùng hàng nút Phân tích (tiết kiệm 1 hàng) */
+.occ-h .occ-envr{margin:0;flex:none}.occ-h .occ-env button{height:32px;padding:0 10px;font-size:.8125rem}
+.occ-env .oe-s{display:none}
+@media (max-width:520px){.occ-h{gap:6px}.occ-h .occ-env .oe-f{display:none}.occ-h .occ-env .oe-s{display:inline}.occ-h .occ-env button{padding:0 8px}.occ-h .occ-env button small{display:none}
+  .occ-go{margin-right:0;padding:0 9px}.occ-go .occ-gt{display:none}}
+@media (max-width:520px){.occ-h .occ-env button{font-size:.75rem;padding:0 7px}.occ-h .occ-t .sc-t{display:none}}
+.cd-ap.cd-ov:not(.mini) .cd-fs-sum{display:none}

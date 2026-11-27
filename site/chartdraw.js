@@ -589,7 +589,7 @@
     // ---- chế độ con trỏ: bấm trúng hình thì chọn / kéo, không thì để biểu đồ kéo như thường
     let grab = false;
     const down = (ev) => {
-      if (st.tool !== "cur" || ev.target.closest?.(".cd-tb,.cd-in,.cd-tg,.cbt") || (ev.button != null && ev.button !== 0)) return;
+      if (st.tool !== "cur" || ev.target.closest?.(".cd-tb,.cd-in,.cd-tg,.cbt,.cd-ap") || (ev.button != null && ev.button !== 0)) return;
       const R = svg.getBoundingClientRect(), x = ev.clientX - R.left, y = ev.clientY - R.top;
       if (x < 0 || y < 0 || x > R.width || y > R.height) { if (st.sel) { st.sel = null; req(); } return; }
       const h = hit(x, y);
@@ -643,6 +643,10 @@
     const AP = { on: false, R: null, sh: { fib: true, tri: true, ell: true }, focus: null, box: null };
     const CO = { ok: "#2FBF71", bad: "#F0525F", pend: "#8793A4", fib: "#E0B252", tri: "#5B8DEF", ell: "#B07CF0" };
     const XI = (i) => { const v = ts.logicalToCoordinate(i); return v == null ? NaN : v; };
+    // bảng mẫu hình / kịch bản: biểu đồ cao cố định (cửa sổ biểu đồ lệnh, toàn màn hình) → nổi đè đáy biểu đồ, thu gọn 1 dòng (chèn xuống dưới sẽ bóp biểu đồ về 0)
+    const tight = () => !!el.closest(".occ-p,.cv-fs") || parseFloat(getComputedStyle(el).flexGrow) > 0;
+    const hostBox = (box) => { if (tight()) { box.classList.add("cd-ov", "mini"); el.appendChild(box); } else (el.closest(".lwbox") || el).after(box); };
+    const ovBtn = (box) => (box?.classList.contains("cd-ov") ? `<button type="button" class="cd-ovt" data-ovt aria-expanded="${!box.classList.contains("mini")}">${box.classList.contains("mini") ? "Chi tiết ▴" : "Thu gọn ▾"}</button>` : "");
     const rc = (it) => (it.res === true ? CO.ok : it.res === false ? CO.bad : CO.pend), rs = (it) => (it.res === true ? "✓" : it.res === false ? "✗" : "…");
     const f2 = (v) => String(+v.toFixed(3)).replace(".", ",");
     function drawAP(root, P) {
@@ -691,10 +695,10 @@
     const pc = (a, b) => (b ? Math.round((a / b) * 100) + "%" : "—");
     function apPanel() {
       if (!AP.on) { AP.box?.remove(); AP.box = null; return; }
-      if (!AP.box || !AP.box.isConnected) { AP.box = document.createElement("div"); AP.box.className = "cd-ap"; (el.closest(".lwbox") || el).after(AP.box); AP.box.addEventListener("click", apClick); }
+      if (!AP.box || !AP.box.isConnected) { AP.box = document.createElement("div"); AP.box.className = "cd-ap"; hostBox(AP.box); AP.box.addEventListener("click", apClick); }
       const S = AP.R.st, f = S.fib, T = S.tri, E = S.ell, it = AP.R.items.filter((x) => AP.sh[x.k]);
       const nm = (x) => (x.k === "fib" ? `Fib ${f2(x.lv)}` : x.k === "tri" ? x.kind : `Elliott ${x.sc}/100`);
-      AP.box.innerHTML = `<div class="cd-ap-h"><b>📐 Mẫu hình đã xảy ra trên biểu đồ này</b>
+      AP.box.innerHTML = `<div class="cd-ap-h"><b>📐 Mẫu hình đã xảy ra trên biểu đồ này</b>${ovBtn(AP.box)}
         ${[["fib", "Fibonacci"], ["tri", "Tam giác / nêm"], ["ell", "Elliott"]].map(([k, n]) => `<button type="button" class="cd-chip ${AP.sh[k] ? "on" : ""}" data-sh="${k}" style="--cc:${CO[k]}">${n}</button>`).join("")}
         <button type="button" class="cd-x" data-x title="Tắt lớp mẫu hình">✕</button></div>
         <div class="cd-ap-s">
@@ -713,6 +717,7 @@
     function apClick(e) {
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.x != null) return apOn(false);
+      if (b.dataset.ovt != null) { AP.box.classList.toggle("mini"); return apPanel(); }
       if (b.dataset.sh) { AP.sh[b.dataset.sh] = !AP.sh[b.dataset.sh]; AP.focus = null; apPanel(); return req(); }
       if (b.dataset.i != null) {
         const x = AP.R.items[+b.dataset.i]; AP.focus = AP.focus === x ? null : x;
@@ -812,16 +817,20 @@
     // con số kiểm chứng gộp trên toàn bộ coin (chạy cùng hàm này, 27/11/2026) – để biết kịch bản đáng tin tới đâu, không chỉ trên 1 mã
     const SCG = cfg.scg || null;
     const fsTfKey = () => (step >= 0.9 * 86400 ? "d" : step >= 0.9 * 14400 ? "h4" : "h1");
+    const fsTfExact = () => [86400, 14400, 3600].some((x) => Math.abs(step / x - 1) < 0.1);      // khung đang xem trùng khung đã kiểm chứng gộp (ngày / 4 giờ / 1 giờ)
     const fsTfName = { d: "nến ngày", h4: "nến 4 giờ", h1: "nến 1 giờ" };
     // "có / kém lợi thế" chỉ khi đủ số lần độc lập (≥ 30 khoảng thời hạn không chồng nhau) VÀ chênh vượt 2 sai số – 573 coin × 4 cách thì ngẫu nhiên cũng có biểu đồ trông "rất đúng"
     const fsVerdict = (b) => (!b || b.res < 10 || b.edge == null ? ["Ít mẫu", "pend"] : b.neff < 30 ? ["Chưa đủ bằng chứng", "pend"] : b.edge >= 2 * b.se ? ["Có lợi thế trên biểu đồ này", "ok"] : b.edge <= -2 * b.se ? ["Kém hơn ngẫu nhiên", "bad"] : ["Như ngẫu nhiên", "pend"]);
     const p1 = (v) => (v == null ? "—" : v.toFixed(0) + "%"), e1 = (v) => (v == null ? "—" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(0));
     function fsPanel() {
       if (!FS.on) { FS.box?.remove(); FS.box = null; return; }
-      if (!FS.box || !FS.box.isConnected) { FS.box = document.createElement("div"); FS.box.className = "cd-ap cd-fs"; (el.closest(".lwbox") || el).after(FS.box); FS.box.addEventListener("click", fsClick); }
+      if (!FS.box || !FS.box.isConnected) { FS.box = document.createElement("div"); FS.box.className = "cd-ap cd-fs"; hostBox(FS.box); FS.box.addEventListener("click", fsClick); }
       const S = FS.S || {}, cur = fsCur(), pro = !cfg.can || cfg.can("backtest"), B = FS.B, tk = fsTfKey(), G0 = SCG?.[tk];
       const chips = FSK.map((k) => `<button type="button" class="cd-chip ${FS.m === k ? "on" : ""}${S[k] ? "" : " off"}" data-fm="${k}" aria-pressed="${FS.m === k}" style="--cc:${FSC[k]}"${S[k] ? "" : ` title="Hiện không dựng được: ${FSWHY[k]}"`}>${SCN[k]}</button>`).join("");
       const kp = (a) => `<div class="cd-fs-k">${a.map(([k, v, c, t]) => `<span${t ? ` title="${esc(t)}"` : ""}><small>${k}</small><b${c ? ` class="${c}"` : ""}>${v}</b></span>`).join("")}</div>`;
+      const sum = !FS.box.classList.contains("cd-ov") ? "" : !cur ? `<p class="cd-fs-sum faint">Hiện không dựng được – ${FSWHY[FS.m]}</p>` : cur.kind === "cone"
+        ? `<p class="cd-fs-sum">80% · 20 nến: <b>${fmt(cur.bands[3][1])} – ${fmt(cur.bands[3][5])}</b></p>`
+        : `<p class="cd-fs-sum"><b class="${cur.dir > 0 ? "up" : "down"}">${cur.dir > 0 ? "▲ Tăng" : "▼ Giảm"}</b> · 🎯 <b>${fmt(cur.target)}</b> <small>${fsPc(cur.target, cur.entry)}</small> · ✕ ${fmt(cur.stop)} <small>${fsPc(cur.stop, cur.entry)}</small>${G0?.[cur.kind] && Math.abs(G0[cur.kind].edge) < 3 ? ` · <span class="faint">không hơn ngẫu nhiên</span>` : ""}</p>`;
       let body = "";
       if (!cur) body = `<p class="cd-ap-e">${SCN[FS.m]}: hiện không dựng được kịch bản rõ ràng – ${FSWHY[FS.m]}.</p>`;
       else if (cur.kind === "cone") {
@@ -830,7 +839,7 @@
           ${kp([["80% · 20 nến", `${fmt(b20[1])} – ${fmt(b20[5])}`, "", `≈ ${fsDur(20)} tới: 80% số đường nằm trong khoảng này`], ["50% · 20 nến", `${fmt(b20[2])} – ${fmt(b20[4])}`], ["80% · 60 nến", `${fmt(b60[1])} – ${fmt(b60[5])}`, "", `≈ ${fsDur(60)}`],
             ["80% · 120 nến", b120 ? `${fmt(b120[1])} – ${fmt(b120[5])}` : "—", "", `≈ ${fsDur(120)}`], ["Cao hơn sau 20 nến", p1(cur.pu[20])], ["Cao hơn sau 60 nến", p1(cur.pu[60])]])}
           <p class="cd-fs-v">${pro ? (B ? `Kiểm chứng trên biểu đồ này: giá thật 60 nến sau nằm trong dải 10–90% <b>${p1(B.cone.n ? (B.cone.in80 / B.cone.n) * 100 : null)}</b> số lần (lý tưởng 80%), trong dải 25–75% <b>${p1(B.cone.n ? (B.cone.in50 / B.cone.n) * 100 : null)}</b> (lý tưởng 50%) · ${B.cone.n} lần.` : "Đang kiểm chứng trên chính biểu đồ này…") : fsLock()}
-          ${G0?.cone ? `<br><span class="faint">Trên ${G0.cone.coins} coin (${fsTfName[tk]}): trong dải 80% <b>${p1(G0.cone.in80)}</b>, dải 50% <b>${p1(G0.cone.in50)}</b> số lần${G0.cone.in80 < 76 ? " – độ tin cậy thấp ở khung này (lịch sử ngắn), giá hay ra ngoài dải hơn mức mô phỏng" : " – khớp mức lý tưởng 80% / 50%"}.</span>` : ""}</p>
+          ${G0?.cone ? `<br><span class="faint">Trên ${G0.cone.coins} coin (${fsTfName[tk]}${fsTfExact() ? "" : " – khung gần nhất đã kiểm chứng"}): trong dải 80% <b>${p1(G0.cone.in80)}</b>, dải 50% <b>${p1(G0.cone.in50)}</b> số lần${G0.cone.in80 < 76 ? " – độ tin cậy thấp ở khung này (lịch sử ngắn), giá hay ra ngoài dải hơn mức mô phỏng" : " – khớp mức lý tưởng 80% / 50%"}.</span>` : ""}</p>
           <p class="faint cd-fs-n">Cách dùng: cắt lỗ đặt ngoài dải 25% nếu không muốn bị quét bởi dao động bình thường; mục tiêu trên dải 75% là kỳ vọng lạc quan.</p>`;
       } else {
         const up = cur.dir > 0, bE = cur.path[cur.path.length - 1][0], bt = B?.[cur.kind], vd = fsVerdict(bt), g = G0?.[cur.kind];
@@ -839,12 +848,12 @@
             ["Lời / lỗ", cur.rr.toFixed(2).replace(".", ",") + "×", "", "Khoảng cách tới mục tiêu ÷ khoảng cách tới mức sai"], ...(cur.wait ? [["Chờ vào", fmt(cur.wait), "", "Kịch bản đi qua vùng này trước khi tới mục tiêu"]] : []),
             ["Mốc cuối đường", `~${fsDate(bE)}`, "", `${bE} nến ≈ ${fsDur(bE)} · hạn kiểm chứng ${cur.hz} nến`]])}
           <p class="cd-fs-v">${pro ? (B ? (bt && bt.n ? `<b>Kiểm chứng trên biểu đồ này</b> (${bt.n} lần dựng lại kịch bản trong quá khứ, mỗi lần chỉ dùng nến trước đó – các lần chồng nhau, ≈ ${Math.round(bt.neff)} lần độc lập): chạm mục tiêu trước mức sai <b>${p1(bt.hit)}</b>${bt.se != null ? ` <small class="faint">±${Math.round(2 * bt.se)}</small>` : ""} · giả dược ${p1(bt.pl)} → <b class="${vd[1] === "ok" ? "up" : vd[1] === "bad" ? "down" : ""}">${e1(bt.edge)} điểm</b> <span class="cd-fs-p ${vd[1]}">${vd[0]}</span>` : "Chưa đủ lịch sử trên biểu đồ này để kiểm chứng.") : "Đang kiểm chứng trên chính biểu đồ này…") : fsLock()}
-          ${g ? `<br><span class="faint">Trên ${g.coins} coin (${fsTfName[tk]}, ${g.n.toLocaleString("vi-VN")} lần): trúng ${p1(g.hit)} · giả dược ${p1(g.pl)} (coin khác cùng thời điểm) → ${e1(g.edge)} điểm${Math.abs(g.edge) < 3 ? " – không hơn ngẫu nhiên" : g.edge < 0 ? " – kém hơn ngẫu nhiên" : tk === "d" ? " – nhỉnh hơn ngẫu nhiên một chút" : " – nhỉnh hơn nhưng dữ liệu khung này mới vài tháng (1 giai đoạn thị trường), chưa đủ kết luận"}.</span>` : ""}</p>
+          ${g ? `<br><span class="faint">Trên ${g.coins} coin (${fsTfName[tk]}${fsTfExact() ? "" : " – khung gần nhất đã kiểm chứng"}, ${g.n.toLocaleString("vi-VN")} lần): trúng ${p1(g.hit)} · giả dược ${p1(g.pl)} (coin khác cùng thời điểm) → ${e1(g.edge)} điểm${Math.abs(g.edge) < 3 ? " – không hơn ngẫu nhiên" : g.edge < 0 ? " – kém hơn ngẫu nhiên" : tk === "d" ? " – nhỉnh hơn ngẫu nhiên một chút" : " – nhỉnh hơn nhưng dữ liệu khung này mới vài tháng (1 giai đoạn thị trường), chưa đủ kết luận"}.</span>` : ""}</p>
           <p class="faint cd-fs-n">Đường nét đứt là "nếu giá đi đúng cách đếm này" – minh hoạ có điều kiện, không phải dự báo hay lời khuyên mua / bán. Dùng để biết trước: kịch bản đúng thì tới đâu, sai ở mức nào thì bỏ.</p>`;
       }
       const tb2 = pro && B ? `<table class="cd-fs-t"><thead><tr><th>Cách</th><th>Lần</th><th>Trúng</th><th>Giả dược</th><th>Chênh</th><th>Kết luận</th></tr></thead><tbody>${["ell", "fib", "smc", "trend"].filter((k) => FSK.includes(k)).map((k) => { const b = B[k], v = fsVerdict(b);
         return `<tr><td>${SCN[k]}</td><td>${b?.n || 0}</td><td>${p1(b?.hit)}</td><td>${p1(b?.pl)}</td><td class="${v[1] === "ok" ? "up" : v[1] === "bad" ? "down" : ""}">${e1(b?.edge)}</td><td><span class="cd-fs-p ${v[1]}">${v[0]}</span></td></tr>`; }).join("")}</tbody></table>` : "";
-      FS.box.innerHTML = `<div class="cd-ap-h"><b>🔮 Kịch bản giá tương lai</b><button type="button" class="cd-x" data-x title="Tắt lớp kịch bản">✕</button></div><div class="cd-fs-m" role="group" aria-label="Cách dựng kịch bản">${chips}</div>${body}
+      FS.box.innerHTML = `<div class="cd-ap-h"><b>🔮 Kịch bản giá tương lai</b>${ovBtn(FS.box)}<button type="button" class="cd-x" data-x title="Tắt lớp kịch bản">✕</button></div><div class="cd-fs-m" role="group" aria-label="Cách dựng kịch bản">${chips}</div>${sum}${body}
         <details class="cd-ap-d"><summary>Kiểm chứng mọi cách & cách dựng</summary>${tb2}<ul>
           <li><b>Kiểm chứng:</b> cứ vài nến lại dựng lại kịch bản chỉ bằng dữ liệu trước thời điểm đó (đỉnh / đáy chỉ dùng khi đã xác nhận), rồi xem giá thật chạm mục tiêu hay mức sai trước (cùng nến → tính là sai). <b>Giả dược</b> = cùng hướng, cùng khoảng cách % tới mục tiêu / mức sai, đặt vào thời điểm ngẫu nhiên khác của chính mã (con số gộp: coin khác ngẫu nhiên ở CÙNG thời điểm, khoảng cách quy theo biến động) → chênh lệch mới là phần cách chơi đóng góp. Các lần kiểm chứng chồng lên nhau nên chỉ kết luận "có lợi thế" khi đủ ≥ 30 lần độc lập và chênh lớn hơn 2 lần sai số; con số gộp trên mọi coin đáng tin hơn con số của riêng 1 biểu đồ.</li>
           <li><b>Elliott:</b> đếm sóng tự động (sóng 2 không về quá gốc, sóng 3 không ngắn nhất, sóng 4 không chồng sóng 1), chọn cách đếm khớp tỉ lệ Fibonacci nhất; mục tiêu theo vị trí sóng hiện tại (sóng 3 = 1,618 × sóng 1, sóng 5 ≈ sóng 1, A-B-C về 0,382–0,618…).</li>
@@ -858,6 +867,7 @@
     function fsClick(e) {
       const b = e.target.closest("button"); if (!b) return;
       if (b.dataset.x != null) return fsOn(false);
+      if (b.dataset.ovt != null) { FS.box.classList.toggle("mini"); return fsPanel(); }
       if (b.dataset.fm) { FS.m = b.dataset.fm; try { cfg.set("fs_m", FS.m); } catch (er) { /* bỏ qua */ } fsExt(); fsFit(); fsPanel(); pump(300); }
     }
     function fsOn(v) {

@@ -9,6 +9,30 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "live",
+     "t": "Viên lệnh & bảng lệnh nổi hiện lời/lỗ RÒNG giống thẻ lệnh (đã gồm phí + funding)",
+     "te": "Live pill & floating panel now show NET P&L like the trade card (fees + funding included)",
+     "d": "Trước: viên trên cùng và bảng 'Lệnh bot · trực tiếp' chỉ tính chênh giá (ví dụ −$0,61 · −10,2%) trong khi thẻ lệnh tính cả funding đã nhận và phí đóng (−$0,51 · −8,5%). Giờ mọi chỗ dùng chung một công thức: lời/lỗ nếu đóng ngay, % trên giá trị lệnh.",
+     "de": "Before, the top pill and floating panel showed only the price move while the card included funding and closing fees. All places now use one formula: P&L if closed now, % of position size."
+    },
+    {
+     "c": "fix",
+     "a": "chart",
+     "t": "Bật 🔮 kịch bản trong cửa sổ biểu đồ lệnh không còn làm mất biểu đồ",
+     "te": "Turning on 🔮 scenarios in the trade chart no longer hides the chart",
+     "d": "Trong cửa sổ biểu đồ lệnh (và toàn màn hình), bảng kịch bản / mẫu hình nổi gọn 1 dòng ở đáy biểu đồ (hướng · mục tiêu · mức sai), bấm 'Chi tiết' để mở đủ.",
+     "de": "In the trade chart (and full screen) the scenario / pattern panel floats as one line at the bottom; tap 'Details' to expand."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Cửa sổ biểu đồ lệnh: công tắc Sàn thử / Tiền thật nằm cùng hàng nút Phân tích",
+     "te": "Trade chart: Paper / Live switch sits on the same row as Analysis",
+     "d": "Gọn 1 hàng; trên điện thoại nhãn rút còn 'Thử / Thật', nút Phân tích chỉ còn biểu tượng.",
+     "de": "Saves a row; on phones labels shorten to 'Paper / Live' and Analysis becomes an icon."
+    },
+    {
      "c": "new",
      "a": "chart",
      "hi": 1,
