@@ -1379,7 +1379,8 @@ async function viewScalp() { const H0 = location.hash;
     // 📂 thu gọn / mở từng ngày (nhớ trên máy, riêng Binance & Sàn thử) · nút thu gọn / mở tất cả
     const COL = lsGet("clCol", {}) || {}, CK = (d) => `${env}:${d}`, isC = (d) => !!COL[CK(d)], cc = (d) => (isC(d) ? " clg-c" : "");
     // 📄 PHÂN TRANG (Jason 27/11): mỗi trang N lệnh (25 / 50 / 100, nhớ trên máy) + nút sang trang – thay cho cuộn dài trong khung; "Tất cả" = kiểu cũ (7 ngày, Xem thêm)
-    const PS = +lsGet("clPs", 50) || 0, NP = PS ? Math.max(1, Math.ceil(R.length / PS)) : 1, PG = Math.min(NP, Math.max(1, ((window.__clPg ||= {})[env]) || 1));
+    // chia trang chỉ trên máy tính (bảng); điện thoại giữ kiểu thẻ cuộn như cũ
+    const PS = lvWide ? +lsGet("clPs", 50) || 0 : 0, NP = PS ? Math.max(1, Math.ceil(R.length / PS)) : 1, PG = Math.min(NP, Math.max(1, ((window.__clPg ||= {})[env]) || 1));
     const dayOf = (h) => vnDayOf(String(h.t2).slice(0, 19)), DFULL = {}; R.forEach((h, i) => (DFULL[dayOf(h)] ||= []).push([h, i]));      // tóm tắt đầu ngày luôn tính ĐỦ cả ngày (ngày bị cắt giữa 2 trang vẫn đúng tổng)
     const RP = PS ? R.slice((PG - 1) * PS, PG * PS) : R, off = PS ? (PG - 1) * PS : 0;
     const days0 = []; RP.forEach((h, j) => { const i = off + j, d = dayOf(h), D = days0[days0.length - 1]; if (D && D.d === d) D.r.push([h, i]); else days0.push({ d, r: [[h, i]] }); });

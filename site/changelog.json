@@ -13,7 +13,7 @@
      "a": "bot",
      "t": "Lệnh đã đóng: chia trang",
      "te": "Closed trades: pagination",
-     "d": "Chọn số lệnh mỗi trang (25 / 50 / 100 / Tất cả – nhớ trên máy), sang trang bằng ‹ 1 2 … › dưới bảng thay vì cuộn dài trong khung. Tóm tắt đầu mỗi ngày vẫn tính đủ cả ngày dù ngày đó nằm ở 2 trang.",
+     "d": "Máy tính: chọn số lệnh mỗi trang (25 / 50 / 100 / Tất cả – nhớ trên máy), sang trang bằng ‹ 1 2 … › dưới bảng thay vì cuộn dài trong khung. Tóm tắt đầu mỗi ngày vẫn tính đủ cả ngày dù ngày đó nằm ở 2 trang. Điện thoại giữ kiểu cuộn thẻ như cũ.",
      "de": "Choose 25/50/100/all per page and page through closed trades; day totals stay complete.",
      "hi": 1
     },

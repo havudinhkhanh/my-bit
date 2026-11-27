@@ -615,7 +615,7 @@
     if (A.R && !same) { const t0 = performance.now(); cvDraw(A.R, sh, ops, S.cfg.skin, gh, ga, gb, bl); const dd = performance.now() - t0; A.dms = A.dms == null ? dd : A.dms * 0.97 + Math.min(dd, 30) * 0.03; A.slow = A.dms > (A.slow ? 2.5 : 4); A.dc = (A.dc || 0) + 1; A.dSh = sh; A.dBl = bl; A.dSk = dk; }      // 🐢 máy yếu (vẽ 1 hình > 4 ms) → ngồi yên chỉ vẽ khung chính 24/giây như điện thoại
     const mv = A.snap || A.v > 0.5 || (A.ty || 0) !== 0 || A.rot || A.sw || c.scr;
     // 😴 đang ngủ (anh ≥ 2 phút không chạm trang): vẽ thưa ~6 khung/giây – chỉ còn thở nhẹ, đỡ máy & pin; chạm / cuộn là mèo dậy, vẽ lại bình thường
-    if (!A.snap && !mv && napping() && now() - (S.act || 0) > 110e3) { nx(160); return; }
+    if (!A.snap && !mv && ["vlie", "vcurl", "sleep", "curl"].includes(S.pose) && now() - (S.act || 0) > 110e3) { nx(160); return; }
     nx(mv || bl > 0 || t + 70 >= A.blT || (A.slowBl && t + 70 >= A.slowBl) || (c.sheet && SHEET[c.sheet]?.pe) ? (ECO && mv && !A.snap ? 33 : 0) : c.loop || c.seq || c.sheet ? (ECO ? 80 : 26) : 60);      // clip video: xét mỗi nhịp màn hình (rẻ – chỉ vẽ khi sang khung mới) → khung hiện đúng lúc, không bị dồn / lặp
   }
   function morphMap(m, u, keep) {
