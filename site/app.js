@@ -2479,9 +2479,36 @@ function stickH() {
 }
 if (!window.__crSc) { window.__crSc = 1; addEventListener("hashchange", () => setTimeout(stickH, 450)); }
 if (!window.__stickRO) { window.__stickRO = 1; addEventListener("resize", () => stickH()); if (window.ResizeObserver) { const ro = new ResizeObserver(() => stickH()); requestAnimationFrame(() => { [".top", "#tabs"].forEach((q) => { const e = document.querySelector(q); if (e) ro.observe(e); }); stickH(); }); } }
+// ⚙ Tuỳ chỉnh bảng phụ: anh chọn phần nào hiện (lưu trên máy này). Mặc định hiện hết; bot phút đang tắt luôn gom thành 1 dòng thu gọn
+const PNH_L = [["dock", "📈 Biểu đồ lời/lỗ Binance", "Trang Bot Phản Xạ – hiện khi cuộn qua biểu đồ lớn"], ["pulse", "Nhịp thị trường", "Đèn · BTC · tâm lý · funding"],
+  ["tabs", "Thanh Tóm tắt · Đi tới · Của tôi · Tính lệnh", "Tắt → chỉ còn phần Tóm tắt"], ["mbot", "🤖 Bot phút", "Bot đang tắt luôn được gom thành 1 dòng"], ["al", "⚠️ Cảnh báo thị trường", ""], ["cpt", "📚 Thuật ngữ trên trang", ""]];
+const pnHid = () => SB.hid || (SB.hid = pnLS("hid") || {});
+function pnHApply() {
+  const nav = $("#pnav"); if (!nav) return; const H = pnHid();
+  for (const [k] of PNH_L) if (nav.classList.contains("h-" + k) !== !!H[k]) nav.classList.toggle("h-" + k, !!H[k]);
+}
+function pnCus(open) {
+  const el = $("#pnCus"), b = $("#pnCusB"); if (!el) return;
+  if (open === undefined) open = el.hidden;
+  if (open) { const H = pnHid(); el.innerHTML = `<p class="pn-cus-h">${T("Hiện trong bảng phụ")}</p>${PNH_L.map(([k, t, d]) => `<button type="button" class="pn-cus-r" role="menuitemcheckbox" aria-checked="${!H[k]}" data-pnh="${k}"><span><b>${T(t)}</b>${d ? `<small>${T(d)}</small>` : ""}</span><i class="ios-sw sm" aria-checked="${!H[k]}"><i></i></i></button>`).join("")}${Object.values(H).some(Boolean) ? `<button type="button" class="pn-cus-x" data-pnhall>${T("Hiện lại tất cả")}</button>` : ""}`; }
+  el.hidden = !open; b?.setAttribute("aria-expanded", String(!!open));
+}
+function pnHSet(k, hide) {
+  const H = pnHid(); if (k === "*") { for (const [x] of PNH_L) delete H[x]; } else if (hide) H[k] = true; else delete H[k];
+  pnLS("hid", H); pnHApply(); pnCus(true);
+  if (k === "*" || k === "mbot") { SB.bot = null; sbRender(); }
+  if (k === "dock" || k === "*") window.lvDock?.();
+}
 function pnInit() {
   const nav = $("#pnav"); if (!nav) return;
-  stickH();
+  stickH(); pnHApply();
+  $("#pnCusB")?.addEventListener("click", (e) => { e.stopPropagation(); pnCus(); });
+  nav.addEventListener("click", (e) => { const t = e.target.closest("[data-pnh],[data-pnhall],[data-pncus]"); if (!t) return; e.preventDefault();
+    if (t.dataset.pncus != null) { pnCus(true); $("#pnav .pn-scroll").scrollTop = 0; return; }
+    if (t.dataset.pnhall != null) return pnHSet("*");
+    pnHSet(t.dataset.pnh, !pnHid()[t.dataset.pnh]); });
+  document.addEventListener("click", (e) => { const el = $("#pnCus"); if (el && !el.hidden && e.target.isConnected && !e.target.closest("#pnCus,#pnCusB,[data-pncus]")) pnCus(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#pnCus")?.hidden) pnCus(false); });
   $("#pnq").oninput = (e) => { clearTimeout(PN.t); PN.t = setTimeout(() => { PN.q = e.target.value; $("#pnav").classList.toggle("pn-searching", !!PN.q.trim()); pnApply(); }, 140); };
   let sbn = 0; setInterval(() => { if ($("#pnav").hidden || document.hidden) return; sbLive(); if (++sbn % 30 === 0 && !document.activeElement?.closest?.("#pnav")) sbRender(); }, 2000);
   $("#pnq").onkeydown = (e) => { if (e.key === "Enter") { const a = $("#pnlist a:not(.dim)"); if (a) a.click(); } if (e.key === "Escape") { e.target.value = ""; PN.q = ""; pnApply(); } };
@@ -2584,12 +2611,13 @@ async function sbPage(r, a) {
     if (X && X.at) {
       const day = X.day?.eq0 ? (X.eq / X.day.eq0 - 1) * 100 : null, ret = X.start ? (X.eq / X.start - 1) * 100 : null;
       const pend = Object.keys(X.hk || {}).length, hold = Object.values(X.pos || {}).filter((q) => q.strat === "hook").length;
-      sc = `<p class="sbh">⚡ Bot Phản Xạ</p>${sbRow("Sàn thử", `<b>${usd2(X.eq)}</b>`, `từ đầu <span class="${cls(ret)}">${pct(ret, 2)}</span> · hôm nay <span class="${cls(day)}">${pct(day, 2)}</span>`, "#/bot/scalp")}
+      sc = `<div class="pn-card"><p class="sbh">⚡ Bot Phản Xạ</p>${sbRow("Sàn thử", `<b>${usd2(X.eq)}</b>`, `từ đầu <span class="${cls(ret)}">${pct(ret, 2)}</span> · hôm nay <span class="${cls(day)}">${pct(day, 2)}</span>`, "#/bot/scalp")}
         ${sbRow("🪝 Bắt râu sập", pend || hold ? `${pend} chờ · ${hold} giữ` : "chưa có", `${X.hkStat?.seen || 0} cú sốc hôm nay`, "#/ideas")}
         ${X.live?.on ? sbRow("Binance " + (X.live.env === "live" ? "thật" : "Demo"), `<span class="${cls(X.live.day?.pnl)}">${X.live.day?.pnl >= 0 ? "+" : ""}${usd2(X.live.day?.pnl || 0)}</span>`, "lời/lỗ hôm nay", "#/bot/scalp") : ""}
-        ${X.pause ? `<p class="sbtip">⏸ ${esc(X.pause.why || "đang tạm dừng")}</p>` : ""}`;
+        ${X.pause ? `<p class="sbtip">⏸ ${esc(X.pause.why || "đang tạm dừng")}</p>` : ""}</div>`;
     }
-    return bt || sc ? `${bt ? `<p class="sbh">🤖 Bot phút</p>${bt}` : ""}${sc}` : `<p class="sbp">Chưa có bot nào chạy. Bật bot ở trang Đội bot hoặc Bot Phản Xạ – bot chạy trên máy chủ kể cả khi tắt trình duyệt.</p>`;
+    const mb = !bt ? "" : SB.mbOn ? `<div class="pn-card"><p class="sbh">🤖 Bot phút</p>${bt}</div>` : bt;
+    return bt || sc ? sc + mb : `<p class="sbp">Chưa có bot nào chạy. Bật bot ở trang Đội bot hoặc Bot Phản Xạ – bot chạy trên máy chủ kể cả khi tắt trình duyệt.</p>`;
   }
   if (r === "paper") {
     try { await papLoad(); } catch (e) { /* chưa đăng nhập */ }
@@ -2672,15 +2700,18 @@ function sbConcepts(r) {
 // bot của anh: trạng thái từng bot + bot giám sát (đọc lại tối đa mỗi 30 giây)
 async function sbBot() {
   if (ME && !can("bot")) return "";
+  if (pnHid().mbot) { SB.mbOn = 0; return ""; }
   if (!SB.bot || Date.now() - SB.bot.t > 30e3) {
     try { const [a, b, c] = await Promise.all([Store.get("bot"), Store.get("botstate"), Store.get("supstate")]); SB.bot = { t: Date.now(), B: botsOf(a.data), S: statesOf(b.data), ss: c.data }; } catch (e) { return ""; }
   }
   const { B, S, ss } = SB.bot; if (!B.length) return "";
   const pxNow = (k) => BYK?.[k]?.p;
-  const rows = B.map((b) => { const st = S[b.id], e = botEq(st, pxNow), r = st && e ? (e / st.start - 1) * 100 : null, c = !b.enabled ? "" : st?.paused ? "red" : st?.stats?.halt ? "yellow" : "green";
-    return sbRow(`${sbDot(c)}${esc(b.name || b.id)}`, `<span class="${cls(r)}">${pct(r, 1)}</span>`, `${(st?.pos || []).length} lệnh mở · ${st?.stats?.n || 0} đã đóng`, `#/bot/${enc(b.id)}`); }).join("");
+  const row = (b) => { const st = S[b.id], e = botEq(st, pxNow), r = st && e ? (e / st.start - 1) * 100 : null, c = !b.enabled ? "" : st?.paused ? "red" : st?.stats?.halt ? "yellow" : "green";
+    return sbRow(`${sbDot(c)}${esc(b.name || b.id)}`, `<span class="${cls(r)}">${pct(r, 1)}</span>`, `${(st?.pos || []).length} lệnh mở · ${st?.stats?.n || 0} đã đóng`, `#/bot/${enc(b.id)}`); };
+  const on = B.filter((b) => b.enabled), off = B.filter((b) => !b.enabled); SB.mbOn = on.length;
   const a = ss?.acct, sup = ss ? sbRow(`🛡️ Bot giám sát`, ss.halt ? `<span class="down">khoá</span>` : isNum(a?.dd) ? `sụt ${nf(a.dd, 1)}%` : "—", esc((ss.think?.head || "").slice(0, 90)), "#/bot/sup") : "";
-  return rows + sup;
+  const offH = off.length ? `<details class="sb sb-off" data-b="mboff" ${sbOpen().mboff === true ? "open" : ""}><summary><span>${on.length ? `${off.length} bot phút đang tắt` : `🤖 Bot phút · ${off.length} bot đang tắt`}</span></summary><div class="sb-b">${off.map(row).join("")}${on.length ? "" : sup}</div></details>` : "";
+  return on.map(row).join("") + (on.length ? sup : "") + offH;
 }
 // nhịp thị trường – một dải cố định trên đầu bảng phụ, giống nhau ở mọi trang
 function sbPulse(M) {
@@ -2722,7 +2753,8 @@ async function sbRender() {
     top.innerHTML = pg ? `<h4 class="pn-h">${T0}</h4>${pg}` : `<p class="sbp">Trang này chưa có tóm tắt riêng.</p>${PN.items.length ? `<div class="sbacts"><button class="btn sm" type="button" data-go="toc">Xem các mục trong trang →</button></div>` : ""}`;
     const cp = sbConcepts(r);
     bot.innerHTML = (r !== "market" && r !== "futures" && al ? `<details class="sb" data-b="al" ${sbOpen().al === true ? "open" : ""}><summary><span>⚠️ Cảnh báo thị trường</span><em>${(M.alerts || []).length}</em></summary><div class="sb-b">${al}</div></details>` : "")
-      + (cp ? `<details class="sb" data-b="cpt" ${sbOpen().cpt === true ? "open" : ""}><summary><span>📚 Thuật ngữ trên trang</span></summary><div class="sb-b">${cp}</div></details>` : "");
+      + (cp ? `<details class="sb" data-b="cpt" ${sbOpen().cpt === true ? "open" : ""}><summary><span>📚 Thuật ngữ trên trang</span></summary><div class="sb-b">${cp}</div></details>` : "")
+      + `<button type="button" class="pn-cusl" data-pncus><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Tuỳ chỉnh bảng phụ</button>`;
     // Của tôi: theo dõi → xem gần đây → vị thế sàn thử → bot
     const rc = sbRecent(), pp = sbPaper();
     low.innerHTML = `<h4 class="pn-h">★ Đang theo dõi <em>${WL.set.size || ""}</em></h4>${wl}`

@@ -3351,7 +3351,7 @@ window.lvDock = function lvDock() {
   const pulse = $("#pnpulse"); if (!pulse) return;
   let d = $("#pnDock");
   if (!lvDockOn()) { if (d) d.classList.remove("on"); return; }
-  if (!d) { d = document.createElement("div"); d.id = "pnDock"; d.className = "pn-dock"; d.setAttribute("aria-label", bi("Biểu đồ bot đang theo dõi", "Pinned bot charts")); pulse.after(d);
+  if (!d) { d = document.createElement("div"); d.id = "pnDock"; d.className = "pn-dock"; d.setAttribute("aria-label", bi("Biểu đồ bot đang theo dõi", "Pinned bot charts")); pulse.before(d);
     d.addEventListener("click", (e) => { if (e.target.closest("[data-pnd]")) lvDockGo(); }); }
   // chỉ dựng khi khung bảng phụ đang hiện và số liệu đổi (trước: dựng lại 2 biểu đồ mỗi lần trang tự làm mới, kể cả khi khung đang ẩn)
   let key = ""; try { key = JSON.stringify(window.__lvDk) + innerHeight + (EN ? 1 : 0); } catch (e) { key = String(Math.random()); }

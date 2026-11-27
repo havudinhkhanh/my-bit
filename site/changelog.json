@@ -11,6 +11,39 @@
     {
      "c": "imp",
      "a": "ui",
+     "t": "Bảng phụ làm mới: gọn, 1 tông nền, tự chọn phần hiện",
+     "te": "Side panel redesign: cleaner, one tone, choose what shows",
+     "d": "Biểu đồ lời/lỗ Binance lên đầu; nhịp thị trường gom 1 thẻ; thanh Tóm tắt · Đi tới · Của tôi · Tính lệnh dạng gạch chân gọn. Nút ⚙ (hoặc “Tuỳ chỉnh bảng phụ” cuối bảng) để tắt từng phần: biểu đồ, nhịp thị trường, thanh 4 thẻ, bot phút, cảnh báo, thuật ngữ. Bot phút đang tắt được gom thành 1 dòng thu gọn.",
+     "de": "P&L charts on top, market pulse in one card, slim underline tabs. ⚙ lets you hide each part. Stopped minute bots collapse into one line.",
+     "hi": 1
+    },
+    {
+     "c": "fix",
+     "a": "ui",
+     "t": "2 viên trên thanh đầu trang cùng kiểu",
+     "te": "Top-bar pills now match",
+     "d": "Viên trạng thái bot và viên Binance ghim: cùng nền, không bóng nổi, bo góc vừa như ô tìm kiếm (trước viên có lệnh mở bị nổi bóng trắng)",
+     "de": "Bot status and pinned Binance pill share flat style and the same corner radius."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh tab Bot Phản Xạ giãn / co mượt khi cuộn",
+     "te": "Smooth sticky tab bar on scroll",
+     "d": "Khi dính lên đầu trang, nền giãn dần ra hết bề ngang; cuộn ngược lại co dần về thẻ – không còn bật nền trắng đột ngột",
+     "de": "The background now grows/shrinks smoothly instead of popping."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thang giá trên thẻ lệnh mảnh, gọn hơn",
+     "te": "Cleaner price ladder on order cards",
+     "d": "Đoạn giá đã quét là phần ray đậm hơn (không còn cục xám dày); giá hiện tại là núm trắng viền màu lời/lỗ; đỉnh/đáy đã chạm là vạch mảnh",
+     "de": "Swept range is a darker part of the rail, current price is a ringed knob, extremes are thin ticks."
+    },
+    {
+     "c": "imp",
+     "a": "ui",
      "t": "Bảng phụ trên máy tính thành cột cố định cạnh thanh điều hướng, có vạch ngăn – không còn là thẻ nổi",
      "te": "On desktop the side panel is now a fixed column next to the navigation, with dividers – no longer a floating card",
      "d": "Bảng phụ chạy suốt chiều cao như thanh điều hướng bên trái, nền phẳng, có vạch ngăn với thanh điều hướng và với nội dung. Thanh tab dính của trang (Tổng quan, Lệnh…) giờ chạm vạch ngăn y như khi không mở Bảng phụ, không còn dính vào mép thẻ nổi.",

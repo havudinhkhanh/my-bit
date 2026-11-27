@@ -8047,3 +8047,92 @@ select.tap-on,input.tap-on{transform:scale(.97);background-color:var(--fill-h,va
     box-shadow:inset 1px 0 0 color-mix(in srgb,var(--ink) 10%,transparent),inset -1px 0 0 color-mix(in srgb,var(--ink) 10%,transparent)}
   body.pn-on:not(.pn-sheet) .pn-in{border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;padding:12px 14px 12px 16px}
 }
+/* 27/11: 2 viên trên thanh đầu trang (trạng thái bot + viên Binance ghim) CÙNG KIỂU: nền chìm, không bóng, bo 10px như ô tìm / chuông.
+   Trước: viên ghim có lệnh đang mở (lvw-hot) ở giao diện sáng bị luật ":root[data-theme] .lvw.lvw-hot" (mạnh hơn) gắn lại bóng nổi + nền trắng */
+@media (min-width:980px){
+  html.has-topst .topst{border-radius:10px}
+  :root .lvw.lvw-pin.lvw-pin:not(.drag) .lvw-pill{border-radius:10px;border:0!important;background:var(--sunk)!important;box-shadow:none!important}
+  :root .lvw.lvw-pin.lvw-pin:not(.drag) .lvw-pill:hover,:root .lvw.lvw-pin.lvw-pin.m-full .lvw-pill{background:var(--fill-h,color-mix(in srgb,var(--ink) 9%,var(--sunk)))!important}
+}
+/* 27/11: thanh tab Bot Phản Xạ đổi giữa "thẻ nổi" ↔ "thanh trên thứ 2" MƯỢT (trước: nền trắng tràn ngang bật ra / mất đi đột ngột khi cuộn).
+   Nền nằm hẳn ở lớp ::before: lúc chưa dính = đúng khung thẻ (bo 12, bóng nổi); lúc dính = giãn dần ra hết bề ngang + lấp khe trên, bỏ bo, bóng mảnh.
+   Cuộn ngược lại → co dần về thẻ. Chỉ đổi kích thước lớp nền (không đổi bố cục) → không giật */
+@media (min-width:761px){
+  .sc-tbar:not(#_x){background:transparent!important;box-shadow:none!important;border-radius:12px!important}
+  .sc-tbar::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:0;right:0;border-radius:12px;background:var(--surface);pointer-events:none;
+    border-bottom:1px solid transparent;box-shadow:0 8px 24px -6px rgba(15,23,42,.16),0 0 0 .5px color-mix(in srgb,var(--ink) 7%,transparent);
+    transition:top .34s cubic-bezier(.2,.8,.2,1),bottom .34s cubic-bezier(.2,.8,.2,1),left .34s cubic-bezier(.2,.8,.2,1),right .34s cubic-bezier(.2,.8,.2,1),
+      border-radius .34s ease,box-shadow .34s ease,border-color .34s ease}
+  .sc-tbar.stuck::before{top:-12px;bottom:-6px;left:calc(-1 * var(--sbL,0px));right:calc(-1 * var(--sbR,0px));border-radius:0;
+    border-bottom-color:var(--bd);box-shadow:0 8px 20px -14px rgba(15,23,42,.35),0 0 0 0 transparent}
+  html.pls #app .sc-tbar::before{display:none}
+}
+@media (prefers-reduced-motion:reduce){.sc-tbar::before{transition:none!important}}
+/* ===== 27/11 BẢNG PHỤ LÀM MỚI: 1 tông nền + thẻ trắng viền tóc (không còn trắng / xám lẫn lộn), thanh thẻ gạch chân gọn, ⚙ tuỳ chỉnh phần hiện */
+#pnav{--pnc:var(--surface);--pnb:color-mix(in srgb,var(--ink) 9%,transparent);--pnh:color-mix(in srgb,var(--ink) 4.5%,transparent)}
+@media (min-width:1180px){body.pn-on:not(.pn-sheet) .pnav{background:color-mix(in srgb,var(--surface) 70%,var(--bg))!important}}      /* = đúng tông thanh điều hướng trái */
+/* biểu đồ lời/lỗ: lên đầu, mỗi biểu đồ 1 thẻ */
+#pnav .pnd-c{background:var(--pnc)!important;border:1px solid var(--pnb);border-radius:10px}
+#pnav .pn-dock.on{margin:0 0 10px}
+/* nhịp thị trường: 1 thẻ, 4 ô chia bằng đường tóc */
+#pnav .pn-pulse{gap:0!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;margin:0 0 10px;border:1px solid var(--pnb);border-radius:10px;background:var(--pnc);overflow:hidden}
+#pnav .pp{border-radius:0!important;background:transparent!important;padding:6px 10px!important;box-shadow:inset -1px 0 0 var(--pnb)}
+#pnav .pp:nth-child(2n){box-shadow:none}
+#pnav .pp:nth-child(-n+2){border-bottom:1px solid var(--pnb)}
+#pnav a.pp:hover{background:var(--pnh)!important}
+#pnav .pp small{font-size:.625rem;letter-spacing:.05em}
+/* thanh 4 thẻ: chữ + gạch chân (bỏ ô xám + biểu tượng to), ⚙ ở cuối */
+#pnav .pn-tabs2{gap:0!important;padding:0!important;margin:0 0 10px!important;border-radius:0!important;background:transparent!important;border-bottom:1px solid var(--pnb);align-items:stretch}
+#pnav .pn-tabs2 [data-t]{flex-direction:row!important;justify-content:center;align-items:center;gap:4px!important;padding:8px 2px 9px!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+  color:var(--ink-3);font:600 .75rem/1.1 "Be Vietnam Pro",system-ui,sans-serif!important}
+#pnav .pn-tabs2 [data-t] svg{display:none}
+#pnav .pn-tabs2 [data-t]:hover{color:var(--ink)}
+#pnav .pn-tabs2 [data-t].on{color:var(--ink)!important}
+#pnav .pn-tabs2 [data-t].on::after{content:"";position:absolute;left:16%;right:16%;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
+#pnav .pn-tabs2 [data-t] em{position:static!important;min-width:15px;height:15px;padding:0 4px;border-radius:8px;font:700 .625rem/15px system-ui}
+#pnav .pn-tabs2 [data-t]:focus-visible{outline:2px solid var(--brand);outline-offset:-2px;border-radius:6px!important}
+.pn-cusb{flex:none;align-self:center;display:grid;place-items:center;width:28px;height:28px;margin:0 0 0 2px;padding:0;border:0;border-radius:8px;background:transparent;color:var(--ink-3);cursor:pointer}
+.pn-cusb svg{width:16px;height:16px}
+.pn-cusb:hover,.pn-cusb[aria-expanded="true"]{background:var(--pnh);color:var(--ink)}
+/* bảng tuỳ chỉnh (mở ngay dưới thanh thẻ, đẩy nội dung xuống – không che) */
+.pn-cus{margin:-4px 0 10px;padding:4px;border:1px solid var(--pnb);border-radius:12px;background:var(--pnc);box-shadow:0 10px 24px -16px rgba(15,23,42,.35);animation:pnCusIn .18s cubic-bezier(.2,.8,.2,1)}
+.pn-cus[hidden]{display:none}
+@keyframes pnCusIn{from{opacity:0;transform:translateY(-4px)}}
+.pn-cus-h{margin:6px 8px 4px;font:700 .625rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+.pn-cus-r{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:7px 8px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.pn-cus-r:hover{background:var(--pnh)}
+.pn-cus-r:focus-visible{outline:2px solid var(--brand);outline-offset:-2px}
+.pn-cus-r>span{min-width:0}.pn-cus-r b{display:block;font-size:.78125rem;font-weight:600}.pn-cus-r small{display:block;margin-top:1px;font-size:.6875rem;color:var(--ink-3);line-height:1.35}
+.pn-cus-r .ios-sw{display:block;pointer-events:none}
+.pn-cus-x{display:block;width:calc(100% - 8px);margin:4px;padding:6px;border:0;border-radius:8px;background:var(--pnh);color:var(--ink-2);font:600 .75rem/1.2 "Be Vietnam Pro",system-ui,sans-serif;cursor:pointer}
+.pn-cus-x:hover{color:var(--ink)}
+.pn-cusl{display:inline-flex;align-items:center;gap:6px;margin:14px 2px 4px;padding:4px 6px;border:0;border-radius:7px;background:transparent;color:var(--ink-3);font:600 .6875rem "Be Vietnam Pro",system-ui,sans-serif;cursor:pointer}
+.pn-cusl svg{width:13px;height:13px}.pn-cusl:hover{background:var(--pnh);color:var(--ink)}
+/* ẩn theo tuỳ chỉnh */
+#pnav.h-dock #pnDock,#pnav.h-pulse #pnpulse{display:none!important}
+#pnav.h-tabs .pn-tabs2{display:none!important}
+#pnav.h-tabs .pn-pane{display:none!important}#pnav.h-tabs .pn-pane[data-p="sum"]{display:block!important}
+#pnav.h-al details.sb[data-b="al"],#pnav.h-cpt details.sb[data-b="cpt"]{display:none!important}
+/* khối nội dung: thẻ trắng viền tóc; dòng số liệu 1 hàng chú thích gọn (trước: "từ đầu … · hôm nay …" bị kéo dãn 2 đầu) */
+.pn-card{margin:0 0 8px;padding:2px 4px 4px;border:1px solid var(--pnb,var(--bd-2));border-radius:10px;background:var(--pnc,var(--surface))}
+.pn-card>.sbh:first-child{margin:8px 6px 4px}
+#pnav .sbx{justify-content:flex-start;gap:4px;flex-wrap:wrap}
+#pnav a.sbr:hover{background:var(--pnh)}
+#pnav .pn-h::after{background:var(--pnb)}
+#pnav .sb{border-top-color:var(--pnb)}
+#pnav .sb-off>summary{text-transform:none;letter-spacing:0;font-size:.75rem;font-weight:600;color:var(--ink-3)}
+#pnav .sb-off{margin:0 0 6px}
+/* 27/11 thang giá (thẻ lệnh) làm mới – mảnh & gọn: trước dải "giá đã quét" là 1 cục xám dày 10px che cả thanh → thô.
+   Giờ: 1 đường ray 4px; đoạn giá đã quét chỉ là phần ray đậm hơn (cùng độ dày); lời/lỗ từ giá vào tới giá hiện tại tô màu lên ray;
+   đỉnh/đáy đã chạm là vạch mảnh; giá hiện tại là núm trắng viền màu lời/lỗ (kiểu thanh trượt iOS) */
+.sc-lad .tr{height:4px;margin-top:-2px;border-radius:2px;background:color-mix(in srgb,var(--ink) 8%,transparent)}
+.sc-lad .sw{height:4px!important;margin-top:-2px!important;border-radius:2px!important;background:color-mix(in srgb,var(--ink) 20%,transparent)!important}
+.sc-lad .fill{height:4px;margin-top:-2px;border-radius:2px;opacity:1;background:color-mix(in srgb,var(--down) 85%,transparent)}
+.sc-lad.win .fill{background:color-mix(in srgb,var(--up) 85%,transparent)}
+.sc-lad .bx,.sc-lad .wx{width:2px!important;height:8px!important;margin:-4px 0 0 -1px!important;border-radius:1px!important;opacity:.85}
+.sc-lad .lm{width:2px;height:12px;border-radius:1px}
+.sc-lad .lm.en{width:2px;height:12px;background:var(--ink-2)}
+.sc-lad .lm.lq{width:3px}
+.sc-lad .cur{width:12px;height:12px;border:2.5px solid var(--down);background:var(--surface);box-shadow:0 1px 3px rgba(15,23,42,.28),0 0 0 3px color-mix(in srgb,var(--down) 14%,transparent)}
+.sc-lad.win .cur{border-color:var(--up);box-shadow:0 1px 3px rgba(15,23,42,.28),0 0 0 3px color-mix(in srgb,var(--up) 14%,transparent)}
+.sc-lad.out .cur{background:var(--down);border-color:var(--surface)}
