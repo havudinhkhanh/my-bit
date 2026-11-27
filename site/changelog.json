@@ -18,6 +18,12 @@
     },
     {
      "c": "fix",
+     "a": "ui",
+     "t": "Mở biểu đồ lệnh khi Bảng phụ đang mở: Bảng phụ không còn nổi đè lên biểu đồ",
+     "te": "Opening a trade chart with the side panel open: the panel no longer sits on top of the chart"
+    },
+    {
+     "c": "fix",
      "a": "live",
      "t": "Bắt râu sập tiền thật: đóng mức 1 sớm thì mức chờ 2 vẫn giữ trên sàn tới hết giờ chờ, như sàn thử",
      "te": "Live Wick Catcher: after level 1 exits early, level 2 stays on the exchange until the wait window ends, like paper",
