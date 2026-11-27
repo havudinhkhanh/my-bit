@@ -9,6 +9,15 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "fix",
+     "a": "res",
+     "aud": "admin",
+     "t": "Phương pháp đã loại có cần gạt sàn thử ngay trong danh sách Phương pháp › Tất cả · bật/tắt",
+     "te": "Rejected methods show their paper switch in Methods › All · on/off",
+     "d": "Trước chỉ có trên thẻ ở Ứng viên mới và kết quả phòng thử nghiệm bị đệm tới hàng giờ nên công tắc chưa hiện. Giờ các cách đã loại (có danh mục hằng ngày) nằm cuối danh sách chính, tiền thật ghi 'cần có lời'; kết quả phòng thử nghiệm làm mới 10 phút/lần.",
+     "de": "Previously only on the candidate cards, and lab results were cached for hours. Rejected methods with a daily portfolio now sit at the end of the main list (real money shows 'needs profit'); lab results refresh every 10 minutes."
+    },
+    {
      "c": "new",
      "a": "res",
      "hi": 1,

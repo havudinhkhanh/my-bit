@@ -564,7 +564,7 @@ async function viewScalp() { const H0 = location.hash;
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
   // tệp kết quả phòng thử nghiệm / kiểm chứng: giữ trong bộ nhớ ≤ 1 giờ; tải hỏng (null) thì lần sau tải lại (trước: tải 1 lần cho cả phiên – app mở lâu không thấy kết quả mới)
-  const memo = (k, f) => { const M = (window.__dlM ||= {}), m = M[k]; if (!m || Date.now() - m.t > 3600e3) M[k] = { t: Date.now(), p: tryLoad(m ? `${f}?h=${Math.floor(Date.now() / 3600e3)}` : f).then((v) => { if (v == null) M[k].t = 0; return v; }) }; return M[k].p; };
+  const memo = (k, f) => { const M = (window.__dlM ||= {}), m = M[k]; if (!m || Date.now() - m.t > 600e3) M[k] = { t: Date.now(), p: tryLoad(`${f}?t=${Math.floor(Date.now() / 600e3)}`).then((v) => { if (v == null) M[k].t = 0; return v; }) }; return M[k].p; };      // làm mới 10 phút/lần (trước 1 giờ, lần đầu còn dính bản đệm theo phiên bản dữ liệu)
   const LABD = await memo("lab", "lab.json");
   const VFY = await memo("vfy", "verify.json");
   const WKN = await memo("wkn", "week.json");      // 📝 nhận xét "nhìn lại tuần" (lượt nhìn lại hằng tuần ghi)      // 📅 kiểm chứng hằng tuần từng kiểu chơi (research/verify.py)      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
@@ -1749,7 +1749,9 @@ async function viewScalp() { const H0 = location.hash;
           <p><button type="button" class="btn sm" data-lxgo="${esc(k)}">Xem thẻ kiểm chứng đầy đủ →</button></p>` };
       M.est = lxEst(M); return M;
     };
-    const LXL = (LABD?.methods || []).filter((L) => L.per?.all && !LXRES.has(L.id) && (L.per.all.ret > 0 || C.lx?.[L.id]?.paper || C.lx?.[L.id]?.live || LXS?.m?.[L.id]?.n));
+    // danh sách chính: phương pháp có lời (đủ 2 công tắc) + phương pháp đã loại nhưng có danh mục hằng ngày (chỉ sàn thử – Jason 27/11/2026: "không thấy cần gạt đâu") – xếp sau cùng
+    const LXL = (LABD?.methods || []).filter((L) => L.per?.all && !LXRES.has(L.id) && (L.per.all.ret > 0 || L.trade || C.lx?.[L.id]?.paper || C.lx?.[L.id]?.live || LXS?.m?.[L.id]?.n))
+      .sort((a, b) => (b.per.all.ret > 0) - (a.per.all.ret > 0));
     const ML = [mainM("hook"), mainM("sec"), ...(QX ? QK.map(qM) : []), ...(SWX ? ["pump", "list"].map(swM) : []), ...LXL.map(lxM)], MM = Object.fromEntries(ML.map((m) => [m.k, m]));
     // 🧪 Jason 27/11/2026: phương pháp ĐÃ LOẠI (kiểm chứng cả giai đoạn lỗ) vẫn có công tắc SÀN THỬ trên thẻ kiểm chứng – tiền ảo, để theo dõi thực tế từ hôm nay;
     //    tiền thật vẫn khoá tới khi kiểm chứng cả giai đoạn có lời. Chỉ phương pháp có công bố danh mục hằng ngày (trade) mới có công tắc; bật sàn thử là vào danh sách chính.
