@@ -9,6 +9,14 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "imp",
+     "a": "bot",
+     "t": "Tab Đã đóng: bảng Lệnh đã đóng lên đầu",
+     "te": "Closed tab: closed-trades table first",
+     "d": "Khung “Theo dõi luật thoát mới” chuyển xuống dưới bảng Lệnh đã đóng.",
+     "de": "The exit-rule monitor now sits below the closed-trades table."
+    },
+    {
      "c": "fix",
      "a": "ui",
      "t": "Bấm sang trang khác không còn bị nhảy về Bot Phản Xạ",
