@@ -76,6 +76,12 @@
      "te": "The trade's funding cell now reads from your side: + you receive, − you pay; the liquidation cell shows the right distance",
      "d": "Trước đây số to là mức funding của thị trường, nên lệnh Long gặp funding âm hiện “−0,44%” màu xanh dù anh được nhận tiền. Giờ số to là +0,44% (anh nhận), mức của thị trường ghi nhỏ bên dưới. Ô Thanh lý trước tính khoảng cách theo giá thanh lý nên lệnh x1 hiện hàng trăm nghìn %; giờ tính theo giá hiện tại (lệnh x1 ≈ 99,9%), ô cắt lỗ cũng tính cùng cách.",
      "de": "The big number used to be the market funding rate, so a Long with negative funding showed “−0.44%” in green even though you receive. It now shows +0.44% (you receive), with the market rate in small text. The liquidation cell measured distance against the liquidation price, so a 1× trade showed hundreds of thousands of %; it now measures against the current price (≈ 99.9% at 1×), and the stop cell does the same."
+    },
+    {
+     "c": "fix",
+     "a": "notif",
+     "t": "Thông báo trên máy tính: nút ✕ nằm ở cột phải ngay trên nút mở rộng, không còn đè lên biểu tượng và chữ",
+     "te": "Desktop notifications: the ✕ sits in the right column above the expand button instead of covering the icon and text"
     }
    ]
   },

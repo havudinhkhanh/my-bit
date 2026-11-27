@@ -6925,14 +6925,16 @@ body.occ-on .msheet{z-index:1320!important}
   #toasts .toast .tp,#toasts .toast .tx{display:none!important}
 }
 
-/* banner thông báo trên máy tính: không có vạch kéo (chỉ điện thoại mới vuốt) – rê chuột lên hiện nút ✕ ở góc trái trên */
+/* banner thông báo trên máy tính: không có vạch kéo (chỉ điện thoại mới vuốt) – rê chuột lên thì nút ✕ hiện ở CỘT PHẢI, đúng chỗ chữ "bây giờ"
+   (chữ giờ ẩn đi), ngay trên nút mở rộng ⌄ – cùng cỡ, cùng kiểu. Trước 27/11/2026 ✕ nổi ở góc trái trên, đè lên ô biểu tượng và mép thẻ. */
 .nb-cl{display:none}
 @media (hover:hover) and (pointer:fine){
   .nb .nb-g{display:none!important}
-  .nb-cl{display:grid;place-items:center;position:absolute;left:4px;top:4px;z-index:3;width:20px;height:20px;padding:0;border:0;border-radius:50%;
-    background:var(--surface);color:var(--ink-2);font-size:.625rem;line-height:1;cursor:pointer;box-shadow:0 0 0 .5px color-mix(in srgb,var(--ink) 22%,transparent),0 1px 4px rgba(0,0,0,.18);
-    opacity:0;transform:scale(.8);transition:opacity .15s,transform .15s}
-  .nb-c:hover .nb-cl,.nb-cl:focus-visible{opacity:1;transform:none}
+  .nb-cl{display:grid;place-items:center;position:absolute;right:8px;top:4px;z-index:3;width:28px;height:28px;padding:0;border:0;border-radius:50%;
+    background:var(--fill);color:var(--ink-2);font-size:.75rem;line-height:1;cursor:pointer;opacity:0;transition:opacity .15s,background-color .15s}
+  .nb-c:hover .nb-cl,.nb-cl:focus-visible{opacity:1}
+  .nb-c:hover .nb-h time{opacity:0}
+  .nb-h time{transition:opacity .15s}
   .nb-cl:hover{background:var(--fill-h);color:var(--ink)}
 }
 
