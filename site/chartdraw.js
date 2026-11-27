@@ -295,7 +295,7 @@
     const qc = document.createElement("div"); qc.className = "cd-qm"; qc.hidden = true; el.appendChild(qc);
     qc.addEventListener("pointerdown", (e) => e.stopPropagation());
     qc.addEventListener("click", (e) => { if (!e.target.closest("[data-qx]")) return; e.stopPropagation(); QM = null; if (st.quick) setTool("cur"); req(); });
-    let qLast = "";
+    let qLast = "", qH = 0, qG = null;      // chiều cao thẻ đo + mép dưới chú thích: đo 1 lần mỗi khi nội dung thẻ đổi (trước: đo lại mỗi lần vẽ → ép trình duyệt tính bố cục mỗi khung hình khi rê chuột / kéo)
     const qSync = () => {
       const d = st.draft?.q ? st.draft : QM, on = !!(st.quick || QM); if (qBtn) qBtn.classList.toggle("on", on);
       let h = "";
@@ -303,10 +303,10 @@
         if (!M) h = `<div class="cd-qm-h">📏 <b>Chạm điểm vào</b>, giữ và <b>kéo tới điểm ra</b> · ${msHint} <small>· đã trừ phí ${c2(MC.fee * 2 + MC.sell)}% + trượt ${c2(MC.slip * 2)}%</small></div>${X_}`;
         else { const bars = Math.abs(Math.round(t2l(d.p[1].t) - t2l(d.p[0].t))), cl = M.net >= 0 ? "up" : "down";
           h = `<div class="cd-qm-r"><span><b class="cd-qm-s ${M.up ? "up" : "down"}">${M.lab}</b> giá ${esc(nfp(M.ch))} · ${bars} nến</span><span>Ròng <b class="${cl}">${n2(M.net * 100)}%</b> · <b class="${cl}">${n2(M.amt)}</b> ${esc(MC.unit)}</span><small>${esc(fmt(d.p[0].p))} → ${esc(fmt(d.p[1].p))} · đã trừ phí ${c2(M.fee2)}% + trượt ${c2(M.slip2)}%</small></div>${X_}`; } }
-      if (h !== qLast) { qLast = h; qc.innerHTML = h; qc.hidden = !h; }
+      if (h !== qLast) { qLast = h; qc.innerHTML = h; qc.hidden = !h; qH = 0; qG = null; }
       if (h && d) {      // thẻ nằm ở đáy; điểm đo chạm vùng đáy thì thẻ nhảy lên đầu (không che chỗ đang đo)
-        const y0 = Y(d.p[0].p), y1 = Y(d.p[1].p), H = pane().h, ch = qc.offsetHeight || 76, lo = Math.max(y0, y1), hi = Math.min(y0, y1), T0 = qc.classList.contains("qm-t");
-        const cb = lo > H - ch - (T0 ? 4 : 16), ct = hi < ((parseFloat(getComputedStyle(el).getPropertyValue("--clgb")) || (el.classList.contains("has-pxp") ? 38 : 26)) + (el.classList.contains("cd-row1") ? 8 : 40)) + ch + (T0 ? 16 : 4), top = cb && !ct ? true : !cb ? false : y1 > H / 2; if (top !== T0) qc.classList.toggle("qm-t", top);      // cả 2 đầu đều vướng → tránh điểm RA (chỗ ngón tay)
+        const y0 = Y(d.p[0].p), y1 = Y(d.p[1].p), H = pane().h, ch = qH || (qH = qc.offsetHeight || 76), lo = Math.max(y0, y1), hi = Math.min(y0, y1), T0 = qc.classList.contains("qm-t");
+        const cb = lo > H - ch - (T0 ? 4 : 16), ct = hi < (qG ?? (qG = (parseFloat(getComputedStyle(el).getPropertyValue("--clgb")) || (el.classList.contains("has-pxp") ? 38 : 26)) + (el.classList.contains("cd-row1") ? 8 : 40))) + ch + (T0 ? 16 : 4), top = cb && !ct ? true : !cb ? false : y1 > H / 2; if (top !== T0) qc.classList.toggle("qm-t", top);      // cả 2 đầu đều vướng → tránh điểm RA (chỗ ngón tay)
       } else if (!d) qc.classList.remove("qm-t");
     };
     const measure = (b) => { if (b) qBtn = b; if (st.quick && !st.draft) { setTool("cur"); return; } QM = null; setTool("measure"); st.quick = true; OPEN_TB = inst; req(); };      // bấm lần nữa khi đang chờ điểm đầu = thôi đo

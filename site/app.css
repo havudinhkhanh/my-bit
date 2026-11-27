@@ -7691,15 +7691,16 @@ body.cz-lock #app,body.app-pop #app{isolation:auto}
 :root[data-theme="dark"][data-oled] body{background:#000!important}
 /* 🌈 NỀN THEO NHỊP THỊ TRƯỜNG: 2 vầng màu rất nhạt cố định sau trang, đổi màu từ từ (2,4 giây) theo đèn thị trường.
    Lớp cố định, không hoạt ảnh liên tục → không vẽ lại khi cuộn; trình duyệt cũ không có @property thì đổi màu tức thì. */
-@property --mood-c{syntax:"<color>";inherits:true;initial-value:rgba(0,0,0,0)}
-:root{--mood-c:rgba(0,0,0,0);transition:--mood-c 2.4s ease}
-:root[data-mood="green"]{--mood-c:rgba(16,150,90,.11)}
-:root[data-mood="yellow"]{--mood-c:rgba(214,158,30,.12)}
-:root[data-mood="red"]{--mood-c:rgba(214,48,56,.10)}
-:root[data-theme="dark"][data-mood="green"]{--mood-c:rgba(44,192,138,.09)}
-:root[data-theme="dark"][data-mood="yellow"]{--mood-c:rgba(227,184,58,.08)}
-:root[data-theme="dark"][data-mood="red"]{--mood-c:rgba(242,90,96,.085)}
-:root.mood-off{--mood-c:rgba(0,0,0,0)}
+@property --mood-c{syntax:"<color>";inherits:false;initial-value:rgba(0,0,0,0)}
+/* biến màu nằm NGAY trên lớp nền body::before (không kế thừa) → đổi màu 2,4 giây chỉ vẽ lại 1 lớp; trước: đặt trên :root + kế thừa → cả trang tính lại kiểu mỗi khung hình suốt 2,4 giây */
+body::before{--mood-c:rgba(0,0,0,0);transition:--mood-c 2.4s ease}
+:root[data-mood="green"] body::before{--mood-c:rgba(16,150,90,.11)}
+:root[data-mood="yellow"] body::before{--mood-c:rgba(214,158,30,.12)}
+:root[data-mood="red"] body::before{--mood-c:rgba(214,48,56,.10)}
+:root[data-theme="dark"][data-mood="green"] body::before{--mood-c:rgba(44,192,138,.09)}
+:root[data-theme="dark"][data-mood="yellow"] body::before{--mood-c:rgba(227,184,58,.08)}
+:root[data-theme="dark"][data-mood="red"] body::before{--mood-c:rgba(242,90,96,.085)}
+:root.mood-off body::before{--mood-c:rgba(0,0,0,0)}
 body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(110% 65% at 92% -12%,var(--mood-c),transparent 62%),radial-gradient(80% 55% at -8% 108%,var(--mood-c),transparent 64%)}
 @media print{body::before{display:none}}
 /* ô chọn màu nhấn */
@@ -8250,3 +8251,18 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .oc-clip{margin-left:4px!important;color:var(--brand)}.oc-clip svg{width:12px!important;height:12px!important}
 /* Sổ thuế – nhập dữ liệu: điện thoại hẹp thì 1 cột (ô rộng "span 2" từng đẩy form tràn ra ngoài màn hình) */
 @media (max-width:420px){.tx-add{grid-template-columns:minmax(0,1fr)!important}.tx-add label.w{grid-column:auto!important}}
+/* hàng lọc lệnh tab Lệnh (Tất cả · Đang mở · Đã đóng · Hụt · So sánh | Mọi phương pháp) dính ngay dưới thanh tab Bot Phản Xạ */
+#app .sc-body>.sc-ofl{position:sticky;top:var(--oflt,calc(var(--stick,57px) + 62px));z-index:19}
+#app .sc-body>.sc-ofl::before{content:"";position:absolute;z-index:-1;pointer-events:none;top:-8px;bottom:-8px;left:-16px;right:-16px;background:var(--bg);opacity:0;transition:opacity .2s ease}
+#app .sc-body>.sc-ofl.stuck::before{opacity:1}
+@media (min-width:761px){
+  #app .sc-body>.sc-ofl::before{left:calc(-1 * var(--sbL0,16px));right:calc(-1 * var(--sbR0,16px));top:-9px;bottom:-8px;background:var(--surface);border-bottom:1px solid var(--bd);box-shadow:0 8px 20px -14px rgba(15,23,42,.35)}
+  html.ofl-stuck .sc-tbar.stuck::before{border-bottom-color:transparent!important;box-shadow:none!important}      /* 2 hàng dính liền thành 1 khối, chỉ hàng dưới có viền + bóng */
+}
+/* điện thoại: hàng lọc gọn 1 dòng (trạng thái cuộn ngang + nút lọc phương pháp chỉ còn biểu tượng) – hàng dính không chiếm 2 dòng màn hình, không nhảy khi dính */
+@media (max-width:640px){
+  #app .sc-body>.sc-ofl{flex-wrap:nowrap!important}
+  #app .sc-body>.sc-ofl>.bseg.sc-om{flex:1 1 0!important;min-width:0}
+  #app .sc-body>.sc-ofl>.sc-omdd{flex:none;width:38px;min-height:36px;padding:0!important;justify-content:center;gap:0}
+  #app .sc-body>.sc-ofl>.sc-omdd>span,#app .sc-body>.sc-ofl>.sc-omdd>.cr-dn{display:none}
+}

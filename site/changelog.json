@@ -9,6 +9,22 @@
    "se": "Profitable lab methods automatically get paper and real-money switches; a one-tap P&L ruler on charts that works on phones.",
    "it": [
     {
+     "c": "imp",
+     "a": "bot",
+     "t": "Hàng lọc lệnh dính theo khi cuộn",
+     "te": "Trade filter row stays pinned",
+     "d": "Tab Lệnh: hàng Tất cả · Đang mở · Đã đóng · Hụt · So sánh dính ngay dưới thanh tab, liền thành 1 khối. Điện thoại: gọn 1 dòng, nút lọc phương pháp chỉ còn biểu tượng.",
+     "de": "The status filter row sticks under the tab bar; one compact line on phones."
+    },
+    {
+     "c": "fix",
+     "a": "perf",
+     "t": "Rà soát & tối ưu: bớt việc thừa, sửa lỗi nhỏ",
+     "te": "Review pass: less wasted work, small fixes",
+     "d": "Đổi màu nền theo nhịp thị trường không còn bắt cả trang tính lại kiểu suốt 2,4 giây; clip dừng vẽ khi đứng yên và tự đóng khi chuyển trang; menu thả xuống không còn để lại trình nghe sau mỗi lần mở; thước đo không ép tính bố cục mỗi khung hình; tiêu đề co & thanh tab dính không bật lại khi trang tự làm mới; viên lệnh bot tự về chỗ khi quay lại app; giữ lâu trên thang giá (Android) không mở menu 2 lần; kết quả phòng thử nghiệm tự tải lại mỗi giờ; ô gõ “TIEN THAT” chấp nhận chữ thường / dư dấu cách; sổ thuế không tràn màn hình điện thoại.",
+     "de": "Mood background no longer restyles the whole page; clip stops drawing when idle and closes on navigation; dropdown listener leak fixed; measure tool avoids forced layouts; sticky/title state survives auto-refresh; live pill re-places on resume; Android long-press opens once; lab results refresh hourly; real-money confirm accepts lowercase; tax form fits phones."
+    },
+    {
      "c": "new",
      "a": "ui",
      "t": "Kéo thả để sắp xếp bảng phụ",

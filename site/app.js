@@ -772,9 +772,9 @@ const SR_MORPH = [/^#\/bot\/scalp/];
 const MO_LIVE = "[data-ldst],[data-lpx],[data-lpnl],[data-lad],[data-held],[data-fnt],[data-lt0],[data-lgap],[data-lsd],[data-fnx],[data-mal]";
 const MO_LIVE_K = MO_LIVE.replace(/[[\]]/g, "").split(",");
 const MO_MARK = new Set(["data-occ", "data-ux", "data-pc", "data-lm", "data-one", "data-l", "data-nil", "data-dl", "autocomplete"]);
-const MO_KC = ["gseg", "ph-fd", "hz-up", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
+const MO_KC = ["gseg", "ph-fd", "hz-up", "rs-n", "rs-p", "lm-hide", "pc-shut", "pin", "ovx-l", "ovx-r", "stuck"];      // lớp do mã gắn sau khi vẽ (viên kính thanh tab, nhãn bảng…) → giữ khi vá, không gỡ rồi gắn lại mỗi lượt      // dấu "đã trang trí" do mã gắn SAU khi vẽ (nút biểu đồ trên thẻ lệnh, bỏ emoji tiêu đề…) – HTML mới không có → trước bị gỡ khi vá = nút biểu đồ lúc có lúc mất
 const moSkipA = (el, a) => (a === "open" && el.tagName === "DETAILS") || (a === "hidden" && el.__keepHidden) || a === "aria-expanded" || MO_MARK.has(a)
-  || (a === "list" && el.dataset.dl) || (a === "style" && el.classList.contains("gseg"));
+  || (a === "list" && el.dataset.dl) || (a === "style" && (el.classList.contains("gseg") || el.classList.contains("sc-tbar") || (el.classList.contains("ph") && el.parentElement?.id === "app")));      // biến cuộn (--tk tiêu đề, --sbL/--sbR thanh tab dính) do mã cuộn ghi – vá trang không xoá
 function moAttrs(l, n, live) {
   let ch = false; const NA = n.attributes;
   // ô lời/lỗ trực tiếp: màu xanh/đỏ do giá trực tiếp quyết định – bản vẽ lại từ máy chủ (giá cũ) không ghi đè. CHỈ khi nút mới vẫn là ô lời/lỗ
@@ -1448,7 +1448,9 @@ function selMenu(sel, kb = false) {
     if (box.contains(e.target)) return; if (Date.now() - tF < 800) { menuPlace(box, sel); return; }
     if (Math.abs(sel.getBoundingClientRect().top - y0) > 24) { iosMenuClose(); removeEventListener("scroll", sc, true); } };
   addEventListener("scroll", sc, { capture: true, passive: true });
-  addEventListener("hashchange", iosMenuClose, { once: true }); addEventListener("resize", () => { if (!m.isConnected) return; if (Date.now() - tF > 800) iosMenuClose(); else menuPlace(box, sel); });
+  addEventListener("hashchange", iosMenuClose, { once: true });
+  const rz = () => { if (!m.isConnected) { removeEventListener("resize", rz); return; } if (Date.now() - tF > 800) { iosMenuClose(); removeEventListener("resize", rz); } else menuPlace(box, sel); };      // gỡ khi menu đóng (trước: mỗi lần mở menu thêm 1 trình nghe không bao giờ gỡ)
+  addEventListener("resize", rz);
 }
 // 📅 ô ngày (<input type=date / datetime-local>) → lịch nhỏ kiểu app thay bánh xe iPhone / lịch trắng của trình duyệt
 //    ô nhập vẫn là nguồn dữ liệu: chọn xong gán .value + bắn input/change · bàn phím (Tab rồi gõ số) vẫn dùng kiểu gốc
@@ -3563,7 +3565,9 @@ function ladTip(el, cx) {
 }
 if (!window.__ladEv) {
   window.__ladEv = 1;
-  document.addEventListener("contextmenu", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el) return; e.preventDefault(); e.stopPropagation(); ladMenu(el, e.clientX, e.clientY); }, true);
+  document.addEventListener("contextmenu", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el) return; e.preventDefault(); e.stopPropagation();
+    if (Date.now() - LADLP < 900 || lp0) { clearTimeout(lpT); lp0 = null; if (Date.now() - LADLP < 900) return; LADLP = Date.now(); }      // Android: giữ lâu cũng bắn contextmenu → chỉ mở menu 1 lần
+    ladMenu(el, e.clientX, e.clientY); }, true);
   document.addEventListener("pointermove", (e) => { if (e.pointerType !== "mouse") return; const el = e.target.closest?.(".sc-lad"); if (!el && (!LADT || LADT.t.hidden)) return;      // gộp theo khung hình: tối đa 1 lần vẽ / khung
     LADQ = el ? [el, e.clientX] : null; if (!LADR) LADR = requestAnimationFrame(() => { LADR = 0; ladTip(LADQ?.[0] || null, LADQ?.[1]); }); }, { passive: true });
   addEventListener("scroll", () => { if (LADT && !LADT.t.hidden) ladTip(null); }, { passive: true, capture: true });
@@ -3571,7 +3575,7 @@ if (!window.__ladEv) {
   document.addEventListener("touchstart", (e) => { const el = e.target.closest?.(".sc-lad"); if (!el || e.touches.length !== 1) return; const t = e.touches[0]; lp0 = { el, x: t.clientX, y: t.clientY };
     clearTimeout(lpT); lpT = setTimeout(() => { if (!lp0) return; try { navigator.vibrate?.(8); } catch (x) { /* bỏ qua */ } LADLP = Date.now(); ladMenu(lp0.el, lp0.x, lp0.y); lp0 = null; }, 480); }, { passive: true });
   document.addEventListener("touchmove", (e) => { if (!lp0) return; const t = e.touches[0]; if (Math.hypot(t.clientX - lp0.x, t.clientY - lp0.y) > 10) { clearTimeout(lpT); lp0 = null; } }, { passive: true });
-  document.addEventListener("touchend", () => { clearTimeout(lpT); lp0 = null; }, { passive: true });
+  for (const t of ["touchend", "touchcancel"]) document.addEventListener(t, () => { clearTimeout(lpT); lp0 = null; }, { passive: true });
   // nhấc ngón sau khi giữ lâu: trình duyệt bắn "click" vào chỗ ngón tay – lúc đó là nền mờ của menu vừa mở → nuốt đúng 1 cú click này (không thì menu đóng ngay / mở biểu đồ lệnh)
   const eat = (e) => { if (Date.now() - LADLP < 900) { e.preventDefault(); e.stopPropagation(); if (e.type === "click") LADLP = 0; } };
   for (const t of ["click", "pointerup", "mouseup"]) document.addEventListener(t, eat, true);
@@ -9027,7 +9031,13 @@ const RAILQ0 = () => matchMedia("(min-width:980px)").matches;
 { let q = 0; const chk = () => { q = 0; let any = false; for (const b of document.querySelectorAll("#app .sc-tbar")) { const top = parseFloat(getComputedStyle(b).top) || 0, r = b.getBoundingClientRect(), st = r.top <= top + 0.5 && scrollY > 0; if (b.classList.contains("stuck") !== st) b.classList.toggle("stuck", st);
     if (st) { const a = document.getElementById("app")?.getBoundingClientRect(), L = Math.max(0, Math.round(r.left - (a?.left || 0))) + "px", R = Math.max(0, Math.round(document.documentElement.clientWidth - r.right)) + "px";      // tràn hết bề ngang vùng nội dung → như thanh trên thứ 2
       if (b.style.getPropertyValue("--sbL") !== L) b.style.setProperty("--sbL", L); if (b.style.getPropertyValue("--sbR") !== R) b.style.setProperty("--sbR", R); } any ||= st; }
-    const H = document.documentElement; if (H.classList.contains("sub-stuck") !== any) H.classList.toggle("sub-stuck", any); };
+    const H = document.documentElement; if (H.classList.contains("sub-stuck") !== any) H.classList.toggle("sub-stuck", any);
+    // hàng lọc lệnh (Tất cả · Đang mở · Đã đóng · Hụt · So sánh) dính NGAY DƯỚI thanh tab: vị trí dính = đáy thanh tab + 8px; dính rồi thì phủ nền tràn ngang như thanh tab
+    const tb = document.querySelector("#app .sc-tbar"), of = document.querySelector("#app .sc-body > .sc-ofl");
+    if (tb) { const v = Math.round((parseFloat(getComputedStyle(tb).top) || 0) + tb.offsetHeight + 8) + "px"; if (H.style.getPropertyValue("--oflt") !== v) H.style.setProperty("--oflt", v);
+      for (const k of ["--sbL", "--sbR"]) { const x = tb.style.getPropertyValue(k); if (x && H.style.getPropertyValue(k + "0") !== x) H.style.setProperty(k + "0", x); } }
+    const os = !!of && of.getBoundingClientRect().top <= (parseFloat(H.style.getPropertyValue("--oflt")) || 0) + 0.5 && scrollY > 0;
+    if (of && of.classList.contains("stuck") !== os) of.classList.toggle("stuck", os); if (H.classList.contains("ofl-stuck") !== os) H.classList.toggle("ofl-stuck", os); };
   addEventListener("scroll", () => { if (!q) q = requestAnimationFrame(chk); }, { passive: true }); addEventListener("resize", () => { if (!q) q = requestAnimationFrame(chk); }); addEventListener("hashchange", () => setTimeout(chk, 300)); }
 // cuộn khỏi đầu trang → thanh trên có viền tóc + bóng nhẹ (chỉ đổi lớp khi qua ngưỡng, không làm gì mỗi khung cuộn)
 { let on = false, q = 0; addEventListener("scroll", () => { if (q) return; q = requestAnimationFrame(() => { q = 0; const v = scrollY > 6; if (v !== on) { on = v; document.documentElement.classList.toggle("top-sc", v); } }); }, { passive: true }); }
@@ -9166,7 +9176,7 @@ function lvsDraw() {
       lvwMode(LVW.rest); if (e.target === bd) { e.preventDefault(); e.stopPropagation(); } }, true);
     bd.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape" && LVW.mode === "full" && !document.getElementById("iosSheet")) lvwMode(LVW.rest); });
-    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const d = RAILQ0(); if (d !== LVW.rd) { LVW.rd = d; lvsDraw(); } else rp(); });      // chỉ vẽ lại khi đổi điện thoại ↔ máy tính (iPhone cuộn → "resize" liên tục: chỉ đặt lại chỗ, không hoạt ảnh) addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });
+    const rp = () => { const x = document.getElementById("lvw"); if (x) lvwPlace(x, false); }; addEventListener("resize", () => { const d = RAILQ0(); if (d !== LVW.rd) { LVW.rd = d; lvsDraw(); } else rp(); }); addEventListener("pageshow", rp); document.addEventListener("visibilitychange", () => { if (!document.hidden) rp(); });      // chỉ vẽ lại khi đổi điện thoại ↔ máy tính (iPhone cuộn → "resize" liên tục: chỉ đặt lại chỗ, không hoạt ảnh)
     // ghim: viên đổi bề rộng (chữ chạy dài / ngắn, đổi giao diện) → ô chừa sẵn trên thanh trên cùng co giãn theo ngay (trước: ô giữ bề rộng cũ → khoảng trống thừa trước băng giá)
     if (window.ResizeObserver) { let pw0 = 0; new ResizeObserver(() => { const pw = el.querySelector(".lvw-pill")?.offsetWidth || 0; if (pw === pw0) return; pw0 = pw; if (LVW.pin && !el.classList.contains("drag")) lvwPlace(el, false); }).observe(el.querySelector(".lvw-pill")); }
     clearInterval(LVW.tick); LVW.tick = setInterval(() => { if (document.hidden) return; lvwTick(); if (LVW.pin && !el.classList.contains("drag")) { const r = document.getElementById("topLv")?.getBoundingClientRect(); if (r && el.__xy && Math.abs(r.left - el.__xy[0]) > 1) lvwPlace(el, false); } }, 1000);      // ghim: thanh trên đổi bố cục (dải trạng thái bot hiện / ẩn) → viên theo ô

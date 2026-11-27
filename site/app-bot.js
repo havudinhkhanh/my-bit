@@ -562,9 +562,11 @@ async function viewScalp() {
   if (useC && Date.now() - cc.t > 4000) window.__scLast = 0;
   const [rq, rv, rk] = useC ? cc.d : await Promise.all([Store.get("scalp"), Store.get("scalpstate"), Store.get("scalpkey")]);
   if (!useC) window.__scCache = { t: Date.now(), d: [rq, rv, rk] };
-  const LABD = await (window.__labP || (window.__labP = tryLoad("lab.json")));
-  const VFY = await (window.__vfyP || (window.__vfyP = tryLoad("verify.json")));
-  const WKN = await (window.__wknP || (window.__wknP = tryLoad("week.json")));      // 📝 nhận xét "nhìn lại tuần" (lượt nhìn lại hằng tuần ghi)      // 📅 kiểm chứng hằng tuần từng kiểu chơi (research/verify.py)      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
+  // tệp kết quả phòng thử nghiệm / kiểm chứng: giữ trong bộ nhớ ≤ 1 giờ; tải hỏng (null) thì lần sau tải lại (trước: tải 1 lần cho cả phiên – app mở lâu không thấy kết quả mới)
+  const memo = (k, f) => { const M = (window.__dlM ||= {}), m = M[k]; if (!m || Date.now() - m.t > 3600e3) M[k] = { t: Date.now(), p: tryLoad(m ? `${f}?h=${Math.floor(Date.now() / 3600e3)}` : f).then((v) => { if (v == null) M[k].t = 0; return v; }) }; return M[k].p; };
+  const LABD = await memo("lab", "lab.json");
+  const VFY = await memo("vfy", "verify.json");
+  const WKN = await memo("wkn", "week.json");      // 📝 nhận xét "nhìn lại tuần" (lượt nhìn lại hằng tuần ghi)      // 📅 kiểm chứng hằng tuần từng kiểu chơi (research/verify.py)      // 🔬 phòng thử nghiệm phương pháp (tệp tĩnh nhỏ, tải 1 lần)
   mCondApply(rv?.data);      // mốc cắt lỗ / chốt vừa gửi mà máy chủ chưa báo về → vẫn hiện mốc mới (⏳), không hiện lại mốc cũ
   if (!window.__scDays || Date.now() - window.__scDays.t > 300e3) { window.__scDays = { t: Date.now(), data: window.__scDays?.data || null }; Store.get("scalpdays").then((r) => { window.__scDays = { t: Date.now(), data: r.data }; }).catch(() => {}); }      // kết quả theo ngày (thẻ "7 ngày") – 5 phút tải lại 1 lần
   const KEYH = rk.data?.h ? rk.data : null;
@@ -2095,7 +2097,7 @@ async function viewScalp() {
       const PP = m.pp || { n: 0, pnl: 0 }, PMIN = 10, notYet = PP.n < PMIN || !(PP.pnl > 0);
       const warn = !notYet ? "" : `<div class="sc-lvwarn">⚠️ <b>Sàn thử chưa thấy lời</b> – ${PP.n ? `${nf(PP.n, 0)} lệnh đã đóng, tổng <b class="${cls(PP.pnl)}">${PP.pnl >= 0 ? "+" : ""}${usd2(PP.pnl)}</b>${PP.n < PMIN ? ` (chưa đủ ${PMIN} lệnh để biết)` : " – đang lỗ sau phí"}` : "chưa có lệnh nào đã đóng"}. Nên để chạy sàn thử tới khi có ít nhất ${PMIN} lệnh và tổng lời dương rồi mới đánh ${LVLx ? "tiền thật" : "Demo"}.</div>`;
       if (!(await iosSheet({ title: `${notYet ? "⚠️ " : ""}Bật ${m.ico} ${esc(m.name)} trên ${LVLx ? "Binance TIỀN THẬT" : "Binance Demo"}?`, body: warn + body, ok: notYet ? (LVLx ? "Vẫn tiếp tục" : "Vẫn bật trên Demo") : LVLx ? "Tiếp tục" : "Bật trên Demo", danger: LVLx || notYet || m.k === "list" || m.sc === "lx", wait: (m.k === "list" || m.sc === "lx") && LVLx ? 5000 : LVLx ? (notYet ? 4000 : 1500) : notYet ? 1500 : 0 }))) return false;
-      if (LVLx && (await askText('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:')) !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
+      if (LVLx && String((await askText('Gõ "TIEN THAT" để xác nhận đánh bằng tiền thật:')) || "").trim().toUpperCase() !== "TIEN THAT") { toast("Chưa bật – xác nhận không đúng"); return false; }
     }
     if (m.main && m.k === "hook") C.lv_hk = on;
     else if (m.main) { C.lq_sec = on; if (on) C.sec_on = true; }
@@ -3667,7 +3669,7 @@ function trcPlan(r) {
   return { S: S.filter((s) => s.b > s.a), a, b: S.length ? S[S.length - 1].b : now, T: c };
 }
 async function trClip(r, env, sym) {
-  document.getElementById("trClip")?.remove();
+  try { window.__trcClose?.(true); } catch (e) { /* bỏ qua */ } document.getElementById("trClip")?.remove();
   const L = trcPlan(r); if (!L.S.length) { toast(bi("Lệnh này chưa có đủ mốc thời gian để dựng clip.", "Not enough timestamps for a clip.")); return; }
   const side = r.side > 0 ? 1 : -1, E = TENV[env] || ["", env];
   const NMS = { hook: bi("Bắt râu sập", "Wick Catcher"), sec: bi("Lướt giây", "Scalp"), pump: bi("Short coin vừa bơm", "Short pumped"), list: bi("Short coin mới niêm yết", "Short listing"), man: bi("Lệnh tay", "Manual") };
@@ -3683,7 +3685,9 @@ async function trClip(r, env, sym) {
   const box = document.getElementById("trClip"), cv = box.querySelector("canvas"), g = cv.getContext("2d"), W = cv.width, H = cv.height;
   requestAnimationFrame(() => box.classList.add("on"));
   const st = { ct: 0, play: false, sp: 1, raf: 0, last: 0, rec: null, dead: false };
-  const close = () => { st.dead = true; cancelAnimationFrame(st.raf); try { st.rec?.stop(); } catch (e) { /* bỏ qua */ } box.classList.remove("on"); setTimeout(() => box.remove(), 260); removeEventListener("keydown", key, true); };
+  const close = (now) => { if (st.dead) return; st.dead = true; cancelAnimationFrame(st.raf); try { st.rec?.stop(); } catch (e) { /* bỏ qua */ } removeEventListener("keydown", key, true); removeEventListener("hashchange", onHash);
+    if (window.__trcClose === close) window.__trcClose = null; if (now === true) box.remove(); else { box.classList.remove("on"); setTimeout(() => box.remove(), 260); } };
+  const onHash = () => close(true); addEventListener("hashchange", onHash); window.__trcClose = close;      // chuyển trang (nút lùi điện thoại…) → đóng clip, dừng vẽ
   const key = (e) => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } else if (e.key === " " && !/INPUT|BUTTON/.test(e.target.tagName)) { e.preventDefault(); toggle(); } };
   addEventListener("keydown", key, true);
   box.addEventListener("click", (e) => { if (e.target.closest("[data-trcx]")) close(); });
@@ -3783,12 +3787,13 @@ async function trClip(r, env, sym) {
   const pp = box.querySelector(".trc-pp"), sc = box.querySelector(".trc-sc"), tt = box.querySelector(".trc-t"), rec = box.querySelector(".trc-rec");
   const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const ui = () => { pp.textContent = st.play ? "⏸" : "▶"; sc.value = String(Math.round(st.ct / L.T * 1000)); tt.textContent = `${mmss(st.ct)} / ${mmss(L.T)}`; };
-  const loop = (ts) => { if (st.dead) return; const dt = st.last ? Math.min(0.1, (ts - st.last) / 1000) : 0; st.last = ts;
+  const loop = (ts) => { st.raf = 0; if (st.dead) return; const dt = st.last ? Math.min(0.1, (ts - st.last) / 1000) : 0; st.last = ts;
     if (st.play) { st.ct = Math.min(L.T, st.ct + dt * st.sp); if (st.ct >= L.T) { st.play = false; if (st.rec) setTimeout(() => st.rec?.state === "recording" && st.rec.stop(), 700); } }
-    draw(st.ct); ui(); st.raf = requestAnimationFrame(loop); };
-  const toggle = () => { if (st.rec) return; if (st.ct >= L.T) st.ct = 0; st.play = !st.play; st.last = 0; };
-  pp.onclick = toggle; box.querySelector(".trc-rs").onclick = () => { if (st.rec) return; st.ct = 0; st.play = true; st.last = 0; };
-  sc.oninput = () => { if (st.rec) return; st.ct = (+sc.value / 1000) * L.T; st.play = false; };
+    draw(st.ct); ui(); if (st.play || st.rec) st.raf = requestAnimationFrame(loop); };      // dừng / hết clip → không vẽ lại mỗi khung hình nữa
+  const kick = () => { if (!st.raf && !st.dead) { st.last = 0; st.raf = requestAnimationFrame(loop); } };
+  const toggle = () => { if (st.rec) return; if (st.ct >= L.T) st.ct = 0; st.play = !st.play; st.last = 0; kick(); };
+  pp.onclick = toggle; box.querySelector(".trc-rs").onclick = () => { if (st.rec) return; st.ct = 0; st.play = true; st.last = 0; kick(); };
+  sc.oninput = () => { if (st.rec) return; st.ct = (+sc.value / 1000) * L.T; st.play = false; kick(); };
   box.querySelectorAll("[data-sp]").forEach((b) => (b.onclick = () => { st.sp = +b.dataset.sp; box.querySelectorAll("[data-sp]").forEach((x) => x.classList.toggle("on", x === b)); }));
   const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((m) => window.MediaRecorder?.isTypeSupported?.(m));
   if (!mime || !cv.captureStream) rec.hidden = true;
@@ -3799,10 +3804,10 @@ async function trClip(r, env, sym) {
       const ext = /mp4/.test(mime) ? "mp4" : "webm", url = URL.createObjectURL(new Blob(ch, { type: mime.split(";")[0] })), d = new Date(r.tF || r.tS || L.a);
       const a = document.createElement("a"); a.href = url; a.download = `${sym}-${side > 0 ? "long" : "short"}-${d.toISOString().slice(0, 16).replace(/[:T]/g, "")}.${ext}`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30e3);
       toast(bi("Đã lưu clip video", "Video saved")); };
-    st.ct = 0; st.sp = 1; box.querySelectorAll("[data-sp]").forEach((x) => x.classList.toggle("on", x.dataset.sp === "1")); st.play = true; st.last = 0; R.start(250);
+    st.ct = 0; st.sp = 1; box.querySelectorAll("[data-sp]").forEach((x) => x.classList.toggle("on", x.dataset.sp === "1")); st.play = true; st.last = 0; R.start(250); kick();
     rec.textContent = "■ " + bi("Đang ghi… bấm để dừng", "Recording… tap to stop"); box.classList.add("rec"); };
   [pp, sc, box.querySelector(".trc-rs"), rec].forEach((b) => (b.disabled = false));
-  st.play = true; st.raf = requestAnimationFrame(loop);
+  st.play = true; kick();
 }
 window.trClip = trClip;
 document.addEventListener("click", (e) => { if (e.target.closest?.("a[data-clip]")) window.__tClip = 1;
