@@ -457,7 +457,8 @@
       const defs = el2("defs", {}, svg), cp = el2("clipPath", { id: "cdc" + uid }, defs); el2("rect", { x: 0, y: 0, width: P.w, height: P.h }, cp);
       const root = el2("g", { "clip-path": `url(#cdc${uid})` }, svg);
       if (AP.on && AP.R) drawAP(root, P);
-      if (FS.on) { if (fsN() !== FS.N) { fsCalc(); fsExt(); fsPanel(); } drawFS(root, P); }
+      // 🔮 lỗi ở lớp kịch bản không được kéo sập cả lớp vẽ (trước: gỡ hết hình vẽ, nút 🔮 kẹt "bật" và không tắt được) → tắt riêng lớp kịch bản
+      if (FS.on) { try { if (fsN() !== FS.N) { fsCalc(); fsExt(); fsPanel(); } drawFS(root, P); } catch (e) { try { console.warn("[chartdraw] lỗi lớp kịch bản – tắt", e); } catch (x) { /* bỏ qua */ } FS.err = 1; setTimeout(() => fsOn(false), 0); } }
       const list = st.hide ? [] : D.slice(); if (QM) list.push(QM); if (st.draft) list.push(st.draft);
       qSync();
       for (const d of list) {
@@ -506,7 +507,7 @@
       }
     };
     const uid = Math.random().toString(36).slice(2, 8);
-    const draw = () => { try { render(); } catch (e) { cleanup(); svg.remove(); tb.remove(); qc.remove(); AP.box?.remove(); FS.box?.remove(); } };
+    const draw = () => { try { render(); } catch (e) { try { console.warn("[chartdraw] lỗi vẽ – gỡ lớp vẽ", e); cfg.set("draw_fs", false); cfg.set("draw_ap", false); cfg.btn2?.classList.remove("on"); cfg.btn4?.classList.remove("on"); } catch (x) { /* bỏ qua */ } cleanup(); svg.remove(); tb.remove(); qc.remove(); AP.box?.remove(); FS.box?.remove(); } };
     let rq = 0; const req = () => { if (!rq && !dead) rq = requestAnimationFrame(() => { rq = 0; draw(); }); };
     let pumpT = 0; const pump = (ms = 450) => { const end = performance.now() + ms; pumpT = Math.max(pumpT, end); const f = () => { if (dead) return; draw(); if (performance.now() < pumpT) requestAnimationFrame(f); }; requestAnimationFrame(f); };
     // ---- chọn hình
@@ -773,7 +774,8 @@
         el2("polygon", { points: [...pt(5), ...pt(1).reverse()].join(" "), fill: FSC.cone, "fill-opacity": 0.08 }, G);
         el2("polygon", { points: [...pt(4), ...pt(2).reverse()].join(" "), fill: FSC.cone, "fill-opacity": 0.16 }, G);
         el2("polyline", { points: pt(3).join(" "), fill: "none", stroke: FSC.cone, "stroke-width": 1.6, "stroke-dasharray": "5 4" }, G);
-        for (const h of P.w < 560 ? [60] : [20, 60, 120]) {      // điện thoại: 1 nhãn cho đỡ chồng const b = S.bands.find((q) => q[0] === h); if (!b) continue; const x = X(h); if (!isFinite(x) || x > P.w + 10) continue;
+        // điện thoại: 1 nhãn cho đỡ chồng
+        for (const h of P.w < 560 ? [60] : [20, 60, 120]) { const b = S.bands.find((q) => q[0] === h); if (!b) continue; const x = X(h); if (!isFinite(x) || x > P.w + 10) continue;
           el2("line", { x1: x, y1: Y(b[5]), x2: x, y2: Y(b[1]), stroke: FSC.cone, "stroke-opacity": 0.45, "stroke-dasharray": "1 3" }, G);
           lbl(G, x, Y(b[5]) - 9, `80%: ${fmt(b[1])} – ${fmt(b[5])}`, FSC.cone, "middle", true, P.w); }
         return;

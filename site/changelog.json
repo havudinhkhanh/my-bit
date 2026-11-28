@@ -10,6 +10,14 @@
    "it": [
     {
      "c": "fix",
+     "a": "chart",
+     "t": "🔮 Kịch bản giá: chọn 'Dải xác suất' trên điện thoại không còn làm mất lớp vẽ và kẹt nút không tắt được",
+     "te": "🔮 Scenarios: picking 'Probability cone' on phones no longer kills the drawing layer and leaves the button stuck on",
+     "d": "Lỗi ở phần nhãn của dải xác suất (màn hình hẹp) làm cả lớp vẽ tự gỡ, nút 🔮 vẫn sáng và mỗi lần bấm lại bật lại. Đã sửa; từ nay lỗi ở lớp kịch bản chỉ tắt riêng lớp đó, hình vẽ tay vẫn giữ.",
+     "de": "A label bug in the cone (narrow screens) removed the whole drawing layer and left 🔮 stuck on. Fixed; any future error in the scenario layer only turns that layer off."
+    },
+    {
+     "c": "fix",
      "a": "live",
      "t": "Điện thoại: lệnh đã đóng cuộn theo trang, bỏ thanh 'Mỗi trang' và khung cuộn lồng",
      "te": "Phones: closed trades scroll with the page – no 'Per page' bar or nested scroll box",
