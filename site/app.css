@@ -7938,3 +7938,15 @@ a.tr-clip:hover{background:var(--brand);color:var(--brand-ink,#fff)}
 .nt-c i:not(#_n){opacity:1!important;color:color-mix(in srgb,currentColor 62%,transparent)!important;margin-left:4px}
 /* điện thoại: danh sách lệnh đã đóng chạy theo cuộn TRANG (không khung cuộn lồng bên trong, không chia trang) – xem thêm ngày cũ bằng nút "Xem thêm 7 ngày" */
 @media (max-width:760px){.sc-hl.lvt:not(#_f):not(#_g){max-height:none!important;overflow:visible!important}}
+/* thanh điều hướng dưới (điện thoại): mục ĐANG CHỌN dùng biểu tượng dạng ĐẶC (filled) như app iOS – vali, tia sét, bia, tài liệu, lưới… (Jason 28/11/2026) */
+@media (max-width:979px){
+  .tabs a.on svg,.tabs .nav-more.on svg{--fsx:var(--surface,#fff)}
+  .tabs a.on[href="#/portfolio"] svg rect,.tabs a.on[data-r="botbin"] svg rect{fill:currentColor}
+  .tabs a.on[data-r="botscalp"]:not([data-sc]) svg path,.tabs a.on[data-r="bothome"] svg rect:first-child{fill:currentColor;stroke-linejoin:round}
+  .tabs a.on[data-r="ideas"] svg circle:first-child{fill:currentColor}.tabs a.on[data-r="ideas"] svg circle:nth-child(2){stroke:var(--fsx)}.tabs a.on[data-r="ideas"] svg circle:nth-child(3){fill:currentColor;stroke:currentColor}
+  .tabs a.on[data-r="plan"] svg path:first-child,.tabs a.on[data-r="tax"] svg path:first-child{fill:currentColor}.tabs a.on[data-r="plan"] svg path:nth-child(n+2),.tabs a.on[data-r="tax"] svg path:nth-child(n+2){stroke:var(--fsx)}
+  .tabs a.on[data-sc="ov"] svg rect,.tabs .nav-more.on svg rect{fill:currentColor}
+  .tabs a.on[data-sc="ord"] svg circle{fill:currentColor;r:1.6px}.tabs a.on[data-sc="ord"] svg path{stroke-width:2.6}
+  .tabs a.on[data-r="market"] svg path{stroke-width:2.7}
+  .tabs a.on[data-r="botdays"] svg rect{fill:currentColor}.tabs a.on[data-r="botdays"] svg path{stroke:var(--fsx)}
+}

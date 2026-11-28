@@ -9,6 +9,12 @@
    "se": "Closed-trades list on phones scrolls with the page, no pager.",
    "it": [
     {
+     "c": "imp",
+     "a": "ui",
+     "t": "Thanh điều hướng dưới: mục đang chọn dùng biểu tượng dạng đặc (vali, tia sét, bia, tài liệu, lịch, lưới)",
+     "te": "Bottom tab bar: the selected tab uses a filled icon (briefcase, bolt, target, document, calendar, grid)"
+    },
+    {
      "c": "fix",
      "a": "chart",
      "t": "🔮 Kịch bản giá: chọn 'Dải xác suất' trên điện thoại không còn làm mất lớp vẽ và kẹt nút không tắt được",
