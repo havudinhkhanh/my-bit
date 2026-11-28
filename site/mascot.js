@@ -344,6 +344,7 @@
     hideGo: [["Trốn tìm. Đếm tới 10, cấm nhìn trộm", "Hide and seek. Count to 10, no peeking"], ["na trốn đây. Tìm được thì giỏi", "I'm hiding. Find me if you can"]],
     hideFound: [["Hừ, ăn may", "Hmph. Lucky"], ["Thấy thì thấy, đừng có khoe", "Fine, you found me. Don't brag"], ["Mắt tinh thế mà nhìn biểu đồ thì không", "Sharp eyes. Shame about your charts"]],
     hideWin: [["Không ai tìm ra na. Hiển nhiên", "Nobody found me. Obviously"], ["Ló đầu ngay đó mà không thấy", "I was right there"], ["Anh thua. Mèo thắng. Như mọi khi", "You lose. Cat wins. As usual"]],
+    ride: [["Thang máy chạy kiểu gì vậy, suýt ngã", "What kind of elevator is this, I nearly fell"], ["Lên tầng nào đây, bấm nút cho na", "Which floor? Press it for me"], ["Lần sau kéo từ từ, mèo không có tay vịn", "Pull slower next time. Cats have no handrails"]],
     perch: [["Chỗ cao này của na", "High ground. Mine"], ["Menu gì mà lắm mục thế", "So many menu items"], ["Chọn nhanh đi, na đứng mỏi chân", "Pick fast, my legs are tired"]],
     bat: [["Nó động đậy trước", "It moved first"], ["Tưởng con gì", "Thought it was alive"], ["Nút này của na rồi", "This button is mine now"], ["Nhìn ngứa mắt", "It was annoying me"]],
     // 🔴 tia laser · 👃 thả lên dòng coin / biểu đồ / đường cắt lỗ · 🔔 vồ chuông · 🌀 cuộn mạnh
@@ -440,6 +441,7 @@
     hideGo: [["Nhắm mắt lại, cấm ăn gian", "Close your eyes, no cheating"], ["Đi tìm đi, na giỏi trốn lắm", "Go look. I'm great at hiding"]],
     hideFound: [["Hôm nay anh may", "Lucky today"], ["Để na trốn lại, lần này khó hơn", "Let me hide again, harder this time"]],
     hideWin: [["Na là cao thủ trốn tìm", "Hide-and-seek master"], ["Tìm na còn khó hơn tìm kèo thơm", "Harder to find than a good setup"]],
+    ride: [["Ui, thang máy lên nhanh quá", "Whoa, fast elevator"], ["Na đi thang máy nè", "Elevator ride!"], ["Chóng mặt chút xíu", "A little dizzy"]],
     perch: [["Đứng đây nhìn rõ hết", "I can see everything from here"], ["Chỗ này ấm ghê", "Warm spot"]],
     bat: [["Đập thử cái", "Just a tap"], ["Nó dám nhúc nhích", "It dared to move"]],
     laserOn: [["Na thấy rồi nhé", "I see it"], ["Chấm đỏ chạy đâu", "Where's the red dot going"]],
@@ -1016,6 +1018,12 @@
     info: [["Tin đây.", "News."], ["Nghe này.", "Listen."], ["Đừng giả vờ không thấy.", "Don't pretend you missed it."]],
   };
   const NE = { err: [["Sửa đi.", "Fix it."], ["Đừng để nhắc lần hai.", "Don't make me repeat."]], warn: [["Xử luôn.", "Handle it."], ["Để đó là quên.", "Leave it, forget it."]], ok: [["Giữ phong độ.", "Keep it up."], ["Lần sau tự giác.", "Self-start next time."]], info: [["Bấm mà xem.", "Tap it."], ["Xem rồi tính.", "Look, then decide."]] };
+  // câu nhắc dưới thông báo KHÔNG có nút: nói đúng việc của thông báo (trước: "Bấm mà xem." trong khi chẳng có gì để bấm)
+  const ntTip = (m, tp) => { const T = [[/tự cập nhật|đã cập nhật|làm mới|đồng bộ/i, ["Số liệu vừa làm mới, khỏi tải lại trang.", "Fresh numbers. No need to reload."]], [/sao chép|đã chép|copy/i, ["Nằm sẵn trong bộ nhớ tạm, dán đâu cũng được.", "It's on the clipboard. Paste anywhere."]],
+      [/đã lưu|lưu xong|saved/i, ["Lưu trên tài khoản rồi, máy khác cũng thấy.", "Saved to the account. Other devices see it too."]], [/đã bật|đã tắt|bật rồi|tắt rồi/i, ["Có hiệu lực ngay, không cần làm gì thêm.", "Takes effect now. Nothing else to do."]],
+      [/đã đóng|chốt lời|cắt lỗ/i, ["Ghi vào sổ lệnh rồi, xem lại ở tab Lệnh.", "Logged. Review it in the Orders tab."]], [/đã đặt|lệnh chờ/i, ["Lệnh nằm trên sàn rồi, khớp thì na báo.", "Order is on the exchange. I'll tell you when it fills."]]];
+    for (const [re, v] of T) if (re.test(m)) return L(v[0], v[1]);
+    return tp === "info" ? L("Chỉ báo tin, không cần làm gì thêm.", "Just so you know. Nothing to do.") : ""; };
   const ntType = (msg, o) => o.type || (/^(⛔|❌|Lỗi|Error|Không lưu|Chưa lưu được)/i.test(msg) ? "err" : /^(⚠️|Chưa|Không|Cần|Hãy)/.test(msg) ? "warn" : /^(✅|Đã|Đang lưu|Saved)/.test(msg) ? "ok" : "info");
   function notify(msg, o = {}) { NT.q.push([String(msg ?? ""), o]); if (NT.q.length > 4) NT.q.splice(0, NT.q.length - 4); if (!NT.cur) ntNext(); return true; }
   function ntNext() {
@@ -1025,7 +1033,7 @@
     const ms = (o.ms || (o.title ? 6500 : tp === "err" ? 6000 : tp === "warn" ? 4500 : 3400)) + 2600;
     NT.cur = { o, ms }; S.busy = false;
     const html = `<span class="q">${esc2(pk(NI[tp]))}</span><div class="nc t-${tp}${act ? " lnk" : ""}" role="${tp === "err" ? "alert" : "status"}"><i class="ic">${esc2(o.icon || ICO[tp])}</i><span class="m"><b>${esc2(o.title ? (o.icon && o.title.startsWith(o.icon) ? o.title.slice(o.icon.length).trim() : o.title) : body)}</b>${o.title ? `<small>${esc2(body)}</small>` : ""}</span></div>
-      <div class="na"><span class="e">${act ? "" : esc2(pk(NE[tp]))}</span>${act ? `<button type="button" class="go">${esc2(L("Xem ngay", "Open"))}</button>` : ""}<button type="button" class="x">${esc2(L("Biết rồi", "Got it"))}</button></div><i class="tp" style="animation-duration:${ms}ms"></i>`;
+      <div class="na"><span class="e">${act ? "" : esc2(ntTip(body + " " + (o.title || ""), tp) || pk(NE[tp]))}</span>${act ? `<button type="button" class="go">${esc2(L("Xem ngay", "Open"))}</button>` : ""}<button type="button" class="x">${esc2(L("Biết rồi", "Got it"))}</button></div><i class="tp" style="animation-duration:${ms}ms"></i>`;
     if (!bubble(html, ms, 9, "nt")) { NT.cur = null; orig?.(msg, o); return ntNext(); }
     if (tp === "err" || Math.random() < 0.35) meow(1);
     halt(); play(tp === "err" ? "crouch" : "lookup"); setTimeout(() => { if (S.pose === "lookup" || S.pose === "crouch") play(tp === "ok" ? "licklip" : "sit"); }, 1800); sched(idle, ms + 2000);
@@ -1162,20 +1170,35 @@
   // menu "Thêm" (bảng dưới lên): na ĐỨNG TRÊN mép bảng và đi lên / xuống CÙNG LÚC với bảng – theo từng khung hình (mở, đóng, ngón tay kéo bảng xuống)
   //   trước: đợi bảng mở xong mới nhảy lên, đóng xong mới nhảy xuống → luôn trễ nhịp
   const msIn = () => { const ms = document.getElementById("msheet"); return ms && !ms.hidden && !ms.classList.contains("side") ? ms.querySelector(".msheet-in") : null; };
+  const SPR = { k: (2 * Math.PI / 260) ** 2, c: 2 * 0.4 * (2 * Math.PI / 260), g: 0.008 };
   function groundB() { const p = S.perch; S.perch = null; const v = track0(); S.perch = p; return v.b; }
   function rideOn(p) {
     if (!S.el || S.away || S.hide || LF.on || napping()) return;
     halt(); clearTimeout(S.tm); clearTimeout(S.perchOT); S.walkTk = (S.walkTk || 0) + 1; S.chasing = false; ST.on = false; S.busy = true; S.perch = p; TRC = null;
     const tk = (S.ride = (S.ride || 0) + 1), nb = groundB(); let last = null, calm = 0, set = false;
-    S.el.classList.add("mperch"); S.el.style.transition = "none"; setT(`translate3d(${snap(S.x)}px,0,0)`); play("sit", 1, true);
+    S.el.classList.add("mperch"); S.el.style.transition = "none"; setT(`translate3d(${snap(S.x)}px,0,0)`); play(hasV("crouch") && !RM.matches ? "crouch" : "sit", 1, true);
+    // 🛗 đi thang máy (Jason 28/11/2026: "bị đẩy lên mà không phản ứng gì"): thân mèo là lò xo đặt trên sàn bảng – sàn tăng tốc lên → mèo bị nén (khuỵu),
+    //    sàn phanh ở trên → quán tính bật mèo khỏi sàn một chút rồi đáp, lắc nhẹ cho lại thăng bằng; đi xuống thì ngược lại. Giảm chuyển động (hệ thống) → không nhún.
+    const C = S.el.querySelector(".mun-c"), K = { z: 0, w: 0, v0: 0, t: performance.now(), pk: 0, tilt: 0 }, phys = C && !RM.matches;
+    const body = (z, tl) => { if (!C) return; if (Math.abs(z) < 0.02 && Math.abs(tl) < 0.05) { C.style.transform = ""; return; }
+      const sq = Math.max(-1, Math.min(1, z)), sy = sq > 0 ? 1 - 0.13 * sq : 1 + 0.05 * -sq, sx = sq > 0 ? 1 + 0.07 * sq : 1 - 0.03 * -sq, up = sq < 0 ? -sq * 9 * (S.s / 0.2) : 0;
+      C.style.transformOrigin = "50% 100%"; C.style.transform = `translateY(${(-up).toFixed(1)}px) rotate(${tl.toFixed(2)}deg) scale(${sx.toFixed(3)},${sy.toFixed(3)})`; };
     const f = () => {
-      if (!S.el || S.ride !== tk) return;
+      if (!S.el || S.ride !== tk) { body(0, 0); return; }
       const ms = document.getElementById("msheet"), gone = !p.isConnected || !ms || ms.hidden || ms.classList.contains("side"), q = gone ? null : p.getBoundingClientRect();
       const b = q && q.width > 0 ? Math.max(nb, Math.round(VH - q.top - 1)) : nb;
+      if (phys) {      // lò xo: gia tốc sàn (px/ms²) đẩy độ nén z; z > 0 = khuỵu, z < 0 = bật khỏi sàn
+        const t = performance.now(), dt = Math.min(48, Math.max(8, t - K.t)); K.t = t;
+        const v = last == null ? 0 : (b - last) / dt, a = (v - K.v0) / dt; K.v0 = v;
+        for (let i = 0; i < 4; i++) { const h = dt / 4; K.w += (SPR.g * a - SPR.k * K.z - SPR.c * K.w) * h; K.z += K.w * h; }      // lò xo chu kỳ ~260 ms, cản 0,4
+        K.z = Math.max(-1, Math.min(1, K.z));
+        if (Math.abs(a) > 0.004) K.tilt = Math.max(-4, Math.min(4, K.tilt + (S.face || 1) * a * 120));
+        K.tilt *= 0.9; body(K.z, K.tilt); if (Math.abs(a) > 0.002) calm = 0;
+      }
       if (b !== last) { if (S.el.style.bottom !== b + "px") S.el.style.bottom = b + "px"; last = b; calm = 0; TRC = null; } else calm++;
-      if ((gone || ms.classList.contains("out")) && b <= nb) {      // bảng đã xuống tới thanh điều hướng → đứng lại trên thanh
-        S.ride = 0; S.perch = null; TRC = null; S.el.classList.remove("mperch"); S.busy = false; place(S.x); sched(idle, rnd(3e3, 6e3)); return; }
-      if (!set && calm > 10) { set = true; S.busy = false; TRC = null; place(S.x); if (S.cfg.talk !== "q" && Math.random() < 0.6) say(pick("perch"), 2400, 1); sched(idle, rnd(4e3, 7e3)); }
+      if ((gone || ms.classList.contains("out")) && b <= nb && (!phys || Math.abs(K.z) + Math.abs(K.w) < 0.05)) {      // bảng đã xuống tới thanh điều hướng (và hết nhún) → đứng lại trên thanh
+        body(0, 0); S.ride = 0; S.perch = null; TRC = null; S.el.classList.remove("mperch"); S.busy = false; place(S.x); sched(idle, rnd(3e3, 6e3)); return; }
+      if (!set && calm > 10 && (!phys || Math.abs(K.z) + Math.abs(K.w) < 0.05)) { set = true; body(0, 0); play("sit"); S.busy = false; TRC = null; place(S.x); if (S.cfg.talk !== "q" && Math.random() < 0.75) say(pick(Math.random() < 0.6 ? "ride" : "perch"), 2600, 1); sched(idle, rnd(4e3, 7e3)); }
       requestAnimationFrame(f);
     };
     requestAnimationFrame(f);

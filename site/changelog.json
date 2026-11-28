@@ -10,6 +10,22 @@
    "it": [
     {
      "c": "imp",
+     "a": "mascot",
+     "t": "Na đi \"thang máy\" khi mở bảng Thêm: khuỵu chân lúc bảng vọt lên, bật nhẹ khỏi sàn lúc phanh rồi lắc lại thăng bằng",
+     "te": "Na rides the 'elevator' when the More sheet opens: crouches as it shoots up, lifts off a bit when it brakes, then wobbles back to balance",
+     "d": "Trước Na chỉ bị đẩy lên như tượng. Giờ thân mèo như lò xo đặt trên mép bảng (cả lúc bảng đóng đi xuống), xong mới ngồi và có câu bình luận về chuyến thang máy. Máy bật giảm chuyển động thì không nhún.",
+     "de": "Previously Na was pushed up like a statue. Now her body acts like a spring on the sheet edge (also when it closes), then she sits and comments on the ride. No bounce with reduced motion."
+    },
+    {
+     "c": "fix",
+     "a": "mascot",
+     "t": "Câu nhắc dưới thông báo của Na nói đúng việc (không còn \"Bấm mà xem.\" khi chẳng có gì để bấm)",
+     "te": "Na's line under notifications now fits the message (no more 'Tap it.' when there's nothing to tap)",
+     "d": "Ví dụ cập nhật danh mục: \"Số liệu vừa làm mới, khỏi tải lại trang.\" · đã lưu: \"Lưu trên tài khoản rồi, máy khác cũng thấy.\" · đã đặt lệnh: \"Lệnh nằm trên sàn rồi, khớp thì na báo.\"",
+     "de": "E.g. portfolio refresh: 'Fresh numbers. No need to reload.' · saved: 'Saved to the account…' · order placed: 'Order is on the exchange…'"
+    },
+    {
+     "c": "imp",
      "a": "ui",
      "t": "Thanh điều hướng dưới: mục đang chọn dùng biểu tượng dạng đặc (vali, tia sét, bia, tài liệu, lịch, lưới)",
      "te": "Bottom tab bar: the selected tab uses a filled icon (briefcase, bolt, target, document, calendar, grid)"
